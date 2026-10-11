@@ -1,11 +1,39 @@
-// Parameter registry, imported by both the main thread and the worklet.
-// One slot per parameter in a shared block of 32-bit floats.
-export const PARAMS = [
-  { id: 'tone.freq', min: 20, max: 2000, def: 220 },
-  { id: 'tone.level', min: 0, max: 1, def: 0.2 },
-];
+// Parameter registry. One slot per parameter in a shared block of 32-bit floats.
+// The graph compiler allocates slots; the UI and sequencer write them; the
+// audio thread reads them once per block.
+export const PARAM_CAPACITY = 1024;
 
-export const PARAM_COUNT = PARAMS.length;
-export const SLOT = Object.fromEntries(PARAMS.map((p, i) => [p.id, i]));
+export class ParamRegistry {
+  slots = new Map();
+  meta = [];
 
-export const initParams = view => PARAMS.forEach((p, i) => { view[i] = p.def; });
+  constructor(sab = new SharedArrayBuffer(PARAM_CAPACITY * 4)) {
+    this.sab = sab;
+    this.values = new Float32Array(sab);
+  }
+
+  // Re-allocating a known address returns its slot and keeps the current value.
+  allocate(address, def, min, max) {
+    const known = this.slots.get(address);
+    if (known !== undefined) return known;
+    const slot = this.slots.size;
+    if (slot >= PARAM_CAPACITY) throw new Error('parameter block is full');
+    this.slots.set(address, slot);
+    this.meta[slot] = { address, min, max };
+    this.values[slot] = def;
+    return slot;
+  }
+
+  set(address, value) {
+    const slot = this.slots.get(address);
+    if (slot === undefined) throw new Error(`unknown parameter "${address}"`);
+    const { min, max } = this.meta[slot];
+    this.values[slot] = Math.min(max, Math.max(min, value));
+  }
+
+  get(address) {
+    const slot = this.slots.get(address);
+    if (slot === undefined) throw new Error(`unknown parameter "${address}"`);
+    return this.values[slot];
+  }
+}

@@ -1,9 +1,11 @@
-import { PARAM_COUNT, SLOT, initParams } from './params.js';
+import { NODE_TYPES } from './nodes/index.js';
+import { ParamRegistry } from './params.js';
+import { compile } from '../graph/compile.js';
 
 export class Engine {
   ctx = null;
   node = null;
-  params = null;
+  registry = new ParamRegistry();
 
   async start() {
     if (!crossOriginIsolated) {
@@ -11,22 +13,35 @@ export class Engine {
     }
     this.ctx = new AudioContext({ latencyHint: 'interactive' });
     await this.ctx.audioWorklet.addModule(new URL('./worklet.js', import.meta.url));
-
-    const sab = new SharedArrayBuffer(PARAM_COUNT * 4);
-    this.params = new Float32Array(sab);
-    initParams(this.params);
-
     this.node = new AudioWorkletNode(this.ctx, 'tracker-engine', {
       numberOfInputs: 0,
       outputChannelCount: [2],
-      processorOptions: { sab },
+      processorOptions: { sab: this.registry.sab },
     });
     this.node.connect(this.ctx.destination);
     await this.ctx.resume();
   }
 
+  // Compiles on the main thread and posts the flat result to the worklet.
+  loadInstrument(instrument, desc) {
+    const graph = compile(desc, { instrument, nodeTypes: NODE_TYPES, registry: this.registry });
+    this.node.port.postMessage({ type: 'load', graph });
+  }
+
+  sendToNode(instrument, node, msg, transfer = []) {
+    this.node.port.postMessage({ type: 'node', instrument, node, msg }, transfer);
+  }
+
+  noteOn(instrument, note, vel = 1) {
+    this.node.port.postMessage({ type: 'note', instrument, msg: { type: 'noteOn', note, vel } });
+  }
+
+  noteOff(instrument, note) {
+    this.node.port.postMessage({ type: 'note', instrument, msg: { type: 'noteOff', note } });
+  }
+
   // Latest-value mailbox: the worklet reads this slot once per block.
-  set(id, value) {
-    if (this.params) this.params[SLOT[id]] = value;
+  set(address, value) {
+    this.registry.set(address, value);
   }
 }
