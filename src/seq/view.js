@@ -12,7 +12,7 @@ const isNote = token => /^[A-G][-#]\d$/.test(token);
 // Keyboard-driven view of every lane side by side. The cursor sits on one character
 // of one cell. Edits go straight into the shared pages, so they are heard on the next
 // tick while the song plays. Call load() with the prepared lanes before drawing.
-export function createTrackerView({ el, statusEl, transport, onToggle, onBack }) {
+export function createTrackerView({ el, statusEl, transport, onToggle, onBack, onMove }) {
   let lanes = null, len = 0, widths = [], editor = null;
   const cur = { lane: 0, tick: 0, col: 0, ch: 0 };
   let octave = 3, message = '';
@@ -111,6 +111,7 @@ export function createTrackerView({ el, statusEl, transport, onToggle, onBack })
       return;
     }
     const k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+    const was = [cur.lane, cur.tick];
     let used = true;
     switch (k) {
       case 'ArrowUp': moveRow(-1); break;
@@ -136,6 +137,7 @@ export function createTrackerView({ el, statusEl, transport, onToggle, onBack })
       default: used = typeKey(k);
     }
     if (used) e.preventDefault();
+    if (onMove && (cur.lane !== was[0] || cur.tick !== was[1])) onMove(cur.lane, cur.tick);   // keep the arrangement in step
   });
 
   const draw = () => {

@@ -461,7 +461,7 @@ const firstSound = x => x.findIndex(v => Math.abs(v) > 1e-9);
   assert.equal(editor.undo(), null);
 
   for (let i = 0; i < 30; i++) editor.insertPattern(1, i % 2 ? 0 : 1) || editor.remove(1, 0);   // many changes
-  for (let i = 0; i < 40; i++) editor.slice(0, 3 + (i % 3)); 
+  for (let i = 0; i < 40; i++) editor.slice(0, 3 + (i % 3));
   assert.ok(editor.log().length <= 20);
 }
 
@@ -476,7 +476,8 @@ const firstSound = x => x.findIndex(v => Math.abs(v) > 1e-9);
   let onKey, opened = null;
   const el = { addEventListener: (_, f) => { onKey = f; }, innerHTML: '' };
   const statusEl = { textContent: '' };
-  const view = createSequenceView({ el, statusEl, transport: new Int32Array(new SharedArrayBuffer(8)), onToggle() {}, onOpen: (l, t) => { opened = [l, t]; } });
+  const moves = [];
+  const view = createSequenceView({ el, statusEl, transport: new Int32Array(new SharedArrayBuffer(8)), onToggle() {}, onOpen: (l, t) => { opened = [l, t]; }, onMove: (l, t) => moves.push([l, t]) });
   view.load({ lanes, song: demoSong, editor });
   const press = (key, extra = {}) => onKey({ key, preventDefault() {}, ...extra });
   const lead = lanes[0];
@@ -492,12 +493,46 @@ const firstSound = x => x.findIndex(v => Math.abs(v) > 1e-9);
   view.draw(); assert.ok(statusEl.textContent.includes('tick 16'), `cursor should jump to the end: ${statusEl.textContent}`);
   press('0'); press('9');                                                // no pattern 09
   view.draw(); assert.ok(statusEl.textContent.includes('No pattern 09'));
-  press('ArrowDown');                                                    // bass lane
+  press('ArrowRight');                                                   // bass lane
   press('Home');
   press('s');                                                            // slice at tick 0: nothing to cut
   view.draw(); assert.ok(statusEl.textContent.includes("Can't slice"), statusEl.textContent);
   press('z', { ctrlKey: true });                                         // undo the placement of 00 on the lead lane
   assert.equal(placementAt(lead, 0), null);
+
+  // layout: time runs down, lanes are columns
+  view.goto(0, 0);
+  view.draw();
+  const rows = el.innerHTML.split('\n');
+  assert.ok(rows[0].includes('&lt;b&gt;x&lt;/b&gt;'), 'lane names are the column headers');
+  assert.ok(rows[1].startsWith(' 00') && rows[2].startsWith(' 01'), 'one row per tick, counting down');
+  assert.ok(rows.slice(2, 10).some(r => r.includes('│')), 'blocks continue down the rows');
+  press('ArrowDown'); press('ArrowDown');                                // time moves down the rows
+  assert.deepEqual(moves.at(-1), [0, 2]);
+  press('ArrowRight');                                                   // and right changes lane
+  assert.deepEqual(moves.at(-1), [1, 2]);
+}
+
+// 25. The two views follow each other: moving in one reports the position for the other.
+{
+  const registry = new ParamRegistry();
+  for (const [id, def] of Object.entries(instruments)) compile(def.graph, { instrument: id, nodeTypes: NODE_TYPES, registry });
+  const lanes = prepareSong(demoSong, instruments, registry);
+  const editor = createEditor(lanes, 32);
+  let onKey;
+  const moves = [];
+  const view = createTrackerView({
+    el: { addEventListener: (_, f) => { onKey = f; }, innerHTML: '' }, statusEl: {}, transport: new Int32Array(new SharedArrayBuffer(8)),
+    onToggle() {}, onBack() {}, onMove: (l, t) => moves.push([l, t]),
+  });
+  view.load({ lanes, song: demoSong, editor });
+  const press = key => onKey({ key, preventDefault() {} });
+  press('ArrowDown'); press('ArrowDown');
+  assert.deepEqual(moves.at(-1), [0, 2]);
+  press('Tab');
+  assert.deepEqual(moves.at(-1), [1, 2]);
+  view.goto(0, 9);                                                       // being moved from outside reports nothing back
+  assert.equal(moves.length, 3);
 }
 
 console.log('smoke test passed');

@@ -39,10 +39,12 @@ $('play').addEventListener('click', e => { togglePlay(); e.currentTarget.blur();
 const view = createTrackerView({
   el: $('view'), statusEl: $('cursor'), transport: engine.transport, onToggle: togglePlay,
   onBack: () => $('seq').focus(),
+  onMove: (lane, tick) => seqView.goto(lane, tick),
 });
 const seqView = createSequenceView({
   el: $('seq'), statusEl: $('seq-status'), transport: engine.transport, onToggle: togglePlay,
   onOpen: (lane, tick) => { view.goto(lane, tick); $('view').focus(); },
+  onMove: (lane, tick) => view.goto(lane, tick),
 });
 
 // Loads a project into the running engine: { song, instruments, samples }.

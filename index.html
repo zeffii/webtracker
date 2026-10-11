@@ -13,13 +13,13 @@
     #status { opacity: .7; min-height: 1.5em; }
     #view:focus, #seq:focus { outline: 1px solid; }
     #seq { font: 13px/1.35 ui-monospace, Consolas, monospace; overflow-x: auto; }
-    #seq .cur { background: Highlight; color: HighlightText; }
     #seq .p0 { background: hsl(210 70% 55% / .35); }
     #seq .p1 { background: hsl(150 60% 45% / .35); }
     #seq .p2 { background: hsl(30 80% 55% / .35); }
     #seq .p3 { background: hsl(280 60% 60% / .35); }
     #seq .p4 { background: hsl(0 70% 55% / .35); }
     #seq .p5 { background: hsl(55 70% 50% / .35); }
+    #seq .cur { background: Highlight; color: HighlightText; }
     #seq-status { min-height: 1.5em; }
     #view .cell { background: color-mix(in srgb, Highlight 25%, transparent); }
     #view .cur { background: Highlight; color: HighlightText; }
@@ -40,10 +40,10 @@
   <h2>Arrangement</h2>
   <pre id="seq" tabindex="0"></pre>
   <p id="seq-status"></p>
-  <p class="help">Left/Right move in time, Up/Down change lane, PgUp/PgDn 16 ticks. Enter opens the pattern under
+  <p class="help">Up/Down move in time, Left/Right change lane, PgUp/PgDn 16 ticks. Enter opens the pattern under
     the cursor in the grid, or inserts a new one; I inserts a new pattern on top. Two hex digits place that pattern
     (see the list) and jump to its end. N clones, S slices at the cursor, + and - change length by 16,
-    , and . move it a tick (&lt; and &gt; sixteen), Delete removes it. Ctrl+Z undoes, Ctrl+Y redoes,
+    , and . move it up or down a tick (&lt; and &gt; sixteen), Delete removes it. Ctrl+Z undoes, Ctrl+Y redoes,
     W sets a waypoint and Shift+W restores it. Space plays.</p>
 
   <h2>Pattern grid</h2>
