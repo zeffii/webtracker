@@ -2,11 +2,12 @@ import { Engine } from './audio/engine.js';
 import { makePluck } from './audio/sample.js';
 import { instruments } from './instruments.js';
 import { prepareSong } from './seq/lane.js';
+import { createTrackerView } from './seq/view.js';
 import { song } from './song.js';
 
 const engine = new Engine();
 const $ = id => document.getElementById(id);
-let started = false, lanes = [];
+let started = false;
 
 // Live sliders write the lead's exposed parameters. Where the pattern has a value
 // on a tick it wins; empty pattern cells leave the slider's value alone.
@@ -26,31 +27,13 @@ for (const b of bindings) {
   apply(b);
 }
 
-// Playback view: every lane side by side, current tick in bold.
-const draw = () => {
-  if (lanes.length) {
-    const tick = engine.tick, len = song.length;
-    const widths = lanes.map(l => l.rows[0].join(' ').length);
-    const lines = [`    ${lanes.map((l, i) => l.id.padEnd(widths[i])).join('  ')}`];
-    for (let k = -4; k < 12; k++) {
-      const t = (tick + k + len) % len;
-      const row = `${k === 0 ? '>' : ' '}${String(t).padStart(2, '0')} ${lanes.map(l => l.rows[t].join(' ')).join('  ')}`;
-      lines.push(k === 0 ? `<b>${row}</b>` : row);
-    }
-    $('view').innerHTML = lines.join('\n');
-  }
-  requestAnimationFrame(draw);
+let playing = false;
+const togglePlay = () => {
+  playing = !playing;
+  if (playing) engine.play(); else engine.stop();
+  $('play').textContent = playing ? 'Stop' : 'Play';
 };
-
-$('play').addEventListener('click', () => {
-  if (engine.transport[1]) {
-    engine.stop();
-    $('play').textContent = 'Play';
-  } else {
-    engine.play();
-    $('play').textContent = 'Stop';
-  }
-});
+$('play').addEventListener('click', e => { togglePlay(); e.currentTarget.blur(); });
 
 $('start').addEventListener('click', async () => {
   try {
@@ -60,7 +43,7 @@ $('start').addEventListener('click', async () => {
       engine.loadInstrument(id, def.graph);
       engine.sendToNode(id, 'sampler', { type: 'sample', data: data.slice(), rate: engine.ctx.sampleRate });
     }
-    lanes = prepareSong(song, instruments, engine.registry);
+    const lanes = prepareSong(song, instruments, engine.registry);
     engine.setSong(song);
     for (const { id, instrument, columns, pages } of lanes) engine.setLane({ id, instrument, columns, pages });
     started = true;
@@ -69,7 +52,12 @@ $('start').addEventListener('click', async () => {
     $('play').disabled = false;
     $('status').textContent =
       `Running at ${engine.ctx.sampleRate} Hz, base latency ${(engine.ctx.baseLatency * 1000).toFixed(1)} ms`;
-    draw();
+    const view = createTrackerView({
+      el: $('view'), statusEl: $('cursor'), lanes, song, transport: engine.transport, onToggle: togglePlay,
+    });
+    $('view').focus();
+    const frame = () => { view.draw(); requestAnimationFrame(frame); };
+    frame();
   } catch (err) {
     $('status').textContent = err.message;
   }

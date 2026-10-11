@@ -1,6 +1,7 @@
-// A hand-written test song: two lanes playing at once. Columns: Note Vel Cut Res Mix.
-// '...' and '..' are empty cells; '===' is note off. An empty parameter cell
-// leaves the parameter as it is.
+// A hand-written test song: two lanes playing at once.
+// Columns: Note Vel Cut Res Mix Time Cmd. Empty cells are dots, '===' is note off,
+// and missing cells at the end of a row are empty. An empty parameter cell leaves
+// the parameter as it is. Cmd is CCXXYY: command 02 is resonance, 03 delay time.
 export const song = {
   bpm: 120,
   ticksPerBeat: 4,
@@ -12,7 +13,7 @@ export const song = {
       patterns: {
         arp: {
           text: `
-            C-4 .. 70 50 40
+            C-4 .. 70 50 40 4C9E
             ... .. 78 .. ..
             D#4 .. 80 .. ..
             ... .. 88 .. ..
@@ -31,9 +32,9 @@ export const song = {
         },
         fill: {
           text: `
-            C-5 .. F0 .. 80
+            C-5 .. F0 .. 80 2000
             G-4 .. F0 .. 80
-            D#5 .. F0 .. 80
+            D#5 .. F0 .. 80 .... 02A000
             === .. F0 .. 80`,
         },
       },

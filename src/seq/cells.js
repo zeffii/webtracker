@@ -3,25 +3,50 @@
 export const EMPTY = -1, CUT = -0.75, OFF = -0.5;
 const NAMES = ['C-', 'C#', 'D-', 'D#', 'E-', 'F-', 'F#', 'G-', 'G#', 'A-', 'A#', 'B-'];
 
+// Cell kinds: characters per cell, float channels in the lane buffer, empty token.
+// cmd is CCXXYY: a 2hex command id on one channel, a 4hex value on the next.
+export const KINDS = {
+  note: { width: 3, channels: 1, blank: '...' },
+  '2hex': { width: 2, channels: 1, blank: '..' },
+  '4hex': { width: 4, channels: 1, blank: '....' },
+  cmd: { width: 6, channels: 2, blank: '......' },
+};
+
+const hexCell = (token, digits, denom) => {
+  if (token === '.'.repeat(digits)) return EMPTY;
+  if (!new RegExp(`^[0-9A-Fa-f]{${digits}}$`).test(token)) throw new Error(`bad ${digits}-digit hex cell "${token}"`);
+  return parseInt(token, 16) / denom;
+};
+
+// Returns one float per buffer channel.
 export function encodeCell(token, kind) {
   if (kind === 'note') {
-    if (token === '...') return EMPTY;
-    if (token === '^^^') return CUT;
-    if (token === '===') return OFF;
+    if (token === '...') return [EMPTY];
+    if (token === '^^^') return [CUT];
+    if (token === '===') return [OFF];
     const semitone = NAMES.indexOf(token.slice(0, 2)), octave = Number(token[2]);
     const midi = (octave + 1) * 12 + semitone;
     if (token.length !== 3 || semitone < 0 || !Number.isInteger(octave) || midi > 127) {
       throw new Error(`bad note "${token}"`);
     }
-    return midi / 127;
+    return [midi / 127];
   }
-  if (kind === '2hex') {
-    if (token === '..') return EMPTY;
-    if (!/^[0-9A-Fa-f]{2}$/.test(token)) throw new Error(`bad 2hex cell "${token}"`);
-    return parseInt(token, 16) / 255;
+  if (kind === '2hex') return [hexCell(token, 2, 255)];
+  if (kind === '4hex') return [hexCell(token, 4, 65535)];
+  if (kind === 'cmd') {
+    if (token === KINDS.cmd.blank) return [EMPTY, EMPTY];
+    return [hexCell(token.slice(0, 2), 2, 255), hexCell(token.slice(2), 4, 65535)];
   }
   throw new Error(`unknown cell kind "${kind}"`);
 }
 
+// A note token from an absolute semitone count above C-0. Throws if out of range.
+export function noteToken(semitones) {
+  const token = `${NAMES[semitones % 12]}${Math.floor(semitones / 12)}`;
+  encodeCell(token, 'note');
+  return token;
+}
+
 export const decodeNote = v => Math.round(v * 127);
 export const decodeHex2 = v => Math.round(v * 255);
+export const decodeHex4 = v => Math.round(v * 65535);

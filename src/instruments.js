@@ -1,11 +1,21 @@
 import { samplerPreset } from './presets.js';
 
-// The sampler's pattern format is fixed by this list. Each entry becomes a 2hex
-// column that writes the named node parameter.
+// The sampler's pattern format is fixed by these lists. Each exposed entry becomes
+// a column that writes the named node parameter (2hex, or 4hex with bits: 16).
+// The command table gives the CCXXYY column its meaning; the ids are free to change.
 const samplerExposed = [
   { node: 'filter', param: 'cutoff', label: 'Cut', scale: 'log' },
   { node: 'filter', param: 'resonance', label: 'Res' },
   { node: 'delay', param: 'mix', label: 'Mix' },
+  { node: 'delay', param: 'time', label: 'Time', bits: 16 },
+];
+
+const samplerCommands = [
+  { id: 0x01, node: 'filter', param: 'cutoff', scale: 'log' },
+  { id: 0x02, node: 'filter', param: 'resonance' },
+  { id: 0x03, node: 'delay', param: 'time' },
+  { id: 0x04, node: 'delay', param: 'feedback' },
+  { id: 0x05, node: 'delay', param: 'mix' },
 ];
 
 const withParams = (graph, overrides) => ({
@@ -15,6 +25,14 @@ const withParams = (graph, overrides) => ({
 
 export const instruments = {
   // Output gain is lowered so two lanes together stay under full scale.
-  lead: { graph: withParams(samplerPreset, { out: { gain: 0.6 } }), exposed: samplerExposed },
-  bass: { graph: withParams(samplerPreset, { filter: { cutoff: 500 }, delay: { mix: 0 }, out: { gain: 0.6 } }), exposed: samplerExposed },
+  lead: {
+    graph: withParams(samplerPreset, { out: { gain: 0.6 } }),
+    exposed: samplerExposed,
+    commands: samplerCommands,
+  },
+  bass: {
+    graph: withParams(samplerPreset, { filter: { cutoff: 500 }, delay: { mix: 0 }, out: { gain: 0.6 } }),
+    exposed: samplerExposed,
+    commands: samplerCommands,
+  },
 };
