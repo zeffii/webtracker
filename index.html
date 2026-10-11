@@ -6,12 +6,21 @@
   <title>webtracker: sequencer</title>
   <style>
     :root { color-scheme: light dark; font-family: system-ui, sans-serif; }
-    body { max-width: 40rem; margin: 2rem auto; padding: 0 1rem; }
+    body { max-width: 60rem; margin: 2rem auto; padding: 0 1rem; }
     label { display: grid; gap: .25rem; margin: 1rem 0; }
     input[type=range] { width: 100%; }
     output { font-variant-numeric: tabular-nums; }
     #status { opacity: .7; min-height: 1.5em; }
-    #view:focus { outline: 1px solid; }
+    #view:focus, #seq:focus { outline: 1px solid; }
+    #seq { font: 13px/1.35 ui-monospace, Consolas, monospace; overflow-x: auto; }
+    #seq .cur { background: Highlight; color: HighlightText; }
+    #seq .p0 { background: hsl(210 70% 55% / .35); }
+    #seq .p1 { background: hsl(150 60% 45% / .35); }
+    #seq .p2 { background: hsl(30 80% 55% / .35); }
+    #seq .p3 { background: hsl(280 60% 60% / .35); }
+    #seq .p4 { background: hsl(0 70% 55% / .35); }
+    #seq .p5 { background: hsl(55 70% 50% / .35); }
+    #seq-status { min-height: 1.5em; }
     #view .cell { background: color-mix(in srgb, Highlight 25%, transparent); }
     #view .cur { background: Highlight; color: HighlightText; }
     .help { font-size: .85rem; opacity: .7; }
@@ -25,12 +34,22 @@
   <button id="play" disabled>Play</button>
   <button id="save" disabled>Save</button>
   <button id="load" disabled>Load</button>
-  <input id="file" type="file" accept=".wtrk,.json" hidden>
+  <input id="file" type="file" accept=".wax,.wtrk,.json" hidden>
   <p id="status">Press Start to create the audio engine.</p>
 
+  <h2>Arrangement</h2>
+  <pre id="seq" tabindex="0"></pre>
+  <p id="seq-status"></p>
+  <p class="help">Left/Right move in time, Up/Down change lane, PgUp/PgDn 16 ticks. Enter opens the pattern under
+    the cursor in the grid, or inserts a new one; I inserts a new pattern on top. Two hex digits place that pattern
+    (see the list) and jump to its end. N clones, S slices at the cursor, + and - change length by 16,
+    , and . move it a tick (&lt; and &gt; sixteen), Delete removes it. Ctrl+Z undoes, Ctrl+Y redoes,
+    W sets a waypoint and Shift+W restores it. Space plays.</p>
+
+  <h2>Pattern grid</h2>
   <pre id="view" tabindex="0"></pre>
   <p id="cursor"></p>
-  <p class="help">Click the grid, then: arrows move, Tab next lane, PgUp/PgDn 16 rows, Space play/stop,
+  <p class="help">Click the grid, then (Esc returns to the arrangement): arrows move, Tab next lane, PgUp/PgDn 16 rows, Space play/stop,
     Enter inserts a pattern, Z–M and Q–P play notes, [ ] octave, 1 note off, ` note cut,
     0–9 A–F overwrite the character under the cursor (an empty cell fills with zeros), Delete
     clears the cell. Left and Right move one character. Edits are heard on the next tick.</p>

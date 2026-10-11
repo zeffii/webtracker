@@ -9,5 +9,7 @@ and the filter and delay can be tweaked live.
 Milestone 3 gate: two lanes play at once, and a parameter column moves the filter.
 Milestone 4a gate: edit pattern cells from the keyboard while the song plays, including
 4hex and CCXXYY cells.
-Milestone 4b gate: a song can be written, saved to a .wtrk file and loaded again.
+Milestone 4b gate: a song can be written, saved to a .wax file and loaded again.
 Characters of a filled cell can be edited one at a time.
+Milestone 4c gate: patterns can be placed, cloned, sliced, resized, moved and removed in the
+arrangement, with undo and a waypoint. Project files use the .wax extension.

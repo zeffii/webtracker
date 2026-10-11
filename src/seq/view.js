@@ -1,5 +1,5 @@
 import { KINDS, encodeCell, noteToken } from './cells.js';
-import { insertPattern, setCell } from './edit.js';
+import { esc } from './html.js';
 
 // Piano keys: semitones above the base octave. Lower row Z..M with S D G H J as
 // sharps, upper row Q..U one octave up with 2 3 5 6 7, then I O P with 9 0.
@@ -12,14 +12,15 @@ const isNote = token => /^[A-G][-#]\d$/.test(token);
 // Keyboard-driven view of every lane side by side. The cursor sits on one character
 // of one cell. Edits go straight into the shared pages, so they are heard on the next
 // tick while the song plays. Call load() with the prepared lanes before drawing.
-export function createTrackerView({ el, statusEl, transport, onToggle }) {
-  let lanes = null, len = 0, widths = [];
+export function createTrackerView({ el, statusEl, transport, onToggle, onBack }) {
+  let lanes = null, len = 0, widths = [], editor = null;
   const cur = { lane: 0, tick: 0, col: 0, ch: 0 };
   let octave = 3, message = '';
 
-  const load = ({ lanes: l, song }) => {
+  const load = ({ lanes: l, song, editor: e }) => {
     lanes = l;
     len = song.length;
+    editor = e;
     widths = lanes.map(lane => lane.columns.map(c => Math.max(c.label.length, KINDS[c.token].width)));
     Object.assign(cur, { lane: 0, tick: 0, col: 0, ch: 0 });
     message = '';
@@ -54,7 +55,7 @@ export function createTrackerView({ el, statusEl, transport, onToggle }) {
   };
 
   const write = token => {
-    if (setCell(lanes[cur.lane], len, cur.tick, cur.col, token)) { message = ''; return true; }
+    if (editor.setCell(cur.lane, cur.tick, cur.col, token)) { message = ''; return true; }
     message = 'No pattern here. Press Enter to insert one.';
     return false;
   };
@@ -98,7 +99,17 @@ export function createTrackerView({ el, statusEl, transport, onToggle }) {
   };
 
   el.addEventListener('keydown', e => {
-    if (!lanes || e.ctrlKey || e.metaKey || e.altKey) return;
+    if (!lanes || e.altKey) return;
+    if (e.ctrlKey || e.metaKey) {
+      const key = e.key.toLowerCase();
+      if (key === 'z' || key === 'y') {
+        const redo = key === 'y' || e.shiftKey;
+        const label = redo ? editor.redo() : editor.undo();
+        message = label ? `${redo ? 'Redid' : 'Undid'} ${label}.` : `Nothing to ${redo ? 'redo' : 'undo'}.`;
+        e.preventDefault();
+      }
+      return;
+    }
     const k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
     let used = true;
     switch (k) {
@@ -114,9 +125,9 @@ export function createTrackerView({ el, statusEl, transport, onToggle }) {
       case ' ': onToggle(); break;
       case '[': octave = Math.max(0, octave - 1); message = `Octave ${octave}`; break;
       case ']': octave = Math.min(9, octave + 1); message = `Octave ${octave}`; break;
-      case 'Escape': message = ''; break;
+      case 'Escape': message = ''; onBack(); break;
       case 'Enter':
-        message = insertPattern(lanes[cur.lane], len, cur.tick) ? 'Pattern inserted.' : 'A pattern is already here.';
+        message = editor.insertPattern(cur.lane, cur.tick) ? 'Pattern inserted.' : 'A pattern is already here.';
         break;
       case 'Delete':
       case 'Backspace':
@@ -132,8 +143,8 @@ export function createTrackerView({ el, statusEl, transport, onToggle }) {
     const playing = Atomics.load(transport, 1) === 1, playTick = Atomics.load(transport, 0);
     const top = Math.max(0, Math.min(cur.tick - 8, len - ROWS));
     const lines = [
-      `    ${lanes.map((l, li) => ` ${l.id.padEnd(block(li))}`).join('  ')}`,
-      `    ${lanes.map((l, li) => ` ${l.columns.map((c, ci) => c.label.padEnd(widths[li][ci])).join(' ')}`).join('  ')}`,
+      `    ${lanes.map((l, li) => ` ${esc(l.id.padEnd(block(li)))}`).join('  ')}`,
+      `    ${lanes.map((l, li) => ` ${l.columns.map((c, ci) => esc(c.label.padEnd(widths[li][ci]))).join(' ')}`).join('  ')}`,
     ];
     for (let t = top; t < Math.min(len, top + ROWS); t++) {
       const chunks = lanes.map((lane, li) => {
@@ -155,5 +166,13 @@ export function createTrackerView({ el, statusEl, transport, onToggle }) {
     ].filter(Boolean).join(' · ');
   };
 
-  return { draw, load };
+  const goto = (laneIdx, tick) => {
+    cur.lane = laneIdx;
+    cur.tick = tick;
+    cur.col = Math.min(cur.col, lanes[laneIdx].columns.length - 1);
+    cur.ch = Math.min(cur.ch, cellWidth() - 1);
+    message = '';
+  };
+
+  return { draw, load, goto };
 }

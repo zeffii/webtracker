@@ -12,6 +12,9 @@ import { buildColumns, buildPages, channelCount, flattenLane, prepareSong } from
 import { decodeNote, encodeCell, noteToken, EMPTY } from '../src/seq/cells.js';
 import { insertPattern, placementAt, setCell } from '../src/seq/edit.js';
 import { createTrackerView } from '../src/seq/view.js';
+import { createSequenceView } from '../src/seq/seqview.js';
+import { createEditor } from '../src/seq/editor.js';
+import * as ops from '../src/seq/edit.js';
 import { parseProject, serializeProject } from '../src/project/file.js';
 import { song as demoSong } from '../src/song.js';
 
@@ -290,8 +293,8 @@ const firstSound = x => x.findIndex(v => Math.abs(v) > 1e-9);
   const el = { addEventListener: (_, f) => { onKey = f; }, innerHTML: '' };
   const statusEl = { textContent: '' };
   let toggled = 0;
-  const view = createTrackerView({ el, statusEl, transport: new Int32Array(new SharedArrayBuffer(8)), onToggle: () => toggled++ });
-  view.load({ lanes, song: demoSong });
+  const view = createTrackerView({ el, statusEl, transport: new Int32Array(new SharedArrayBuffer(8)), onToggle: () => toggled++, onBack() {} });
+  view.load({ lanes, song: demoSong, editor: createEditor(lanes, demoSong.length) });
   const press = (key, times = 1, extra = {}) => { for (let i = 0; i < times; i++) onKey({ key, preventDefault() {}, ...extra }); };
   const [lead, bass] = lanes;
 
@@ -331,8 +334,8 @@ const firstSound = x => x.findIndex(v => Math.abs(v) > 1e-9);
   for (const [id, def] of Object.entries(instruments)) compile(def.graph, { instrument: id, nodeTypes: NODE_TYPES, registry });
   const lanes = prepareSong(demoSong, instruments, registry);
   let onKey;
-  const view = createTrackerView({ el: { addEventListener: (_, f) => { onKey = f; } }, statusEl: {}, transport: new Int32Array(new SharedArrayBuffer(8)), onToggle() {} });
-  view.load({ lanes, song: demoSong });
+  const view = createTrackerView({ el: { addEventListener: (_, f) => { onKey = f; } }, statusEl: {}, transport: new Int32Array(new SharedArrayBuffer(8)), onToggle() {}, onBack() {} });
+  view.load({ lanes, song: demoSong, editor: createEditor(lanes, demoSong.length) });
   const press = (key, times = 1) => { for (let i = 0; i < times; i++) onKey({ key, preventDefault() {} }); };
   const lead = lanes[0];
   press('ArrowRight');                          // second character of the note on row 0 (C-4)
@@ -384,6 +387,117 @@ const firstSound = x => x.findIndex(v => Math.abs(v) > 1e-9);
   assert.equal(seq.playing, false);
   assert.equal(seq.lanes.size, 0);
   assert.equal(peak(render(seq, 0.2).left), 0);
+}
+
+// 22. Pattern operations: indices, clone, slice, resize, move, remove, place.
+{
+  const registry = new ParamRegistry();
+  for (const [id, def] of Object.entries(instruments)) compile(def.graph, { instrument: id, nodeTypes: NODE_TYPES, registry });
+  const fresh = () => prepareSong(demoSong, instruments, registry)[0];   // lead: arp@0, arp@16, fill@28
+  let lane = fresh();
+  assert.deepEqual(Object.values(lane.patterns).map(p => p.index).sort(), [0, 1]);
+
+  // clone: the placement gets its own copy, so editing it leaves the other placement alone
+  const before = lane.rows[16 + 2][0];                                   // arp row 2 in the second placement
+  const copy = ops.clonePlacement(lane, 32, 0);
+  assert.ok(copy && lane.patterns[copy].index === 2);
+  ops.setCell(lane, 32, 2, 0, 'G-5');
+  assert.equal(lane.rows[2][0], 'G-5');
+  assert.equal(lane.rows[18][0], before);
+
+  // slice: two new patterns; what you hear is unchanged
+  lane = fresh();
+  const rowsBefore = lane.rows.map(r => r.join('|'));
+  assert.ok(ops.slicePlacement(lane, 32, 6));
+  assert.deepEqual(lane.rows.map(r => r.join('|')), rowsBefore);
+  assert.equal(lane.placements.filter(p => p.start === 6).length, 1);
+  assert.equal(ops.slicePlacement(lane, 32, 0), false);                  // nothing to cut at the start
+
+  // resize: grows the pattern with empty rows, clips at the song end, shrinks
+  lane = fresh();
+  assert.equal(ops.resizePlacement(lane, 32, 0, 16), 32);                // arp@0 now runs to tick 31 (the second arp is on top from 16)
+  assert.equal(ops.resizePlacement(lane, 32, 16, 16), 0);                // already runs to the song end: clipped, so no change
+  assert.equal(ops.resizePlacement(lane, 32, 0, -16), 16);
+
+  // move: not onto another pattern's start, not outside the song
+  lane = fresh();
+  assert.equal(ops.movePlacement(lane, 32, 0, 16), null);                // arp starts at 16 already
+  assert.deepEqual(ops.movePlacement(lane, 32, 0, 1), { start: 1 });
+  assert.equal(ops.movePlacement(lane, 32, 1, -2), null);
+
+  // remove keeps the pattern in the pool; place puts it back by index
+  lane = fresh();
+  assert.ok(ops.removePlacement(lane, 32, 20));
+  assert.equal(placementAt(lane, 20), null);
+  assert.equal(Object.keys(lane.patterns).length, 2);
+  assert.equal(ops.placePattern(lane, 32, 16, ops.puidByIndex(lane, 0)), 16);
+  assert.equal(ops.placePattern(lane, 32, 16, ops.puidByIndex(lane, 0)), 0);   // a pattern already starts there
+  assert.ok(ops.insertPattern(lane, 32, 20, 16, true));                  // overlay allowed on a covered tick
+}
+
+// 23. Undo: edits are reversible, typing in one cell is one entry, the stack is capped, waypoint works.
+{
+  const registry = new ParamRegistry();
+  for (const [id, def] of Object.entries(instruments)) compile(def.graph, { instrument: id, nodeTypes: NODE_TYPES, registry });
+  const lanes = prepareSong(demoSong, instruments, registry);
+  const ch = channelCount(lanes[0].columns);
+  const editor = createEditor(lanes, 32);
+  const snap = () => lanes.map(l => l.rows.map(r => r.join('|')).join('/')).join('#');
+  const start = snap();
+
+  editor.setCell(0, 3, 6, '010000'); editor.setCell(0, 3, 6, '01FF00'); editor.setCell(0, 3, 6, '01FFFF');
+  assert.equal(editor.log().length, 1);                                  // same cell: one entry
+  editor.setWaypoint();
+  editor.slice(0, 6); editor.clone(1, 0);
+  assert.deepEqual(editor.log(), ['clone pattern', 'slice pattern', 'edit cell']);
+  assert.equal(editor.undo(), 'clone pattern');
+  assert.equal(editor.redo(), 'clone pattern');
+  assert.ok(editor.restoreWaypoint());
+  assert.equal(editor.log()[0], 'restore waypoint');
+  assert.equal(editor.undo(), 'restore waypoint');                       // the restore itself can be undone
+  while (editor.undo());
+  assert.equal(snap(), start);
+  assert.equal(decodeNote(lanes[0].pages[0][0]), 60);                    // pages follow the model
+  assert.equal(editor.undo(), null);
+
+  for (let i = 0; i < 30; i++) editor.insertPattern(1, i % 2 ? 0 : 1) || editor.remove(1, 0);   // many changes
+  for (let i = 0; i < 40; i++) editor.slice(0, 3 + (i % 3)); 
+  assert.ok(editor.log().length <= 20);
+}
+
+// 24. The arrangement view: keys place, clone, slice, move and undo; names are escaped.
+{
+  const registry = new ParamRegistry();
+  for (const [id, def] of Object.entries(instruments)) compile(def.graph, { instrument: id, nodeTypes: NODE_TYPES, registry });
+  const lanes = prepareSong(demoSong, instruments, registry);
+  lanes[1].id = '<b>x</b>';
+  lanes[0].patterns[Object.keys(lanes[0].patterns)[0]].name = '<script>';
+  const editor = createEditor(lanes, 32);
+  let onKey, opened = null;
+  const el = { addEventListener: (_, f) => { onKey = f; }, innerHTML: '' };
+  const statusEl = { textContent: '' };
+  const view = createSequenceView({ el, statusEl, transport: new Int32Array(new SharedArrayBuffer(8)), onToggle() {}, onOpen: (l, t) => { opened = [l, t]; } });
+  view.load({ lanes, song: demoSong, editor });
+  const press = (key, extra = {}) => onKey({ key, preventDefault() {}, ...extra });
+  const lead = lanes[0];
+
+  view.draw();
+  assert.ok(el.innerHTML.includes('&lt;script&gt;') && !el.innerHTML.includes('<script>'), 'pattern name not escaped');
+  assert.ok(el.innerHTML.includes('&lt;b&gt;x') && !el.innerHTML.includes('<b>x'), 'lane name not escaped');
+
+  press('Enter'); assert.deepEqual(opened, [0, 0]);                      // a pattern is under the cursor: open it
+  press('Delete'); assert.equal(placementAt(lead, 0), null);             // remove the first arp
+  press('0'); press('0');                                                // place pattern 00 at the cursor
+  assert.equal(placementAt(lead, 0).start, 0);
+  view.draw(); assert.ok(statusEl.textContent.includes('tick 16'), `cursor should jump to the end: ${statusEl.textContent}`);
+  press('0'); press('9');                                                // no pattern 09
+  view.draw(); assert.ok(statusEl.textContent.includes('No pattern 09'));
+  press('ArrowDown');                                                    // bass lane
+  press('Home');
+  press('s');                                                            // slice at tick 0: nothing to cut
+  view.draw(); assert.ok(statusEl.textContent.includes("Can't slice"), statusEl.textContent);
+  press('z', { ctrlKey: true });                                         // undo the placement of 00 on the lead lane
+  assert.equal(placementAt(lead, 0), null);
 }
 
 console.log('smoke test passed');

@@ -1,7 +1,9 @@
 import { Engine } from './audio/engine.js';
 import { createDemoProject } from './project/demo.js';
 import { FILE_EXT, parseProject, serializeProject } from './project/file.js';
+import { createEditor } from './seq/editor.js';
 import { prepareSong } from './seq/lane.js';
+import { createSequenceView } from './seq/seqview.js';
 import { createTrackerView } from './seq/view.js';
 
 const engine = new Engine();
@@ -34,7 +36,14 @@ const setPlaying = value => {
 const togglePlay = () => setPlaying(!playing);
 $('play').addEventListener('click', e => { togglePlay(); e.currentTarget.blur(); });
 
-const view = createTrackerView({ el: $('view'), statusEl: $('cursor'), transport: engine.transport, onToggle: togglePlay });
+const view = createTrackerView({
+  el: $('view'), statusEl: $('cursor'), transport: engine.transport, onToggle: togglePlay,
+  onBack: () => $('seq').focus(),
+});
+const seqView = createSequenceView({
+  el: $('seq'), statusEl: $('seq-status'), transport: engine.transport, onToggle: togglePlay,
+  onOpen: (lane, tick) => { view.goto(lane, tick); $('view').focus(); },
+});
 
 // Loads a project into the running engine: { song, instruments, samples }.
 function openProject({ song, instruments, samples }) {
@@ -51,9 +60,11 @@ function openProject({ song, instruments, samples }) {
   engine.setSong(song);
   for (const { id, instrument, columns, pages } of lanes) engine.setLane({ id, instrument, columns, pages });
   project = { song, instruments, samples, lanes };
-  view.load({ lanes, song });
+  const editor = createEditor(lanes, song.length);
+  seqView.load({ lanes, song, editor });
+  view.load({ lanes, song, editor });
   bindings.forEach(apply);
-  $('view').focus();
+  $('seq').focus();
 }
 
 const download = (name, text) => {
@@ -90,7 +101,7 @@ $('start').addEventListener('click', async () => {
     for (const id of ['play', 'save', 'load']) $(id).disabled = false;
     $('status').textContent =
       `Running at ${engine.ctx.sampleRate} Hz, base latency ${(engine.ctx.baseLatency * 1000).toFixed(1)} ms`;
-    const frame = () => { view.draw(); requestAnimationFrame(frame); };
+    const frame = () => { seqView.draw(); view.draw(); requestAnimationFrame(frame); };
     frame();
   } catch (err) {
     $('status').textContent = err.message;

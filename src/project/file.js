@@ -1,18 +1,18 @@
-// The project file: plain JSON, version 1, extension .wtrk.
+// The project file: plain JSON, version 1, extension .wax.
 //
 // {
 //   format: 'webtracker', version: 1,
 //   song: { name, bpm, ticksPerBeat, length },
 //   instruments: { id: { graph, exposed, commands, samples: { nodeId: sampleId } } },
 //   samples: { id: { rate, data: base64 of little-endian float32 } },
-//   lanes: [{ id, instrument, patterns: { puid: { name, rows: ['C-4 .. 70', ...] } },
+//   lanes: [{ id, instrument, patterns: { puid: { name, index, rows: ['C-4 .. 70', ...] } },
 //             placements: [{ puid, start, length }] }],
 // }
 //
 // Graphs are stored from the start, so a modular view needs no format change.
 export const FORMAT = 'webtracker';
 export const VERSION = 1;
-export const FILE_EXT = '.wtrk';
+export const FILE_EXT = '.wax';
 
 const toBase64 = floats => {
   const bytes = new Uint8Array(floats.buffer, floats.byteOffset, floats.byteLength);
@@ -40,7 +40,7 @@ export function serializeProject({ song, instruments, samples, lanes }) {
       id: l.id,
       instrument: l.instrument,
       patterns: Object.fromEntries(Object.entries(l.patterns)
-        .map(([puid, p]) => [puid, { name: p.name, rows: p.rows.map(row => row.join(' ')) }])),
+        .map(([puid, p]) => [puid, { name: p.name, index: p.index, rows: p.rows.map(row => row.join(' ')) }])),
       placements: l.placements,
     })),
   }, null, 1);
@@ -67,7 +67,7 @@ export function parseProject(text) {
       id: l.id,
       instrument: l.instrument,
       patterns: Object.fromEntries(Object.entries(l.patterns)
-        .map(([puid, p]) => [puid, { name: p.name, text: p.rows.join('\n') }])),
+        .map(([puid, p]) => [puid, { name: p.name, index: p.index, text: p.rows.join('\n') }])),
       placements: l.placements,
     };
   });

@@ -99,12 +99,20 @@ export function buildPages(rows, columns) {
 export function prepareSong(song, instruments, registry) {
   return song.lanes.map(src => {
     const columns = buildColumns(src.instrument, instruments[src.instrument], registry);
+    const taken = new Set(Object.values(src.patterns).map(p => p.index).filter(i => i !== undefined));
     const lane = {
       id: src.id,
       instrument: src.instrument,
       columns,
-      patterns: Object.fromEntries(Object.entries(src.patterns)
-        .map(([puid, p]) => [puid, { name: p.name ?? puid, ...parsePattern(p.text, columns) }])),
+      patterns: Object.fromEntries(Object.entries(src.patterns).map(([puid, p]) => {
+        let index = p.index;   // shorthand 0..255, kept once assigned; lowest free one otherwise
+        if (index === undefined) {
+          index = 0;
+          while (taken.has(index)) index++;
+          taken.add(index);
+        }
+        return [puid, { name: p.name ?? puid, index, ...parsePattern(p.text, columns) }];
+      })),
       placements: src.placements.map(p => ({ ...p })),
     };
     lane.rows = flattenLane(lane, columns, song.length);
