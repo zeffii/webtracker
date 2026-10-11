@@ -16,6 +16,7 @@ const samplerCommands = [
   { id: 0x03, node: 'delay', param: 'time' },
   { id: 0x04, node: 'delay', param: 'feedback' },
   { id: 0x05, node: 'delay', param: 'mix' },
+  { id: 0x06, node: 'sampler', param: 'nnaFade' },
 ];
 
 const withParams = (graph, overrides) => ({
@@ -26,13 +27,13 @@ const withParams = (graph, overrides) => ({
 export const instruments = {
   // Output gain is lowered so two lanes together stay under full scale.
   lead: {
-    graph: withParams(samplerPreset, { out: { gain: 0.6 } }),
+    graph: withParams(samplerPreset, { out: { gain: 0.45 } }),
     exposed: samplerExposed,
     commands: samplerCommands,
     samples: { sampler: 'pluck' },   // node id -> sample id
   },
   bass: {
-    graph: withParams(samplerPreset, { filter: { cutoff: 500 }, delay: { mix: 0 }, out: { gain: 0.6 } }),
+    graph: withParams(samplerPreset, { filter: { cutoff: 500 }, delay: { mix: 0 }, out: { gain: 0.45 } }),
     exposed: samplerExposed,
     commands: samplerCommands,
     samples: { sampler: 'pluck' },

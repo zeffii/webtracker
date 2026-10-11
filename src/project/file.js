@@ -4,7 +4,7 @@
 //   format: 'webtracker', version: 1,
 //   song: { name, bpm, ticksPerBeat, length },
 //   instruments: { id: { graph, exposed, commands, samples: { nodeId: sampleId } } },
-//   samples: { id: { rate, data: base64 of little-endian float32 } },
+//   samples: { id: { rate, data: base64 of little-endian float32, loopStart?, loopEnd? } },   (loop points in frames)
 //   lanes: [{ id, instrument, patterns: { puid: { name, index, rows: ['C-4 .. 70', ...] } },
 //             placements: [{ puid, start, length }] }],
 // }
@@ -35,7 +35,7 @@ export function serializeProject({ song, instruments, samples, lanes }) {
     version: VERSION,
     song: { name: song.name ?? 'untitled', bpm: song.bpm, ticksPerBeat: song.ticksPerBeat, length: song.length },
     instruments,
-    samples: Object.fromEntries(Object.entries(samples).map(([id, s]) => [id, { rate: s.rate, data: toBase64(s.data) }])),
+    samples: Object.fromEntries(Object.entries(samples).map(([id, s]) => [id, { rate: s.rate, data: toBase64(s.data), loopStart: s.loopStart, loopEnd: s.loopEnd }])),
     lanes: lanes.map(l => ({
       id: l.id,
       instrument: l.instrument,
@@ -55,7 +55,7 @@ export function parseProject(text) {
     throw new Error(`Unsupported file version ${data.version}; this build reads version ${VERSION}.`);
   }
   const samples = Object.fromEntries(Object.entries(data.samples ?? {})
-    .map(([id, s]) => [id, { rate: s.rate, data: fromBase64(s.data) }]));
+    .map(([id, s]) => [id, { rate: s.rate, data: fromBase64(s.data), loopStart: s.loopStart, loopEnd: s.loopEnd }]));
   for (const [id, def] of Object.entries(data.instruments)) {
     for (const sampleId of Object.values(def.samples ?? {})) {
       if (!samples[sampleId]) throw new Error(`Instrument "${id}" uses unknown sample "${sampleId}".`);

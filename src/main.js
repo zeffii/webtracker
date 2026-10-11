@@ -54,8 +54,8 @@ function openProject({ song, instruments, samples }) {
   for (const [id, def] of Object.entries(instruments)) {
     engine.loadInstrument(id, def.graph);
     for (const [node, sampleId] of Object.entries(def.samples ?? {})) {
-      const { data, rate } = samples[sampleId];
-      engine.sendToNode(id, node, { type: 'sample', data: data.slice(), rate });
+      const { data, rate, loopStart, loopEnd } = samples[sampleId];
+      engine.sendToNode(id, node, { type: 'sample', data: data.slice(), rate, loopStart, loopEnd });
     }
   }
   const lanes = prepareSong(song, instruments, engine.registry);

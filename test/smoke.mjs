@@ -535,4 +535,70 @@ const firstSound = x => x.findIndex(v => Math.abs(v) > 1e-9);
   assert.equal(moves.length, 3);
 }
 
+// 26. New-note action, one-shots: a hit that is still playing is not cut by the next one.
+{
+  const run = cells => {
+    const rows = {}; cells.forEach(([tick, cell]) => { rows[tick] = cell; });
+    const { seq } = songSetup(song120([oneLane('bass', 'bass', patternText(16, rows))]));
+    seq.play();
+    return render(seq, 1).left;
+  };
+  const a = run([[0, 'C-3 .. .. .. ..']]), b = run([[2, 'E-3 .. .. .. ..']]);
+  const both = run([[0, 'C-3 .. .. .. ..'], [2, 'E-3 .. .. .. ..']]);
+  assert.ok(peak(a) > 0.05 && peak(b) > 0.05);
+  assert.ok(both.every((v, i) => Math.abs(v - (a[i] + b[i])) < 1e-5), 'the second hit cut the first');
+  // note off leaves a one-shot alone
+  const withOff = run([[0, 'C-3 .. .. .. ..'], [4, '=== .. .. .. ..']]);
+  assert.ok(withOff.every((v, i) => Math.abs(v - a[i]) < 1e-9), 'note off cut a one-shot');
+}
+
+// 27. New-note action, looping samples: a new note cuts or fades the old one; note off releases it.
+{
+  const cycle = 200, loop = new Float32Array(sr).map((_, i) => 0.8 * Math.sin(2 * Math.PI * i / cycle));   // 240 Hz, loops cleanly
+  const run = (cells, fade) => {
+    const rows = {}; cells.forEach(([tick, cell]) => { rows[tick] = cell; });
+    const { seq, registry, rt } = songSetup(song120([oneLane('bass', 'bass', patternText(16, rows))]));
+    rt.message('bass', 'sampler', { type: 'sample', data: loop, rate: sr, loopStart: 0, loopEnd: loop.length });
+    registry.set('bass.sampler.nnaFade', fade);
+    seq.play();
+    return render(seq, 1.5).left;
+  };
+  const note = 'C-4 .. .. .. ..';
+  const bOnly = run([[2, note]], 0);
+  // fade 0: the old note is cut, so after a few ms only the new one sounds
+  const cut = run([[0, note], [2, note]], 0);
+  assert.ok(peak(cut.subarray(5000, 11900)) > 0.05, 'the first note is not playing before the second');
+  assert.ok(cut.subarray(13000, 30000).every((v, i) => Math.abs(v - bOnly[13000 + i]) < 1e-4), 'the old looping note was not cut');   // the filter needs a few ms to settle
+  // fade 300 ms: the old note is still there just after the new one, and gone once the ramp ends
+  const fade = run([[0, note], [2, note]], 300);
+  const during = fade.subarray(13000, 14000).map((v, i) => Math.abs(v - bOnly[13000 + i]));
+  assert.ok(peak(during) > 0.05, 'the fade did not leave the old note audible');
+  assert.ok(fade.subarray(30000, 40000).every((v, i) => Math.abs(v - bOnly[30000 + i]) < 1e-3), 'the old note did not fade out');
+  // note off releases a looping voice (default release 150 ms): audible before, silent after
+  const off = run([[0, note], [4, '=== .. .. .. ..']], 20);
+  assert.ok(peak(off.subarray(20000, 23000)) > 0.05);
+  assert.ok(peak(off.subarray(36000, 48000)) < 1e-4, 'note off did not release the looping voice');
+}
+
+// 28. Stopping fades every voice out, one-shots included.
+{
+  const { seq } = songSetup(song120([oneLane('bass', 'bass', patternText(16, { 0: 'C-4 .. .. .. ..', 1: 'E-4 .. .. .. ..' }))]));
+  seq.play();
+  assert.ok(peak(render(seq, 0.2).left) > 0.05);
+  seq.stop();
+  render(seq, 0.4);                                    // release is 150 ms
+  assert.ok(peak(render(seq, 0.2).left) < 1e-4, 'voices kept sounding after stop');
+}
+
+// 29. Sample loop points survive a save and load.
+{
+  const data = new Float32Array(1000).fill(0.5);
+  const back = parseProject(serializeProject({
+    song: demoSong, instruments, lanes: [],
+    samples: { pluck: { rate: sr, data, loopStart: 100, loopEnd: 900 } },
+  }));
+  assert.equal(back.samples.pluck.loopStart, 100);
+  assert.equal(back.samples.pluck.loopEnd, 900);
+}
+
 console.log('smoke test passed');

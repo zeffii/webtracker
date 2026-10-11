@@ -49,6 +49,7 @@ export class Sequencer {
       on: { type: 'noteOn', note: 0, vel: 1 },
       off: { type: 'noteOff', note: 0 },
       cut: { type: 'noteCut' },
+      all: { type: 'allOff' },
     });
   }
 
@@ -69,8 +70,12 @@ export class Sequencer {
     this.transport[1] = 1;
   }
 
+  // Stopping lets every voice fade out over its release time.
   stop() {
-    for (const lane of this.lanes.values()) this.release(lane);
+    for (const lane of this.lanes.values()) {
+      this.runtime.note(lane.instrument, lane.all);
+      lane.prev = -1;
+    }
     this.playing = false;
     this.transport[1] = 0;
   }
@@ -117,8 +122,9 @@ export class Sequencer {
       lane.prev = -1;
       return;
     }
-    this.release(lane);   // a new note or a note off ends the previous one
-    if (note === OFF) return;
+    // A new note does not end the previous one: what happens to it is the instrument's
+    // new-note action (a one-shot sample plays out, a looping one fades or is cut).
+    if (note === OFF) { this.release(lane); return; }
     lane.on.note = decodeNote(note);
     lane.on.vel = vel;
     this.runtime.note(lane.instrument, lane.on);
