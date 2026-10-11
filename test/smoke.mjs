@@ -12,6 +12,7 @@ import { buildColumns, buildPages, channelCount, flattenLane, prepareSong } from
 import { decodeNote, encodeCell, noteToken, EMPTY } from '../src/seq/cells.js';
 import { insertPattern, placementAt, setCell } from '../src/seq/edit.js';
 import { createTrackerView } from '../src/seq/view.js';
+import { parseProject, serializeProject } from '../src/project/file.js';
 import { song as demoSong } from '../src/song.js';
 
 const sr = 48000, block = 128;
@@ -103,7 +104,7 @@ function songSetup(song) {
   }
   seq.setSong(song);
   for (const lane of prepareSong(song, instruments, registry)) seq.setLane(lane);
-  return { seq, registry };
+  return { seq, registry, rt };
 }
 
 const patternText = (length, cells) => Array.from({ length }, (_, i) => cells[i] ?? '... .. .. .. ..').join('\n');
@@ -280,7 +281,7 @@ const firstSound = x => x.findIndex(v => Math.abs(v) > 1e-9);
   assert.ok(at >= 0, 'edited note was not heard');
 }
 
-// 18. The tracker view: typing notes, hex digits and commands edits the cell under the cursor.
+// 18. The tracker view: typing edits the character under the cursor.
 {
   const registry = new ParamRegistry();
   for (const [id, def] of Object.entries(instruments)) compile(def.graph, { instrument: id, nodeTypes: NODE_TYPES, registry });
@@ -289,33 +290,100 @@ const firstSound = x => x.findIndex(v => Math.abs(v) > 1e-9);
   const el = { addEventListener: (_, f) => { onKey = f; }, innerHTML: '' };
   const statusEl = { textContent: '' };
   let toggled = 0;
-  const view = createTrackerView({
-    el, statusEl, lanes, song: demoSong, transport: new Int32Array(new SharedArrayBuffer(8)), onToggle: () => toggled++,
-  });
-  const press = (key, extra = {}) => onKey({ key, preventDefault() {}, ...extra });
-  const lead = lanes[0];
+  const view = createTrackerView({ el, statusEl, transport: new Int32Array(new SharedArrayBuffer(8)), onToggle: () => toggled++ });
+  view.load({ lanes, song: demoSong });
+  const press = (key, times = 1, extra = {}) => { for (let i = 0; i < times; i++) onKey({ key, preventDefault() {}, ...extra }); };
+  const [lead, bass] = lanes;
 
   press('z');                                   // C-3 at the cursor (octave 3), cursor moves down
   assert.equal(lead.rows[0][0], 'C-3');
   press(']'); press('q');                       // octave 4, upper row: C one octave up
   assert.equal(lead.rows[1][0], 'C-5');
   press('1'); assert.equal(lead.rows[2][0], '===');
-  press('ArrowRight'); press('ArrowRight');     // Note -> Vel -> Cut
-  press('Home');
-  press('ArrowDown'); press('ArrowDown'); press('ArrowDown');
-  for (const k of ['a', '0']) press(k);         // two hex digits commit the Cut cell on row 3
-  assert.equal(lead.rows[3][2], 'A0');
-  press('ArrowUp');                             // entering advanced the cursor to row 4
-  press('Delete');                              // clears without advancing
+  press('Home'); press('ArrowRight', 5);        // Note (3 chars), Vel (2 chars), then Cut
+  press('ArrowDown', 3);                        // row 3 holds Cut 88
+  press('a'); assert.equal(lead.rows[3][2], 'A8');   // overwrites one character
+  press('0'); assert.equal(lead.rows[3][2], 'A0');   // second character, then the cursor moves down a row
+  press('ArrowUp'); press('Delete');            // clearing does not advance
   assert.equal(lead.rows[3][2], '..');
-  press('ArrowRight'); press('ArrowRight'); press('ArrowRight'); press('ArrowRight');   // Cut -> Res -> Mix -> Time -> Cmd
-  for (const k of '03ffff') press(k);           // CCXXYY on the cmd column
+  press('ArrowRight', 10);                      // Cut, Res, Mix, Time (4 chars), then Cmd
+  for (const k of '03ffff') press(k);           // an empty cell fills with zeros, then each digit lands in turn
   assert.equal(lead.rows[3][6], '03FFFF');
+
+  press('Home'); press('ArrowLeft', 2);         // Cmd char 0 -> Time char 3 -> char 2
+  assert.equal(lead.rows[0][5], '4C9E');
+  press('f'); assert.equal(lead.rows[0][5], '4CFE');   // one character of a filled 4hex cell
+
+  press('Tab'); press('8');                     // bass lane, Time char 3: an empty cell fills with zeros
+  assert.equal(bass.rows[0][5], '0008');
+  press('Home'); press('ArrowRight', 3);        // Time char 3 -> Cmd char 0..2
+  press('z'); assert.equal(bass.rows[0][6], '......');   // note keys do nothing in a hex cell
+
   press(' '); assert.equal(toggled, 1);
-  press('Tab'); press('Enter');                 // bass lane: a pattern is already here
   view.draw();
   assert.ok(el.innerHTML.includes('class="cur"') && el.innerHTML.includes('lead') && el.innerHTML.includes('bass'));
   assert.ok(statusEl.textContent.includes('bass'));
+}
+
+// 19. A note cell: the first character plays a whole note, the others edit it.
+{
+  const registry = new ParamRegistry();
+  for (const [id, def] of Object.entries(instruments)) compile(def.graph, { instrument: id, nodeTypes: NODE_TYPES, registry });
+  const lanes = prepareSong(demoSong, instruments, registry);
+  let onKey;
+  const view = createTrackerView({ el: { addEventListener: (_, f) => { onKey = f; } }, statusEl: {}, transport: new Int32Array(new SharedArrayBuffer(8)), onToggle() {} });
+  view.load({ lanes, song: demoSong });
+  const press = (key, times = 1) => { for (let i = 0; i < times; i++) onKey({ key, preventDefault() {} }); };
+  const lead = lanes[0];
+  press('ArrowRight');                          // second character of the note on row 0 (C-4)
+  press('#'); assert.equal(lead.rows[0][0], 'C#4');   // the cursor moves on to the third character
+  press('5'); assert.equal(lead.rows[0][0], 'C#5');   // octave digit, then the cursor moves down a row
+  press('Home'); press('ArrowRight'); press('-'); assert.equal(lead.rows[0][0], 'C-5');
+  press('ArrowDown');                           // row 1 is empty: character edits are refused
+  press('5'); assert.equal(lead.rows[1][0], '...');
+}
+
+// 20. A project survives a save and load, including edits, graphs and samples.
+{
+  const registry = new ParamRegistry();
+  for (const [id, def] of Object.entries(instruments)) compile(def.graph, { instrument: id, nodeTypes: NODE_TYPES, registry });
+  const lanes = prepareSong(demoSong, instruments, registry);
+  setCell(lanes[0], 32, 3, 0, 'G-4');
+  const data = makePluck(sr);
+  const text = serializeProject({ song: demoSong, instruments, samples: { pluck: { rate: sr, data } }, lanes });
+  const back = parseProject(text);
+
+  assert.deepEqual(back.instruments, JSON.parse(JSON.stringify(instruments)));
+  assert.equal(back.song.bpm, demoSong.bpm);
+  assert.equal(back.song.name, 'demo');
+  assert.equal(back.samples.pluck.rate, sr);
+  assert.ok(Buffer.from(back.samples.pluck.data.buffer).equals(Buffer.from(data.buffer)), 'sample changed in the file');
+
+  const registry2 = new ParamRegistry();
+  for (const [id, def] of Object.entries(back.instruments)) compile(def.graph, { instrument: id, nodeTypes: NODE_TYPES, registry: registry2 });
+  const lanes2 = prepareSong(back.song, back.instruments, registry2);
+  assert.deepEqual(lanes2.map(l => l.rows), lanes.map(l => l.rows));
+  assert.equal(lanes2[0].rows[3][0], 'G-4');
+
+  assert.throws(() => parseProject('nope'), /invalid JSON/);
+  assert.throws(() => parseProject('{"format":"other"}'), /Not a webtracker file/);
+  assert.throws(() => parseProject(JSON.stringify({ ...JSON.parse(text), version: 99 })), /version 99/);
+  assert.throws(() => parseProject(JSON.stringify({
+    ...JSON.parse(text), lanes: [{ id: 'x', instrument: 'ghost', patterns: {}, placements: [] }],
+  })), /unknown instrument/);
+}
+
+// 21. Reset drops lanes and instruments so another project can be loaded.
+{
+  const { seq, rt } = songSetup(song120([oneLane('lead', 'lead', patternText(16, { 0: 'C-4 .. .. .. ..' }))]));
+  seq.play();
+  assert.ok(peak(render(seq, 0.2).left) > 0.05);
+  const fresh = new ParamRegistry();
+  rt.reset(fresh.values);
+  seq.reset(fresh.values);
+  assert.equal(seq.playing, false);
+  assert.equal(seq.lanes.size, 0);
+  assert.equal(peak(render(seq, 0.2).left), 0);
 }
 
 console.log('smoke test passed');

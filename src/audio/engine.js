@@ -23,6 +23,13 @@ export class Engine {
     await this.ctx.resume();
   }
 
+  // Forgets every instrument and lane and starts a fresh parameter block, so a new
+  // project can be loaded into the running engine.
+  reset() {
+    this.registry = new ParamRegistry();
+    this.node.port.postMessage({ type: 'reset', sab: this.registry.sab });
+  }
+
   // Compiles on the main thread and posts the flat result to the worklet.
   loadInstrument(instrument, desc) {
     const graph = compile(desc, { instrument, nodeTypes: NODE_TYPES, registry: this.registry });

@@ -29,10 +29,12 @@ export const instruments = {
     graph: withParams(samplerPreset, { out: { gain: 0.6 } }),
     exposed: samplerExposed,
     commands: samplerCommands,
+    samples: { sampler: 'pluck' },   // node id -> sample id
   },
   bass: {
     graph: withParams(samplerPreset, { filter: { cutoff: 500 }, delay: { mix: 0 }, out: { gain: 0.6 } }),
     exposed: samplerExposed,
     commands: samplerCommands,
+    samples: { sampler: 'pluck' },
   },
 };

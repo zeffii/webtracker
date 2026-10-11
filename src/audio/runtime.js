@@ -11,6 +11,12 @@ export class GraphRuntime {
     this.maxBlock = maxBlock;
   }
 
+  // Drops every instrument and switches to a new parameter block.
+  reset(params) {
+    this.params = params;
+    this.instruments.clear();
+  }
+
   // Allocates buffers and node state. Runs on a message, not per block.
   load(compiled) {
     const buffers = Array.from({ length: compiled.bufferCount }, () => new Float32Array(this.maxBlock));

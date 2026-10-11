@@ -1,13 +1,12 @@
 import { Engine } from './audio/engine.js';
-import { makePluck } from './audio/sample.js';
-import { instruments } from './instruments.js';
+import { createDemoProject } from './project/demo.js';
+import { FILE_EXT, parseProject, serializeProject } from './project/file.js';
 import { prepareSong } from './seq/lane.js';
 import { createTrackerView } from './seq/view.js';
-import { song } from './song.js';
 
 const engine = new Engine();
 const $ = id => document.getElementById(id);
-let started = false;
+let started = false, playing = false, project = null;
 
 // Live sliders write the lead's exposed parameters. Where the pattern has a value
 // on a tick it wins; empty pattern cells leave the slider's value alone.
@@ -20,42 +19,77 @@ const bindings = [
 const apply = ([input, output, address, map, format]) => {
   const value = map($(input).valueAsNumber);
   $(output).textContent = format(value);
-  if (started) engine.set(address, value);
+  if (started && engine.registry.slots.has(address)) engine.set(address, value);   // a loaded project may not have it
 };
 for (const b of bindings) {
   $(b[0]).addEventListener('input', () => apply(b));
   apply(b);
 }
 
-let playing = false;
-const togglePlay = () => {
-  playing = !playing;
+const setPlaying = value => {
+  playing = value;
   if (playing) engine.play(); else engine.stop();
   $('play').textContent = playing ? 'Stop' : 'Play';
 };
+const togglePlay = () => setPlaying(!playing);
 $('play').addEventListener('click', e => { togglePlay(); e.currentTarget.blur(); });
+
+const view = createTrackerView({ el: $('view'), statusEl: $('cursor'), transport: engine.transport, onToggle: togglePlay });
+
+// Loads a project into the running engine: { song, instruments, samples }.
+function openProject({ song, instruments, samples }) {
+  if (playing) setPlaying(false);
+  engine.reset();
+  for (const [id, def] of Object.entries(instruments)) {
+    engine.loadInstrument(id, def.graph);
+    for (const [node, sampleId] of Object.entries(def.samples ?? {})) {
+      const { data, rate } = samples[sampleId];
+      engine.sendToNode(id, node, { type: 'sample', data: data.slice(), rate });
+    }
+  }
+  const lanes = prepareSong(song, instruments, engine.registry);
+  engine.setSong(song);
+  for (const { id, instrument, columns, pages } of lanes) engine.setLane({ id, instrument, columns, pages });
+  project = { song, instruments, samples, lanes };
+  view.load({ lanes, song });
+  bindings.forEach(apply);
+  $('view').focus();
+}
+
+const download = (name, text) => {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
+  a.download = name;
+  a.click();
+  URL.revokeObjectURL(a.href);
+};
+
+$('save').addEventListener('click', () => {
+  download(`${project.song.name ?? 'untitled'}${FILE_EXT}`, serializeProject(project));
+  $('status').textContent = 'Saved.';
+});
+$('load').addEventListener('click', () => $('file').click());
+$('file').addEventListener('change', async e => {
+  const [file] = e.target.files;
+  e.target.value = '';
+  if (!file) return;
+  try {
+    openProject(parseProject(await file.text()));
+    $('status').textContent = `Loaded ${file.name}.`;
+  } catch (err) {
+    $('status').textContent = err.message;
+  }
+});
 
 $('start').addEventListener('click', async () => {
   try {
     await engine.start();
-    const data = makePluck(engine.ctx.sampleRate);
-    for (const [id, def] of Object.entries(instruments)) {
-      engine.loadInstrument(id, def.graph);
-      engine.sendToNode(id, 'sampler', { type: 'sample', data: data.slice(), rate: engine.ctx.sampleRate });
-    }
-    const lanes = prepareSong(song, instruments, engine.registry);
-    engine.setSong(song);
-    for (const { id, instrument, columns, pages } of lanes) engine.setLane({ id, instrument, columns, pages });
     started = true;
-    bindings.forEach(apply);
-    $('start').disabled = true;
-    $('play').disabled = false;
+    openProject(createDemoProject(engine.ctx.sampleRate));
+    for (const id of ['start']) $(id).disabled = true;
+    for (const id of ['play', 'save', 'load']) $(id).disabled = false;
     $('status').textContent =
       `Running at ${engine.ctx.sampleRate} Hz, base latency ${(engine.ctx.baseLatency * 1000).toFixed(1)} ms`;
-    const view = createTrackerView({
-      el: $('view'), statusEl: $('cursor'), lanes, song, transport: engine.transport, onToggle: togglePlay,
-    });
-    $('view').focus();
     const frame = () => { view.draw(); requestAnimationFrame(frame); };
     frame();
   } catch (err) {

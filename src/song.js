@@ -3,6 +3,7 @@
 // and missing cells at the end of a row are empty. An empty parameter cell leaves
 // the parameter as it is. Cmd is CCXXYY: command 02 is resonance, 03 delay time.
 export const song = {
+  name: 'demo',
   bpm: 120,
   ticksPerBeat: 4,
   length: 32,

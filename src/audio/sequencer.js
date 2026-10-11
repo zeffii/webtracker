@@ -52,6 +52,16 @@ export class Sequencer {
     });
   }
 
+  // Drops every lane, stops, and switches to a new parameter block.
+  reset(params) {
+    this.params = params;
+    this.lanes.clear();
+    this.playing = false;
+    this.tick = 0;
+    this.transport[0] = 0;
+    this.transport[1] = 0;
+  }
+
   play() {
     this.tick = 0;
     this.countdown = 0;
