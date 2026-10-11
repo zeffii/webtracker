@@ -1,0 +1,8 @@
+{
+  "name": "webtracker",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node serve.mjs"
+  }
+}
