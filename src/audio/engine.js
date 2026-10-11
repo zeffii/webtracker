@@ -6,6 +6,7 @@ export class Engine {
   ctx = null;
   node = null;
   registry = new ParamRegistry();
+  transport = new Int32Array(new SharedArrayBuffer(8));   // [tick, playing], written by the worklet
 
   async start() {
     if (!crossOriginIsolated) {
@@ -16,7 +17,7 @@ export class Engine {
     this.node = new AudioWorkletNode(this.ctx, 'tracker-engine', {
       numberOfInputs: 0,
       outputChannelCount: [2],
-      processorOptions: { sab: this.registry.sab },
+      processorOptions: { sab: this.registry.sab, transport: this.transport.buffer },
     });
     this.node.connect(this.ctx.destination);
     await this.ctx.resume();
@@ -38,6 +39,27 @@ export class Engine {
 
   noteOff(instrument, note) {
     this.node.port.postMessage({ type: 'note', instrument, msg: { type: 'noteOff', note } });
+  }
+
+  setSong({ bpm, ticksPerBeat, length }) {
+    this.node.port.postMessage({ type: 'song', song: { bpm, ticksPerBeat, length } });
+  }
+
+  // lane = { id, instrument, columns, pages }. The pages are shared memory.
+  setLane(lane) {
+    this.node.port.postMessage({ type: 'lane', lane });
+  }
+
+  play() {
+    this.node.port.postMessage({ type: 'transport', play: true });
+  }
+
+  stop() {
+    this.node.port.postMessage({ type: 'transport', play: false });
+  }
+
+  get tick() {
+    return Atomics.load(this.transport, 0);
   }
 
   // Latest-value mailbox: the worklet reads this slot once per block.

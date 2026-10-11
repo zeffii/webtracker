@@ -1,20 +1,19 @@
 import { Engine } from './audio/engine.js';
 import { makePluck } from './audio/sample.js';
-import { samplerPreset } from './presets.js';
-
-const INSTRUMENT = 'lead';
-const PATTERN = [60, 63, 67, 72, 67, 63, 60, null, 58, 62, 65, 70, 65, 62, 58, null];
-const STEP_MS = 140;
+import { instruments } from './instruments.js';
+import { prepareSong } from './seq/lane.js';
+import { song } from './song.js';
 
 const engine = new Engine();
 const $ = id => document.getElementById(id);
-let started = false;
+let started = false, lanes = [];
 
-// Each slider writes one exposed parameter address.
+// Live sliders write the lead's exposed parameters. Where the pattern has a value
+// on a tick it wins; empty pattern cells leave the slider's value alone.
 const bindings = [
-  ['cutoff', 'cutoff-out', `${INSTRUMENT}.filter.cutoff`, v => 80 * 2 ** (v * 7.8), x => `${Math.round(x)} Hz`],
-  ['res', 'res-out', `${INSTRUMENT}.filter.resonance`, v => v, x => x.toFixed(2)],
-  ['mix', 'mix-out', `${INSTRUMENT}.delay.mix`, v => v, x => x.toFixed(2)],
+  ['cutoff', 'cutoff-out', 'lead.filter.cutoff', v => 80 * 2 ** (v * 7.8), x => `${Math.round(x)} Hz`],
+  ['res', 'res-out', 'lead.filter.resonance', v => v, x => x.toFixed(2)],
+  ['mix', 'mix-out', 'lead.delay.mix', v => v, x => x.toFixed(2)],
 ];
 
 const apply = ([input, output, address, map, format]) => {
@@ -27,23 +26,28 @@ for (const b of bindings) {
   apply(b);
 }
 
-// Placeholder pattern player: a plain timer, replaced by the sequencer in milestone 3.
-let step = 0, timer = null, held = null;
-const tick = () => {
-  if (held !== null) engine.noteOff(INSTRUMENT, held);
-  held = PATTERN[step++ % PATTERN.length];
-  if (held !== null) engine.noteOn(INSTRUMENT, held);
+// Playback view: every lane side by side, current tick in bold.
+const draw = () => {
+  if (lanes.length) {
+    const tick = engine.tick, len = song.length;
+    const widths = lanes.map(l => l.rows[0].join(' ').length);
+    const lines = [`    ${lanes.map((l, i) => l.id.padEnd(widths[i])).join('  ')}`];
+    for (let k = -4; k < 12; k++) {
+      const t = (tick + k + len) % len;
+      const row = `${k === 0 ? '>' : ' '}${String(t).padStart(2, '0')} ${lanes.map(l => l.rows[t].join(' ')).join('  ')}`;
+      lines.push(k === 0 ? `<b>${row}</b>` : row);
+    }
+    $('view').innerHTML = lines.join('\n');
+  }
+  requestAnimationFrame(draw);
 };
 
 $('play').addEventListener('click', () => {
-  if (timer) {
-    clearInterval(timer);
-    timer = null;
-    if (held !== null) engine.noteOff(INSTRUMENT, held);
-    held = null;
-    $('play').textContent = 'Play pattern';
+  if (engine.transport[1]) {
+    engine.stop();
+    $('play').textContent = 'Play';
   } else {
-    timer = setInterval(tick, STEP_MS);
+    engine.play();
     $('play').textContent = 'Stop';
   }
 });
@@ -51,15 +55,21 @@ $('play').addEventListener('click', () => {
 $('start').addEventListener('click', async () => {
   try {
     await engine.start();
-    engine.loadInstrument(INSTRUMENT, samplerPreset);
     const data = makePluck(engine.ctx.sampleRate);
-    engine.sendToNode(INSTRUMENT, 'sampler', { type: 'sample', data, rate: engine.ctx.sampleRate }, [data.buffer]);
+    for (const [id, def] of Object.entries(instruments)) {
+      engine.loadInstrument(id, def.graph);
+      engine.sendToNode(id, 'sampler', { type: 'sample', data: data.slice(), rate: engine.ctx.sampleRate });
+    }
+    lanes = prepareSong(song, instruments, engine.registry);
+    engine.setSong(song);
+    for (const { id, instrument, columns, pages } of lanes) engine.setLane({ id, instrument, columns, pages });
     started = true;
     bindings.forEach(apply);
     $('start').disabled = true;
     $('play').disabled = false;
     $('status').textContent =
       `Running at ${engine.ctx.sampleRate} Hz, base latency ${(engine.ctx.baseLatency * 1000).toFixed(1)} ms`;
+    draw();
   } catch (err) {
     $('status').textContent = err.message;
   }

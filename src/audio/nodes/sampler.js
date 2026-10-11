@@ -35,6 +35,8 @@ export default {
           }
           active[v] = 1; released[v] = 0; note[v] = msg.note;
           pos[v] = 0; gain[v] = msg.vel ?? 1; env[v] = 0; age[v] = ++stamp;
+        } else if (msg.type === 'noteCut') {
+          active.fill(0);
         } else if (msg.type === 'noteOff') {
           for (let v = 0; v < VOICES; v++) {
             if (active[v] && !released[v] && note[v] === msg.note) released[v] = 1;
