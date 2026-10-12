@@ -7,9 +7,9 @@ export const PAGE_TICKS = 1024;
 // Command table for a CCXXYY column: id -> parameter target, as flat arrays so
 // that playing a row does not allocate.
 function buildCommandTable(commands) {
-  const t = { slot: new Int32Array(256).fill(-1), min: new Float64Array(256), max: new Float64Array(256), log: new Uint8Array(256) };
+  const t = { slot: new Int32Array(256).fill(-1), min: new Float64Array(256), max: new Float64Array(256), log: new Uint8Array(256), int: new Uint8Array(256) };
   for (const c of commands) {
-    t.slot[c.id] = c.slot; t.min[c.id] = c.min; t.max[c.id] = c.max; t.log[c.id] = c.log ? 1 : 0;
+    t.slot[c.id] = c.slot; t.min[c.id] = c.min; t.max[c.id] = c.max; t.log[c.id] = c.log ? 1 : 0; t.int[c.id] = c.int ? 1 : 0;
   }
   return t;
 }
@@ -102,15 +102,17 @@ export class Sequencer {
       const v = page[base + col.ch];
       if (v === EMPTY) continue;
       if (col.kind === 'param') {
-        // A 1hex column on a whole-number parameter (toggle, enum) writes the digit itself.
-        if (col.int && col.denom === 15) this.params[col.slot] = Math.min(col.max, col.min + Math.round(v * 15));
+        // A whole-number parameter (toggle, enum) takes the number in the cell itself, at any width.
+        if (col.int) this.params[col.slot] = Math.min(col.max, col.min + Math.round(v * col.denom));
         else this.writeParam(col.slot, col.min, col.max, col.log, Math.round(v * col.denom) / col.denom);
       } else if (col.kind === 'cmd') {
         // Needs both halves: the command id and its value.
         const value = page[base + col.ch + 1];
         const id = decodeHex2(v), t = col.table;
         if (value !== EMPTY && t.slot[id] >= 0) {
-          this.writeParam(t.slot[id], t.min[id], t.max[id], t.log[id] === 1, decodeHex4(value) / 65535);
+          // 0003 is wave 3 for a whole-number target; otherwise the value runs across the range.
+          if (t.int[id] === 1) this.params[t.slot[id]] = Math.min(t.max[id], t.min[id] + decodeHex4(value));
+          else this.writeParam(t.slot[id], t.min[id], t.max[id], t.log[id] === 1, decodeHex4(value) / 65535);
         }
       } else if (col.kind === 'vel') {
         vel = decodeHex2(v) / 255;

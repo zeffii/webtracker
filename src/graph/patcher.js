@@ -1,4 +1,4 @@
-import { addNode, autoLayout, connect, disconnect, pruneDef, removeNode, setExposed, setParam } from './edit.js';
+import { addNode, autoLayout, connect, disconnect, pruneDef, removeNode, setBits, setExposed, setParam } from './edit.js';
 
 // The modular view: a canvas of nodes and wires for one instrument's graph, plus a panel
 // for the selected node's parameters. Drag a node to move it, drag from an output dot to
@@ -122,12 +122,23 @@ export function createPatcher({ canvas, panel, statusEl, doc = document, nodeTyp
         out.textContent = fmt(v);
         onParam(instId, node.id, spec.name, v);
       });
-      const exposed = el('input', { type: 'checkbox', checked: def().exposed.some(e => e.node === node.id && e.param === spec.name) });
+      const current = def().exposed.find(e => e.node === node.id && e.param === spec.name);
+      const exposed = el('input', { type: 'checkbox', checked: !!current });
+      // The column width of an exposed parameter: 1hex (16 steps), 2hex (256) or 4hex (65536).
+      const width = el('select', { disabled: !current, value: String(current?.bits ?? 8) },
+        ...[['4', '1hex'], ['8', '2hex'], ['16', '4hex']].map(([bits, label]) => el('option', { value: bits, textContent: label })));
+      width.value = String(current?.bits ?? 8);
       exposed.addEventListener('change', () => {
         setExposed(def(), nodeTypes, node.id, spec.name, exposed.checked);
+        width.disabled = !exposed.checked;
+        width.value = String(def().exposed.find(e => e.node === node.id && e.param === spec.name)?.bits ?? 8);
         structure();
       });
-      return el('div', { className: 'prow' }, el('span', { textContent: spec.name }), slider, out, el('label', {}, exposed, ' expose'));
+      width.addEventListener('change', () => {
+        setBits(def(), node.id, spec.name, Number(width.value));
+        structure();
+      });
+      return el('div', { className: 'prow' }, el('span', { textContent: spec.name }), slider, out, el('span', {}, el('label', {}, exposed, ' expose '), width));
     });
     const items = [el('h3', {}, `${node.id} (${node.type})`), ...rows];
     if (!type.master) {

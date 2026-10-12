@@ -19,8 +19,9 @@ export function buildColumns(instrument, def, registry) {
   for (const e of def.exposed) {
     // bits: 16 is a 4hex column, 4 is a 1hex column (a toggle or an enum), otherwise 2hex.
     const token = e.bits === 16 ? '4hex' : e.bits === 4 ? '1hex' : '2hex';
+    const base = `p:${e.node}.${e.param}`;
     columns.push({
-      kind: 'param', token, label: e.label, key: `p:${e.node}.${e.param}:${token}`,
+      kind: 'param', token, label: e.label, base, key: `${base}:${token}`,
       denom: { '4hex': 65535, '1hex': 15, '2hex': 255 }[token], log: e.scale === 'log', ...target(e.node, e.param),
     });
   }
@@ -122,18 +123,36 @@ export function prepareSong(song, instruments, registry) {
   });
 }
 
+// A cell moved to a column of another width for the same parameter keeps its meaning:
+// a whole-number parameter keeps its number, any other keeps its place in the range.
+function convertCell(token, from, to) {
+  if (token === KINDS[from.token].blank) return KINDS[to.token].blank;
+  const n = parseInt(token, 16), digits = KINDS[to.token].width;
+  const value = to.int ? Math.min(n, 16 ** digits - 1) : Math.round(n / from.denom * to.denom);
+  return value.toString(16).toUpperCase().padStart(digits, '0');
+}
+
 // After an instrument's graph or exposed parameters change, rebuilds the columns of its
-// lanes. Cells follow their column by key; a column that is new starts empty and one
-// that is gone loses its cells. Returns the lanes that changed, with new pages.
+// lanes. Cells follow their column by key, and by parameter when only the width changed
+// (they are converted); a column that is new starts empty and one that is gone loses its
+// cells. Returns the lanes that changed, with new pages.
 export function rebuildInstrumentLanes(lanes, song, instruments, registry, instrumentId) {
   const changed = [];
   for (const lane of lanes) {
     if (lane.instrument !== instrumentId) continue;
     const columns = buildColumns(instrumentId, instruments[instrumentId], registry);
-    const old = new Map(lane.columns.map((c, i) => [c.key, i]));
-    const from = columns.map(c => old.get(c.key));
+    const from = columns.map(c => {
+      let i = lane.columns.findIndex(o => o.key === c.key);
+      if (i >= 0) return { i };
+      i = c.base ? lane.columns.findIndex(o => o.base === c.base) : -1;
+      return i >= 0 ? { i, convert: lane.columns[i] } : null;
+    });
     for (const pat of Object.values(lane.patterns)) {
-      pat.rows = pat.rows.map(row => columns.map((c, i) => (from[i] === undefined ? KINDS[c.token].blank : row[from[i]])));
+      pat.rows = pat.rows.map(row => columns.map((c, k) => {
+        const f = from[k];
+        if (!f) return KINDS[c.token].blank;
+        return f.convert ? convertCell(row[f.i], f.convert, c) : row[f.i];
+      }));
     }
     lane.columns = columns;
     lane.rows = flattenLane(lane, columns, song.length);

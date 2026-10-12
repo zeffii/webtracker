@@ -78,6 +78,15 @@ export function setExposed(def, nodeTypes, nodeId, param, on) {
   });
 }
 
+// Sets an exposed parameter's column width: 4 bits is 1hex, 8 is 2hex (the default, stored
+// as no bits), 16 is 4hex.
+export function setBits(def, nodeId, param, bits) {
+  const e = def.exposed.find(x => x.node === nodeId && x.param === param);
+  if (!e) return false;
+  if (bits === 8) delete e.bits; else e.bits = bits;
+  return true;
+}
+
 // Drops exposures, commands and sample mappings that point at nodes or parameters that
 // no longer exist.
 export function pruneDef(def, nodeTypes) {

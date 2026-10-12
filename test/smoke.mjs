@@ -895,4 +895,100 @@ const hit = 'C-2 .. .. ..';
   view.draw();
 }
 
+// 40. Whole-number targets take a plain number, in a parameter column of any width and through a command.
+{
+  const defs = structuredClone(instruments);
+  defs.kick.exposed.push({ node: 'osc', param: 'wave', label: 'Wav' });   // a 2hex column
+  defs.kick.commands = [{ id: 0x07, node: 'osc', param: 'wave' }, { id: 0x08, node: 'ampEnv', param: 'decay', scale: 'log' }];
+  const registry = new ParamRegistry();
+  const rt = new GraphRuntime({ sampleRate: sr, params: registry.values });
+  const seq = new Sequencer({ sampleRate: sr, runtime: rt, params: registry.values, transport: new Int32Array(new SharedArrayBuffer(8)) });
+  for (const [id, d] of Object.entries(defs)) rt.load(compile(d.graph, { instrument: id, nodeTypes: NODE_TYPES, registry }));
+  const rows = { 0: '... .. .. .. 02', 1: '... .. .. .. .. 070003', 2: '... .. .. .. .. 070009', 3: '... .. .. .. .. 088000' };
+  const text = Array.from({ length: 16 }, (_, i) => rows[i] ?? '... .. .. ..').join('\n');
+  const song = song120([{ id: 'kick', instrument: 'kick', patterns: { a: { text } }, placements: [{ puid: 'a', start: 0, length: 16 }] }]);
+  seq.setSong(song);
+  seq.setLane(prepareSong(song, defs, registry)[0]);
+  seq.play();
+  render(seq, 0.01);
+  assert.equal(registry.get('kick.osc.wave'), 2, 'a 2hex cell on a whole-number parameter is the number itself (02, not 2/255 of the range)');
+  render(seq, 0.13);
+  assert.equal(registry.get('kick.osc.wave'), 3, '070003 is wave 3');
+  render(seq, 0.13);
+  assert.equal(registry.get('kick.osc.wave'), 3, 'a number past the top clamps');
+  render(seq, 0.13);
+  const expected = Math.pow(5000, 0x8000 / 65535);          // a continuous target still runs across its range
+  assert.ok(Math.abs(registry.get('kick.ampEnv.decay') / expected - 1) < 1e-3, 'a continuous command is proportional');
+}
+
+// 41. Changing a column's width converts its cells; a whole-number parameter keeps its number.
+{
+  const defs = structuredClone(instruments);
+  gedit.setExposed(defs.kick, NODE_TYPES, 'osc', 'wave', true);            // 1hex by default (whole-number)
+  const registry = new ParamRegistry();
+  for (const [id, d] of Object.entries(defs)) compile(d.graph, { instrument: id, nodeTypes: NODE_TYPES, registry });
+  const lanes = prepareSong(demoSong, defs, registry);
+  const kick = lanes.find(l => l.id === 'kick');
+  const col = label => kick.columns.findIndex(c => c.label === label);
+  assert.equal(kick.columns[col('Wav')].token, '1hex');
+  ops.setCell(kick, 32, 0, col('Wav'), '3');
+  const resize = (param, node, bits) => {
+    gedit.setBits(defs.kick, node, param, bits);
+    compile(defs.kick.graph, { instrument: 'kick', nodeTypes: NODE_TYPES, registry });
+    rebuildInstrumentLanes(lanes, demoSong, defs, registry, 'kick');
+  };
+  assert.equal(kick.rows[0][col('Dec')], '90');
+  resize('decay', 'ampEnv', 16); assert.equal(kick.rows[0][col('Dec')], '9090');     // same place in the range
+  resize('decay', 'ampEnv', 4); assert.equal(kick.rows[0][col('Dec')], '8');
+  resize('decay', 'ampEnv', 8); assert.equal(kick.rows[0][col('Dec')], '88');
+  resize('wave', 'osc', 16); assert.equal(kick.rows[0][col('Wav')], '0003');        // a whole number stays 3
+  assert.equal(kick.columns[col('Wav')].token, '4hex');
+  ops.setCell(kick, 32, 0, col('Wav'), '0010');
+  resize('wave', 'osc', 4); assert.equal(kick.rows[0][col('Wav')], 'F');             // too big for one digit: clamps
+  assert.equal(kick.rows[1][col('Wav')], '.');                                       // empty stays empty
+  assert.equal(decodeNote(kick.pages[0][0]), 36);
+}
+
+// 42. The patcher's width dropdown: whole-number parameters default to 1hex, and the choice changes the exposure.
+{
+  const makeEl = tag => ({
+    tag, children: [], listeners: {}, style: {}, textContent: '', value: '', checked: false, disabled: false,
+    appendChild(c) { this.children.push(c); return c; }, replaceChildren(...c) { this.children = c; },
+    addEventListener(type, f) { this.listeners[type] = f; }, focus() {},
+  });
+  const walk = (el, fn) => { fn(el); (el.children ?? []).forEach(c => walk(c, fn)); };
+  const doc = { createElement: makeEl, createTextNode: text => ({ text }) };
+  const ctx = new Proxy({}, { get: (t, k) => (k in t ? t[k] : () => {}), set: (t, k, v) => { t[k] = v; return true; } });
+  const canvas = { width: 900, height: 360, style: {}, listeners: {}, getContext: () => ctx, addEventListener(type, f) { this.listeners[type] = f; }, focus() {} };
+  const panel = makeEl('div');
+  const defs = structuredClone(instruments);
+  const structures = [];
+  const patcher = createPatcher({ canvas, panel, statusEl: {}, doc, nodeTypes: NODE_TYPES, onStructure: id => structures.push(id), onParam() {} });
+  patcher.load({ instruments: defs });
+  patcher.show('kick');
+  const osc = defs.kick.graph.nodes.find(n => n.id === 'osc');
+  const point = { x: osc.x + 70, y: osc.y + 10 };
+  canvas.listeners.mousedown({ offsetX: point.x, offsetY: point.y, preventDefault() {} });
+  canvas.listeners.mouseup({ offsetX: point.x, offsetY: point.y });
+  const rows = [];
+  walk(panel, e => { if (e.className === 'prow') rows.push(e); });
+  const rowFor = name => rows[NODE_TYPES.osc.params.findIndex(p => p.name === name)];
+  const parts = row => { const f = { boxes: [], selects: [] }; walk(row, e => { if (e.tag === 'input' && e.type === 'checkbox') f.boxes.push(e); if (e.tag === 'select') f.selects.push(e); }); return f; };
+
+  const reset = parts(rowFor('reset'));
+  assert.equal(reset.selects[0].disabled, true, 'the dropdown is off until the parameter is exposed');
+  reset.boxes[0].checked = true; reset.boxes[0].listeners.change();
+  assert.equal(reset.selects[0].disabled, false);
+  assert.equal(reset.selects[0].value, '4', 'a whole-number parameter defaults to 1hex');
+  reset.selects[0].value = '16'; reset.selects[0].listeners.change();
+  assert.equal(defs.kick.exposed.find(e => e.param === 'reset').bits, 16);
+  reset.selects[0].value = '8'; reset.selects[0].listeners.change();
+  assert.equal(defs.kick.exposed.find(e => e.param === 'reset').bits, undefined, '2hex is the default and is stored as no bits');
+  assert.equal(structures.length, 3);
+
+  const tune = parts(rowFor('tune'));
+  tune.boxes[0].checked = true; tune.boxes[0].listeners.change();
+  assert.equal(tune.selects[0].value, '8', 'a continuous parameter defaults to 2hex');
+}
+
 console.log('smoke test passed');
