@@ -13,19 +13,19 @@ export function buildColumns(instrument, def, registry) {
     return { slot, min, max };
   };
   const columns = [
-    { kind: 'note', token: 'note', label: 'Note' },
-    { kind: 'vel', token: '2hex', label: 'Vel' },
+    { kind: 'note', token: 'note', label: 'Note', key: 'note' },
+    { kind: 'vel', token: '2hex', label: 'Vel', key: 'vel' },
   ];
   for (const e of def.exposed) {
     const wide = e.bits === 16;
     columns.push({
-      kind: 'param', token: wide ? '4hex' : '2hex', label: e.label,
+      kind: 'param', token: wide ? '4hex' : '2hex', label: e.label, key: `p:${e.node}.${e.param}:${wide ? '4hex' : '2hex'}`,
       denom: wide ? 65535 : 255, log: e.scale === 'log', ...target(e.node, e.param),
     });
   }
   if (def.commands?.length) {
     columns.push({
-      kind: 'cmd', token: 'cmd', label: 'Cmd',
+      kind: 'cmd', token: 'cmd', label: 'Cmd', key: 'cmd',
       commands: def.commands.map(c => ({ id: c.id, log: c.scale === 'log', ...target(c.node, c.param) })),
     });
   }
@@ -119,4 +119,25 @@ export function prepareSong(song, instruments, registry) {
     lane.pages = buildPages(lane.rows, columns);
     return lane;
   });
+}
+
+// After an instrument's graph or exposed parameters change, rebuilds the columns of its
+// lanes. Cells follow their column by key; a column that is new starts empty and one
+// that is gone loses its cells. Returns the lanes that changed, with new pages.
+export function rebuildInstrumentLanes(lanes, song, instruments, registry, instrumentId) {
+  const changed = [];
+  for (const lane of lanes) {
+    if (lane.instrument !== instrumentId) continue;
+    const columns = buildColumns(instrumentId, instruments[instrumentId], registry);
+    const old = new Map(lane.columns.map((c, i) => [c.key, i]));
+    const from = columns.map(c => old.get(c.key));
+    for (const pat of Object.values(lane.patterns)) {
+      pat.rows = pat.rows.map(row => columns.map((c, i) => (from[i] === undefined ? KINDS[c.token].blank : row[from[i]])));
+    }
+    lane.columns = columns;
+    lane.rows = flattenLane(lane, columns, song.length);
+    lane.pages = buildPages(lane.rows, columns);
+    changed.push(lane);
+  }
+  return changed;
 }

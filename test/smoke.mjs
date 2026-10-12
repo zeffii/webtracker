@@ -15,6 +15,9 @@ import { createTrackerView } from '../src/seq/view.js';
 import { createSequenceView } from '../src/seq/seqview.js';
 import { createEditor } from '../src/seq/editor.js';
 import * as ops from '../src/seq/edit.js';
+import * as gedit from '../src/graph/edit.js';
+import { createPatcher, hitTest, portPos } from '../src/graph/patcher.js';
+import { rebuildInstrumentLanes } from '../src/seq/lane.js';
 import { parseProject, serializeProject } from '../src/project/file.js';
 import { song as demoSong } from '../src/song.js';
 
@@ -599,6 +602,234 @@ const firstSound = x => x.findIndex(v => Math.abs(v) > 1e-9);
   }));
   assert.equal(back.samples.pluck.loopStart, 100);
   assert.equal(back.samples.pluck.loopEnd, 900);
+}
+
+// ---- milestone 5: oscillator, envelope, graph editing, patcher ----
+
+const kickRows = cells => Array.from({ length: 16 }, (_, i) => cells[i] ?? '... .. .. ..').join('\n');
+const kickSong = cells => song120([{ id: 'kick', instrument: 'kick', patterns: { a: { text: kickRows(cells) } }, placements: [{ puid: 'a', start: 0, length: 16 }] }]);
+const hit = 'C-2 .. .. ..';
+
+// 30. The oscillator restarts its phase on a note, so every bass drum hit is identical;
+// with the restart off the hits differ.
+{
+  const run = reset => {
+    const { seq, registry } = songSetup(kickSong({ 0: hit, 8: hit }));
+    registry.set('kick.osc.reset', reset);
+    seq.play();
+    return render(seq, 2).left;
+  };
+  const a = run(1);
+  assert.ok(peak(a.subarray(0, 24000)) > 0.1, 'the kick is silent');
+  const first = a.subarray(0, 24000), second = a.subarray(48000, 72000);   // one second apart
+  assert.ok(first.every((v, i) => Math.abs(v - second[i]) < 1e-6), 'hits differ although the phase is reset');
+  const b = run(0);
+  assert.ok(peak(b.subarray(0, 24000).map((v, i) => v - b[48000 + i])) > 0.01, 'hits should differ without the reset');
+}
+
+// 31. The oscillator's sync input restarts it on a rising edge.
+{
+  const registry = new ParamRegistry();
+  const rt = new GraphRuntime({ sampleRate: sr, params: registry.values });
+  rt.load(compile({
+    nodes: [
+      { id: 'lfo', type: 'lfo', params: { rate: 5, shape: 3 } },
+      { id: 'osc', type: 'osc', params: { track: 0, freq: 437.3, reset: 0 } },
+      { id: 'out', type: 'out' },
+    ],
+    connections: [['lfo.out', 'osc.sync'], ['osc.out', 'out.in']],
+  }, { instrument: 'x', nodeTypes: NODE_TYPES, registry }));
+  rt.note('x', { type: 'noteOn', note: 60, vel: 1 });
+  const x = render(rt, 0.5).left;                     // the square wave rises every 9600 samples
+  assert.ok(peak(x) > 0.1);
+  assert.ok(x.subarray(100, 3000).every((v, i) => Math.abs(v - x[9600 + 100 + i]) < 1e-5), 'sync did not restart the phase');
+}
+
+// 32. Envelope: attack, decay to sustain, release, and a retrigger that does not dip.
+{
+  const registry = new ParamRegistry();
+  const rt = new GraphRuntime({ sampleRate: sr, params: registry.values });
+  rt.load(compile({
+    nodes: [{ id: 'env', type: 'env', params: { attack: 10, decay: 50, sustain: 0.5, release: 100 } }, { id: 'out', type: 'out' }],
+    connections: [['env.out', 'out.in']],
+  }, { instrument: 'x', nodeTypes: NODE_TYPES, registry }));
+  assert.equal(peak(render(rt, 0.05).left), 0);        // idle until a note
+  rt.note('x', { type: 'noteOn', note: 60, vel: 1 });
+  const held = render(rt, 0.3).left;                   // attack, decay, then sustain at 0.5 (out gain 0.8)
+  assert.ok(Math.abs(held[held.length - 1] - 0.4) < 2e-3, `sustain level ${held[held.length - 1]}`);
+  rt.note('x', { type: 'noteOn', note: 62, vel: 1 });  // retrigger: the attack starts from where it is
+  const again = render(rt, 0.02).left;
+  assert.ok(again[0] >= held[held.length - 1] - 1e-3, 'the retrigger dipped');
+  rt.note('x', { type: 'noteOff', note: 62 });
+  render(rt, 1);
+  assert.ok(peak(render(rt, 0.1).left) < 1e-3, 'the release did not finish');
+}
+
+// 33. Gain: without cv it passes the signal; the filter's mod input opens the cutoff.
+{
+  const registry = new ParamRegistry();
+  const mk = (graph, id) => {
+    const rt = new GraphRuntime({ sampleRate: sr, params: registry.values });
+    rt.load(compile(graph, { instrument: id, nodeTypes: NODE_TYPES, registry }));
+    rt.note(id, { type: 'noteOn', note: 48, vel: 1 });
+    return rt;
+  };
+  const osc = { id: 'osc', type: 'osc', params: { wave: 1 } };
+  const direct = render(mk({ nodes: [osc, { id: 'out', type: 'out' }], connections: [['osc.out', 'out.in']] }, 'a'), 0.2).left;
+  const viaGain = render(mk({ nodes: [osc, { id: 'g', type: 'gain', params: { gain: 1 } }, { id: 'out', type: 'out' }], connections: [['osc.out', 'g.in'], ['g.out', 'out.in']] }, 'b'), 0.2).left;
+  assert.ok(direct.every((v, i) => Math.abs(v - viaGain[i]) < 1e-6), 'an unconnected cv should pass the signal');
+  const filt = withMod => ({
+    nodes: [osc, { id: 'f', type: 'filter', params: { cutoff: 300, resonance: 0.1 } }, { id: 'env', type: 'env', params: { attack: 0.1, sustain: 1, amount: 3 } }, { id: 'out', type: 'out' }],
+    connections: [['osc.out', 'f.in'], ['f.out', 'out.in'], ...(withMod ? [['env.out', 'f.mod']] : [])],
+  });
+  const shut = brightness(render(mk(filt(false), 'c'), 0.3).left), open = brightness(render(mk(filt(true), 'd'), 0.3).left);
+  assert.ok(open > shut * 2, `mod did not open the filter (${shut} vs ${open})`);
+}
+
+// 34. Graph edits: add, connect, loops, remove, expose, prune, layout.
+{
+  const def = structuredClone(instruments.kick);
+  const g = def.graph;
+  assert.equal(gedit.addNode(g, NODE_TYPES, 'lfo'), 'lfo1');
+  assert.equal(gedit.addNode(g, NODE_TYPES, 'lfo'), 'lfo2');
+  assert.throws(() => gedit.addNode(g, NODE_TYPES, 'out'), /already an out/);
+  gedit.connect(g, NODE_TYPES, 'lfo1.out', 'osc.sync');
+  assert.ok(g.connections.some(([f, t]) => f === 'lfo1.out' && t === 'osc.sync'));
+  gedit.connect(g, NODE_TYPES, 'lfo2.out', 'osc.fm');   // replaces what fed fm
+  assert.equal(g.connections.filter(([, t]) => t === 'osc.fm').length, 1);
+  const before = JSON.stringify(g.connections);
+  assert.throws(() => gedit.connect(g, NODE_TYPES, 'vca.out', 'osc.fm'), /loop/);
+  assert.throws(() => gedit.connect(g, NODE_TYPES, 'osc.out', 'osc.fm'), /loop/);
+  assert.throws(() => gedit.connect(g, NODE_TYPES, 'osc.nope', 'vca.in'), /no output/);
+  assert.equal(JSON.stringify(g.connections), before, 'a refused connection changed the graph');
+  assert.ok(gedit.disconnect(g, 'lfo1.out', 'osc.sync'));
+  gedit.setExposed(def, NODE_TYPES, 'osc', 'phase', true);
+  gedit.setExposed(def, NODE_TYPES, 'ampEnv', 'attack', true);
+  assert.ok(def.exposed.some(e => e.param === 'phase'));
+  assert.equal(def.exposed.find(e => e.param === 'attack').scale, 'log');
+  gedit.setExposed(def, NODE_TYPES, 'osc', 'phase', false);
+  assert.ok(!def.exposed.some(e => e.param === 'phase'));
+  assert.throws(() => gedit.removeNode(g, NODE_TYPES, 'out'), /cannot be removed/);
+  gedit.removeNode(g, NODE_TYPES, 'ampEnv');
+  gedit.pruneDef(def, NODE_TYPES);
+  assert.ok(!def.exposed.some(e => e.node === 'ampEnv'), 'exposures of a removed node should go');
+  assert.ok(!g.connections.some(([f, t]) => f.startsWith('ampEnv') || t.startsWith('ampEnv')));
+  gedit.autoLayout(g, NODE_TYPES);
+  assert.ok(g.nodes.every(n => Number.isFinite(n.x) && Number.isFinite(n.y)));
+}
+
+// 35. Changing an instrument's exposed parameters rebuilds its lanes' columns; cells follow their column.
+{
+  const defs = structuredClone(instruments);
+  const registry = new ParamRegistry();
+  for (const [id, d] of Object.entries(defs)) compile(d.graph, { instrument: id, nodeTypes: NODE_TYPES, registry });
+  const lanes = prepareSong(demoSong, defs, registry);
+  const kick = lanes.find(l => l.id === 'kick');
+  assert.deepEqual(kick.columns.map(c => c.label), ['Note', 'Vel', 'Pit', 'Dec']);
+  const row0 = kick.rows[0].slice();                     // C-2 .. 60 90
+  gedit.setExposed(defs.kick, NODE_TYPES, 'osc', 'phase', true);
+  gedit.setExposed(defs.kick, NODE_TYPES, 'pitchEnv', 'amount', false);   // Pit goes away
+  compile(defs.kick.graph, { instrument: 'kick', nodeTypes: NODE_TYPES, registry });
+  const changed = rebuildInstrumentLanes(lanes, demoSong, defs, registry, 'kick');
+  assert.deepEqual(changed, [kick]);
+  assert.deepEqual(kick.columns.map(c => c.label), ['Note', 'Vel', 'Dec', 'Pha']);
+  assert.deepEqual(kick.rows[0], [row0[0], row0[1], row0[3], '..']);   // Dec kept its cell, Pit's is gone, Pha is empty
+  assert.equal(kick.pages[0].length, 1024 * 4);
+  assert.equal(decodeNote(kick.pages[0][0]), 36);
+  assert.equal(lanes[0].columns.length, 7);              // other instruments are untouched
+}
+
+// 36. The patcher: hit testing, wiring with the mouse, loops refused, delete, sliders, expose.
+{
+  const makeEl = tag => ({
+    tag, children: [], listeners: {}, style: {}, textContent: '', value: '', checked: false,
+    appendChild(c) { this.children.push(c); return c; }, replaceChildren(...c) { this.children = c; },
+    addEventListener(type, f) { this.listeners[type] = f; }, focus() {},
+  });
+  const walk = (el, fn) => { fn(el); (el.children ?? []).forEach(c => walk(c, fn)); };
+  const doc = { createElement: makeEl, createTextNode: text => ({ text }) };
+  const ctx = new Proxy({}, { get: (t, k) => (k in t ? t[k] : () => {}), set: (t, k, v) => { t[k] = v; return true; } });
+  const canvas = { width: 900, height: 360, style: {}, listeners: {}, getContext: () => ctx, addEventListener(type, f) { this.listeners[type] = f; }, focus() {} };
+  const panel = makeEl('div'), statusEl = { textContent: '' };
+  const defs = structuredClone(instruments);
+  const structures = [], params = [];
+  const patcher = createPatcher({ canvas, panel, statusEl, doc, nodeTypes: NODE_TYPES, onStructure: id => structures.push(id), onParam: (...a) => params.push(a) });
+  patcher.load({ instruments: defs, samples: ['pluck'] });
+  patcher.show('kick');
+  patcher.draw();                                        // draws without throwing
+  const g = defs.kick.graph;
+  const node = id => g.nodes.find(n => n.id === id);
+  const at = (id, side, i) => portPos(node(id), side, i);
+  const fire = (type, p, extra = {}) => canvas.listeners[type]({ offsetX: p.x, offsetY: p.y, preventDefault() {}, ...extra });
+
+  assert.deepEqual(hitTest(g, NODE_TYPES, at('osc', 'out', 0).x, at('osc', 'out', 0).y), { kind: 'port', side: 'out', node: 'osc', port: 'out' });
+  assert.equal(hitTest(g, NODE_TYPES, node('vca').x + 70, node('vca').y + 14).kind, 'node');
+  assert.equal(hitTest(g, NODE_TYPES, 880, 340), null);
+
+  // select a node: the panel lists its parameters
+  fire('mousedown', { x: node('osc').x + 70, y: node('osc').y + 10 }); fire('mouseup', { x: node('osc').x + 70, y: node('osc').y + 10 });
+  let sliders = []; walk(panel, e => { if (e.tag === 'input' && e.type === 'range') sliders.push(e); });
+  assert.equal(sliders.length, NODE_TYPES.osc.params.length);
+
+  // drag a node
+  const from = { x: node('vca').x + 70, y: node('vca').y + 10 }, x0 = node('vca').x;
+  fire('mousedown', from); fire('mousemove', { x: from.x + 30, y: from.y + 5 }); fire('mouseup', { x: from.x + 30, y: from.y + 5 });
+  assert.equal(node('vca').x, x0 + 30);
+
+  // add an lfo and wire it to the oscillator's sync input with the mouse
+  patcher.add('lfo');
+  assert.equal(structures.length, 1);
+  fire('mousedown', at('lfo1', 'out', 0)); fire('mousemove', at('osc', 'in', 1)); fire('mouseup', at('osc', 'in', 1));
+  assert.ok(g.connections.some(([f, t]) => f === 'lfo1.out' && t === 'osc.sync'));
+  assert.equal(structures.length, 2);
+
+  // a loop is refused with a message
+  fire('mousedown', at('vca', 'out', 0)); fire('mouseup', at('osc', 'in', 0));
+  assert.match(statusEl.textContent, /loop/);
+  assert.equal(structures.length, 2);
+
+  // a slider changes a parameter live and in the saved graph; expose adds a column
+  fire('mousedown', { x: node('osc').x + 70, y: node('osc').y + 10 }); fire('mouseup', { x: node('osc').x + 70, y: node('osc').y + 10 });
+  sliders = []; const boxes = [];
+  walk(panel, e => { if (e.tag === 'input' && e.type === 'range') sliders.push(e); if (e.tag === 'input' && e.type === 'checkbox') boxes.push(e); });
+  const tune = NODE_TYPES.osc.params.findIndex(p => p.name === 'tune');
+  sliders[tune].value = 750;                             // three quarters of -48..48 is +24 semitones
+  sliders[tune].listeners.input();
+  assert.equal(params.at(-1)[2], 'tune');
+  assert.ok(Math.abs(params.at(-1)[3] - 24) < 1e-6);
+  assert.equal(node('osc').params.tune, 24);
+  boxes[tune].checked = true; boxes[tune].listeners.change();
+  assert.ok(defs.kick.exposed.some(e => e.node === 'osc' && e.param === 'tune'));
+  assert.equal(structures.length, 3);
+
+  // click a wire and delete it
+  const a = at('lfo1', 'out', 0), b = at('osc', 'in', 1);
+  fire('mousedown', { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }); fire('mouseup', { x: 0, y: 0 });
+  canvas.listeners.keydown({ key: 'Delete', preventDefault() {} });
+  assert.ok(!g.connections.some(([f]) => f === 'lfo1.out'));
+
+  // delete a node: its exposures and wires go with it
+  fire('mousedown', { x: node('lfo1').x + 70, y: node('lfo1').y + 10 }); fire('mouseup', { x: 0, y: 0 });
+  canvas.listeners.keydown({ key: 'Delete', preventDefault() {} });
+  assert.ok(!g.nodes.some(n => n.id === 'lfo1'));
+}
+
+// 37. An instrument built in the patcher survives a save and load, positions included.
+{
+  const defs = structuredClone(instruments);
+  gedit.addNode(defs.kick.graph, NODE_TYPES, 'lfo', { x: 300, y: 40 });
+  gedit.connect(defs.kick.graph, NODE_TYPES, 'lfo1.out', 'osc.sync');
+  gedit.setExposed(defs.kick, NODE_TYPES, 'lfo1', 'rate', true);
+  const registry = new ParamRegistry();
+  for (const [id, d] of Object.entries(defs)) compile(d.graph, { instrument: id, nodeTypes: NODE_TYPES, registry });
+  const lanes = prepareSong(demoSong, defs, registry);
+  const back = parseProject(serializeProject({ song: demoSong, instruments: defs, samples: { pluck: { rate: sr, data: new Float32Array(4) } }, lanes }));
+  assert.deepEqual(back.instruments.kick, JSON.parse(JSON.stringify(defs.kick)));
+  assert.equal(back.instruments.kick.graph.nodes.find(n => n.id === 'lfo1').x, 300);
+  const registry2 = new ParamRegistry();
+  for (const [id, d] of Object.entries(back.instruments)) compile(d.graph, { instrument: id, nodeTypes: NODE_TYPES, registry: registry2 });
+  const lanes2 = prepareSong(back.song, back.instruments, registry2);
+  assert.deepEqual(lanes2.map(l => l.rows), lanes.map(l => l.rows));
 }
 
 console.log('smoke test passed');

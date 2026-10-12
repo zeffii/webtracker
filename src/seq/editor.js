@@ -64,6 +64,9 @@ export function createEditor(lanes, length, { limit = 20 } = {}) {
       return true;
     },
     hasWaypoint: () => waypoint !== null,
+    // Forgets all history. Snapshots hold rows laid out for the old columns, so this is
+    // called when an instrument's columns change.
+    clear() { undoStack.length = 0; redoStack.length = 0; waypoint = null; lastKey = null; },
     // Most recent first.
     log: () => undoStack.map(e => e.label).reverse(),
   };

@@ -26,6 +26,13 @@ export function createTrackerView({ el, statusEl, transport, onToggle, onBack, o
     message = '';
   };
 
+  // After a lane's columns change.
+  const relayout = () => {
+    widths = lanes.map(lane => lane.columns.map(c => Math.max(c.label.length, KINDS[c.token].width)));
+    cur.col = Math.min(cur.col, lanes[cur.lane].columns.length - 1);
+    cur.ch = Math.min(cur.ch, KINDS[lanes[cur.lane].columns[cur.col].token].width - 1);
+  };
+
   const column = (li = cur.lane, ci = cur.col) => lanes[li].columns[ci];
   const cellWidth = (li = cur.lane, ci = cur.col) => KINDS[column(li, ci).token].width;
   const block = li => widths[li].reduce((a, w) => a + w, 0) + widths[li].length - 1;
@@ -176,5 +183,5 @@ export function createTrackerView({ el, statusEl, transport, onToggle, onBack, o
     message = '';
   };
 
-  return { draw, load, goto };
+  return { draw, load, goto, relayout };
 }

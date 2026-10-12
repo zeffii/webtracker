@@ -1,8 +1,11 @@
 import { Engine } from './audio/engine.js';
+import { NODE_TYPES } from './audio/nodes/index.js';
+import { pruneDef } from './graph/edit.js';
+import { createPatcher } from './graph/patcher.js';
 import { createDemoProject } from './project/demo.js';
 import { FILE_EXT, parseProject, serializeProject } from './project/file.js';
 import { createEditor } from './seq/editor.js';
-import { prepareSong } from './seq/lane.js';
+import { prepareSong, rebuildInstrumentLanes } from './seq/lane.js';
 import { createSequenceView } from './seq/seqview.js';
 import { createTrackerView } from './seq/view.js';
 
@@ -47,22 +50,60 @@ const seqView = createSequenceView({
   onMove: (lane, tick) => view.goto(lane, tick),
 });
 
+const patcher = createPatcher({
+  canvas: $('patch'), panel: $('patch-panel'), statusEl: $('patch-status'), nodeTypes: NODE_TYPES,
+  onStructure: id => reloadInstrument(id),
+  onParam: (id, node, name, value) => {
+    const address = `${id}.${node}.${name}`;
+    if (engine.registry.slots.has(address)) engine.set(address, value);
+  },
+});
+
+const sendSamples = id => {
+  const def = project.instruments[id];
+  for (const [node, sampleId] of Object.entries(def.samples ?? {})) {
+    const { data, rate, loopStart, loopEnd } = project.samples[sampleId];
+    engine.sendToNode(id, node, { type: 'sample', data: data.slice(), rate, loopStart, loopEnd });
+  }
+};
+
+// The wiring or the exposed parameters of an instrument changed: recompile it, swap it in,
+// and rebuild the columns of its lanes. Cells follow their column; undo history is cleared.
+function reloadInstrument(id) {
+  try {
+    const def = project.instruments[id];
+    pruneDef(def, NODE_TYPES);
+    engine.loadInstrument(id, def.graph);
+    sendSamples(id);
+    for (const { id: laneId, instrument, columns, pages } of rebuildInstrumentLanes(project.lanes, project.song, project.instruments, engine.registry, id)) {
+      engine.setLane({ id: laneId, instrument, columns, pages });
+    }
+    project.editor.clear();
+    view.relayout();
+    bindings.forEach(apply);
+  } catch (err) {
+    $('patch-status').textContent = err.message;
+  }
+}
+
 // Loads a project into the running engine: { song, instruments, samples }.
 function openProject({ song, instruments, samples }) {
   if (playing) setPlaying(false);
   engine.reset();
-  for (const [id, def] of Object.entries(instruments)) {
-    engine.loadInstrument(id, def.graph);
-    for (const [node, sampleId] of Object.entries(def.samples ?? {})) {
-      const { data, rate, loopStart, loopEnd } = samples[sampleId];
-      engine.sendToNode(id, node, { type: 'sample', data: data.slice(), rate, loopStart, loopEnd });
-    }
+  project = { song, instruments, samples, lanes: [], editor: null };
+  for (const id of Object.keys(instruments)) {
+    engine.loadInstrument(id, instruments[id].graph);
+    sendSamples(id);
   }
   const lanes = prepareSong(song, instruments, engine.registry);
   engine.setSong(song);
   for (const { id, instrument, columns, pages } of lanes) engine.setLane({ id, instrument, columns, pages });
-  project = { song, instruments, samples, lanes };
   const editor = createEditor(lanes, song.length);
+  project = { song, instruments, samples, lanes, editor };
+  patcher.load({ instruments, samples: Object.keys(samples) });
+  const pick = $('patch-inst');
+  pick.replaceChildren(...Object.keys(instruments).map(id => new Option(id, id)));
+  pick.value = patcher.instrument;
   seqView.load({ lanes, song, editor });
   view.load({ lanes, song, editor });
   bindings.forEach(apply);
@@ -94,16 +135,20 @@ $('file').addEventListener('change', async e => {
   }
 });
 
+$('patch-inst').addEventListener('change', e => patcher.show(e.target.value));
+$('patch-type').replaceChildren(...Object.keys(NODE_TYPES).filter(t => !NODE_TYPES[t].master).map(t => new Option(t, t)));
+$('patch-add').addEventListener('click', () => patcher.add($('patch-type').value));
+
 $('start').addEventListener('click', async () => {
   try {
     await engine.start();
     started = true;
     openProject(createDemoProject(engine.ctx.sampleRate));
     for (const id of ['start']) $(id).disabled = true;
-    for (const id of ['play', 'save', 'load']) $(id).disabled = false;
+    for (const id of ['play', 'save', 'load', 'patch-add']) $(id).disabled = false;
     $('status').textContent =
       `Running at ${engine.ctx.sampleRate} Hz, base latency ${(engine.ctx.baseLatency * 1000).toFixed(1)} ms`;
-    const frame = () => { seqView.draw(); view.draw(); requestAnimationFrame(frame); };
+    const frame = () => { seqView.draw(); view.draw(); patcher.draw(); requestAnimationFrame(frame); };
     frame();
   } catch (err) {
     $('status').textContent = err.message;

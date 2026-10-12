@@ -75,5 +75,34 @@ export const song = {
         { puid: 'line', start: 16, length: 16 },
       ],
     },
+    {
+      id: 'kick',
+      instrument: 'kick',
+      patterns: {
+        four: {
+          text: `
+            C-2 .. 60 90
+            ... .. .. ..
+            ... .. .. ..
+            ... .. .. ..
+            C-2 .. .. ..
+            ... .. .. ..
+            ... .. .. ..
+            ... .. .. ..
+            C-2 .. .. ..
+            ... .. .. ..
+            ... .. .. ..
+            ... .. .. ..
+            C-2 .. .. ..
+            ... .. .. ..
+            C-2 .. .. ..
+            ... .. .. ..`,
+        },
+      },
+      placements: [
+        { puid: 'four', start: 0, length: 16 },
+        { puid: 'four', start: 16, length: 16 },
+      ],
+    },
   ],
 };

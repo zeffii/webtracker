@@ -22,7 +22,7 @@ export class GraphRuntime {
     const buffers = Array.from({ length: compiled.bufferCount }, () => new Float32Array(this.maxBlock));
     const nodes = compiled.nodes.map(n => ({
       id: n.id,
-      instance: NODE_TYPES[n.type].create({ sampleRate: this.sampleRate, maxBlock: this.maxBlock }),
+      instance: NODE_TYPES[n.type].create({ sampleRate: this.sampleRate, maxBlock: this.maxBlock, connected: n.connected }),
       slots: Int32Array.from(n.slots),
       inputs: n.inputs.map(i => buffers[i]),
       outputs: n.outputs.map(i => buffers[i]),

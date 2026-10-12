@@ -21,6 +21,9 @@
     #seq .p5 { background: hsl(55 70% 50% / .35); }
     #seq .cur { background: Highlight; color: HighlightText; }
     #seq-status { min-height: 1.5em; }
+    #patch { border: 1px solid; max-width: 100%; }
+    #patch:focus { outline: 1px solid; }
+    .prow { display: grid; grid-template-columns: 6rem 1fr 4rem auto; gap: .5rem; align-items: center; }
     #view .cell { background: color-mix(in srgb, Highlight 25%, transparent); }
     #view .cur { background: Highlight; color: HighlightText; }
     .help { font-size: .85rem; opacity: .7; }
@@ -36,6 +39,20 @@
   <button id="load" disabled>Load</button>
   <input id="file" type="file" accept=".wax,.wtrk,.json" hidden>
   <p id="status">Press Start to create the audio engine.</p>
+
+  <h2>Patcher</h2>
+  <p>
+    <select id="patch-inst" aria-label="Instrument"></select>
+    <select id="patch-type" aria-label="Node type"></select>
+    <button id="patch-add" disabled>Add node</button>
+  </p>
+  <canvas id="patch" width="900" height="360" tabindex="0"></canvas>
+  <p id="patch-status"></p>
+  <div id="patch-panel"></div>
+  <p class="help">Drag a node to move it. Drag from an output dot (right side) to an input dot (left side) to
+    wire them; a new wire replaces the one already feeding that input. Click a wire or a node and press Delete
+    to remove it. In the panel, sliders change a parameter and "expose" adds it to the instrument's pattern
+    columns. Changing the wiring or the exposed list swaps the instrument in live and clears undo.</p>
 
   <h2>Arrangement</h2>
   <pre id="seq" tabindex="0"></pre>

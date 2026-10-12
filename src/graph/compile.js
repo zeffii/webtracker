@@ -65,7 +65,7 @@ export function compile(desc, { instrument, nodeTypes, registry }) {
       const l = inputSource.get(`${id}.${i}`);
       return l ? outBufs.get(l.fromId)[l.outPort] : 0;
     });
-    return { id, type: n.type, slots, inputs, outputs: outBufs.get(id) };
+    return { id, type: n.type, slots, inputs, outputs: outBufs.get(id), connected: inputs.map(i => i !== 0) };
   });
 
   const masters = order.filter(id => byId.get(id).def.master);
