@@ -2,25 +2,26 @@ import { PAGE_TICKS } from '../audio/sequencer.js';
 import { EMPTY, KINDS, encodeCell } from './cells.js';
 
 // An instrument's pattern columns: note and velocity, then one column per exposed
-// parameter (2hex, or 4hex with bits: 16), then one CCXXYY column if the instrument
+// parameter (2hex, 4hex with bits: 16, or 1hex with bits: 4), then one CCXXYY column if the instrument
 // has a command table. For the sampler the lists are fixed; for a graph instrument
 // they follow whatever the graph exposes. Each column knows its first channel (ch).
 export function buildColumns(instrument, def, registry) {
   const target = (node, param) => {
     const slot = registry.slots.get(`${instrument}.${node}.${param}`);
     if (slot === undefined) throw new Error(`"${instrument}" does not expose ${node}.${param}`);
-    const { min, max } = registry.meta[slot];
-    return { slot, min, max };
+    const { min, max, int } = registry.meta[slot];
+    return { slot, min, max, int };
   };
   const columns = [
     { kind: 'note', token: 'note', label: 'Note', key: 'note' },
     { kind: 'vel', token: '2hex', label: 'Vel', key: 'vel' },
   ];
   for (const e of def.exposed) {
-    const wide = e.bits === 16;
+    // bits: 16 is a 4hex column, 4 is a 1hex column (a toggle or an enum), otherwise 2hex.
+    const token = e.bits === 16 ? '4hex' : e.bits === 4 ? '1hex' : '2hex';
     columns.push({
-      kind: 'param', token: wide ? '4hex' : '2hex', label: e.label, key: `p:${e.node}.${e.param}:${wide ? '4hex' : '2hex'}`,
-      denom: wide ? 65535 : 255, log: e.scale === 'log', ...target(e.node, e.param),
+      kind: 'param', token, label: e.label, key: `p:${e.node}.${e.param}:${token}`,
+      denom: { '4hex': 65535, '1hex': 15, '2hex': 255 }[token], log: e.scale === 'log', ...target(e.node, e.param),
     });
   }
   if (def.commands?.length) {

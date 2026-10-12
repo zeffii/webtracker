@@ -102,7 +102,9 @@ export class Sequencer {
       const v = page[base + col.ch];
       if (v === EMPTY) continue;
       if (col.kind === 'param') {
-        this.writeParam(col.slot, col.min, col.max, col.log, Math.round(v * col.denom) / col.denom);
+        // A 1hex column on a whole-number parameter (toggle, enum) writes the digit itself.
+        if (col.int && col.denom === 15) this.params[col.slot] = Math.min(col.max, col.min + Math.round(v * 15));
+        else this.writeParam(col.slot, col.min, col.max, col.log, Math.round(v * col.denom) / col.denom);
       } else if (col.kind === 'cmd') {
         // Needs both halves: the command id and its value.
         const value = page[base + col.ch + 1];

@@ -13,13 +13,13 @@ export class ParamRegistry {
   }
 
   // Re-allocating a known address returns its slot and keeps the current value.
-  allocate(address, def, min, max) {
+  allocate(address, def, min, max, int = false) {
     const known = this.slots.get(address);
     if (known !== undefined) return known;
     const slot = this.slots.size;
     if (slot >= PARAM_CAPACITY) throw new Error('parameter block is full');
     this.slots.set(address, slot);
-    this.meta[slot] = { address, min, max };
+    this.meta[slot] = { address, min, max, int };
     this.values[slot] = def;
     return slot;
   }

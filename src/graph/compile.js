@@ -60,7 +60,7 @@ export function compile(desc, { instrument, nodeTypes, registry }) {
   const nodes = order.map(id => {
     const n = byId.get(id);
     const slots = n.def.params.map(p =>
-      registry.allocate(`${instrument}.${id}.${p.name}`, n.params?.[p.name] ?? p.def, p.min, p.max));
+      registry.allocate(`${instrument}.${id}.${p.name}`, n.params?.[p.name] ?? p.def, p.min, p.max, p.int === true));
     const inputs = n.def.inputs.map((_, i) => {
       const l = inputSource.get(`${id}.${i}`);
       return l ? outBufs.get(l.fromId)[l.outPort] : 0;

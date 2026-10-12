@@ -832,4 +832,67 @@ const hit = 'C-2 .. .. ..';
   assert.deepEqual(lanes2.map(l => l.rows), lanes.map(l => l.rows));
 }
 
+// 38. 1hex cells: one digit, for toggles and enums; whole-number parameters take the digit itself.
+{
+  assert.deepEqual(encodeCell('7', '1hex'), [7 / 15]);
+  assert.deepEqual(encodeCell('.', '1hex'), [EMPTY]);
+  assert.throws(() => encodeCell('G', '1hex'));
+  assert.throws(() => encodeCell('12', '1hex'));
+
+  const defs = structuredClone(instruments);
+  defs.kick.exposed.push(
+    { node: 'osc', param: 'wave', label: 'Wav', bits: 4 },
+    { node: 'osc', param: 'reset', label: 'Rst', bits: 4 },
+    { node: 'ampEnv', param: 'sustain', label: 'Sus', bits: 4 },
+  );
+  const registry = new ParamRegistry();
+  const rt = new GraphRuntime({ sampleRate: sr, params: registry.values });
+  const seq = new Sequencer({ sampleRate: sr, runtime: rt, params: registry.values, transport: new Int32Array(new SharedArrayBuffer(8)) });
+  for (const [id, d] of Object.entries(defs)) rt.load(compile(d.graph, { instrument: id, nodeTypes: NODE_TYPES, registry }));
+  const text = Array.from({ length: 16 }, (_, i) => ({ 0: '... .. .. .. 3 0 8', 1: '... .. .. .. F 1 F', 2: '... .. .. .. 2' }[i] ?? '... .. .. ..')).join('\n');
+  const song = song120([{ id: 'kick', instrument: 'kick', patterns: { a: { text } }, placements: [{ puid: 'a', start: 0, length: 16 }] }]);
+  seq.setSong(song);
+  const [lane] = prepareSong(song, defs, registry);
+  assert.deepEqual(lane.columns.map(c => c.token), ['note', '2hex', '2hex', '2hex', '1hex', '1hex', '1hex']);
+  seq.setLane(lane);
+  seq.play();
+  render(seq, 0.01);                                                  // tick 0
+  assert.equal(registry.get('kick.osc.wave'), 3);
+  assert.equal(registry.get('kick.osc.reset'), 0);
+  assert.ok(Math.abs(registry.get('kick.ampEnv.sustain') - 8 / 15) < 1e-6, 'a float parameter maps the digit across its range');
+  render(seq, 0.13);                                                  // tick 1: digit F is past the top of wave (3), so it clamps
+  assert.equal(registry.get('kick.osc.wave'), 3);
+  assert.equal(registry.get('kick.osc.reset'), 1);
+  assert.equal(registry.get('kick.ampEnv.sustain'), 1);
+  render(seq, 0.13);                                                  // tick 2
+  assert.equal(registry.get('kick.osc.wave'), 2);
+
+  // exposing a whole-number parameter in the patcher gives it a 1hex column
+  const d2 = structuredClone(instruments.kick);
+  gedit.setExposed(d2, NODE_TYPES, 'osc', 'reset', true);
+  gedit.setExposed(d2, NODE_TYPES, 'ampEnv', 'sustain', true);
+  assert.equal(d2.exposed.find(e => e.param === 'reset').bits, 4);
+  assert.equal(d2.exposed.find(e => e.param === 'sustain').bits, undefined);
+}
+
+// 39. Typing in a 1hex cell: one digit commits it and moves down.
+{
+  const defs = structuredClone(instruments);
+  defs.kick.exposed.push({ node: 'osc', param: 'reset', label: 'Rst', bits: 4 });
+  const registry = new ParamRegistry();
+  for (const [id, d] of Object.entries(defs)) compile(d.graph, { instrument: id, nodeTypes: NODE_TYPES, registry });
+  const lanes = prepareSong(demoSong, defs, registry);
+  const editor = createEditor(lanes, 32);
+  let onKey;
+  const view = createTrackerView({ el: { addEventListener: (_, f) => { onKey = f; }, innerHTML: '' }, statusEl: {}, transport: new Int32Array(new SharedArrayBuffer(8)), onToggle() {}, onBack() {} });
+  view.load({ lanes, song: demoSong, editor });
+  const press = (key, times = 1) => { for (let i = 0; i < times; i++) onKey({ key, preventDefault() {} }); };
+  const kick = lanes.find(l => l.id === 'kick');
+  press('Tab', 2);                                                    // lead -> bass -> kick
+  press('ArrowRight', 3 + 2 + 2 + 2);                                   // Note (3), Vel (2), Pit (2), Dec (2) -> Rst
+  press('1');
+  assert.equal(kick.rows[0][4], '1');
+  view.draw();
+}
+
 console.log('smoke test passed');

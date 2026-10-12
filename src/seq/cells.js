@@ -6,6 +6,7 @@ const NAMES = ['C-', 'C#', 'D-', 'D#', 'E-', 'F-', 'F#', 'G-', 'G#', 'A-', 'A#',
 // Cell kinds: characters per cell, float channels in the lane buffer, empty token.
 // cmd is CCXXYY: a 2hex command id on one channel, a 4hex value on the next.
 export const KINDS = {
+  '1hex': { width: 1, channels: 1, blank: '.' },
   note: { width: 3, channels: 1, blank: '...' },
   '2hex': { width: 2, channels: 1, blank: '..' },
   '4hex': { width: 4, channels: 1, blank: '....' },
@@ -31,6 +32,7 @@ export function encodeCell(token, kind) {
     }
     return [midi / 127];
   }
+  if (kind === '1hex') return [hexCell(token, 1, 15)];
   if (kind === '2hex') return [hexCell(token, 2, 255)];
   if (kind === '4hex') return [hexCell(token, 4, 65535)];
   if (kind === 'cmd') {
@@ -48,5 +50,6 @@ export function noteToken(semitones) {
 }
 
 export const decodeNote = v => Math.round(v * 127);
+export const decodeHex1 = v => Math.round(v * 15);
 export const decodeHex2 = v => Math.round(v * 255);
 export const decodeHex4 = v => Math.round(v * 65535);

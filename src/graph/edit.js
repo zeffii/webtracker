@@ -70,7 +70,12 @@ export function setExposed(def, nodeTypes, nodeId, param, on) {
   if (at >= 0) return;
   let label = param.slice(0, 3).replace(/^./, c => c.toUpperCase());
   while (def.exposed.some(e => e.label === label)) label = label.slice(0, 2) + (Number(label[2]) + 1 || 2);
-  def.exposed.push({ node: nodeId, param, label, ...(spec.min > 0 && spec.max / spec.min >= 50 ? { scale: 'log' } : {}) });
+  // Whole-number parameters (toggles, enums) get a 1hex column; the rest a 2hex one.
+  def.exposed.push({
+    node: nodeId, param, label,
+    ...(spec.int ? { bits: 4 } : {}),
+    ...(spec.min > 0 && spec.max / spec.min >= 50 ? { scale: 'log' } : {}),
+  });
 }
 
 // Drops exposures, commands and sample mappings that point at nodes or parameters that
