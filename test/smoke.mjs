@@ -18,6 +18,8 @@ import * as ops from '../src/seq/edit.js';
 import * as gedit from '../src/graph/edit.js';
 import { createPatcher, hitTest, portPos } from '../src/graph/patcher.js';
 import { rebuildInstrumentLanes } from '../src/seq/lane.js';
+import * as pops from '../src/project/ops.js';
+import { createSamplePanel } from '../src/project/samplepanel.js';
 import { parseProject, serializeProject } from '../src/project/file.js';
 import { song as demoSong } from '../src/song.js';
 
@@ -753,8 +755,8 @@ const hit = 'C-2 .. .. ..';
   const panel = makeEl('div'), statusEl = { textContent: '' };
   const defs = structuredClone(instruments);
   const structures = [], params = [];
-  const patcher = createPatcher({ canvas, panel, statusEl, doc, nodeTypes: NODE_TYPES, onStructure: id => structures.push(id), onParam: (...a) => params.push(a) });
-  patcher.load({ instruments: defs, samples: ['pluck'] });
+  const patcher = createPatcher({ canvas, panel, statusEl, doc, nodeTypes: NODE_TYPES, onStructure: id => structures.push(id), onParam: (...a) => params.push(a), getSampleIds: () => ['pluck'] });
+  patcher.load({ instruments: defs });
   patcher.show('kick');
   patcher.draw();                                        // draws without throwing
   const g = defs.kick.graph;
@@ -989,6 +991,156 @@ const hit = 'C-2 .. .. ..';
   const tune = parts(rowFor('tune'));
   tune.boxes[0].checked = true; tune.boxes[0].listeners.change();
   assert.equal(tune.selects[0].value, '8', 'a continuous parameter defaults to 2hex');
+}
+
+// ---- milestone 6: samples, instruments, lanes ----
+
+// A project as the page holds it: the demo's instruments compiled, lanes prepared.
+const makeProject = () => {
+  const registry = new ParamRegistry();
+  const instruments_ = structuredClone(instruments);
+  for (const [id, d] of Object.entries(instruments_)) compile(d.graph, { instrument: id, nodeTypes: NODE_TYPES, registry });
+  const lanes = prepareSong(demoSong, instruments_, registry);
+  return { registry, project: { song: demoSong, instruments: instruments_, samples: { pluck: { rate: sr, data: makePluck(sr) } }, lanes } };
+};
+const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin(i * 1.9)) * 0.4 * Math.exp(-i / 800));   // a short noisy tick
+
+// 43. Project operations: samples, loop points, instruments, lanes.
+{
+  const fake = { numberOfChannels: 2, length: 4, getChannelData: c => (c === 0 ? Float32Array.of(1, 0, 0.5, -1) : Float32Array.of(0, 0, 0.5, 1)) };
+  assert.deepEqual(Array.from(pops.toMono(fake)), [0.5, 0, 0.5, 0]);
+  assert.equal(pops.idFromName('My Kick (1).wav'), 'My_Kick_1_');
+  assert.equal(pops.idFromName('.wav'), 'sample');
+  assert.equal(pops.uniqueId(new Set(['a', 'a2']), 'a'), 'a3');
+
+  const { registry, project } = makeProject();
+  assert.deepEqual(pops.usersOfSample(project, 'pluck').map(u => u.instrument).sort(), ['bass', 'lead']);
+  assert.throws(() => pops.removeSample(project, 'pluck'), /used by an instrument/);
+  const tick = pops.addSample(project, 'tick.wav', 44100, burst);
+  const again = pops.addSample(project, 'tick.wav', 44100, burst);
+  assert.deepEqual([tick, again], ['tick', 'tick2']);
+  pops.removeSample(project, again);
+  assert.equal(project.samples[again], undefined);
+
+  assert.throws(() => pops.setLoop(project, 'tick', 1.5, 100), /whole numbers/);
+  assert.throws(() => pops.setLoop(project, 'tick', 0, burst.length + 1), /past the end/);
+  assert.throws(() => pops.setLoop(project, 'tick', 10, 11), /two frames/);
+  pops.setLoop(project, 'tick', 100, 900);
+  assert.deepEqual([project.samples.tick.loopStart, project.samples.tick.loopEnd], [100, 900]);
+  pops.setLoop(project, 'tick', 0, 0);
+  assert.equal(project.samples.tick.loopStart, undefined);
+
+  assert.throws(() => pops.addSamplerInstrument(project, 'x', 'nope'), /Pick a sample/);
+  const id = pops.addSamplerInstrument(project, 'Tick Hat', 'tick');
+  assert.equal(id, 'Tick_Hat');
+  assert.deepEqual(project.instruments[id].samples, { sampler: 'tick' });
+  assert.equal(pops.addSamplerInstrument(project, 'Tick Hat', 'tick'), 'Tick_Hat2');
+  compile(project.instruments[id].graph, { instrument: id, nodeTypes: NODE_TYPES, registry });
+  const lane = pops.addLane(project, registry, id);
+  const second = pops.addLane(project, registry, id);
+  assert.deepEqual([lane.id, second.id], ['Tick_Hat', 'Tick_Hat2']);          // two lanes for one instrument are independent
+  assert.equal(project.lanes.at(-2), lane);
+  assert.deepEqual(lane.columns.map(c => c.label), ['Note', 'Vel', 'Cut', 'Res', 'Mix', 'Time', 'Cmd']);
+
+  // the new lane can be edited and heard
+  const rt = new GraphRuntime({ sampleRate: sr, params: registry.values });
+  rt.load(compile(project.instruments[id].graph, { instrument: id, nodeTypes: NODE_TYPES, registry }));
+  rt.message(id, 'sampler', { type: 'sample', data: burst, rate: 44100 });
+  const seq = new Sequencer({ sampleRate: sr, runtime: rt, params: registry.values, transport: new Int32Array(new SharedArrayBuffer(8)) });
+  seq.setSong(project.song);
+  seq.setLane(lane);
+  const editor = createEditor(project.lanes, project.song.length);
+  const li = project.lanes.indexOf(lane);
+  assert.ok(editor.insertPattern(li, 0));
+  assert.ok(editor.setCell(li, 0, 0, 'C-4'));
+  seq.play();
+  assert.ok(peak(render(seq, 0.2).left) > 0.01, 'the new lane is silent');
+}
+
+// 44. A project with new samples, instruments and lanes survives a save and load.
+{
+  const { registry, project } = makeProject();
+  pops.addSample(project, 'tick.wav', 44100, burst);
+  pops.setLoop(project, 'tick', 200, 1000);
+  const id = pops.addSamplerInstrument(project, 'hat', 'tick');
+  compile(project.instruments[id].graph, { instrument: id, nodeTypes: NODE_TYPES, registry });
+  const lane = pops.addLane(project, registry, id);
+  const editor = createEditor(project.lanes, project.song.length);
+  editor.insertPattern(project.lanes.indexOf(lane), 4);
+  editor.setCell(project.lanes.indexOf(lane), 4, 0, 'E-3');
+  const back = parseProject(serializeProject(project));
+  assert.equal(back.samples.tick.loopStart, 200);
+  assert.equal(back.samples.tick.loopEnd, 1000);
+  assert.ok(Buffer.from(back.samples.tick.data.buffer).equals(Buffer.from(burst.buffer)));
+  assert.deepEqual(back.instruments.hat, JSON.parse(JSON.stringify(project.instruments.hat)));
+  const registry2 = new ParamRegistry();
+  for (const [iid, d] of Object.entries(back.instruments)) compile(d.graph, { instrument: iid, nodeTypes: NODE_TYPES, registry: registry2 });
+  const lanes2 = prepareSong(back.song, back.instruments, registry2);
+  assert.deepEqual(lanes2.map(l => l.id), project.lanes.map(l => l.id));
+  assert.deepEqual(lanes2.map(l => l.rows), project.lanes.map(l => l.rows));
+  assert.equal(lanes2.at(-1).rows[4][0], 'E-3');
+}
+
+// 45. The sample list: sizes, loop edits report which instruments to update, remove is for unused samples.
+{
+  const makeEl = tag => ({
+    tag, children: [], listeners: {}, style: {}, textContent: '', value: '', disabled: false,
+    appendChild(c) { this.children.push(c); return c; }, replaceChildren(...c) { this.children = c; },
+    addEventListener(type, f) { this.listeners[type] = f; },
+  });
+  const walk = (el, fn) => { fn(el); (el.children ?? []).forEach(c => walk(c, fn)); };
+  const doc = { createElement: makeEl, createTextNode: text => ({ text }) };
+  const { project } = makeProject();
+  pops.addSample(project, 'tick.wav', 44100, burst);
+  const container = makeEl('div'), statusEl = { textContent: '' };
+  const looped = [], removed = [];
+  const panel = createSamplePanel({ container, statusEl, doc, getProject: () => project, onLoop: u => looped.push(u), onRemove: id => removed.push(id) });
+  panel.render();
+  const rows = container.children;
+  assert.equal(rows.length, 2);
+  const parts = row => { const f = { numbers: [], buttons: [] }; walk(row, e => { if (e.tag === 'input') f.numbers.push(e); if (e.tag === 'button') f.buttons.push(e); }); return f; };
+  const pluck = parts(rows[0]), tick = parts(rows[1]);
+  assert.equal(pluck.buttons[0].disabled, true, 'a sample in use cannot be removed');
+  assert.equal(tick.buttons[0].disabled, false);
+
+  pluck.numbers[0].value = '100'; pluck.numbers[1].value = '5000'; pluck.numbers[1].listeners.change();
+  assert.deepEqual(looped.at(-1).map(u => u.instrument).sort(), ['bass', 'lead']);
+  assert.equal(project.samples.pluck.loopEnd, 5000);
+  pluck.numbers[1].value = '99999999'; pluck.numbers[1].listeners.change();
+  assert.match(statusEl.textContent, /past the end/);
+  assert.equal(project.samples.pluck.loopEnd, 5000, 'a refused loop point changed the sample');
+
+  tick.buttons[0].listeners.click();
+  assert.deepEqual(removed, ['tick']);
+  assert.equal(project.samples.tick, undefined);
+}
+
+// 46. A sampler node in the patcher can be pointed at another sample.
+{
+  const makeEl = tag => ({
+    tag, children: [], listeners: {}, style: {}, textContent: '', value: '', checked: false, disabled: false,
+    appendChild(c) { this.children.push(c); return c; }, replaceChildren(...c) { this.children = c; },
+    addEventListener(type, f) { this.listeners[type] = f; }, focus() {},
+  });
+  const walk = (el, fn) => { fn(el); (el.children ?? []).forEach(c => walk(c, fn)); };
+  const doc = { createElement: makeEl, createTextNode: text => ({ text }) };
+  const ctx = new Proxy({}, { get: (t, k) => (k in t ? t[k] : () => {}), set: (t, k, v) => { t[k] = v; return true; } });
+  const canvas = { width: 900, height: 360, style: {}, listeners: {}, getContext: () => ctx, addEventListener(type, f) { this.listeners[type] = f; }, focus() {} };
+  const panel = makeEl('div');
+  const defs = structuredClone(instruments);
+  const structures = [];
+  const patcher = createPatcher({ canvas, panel, statusEl: {}, doc, nodeTypes: NODE_TYPES, onStructure: id => structures.push(id), onParam() {}, getSampleIds: () => ['pluck', 'tick'] });
+  patcher.load({ instruments: defs });
+  patcher.show('lead');
+  const node = defs.lead.graph.nodes.find(n => n.id === 'sampler');
+  canvas.listeners.mousedown({ offsetX: node.x + 70, offsetY: node.y + 10, preventDefault() {} });
+  canvas.listeners.mouseup({ offsetX: node.x + 70, offsetY: node.y + 10 });
+  const selects = []; walk(panel, e => { if (e.tag === 'select' && e.children.some(c => c.value === 'tick')) selects.push(e); });
+  assert.equal(selects.length, 1);
+  assert.equal(selects[0].value, 'pluck');
+  selects[0].value = 'tick'; selects[0].listeners.change();
+  assert.deepEqual(defs.lead.samples, { sampler: 'tick' });
+  assert.deepEqual(structures, ['lead']);
 }
 
 console.log('smoke test passed');

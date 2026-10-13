@@ -21,6 +21,8 @@
     #seq .p5 { background: hsl(55 70% 50% / .35); }
     #seq .cur { background: Highlight; color: HighlightText; }
     #seq-status { min-height: 1.5em; }
+    .srow { display: flex; flex-wrap: wrap; gap: .5rem 1rem; align-items: center; margin: .25rem 0; }
+    .srow input[type=number] { width: 7rem; }
     #patch { border: 1px solid; max-width: 100%; }
     #patch:focus { outline: 1px solid; }
     .prow { display: grid; grid-template-columns: 6rem 1fr 4rem auto; gap: .5rem; align-items: center; }
@@ -39,6 +41,18 @@
   <button id="load" disabled>Load</button>
   <input id="file" type="file" accept=".wax,.wtrk,.json" hidden>
   <p id="status">Press Start to create the audio engine.</p>
+
+  <h2>Samples and instruments</h2>
+  <p><button id="load-samples" disabled>Load samples…</button>
+    <input id="sample-file" type="file" accept="audio/*" multiple hidden>
+    Audio files are mixed down to mono. A loop start and end of 0 means no loop.</p>
+  <div id="sample-panel"></div>
+  <p><input id="new-inst-name" placeholder="instrument name" aria-label="Instrument name">
+    <select id="new-inst-sample" aria-label="Sample"></select>
+    <button id="add-sampler" disabled>Add sampler instrument and lane</button></p>
+  <p><select id="lane-inst" aria-label="Instrument"></select>
+    <button id="add-lane" disabled>Add lane</button></p>
+  <p id="proj-status"></p>
 
   <h2>Patcher</h2>
   <p>

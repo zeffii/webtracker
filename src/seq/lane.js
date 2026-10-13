@@ -161,3 +161,12 @@ export function rebuildInstrumentLanes(lanes, song, instruments, registry, instr
   }
   return changed;
 }
+
+// A new empty lane for an instrument (which must already be compiled).
+export function createLane(id, instrumentId, instruments, registry, length) {
+  const columns = buildColumns(instrumentId, instruments[instrumentId], registry);
+  const lane = { id, instrument: instrumentId, columns, patterns: {}, placements: [] };
+  lane.rows = flattenLane(lane, columns, length);
+  lane.pages = buildPages(lane.rows, columns);
+  return lane;
+}

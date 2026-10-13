@@ -60,8 +60,8 @@ const toValue = (spec, pos) => {
 const toPos = (spec, v) => (isLog(spec) ? Math.log(v / spec.min) / Math.log(spec.max / spec.min) : (v - spec.min) / (spec.max - spec.min));
 const fmt = v => String(Number(v.toPrecision(4)));
 
-export function createPatcher({ canvas, panel, statusEl, doc = document, nodeTypes, onStructure, onParam }) {
-  let instruments = {}, sampleIds = [], instId = null, selected = null, drag = null, dirty = true;
+export function createPatcher({ canvas, panel, statusEl, doc = document, nodeTypes, onStructure, onParam, getSampleIds = () => [] }) {
+  let instruments = {}, instId = null, selected = null, drag = null, dirty = true;
   const ctx = canvas.getContext('2d');
   const W = canvas.width, H = canvas.height;
   const dpr = globalThis.devicePixelRatio || 1;
@@ -141,6 +141,15 @@ export function createPatcher({ canvas, panel, statusEl, doc = document, nodeTyp
       return el('div', { className: 'prow' }, el('span', { textContent: spec.name }), slider, out, el('span', {}, el('label', {}, exposed, ' expose '), width));
     });
     const items = [el('h3', {}, `${node.id} (${node.type})`), ...rows];
+    if (node.type === 'sampler') {   // which sample this node plays
+      const picker = el('select', {}, ...getSampleIds().map(id => el('option', { value: id, textContent: id })));
+      picker.value = def().samples?.[node.id] ?? '';
+      picker.addEventListener('change', () => {
+        def().samples = { ...def().samples, [node.id]: picker.value };
+        structure();
+      });
+      items.splice(1, 0, el('div', { className: 'prow' }, el('span', { textContent: 'sample' }), picker));
+    }
     if (!type.master) {
       const del = el('button', { textContent: 'Delete node' });
       del.addEventListener('click', removeSelected);
@@ -269,10 +278,9 @@ export function createPatcher({ canvas, panel, statusEl, doc = document, nodeTyp
   }
 
   return {
-    // instruments: { id: { graph, exposed, commands?, samples? } }; samples: ids of the project's samples.
-    load({ instruments: next, samples = [] }) {
+    // instruments: { id: { graph, exposed, commands?, samples? } }.
+    load({ instruments: next }) {
       instruments = next;
-      sampleIds = samples;
       this.show(instId in instruments ? instId : Object.keys(instruments)[0] ?? null);
     },
     show(id) {
@@ -288,7 +296,7 @@ export function createPatcher({ canvas, panel, statusEl, doc = document, nodeTyp
       try {
         const n = desc().nodes.length;
         const id = addNode(desc(), nodeTypes, type, { x: 20 + (n % 4) * 190, y: 20 + Math.floor(n / 4) * 110 });
-        if (type === 'sampler' && sampleIds.length) def().samples = { ...def().samples, [id]: sampleIds[0] };
+        if (type === 'sampler' && getSampleIds().length) def().samples = { ...def().samples, [id]: getSampleIds()[0] };
         selected = { kind: 'node', id };
         say('');
         renderPanel();

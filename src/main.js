@@ -3,6 +3,8 @@ import { NODE_TYPES } from './audio/nodes/index.js';
 import { pruneDef } from './graph/edit.js';
 import { createPatcher } from './graph/patcher.js';
 import { createDemoProject } from './project/demo.js';
+import { addLane, addSample, addSamplerInstrument, toMono } from './project/ops.js';
+import { createSamplePanel } from './project/samplepanel.js';
 import { FILE_EXT, parseProject, serializeProject } from './project/file.js';
 import { createEditor } from './seq/editor.js';
 import { prepareSong, rebuildInstrumentLanes } from './seq/lane.js';
@@ -53,19 +55,48 @@ const seqView = createSequenceView({
 const patcher = createPatcher({
   canvas: $('patch'), panel: $('patch-panel'), statusEl: $('patch-status'), nodeTypes: NODE_TYPES,
   onStructure: id => reloadInstrument(id),
+  getSampleIds: () => Object.keys(project.samples),
   onParam: (id, node, name, value) => {
     const address = `${id}.${node}.${name}`;
     if (engine.registry.slots.has(address)) engine.set(address, value);
   },
 });
 
-const sendSamples = id => {
-  const def = project.instruments[id];
-  for (const [node, sampleId] of Object.entries(def.samples ?? {})) {
-    const { data, rate, loopStart, loopEnd } = project.samples[sampleId];
-    engine.sendToNode(id, node, { type: 'sample', data: data.slice(), rate, loopStart, loopEnd });
-  }
+const sendSample = (id, node) => {
+  const { data, rate, loopStart, loopEnd } = project.samples[project.instruments[id].samples[node]];
+  engine.sendToNode(id, node, { type: 'sample', data: data.slice(), rate, loopStart, loopEnd });
 };
+const sendSamples = id => { for (const node of Object.keys(project.instruments[id].samples ?? {})) sendSample(id, node); };
+
+const projStatus = text => { $('proj-status').textContent = text; };
+
+// The lists that depend on what the project holds: instruments, samples, the sample list.
+function refreshProjectUi() {
+  const fill = (select, ids) => {
+    const keep = select.value;
+    select.replaceChildren(...ids.map(id => new Option(id, id)));
+    if (ids.includes(keep)) select.value = keep;
+  };
+  fill($('patch-inst'), Object.keys(project.instruments));
+  fill($('lane-inst'), Object.keys(project.instruments));
+  fill($('new-inst-sample'), Object.keys(project.samples));
+  samplePanel.render();
+}
+
+const samplePanel = createSamplePanel({
+  container: $('sample-panel'), statusEl: $('proj-status'), getProject: () => project,
+  onLoop: users => users.forEach(({ instrument, node }) => sendSample(instrument, node)),
+  onRemove: refreshProjectUi,
+});
+
+// A new empty lane for an instrument that is already loaded in the engine.
+function addLaneFor(instrumentId) {
+  const lane = addLane(project, engine.registry, instrumentId);
+  engine.setLane({ id: lane.id, instrument: lane.instrument, columns: lane.columns, pages: lane.pages });
+  project.editor.clear();
+  view.relayout();
+  return lane;
+}
 
 // The wiring or the exposed parameters of an instrument changed: recompile it, swap it in,
 // and rebuild the columns of its lanes. Cells follow their column; undo history is cleared.
@@ -100,10 +131,9 @@ function openProject({ song, instruments, samples }) {
   for (const { id, instrument, columns, pages } of lanes) engine.setLane({ id, instrument, columns, pages });
   const editor = createEditor(lanes, song.length);
   project = { song, instruments, samples, lanes, editor };
-  patcher.load({ instruments, samples: Object.keys(samples) });
-  const pick = $('patch-inst');
-  pick.replaceChildren(...Object.keys(instruments).map(id => new Option(id, id)));
-  pick.value = patcher.instrument;
+  patcher.load({ instruments });
+  refreshProjectUi();
+  $('patch-inst').value = patcher.instrument;
   seqView.load({ lanes, song, editor });
   view.load({ lanes, song, editor });
   bindings.forEach(apply);
@@ -136,6 +166,47 @@ $('file').addEventListener('change', async e => {
 });
 
 $('patch-inst').addEventListener('change', e => patcher.show(e.target.value));
+
+$('load-samples').addEventListener('click', () => $('sample-file').click());
+$('sample-file').addEventListener('change', async e => {
+  const files = [...e.target.files];
+  e.target.value = '';
+  for (const file of files) {
+    try {
+      // The browser decodes the file and resamples it to the audio context's rate.
+      const buffer = await engine.ctx.decodeAudioData(await file.arrayBuffer());
+      addSample(project, file.name, buffer.sampleRate, toMono(buffer));
+      projStatus(`Loaded ${file.name}.`);
+    } catch (err) {
+      projStatus(`${file.name}: ${err.message}`);
+    }
+  }
+  refreshProjectUi();
+});
+
+$('add-sampler').addEventListener('click', () => {
+  try {
+    const id = addSamplerInstrument(project, $('new-inst-name').value.trim(), $('new-inst-sample').value);
+    engine.loadInstrument(id, project.instruments[id].graph);
+    sendSamples(id);
+    addLaneFor(id);
+    patcher.load({ instruments: project.instruments });
+    refreshProjectUi();
+    $('new-inst-name').value = '';
+    projStatus(`Added ${id} with its own lane.`);
+  } catch (err) {
+    projStatus(err.message);
+  }
+});
+
+$('add-lane').addEventListener('click', () => {
+  try {
+    const lane = addLaneFor($('lane-inst').value);
+    projStatus(`Added lane ${lane.id}.`);
+  } catch (err) {
+    projStatus(err.message);
+  }
+});
 $('patch-type').replaceChildren(...Object.keys(NODE_TYPES).filter(t => !NODE_TYPES[t].master).map(t => new Option(t, t)));
 $('patch-add').addEventListener('click', () => patcher.add($('patch-type').value));
 
@@ -145,7 +216,7 @@ $('start').addEventListener('click', async () => {
     started = true;
     openProject(createDemoProject(engine.ctx.sampleRate));
     for (const id of ['start']) $(id).disabled = true;
-    for (const id of ['play', 'save', 'load', 'patch-add']) $(id).disabled = false;
+    for (const id of ['play', 'save', 'load', 'patch-add', 'load-samples', 'add-sampler', 'add-lane']) $(id).disabled = false;
     $('status').textContent =
       `Running at ${engine.ctx.sampleRate} Hz, base latency ${(engine.ctx.baseLatency * 1000).toFixed(1)} ms`;
     const frame = () => { seqView.draw(); view.draw(); patcher.draw(); requestAnimationFrame(frame); };

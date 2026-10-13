@@ -3,14 +3,14 @@ import { samplerPreset } from './presets.js';
 // The sampler's pattern format is fixed by these lists. Each exposed entry becomes
 // a column that writes the named node parameter (2hex, or 4hex with bits: 16).
 // The command table gives the CCXXYY column its meaning; the ids are free to change.
-const samplerExposed = [
+export const samplerExposed = [
   { node: 'filter', param: 'cutoff', label: 'Cut', scale: 'log' },
   { node: 'filter', param: 'resonance', label: 'Res' },
   { node: 'delay', param: 'mix', label: 'Mix' },
   { node: 'delay', param: 'time', label: 'Time', bits: 16 },
 ];
 
-const samplerCommands = [
+export const samplerCommands = [
   { id: 0x01, node: 'filter', param: 'cutoff', scale: 'log' },
   { id: 0x02, node: 'filter', param: 'resonance' },
   { id: 0x03, node: 'delay', param: 'time' },
@@ -19,7 +19,7 @@ const samplerCommands = [
   { id: 0x06, node: 'sampler', param: 'nnaFade' },
 ];
 
-const withParams = (graph, overrides) => ({
+export const withParams = (graph, overrides) => ({
   ...graph,
   nodes: graph.nodes.map(n => (overrides[n.id] ? { ...n, params: { ...n.params, ...overrides[n.id] } } : n)),
 });
@@ -65,3 +65,12 @@ export const instruments = {
     ],
   },
 };
+
+// A new sampler instrument playing the given sample, with the same fixed pattern columns
+// as the demo's sampler instruments.
+export const newSamplerInstrument = sampleId => structuredClone({
+  graph: withParams(samplerPreset, { out: { gain: 0.45 } }),
+  exposed: samplerExposed,
+  commands: samplerCommands,
+  samples: { sampler: sampleId },
+});
