@@ -11,6 +11,7 @@ import { createEditor } from './seq/editor.js';
 import { prepareSong, rebuildInstrumentLanes } from './seq/lane.js';
 import { createSequenceView } from './seq/seqview.js';
 import { createTrackerView } from './seq/view.js';
+import { createTabs } from './ui/tabs.js';
 
 const engine = new Engine();
 const $ = id => document.getElementById(id);
@@ -42,14 +43,33 @@ const setPlaying = value => {
 const togglePlay = () => setPlaying(!playing);
 $('play').addEventListener('click', e => { togglePlay(); e.currentTarget.blur(); });
 
+// Full-screen panes. Switching with an F-key or a click focuses the pane's main element.
+const tabs = createTabs({
+  tabs: [
+    { id: 'patterns', key: 'F2', el: $('pane-patterns'), button: $('tab-patterns'), focus: $('view') },
+    { id: 'samples', key: 'F3', el: $('pane-samples'), button: $('tab-samples') },
+    { id: 'instruments', key: 'F4', el: $('pane-instruments'), button: $('tab-instruments'), focus: $('patch') },
+    { id: 'arrange', key: 'F5', el: $('pane-arrange'), button: $('tab-arrange'), focus: $('seq') },
+  ],
+});
+document.addEventListener('keydown', e => {
+  if (tabs.handleKey(e)) return;
+  // Space plays from anywhere except controls that use it themselves, and keys a view already handled.
+  const tag = e.target.tagName;
+  if (e.key === ' ' && !e.defaultPrevented && !['INPUT', 'SELECT', 'TEXTAREA', 'BUTTON'].includes(tag) && started) {
+    e.preventDefault();
+    togglePlay();
+  }
+});
+
 const view = createTrackerView({
   el: $('view'), statusEl: $('cursor'), transport: engine.transport, onToggle: togglePlay,
-  onBack: () => $('seq').focus(),
+  onBack: () => tabs.show('arrange'),
   onMove: (lane, tick) => seqView.goto(lane, tick),
 });
 const seqView = createSequenceView({
   el: $('seq'), statusEl: $('seq-status'), transport: engine.transport, onToggle: togglePlay,
-  onOpen: (lane, tick) => { view.goto(lane, tick); $('view').focus(); },
+  onOpen: (lane, tick) => { view.goto(lane, tick); tabs.show('patterns'); },
   onMove: (lane, tick) => view.goto(lane, tick),
 });
 
@@ -69,6 +89,14 @@ const sendSample = (id, node) => {
 };
 const sendSamples = id => { for (const node of Object.keys(project.instruments[id].samples ?? {})) sendSample(id, node); };
 
+// Song name, tempo and position, shown in the header on every screen.
+const songInfo = () => {
+  if (!project) return;
+  const { name, bpm, length } = project.song;
+  const tick = Atomics.load(engine.transport, 0);
+  $('song-info').textContent = `${name ?? 'untitled'} · ${bpm} bpm · row ${String(tick).padStart(2, '0')}/${length}`;
+};
+
 const projStatus = text => { $('proj-status').textContent = text; };
 
 // The lists that depend on what the project holds: instruments, samples, the sample list.
@@ -78,12 +106,23 @@ function refreshProjectUi() {
     select.replaceChildren(...ids.map(id => new Option(id, id)));
     if (ids.includes(keep)) select.value = keep;
   };
-  fill($('patch-inst'), Object.keys(project.instruments));
-  fill($('lane-inst'), Object.keys(project.instruments));
+  renderInstList();
   fill($('new-inst-sample'), Object.keys(project.samples));
   samplePanel.render();
   const ids = Object.keys(project.samples);
   if (!(waveform.sampleId in project.samples)) waveform.show(ids[0] ?? null);
+}
+
+// The narrow instrument list beside the patcher.
+function renderInstList() {
+  const buttons = Object.keys(project.instruments).map(id => {
+    const b = document.createElement('button');
+    b.textContent = id;
+    b.classList.toggle('active', id === patcher.instrument);
+    b.addEventListener('click', () => { patcher.show(id); renderInstList(); $('patch').focus(); });
+    return b;
+  });
+  $('inst-list').replaceChildren(...buttons);
 }
 
 const sendLoop = users => users.forEach(({ instrument, node }) => sendSample(instrument, node));
@@ -140,11 +179,10 @@ function openProject({ song, instruments, samples }) {
   project = { song, instruments, samples, lanes, editor };
   patcher.load({ instruments });
   refreshProjectUi();
-  $('patch-inst').value = patcher.instrument;
   seqView.load({ lanes, song, editor });
   view.load({ lanes, song, editor });
   bindings.forEach(apply);
-  $('seq').focus();
+  tabs.show('patterns');
 }
 
 const download = (name, text) => {
@@ -171,8 +209,6 @@ $('file').addEventListener('change', async e => {
     $('status').textContent = err.message;
   }
 });
-
-$('patch-inst').addEventListener('change', e => patcher.show(e.target.value));
 
 $('load-samples').addEventListener('click', () => $('sample-file').click());
 $('sample-file').addEventListener('change', async e => {
@@ -209,7 +245,7 @@ $('add-sampler').addEventListener('click', () => {
 
 $('add-lane').addEventListener('click', () => {
   try {
-    const lane = addLaneFor($('lane-inst').value);
+    const lane = addLaneFor(patcher.instrument);
     projStatus(`Added lane ${lane.id}.`);
   } catch (err) {
     projStatus(err.message);
@@ -228,7 +264,7 @@ $('start').addEventListener('click', async () => {
     for (const id of ['play', 'save', 'load', 'patch-add', 'load-samples', 'add-sampler', 'add-lane']) $(id).disabled = false;
     $('status').textContent =
       `Running at ${engine.ctx.sampleRate} Hz, base latency ${(engine.ctx.baseLatency * 1000).toFixed(1)} ms`;
-    const frame = () => { seqView.draw(); view.draw(); patcher.draw(); waveform.draw(); requestAnimationFrame(frame); };
+    const frame = () => { songInfo(); seqView.draw(); view.draw(); patcher.draw(); waveform.draw(); requestAnimationFrame(frame); };
     frame();
   } catch (err) {
     $('status').textContent = err.message;

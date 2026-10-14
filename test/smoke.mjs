@@ -23,6 +23,7 @@ import { createSamplePanel } from '../src/project/samplepanel.js';
 import { computePeaks, createWaveformView } from '../src/project/waveform.js';
 import { parseProject, serializeProject } from '../src/project/file.js';
 import { song as demoSong } from '../src/song.js';
+import { createTabs } from '../src/ui/tabs.js';
 import { compileDsp } from '../src/audio/wasm/load.js';
 
 const sr = 48000, block = 128;
@@ -1323,6 +1324,38 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   view.draw();
   const after = (el.innerHTML.match(/class="off"/g) ?? []).length;
   assert.ok(after > before, 'rows past the pattern end are not dimmed');
+}
+
+// 55. Tabs: one pane shown at a time, F-keys and clicks switch, the main element takes focus.
+{
+  const make = () => {
+    const classes = new Set(), listeners = {};
+    return {
+      hidden: false, focused: 0,
+      classList: { toggle: (c, on) => (on ? classes.add(c) : classes.delete(c)), has: c => classes.has(c) },
+      setAttribute() {}, addEventListener: (type, f) => { listeners[type] = f; }, click: () => listeners.click(),
+      focus() { this.focused++; },
+    };
+  };
+  const defs = ['a', 'b', 'c'].map((id, i) => ({ id, key: `F${i + 2}`, el: make(), button: make(), focus: i === 2 ? undefined : make() }));
+  const seen = [];
+  const tabs = createTabs({ tabs: defs, onChange: id => seen.push(id) });
+  assert.equal(tabs.active, 'a');
+  assert.deepEqual(defs.map(d => d.el.hidden), [false, true, true]);
+  assert.equal(defs[0].focus.focused, 0, 'the first pane takes focus only when asked');
+  let prevented = 0;
+  const key = (k, extra = {}) => tabs.handleKey({ key: k, preventDefault() { prevented++; }, ...extra });
+  assert.ok(key('F3'));
+  assert.equal(tabs.active, 'b');
+  assert.deepEqual(defs.map(d => d.el.hidden), [true, false, true]);
+  assert.ok(defs[1].button.classList.has('active') && !defs[0].button.classList.has('active'));
+  assert.equal(defs[1].focus.focused, 1);
+  assert.equal(prevented, 1);
+  assert.ok(!key('F3', { ctrlKey: true }) && !key('x'), 'other keys are left alone');
+  defs[2].button.click();                          // a pane with no focus target still switches
+  assert.equal(tabs.active, 'c');
+  assert.equal(tabs.show('nope'), false);
+  assert.deepEqual(seen, ['a', 'b', 'c']);
 }
 
 console.log('smoke test passed');
