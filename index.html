@@ -50,6 +50,11 @@
     /* instruments: a narrow list, the graph on the right */
     #inst-layout { display: grid; grid-template-columns: 13rem 1fr; gap: 1rem; align-items: start; }
     #inst-list { display: grid; gap: 2px; margin-bottom: .5rem; }
+    .manage { margin: .3rem 0; display: flex; flex-wrap: wrap; gap: 2px; }
+    .manage input { width: 100%; box-sizing: border-box; font: inherit; }
+    .manage button { font: inherit; font-size: 12px; padding: 0 .35rem; }
+    #lane-list button { display: block; width: 100%; font: inherit; text-align: left; padding: .15rem .5rem; border: 1px solid transparent; background: transparent; color: inherit; cursor: pointer; }
+    #lane-list button.active { background: Highlight; color: HighlightText; }
     #inst-list button { font: inherit; text-align: left; padding: .15rem .5rem; border: 1px solid transparent; background: transparent; color: inherit; cursor: pointer; }
     #inst-list button.active { background: Highlight; color: HighlightText; }
     #inst-side input, #inst-side select { width: 100%; box-sizing: border-box; margin: .15rem 0; }
@@ -138,6 +143,20 @@
         <h2>Instruments</h2>
         <div id="inst-list"></div>
         <button id="add-lane" disabled>Add lane for selected</button>
+        <div class="manage">
+          <input id="inst-name" aria-label="Rename the selected instrument" disabled>
+          <button id="inst-rename" disabled>Rename</button>
+          <button id="inst-up" disabled title="Move earlier">▲</button><button id="inst-down" disabled title="Move later">▼</button>
+          <button id="inst-dup" disabled>Duplicate</button><button id="inst-remove" disabled>Remove</button>
+        </div>
+        <h2>Lanes</h2>
+        <div id="lane-list"></div>
+        <div class="manage">
+          <input id="lane-name" aria-label="Rename the selected lane" disabled>
+          <button id="lane-rename" disabled>Rename</button>
+          <button id="lane-left" disabled title="Move earlier">◀</button><button id="lane-right" disabled title="Move later">▶</button>
+          <button id="lane-dup" disabled>Duplicate</button><button id="lane-remove" disabled>Remove</button>
+        </div>
         <h2>Polyphony</h2>
         <label class="help">voices <input id="inst-voices" type="number" min="1" max="16" step="1" style="width:3.5em" disabled></label><br>
         <label class="help">note columns <input id="inst-notecols" type="number" min="1" max="8" step="1" style="width:3.5em" disabled></label>

@@ -1,5 +1,5 @@
 import { newSamplerInstrument, synthKinds } from '../instruments.js';
-import { createLane } from '../seq/lane.js';
+import { buildPages, createLane, flattenLane } from '../seq/lane.js';
 
 // Changes to the shape of a project: samples, instruments, lanes. Plain functions on the
 // project object { song, instruments, samples, lanes } so the page and the tests share them.
@@ -11,7 +11,13 @@ export function uniqueId(taken, base) {
 }
 
 // A file name made into an id: no extension, letters, digits, _ and - only.
-export const idFromName = name => name.replace(/\.[^.]+$/, '').replace(/[^A-Za-z0-9_-]+/g, '_').slice(0, 24) || 'sample';
+// An all-digit id would make an object sort its keys numerically, which would break the order of
+// instruments, so those get a leading underscore.
+const notNumeric = id => (/^\d+$/.test(id) ? `_${id}` : id);
+export const idFromName = name => notNumeric(name.replace(/\.[^.]+$/, '').replace(/[^A-Za-z0-9_-]+/g, '_').slice(0, 24) || 'sample');
+
+// A typed name made into an id: letters, digits, _ and - only, trimmed, at most 24 characters.
+export const cleanName = name => notNumeric(name.trim().replace(/[^A-Za-z0-9_-]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 24));
 
 // Averages all channels of a decoded audio buffer (or anything shaped like one) into one.
 export function toMono(buffer) {
@@ -79,4 +85,109 @@ export function addLane(project, registry, instrumentId) {
   const lane = createLane(id, instrumentId, project.instruments, registry, project.song.length);
   project.lanes.push(lane);
   return lane;
+}
+
+// ---- managing lanes and instruments ----
+// These change the project's shape; the page then reloads the whole project from projectData(), so
+// engine state, columns and parameter slots all follow. Each throws an Error with a message fit
+// for the status line when it cannot do what was asked.
+
+const laneOf = (project, id) => {
+  const lane = project.lanes.find(l => l.id === id);
+  if (!lane) throw new Error(`No lane called "${id}".`);
+  return lane;
+};
+const defOf = (project, id) => {
+  if (!project.instruments[id]) throw new Error(`No instrument called "${id}".`);
+  return project.instruments[id];
+};
+const newName = (name, taken, what, current) => {
+  const next = cleanName(name ?? '');
+  if (!next) throw new Error('A name needs letters or digits.');
+  if (next !== current && taken.has(next)) throw new Error(`There is already ${what} called "${next}".`);
+  return next;
+};
+
+export function renameLane(project, id, name) {
+  const lane = laneOf(project, id);
+  lane.id = newName(name, new Set(project.lanes.map(l => l.id)), 'a lane', id);
+  return lane.id;
+}
+
+// Moves a lane earlier (delta -1) or later (+1) in the song. Returns its new place.
+export function moveLane(project, id, delta) {
+  const from = project.lanes.indexOf(laneOf(project, id));
+  const to = Math.max(0, Math.min(project.lanes.length - 1, from + delta));
+  project.lanes.splice(to, 0, ...project.lanes.splice(from, 1));
+  return to;
+}
+
+export function removeLane(project, id) {
+  const lane = laneOf(project, id);
+  if (project.lanes.length <= 1) throw new Error('A song needs at least one lane.');
+  project.lanes.splice(project.lanes.indexOf(lane), 1);
+}
+
+// A copy of the lane with its patterns, placed right after it. Returns the copy.
+export function duplicateLane(project, id, length = project.song.length) {
+  const lane = laneOf(project, id);
+  const copy = {
+    id: uniqueId(new Set(project.lanes.map(l => l.id)), id),
+    instrument: lane.instrument,
+    columns: structuredClone(lane.columns),
+    patterns: structuredClone(lane.patterns),
+    placements: structuredClone(lane.placements),
+  };
+  copy.rows = flattenLane(copy, copy.columns, length);
+  copy.pages = buildPages(copy.rows, copy.columns);
+  project.lanes.splice(project.lanes.indexOf(lane) + 1, 0, copy);
+  return copy;
+}
+
+// Lanes keep playing the instrument under its new name.
+export function renameInstrument(project, id, name) {
+  defOf(project, id);
+  const next = newName(name, new Set(Object.keys(project.instruments)), 'an instrument', id);
+  if (next === id) return id;
+  project.instruments = Object.fromEntries(Object.entries(project.instruments).map(([k, v]) => [k === id ? next : k, v]));
+  for (const lane of project.lanes) if (lane.instrument === id) lane.instrument = next;
+  return next;
+}
+
+// An instrument that a lane still plays cannot go: that would leave the lane with no sound to make.
+export function removeInstrument(project, id) {
+  defOf(project, id);
+  const users = project.lanes.filter(l => l.instrument === id).map(l => l.id);
+  if (users.length) throw new Error(`"${id}" is played by ${users.length > 1 ? 'lanes' : 'lane'} ${users.join(', ')}; remove ${users.length > 1 ? 'those lanes' : 'that lane'} first.`);
+  delete project.instruments[id];
+}
+
+// A copy of the instrument (graph, exposed parameters, samples), listed right after it.
+export function duplicateInstrument(project, id, name) {
+  const def = defOf(project, id);
+  const taken = new Set(Object.keys(project.instruments));
+  const next = name ? newName(name, taken, 'an instrument', null) : uniqueId(taken, id);
+  project.instruments = Object.fromEntries(Object.entries(project.instruments).flatMap(([k, v]) => (k === id ? [[k, v], [next, structuredClone(def)]] : [[k, v]])));
+  return next;
+}
+
+// Moves an instrument earlier (-1) or later (+1) in the list. Returns its new place.
+export function moveInstrument(project, id, delta) {
+  defOf(project, id);
+  const entries = Object.entries(project.instruments), from = entries.findIndex(([k]) => k === id);
+  const to = Math.max(0, Math.min(entries.length - 1, from + delta));
+  entries.splice(to, 0, ...entries.splice(from, 1));
+  project.instruments = Object.fromEntries(entries);
+  return to;
+}
+
+// The project in the shape the page loads (and the engine rebuilds from): lanes back to source text.
+export function projectData(project) {
+  const lanes = project.lanes.map(l => ({
+    id: l.id,
+    instrument: l.instrument,
+    patterns: Object.fromEntries(Object.entries(l.patterns).map(([puid, p]) => [puid, { name: p.name, index: p.index, text: p.rows.map(r => r.join(' ')).join('\n') }])),
+    placements: l.placements.map(p => ({ ...p })),
+  }));
+  return { song: { ...project.song, lanes }, instruments: project.instruments, samples: project.samples };
 }

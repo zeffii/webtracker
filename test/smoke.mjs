@@ -2294,4 +2294,108 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   assert.equal(at(5, 40), null, 'past the last row');
 }
 
+// 67. Managing lanes and instruments: rename, reorder, copy, remove, and loading the result back.
+{
+  const registry = new ParamRegistry();
+  const defs = structuredClone(instruments);
+  for (const [id, d] of Object.entries(defs)) compile(d.graph, { instrument: id, nodeTypes: NODE_TYPES, registry });
+  const fresh = () => ({ song: { ...demoSong }, instruments: structuredClone(instruments), samples: {}, lanes: prepareSong(demoSong, defs, registry), editor: null });
+  const ids = p => p.lanes.map(l => l.id), inst = p => Object.keys(p.instruments);
+  const play = data => {   // load the project the way the page does, and render a second of it
+    const reg = new ParamRegistry(), rt = new GraphRuntime({ sampleRate: sr, params: reg.values });
+    const seq = new Sequencer({ sampleRate: sr, runtime: rt, params: reg.values, transport: new Int32Array(new SharedArrayBuffer(8)) });
+    for (const [id, d] of Object.entries(data.instruments)) {
+      rt.load(compile(d.graph, { instrument: id, nodeTypes: NODE_TYPES, registry: reg }));
+      for (const node of Object.keys(d.samples ?? {})) rt.message(id, node, { type: 'sample', data: makePluck(sr), rate: sr });
+    }
+    seq.setSong(data.song);
+    for (const lane of prepareSong(data.song, data.instruments, reg)) seq.setLane(lane);
+    seq.play();
+    return render(seq, 1).left;
+  };
+
+  // the project goes out as source and comes back the same
+  {
+    const p = fresh(), data = pops.projectData(p);
+    const again = prepareSong(data.song, data.instruments, registry);
+    assert.deepEqual(again.map(l => l.rows), p.lanes.map(l => l.rows));
+    assert.deepEqual(again.map(l => Object.values(l.patterns).map(x => x.index)), p.lanes.map(l => Object.values(l.patterns).map(x => x.index)));
+  }
+
+  // lanes
+  {
+    const p = fresh();
+    assert.deepEqual(ids(p), ['lead', 'bass', 'kick']);
+    assert.equal(pops.renameLane(p, 'lead', '  Lead line! '), 'Lead_line');
+    assert.deepEqual(ids(p), ['Lead_line', 'bass', 'kick']);
+    assert.throws(() => pops.renameLane(p, 'bass', 'Lead_line'), /already a lane called "Lead_line"/);
+    assert.throws(() => pops.renameLane(p, 'bass', ' !! '), /needs letters or digits/);
+    assert.throws(() => pops.renameLane(p, 'nope', 'x'), /No lane called/);
+    assert.equal(pops.renameLane(p, 'bass', 'bass'), 'bass', 'keeping the name is fine');
+    assert.equal(pops.moveLane(p, 'bass', -1), 0);
+    assert.deepEqual(ids(p), ['bass', 'Lead_line', 'kick']);
+    assert.equal(pops.moveLane(p, 'bass', -1), 0, 'the first lane cannot go earlier');
+    assert.equal(pops.moveLane(p, 'bass', 5), 2, 'the last place is as far as it goes');
+    assert.deepEqual(ids(p), ['Lead_line', 'kick', 'bass']);
+    const copy = pops.duplicateLane(p, 'Lead_line');
+    assert.equal(copy.id, 'Lead_line2');
+    assert.deepEqual(ids(p), ['Lead_line', 'Lead_line2', 'kick', 'bass'], 'the copy sits after the original');
+    const original = p.lanes.find(l => l.id === 'Lead_line');
+    assert.deepEqual(copy.rows, original.rows);
+    Object.values(copy.patterns)[0].rows[0][0] = 'G-9';
+    assert.notEqual(Object.values(original.patterns)[0].rows[0][0], 'G-9', 'a copy is independent of the original');
+    for (const id of ['Lead_line2', 'kick', 'bass']) pops.removeLane(p, id);
+    assert.deepEqual(ids(p), ['Lead_line']);
+    assert.throws(() => pops.removeLane(p, 'Lead_line'), /at least one lane/);
+  }
+
+  // instruments
+  {
+    const p = fresh();
+    assert.deepEqual(inst(p), ['lead', 'bass', 'kick']);
+    assert.equal(pops.renameInstrument(p, 'lead', 'Melody'), 'Melody');
+    assert.deepEqual(inst(p), ['Melody', 'bass', 'kick'], 'a renamed instrument keeps its place');
+    assert.equal(p.lanes[0].instrument, 'Melody', 'the lanes that played it follow');
+    assert.equal(p.lanes[1].instrument, 'bass');
+    assert.throws(() => pops.renameInstrument(p, 'bass', 'kick'), /already an instrument called "kick"/);
+    assert.equal(pops.renameInstrument(p, 'kick', '808'), '_808', 'an all-digit name would reorder the list');
+    assert.throws(() => pops.removeInstrument(p, 'Melody'), /played by lane lead; remove that lane first/);
+    pops.removeLane(p, 'lead');
+    pops.removeInstrument(p, 'Melody');
+    assert.deepEqual(inst(p), ['bass', '_808']);
+    assert.throws(() => pops.removeInstrument(p, 'Melody'), /No instrument called/);
+    assert.equal(pops.moveInstrument(p, '_808', -1), 0);
+    assert.deepEqual(inst(p), ['_808', 'bass']);
+    const copy = pops.duplicateInstrument(p, '_808');
+    assert.equal(copy, '_8082');
+    assert.deepEqual(inst(p), ['_808', '_8082', 'bass'], 'the copy sits after the original');
+    p.instruments._8082.graph.nodes[0].params.attack = 99;
+    assert.notEqual(p.instruments._808.graph.nodes[0].params.attack, 99, 'a copy is independent');
+    assert.equal(pops.duplicateInstrument(p, 'bass', 'Bass 2'), 'Bass_2');
+  }
+
+  // after all that the project still loads and plays: names and order change, the sound does not
+  {
+    const before = play(pops.projectData(fresh()));
+    assert.ok(peak(before) > 0.1);
+    const p = fresh();
+    pops.renameInstrument(p, 'lead', 'Melody');
+    pops.renameInstrument(p, 'bass', 'Sub');
+    pops.renameLane(p, 'lead', 'top');
+    const renamed = play(pops.projectData(p));
+    assert.ok(renamed.every((v, i) => v === before[i]), 'renaming should not change the sound');
+    pops.moveInstrument(p, 'kick', -2);
+    pops.moveLane(p, 'top', 1);
+    const moved = play(pops.projectData(p));
+    assert.ok(moved.every((v, i) => Math.abs(v - before[i]) < 1e-5), 'order should not change the mix');
+    const dup = pops.duplicateLane(p, 'top');
+    const doubled = play(pops.projectData(p));
+    assert.ok(peak(doubled) > 1.2 * peak(before), 'a copied lane plays too');
+    // the project file keeps the new order
+    const file = parseProject(serializeProject({ ...p, samples: { pluck: { rate: sr, data: makePluck(sr) } } }));
+    assert.deepEqual(Object.keys(file.instruments), Object.keys(p.instruments));
+    assert.deepEqual(file.song.lanes.map(l => l.id), ids(p));
+  }
+}
+
 console.log('smoke test passed');
