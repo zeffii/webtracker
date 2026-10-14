@@ -8,7 +8,8 @@ export class GraphRuntime {
   samples = new Map();     // the last sample message per instrument and node, replayed on a rebuild
   onFault = null;          // called with an instrument id when it is rebuilt
 
-  constructor({ sampleRate, params, maxBlock = 512 }) {
+  constructor({ sampleRate, params, maxBlock = 512, wasm = null }) {
+    this.wasm = wasm;           // compiled WebAssembly.Module for the DSP kernels, or null for the JS reference
     this.sampleRate = sampleRate;
     this.params = params;       // Float32Array over the shared parameter block
     this.maxBlock = maxBlock;
@@ -28,7 +29,7 @@ export class GraphRuntime {
     const buffers = Array.from({ length: compiled.bufferCount }, () => new Float32Array(this.maxBlock));
     const nodes = compiled.nodes.map(n => ({
       id: n.id,
-      instance: NODE_TYPES[n.type].create({ sampleRate: this.sampleRate, maxBlock: this.maxBlock, connected: n.connected }),
+      instance: NODE_TYPES[n.type].create({ sampleRate: this.sampleRate, maxBlock: this.maxBlock, connected: n.connected, wasm: this.wasm }),
       slots: Int32Array.from(n.slots),
       inputs: n.inputs.map(i => buffers[i]),
       outputs: n.outputs.map(i => buffers[i]),

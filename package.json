@@ -4,6 +4,10 @@
   "type": "module",
   "scripts": {
     "start": "node serve.mjs",
-    "test": "node test/smoke.mjs"
+    "test": "node test/smoke.mjs",
+    "build:wasm": "node scripts/build-wasm.mjs"
+  },
+  "devDependencies": {
+    "assemblyscript": "^0.28.20"
   }
 }

@@ -1,9 +1,11 @@
 import { NODE_TYPES } from './nodes/index.js';
 import { ParamRegistry } from './params.js';
 import { compile } from '../graph/compile.js';
+import { compileDsp } from './wasm/load.js';
 
 export class Engine {
   ctx = null;
+  wasmModule = null;
   node = null;
   onFault = null;   // called with an instrument id when the audio thread had to rebuild it
   registry = new ParamRegistry();
@@ -13,12 +15,13 @@ export class Engine {
     if (!crossOriginIsolated) {
       throw new Error('Not cross-origin isolated. Open the page through serve.mjs.');
     }
+    try { this.wasmModule = compileDsp(); } catch (e) { console.warn('WASM unavailable, using JS DSP', e); this.wasmModule = null; }
     this.ctx = new AudioContext({ latencyHint: 'interactive' });
     await this.ctx.audioWorklet.addModule(new URL('./worklet.js', import.meta.url));
     this.node = new AudioWorkletNode(this.ctx, 'tracker-engine', {
       numberOfInputs: 0,
       outputChannelCount: [2],
-      processorOptions: { sab: this.registry.sab, transport: this.transport.buffer },
+      processorOptions: { sab: this.registry.sab, transport: this.transport.buffer, wasm: this.wasmModule },
     });
     this.node.port.onmessage = ({ data }) => { if (data.type === 'fault') this.onFault?.(data.instrument); };
     this.node.connect(this.ctx.destination);

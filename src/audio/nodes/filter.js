@@ -1,3 +1,5 @@
+import { instantiateDsp } from '../wasm/host.js';
+
 // Mono state-variable filter (TPT form). mode: 0 lowpass, 1 bandpass, 2 highpass.
 const CUTOFF = 0, RES = 1, MODE = 2;
 
@@ -10,9 +12,12 @@ export default {
     { name: 'resonance', min: 0, max: 0.95, def: 0.2 },
     { name: 'mode', min: 0, max: 2, def: 0, int: true },
   ],
-  create({ sampleRate, connected }) {
+  create({ sampleRate, maxBlock = 512, connected, wasm }) {
     const modOn = connected[1];
     let ic1 = 0, ic2 = 0, fc = -1;
+    // WASM path: same maths in a compiled kernel; state lives in its memory.
+    const dsp = wasm ? instantiateDsp(wasm, { input: maxBlock * 4, output: maxBlock * 4, state: 16 }) : null;
+    const wIn = dsp?.f32('input', maxBlock), wOut = dsp?.f32('output', maxBlock);
     return {
       process(inputs, outputs, n, params, slots) {
         const input = inputs[0], out = outputs[0];
@@ -29,6 +34,12 @@ export default {
         const k = 2 - 1.95 * params[slots[RES]];
         const mode = Math.round(params[slots[MODE]]);
         const a1 = 1 / (1 + g * (g + k)), a2 = g * a1, a3 = g * a2;
+        if (dsp) {
+          wIn.set(input.subarray(0, n));
+          dsp.exports.filterBlock(n, a1, a2, a3, k, mode, dsp.offsets.input, dsp.offsets.output, dsp.offsets.state);
+          out.set(wOut.subarray(0, n));
+          return;
+        }
         for (let i = 0; i < n; i++) {
           const x = input[i];
           const v3 = x - ic2;

@@ -23,6 +23,7 @@ import { createSamplePanel } from '../src/project/samplepanel.js';
 import { computePeaks, createWaveformView } from '../src/project/waveform.js';
 import { parseProject, serializeProject } from '../src/project/file.js';
 import { song as demoSong } from '../src/song.js';
+import { compileDsp } from '../src/audio/wasm/load.js';
 
 const sr = 48000, block = 128;
 
@@ -103,9 +104,9 @@ const brightness = x => {
 
 // ---- sequencer ----
 
-function songSetup(song) {
+function songSetup(song, wasm = null) {
   const registry = new ParamRegistry();
-  const rt = new GraphRuntime({ sampleRate: sr, params: registry.values });
+  const rt = new GraphRuntime({ sampleRate: sr, params: registry.values, wasm });
   const seq = new Sequencer({ sampleRate: sr, runtime: rt, params: registry.values, transport: new Int32Array(new SharedArrayBuffer(8)) });
   for (const [id, def] of Object.entries(instruments)) {
     rt.load(compile(def.graph, { instrument: id, nodeTypes: NODE_TYPES, registry }));
@@ -1255,6 +1256,73 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   canvas.listeners.dblclick();                                            // double-click clears
   assert.equal(project.samples.s.loopStart, undefined);
   view.draw();
+}
+
+// 52. The WASM kernels match the JS reference nodes sample for sample.
+{
+  const wasm = compileDsp();
+  const drive = (type, wasmOn, connected, setup) => {
+    const node = NODE_TYPES[type].create({ sampleRate: sr, maxBlock: 512, connected, wasm: wasmOn ? wasm : null });
+    const total = 24000, block = 100, out = new Float32Array(total);
+    const input = new Float32Array(512), mod = new Float32Array(512), output = new Float32Array(512);
+    const params = new Float32Array(3), slots = Int32Array.of(0, 1, 2);
+    let seed = 11;
+    for (let at = 0; at < total; at += block) {
+      setup(params, at);
+      for (let i = 0; i < block; i++) {
+        input[i] = at < 12000 ? ((seed = (seed * 16807) % 2147483647) / 2147483647 - 0.5) * 0.8 : 0;   // noise, then silence for the tail
+        mod[i] = Math.sin(at / 3000);
+      }
+      node.process([input, mod], [output], block, params, slots);
+      out.set(output.subarray(0, block), at);
+    }
+    return out;
+  };
+  const maxDiff = (a, b) => a.reduce((m, v, i) => Math.max(m, Math.abs(v - b[i])), 0);
+  for (const mode of [0, 1, 2]) {
+    const setup = (p, at) => { p[0] = 300 + (at % 7000); p[1] = 0.1 + 0.8 * ((at / 100) % 2) / 2; p[2] = mode; };
+    for (const connected of [[true, false], [true, true]]) {
+      const js = drive('filter', false, connected, setup), wa = drive('filter', true, connected, setup);
+      assert.ok(js.some(v => Math.abs(v) > 0.01), 'the filter is silent');
+      assert.ok(maxDiff(js, wa) < 1e-6, `filter mode ${mode} differs: ${maxDiff(js, wa)}`);
+    }
+  }
+  const dsetup = (p, at) => { p[0] = at < 6000 ? 120 : 37; p[1] = 0.6; p[2] = 0.5; };
+  const js = drive('delay', false, [true], dsetup), wa = drive('delay', true, [true], dsetup);
+  assert.ok(js.some(v => Math.abs(v) > 0.01));
+  assert.ok(maxDiff(js, wa) < 1e-6, `delay differs: ${maxDiff(js, wa)}`);
+}
+
+// 53. A whole song renders the same through the WASM runtime as through the JS one.
+{
+  const wasm = compileDsp();
+  const renderWith = wasmOn => {
+    const lanes2 = [oneLane('lead', 'lead', patternText(16, { 0: 'C-4 .. .. .. ..', 4: 'E-4 .. .. .. ..' })), oneLane('bass', 'bass', patternText(16, { 0: 'C-3 .. .. .. ..' }))];
+    const { seq, rt } = songSetup(song120(lanes2), wasmOn ? wasm : null);
+    seq.play();
+    return render(seq, 0.4);
+  };
+  const a = renderWith(false), b = renderWith(true);
+  assert.ok(a.left.some(v => Math.abs(v) > 0.01), 'nothing rendered');
+  let worst = 0;
+  for (let i = 0; i < a.left.length; i++) worst = Math.max(worst, Math.abs(a.left[i] - b.left[i]), Math.abs(a.right[i] - b.right[i]));
+  assert.ok(worst < 1e-4, `song differs: ${worst}`);
+}
+
+// 54. Rows past the end of a pattern are drawn dimmed; covered rows are not.
+{
+  const registry = new ParamRegistry();
+  for (const [id, def] of Object.entries(instruments)) compile(def.graph, { instrument: id, nodeTypes: NODE_TYPES, registry });
+  const lanes = prepareSong(demoSong, instruments, registry);
+  const el = { addEventListener() {}, innerHTML: '' };
+  const view = createTrackerView({ el, statusEl: {}, transport: new Int32Array(new SharedArrayBuffer(8)), onToggle() {}, onBack() {} });
+  view.load({ lanes, song: demoSong, editor: createEditor(lanes, demoSong.length) });
+  view.draw();
+  const before = (el.innerHTML.match(/class="off"/g) ?? []).length;
+  lanes[0].placements[0].length = 4;                 // the lead's first pattern now ends early
+  view.draw();
+  const after = (el.innerHTML.match(/class="off"/g) ?? []).length;
+  assert.ok(after > before, 'rows past the pattern end are not dimmed');
 }
 
 console.log('smoke test passed');

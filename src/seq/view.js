@@ -158,11 +158,17 @@ export function createTrackerView({ el, statusEl, transport, onToggle, onBack, o
     for (let t = top; t < Math.min(len, top + ROWS); t++) {
       const chunks = lanes.map((lane, li) => {
         const mark = lane.placements.some(p => p.start === t) ? '▌' : ' ';   // a pattern starts here
+        const covered = lane.placements.some(p => t >= p.start && t < p.start + p.length);   // else no pattern here
         return mark + lane.columns.map((c, ci) => {
           const text = lane.rows[t][ci].padEnd(widths[li][ci]);
-          if (li !== cur.lane || ci !== cur.col || t !== cur.tick) return text;
-          const at = `<span class="cur">${text[cur.ch]}</span>`;
-          return `<span class="cell">${text.slice(0, cur.ch)}${at}${text.slice(cur.ch + 1)}</span>`;
+          const isCur = li === cur.lane && ci === cur.col && t === cur.tick;
+          // Characters one at a time so the cursor and the command id can each be styled.
+          const html = Array.from(text, (ch, i) => {
+            const cls = [isCur && i === cur.ch ? 'cur' : '', c.token === 'cmd' && i < 2 ? 'cc' : ''].filter(Boolean).join(' ');
+            return cls ? `<span class="${cls}">${esc(ch)}</span>` : esc(ch);
+          }).join('');
+          if (isCur) return `<span class="cell">${html}</span>`;
+          return covered ? html : `<span class="off">${html}</span>`;
         }).join(' ');
       });
       const row = `${playing && t === playTick ? '>' : ' '}${String(t).padStart(2, '0')} ${chunks.join('  ')}`;

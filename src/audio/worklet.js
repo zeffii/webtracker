@@ -4,9 +4,9 @@ import { Sequencer } from './sequencer.js';
 class TrackerEngine extends AudioWorkletProcessor {
   constructor(options) {
     super();
-    const { sab, transport } = options.processorOptions;
+    const { sab, transport, wasm } = options.processorOptions;
     const params = new Float32Array(sab);
-    this.rt = new GraphRuntime({ sampleRate, params });
+    this.rt = new GraphRuntime({ sampleRate, params, wasm });
     this.seq = new Sequencer({ sampleRate, runtime: this.rt, params, transport: new Int32Array(transport) });
     this.rt.onFault = instrument => this.port.postMessage({ type: 'fault', instrument });
     this.port.onmessage = ({ data }) => {
