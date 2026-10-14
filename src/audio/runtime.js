@@ -44,7 +44,7 @@ export class GraphRuntime {
 
   // Message for one node, for example the sample data for a sampler.
   message(instrument, nodeId, msg) {
-    if (msg.type === 'sample' || msg.type === 'curve') this.samples.set(`${instrument}\u0000${nodeId}\u0000${msg.type}`, msg);   // replayed if the instrument is rebuilt
+    if (msg.type === 'sample' || msg.type === 'curve' || msg.type === 'spectrum') this.samples.set(`${instrument}\u0000${nodeId}\u0000${msg.type}`, msg);   // replayed if the instrument is rebuilt
     const node = this.instruments.get(instrument)?.nodes.find(n => n.id === nodeId);
     node?.instance.message?.(msg);
   }

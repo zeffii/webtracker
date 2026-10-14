@@ -8,6 +8,7 @@ import { addNode, autoLayout, connect, disconnect, pruneDef, removeNode, setBits
 import { GLYPHS } from './glyphs.js';
 import { portKind } from './kinds.js';
 import { createCurveEditor } from './curveeditor.js';
+import { createSpectrumEditor } from './spectrumeditor.js';
 
 // Geometry. A node's shape comes from its type: 'box' for processors, 'rounded' for
 // sources and 'circle' for mixing and gain. Ports sit on the left (inputs) and right (outputs).
@@ -172,6 +173,16 @@ export function createPatcher({ canvas, panel, statusEl, doc = document, nodeTyp
         onChange: points => {
           node.data = { ...node.data, curve: points };
           onData(instId, node.id, { type: 'curve', points });
+        },
+      });
+      items.splice(1, 0, editor.el);
+    }
+    if (type.editor === 'spectrum') {   // drawable harmonic levels, kept on the node and sent live
+      const editor = createSpectrumEditor({
+        doc, points: node.data?.spectrum,
+        onChange: points => {
+          node.data = { ...node.data, spectrum: points };
+          onData(instId, node.id, { type: 'spectrum', points });
         },
       });
       items.splice(1, 0, editor.el);

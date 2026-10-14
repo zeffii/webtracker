@@ -1,4 +1,4 @@
-import { newSamplerInstrument } from '../instruments.js';
+import { newSamplerInstrument, synthKinds } from '../instruments.js';
 import { createLane } from '../seq/lane.js';
 
 // Changes to the shape of a project: samples, instruments, lanes. Plain functions on the
@@ -62,6 +62,14 @@ export function addSamplerInstrument(project, name, sampleId) {
   if (!project.samples[sampleId]) throw new Error('Pick a sample first.');
   const id = uniqueId(new Set(Object.keys(project.instruments)), idFromName(name || sampleId));
   project.instruments[id] = newSamplerInstrument(sampleId);
+  return id;
+}
+
+// Adds a synth instrument ('subtractive' or 'additive'). Returns its id.
+export function addSynthInstrument(project, name, kind) {
+  if (!synthKinds[kind]) throw new Error(`Unknown synth kind: ${kind}`);
+  const id = uniqueId(new Set(Object.keys(project.instruments)), idFromName(name || kind));
+  project.instruments[id] = structuredClone(synthKinds[kind].make());
   return id;
 }
 

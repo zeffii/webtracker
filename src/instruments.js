@@ -74,3 +74,45 @@ export const newSamplerInstrument = sampleId => structuredClone({
   commands: samplerCommands,
   samples: { sampler: sampleId },
 });
+
+// Synth instruments: one synth node into out, with a few parameters exposed as pattern columns.
+export const synthKinds = {
+  subtractive: {
+    label: 'Subtractive synth',
+    make: () => ({
+      graph: { nodes: [{ id: 'synth', type: 'subsynth' }, { id: 'out', type: 'out', params: { gain: 0.6 } }], connections: [['synth.out', 'out.in']] },
+      exposed: [
+        { node: 'synth', param: 'cutoff', label: 'Cut', scale: 'log' },
+        { node: 'synth', param: 'res', label: 'Res' },
+        { node: 'synth', param: 'fenv', label: 'Env' },
+        { node: 'synth', param: 'detune', label: 'Det' },
+      ],
+      commands: [
+        { id: 0x01, node: 'synth', param: 'cutoff', scale: 'log' },
+        { id: 0x02, node: 'synth', param: 'res' },
+        { id: 0x03, node: 'synth', param: 'fenv' },
+        { id: 0x04, node: 'synth', param: 'drive' },
+        { id: 0x05, node: 'synth', param: 'glide' },
+      ],
+    }),
+  },
+  additive: {
+    label: 'Additive synth',
+    make: () => ({
+      graph: { nodes: [{ id: 'synth', type: 'addsynth' }, { id: 'out', type: 'out', params: { gain: 0.6 } }], connections: [['synth.out', 'out.in']] },
+      exposed: [
+        { node: 'synth', param: 'tilt', label: 'Tlt' },
+        { node: 'synth', param: 'evenodd', label: 'E/O' },
+        { node: 'synth', param: 'stretch', label: 'Str' },
+        { node: 'synth', param: 'hdecay', label: 'HDc' },
+      ],
+      commands: [
+        { id: 0x01, node: 'synth', param: 'tilt' },
+        { id: 0x02, node: 'synth', param: 'evenodd' },
+        { node: 'synth', id: 0x03, param: 'stretch' },
+        { id: 0x04, node: 'synth', param: 'hdecay' },
+        { id: 0x05, node: 'synth', param: 'glide' },
+      ],
+    }),
+  },
+};

@@ -112,6 +112,19 @@ export const GLYPHS = {
     });
     ctx.stroke();
   },
+  subsynth: (ctx, cx, cy, w, h) => {   // a saw, the raw material the filter carves
+    const x = f => cx - w / 2 + f * w, y = f => cy + h / 2 - f * h;
+    line(ctx, [[x(0), y(0.1)], [x(0.3), y(0.95)], [x(0.3), y(0.1)], [x(0.6), y(0.95)], [x(0.6), y(0.1)], [x(1), y(0.95)]]);
+  },
+  addsynth: (ctx, cx, cy, w, h) => {   // a row of harmonics falling away
+    ctx.beginPath();
+    [1, 0.5, 0.33, 0.25, 0.2, 0.16, 0.14].forEach((a, i) => {
+      const x = cx - w / 2 + (i / 6) * w;
+      ctx.moveTo(x, cy + h / 2);
+      ctx.lineTo(x, cy + h / 2 - a * h);
+    });
+    ctx.stroke();
+  },
   speaker: (ctx, cx, cy, w, h) => {
     const s = Math.min(w, h) * 0.4;
     ctx.beginPath();

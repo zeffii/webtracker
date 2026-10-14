@@ -24,6 +24,8 @@ import { computePeaks, createWaveformView } from '../src/project/waveform.js';
 import { parseProject, serializeProject } from '../src/project/file.js';
 import { song as demoSong } from '../src/song.js';
 import { createCurveEditor, SIZE } from '../src/graph/curveeditor.js';
+import { createSpectrumEditor, WIDTH, HEIGHT } from '../src/graph/spectrumeditor.js';
+import { HARMONICS, SPECTRA, normalizeSpectrum } from '../src/audio/nodes/spectra.js';
 import { CURVE_POINTS, PRESETS } from '../src/audio/nodes/curves.js';
 import { Oversampler } from '../src/audio/nodes/oversample.js';
 import { createInsertMenu } from '../src/graph/menu.js';
@@ -1761,6 +1763,218 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   assert.ok(Math.abs(rmsTail(neutral) / rmsTail(direct) - 1) < 0.02, 'neutral multiband should keep the level');
   const squashed = chain(i => (i === 1 ? { ratio: 20, threshold: -50, knee: 0 } : { ratio: 1 }));   // 200 Hz sits in the lmid band
   assert.ok(rmsTail(squashed) < 0.5 * rmsTail(neutral), 'compressing the band the tone sits in should lower the level');
+}
+
+// 63. Subtractive and additive synth nodes.
+{
+  const makeSynth = (type, values, { connected = [false, false], data } = {}) => {
+    const def = NODE_TYPES[type];
+    const params = Float32Array.from(def.params.map(p => values[p.name] ?? p.def)), slots = Int32Array.from(def.params.map((_, i) => i));
+    return { node: def.create({ sampleRate: sr, connected, maxBlock: 128, data }), params, slots };
+  };
+  // plays one note, returns the left and right channels; events: [[sampleIndex, fn(node)]]; mod: per-sample input 0
+  const play = (type, values, { note = 57, secs = 0.5, events = [], pitch = 0, data, connected } = {}) => {
+    const { node, params, slots } = makeSynth(type, values, { data, connected });
+    node.note({ type: 'noteOn', note, vel: 1 });
+    const N = Math.floor(sr * secs / 128) * 128, L = new Float32Array(N), R = new Float32Array(N);
+    const l = new Float32Array(128), r = new Float32Array(128), mod = new Float32Array(128).fill(pitch), zero = new Float32Array(128);
+    for (let at = 0; at < N; at += 128) {
+      for (const [when, fn] of events) if (when === at) fn(node);
+      node.process([mod, zero], [[l, r]], 128, params, slots);
+      L.set(l, at); R.set(r, at);
+    }
+    return { L, R, node, params, slots };
+  };
+  // magnitude of one frequency over a Hann-windowed span
+  const mag = (x, f, a = 0, b = x.length) => {
+    b = Math.min(b, x.length);
+    let re = 0, im = 0;
+    for (let i = a; i < b; i++) {
+      const w = 0.5 - 0.5 * Math.cos(2 * Math.PI * (i - a) / (b - a)), ph = 2 * Math.PI * f * i / sr;
+      re += x[i] * w * Math.cos(ph); im += x[i] * w * Math.sin(ph);
+    }
+    return Math.hypot(re, im) / (b - a) * 4;
+  };
+  const rms = (x, a = 0, b = x.length) => { let s = 0; for (let i = a; i < b; i++) s += x[i] * x[i]; return Math.sqrt(s / (b - a)); };
+  const pk = (x, a = 0, b = x.length) => { let m = 0; for (let i = a; i < b; i++) m = Math.max(m, Math.abs(x[i])); return m; };
+  const crossings = (x, a, b) => {   // upward zero crossings, interpolated: frequency from the first to the last
+    const at = [];
+    for (let i = a + 1; i < b; i++) if (x[i - 1] < 0 && x[i] >= 0) at.push(i - 1 + -x[i - 1] / (x[i] - x[i - 1]));
+    return ((at.length - 1) * sr) / (at.at(-1) - at[0]);
+  };
+  const hz = n => 440 * Math.pow(2, (n - 69) / 12);
+
+  // ---- subsynth ----
+  const pure = { wave1: 3, osc2: 0, cutoff: 20000, res: 0, drive: 0, fenv: 0, keytrack: 0, atk: 0.1, sus: 1, level: 1 };
+  const silent = makeSynth('subsynth', {}), sl = new Float32Array(128), sr_ = new Float32Array(128);
+  silent.node.process([sl, sl], [[sl, sr_]], 128, silent.params, silent.slots);
+  assert.equal(pk(sl), 0, 'silent before a note');
+  const plain = play('subsynth', {});
+  assert.ok(plain.L.every(Number.isFinite) && pk(plain.L) > 0.05 && pk(plain.L) < 2, `default patch level ${pk(plain.L)}`);
+  assert.ok(plain.L.every((v, i) => v === plain.R[i]), 'one unison voice should be mono');
+  const wide = play('subsynth', { unison: 5, width: 1, spread: 20 });
+  assert.ok(rms(wide.L.map((v, i) => v - wide.R[i]), 8000) > 0.1 * rms(wide.L, 8000), 'unison with width should be stereo');
+  const narrow = play('subsynth', { unison: 5, width: 0, spread: 20 });
+  assert.ok(narrow.L.every((v, i) => Math.abs(v - narrow.R[i]) < 1e-9), 'width 0 should be mono');
+
+  // pitch: a sine plays at the note's frequency; tune2 and detune move only oscillator 2; the pitch input is in octaves
+  for (const n of [45, 57, 69, 81]) {
+    const f = crossings(play('subsynth', pure, { note: n }).L, 8000, 24000 - 0);
+    assert.ok(Math.abs(f / hz(n) - 1) < 0.01, `note ${n}: ${f} Hz, expected ${hz(n)}`);
+  }
+  const up = crossings(play('subsynth', pure, { note: 57, pitch: 1, connected: [true, false] }).L, 8000, 24000);
+  assert.ok(Math.abs(up / hz(57) - 2) < 0.02, `pitch input +1 should double the frequency, got ${up / hz(57)}`);
+
+  // the oscillators are bandlimited enough: a saw's harmonics fall as 1/n, with no big stray content between them
+  const saw = play('subsynth', { ...pure, wave1: 0 }, { note: 69, secs: 0.6 }).L;
+  const h1 = mag(saw, 440, 6000, 28000), h5 = mag(saw, 2200, 6000, 28000);
+  assert.ok(Math.abs(h5 / h1 - 0.2) < 0.03, `saw harmonic 5 should be a fifth of the fundamental: ${h5 / h1}`);
+  const sq = play('subsynth', { ...pure, wave1: 1 }, { note: 69, secs: 0.6 }).L;
+  assert.ok(mag(sq, 880, 6000, 28000) < 0.02 * mag(sq, 440, 6000, 28000), 'a square has no even harmonics');
+  const alias = play('subsynth', { ...pure, wave1: 0 }, { note: 108, secs: 0.4 }).L;   // 4.2 kHz: naive saws fold back audibly
+  const fold = mag(alias, 12 * 4186.01 - 48000, 6000, 18000);   // where the 12th harmonic would fold back, well off the series
+  assert.ok(fold < 0.02 * mag(alias, 4186, 6000, 18000), `aliasing is too strong: ${fold}`);
+
+  // filter: 24 dB/oct, so two octaves above the cutoff is down by about 48 dB; resonance lifts the cutoff region
+  const filt = (cutoff, res = 0) => play('subsynth', { ...pure, wave1: 0, cutoff, res }, { note: 45, secs: 0.6 }).L;   // 110 Hz saw
+  const open = filt(20000), shut = filt(500);
+  const ratio = (x, f) => mag(x, f, 6000, 28000) / mag(open, f, 6000, 28000);
+  assert.ok(ratio(shut, 110) > 0.9, `below the cutoff the level should survive: ${ratio(shut, 110)}`);
+  assert.ok(ratio(shut, 2200) < 0.01, `two octaves above the cutoff should be at least 40 dB down: ${ratio(shut, 2200)}`);
+  assert.ok(ratio(filt(1100, 0.9), 1100) > 2 * ratio(filt(1100, 0), 1100), 'resonance should lift the cutoff region');
+  // key tracking moves the cutoff with the note: an octave up with keytrack 1 keeps the same relative rolloff
+  const kt = (note, keytrack) => { const x = play('subsynth', { ...pure, wave1: 0, cutoff: 600, keytrack }, { note, secs: 0.6 }).L; return mag(x, hz(note) * 8, 6000, 28000) / mag(x, hz(note), 6000, 28000); };
+  assert.ok(kt(57, 1) / kt(45, 1) > 0.7 && kt(57, 1) / kt(45, 1) < 1.4, 'with key tracking the spectrum shape should follow the note');
+  assert.ok(kt(57, 0) / kt(45, 0) < 0.2, 'without key tracking a higher note loses more of its harmonics');
+  // the filter envelope opens the filter: a bright start that closes to a dull sustain
+  const sweep = play('subsynth', { ...pure, wave1: 0, cutoff: 200, fenv: 5, fatk: 0.1, fdec: 100, fsus: 0 }, { note: 45, secs: 0.8 }).L;
+  assert.ok(mag(sweep, 1100, 100, 2500) > 4 * mag(sweep, 1100, 30000, 38000), 'the filter envelope should open the start of the note');
+  // glide: partway between two notes shortly after the second one
+  const glide = play('subsynth', { ...pure, glide: 400 }, { note: 45, secs: 0.8, events: [[12800, node => node.note({ type: 'noteOn', note: 69, vel: 1 })]] }).L;
+  const mid = crossings(glide, 12800 + 2000, 12800 + 8000);
+  assert.ok(mid > hz(45) * 1.3 && mid < hz(69) * 0.95, `glide should be between the notes: ${mid}`);
+  // release ends the voice; a cut ends it at once; extreme settings stay finite and bounded
+  const rel = play('subsynth', { rel: 50 }, { secs: 1, events: [[12800, node => node.note({ type: 'noteOff' })]] }).L;
+  assert.ok(pk(rel, 12800 + 12000, rel.length) < 1e-4, 'the voice should end after the release');
+  const cutNote = play('subsynth', {}, { secs: 0.5, events: [[12800, node => node.note({ type: 'noteCut' })]] }).L;
+  assert.equal(pk(cutNote, 12800, cutNote.length), 0);
+  const wild = play('subsynth', { res: 1, drive: 1, unison: 7, spread: 50, noise: 1, sub: 1, osc2: 1, cutoff: 3000, fenv: 8, level: 1 }, { note: 110, secs: 0.6 }).L;
+  assert.ok(wild.every(Number.isFinite) && pk(wild) < 4, `extreme settings should stay bounded: ${pk(wild)}`);
+
+  // ---- addsynth ----
+  const base = { atk: 0.1, sus: 1, level: 1, width: 0 };
+  const spec1 = n => Array.from({ length: 32 }, (_, i) => (i + 1 === n ? 1 : 0));
+  const sine1 = play('addsynth', base, { note: 57, data: { spectrum: spec1(1) } }).L;
+  assert.ok(Math.abs(crossings(sine1, 8000, 24000) / hz(57) - 1) < 0.01, 'a lone fundamental plays at the note');
+  const third = play('addsynth', base, { note: 57, data: { spectrum: spec1(3) } }).L;
+  assert.ok(mag(third, hz(57) * 3, 6000, 24000) > 20 * mag(third, hz(57), 6000, 24000), 'a lone third partial sounds at three times the note');
+  // loudness does not depend on the spectrum's shape
+  const loud = shape => rms(play('addsynth', base, { note: 57, data: { spectrum: shape } }).L, 8000);
+  const flat = Array(32).fill(1), sawish = Array.from({ length: 32 }, (_, i) => 1 / (i + 1));
+  assert.ok(Math.abs(loud(flat) / loud(sawish) - 1) < 0.1 && Math.abs(loud(spec1(1)) / loud(sawish) - 1) < 0.1, 'spectra should come out at similar loudness');
+  // the defaults: a stored spectrum is optional, and the node still makes sound
+  assert.ok(pk(play('addsynth', {}).L) > 0.05);
+  // even/odd balance
+  const eo = v => play('addsynth', { ...base, evenodd: v }, { note: 57, data: { spectrum: flat } }).L;
+  const hollow = eo(-1), oddless = eo(1);
+  assert.ok(mag(hollow, hz(57) * 2, 6000, 24000) < 0.02 * mag(hollow, hz(57), 6000, 24000), 'evenodd -1 silences even partials');
+  assert.ok(mag(oddless, hz(57) * 3, 6000, 24000) < 0.02 * mag(oddless, hz(57) * 2, 6000, 24000), 'evenodd +1 silences odd partials');
+  // tilt: -6 dB/oct halves each octave's partial level, relative to a flat spectrum
+  const tilted = play('addsynth', { ...base, tilt: -6.0206 }, { note: 45, data: { spectrum: flat } }).L;
+  assert.ok(Math.abs(mag(tilted, hz(45) * 4, 6000, 24000) / mag(tilted, hz(45), 6000, 24000) - 0.25) < 0.03, 'tilt of -6 dB per octave');
+  // stretch moves the partials up, by sqrt(1 + B n^2)
+  const B = 0.5 ** 2 * 0.004, m = 8;
+  const stretched = play('addsynth', { ...base, stretch: 0.5 }, { note: 45, data: { spectrum: spec1(m) } }).L;
+  const want = hz(45) * m * Math.sqrt(1 + B * m * m);
+  assert.ok(mag(stretched, want, 6000, 30000) > 5 * mag(stretched, hz(45) * m, 6000, 30000), 'stretch should detune the upper partials');
+  // hdecay: the top dies faster than the bottom
+  const decaying = play('addsynth', { ...base, hdecay: 6 }, { note: 45, secs: 1, data: { spectrum: flat } }).L;
+  const early = mag(decaying, hz(45) * 16, 0, 6000) / mag(decaying, hz(45), 0, 6000), late = mag(decaying, hz(45) * 16, 36000, 42000) / mag(decaying, hz(45), 36000, 42000);
+  assert.ok(late < 0.3 * early, `high partials should fade faster: ${early} then ${late}`);
+  // width pans odd partials left and even ones right
+  const panned = play('addsynth', { ...base, width: 1 }, { note: 57, data: { spectrum: spec1(1) } });
+  assert.ok(pk(panned.R) < 1e-6 && pk(panned.L) > 0.05, 'a lone odd partial at width 1 is hard left');
+  const panned2 = play('addsynth', { ...base, width: 1 }, { note: 57, data: { spectrum: spec1(2) } });
+  assert.ok(pk(panned2.L) < 1e-6 && pk(panned2.R) > 0.05, 'a lone even partial at width 1 is hard right');
+  // the spectrum can change live; partials above the limit are skipped; extremes stay bounded
+  const live = play('addsynth', base, { note: 57, secs: 1, data: { spectrum: spec1(1) }, events: [[24064, node => node.message({ type: 'spectrum', points: spec1(2) })]] }).L;
+  assert.ok(mag(live, hz(57) * 2, 32000, 48000) > 10 * mag(live, hz(57), 32000, 48000), 'a spectrum message should change the sound');
+  const high = play('addsynth', { ...base, drift: 1, stretch: 1, width: 1 }, { note: 120, data: { spectrum: flat } }).L;
+  assert.ok(high.every(Number.isFinite) && pk(high) < 2, 'partials past the limit should be skipped');
+  const rel2 = play('addsynth', { rel: 50 }, { secs: 1, events: [[12800, node => node.note({ type: 'noteOff' })]] }).L;
+  assert.ok(pk(rel2, 12800 + 12000, rel2.length) < 1e-4, 'the voice should end after the release');
+}
+
+// 64. Synth instruments through the compiler, project operations, and the spectrum editor.
+{
+  const makeEl = tag => ({
+    tag, children: [], listeners: {}, style: {}, textContent: '', value: '', checked: false, className: '',
+    appendChild(c) { this.children.push(c); return c; }, replaceChildren(...c) { this.children = c; },
+    addEventListener(type, f) { this.listeners[type] = f; }, focus() {},
+    getContext: () => new Proxy({}, { get: (t, k) => (k in t ? t[k] : () => {}), set: (t, k, v) => { t[k] = v; return true; } }),
+  });
+  const walk = (el, fn) => { fn(el); (el.children ?? []).forEach(c => walk(c, fn)); };
+  const doc = { createElement: makeEl, createTextNode: text => ({ text }) };
+
+  const project = { instruments: {}, samples: {}, lanes: [], song: { length: 16 } };
+  for (const kind of ['subtractive', 'additive']) {
+    const id = pops.addSynthInstrument(project, `My ${kind}`, kind);
+    const registry = new ParamRegistry();
+    const rt = new GraphRuntime({ sampleRate: sr, params: registry.values });
+    rt.load(compile(project.instruments[id].graph, { instrument: id, nodeTypes: NODE_TYPES, registry }));
+    rt.note(id, { type: 'noteOn', note: 48, vel: 1 });
+    const { left, right } = render(rt, 0.3);
+    assert.ok(left.every(Number.isFinite) && peak(left) > 0.02 && peak(left) < 1, `${kind} instrument level ${peak(left)}`);
+    const lane = pops.addLane(project, registry, id);
+    assert.deepEqual(lane.columns.map(c => c.label).slice(0, 2), ['Note', 'Vel']);
+    assert.ok(lane.columns.length >= 6, 'the exposed parameters should become columns');
+  }
+  assert.throws(() => pops.addSynthInstrument(project, 'x', 'nope'), /Unknown synth kind/);
+  assert.equal(pops.addSynthInstrument(project, 'My subtractive', 'subtractive'), 'My_subtractive2');
+
+  // the spectrum editor draws bars, fills gaps and offers presets; the patcher panel hosts it and sends it live
+  const changes = [];
+  const editor = createSpectrumEditor({ doc, points: SPECTRA.saw(), onChange: pts => changes.push(pts) });
+  let canvas; const buttons = [];
+  walk(editor.el, e => { if (e.tag === 'canvas') canvas = e; if (e.tag === 'button') buttons.push(e); });
+  const fire = (type, x, y) => canvas.listeners[type]({ offsetX: x, offsetY: y });
+  fire('mousedown', 0, HEIGHT - 2); fire('mousemove', WIDTH - 1, 0); fire('mouseup', 0, 0);   // bottom-left to top-right
+  const drawn = changes.at(-1);
+  assert.equal(drawn.length, HARMONICS);
+  assert.ok(drawn.every((v, i) => Math.abs(v - i / (HARMONICS - 1)) < 0.05), 'the gap between mouse events should be filled in');
+  fire('mousemove', 10, 10);
+  assert.equal(changes.length, 2, 'not drawing any more');
+  buttons.find(b => b.textContent === 'square').listeners.click();
+  assert.ok(changes.at(-1)[1] === 0 && changes.at(-1)[2] > 0, 'the square preset has only odd partials');
+  assert.deepEqual(Array.from(normalizeSpectrum('junk')), Array.from(Float32Array.from(SPECTRA.saw())));
+
+  const canvas2 = { width: 900, height: 360, style: {}, listeners: {}, getContext: () => new Proxy({}, { get: (t, k) => (k in t ? t[k] : () => {}), set: (t, k, v) => { t[k] = v; return true; } }), addEventListener(type, f) { this.listeners[type] = f; }, focus() {} };
+  const panel = makeEl('div'), sent = [];
+  const defs = structuredClone(instruments);
+  const patcher = createPatcher({ canvas: canvas2, panel, statusEl: { textContent: '' }, doc, nodeTypes: NODE_TYPES, onStructure() {}, onParam() {}, onData: (...a) => sent.push(a) });
+  patcher.load({ instruments: defs });
+  patcher.show('kick');
+  patcher.add('addsynth', { x: 300, y: 200 });
+  let bars = null;
+  walk(panel, e => { if (e.className === 'curve') bars = e; });
+  assert.ok(bars, 'the addsynth panel should hold the spectrum editor');
+  bars.listeners.mousedown({ offsetX: 20, offsetY: 10 }); bars.listeners.mouseup({});
+  const node = defs.kick.graph.nodes.find(n => n.id === 'addsynth1');
+  assert.equal(node.data.spectrum.length, HARMONICS);
+  assert.deepEqual(sent.at(-1).slice(0, 2), ['kick', 'addsynth1']);
+  assert.equal(sent.at(-1)[2].type, 'spectrum');
+
+  // the stored spectrum survives a rebuild: the runtime replays it
+  const registry = new ParamRegistry();
+  const rt = new GraphRuntime({ sampleRate: sr, params: registry.values });
+  const graph = { nodes: [{ id: 's', type: 'addsynth', params: { atk: 0.1, sus: 1 } }, { id: 'out', type: 'out' }], connections: [['s.out', 'out.in']] };
+  rt.load(compile(graph, { instrument: 'a', nodeTypes: NODE_TYPES, registry }));
+  rt.message('a', 's', { type: 'spectrum', points: Array.from({ length: 32 }, (_, i) => (i === 1 ? 1 : 0)) });
+  rt.rebuild('a');
+  rt.note('a', { type: 'noteOn', note: 57, vel: 1 });
+  const x = render(rt, 0.4).left;
+  const zc = (a, b) => { let c = 0; for (let i = a + 1; i < b; i++) if (x[i - 1] < 0 && x[i] >= 0) c++; return c * sr / (b - a); };
+  assert.ok(Math.abs(zc(6000, 18000) / (2 * 220) - 1) < 0.02, 'a rebuilt instrument should replay its spectrum');
 }
 
 console.log('smoke test passed');

@@ -19,6 +19,8 @@ import transient from './transient.js';
 import split from './split.js';
 import compressor from './compressor.js';
 import hall from './hall.js';
+import subsynth from './subsynth.js';
+import addsynth from './addsynth.js';
 
 // Node type registry. Adding a node type means adding a module and listing it here.
-export const NODE_TYPES = { sampler, osc, env, lfo, gain, mix, pan, filter, delay, chorus, multitap, waveshaper, exciter, transient, split, compressor, hall, out, sum, sumst, fold };
+export const NODE_TYPES = { sampler, osc, env, lfo, gain, mix, pan, filter, delay, chorus, multitap, waveshaper, exciter, transient, split, compressor, hall, subsynth, addsynth, out, sum, sumst, fold };

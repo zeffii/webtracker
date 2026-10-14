@@ -4,7 +4,8 @@ import { pruneDef } from './graph/edit.js';
 import { createPatcher } from './graph/patcher.js';
 import { createInsertMenu } from './graph/menu.js';
 import { createDemoProject } from './project/demo.js';
-import { addLane, addSample, addSamplerInstrument, toMono } from './project/ops.js';
+import { addLane, addSample, addSamplerInstrument, addSynthInstrument, toMono } from './project/ops.js';
+import { synthKinds } from './instruments.js';
 import { createSamplePanel } from './project/samplepanel.js';
 import { createWaveformView } from './project/waveform.js';
 import { FILE_EXT, parseProject, serializeProject } from './project/file.js';
@@ -250,6 +251,21 @@ $('add-sampler').addEventListener('click', () => {
   }
 });
 
+for (const [kind, { label }] of Object.entries(synthKinds)) $('new-synth-kind').append(Object.assign(document.createElement('option'), { value: kind, textContent: label }));
+$('add-synth').addEventListener('click', () => {
+  try {
+    const id = addSynthInstrument(project, $('new-synth-name').value.trim(), $('new-synth-kind').value);
+    engine.loadInstrument(id, project.instruments[id].graph);
+    addLaneFor(id);
+    patcher.load({ instruments: project.instruments });
+    refreshProjectUi();
+    $('new-synth-name').value = '';
+    projStatus(`Added ${id} with its own lane.`);
+  } catch (err) {
+    projStatus(err.message);
+  }
+});
+
 $('add-lane').addEventListener('click', () => {
   try {
     const lane = addLaneFor(patcher.instrument);
@@ -267,7 +283,7 @@ $('start').addEventListener('click', async () => {
     started = true;
     openProject(createDemoProject(engine.ctx.sampleRate));
     for (const id of ['start']) $(id).disabled = true;
-    for (const id of ['play', 'save', 'load', 'patch-add', 'load-samples', 'add-sampler', 'add-lane']) $(id).disabled = false;
+    for (const id of ['play', 'save', 'load', 'patch-add', 'load-samples', 'add-sampler', 'add-synth', 'add-lane']) $(id).disabled = false;
     $('status').textContent =
       `Running at ${engine.ctx.sampleRate} Hz, base latency ${(engine.ctx.baseLatency * 1000).toFixed(1)} ms`;
     const frame = () => { songInfo(); seqView.draw(); view.draw(); patcher.draw(); waveform.draw(); requestAnimationFrame(frame); };

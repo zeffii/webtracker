@@ -55,7 +55,7 @@
     #inst-main { min-width: 0; overflow-x: auto; }
     .curve-editor { margin: .25rem 0 .5rem; }
     .curve-editor canvas { display: block; border: 1px solid; cursor: crosshair; background: color-mix(in srgb, Canvas 92%, CanvasText); }
-    .curve-presets { display: flex; flex-wrap: wrap; gap: 2px; margin: .25rem 0; max-width: 180px; }
+    .curve-presets { display: flex; flex-wrap: wrap; gap: 2px; margin: .25rem 0; max-width: 200px; }
     .curve-presets button { font: inherit; font-size: 11px; padding: 0 .35rem; }
     #patch-wrap { position: relative; width: max-content; }
     .insert-menu { position: absolute; z-index: 2; width: 12rem; max-height: 20rem; overflow-y: auto; background: Canvas; color: CanvasText; border: 1px solid; box-shadow: 0 4px 14px rgb(0 0 0 / .3); font: 13px/1.3 ui-monospace, Consolas, monospace; }
@@ -141,6 +141,10 @@
         <input id="new-inst-name" placeholder="instrument name" aria-label="Instrument name">
         <select id="new-inst-sample" aria-label="Sample"></select>
         <button id="add-sampler" disabled>Add instrument and lane</button>
+        <h2>New synth</h2>
+        <input id="new-synth-name" placeholder="instrument name" aria-label="Synth name">
+        <select id="new-synth-kind" aria-label="Synth kind"></select>
+        <button id="add-synth" disabled>Add synth and lane</button>
       </div>
       <div id="inst-main">
         <p><button id="patch-add" disabled>Add node…</button> <span class="help">or right-click the graph</span></p>
