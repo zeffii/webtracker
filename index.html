@@ -8,8 +8,6 @@
     :root { color-scheme: light dark; font-family: system-ui, sans-serif; }
     body { margin: 0; }
     h2 { font-size: 1rem; margin: .75rem 0 .25rem; }
-    label { display: grid; gap: .25rem; margin: .5rem 0; }
-    input[type=range] { width: 100%; }
     output { font-variant-numeric: tabular-nums; }
     .mono, #seq, #view, #header { font: 13px/1.35 ui-monospace, Consolas, monospace; }
     [hidden] { display: none !important; }
@@ -54,9 +52,28 @@
     #inst-list button { font: inherit; text-align: left; padding: .15rem .5rem; border: 1px solid transparent; background: transparent; color: inherit; cursor: pointer; }
     #inst-list button.active { background: Highlight; color: HighlightText; }
     #inst-side input, #inst-side select { width: 100%; box-sizing: border-box; margin: .15rem 0; }
-    #patch { border: 1px solid; max-width: 100%; }
+    #inst-main { min-width: 0; overflow-x: auto; }
+    .curve-editor { margin: .25rem 0 .5rem; }
+    .curve-editor canvas { display: block; border: 1px solid; cursor: crosshair; background: color-mix(in srgb, Canvas 92%, CanvasText); }
+    .curve-presets { display: flex; flex-wrap: wrap; gap: 2px; margin: .25rem 0; max-width: 180px; }
+    .curve-presets button { font: inherit; font-size: 11px; padding: 0 .35rem; }
+    #patch-wrap { position: relative; width: max-content; }
+    .insert-menu { position: absolute; z-index: 2; width: 12rem; max-height: 20rem; overflow-y: auto; background: Canvas; color: CanvasText; border: 1px solid; box-shadow: 0 4px 14px rgb(0 0 0 / .3); font: 13px/1.3 ui-monospace, Consolas, monospace; }
+    .insert-menu input { width: 100%; box-sizing: border-box; border: 0; border-bottom: 1px solid; padding: .3rem .5rem; font: inherit; background: transparent; color: inherit; }
+    .insert-head { padding: .3rem .5rem 0; opacity: .6; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; }
+    .insert-menu button { display: block; width: 100%; text-align: left; font: inherit; padding: .15rem .5rem .15rem 1rem; border: 0; background: transparent; color: inherit; cursor: pointer; }
+    .insert-menu button.active, .insert-menu button:hover { background: Highlight; color: HighlightText; }
+    #patch { border: 1px solid; display: block; }   /* never squeezed: that would skew the mouse positions */
     #patch:focus { outline: 1px solid; }
-    .prow { display: grid; grid-template-columns: 6rem 1fr 4rem auto; gap: .5rem; align-items: center; }
+    /* compact parameter rows: label, dark inset bar with a block handle, value */
+    .prow { display: grid; grid-template-columns: 7rem 11rem 5rem auto; gap: .5rem; align-items: center; font: 13px/1.2 ui-monospace, Consolas, monospace; margin: 2px 0; }
+    .prow output { text-align: right; }
+    input[type=range] { -webkit-appearance: none; appearance: none; width: 100%; height: 14px; margin: 0; padding: 0; background: #111; border: 1px solid; border-color: #555 #bbb #bbb #555; border-radius: 0; cursor: ew-resize; }
+    input[type=range]::-webkit-slider-runnable-track { height: 12px; background: transparent; }
+    input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 8px; height: 12px; background: #e9a24a; border: 0; border-radius: 0; }
+    input[type=range]::-moz-range-track { height: 12px; background: transparent; }
+    input[type=range]::-moz-range-thumb { width: 8px; height: 12px; background: #e9a24a; border: 0; border-radius: 0; }
+    input[type=range]:focus-visible { outline: 1px solid Highlight; outline-offset: 1px; }
     #proj-status, #patch-status { min-height: 1.5em; }
     #live { max-width: 30rem; }
   </style>
@@ -94,15 +111,12 @@
     <div id="live">
       <h2>Live sliders (lead lane)</h2>
       <p class="help">Where the pattern writes a value, it wins.</p>
-      <label>Filter cutoff <output id="cutoff-out"></output>
-        <input id="cutoff" type="range" min="0" max="1" step="0.001" value="0.67">
-      </label>
-      <label>Filter resonance <output id="res-out"></output>
-        <input id="res" type="range" min="0" max="0.95" step="0.001" value="0.3">
-      </label>
-      <label>Delay mix <output id="mix-out"></output>
-        <input id="mix" type="range" min="0" max="1" step="0.001" value="0.25">
-      </label>
+      <div class="prow"><span>Cutoff</span>
+        <input id="cutoff" type="range" min="0" max="1" step="0.001" value="0.67" aria-label="Filter cutoff"><output id="cutoff-out"></output></div>
+      <div class="prow"><span>Resonance</span>
+        <input id="res" type="range" min="0" max="0.95" step="0.001" value="0.3" aria-label="Filter resonance"><output id="res-out"></output></div>
+      <div class="prow"><span>Delay mix</span>
+        <input id="mix" type="range" min="0" max="1" step="0.001" value="0.25" aria-label="Delay mix"><output id="mix-out"></output></div>
     </div>
   </section>
 
@@ -128,16 +142,15 @@
         <select id="new-inst-sample" aria-label="Sample"></select>
         <button id="add-sampler" disabled>Add instrument and lane</button>
       </div>
-      <div>
-        <p>
-          <select id="patch-type" aria-label="Node type"></select>
-          <button id="patch-add" disabled>Add node</button>
-        </p>
-        <canvas id="patch" width="900" height="360" tabindex="0"></canvas>
+      <div id="inst-main">
+        <p><button id="patch-add" disabled>Add node…</button> <span class="help">or right-click the graph</span></p>
+        <div id="patch-wrap">
+          <canvas id="patch" width="900" height="360" tabindex="0"></canvas>
+        </div>
         <p id="patch-status"></p>
         <div id="patch-panel"></div>
         <p class="help">Drag a node to move it. Drag from an output dot (right side) to an input dot (left side) to
-          wire them; a new wire replaces the one already feeding that input. Click a wire or a node and press Delete
+          wire them. An input can take several wires, which are added together; use a mix node when you want a ratio. Blue wires carry audio, amber wires carry control signals (envelopes, lfos, triggers), and heavier purple wires carry a stereo pair (a mono wire into a stereo input feeds both channels; stereo into a mono input is averaged). Right-click the graph, or double-click empty space, to insert a node. Click a wire or a node and press Delete
           to remove it. In the panel, sliders change a parameter and "expose" adds it to the instrument's pattern
           columns. Changing the wiring or the exposed list swaps the instrument in live and clears undo.</p>
       </div>

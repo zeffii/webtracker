@@ -38,16 +38,17 @@ export function removeNode(desc, nodeTypes, id) {
   return true;
 }
 
-// Connects an output port to an input port, replacing whatever fed that input.
+// Connects an output port to an input port. An input can take several wires; they are summed.
+// Making the same connection twice changes nothing.
 export function connect(desc, nodeTypes, from, to) {
   const [fromId, fromPort] = splitPort(from), [toId, toPort] = splitPort(to);
   const a = desc.nodes.find(n => n.id === fromId), b = desc.nodes.find(n => n.id === toId);
   if (!a || !b) throw new Error('Unknown node.');
   if (!nodeTypes[a.type].outputs.includes(fromPort)) throw new Error(`"${fromId}" has no output "${fromPort}".`);
   if (!nodeTypes[b.type].inputs.includes(toPort)) throw new Error(`"${toId}" has no input "${toPort}".`);
-  const rest = desc.connections.filter(([, t]) => t !== to);
-  if (reaches({ ...desc, connections: rest }, toId, fromId)) throw new Error('That would make a loop.');
-  desc.connections = [...rest, [from, to]];
+  if (desc.connections.some(([f, t]) => f === from && t === to)) return;
+  if (reaches(desc, toId, fromId)) throw new Error('That would make a loop.');
+  desc.connections = [...desc.connections, [from, to]];
 }
 
 export function disconnect(desc, from, to) {
@@ -113,6 +114,6 @@ export function autoLayout(desc, nodeTypes) {
   for (const n of desc.nodes) {
     const d = visit(n.id);
     rows[d] = (rows[d] ?? 0) + 1;
-    if (n.x === undefined || n.y === undefined) { n.x = 20 + d * 190; n.y = 20 + (rows[d] - 1) * 110; }
+    if (n.x === undefined || n.y === undefined) { n.x = 20 + d * 150; n.y = 30 + (rows[d] - 1) * 80; }
   }
 }

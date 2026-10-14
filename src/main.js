@@ -2,6 +2,7 @@ import { Engine } from './audio/engine.js';
 import { NODE_TYPES } from './audio/nodes/index.js';
 import { pruneDef } from './graph/edit.js';
 import { createPatcher } from './graph/patcher.js';
+import { createInsertMenu } from './graph/menu.js';
 import { createDemoProject } from './project/demo.js';
 import { addLane, addSample, addSamplerInstrument, toMono } from './project/ops.js';
 import { createSamplePanel } from './project/samplepanel.js';
@@ -76,12 +77,18 @@ const seqView = createSequenceView({
 const patcher = createPatcher({
   canvas: $('patch'), panel: $('patch-panel'), statusEl: $('patch-status'), nodeTypes: NODE_TYPES,
   onStructure: id => reloadInstrument(id),
+  onContext: ({ x, y }) => menu.open(x, y),
+  onData: (id, node, msg) => engine.sendToNode(id, node, msg),
   getSampleIds: () => Object.keys(project.samples),
   onParam: (id, node, name, value) => {
     const address = `${id}.${node}.${name}`;
     if (engine.registry.slots.has(address)) engine.set(address, value);
   },
 });
+
+// The floating insert menu lives over the patcher canvas.
+const menu = createInsertMenu({ parent: $('patch-wrap'), nodeTypes: NODE_TYPES, onPick: (type, at) => patcher.add(type, at) });
+$('patch').addEventListener('mousedown', () => menu.close());
 
 const sendSample = (id, node) => {
   const { data, rate, loopStart, loopEnd } = project.samples[project.instruments[id].samples[node]];
@@ -251,8 +258,7 @@ $('add-lane').addEventListener('click', () => {
     projStatus(err.message);
   }
 });
-$('patch-type').replaceChildren(...Object.keys(NODE_TYPES).filter(t => !NODE_TYPES[t].master).map(t => new Option(t, t)));
-$('patch-add').addEventListener('click', () => patcher.add($('patch-type').value));
+$('patch-add').addEventListener('click', () => menu.open(12, 24));
 
 $('start').addEventListener('click', async () => {
   try {

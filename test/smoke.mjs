@@ -16,13 +16,17 @@ import { createSequenceView } from '../src/seq/seqview.js';
 import { createEditor } from '../src/seq/editor.js';
 import * as ops from '../src/seq/edit.js';
 import * as gedit from '../src/graph/edit.js';
-import { createPatcher, hitTest, portPos } from '../src/graph/patcher.js';
+import { createPatcher, hitTest, nodeBox, portPos, portKind } from '../src/graph/patcher.js';
 import { rebuildInstrumentLanes } from '../src/seq/lane.js';
 import * as pops from '../src/project/ops.js';
 import { createSamplePanel } from '../src/project/samplepanel.js';
 import { computePeaks, createWaveformView } from '../src/project/waveform.js';
 import { parseProject, serializeProject } from '../src/project/file.js';
 import { song as demoSong } from '../src/song.js';
+import { createCurveEditor, SIZE } from '../src/graph/curveeditor.js';
+import { CURVE_POINTS, PRESETS } from '../src/audio/nodes/curves.js';
+import { Oversampler } from '../src/audio/nodes/oversample.js';
+import { createInsertMenu } from '../src/graph/menu.js';
 import { createTabs } from '../src/ui/tabs.js';
 import { compileDsp } from '../src/audio/wasm/load.js';
 
@@ -700,8 +704,10 @@ const hit = 'C-2 .. .. ..';
   assert.throws(() => gedit.addNode(g, NODE_TYPES, 'out'), /already an out/);
   gedit.connect(g, NODE_TYPES, 'lfo1.out', 'osc.sync');
   assert.ok(g.connections.some(([f, t]) => f === 'lfo1.out' && t === 'osc.sync'));
-  gedit.connect(g, NODE_TYPES, 'lfo2.out', 'osc.fm');   // replaces what fed fm
-  assert.equal(g.connections.filter(([, t]) => t === 'osc.fm').length, 1);
+  gedit.connect(g, NODE_TYPES, 'lfo2.out', 'osc.fm');   // a second wire into fm is allowed and gets summed
+  assert.equal(g.connections.filter(([, t]) => t === 'osc.fm').length, 2);
+  gedit.connect(g, NODE_TYPES, 'lfo2.out', 'osc.fm');   // the same wire again changes nothing
+  assert.equal(g.connections.filter(([, t]) => t === 'osc.fm').length, 2);
   const before = JSON.stringify(g.connections);
   assert.throws(() => gedit.connect(g, NODE_TYPES, 'vca.out', 'osc.fm'), /loop/);
   assert.throws(() => gedit.connect(g, NODE_TYPES, 'osc.out', 'osc.fm'), /loop/);
@@ -757,27 +763,28 @@ const hit = 'C-2 .. .. ..';
   const canvas = { width: 900, height: 360, style: {}, listeners: {}, getContext: () => ctx, addEventListener(type, f) { this.listeners[type] = f; }, focus() {} };
   const panel = makeEl('div'), statusEl = { textContent: '' };
   const defs = structuredClone(instruments);
-  const structures = [], params = [];
-  const patcher = createPatcher({ canvas, panel, statusEl, doc, nodeTypes: NODE_TYPES, onStructure: id => structures.push(id), onParam: (...a) => params.push(a), getSampleIds: () => ['pluck'] });
+  const structures = [], params = [], contexts = [];
+  const patcher = createPatcher({ canvas, panel, statusEl, doc, nodeTypes: NODE_TYPES, onStructure: id => structures.push(id), onContext: p => contexts.push(p), onParam: (...a) => params.push(a), getSampleIds: () => ['pluck'] });
   patcher.load({ instruments: defs });
   patcher.show('kick');
   patcher.draw();                                        // draws without throwing
   const g = defs.kick.graph;
   const node = id => g.nodes.find(n => n.id === id);
-  const at = (id, side, i) => portPos(node(id), side, i);
+  const at = (id, side, i) => portPos(node(id), NODE_TYPES[node(id).type], side, i);
+  const mid = id => { const { w, h } = nodeBox(NODE_TYPES[node(id).type]); return { x: node(id).x + w / 2, y: node(id).y + h / 2 }; };
   const fire = (type, p, extra = {}) => canvas.listeners[type]({ offsetX: p.x, offsetY: p.y, preventDefault() {}, ...extra });
 
   assert.deepEqual(hitTest(g, NODE_TYPES, at('osc', 'out', 0).x, at('osc', 'out', 0).y), { kind: 'port', side: 'out', node: 'osc', port: 'out' });
-  assert.equal(hitTest(g, NODE_TYPES, node('vca').x + 70, node('vca').y + 14).kind, 'node');
+  assert.equal(hitTest(g, NODE_TYPES, mid('vca').x, mid('vca').y).kind, 'node');
   assert.equal(hitTest(g, NODE_TYPES, 880, 340), null);
 
   // select a node: the panel lists its parameters
-  fire('mousedown', { x: node('osc').x + 70, y: node('osc').y + 10 }); fire('mouseup', { x: node('osc').x + 70, y: node('osc').y + 10 });
+  fire('mousedown', mid('osc')); fire('mouseup', mid('osc'));
   let sliders = []; walk(panel, e => { if (e.tag === 'input' && e.type === 'range') sliders.push(e); });
   assert.equal(sliders.length, NODE_TYPES.osc.params.length);
 
   // drag a node
-  const from = { x: node('vca').x + 70, y: node('vca').y + 10 }, x0 = node('vca').x;
+  const from = mid('vca'), x0 = node('vca').x;
   fire('mousedown', from); fire('mousemove', { x: from.x + 30, y: from.y + 5 }); fire('mouseup', { x: from.x + 30, y: from.y + 5 });
   assert.equal(node('vca').x, x0 + 30);
 
@@ -794,7 +801,7 @@ const hit = 'C-2 .. .. ..';
   assert.equal(structures.length, 2);
 
   // a slider changes a parameter live and in the saved graph; expose adds a column
-  fire('mousedown', { x: node('osc').x + 70, y: node('osc').y + 10 }); fire('mouseup', { x: node('osc').x + 70, y: node('osc').y + 10 });
+  fire('mousedown', mid('osc')); fire('mouseup', mid('osc'));
   sliders = []; const boxes = [];
   walk(panel, e => { if (e.tag === 'input' && e.type === 'range') sliders.push(e); if (e.tag === 'input' && e.type === 'checkbox') boxes.push(e); });
   const tune = NODE_TYPES.osc.params.findIndex(p => p.name === 'tune');
@@ -814,9 +821,18 @@ const hit = 'C-2 .. .. ..';
   assert.ok(!g.connections.some(([f]) => f === 'lfo1.out'));
 
   // delete a node: its exposures and wires go with it
-  fire('mousedown', { x: node('lfo1').x + 70, y: node('lfo1').y + 10 }); fire('mouseup', { x: 0, y: 0 });
+  fire('mousedown', mid('lfo1')); fire('mouseup', { x: 0, y: 0 });
   canvas.listeners.keydown({ key: 'Delete', preventDefault() {} });
   assert.ok(!g.nodes.some(n => n.id === 'lfo1'));
+
+  // right-click and double-click on empty space ask for the insert menu; a node is placed where it was asked for
+  fire('contextmenu', { x: 850, y: 300 });
+  assert.deepEqual(contexts, [{ x: 850, y: 300 }]);
+  fire('dblclick', { x: 880, y: 340 });
+  fire('dblclick', mid('osc'));                          // on a node: nothing
+  assert.equal(contexts.length, 2);
+  patcher.add('pan', { x: 400, y: 200 });
+  assert.deepEqual([node('pan1').x, node('pan1').y], [400, 200]);
 }
 
 // 37. An instrument built in the patcher survives a save and load, positions included.
@@ -1356,6 +1372,395 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   assert.equal(tabs.active, 'c');
   assert.equal(tabs.show('nope'), false);
   assert.deepEqual(seen, ['a', 'b', 'c']);
+}
+
+// 56. Several wires into one input are summed; the mix node crossfades; ports have a signal kind.
+{
+  const build = connections => {
+    const registry = new ParamRegistry();
+    const rt = new GraphRuntime({ sampleRate: sr, params: registry.values });
+    const desc = {
+      nodes: [{ id: 'o1', type: 'osc' }, { id: 'o2', type: 'osc', params: { tune: 7 } }, { id: 'g', type: 'gain' }, { id: 'out', type: 'out' }],
+      connections: [...connections, ['g.out', 'out.in']],
+    };
+    rt.load(compile(desc, { instrument: 'x', nodeTypes: NODE_TYPES, registry }));
+    rt.note('x', { type: 'noteOn', note: 60, vel: 1 });
+    return render(rt, 0.1).left;
+  };
+  const one = build([['o1.out', 'g.in']]), two = build([['o2.out', 'g.in']]), both = build([['o1.out', 'g.in'], ['o2.out', 'g.in']]);
+  assert.ok(peak(one) > 0.01 && peak(two) > 0.01);
+  assert.ok(both.every((v, i) => Math.abs(v - (one[i] + two[i])) < 1e-5), 'two wires into one input are not summed');
+  const registry = new ParamRegistry();
+  const twice = { nodes: [{ id: 'o1', type: 'osc' }, { id: 'g', type: 'gain' }, { id: 'out', type: 'out' }], connections: [['o1.out', 'g.in'], ['o1.out', 'g.in'], ['g.out', 'out.in']] };
+  assert.throws(() => compile(twice, { instrument: 'y', nodeTypes: NODE_TYPES, registry }), /duplicate connection/);
+
+  const mixNode = amount => {
+    const node = NODE_TYPES.mix.create({ sampleRate: sr, connected: [true, true] });
+    const a = new Float32Array(64).fill(1), b = new Float32Array(64).fill(-1), out = new Float32Array(64);
+    node.process([a, b], [out], 64, Float32Array.of(amount), Int32Array.of(0));
+    return out[63];
+  };
+  assert.equal(mixNode(0), 1);
+  assert.equal(mixNode(1), -1);
+  assert.ok(Math.abs(mixNode(0.25) - 0.5) < 1e-6);
+
+  assert.equal(portKind(NODE_TYPES.env, 'out'), 'control');
+  assert.equal(portKind(NODE_TYPES.osc, 'fm'), 'control');
+  assert.equal(portKind(NODE_TYPES.filter, 'in'), 'audio');
+  assert.ok(NODE_TYPES.sum.hidden);
+}
+
+// 57. Stereo: a mono wire feeds both channels, a stereo wire into a mono input is averaged,
+// several stereo wires are summed, and the new nodes behave.
+{
+  const run = (nodes, connections, note = true) => {
+    const registry = new ParamRegistry();
+    const rt = new GraphRuntime({ sampleRate: sr, params: registry.values });
+    const compiled = compile({ nodes: [...nodes, { id: 'out', type: 'out' }], connections }, { instrument: 's', nodeTypes: NODE_TYPES, registry });
+    rt.load(compiled);
+    if (note) rt.note('s', { type: 'noteOn', note: 60, vel: 1 });
+    return { ...render(rt, 0.1), compiled };
+  };
+  const osc = { id: 'o', type: 'osc' };
+  const direct = run([osc], [['o.out', 'out.in']]);
+  assert.ok(peak(direct.left) > 0.01);
+  assert.ok(direct.left.every((v, i) => v === direct.right[i]), 'a mono wire should feed both channels');
+
+  const panned = run([osc, { id: 'p', type: 'pan' }], [['o.out', 'p.out'.replace('out', 'in')], ['p.out', 'out.in']]);
+  assert.ok(panned.left.every((v, i) => Math.abs(v - direct.left[i]) < 1e-5), 'a centred pan node should match a mono wire');
+  const hardLeft = run([osc, { id: 'p', type: 'pan', params: { pan: -1 } }], [['o.out', 'p.in'], ['p.out', 'out.in']]);
+  assert.equal(peak(hardLeft.right), 0);
+  assert.ok(Math.abs(peak(hardLeft.left) / peak(direct.left) - Math.SQRT2) < 1e-3);
+
+  const folded = run([osc, { id: 'p', type: 'pan', params: { pan: -1 } }, { id: 'g', type: 'gain' }], [['o.out', 'p.in'], ['p.out', 'g.in'], ['g.out', 'out.in']]);
+  assert.ok(folded.compiled.nodes.some(n => n.type === 'fold'));
+  assert.ok(Math.abs(peak(folded.left) / peak(direct.left) - Math.SQRT1_2) < 1e-3, 'stereo into mono should be the average');
+
+  const both = run([osc, { id: 'a', type: 'pan', params: { pan: -1 } }, { id: 'b', type: 'pan', params: { pan: 1 } }],
+    [['o.out', 'a.in'], ['o.out', 'b.in'], ['a.out', 'out.in'], ['b.out', 'out.in']]);
+  assert.ok(both.compiled.nodes.some(n => n.type === 'sumst'));
+  assert.ok(Math.abs(peak(both.left) / peak(direct.left) - Math.SQRT2) < 1e-3 && Math.abs(peak(both.right) / peak(direct.left) - Math.SQRT2) < 1e-3);
+
+  const stereoIn = (l, r) => [Float32Array.from(l), Float32Array.from(r)];
+  const stage = (type, values, connected = [true]) => {
+    const def = NODE_TYPES[type];
+    const params = Float32Array.from(def.params.map(p => values[p.name] ?? p.def)), slots = Int32Array.from(def.params.map((_, i) => i));
+    const node = def.create({ sampleRate: sr, connected });
+    return (inL, inR) => {
+      const out = [new Float32Array(inL.length), new Float32Array(inL.length)];
+      for (let at = 0; at < inL.length; at += 128) {
+        const n = Math.min(128, inL.length - at);
+        node.process([[inL.subarray(at, at + n), inR.subarray(at, at + n)]], [[out[0].subarray(at, at + n), out[1].subarray(at, at + n)]], n, params, slots);
+      }
+      return out;
+    };
+  };
+
+  // chorus: mix 0 is the dry signal, silence stays silent, a wet signal differs and stays finite
+  const noise = new Float32Array(9600); let seed = 5;
+  for (let i = 0; i < noise.length; i++) noise[i] = ((seed = (seed * 16807) % 2147483647) / 2147483647 - 0.5) * 0.5;
+  const dry = stage('chorus', { mix: 0 })(noise, noise);
+  assert.ok(dry[0].every((v, i) => v === noise[i]));
+  const wet = stage('chorus', { mix: 1 })(noise, noise);
+  assert.ok(wet[0].every(Number.isFinite) && wet[0].some((v, i) => Math.abs(v - noise[i]) > 0.01));
+  assert.ok(wet[0].some((v, i) => Math.abs(v - wet[1][i]) > 0.01), 'the two channels should differ');
+  const quiet = stage('chorus', {})(new Float32Array(2000), new Float32Array(2000));
+  assert.equal(peak(quiet[0]) + peak(quiet[1]), 0);
+
+  // multi-tap: an impulse comes back at k * time, scaled by decay, panned along the sweep
+  const impulse = new Float32Array(1600); impulse[0] = 1;
+  const centre = stage('multitap', { time: 10, taps: 3, decay: 0.5, spread: 0, feedback: 0, mix: 1 })(impulse, impulse);
+  for (const [at, v] of [[480, 1], [960, 0.5], [1440, 0.25]]) assert.ok(Math.abs(centre[0][at] - v) < 1e-3 && Math.abs(centre[1][at] - v) < 1e-3, `tap at ${at}`);
+  assert.ok(Math.abs(centre[0][100]) < 1e-6);
+  const wide = stage('multitap', { time: 10, taps: 2, decay: 1, spread: 1, feedback: 0, mix: 1 })(impulse, impulse);
+  assert.ok(wide[0][480] > 1.3 && Math.abs(wide[1][480]) < 1e-3, 'the first tap should be hard left');
+  assert.ok(wide[1][960] > 1.3 && Math.abs(wide[0][960]) < 1e-3, 'the last tap should be hard right');
+  const ring = stage('multitap', { time: 10, taps: 1, decay: 1, feedback: 0.5, mix: 1 })(impulse, impulse);
+  assert.ok(ring[0][960] > 0.2 && ring[0].every(Number.isFinite), 'feedback should repeat the tap');
+}
+
+// 58. The insert menu lists the placeable nodes by category, filters, and picks by keyboard.
+{
+  const makeEl = tag => ({
+    tag, children: [], listeners: {}, style: {}, textContent: '', value: '', className: '', hidden: false,
+    appendChild(c) { this.children.push(c); return c; }, replaceChildren(...c) { this.children = c; },
+    addEventListener(type, f) { this.listeners[type] = f; }, setAttribute() {}, focus() { this.focused = true; },
+  });
+  const doc = { createElement: makeEl };
+  const picks = [];
+  const menu = createInsertMenu({ parent: makeEl('div'), nodeTypes: NODE_TYPES, doc, onPick: (type, at) => picks.push([type, at]) });
+  const all = menu.entries('').map(e => e.type);
+  assert.ok(all.includes('chorus') && all.includes('mix') && all.includes('sampler'));
+  assert.ok(!all.includes('out') && !all.includes('sum') && !all.includes('fold') && !all.includes('sumst'), 'master and hidden nodes are not listed');
+  assert.deepEqual(menu.entries('filt').map(e => e.type), ['filter']);
+  assert.ok(menu.entries('effects').some(e => e.type === 'multitap'), 'a category name matches too');
+  assert.deepEqual(menu.entries('zzz'), []);
+
+  menu.open(120, 80);
+  assert.ok(menu.isOpen && menu.box.style.left === '120px');
+  const input = menu.box.children[0];
+  const key = k => input.listeners.keydown({ key: k, preventDefault() {} });
+  key('ArrowDown');
+  key('Enter');                                   // the second entry, at the opening point
+  assert.equal(picks.length, 1);
+  assert.equal(picks[0][0], menu.entries('')[1].type);
+  assert.deepEqual(picks[0][1], { x: 120, y: 80 });
+  assert.ok(!menu.isOpen);
+
+  menu.open(10, 10);
+  input.value = 'pan'; input.listeners.input();
+  key('Enter');
+  assert.equal(picks[1][0], 'pan');
+  menu.open(10, 10);
+  key('Escape');
+  assert.ok(!menu.isOpen && picks.length === 2);
+}
+
+// 59. Waveshaper, exciter and transient designer.
+{
+  const stage = (type, values, { data, msgs = [] } = {}) => {
+    const def = NODE_TYPES[type];
+    const params = Float32Array.from(def.params.map(p => values[p.name] ?? p.def)), slots = Int32Array.from(def.params.map((_, i) => i));
+    const node = def.create({ sampleRate: sr, connected: [true], data });
+    for (const m of msgs) node.message(m);
+    return inL => {
+      const out = [new Float32Array(inL.length), new Float32Array(inL.length)];
+      for (let at = 0; at < inL.length; at += 128) {
+        const n = Math.min(128, inL.length - at);
+        node.process([[inL.subarray(at, at + n), inL.subarray(at, at + n)]], [[out[0].subarray(at, at + n), out[1].subarray(at, at + n)]], n, params, slots);
+      }
+      return out;
+    };
+  };
+  const sine = (f, a, n) => Float32Array.from({ length: n }, (_, i) => a * Math.sin(2 * Math.PI * f * i / sr));
+  const goertzel = (x, f, skip = 2000) => {
+    const w = 2 * Math.PI * f / sr, c = 2 * Math.cos(w);
+    let s1 = 0, s2 = 0;
+    for (let i = skip; i < x.length; i++) { const v = x[i] + c * s1 - s2; s2 = s1; s1 = v; }
+    return Math.sqrt(s1 * s1 + s2 * s2 - c * s1 * s2) / ((x.length - skip) / 2);
+  };
+  const peakIn = (x, a, b) => { let m = 0; for (let i = a; i < b; i++) m = Math.max(m, Math.abs(x[i])); return m; };
+
+  // waveshaper: a straight curve passes the signal, a drawn curve changes it, and dry/wet stay lined up
+  const low = sine(500, 0.5, 4000);
+  const lin = { type: 'curve', points: PRESETS.linear() };
+  const straight = stage('waveshaper', { oversample: 0 }, { msgs: [lin] })(low)[0];
+  assert.ok(straight.every((v, i) => Math.abs(v - low[i]) < 1e-4), 'a straight curve should not change the signal');
+  const hardClip = stage('waveshaper', { oversample: 0 }, { msgs: [{ type: 'curve', points: PRESETS.hard() }] })(low)[0];
+  assert.ok(Math.abs(peakIn(hardClip, 0, 4000) - 1) < 1e-3, 'a hard clip curve should reach full scale');
+  const viaData = stage('waveshaper', { oversample: 0 }, { data: { curve: PRESETS.hard() } })(low)[0];
+  assert.ok(viaData.every((v, i) => v === hardClip[i]), 'a curve stored on the node should match the same curve sent live');
+  const dryOnly = stage('waveshaper', { oversample: 1, mix: 0 }, { msgs: [lin] })(low)[0];
+  const latency = new Oversampler(2).latency;
+  assert.ok(latency > 0 && dryOnly.every((v, i) => i < latency || v === low[i - latency]), 'the dry signal should be delayed to match the oversampled path');
+  const half = stage('waveshaper', { oversample: 2, mix: 0.5 }, { msgs: [lin] })(low)[0], lat4 = new Oversampler(4).latency;
+  assert.ok(half.every((v, i) => i < 400 || Math.abs(v - low[i - lat4]) < 0.02), 'wet and dry should line up at 4x');
+  const bad = stage('waveshaper', {}, { msgs: [{ type: 'curve', points: [NaN, 1] }] })(low)[0];
+  assert.ok(bad.every(Number.isFinite), 'a broken curve should fall back, not poison the output');
+
+  // oversampling cuts the aliased harmonics of a hard-clipped 9.6 kHz sine (its 7th harmonic folds to 19.2 kHz)
+  const tone = sine(9600, 0.9, 10000), clip = { type: 'curve', points: PRESETS.hard() };
+  const alias = os => goertzel(stage('waveshaper', { drive: 3, oversample: os }, { msgs: [clip] })(tone)[0], 19200);
+  const a0 = alias(0), a1 = alias(1), a2 = alias(2);
+  assert.ok(a1 < a0 * 0.2 && a2 < a0 * 0.2, `oversampling should cut aliasing (${a0} ${a1} ${a2})`);
+
+  // exciter: it adds harmonics of the high band and leaves low material alone
+  const high = sine(5000, 0.5, 8000), bass = sine(200, 0.5, 8000);
+  const plain = stage('exciter', { drive: 8, amount: 0 })(high)[0], excited = stage('exciter', { drive: 8, amount: 1 })(high)[0];
+  assert.ok(goertzel(plain, 15000) < 1e-3 && goertzel(excited, 15000) > 0.05, 'the exciter should add a third harmonic');
+  const bassOut = stage('exciter', { drive: 8, amount: 1 })(bass)[0];
+  assert.ok(bassOut.every((v, i) => i < 2000 || Math.abs(v - bass[i]) < 0.01), 'low material should pass nearly unchanged');
+
+  // transient designer: attack boosts the start of a hit, sustain cuts the tail, a steady tone is left alone
+  const hit = Float32Array.from({ length: 24000 }, (_, i) => Math.sin(2 * Math.PI * 200 * i / sr) * Math.exp(-i / (0.1 * sr)));
+  const neutral = stage('transient', {})(hit)[0];
+  assert.ok(neutral.every((v, i) => Math.abs(v - hit[i]) < 1e-6), 'zero settings should not change the signal');
+  const boosted = stage('transient', { attack: 1 })(hit)[0], cut = stage('transient', { sustain: -1 })(hit)[0];
+  assert.ok(peakIn(boosted, 0, 480) > 2 * peakIn(neutral, 0, 480), 'attack +1 should boost the onset');
+  assert.ok(peakIn(cut, 12000, 14000) < 0.4 * peakIn(neutral, 12000, 14000), 'sustain -1 should cut the tail');
+  const steady = stage('transient', { attack: 1, sustain: 1 })(sine(200, 0.5, 48000))[0];
+  assert.ok(Math.abs(peakIn(steady, 40000, 48000) - 0.5) < 0.02, 'a steady tone should come out at its own level');
+}
+
+// 60. The curve editor draws, fills gaps, mirrors and offers presets; the patcher panel hosts it and sends the curve live.
+{
+  const makeEl = tag => ({
+    tag, children: [], listeners: {}, style: {}, textContent: '', value: '', checked: false, className: '',
+    appendChild(c) { this.children.push(c); return c; }, replaceChildren(...c) { this.children = c; },
+    addEventListener(type, f) { this.listeners[type] = f; }, focus() {},
+    getContext: () => new Proxy({}, { get: (t, k) => (k in t ? t[k] : () => {}), set: (t, k, v) => { t[k] = v; return true; } }),
+  });
+  const walk = (el, fn) => { fn(el); (el.children ?? []).forEach(c => walk(c, fn)); };
+  const doc = { createElement: makeEl, createTextNode: text => ({ text }) };
+  const changes = [];
+  const editor = createCurveEditor({ doc, points: PRESETS.linear(), onChange: pts => changes.push(pts) });
+  let canvas, boxes = [], buttons = [];
+  walk(editor.el, e => { if (e.tag === 'canvas') canvas = e; if (e.tag === 'input') boxes.push(e); if (e.tag === 'button') buttons.push(e); });
+  const fire = (type, x, y) => canvas.listeners[type]({ offsetX: x, offsetY: y });
+  fire('mousedown', 0, SIZE - 1); fire('mousemove', SIZE - 1, 0); fire('mouseup', 0, 0);    // bottom-left to top-right in two events
+  const drawn = changes.at(-1);
+  assert.equal(drawn.length, CURVE_POINTS);
+  assert.ok(drawn.every((v, i) => Math.abs(v - (2 * i / (CURVE_POINTS - 1) - 1)) < 0.02), 'the gap between mouse events should be filled in');
+  fire('mousemove', SIZE / 2, SIZE / 2);                                                    // not drawing any more
+  assert.equal(changes.length, 2);
+  fire('mousedown', SIZE - 1, 0);                                                           // top right: y = +1
+  assert.equal(changes.at(-1).at(-1), 1);
+  fire('mouseup', 0, 0);
+  boxes[0].checked = true; boxes[0].listeners.change();                                     // symmetric: the left half mirrors the right
+  const sym = changes.at(-1);
+  assert.ok(sym.every((v, i) => Math.abs(v + sym[CURVE_POINTS - 1 - i]) < 2e-4));   // the values are rounded to four places
+  buttons.find(b => b.textContent === 'fold').listeners.click();
+  assert.deepEqual(changes.at(-1).length, CURVE_POINTS);
+  assert.ok(editor.points.some(v => v < 0) && editor.points.some(v => v > 0));
+
+  // in the patcher: select a waveshaper, draw on its panel, and the curve is saved on the node and sent
+  const canvas2 = { width: 900, height: 360, style: {}, listeners: {}, getContext: () => new Proxy({}, { get: (t, k) => (k in t ? t[k] : () => {}), set: (t, k, v) => { t[k] = v; return true; } }), addEventListener(type, f) { this.listeners[type] = f; }, focus() {} };
+  const panel = makeEl('div'), sent = [];
+  const defs = structuredClone(instruments);
+  const patcher = createPatcher({ canvas: canvas2, panel, statusEl: { textContent: '' }, doc, nodeTypes: NODE_TYPES, onStructure() {}, onParam() {}, onData: (...a) => sent.push(a) });
+  patcher.load({ instruments: defs });
+  patcher.show('kick');
+  patcher.add('waveshaper', { x: 300, y: 200 });
+  let curveCanvas = null;
+  walk(panel, e => { if (e.className === 'curve') curveCanvas = e; });
+  assert.ok(curveCanvas, 'the waveshaper panel should hold the curve editor');
+  curveCanvas.listeners.mousedown({ offsetX: 90, offsetY: 20 });
+  curveCanvas.listeners.mouseup({});
+  const node = defs.kick.graph.nodes.find(n => n.id === 'waveshaper1');
+  assert.equal(node.data.curve.length, CURVE_POINTS);
+  assert.deepEqual(sent.at(-1).slice(0, 2), ['kick', 'waveshaper1']);
+  assert.equal(sent.at(-1)[2].type, 'curve');
+  assert.deepEqual(sent.at(-1)[2].points, node.data.curve);
+
+  // the speaker-shaped out node keeps its ports on the shape's edges
+  const out = NODE_TYPES.out, box = nodeBox(out), at = { x: 100, y: 100 };
+  const inPort = portPos(at, out, 'in', 0), left = portPos(at, out, 'out', 0);
+  assert.equal(out.shape, 'speaker');
+  assert.ok(inPort.x === 100 && left.x === 100 + box.w && inPort.y > 100 + 0.3 * box.h && inPort.y < 100 + 0.7 * box.h);
+
+  // a curve survives a project save and load, and a rebuilt instrument gets the latest curve again
+  const proj = structuredClone(instruments);
+  proj.kick.graph.nodes.push({ id: 'ws', type: 'waveshaper', x: 10, y: 10, data: { curve: PRESETS.fold() } });
+  const registry = new ParamRegistry();
+  for (const [id, d] of Object.entries(proj)) compile(d.graph, { instrument: id, nodeTypes: NODE_TYPES, registry });
+  const lanes = prepareSong(demoSong, proj, registry);
+  const back = parseProject(serializeProject({ song: demoSong, instruments: proj, samples: { pluck: { rate: sr, data: new Float32Array(4) } }, lanes }));
+  assert.deepEqual(back.instruments.kick.graph.nodes.find(n => n.id === 'ws').data.curve, PRESETS.fold());
+
+  const reg2 = new ParamRegistry();
+  const rt = new GraphRuntime({ sampleRate: sr, params: reg2.values });
+  const graph = {
+    nodes: [{ id: 'o', type: 'osc' }, { id: 'w', type: 'waveshaper', params: { oversample: 0 } }, { id: 'out', type: 'out' }],
+    connections: [['o.out', 'w.in'], ['w.out', 'out.in']],
+  };
+  rt.load(compile(graph, { instrument: 'x', nodeTypes: NODE_TYPES, registry: reg2 }));
+  rt.message('x', 'w', { type: 'curve', points: PRESETS.hard() });
+  rt.note('x', { type: 'noteOn', note: 60, vel: 1 });
+  const before = peak(render(rt, 0.1).left);
+  rt.rebuild('x');
+  rt.note('x', { type: 'noteOn', note: 60, vel: 1 });
+  const after = peak(render(rt, 0.1).left);
+  assert.ok(Math.abs(before - after) < 1e-3, 'a rebuilt instrument should get its curve back');
+}
+
+// 61. Band splitter, compressor and hall reverb.
+{
+  const run = (type, values, inL, inR = inL, nOut = 1) => {
+    const def = NODE_TYPES[type];
+    const params = Float32Array.from(def.params.map(p => values[p.name] ?? p.def)), slots = Int32Array.from(def.params.map((_, i) => i));
+    const node = def.create({ sampleRate: sr, connected: [true] });
+    const outs = Array.from({ length: nOut }, () => [new Float32Array(inL.length), new Float32Array(inL.length)]);
+    for (let at = 0; at < inL.length; at += 128) {
+      const n = Math.min(128, inL.length - at);
+      node.process([[inL.subarray(at, at + n), inR.subarray(at, at + n)]], outs.map(([a, b]) => [a.subarray(at, at + n), b.subarray(at, at + n)]), n, params, slots);
+    }
+    return outs;
+  };
+  const sine = (f, a, n) => Float32Array.from({ length: n }, (_, i) => a * Math.sin(2 * Math.PI * f * i / sr));
+  const rms = (x, a = 0, b = x.length) => { let t = 0; for (let i = a; i < b; i++) t += x[i] * x[i]; return Math.sqrt(t / (b - a)); };
+  const peakIn = (x, a, b) => { let m = 0; for (let i = a; i < b; i++) m = Math.max(m, Math.abs(x[i])); return m; };
+
+  // splitter: the four bands add back to the input level at every frequency, and each tone lands in its band
+  for (const f of [60, 120, 300, 800, 2000, 5000, 9000]) {
+    const tone = sine(f, 0.5, 24000);
+    const bands = run('split', {}, tone, tone, 4);
+    const sum = tone.map((_, i) => bands.reduce((t, b) => t + b[0][i], 0));
+    const ratio = rms(sum, 8000) / rms(tone, 8000);
+    assert.ok(ratio > 0.98 && ratio < 1.02, `split sum at ${f} Hz is ${ratio}`);
+  }
+  const where = f => { const tone = sine(f, 0.5, 24000); return run('split', {}, tone, tone, 4).map(b => rms(b[0], 8000)); };
+  for (const [f, band] of [[40, 0], [300, 1], [2000, 2], [12000, 3]]) {
+    const levels = where(f);
+    assert.ok(levels[band] > 0.8 * rms(sine(f, 0.5, 8000)) && levels.every((v, i) => i === band || v < 0.2 * levels[band]), `${f} Hz should sit in band ${band}: ${levels}`);
+  }
+  const lonely = run('split', {}, sine(300, 0.5, 8000), new Float32Array(8000), 4);
+  assert.ok(lonely.every(b => peakIn(b[1], 0, 8000) === 0), 'the channels should be independent');
+  const swapped = run('split', { f1: 1000, f2: 200, f3: 100 }, sine(300, 0.5, 8000), sine(300, 0.5, 8000), 4);
+  assert.ok(swapped.every(b => b[0].every(Number.isFinite)), 'crossovers out of order should be put in order');
+
+  // compressor: steady level lands where threshold and ratio say, quiet material is untouched, mix 0 is dry
+  const loud = sine(1000, 0.5, 48000);
+  const hard = run('compressor', { knee: 0 }, loud)[0][0];
+  const dB = 20 * Math.log10(peakIn(hard, 40000, 48000));
+  assert.ok(dB < -13.5 && dB > -16.5, `compressed level ${dB} dB, expected near -15`);
+  const quiet = sine(1000, 0.05, 8000);
+  assert.ok(run('compressor', {}, quiet)[0][0].every((v, i) => Math.abs(v - quiet[i]) < 1e-6), 'below the threshold nothing should change');
+  assert.ok(run('compressor', { ratio: 1 }, loud)[0][0].every((v, i) => Math.abs(v - loud[i]) < 1e-5), 'ratio 1 should not compress');
+  assert.ok(run('compressor', { mix: 0 }, loud)[0][0].every((v, i) => v === loud[i]), 'mix 0 should be the dry signal');
+  const made = peakIn(run('compressor', { makeup: 6 }, quiet)[0][0], 0, 8000) / peakIn(quiet, 0, 8000);
+  assert.ok(Math.abs(made - 1.995) < 0.01, 'makeup 6 dB should double the level');
+  const burst = Float32Array.from({ length: 48000 }, (_, i) => (i < 14400 ? 0.5 : 0.05) * Math.sin(2 * Math.PI * 1000 * i / sr));
+  const shaped = run('compressor', { knee: 0, release: 50 }, burst)[0][0];
+  assert.ok(peakIn(shaped, 0, 240) > 1.15 * peakIn(shaped, 12000, 14400), 'the attack time should let the start of a burst through');
+  assert.ok(rms(shaped, 38400, 48000) / rms(burst, 38400, 48000) > 0.97, 'the gain should recover after the burst');
+
+  // hall: decays at the set rate, is stereo, mix 0 is dry, stays finite and dies away
+  const impulse = new Float32Array(sr * 2); impulse[0] = 1;
+  const wet = run('hall', { decay: 1, mix: 1, mod: 0 }, impulse)[0];
+  const tail = new Float64Array(impulse.length); let acc = 0;
+  for (let i = impulse.length - 1; i >= 0; i--) { acc += wet[0][i] ** 2; tail[i] = acc; }
+  const edc = t => 10 * Math.log10(tail[Math.floor(t * sr)] / tail[0]);
+  assert.ok(edc(0.5) < -25 && edc(0.5) > -37, `energy decay at 0.5 s is ${edc(0.5)} dB, expected about -30`);
+  assert.ok(rms(wet[0].map((v, i) => v - wet[1][i])) > 0.1 * rms(wet[0]), 'the two channels should differ');
+  const mono = run('hall', { decay: 1, mix: 1, width: 0 }, impulse)[0];
+  assert.ok(mono[0].every((v, i) => Math.abs(v - mono[1][i]) < 1e-9), 'width 0 should be mono');
+  const noise = new Float32Array(sr * 2); let seed = 9;
+  for (let i = 0; i < noise.length; i++) noise[i] = ((seed = (seed * 16807) % 2147483647) / 2147483647 - 0.5) * 2;
+  assert.ok(run('hall', { mix: 0 }, noise)[0][0].every((v, i) => v === noise[i]), 'mix 0 should be the dry signal');
+  const extreme = run('hall', { decay: 20, damp: 0, mod: 1, size: 2, mix: 1 }, noise)[0];
+  assert.ok(extreme[0].every(Number.isFinite) && peakIn(extreme[0], 0, noise.length) < 20, 'a long decay should stay bounded');
+  const input = new Float32Array(sr * 8); input.set(noise.subarray(0, sr));
+  const dies = run('hall', { decay: 0.5, mix: 1 }, input)[0];
+  assert.ok(peakIn(dies[0], sr * 7, sr * 8) < 1e-5, 'the tail should die away after the input stops');
+}
+
+// 62. A multiband chain through the graph: split, one compressor per band, bands summed back into out.
+{
+  const chain = comp => {
+    const registry = new ParamRegistry();
+    const rt = new GraphRuntime({ sampleRate: sr, params: registry.values });
+    const nodes = [{ id: 'o', type: 'osc', params: { track: 0, freq: 200 } }, { id: 's', type: 'split' }, { id: 'out', type: 'out' }];
+    const connections = [['o.out', 's.in']];
+    ['low', 'lmid', 'hmid', 'high'].forEach((band, i) => {
+      nodes.push({ id: `c${i}`, type: 'compressor', params: comp(i) });
+      connections.push([`s.${band}`, `c${i}.in`], [`c${i}.out`, 'out.in']);
+    });
+    rt.load(compile({ nodes, connections }, { instrument: 'm', nodeTypes: NODE_TYPES, registry }));
+    rt.note('m', { type: 'noteOn', note: 60, vel: 1 });
+    return render(rt, 0.4).left;
+  };
+  const rmsTail = x => { let t = 0; for (let i = x.length - 8000; i < x.length; i++) t += x[i] * x[i]; return Math.sqrt(t / 8000); };
+  const neutral = chain(() => ({ ratio: 1 }));
+  const direct = (() => {
+    const registry = new ParamRegistry();
+    const rt = new GraphRuntime({ sampleRate: sr, params: registry.values });
+    rt.load(compile({ nodes: [{ id: 'o', type: 'osc', params: { track: 0, freq: 200 } }, { id: 'out', type: 'out' }], connections: [['o.out', 'out.in']] }, { instrument: 'd', nodeTypes: NODE_TYPES, registry }));
+    rt.note('d', { type: 'noteOn', note: 60, vel: 1 });
+    return render(rt, 0.4).left;
+  })();
+  assert.ok(Math.abs(rmsTail(neutral) / rmsTail(direct) - 1) < 0.02, 'neutral multiband should keep the level');
+  const squashed = chain(i => (i === 1 ? { ratio: 20, threshold: -50, knee: 0 } : { ratio: 1 }));   // 200 Hz sits in the lmid band
+  assert.ok(rmsTail(squashed) < 0.5 * rmsTail(neutral), 'compressing the band the tone sits in should lower the level');
 }
 
 console.log('smoke test passed');

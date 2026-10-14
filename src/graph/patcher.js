@@ -5,13 +5,39 @@ import { addNode, autoLayout, connect, disconnect, pruneDef, removeNode, setBits
 // an input dot to wire them, click a wire or node and press Delete to remove it. A change
 // to the wiring or the exposed parameters calls onStructure so the instrument is rebuilt
 // and swapped in; a parameter change calls onParam and is heard at once.
-export const NODE_W = 150, HEAD = 22, ROW = 18, PORT_R = 5;
+import { GLYPHS } from './glyphs.js';
+import { portKind } from './kinds.js';
+import { createCurveEditor } from './curveeditor.js';
 
-export const nodeHeight = def => HEAD + Math.max(def.inputs.length, def.outputs.length, 1) * ROW + 6;
-export const portPos = (node, side, index) => ({
-  x: side === 'in' ? node.x : node.x + NODE_W,
-  y: node.y + HEAD + ROW / 2 + index * ROW,
-});
+// Geometry. A node's shape comes from its type: 'box' for processors, 'rounded' for
+// sources and 'circle' for mixing and gain. Ports sit on the left (inputs) and right (outputs).
+export const ROW = 16, PORT_R = 4;
+const SHAPE_W = { box: 112, rounded: 100, speaker: 100 };
+export const nodeBox = def => {
+  const rows = Math.max(def.inputs.length, def.outputs.length, 1);
+  const h = Math.max(rows * ROW + 10, def.shape === 'circle' ? 44 : 0);
+  return { w: def.shape === 'circle' ? h : SHAPE_W[def.shape ?? 'box'], h };
+};
+export const portPos = (node, def, side, index) => {
+  const { w, h } = nodeBox(def);
+  const n = side === 'in' ? def.inputs.length : def.outputs.length;
+  const y = node.y + (h - n * ROW) / 2 + ROW / 2 + index * ROW;
+  let x = side === 'in' ? node.x : node.x + w;
+  if (def.shape === 'circle') {   // keep the dot on the circle's edge
+    const r = w / 2, dy = y - (node.y + r), dx = Math.sqrt(Math.max(0, r * r - dy * dy));
+    x = node.x + r + (side === 'in' ? -dx : dx);
+  }
+  return { x, y };
+};
+const inside = (node, def, x, y) => {
+  const { w, h } = nodeBox(def);
+  if (def.shape === 'circle') return Math.hypot(x - (node.x + w / 2), y - (node.y + h / 2)) <= w / 2 + 2;
+  return x >= node.x && x <= node.x + w && y >= node.y && y <= node.y + h;
+};
+
+// Wire and port colours by what the signal is: audio, or control (envelopes, lfos, triggers).
+export { portKind };
+export const KIND_COLOR = { audio: 'hsl(210 50% 58%)', control: 'hsl(35 75% 52%)', stereo: 'hsl(285 40% 62%)' };
 
 const bezier = (a, b, t) => {
   const c1 = { x: a.x + 60, y: a.y }, c2 = { x: b.x - 60, y: b.y }, u = 1 - t;
@@ -23,8 +49,9 @@ const linkEnds = (desc, nodeTypes, link) => {
   const [from, to] = link.map(r => r.split('.'));
   const a = desc.nodes.find(n => n.id === from[0]), b = desc.nodes.find(n => n.id === to[0]);
   return {
-    a: portPos(a, 'out', nodeTypes[a.type].outputs.indexOf(from[1])),
-    b: portPos(b, 'in', nodeTypes[b.type].inputs.indexOf(to[1])),
+    a: portPos(a, nodeTypes[a.type], 'out', nodeTypes[a.type].outputs.indexOf(from[1])),
+    b: portPos(b, nodeTypes[b.type], 'in', nodeTypes[b.type].inputs.indexOf(to[1])),
+    kind: portKind(nodeTypes[a.type], from[1]),
   };
 };
 
@@ -35,14 +62,12 @@ export function hitTest(desc, nodeTypes, x, y) {
     const def = nodeTypes[node.type];
     for (const [side, names] of [['in', def.inputs], ['out', def.outputs]]) {
       for (let i = 0; i < names.length; i++) {
-        if (near(portPos(node, side, i), PORT_R + 4)) return { kind: 'port', side, node: node.id, port: names[i] };
+        if (near(portPos(node, def, side, i), PORT_R + 4)) return { kind: 'port', side, node: node.id, port: names[i] };
       }
     }
   }
   for (const node of [...desc.nodes].reverse()) {
-    if (x >= node.x && x <= node.x + NODE_W && y >= node.y && y <= node.y + nodeHeight(nodeTypes[node.type])) {
-      return { kind: 'node', id: node.id };
-    }
+    if (inside(node, nodeTypes[node.type], x, y)) return { kind: 'node', id: node.id };
   }
   for (let i = 0; i < desc.connections.length; i++) {
     const { a, b } = linkEnds(desc, nodeTypes, desc.connections[i]);
@@ -60,7 +85,7 @@ const toValue = (spec, pos) => {
 const toPos = (spec, v) => (isLog(spec) ? Math.log(v / spec.min) / Math.log(spec.max / spec.min) : (v - spec.min) / (spec.max - spec.min));
 const fmt = v => String(Number(v.toPrecision(4)));
 
-export function createPatcher({ canvas, panel, statusEl, doc = document, nodeTypes, onStructure, onParam, getSampleIds = () => [] }) {
+export function createPatcher({ canvas, panel, statusEl, doc = document, nodeTypes, onStructure, onParam, onData = () => {}, onContext = () => {}, getSampleIds = () => [] }) {
   let instruments = {}, instId = null, selected = null, drag = null, dirty = true;
   const ctx = canvas.getContext('2d');
   const W = canvas.width, H = canvas.height;
@@ -141,6 +166,16 @@ export function createPatcher({ canvas, panel, statusEl, doc = document, nodeTyp
       return el('div', { className: 'prow' }, el('span', { textContent: spec.name }), slider, out, el('span', {}, el('label', {}, exposed, ' expose '), width));
     });
     const items = [el('h3', {}, `${node.id} (${node.type})`), ...rows];
+    if (type.editor === 'curve') {   // a drawable transfer curve, kept on the node and sent live
+      const editor = createCurveEditor({
+        doc, points: node.data?.curve,
+        onChange: points => {
+          node.data = { ...node.data, curve: points };
+          onData(instId, node.id, { type: 'curve', points });
+        },
+      });
+      items.splice(1, 0, editor.el);
+    }
     if (node.type === 'sampler') {   // which sample this node plays
       const picker = el('select', {}, ...getSampleIds().map(id => el('option', { value: id, textContent: id })));
       picker.value = def().samples?.[node.id] ?? '';
@@ -185,7 +220,7 @@ export function createPatcher({ canvas, panel, statusEl, doc = document, nodeTyp
     if (drag.kind === 'move') {
       const node = desc().nodes.find(n => n.id === drag.id);
       node.x = Math.max(0, e.offsetX - drag.dx);
-      node.y = Math.max(0, e.offsetY - drag.dy);
+      node.y = Math.max(14, e.offsetY - drag.dy);   // room above for the name
     } else {
       drag.x = e.offsetX;
       drag.y = e.offsetY;
@@ -210,6 +245,15 @@ export function createPatcher({ canvas, panel, statusEl, doc = document, nodeTyp
     }
   });
 
+  // Right-click, or double-click on empty space, asks for the insert menu at that point.
+  canvas.addEventListener('contextmenu', e => {
+    e.preventDefault();
+    if (instId) onContext({ x: e.offsetX, y: e.offsetY });
+  });
+  canvas.addEventListener('dblclick', e => {
+    if (instId && !hitTest(desc(), nodeTypes, e.offsetX, e.offsetY)) onContext({ x: e.offsetX, y: e.offsetY });
+  });
+
   canvas.addEventListener('mouseleave', () => { drag = null; dirty = true; });
 
   canvas.addEventListener('keydown', e => {
@@ -231,47 +275,81 @@ export function createPatcher({ canvas, panel, statusEl, doc = document, nodeTyp
     ctx.lineWidth = 1.5;
 
     desc().connections.forEach((link, i) => {
-      const { a, b } = linkEnds(desc(), nodeTypes, link);
+      const { a, b, kind } = linkEnds(desc(), nodeTypes, link);
+      const chosen = selected?.kind === 'link' && selected.index === i;
       ctx.beginPath();
-      ctx.strokeStyle = selected?.kind === 'link' && selected.index === i ? accent : ink;
-      ctx.lineWidth = selected?.kind === 'link' && selected.index === i ? 3 : 1.5;
+      ctx.strokeStyle = chosen ? accent : KIND_COLOR[kind];
+      ctx.lineWidth = chosen ? 3.5 : kind === 'stereo' ? 3 : 1.75;   // a stereo pair is drawn heavier
       ctx.moveTo(a.x, a.y);
-      ctx.bezierCurveTo(a.x + 60, a.y, b.x - 60, b.y, b.x, b.y);
+      ctx.bezierCurveTo(a.x + 50, a.y, b.x - 50, b.y, b.x, b.y);
       ctx.stroke();
     });
     if (drag?.kind === 'connect') {
       const [id, port] = drag.from.split('.');
-      const node = desc().nodes.find(n => n.id === id);
-      const a = portPos(node, 'out', nodeTypes[node.type].outputs.indexOf(port));
+      const node = desc().nodes.find(n => n.id === id), type = nodeTypes[node.type];
+      const a = portPos(node, type, 'out', type.outputs.indexOf(port));
       ctx.beginPath();
       ctx.strokeStyle = accent;
+      ctx.lineWidth = 1.75;
       ctx.moveTo(a.x, a.y);
       ctx.lineTo(drag.x, drag.y);
       ctx.stroke();
     }
 
-    ctx.lineWidth = 1.5;
     for (const node of desc().nodes) {
-      const type = nodeTypes[node.type], h = nodeHeight(type);
+      const type = nodeTypes[node.type], { w, h } = nodeBox(type);
       const chosen = selected?.kind === 'node' && selected.id === node.id;
+      ctx.beginPath();
+      if (type.shape === 'circle') ctx.arc(node.x + w / 2, node.y + h / 2, w / 2, 0, 2 * Math.PI);
+      else if (type.shape === 'rounded') ctx.roundRect(node.x, node.y, w, h, 10);
+      else if (type.shape === 'speaker') {   // a small back and a cone that opens to the right
+        ctx.moveTo(node.x, node.y + 0.3 * h); ctx.lineTo(node.x + 0.38 * w, node.y + 0.3 * h);
+        ctx.lineTo(node.x + w, node.y); ctx.lineTo(node.x + w, node.y + h);
+        ctx.lineTo(node.x + 0.38 * w, node.y + 0.7 * h); ctx.lineTo(node.x, node.y + 0.7 * h);
+        ctx.closePath();
+      }
+      else ctx.rect(node.x, node.y, w, h);
       ctx.fillStyle = 'rgba(128, 128, 128, 0.18)';
-      ctx.fillRect(node.x, node.y, NODE_W, h);
+      ctx.fill();
       ctx.strokeStyle = chosen ? accent : ink;
       ctx.lineWidth = chosen ? 2.5 : 1.5;
-      ctx.strokeRect(node.x, node.y, NODE_W, h);
+      ctx.stroke();
+
       ctx.fillStyle = ink;
+      ctx.font = '11px ui-monospace, Consolas, monospace';
+      ctx.textBaseline = 'alphabetic';
+      ctx.textAlign = 'center';
+      ctx.fillText(node.id, node.x + w / 2, node.y - 5);   // the name sits above the shape
+
+      const glyph = GLYPHS[type.glyph];
+      if (glyph) {
+        ctx.strokeStyle = ink;
+        ctx.globalAlpha = 0.85;
+        ctx.lineWidth = 1.25;
+        const circle = type.shape === 'circle';
+        glyph(ctx, node.x + w / 2, node.y + h / 2, circle ? w * 0.55 : w - 64, circle ? w * 0.55 : Math.min(h - 12, 24));
+        ctx.globalAlpha = 1;
+      }
+
+      ctx.font = '10px ui-monospace, Consolas, monospace';
       ctx.textBaseline = 'middle';
-      ctx.textAlign = 'left';
-      ctx.fillText(`${node.id}`, node.x + 8, node.y + HEAD / 2);
       for (const [side, names] of [['in', type.inputs], ['out', type.outputs]]) {
         names.forEach((name, i) => {
-          const p = portPos(node, side, i);
+          const p = portPos(node, type, side, i);
           ctx.beginPath();
           ctx.arc(p.x, p.y, PORT_R, 0, 2 * Math.PI);
-          ctx.fillStyle = ink;
+          ctx.fillStyle = KIND_COLOR[portKind(type, name)];
           ctx.fill();
-          ctx.textAlign = side === 'in' ? 'left' : 'right';
-          ctx.fillText(name, p.x + (side === 'in' ? 10 : -10), p.y);
+          ctx.strokeStyle = ink;
+          ctx.lineWidth = 1;
+          ctx.stroke();
+          if (type.shape !== 'circle') {   // the shape has no room for names inside a circle
+            ctx.fillStyle = ink;
+            ctx.globalAlpha = 0.75;
+            ctx.textAlign = side === 'in' ? 'left' : 'right';
+            ctx.fillText(name, p.x + (side === 'in' ? 8 : -8), p.y);
+            ctx.globalAlpha = 1;
+          }
         });
       }
     }
@@ -291,11 +369,12 @@ export function createPatcher({ canvas, panel, statusEl, doc = document, nodeTyp
       renderPanel();
       dirty = true;
     },
-    add(type) {
+    add(type, at) {
       if (!instId) return;
       try {
         const n = desc().nodes.length;
-        const id = addNode(desc(), nodeTypes, type, { x: 20 + (n % 4) * 190, y: 20 + Math.floor(n / 4) * 110 });
+        const pos = at ? { x: Math.max(0, at.x), y: Math.max(14, at.y) } : { x: 20 + (n % 5) * 150, y: 30 + Math.floor(n / 5) * 80 };
+        const id = addNode(desc(), nodeTypes, type, pos);
         if (type === 'sampler' && getSampleIds().length) def().samples = { ...def().samples, [id]: getSampleIds()[0] };
         selected = { kind: 'node', id };
         say('');

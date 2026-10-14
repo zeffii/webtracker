@@ -10,6 +10,10 @@ export default {
   type: 'osc',
   inputs: ['fm', 'sync'],   // fm is in octaves, per sample
   outputs: ['out'],
+  category: 'Sources',
+  shape: 'rounded',
+  glyph: 'osc',
+  kinds: { fm: 'control', sync: 'control' },   // ports are audio unless listed
   params: [
     { name: 'freq', min: 1, max: 20000, def: 440 },   // Hz, used when track is 0
     { name: 'tune', min: -48, max: 48, def: 0 },      // semitones

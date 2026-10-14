@@ -6,6 +6,10 @@ export default {
   type: 'gain',
   inputs: ['in', 'cv'],
   outputs: ['out'],
+  category: 'Mix & level',
+  shape: 'circle',
+  glyph: 'gain',
+  kinds: { cv: 'control' },   // ports are audio unless listed
   params: [{ name: 'gain', min: 0, max: 4, def: 1 }],
   create({ connected }) {
     const cvOn = connected[1];

@@ -6,6 +6,19 @@ import gain from './gain.js';
 import filter from './filter.js';
 import delay from './delay.js';
 import out from './out.js';
+import mix from './mix.js';
+import sum from './sum.js';
+import sumst from './sumst.js';
+import fold from './fold.js';
+import pan from './pan.js';
+import chorus from './chorus.js';
+import multitap from './multitap.js';
+import waveshaper from './waveshaper.js';
+import exciter from './exciter.js';
+import transient from './transient.js';
+import split from './split.js';
+import compressor from './compressor.js';
+import hall from './hall.js';
 
 // Node type registry. Adding a node type means adding a module and listing it here.
-export const NODE_TYPES = { sampler, osc, env, lfo, gain, filter, delay, out };
+export const NODE_TYPES = { sampler, osc, env, lfo, gain, mix, pan, filter, delay, chorus, multitap, waveshaper, exciter, transient, split, compressor, hall, out, sum, sumst, fold };

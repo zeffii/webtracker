@@ -12,6 +12,10 @@ export default {
   type: 'env',
   inputs: [],
   outputs: ['out'],
+  category: 'Sources',
+  shape: 'rounded',
+  glyph: 'adsr',
+  kinds: { out: 'control' },   // ports are audio unless listed
   params: [
     { name: 'attack', min: 0.1, max: 5000, def: 1 },      // ms
     { name: 'decay', min: 1, max: 5000, def: 200 },       // ms

@@ -27,12 +27,13 @@ export class GraphRuntime {
   load(compiled) {
     this.graphs.set(compiled.instrument, compiled);
     const buffers = Array.from({ length: compiled.bufferCount }, () => new Float32Array(this.maxBlock));
+    const resolve = ref => (Array.isArray(ref) ? ref.map(b => buffers[b]) : buffers[ref]);   // stereo ports are [left, right]
     const nodes = compiled.nodes.map(n => ({
       id: n.id,
-      instance: NODE_TYPES[n.type].create({ sampleRate: this.sampleRate, maxBlock: this.maxBlock, connected: n.connected, wasm: this.wasm }),
+      instance: NODE_TYPES[n.type].create({ sampleRate: this.sampleRate, maxBlock: this.maxBlock, connected: n.connected, wasm: this.wasm, data: n.data }),
       slots: Int32Array.from(n.slots),
-      inputs: n.inputs.map(i => buffers[i]),
-      outputs: n.outputs.map(i => buffers[i]),
+      inputs: n.inputs.map(resolve),
+      outputs: n.outputs.map(resolve),
     }));
     this.instruments.set(compiled.instrument, {
       nodes,
@@ -43,7 +44,7 @@ export class GraphRuntime {
 
   // Message for one node, for example the sample data for a sampler.
   message(instrument, nodeId, msg) {
-    if (msg.type === 'sample') this.samples.set(`${instrument}\u0000${nodeId}`, msg);
+    if (msg.type === 'sample' || msg.type === 'curve') this.samples.set(`${instrument}\u0000${nodeId}\u0000${msg.type}`, msg);   // replayed if the instrument is rebuilt
     const node = this.instruments.get(instrument)?.nodes.find(n => n.id === nodeId);
     node?.instance.message?.(msg);
   }

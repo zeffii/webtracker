@@ -7,6 +7,9 @@ export default {
   type: 'delay',
   inputs: ['in'],
   outputs: ['out'],
+  category: 'Effects',
+  shape: 'box',
+  glyph: 'delay',
   params: [
     { name: 'time', min: 1, max: 1000, def: 300 },
     { name: 'feedback', min: 0, max: 0.95, def: 0.35 },

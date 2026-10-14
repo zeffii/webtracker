@@ -7,6 +7,10 @@ export default {
   type: 'filter',
   inputs: ['in', 'mod'],   // mod is in octaves, averaged over each block
   outputs: ['out'],
+  category: 'Effects',
+  shape: 'box',
+  glyph: 'lowpass',
+  kinds: { mod: 'control' },   // ports are audio unless listed
   params: [
     { name: 'cutoff', min: 20, max: 18000, def: 2000 },
     { name: 'resonance', min: 0, max: 0.95, def: 0.2 },

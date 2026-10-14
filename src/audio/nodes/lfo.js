@@ -6,6 +6,10 @@ export default {
   type: 'lfo',
   inputs: [],
   outputs: ['out'],
+  category: 'Sources',
+  shape: 'rounded',
+  glyph: 'lfo',
+  kinds: { out: 'control' },   // ports are audio unless listed
   params: [
     { name: 'rate', min: 0.01, max: 50, def: 2 },   // Hz
     { name: 'shape', min: 0, max: 3, def: 0, int: true },

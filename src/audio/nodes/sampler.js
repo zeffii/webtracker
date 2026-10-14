@@ -13,6 +13,10 @@ export default {
   type: 'sampler',
   inputs: [],
   outputs: ['out'],
+  category: 'Sources',
+  shape: 'rounded',
+  glyph: 'sample',
+  kinds: { out: 'audio' },   // ports are audio unless listed
   params: [
     { name: 'level', min: 0, max: 1, def: 0.8 },
     { name: 'root', min: 0, max: 127, def: 60 },
