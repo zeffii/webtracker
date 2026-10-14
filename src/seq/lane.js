@@ -1,7 +1,7 @@
 import { PAGE_TICKS } from '../audio/sequencer.js';
 import { EMPTY, KINDS, encodeCell } from './cells.js';
 
-// An instrument's pattern columns: note and velocity, then one column per exposed
+// An instrument's pattern columns: note and velocity (repeated for each note column), then one column per exposed
 // parameter (2hex, 4hex with bits: 16, or 1hex with bits: 4), then one CCXXYY column if the instrument
 // has a command table. For the sampler the lists are fixed; for a graph instrument
 // they follow whatever the graph exposes. Each column knows its first channel (ch).
@@ -12,10 +12,15 @@ export function buildColumns(instrument, def, registry) {
     const { min, max, int } = registry.meta[slot];
     return { slot, min, max, int };
   };
-  const columns = [
-    { kind: 'note', token: 'note', label: 'Note', key: 'note' },
-    { kind: 'vel', token: '2hex', label: 'Vel', key: 'vel' },
-  ];
+  // noteColumns pairs of note and velocity: each is one voice's worth of notes, so a chord is
+  // several notes on one row. The first pair keeps the plain keys, so a pattern written before
+  // the extra columns existed (or before the instrument was polyphonic) still loads.
+  const pairs = Math.max(1, Math.min(8, def.noteColumns ?? 1));
+  const columns = [];
+  for (let k = 0; k < pairs; k++) {
+    columns.push({ kind: 'note', token: 'note', label: k ? `N${k + 1}` : 'Note', key: k ? `note:${k}` : 'note', nc: k });
+    columns.push({ kind: 'vel', token: '2hex', label: k ? `V${k + 1}` : 'Vel', key: k ? `vel:${k}` : 'vel', nc: k });
+  }
   for (const e of def.exposed) {
     // bits: 16 is a 4hex column, 4 is a 1hex column (a toggle or an enum), otherwise 2hex.
     const token = e.bits === 16 ? '4hex' : e.bits === 4 ? '1hex' : '2hex';

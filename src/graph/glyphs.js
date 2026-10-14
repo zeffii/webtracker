@@ -125,6 +125,16 @@ export const GLYPHS = {
     });
     ctx.stroke();
   },
+  voices: (ctx, cx, cy, w, h) => {   // several lines fanning in to one
+    ctx.beginPath();
+    for (let i = 0; i < 3; i++) {
+      ctx.moveTo(cx - w / 2, cy - h / 2 + (i / 2) * h);
+      ctx.lineTo(cx, cy);
+    }
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(cx + w / 2, cy);
+    ctx.stroke();
+  },
   speaker: (ctx, cx, cy, w, h) => {
     const s = Math.min(w, h) * 0.4;
     ctx.beginPath();

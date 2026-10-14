@@ -3,7 +3,9 @@
 // {
 //   format: 'webtracker', version: 1,
 //   song: { name, bpm, ticksPerBeat, length },
-//   instruments: { id: { graph, exposed, commands, samples: { nodeId: sampleId } } },
+//   instruments: { id: { graph, exposed, commands, samples: { nodeId: sampleId }, noteColumns? } },
+//   (graph.voices, 1 to 16, runs that many copies of the graph for polyphony; noteColumns, 1 to 8,
+//    is how many note and velocity column pairs a row has; both default to 1)
 //   samples: { id: { rate, encoding: 'pcm16' | 'float32', data: base64 of little-endian samples,
 //                    loopStart?, loopEnd? } },   (loop points in frames; no encoding means float32)
 //   lanes: [{ id, instrument, patterns: { puid: { name, index, rows: ['C-4 .. 70', ...] } },

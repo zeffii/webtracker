@@ -80,7 +80,8 @@ export const synthKinds = {
   subtractive: {
     label: 'Subtractive synth',
     make: () => ({
-      graph: { nodes: [{ id: 'synth', type: 'subsynth' }, { id: 'out', type: 'out', params: { gain: 0.6 } }], connections: [['synth.out', 'out.in']] },
+      graph: { nodes: [{ id: 'synth', type: 'subsynth' }, { id: 'poly', type: 'voices' }, { id: 'out', type: 'out', params: { gain: 0.5 } }], connections: [['synth.out', 'poly.in'], ['poly.out', 'out.in']], voices: 6 },
+      noteColumns: 3,
       exposed: [
         { node: 'synth', param: 'cutoff', label: 'Cut', scale: 'log' },
         { node: 'synth', param: 'res', label: 'Res' },
@@ -99,7 +100,8 @@ export const synthKinds = {
   additive: {
     label: 'Additive synth',
     make: () => ({
-      graph: { nodes: [{ id: 'synth', type: 'addsynth' }, { id: 'out', type: 'out', params: { gain: 0.6 } }], connections: [['synth.out', 'out.in']] },
+      graph: { nodes: [{ id: 'synth', type: 'addsynth' }, { id: 'poly', type: 'voices' }, { id: 'out', type: 'out', params: { gain: 0.5 } }], connections: [['synth.out', 'poly.in'], ['poly.out', 'out.in']], voices: 6 },
+      noteColumns: 3,
       exposed: [
         { node: 'synth', param: 'tilt', label: 'Tlt' },
         { node: 'synth', param: 'evenodd', label: 'E/O' },

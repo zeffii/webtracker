@@ -45,7 +45,10 @@ export class Sequencer {
       instrument, pages,
       columns: cols,
       channels: cols.reduce((n, c) => Math.max(n, c.ch + (c.kind === 'cmd' ? 2 : 1)), 0),
-      prev: -1,
+      noteCols: cols.reduce((n, c) => (c.kind === 'note' ? n + 1 : n), 0),
+      prev: new Int16Array(cols.reduce((n, c) => (c.kind === 'note' ? n + 1 : n), 0)).fill(-1),   // the note each note column last started
+      notes: new Float32Array(cols.reduce((n, c) => (c.kind === 'note' ? n + 1 : n), 0)),
+      vels: new Float32Array(cols.reduce((n, c) => (c.kind === 'note' ? n + 1 : n), 0)),
       on: { type: 'noteOn', note: 0, vel: 1 },
       off: { type: 'noteOff', note: 0 },
       cut: { type: 'noteCut' },
@@ -74,17 +77,17 @@ export class Sequencer {
   stop() {
     for (const lane of this.lanes.values()) {
       this.runtime.note(lane.instrument, lane.all);
-      lane.prev = -1;
+      lane.prev.fill(-1);
     }
     this.playing = false;
     this.transport[1] = 0;
   }
 
-  release(lane) {
-    if (lane.prev < 0) return;
-    lane.off.note = lane.prev;
+  release(lane, k) {
+    if (lane.prev[k] < 0) return;
+    lane.off.note = lane.prev[k];
     this.runtime.note(lane.instrument, lane.off);
-    lane.prev = -1;
+    lane.prev[k] = -1;
   }
 
   // x is 0..1; the slot gets the value on the parameter's own scale.
@@ -97,7 +100,8 @@ export class Sequencer {
     const page = lane.pages[(this.tick / PAGE_TICKS) | 0];
     if (!page) return;
     const base = (this.tick % PAGE_TICKS) * lane.channels;
-    let note = EMPTY, vel = 1;
+    lane.notes.fill(EMPTY);
+    lane.vels.fill(1);
     for (let c = 0; c < lane.columns.length; c++) {
       const col = lane.columns[c];
       const v = page[base + col.ch];
@@ -116,24 +120,28 @@ export class Sequencer {
           else this.writeParam(t.slot[id], t.min[id], t.max[id], t.log[id] === 1, decodeHex4(value) / 65535);
         }
       } else if (col.kind === 'vel') {
-        vel = decodeHex2(v) / 255;
+        lane.vels[col.nc] = decodeHex2(v) / 255;
       } else {
-        note = v;
+        lane.notes[col.nc] = v;
       }
     }
-    if (note === EMPTY) return;
-    if (note === CUT) {
-      this.runtime.note(lane.instrument, lane.cut);
-      lane.prev = -1;
-      return;
+    for (let k = 0; k < lane.noteCols; k++) {
+      const note = lane.notes[k];
+      if (note === EMPTY) continue;
+      if (note === CUT) {
+        this.runtime.note(lane.instrument, lane.cut);
+        lane.prev.fill(-1);
+        continue;
+      }
+      // A new note does not end the previous one: what happens to it is the instrument's
+      // new-note action (a one-shot sample plays out, a looping one fades or is cut), or, for a
+      // polyphonic instrument, it takes another voice. A note off ends the column's last note.
+      if (note === OFF) { this.release(lane, k); continue; }
+      lane.on.note = decodeNote(note);
+      lane.on.vel = lane.vels[k];
+      this.runtime.note(lane.instrument, lane.on);
+      lane.prev[k] = lane.on.note;
     }
-    // A new note does not end the previous one: what happens to it is the instrument's
-    // new-note action (a one-shot sample plays out, a looping one fades or is cut).
-    if (note === OFF) { this.release(lane); return; }
-    lane.on.note = decodeNote(note);
-    lane.on.vel = vel;
-    this.runtime.note(lane.instrument, lane.on);
-    lane.prev = lane.on.note;
   }
 
   fireTick() {

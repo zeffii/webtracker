@@ -3,6 +3,7 @@
 // desc = {
 //   nodes: [{ id, type, params?: { name: value } }],
 //   connections: [['sampler.out', 'filter.in'], ...],
+//   voices?: 1..16,   // copies of the graph that play notes at once (see the voices node)
 // }
 // Buffer 0 is reserved as silence for unconnected inputs. A mono port is one buffer, a
 // stereo port is a pair [left, right]. A mono wire into a stereo input feeds both channels;
@@ -93,5 +94,7 @@ export function compile(desc, { instrument, nodeTypes, registry }) {
 
   const masters = order.filter(id => byId.get(id).def.master);
   if (masters.length !== 1) throw new Error(`expected exactly one master node, found ${masters.length}`);
-  return { instrument, nodes, bufferCount: nextBuf, master: outBufs.get(masters[0]) };
+  const voices = desc.voices ?? 1;
+  if (!Number.isInteger(voices) || voices < 1 || voices > 16) throw new Error(`voices must be a whole number from 1 to 16, not ${voices}`);
+  return { instrument, nodes, bufferCount: nextBuf, master: outBufs.get(masters[0]), voices };
 }

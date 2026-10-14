@@ -1977,4 +1977,206 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   assert.ok(Math.abs(zc(6000, 18000) / (2 * 220) - 1) < 0.02, 'a rebuilt instrument should replay its spectrum');
 }
 
+// 65. Polyphony: voice copies of a graph, the voices node, note allocation, and note columns.
+{
+  const hz = n => 440 * Math.pow(2, (n - 69) / 12);
+  const mag = (x, f, a, b) => {
+    b = Math.min(b, x.length);
+    let re = 0, im = 0;
+    for (let i = a; i < b; i++) {
+      const w = 0.5 - 0.5 * Math.cos(2 * Math.PI * (i - a) / (b - a)), ph = 2 * Math.PI * f * i / sr;
+      re += x[i] * w * Math.cos(ph); im += x[i] * w * Math.sin(ph);
+    }
+    return Math.hypot(re, im) / (b - a) * 4;
+  };
+  // sine -> vca (env) -> [voices] -> [delay] -> out
+  const synthGraph = ({ voices, boundary = true, tail = false }) => ({
+    voices,
+    nodes: [
+      { id: 'osc', type: 'osc', params: { wave: 0, reset: 1 } },
+      { id: 'env', type: 'env', params: { attack: 1, decay: 10, sustain: 1, release: 50, amount: 1 } },
+      { id: 'vca', type: 'gain' },
+      ...(boundary ? [{ id: 'poly', type: 'voices' }] : []),
+      ...(tail ? [{ id: 'dly', type: 'delay', params: { mix: 0.3 } }] : []),
+      { id: 'out', type: 'out', params: { gain: 0.5 } },
+    ],
+    connections: [
+      ['osc.out', 'vca.in'], ['env.out', 'vca.cv'],
+      ...(() => {
+        let last = 'vca.out';
+        const c = [];
+        for (const [id, inp, outp] of [...(boundary ? [['poly', 'in', 'out']] : []), ...(tail ? [['dly', 'in', 'out']] : []), ['out', 'in', null]]) {
+          c.push([last, `${id}.${inp}`]);
+          if (outp) last = `${id}.${outp}`;
+        }
+        return c;
+      })(),
+    ],
+  });
+  const make = graph => {
+    const registry = new ParamRegistry();
+    const rt = new GraphRuntime({ sampleRate: sr, params: registry.values });
+    rt.load(compile(graph, { instrument: 'x', nodeTypes: NODE_TYPES, registry }));
+    return { rt, registry };
+  };
+  const on = (rt, note) => rt.note('x', { type: 'noteOn', note, vel: 1 });
+  const off = (rt, note) => rt.note('x', { type: 'noteOff', note });
+  const level = (x, note, a = 4000) => mag(x, hz(note), a, x.length);
+  const sounding = rt => rt.instruments.get('x').sets.filter(s => s.active).length;
+
+  // a chord sounds all its notes; one voice plays only the last
+  {
+    const { rt } = make(synthGraph({ voices: 4 }));
+    for (const n of [60, 64, 67]) on(rt, n);
+    const x = render(rt, 0.4).left;
+    const ref = level(x, 60);
+    assert.ok(ref > 0.02 && level(x, 64) > 0.5 * ref && level(x, 67) > 0.5 * ref, 'all three notes should sound');
+    assert.ok(level(x, 62) < 0.1 * ref && level(x, 65.5) < 0.1 * ref, 'and nothing else');
+    assert.ok(x.every(Number.isFinite));
+    const solo = make(synthGraph({ voices: 1 }));
+    for (const n of [60, 64, 67]) on(solo.rt, n);
+    const y = render(solo.rt, 0.4).left;
+    assert.ok(level(y, 60) < 0.1 * level(y, 67) && level(y, 64) < 0.1 * level(y, 67), 'one voice plays only the last note');
+  }
+
+  // a note off releases only its own voice, and the finished voice stops running
+  {
+    const { rt } = make(synthGraph({ voices: 4 }));
+    for (const n of [60, 64, 67]) on(rt, n);
+    render(rt, 0.1);
+    off(rt, 64);
+    const x = render(rt, 0.5).left;
+    assert.ok(level(x, 64, 12000) < 0.05 * level(x, 60, 12000), 'the released note should be gone');
+    assert.ok(level(x, 60, 12000) > 0.02 && level(x, 67, 12000) > 0.02, 'the held notes should go on');
+    assert.equal(sounding(rt), 2, 'the finished voice should stop');
+    rt.note('x', { type: 'allOff' });
+    render(rt, 0.5);
+    assert.equal(sounding(rt), 0, 'all-off lets every voice end');
+    on(rt, 60); on(rt, 62);
+    assert.equal(sounding(rt), 2);
+    rt.note('x', { type: 'noteCut' });
+    assert.equal(sounding(rt), 0, 'a cut stops every voice at once');
+    assert.equal(peak(render(rt, 0.1).left), 0);
+  }
+
+  // stealing: with two voices a third note takes the oldest; a released voice goes first
+  {
+    const { rt } = make(synthGraph({ voices: 2 }));
+    on(rt, 60); on(rt, 64); on(rt, 67);
+    const x = render(rt, 0.4).left;
+    assert.ok(level(x, 60) < 0.1 * level(x, 64) && level(x, 67) > 0.5 * level(x, 64), 'the oldest voice should be stolen');
+    const other = make(synthGraph({ voices: 2 }));
+    on(other.rt, 60); on(other.rt, 64);
+    render(other.rt, 0.05);
+    off(other.rt, 64);
+    on(other.rt, 67);
+    const y = render(other.rt, 0.4).left;
+    assert.ok(level(y, 60) > 0.02 && level(y, 64) < 0.05 * level(y, 60), 'the released voice should be taken before a held one');
+  }
+
+  // the structure: copies before the voices node, one of everything after it
+  {
+    const { rt } = make(synthGraph({ voices: 4, tail: true }));
+    const inst = rt.instruments.get('x');
+    assert.equal(inst.byId.get('osc').length, 4);
+    assert.equal(inst.byId.get('vca').length, 4);
+    assert.equal(inst.byId.get('dly').length, 1, 'effects after the voices node run once');
+    assert.equal(inst.byId.get('out').length, 1);
+    for (const n of [60, 64]) on(rt, n);
+    const x = render(rt, 1).left;
+    assert.ok(x.every(Number.isFinite) && peak(x) > 0.02);
+    // without one, the whole graph is copied and the copies are mixed at the end
+    const whole = make(synthGraph({ voices: 3, boundary: false }));
+    assert.equal(whole.rt.instruments.get('x').byId.get('out').length, 3);
+    for (const n of [60, 64, 67]) on(whole.rt, n);
+    const y = render(whole.rt, 0.4).left;
+    assert.ok(level(y, 60) > 0.02 && level(y, 64) > 0.5 * level(y, 60) && level(y, 67) > 0.5 * level(y, 60), 'a chord through whole-graph copies');
+    // a shared parameter reaches every voice
+    const shared = make(synthGraph({ voices: 3 }));
+    shared.registry.set('x.osc.tune', 12);
+    for (const n of [60, 64, 67]) on(shared.rt, n);
+    const z = render(shared.rt, 0.4).left;
+    assert.ok(level(z, 72) > 0.02 && level(z, 76) > 0.02 && level(z, 79) > 0.02 && level(z, 60) < 0.1 * level(z, 72), 'a parameter should move every voice');
+  }
+
+  // messages reach every copy and survive a rebuild
+  {
+    const { rt } = make({
+      voices: 2,
+      nodes: [{ id: 's', type: 'addsynth', params: { atk: 0.1, sus: 1, width: 0 } }, { id: 'poly', type: 'voices' }, { id: 'out', type: 'out' }],
+      connections: [['s.out', 'poly.in'], ['poly.out', 'out.in']],
+    });
+    rt.message('x', 's', { type: 'spectrum', points: Array.from({ length: 32 }, (_, i) => (i === 1 ? 1 : 0)) });
+    rt.rebuild('x');
+    on(rt, 57); on(rt, 64);
+    const x = render(rt, 0.5).left;
+    assert.ok(level(x, 69) > 0.01 && level(x, 76) > 0.01, 'both voices should have the spectrum');
+    assert.ok(level(x, 57) < 0.05 * level(x, 69) && level(x, 64) < 0.05 * level(x, 76), 'and no fundamental');
+  }
+
+  // the compiler checks the voice count
+  {
+    const registry = new ParamRegistry();
+    for (const bad of [0, 17, 1.5]) assert.throws(() => compile({ ...synthGraph({ voices: 1 }), voices: bad }, { instrument: 'x', nodeTypes: NODE_TYPES, registry }), /voices must be/);
+  }
+
+  // note columns: the columns, velocities per column, and a note off that ends only its own column's note
+  {
+    const def = { ...structuredClone(instruments.lead), noteColumns: 3 };
+    const registry = new ParamRegistry();
+    const defs = { lead: def };
+    for (const n of ['filter.cutoff', 'filter.resonance', 'delay.mix', 'delay.time', 'delay.feedback', 'sampler.nnaFade']) registry.allocate(`lead.${n}`, 0.5, 0, 1000);
+    const cols = buildColumns('lead', def, registry);
+    assert.deepEqual(cols.map(c => c.label), ['Note', 'Vel', 'N2', 'V2', 'N3', 'V3', 'Cut', 'Res', 'Mix', 'Time', 'Cmd']);
+    assert.deepEqual(cols.slice(0, 2).map(c => c.key), ['note', 'vel'], 'the first pair keeps its keys');
+    assert.deepEqual(buildColumns('lead', { ...def, noteColumns: undefined }, registry).map(c => c.label).slice(0, 3), ['Note', 'Vel', 'Cut']);
+
+    const events = [];
+    const stub = { process() {}, note: (instrument, msg) => events.push(`${msg.type}${msg.note !== undefined ? ` ${msg.note}` : ''}${msg.type === 'noteOn' ? ` v${Math.round(msg.vel * 255)}` : ''}`) };
+    const seq = new Sequencer({ sampleRate: sr, runtime: stub, params: registry.values, transport: new Int32Array(new SharedArrayBuffer(8)) });
+    const song = song120([oneLane('lead', 'lead', ['C-4 FF E-4 80 G-4 40', '... .. ... .. ... ..', '=== .. ... .. ... ..', 'F-4 .. ... .. ... ..', '... .. === .. ... ..'].join('\n'), 8)]);
+    seq.setSong(song);
+    for (const lane of prepareSong(song, defs, registry)) seq.setLane(lane);
+    seq.play();
+    const out = [new Float32Array(48000), new Float32Array(48000)];
+    seq.process(out[0], out[1], 48000);
+    assert.deepEqual(events, [
+      'noteOn 60 v255', 'noteOn 64 v128', 'noteOn 67 v64',   // a chord on one row, each with its own velocity
+      'noteOff 60',                                          // === in the first column ends only C
+      'noteOn 65 v255',                                      // a single note with no velocity plays at full
+      'noteOff 64',                                          // === in the second ends only E
+    ]);
+    events.length = 0;
+    seq.stop();
+    assert.deepEqual(events, ['allOff'], 'stop releases every voice');
+    // a cut from any column stops everything; an off for a column with no note does nothing
+    seq.reset(registry.values);
+    const cutSong = song120([oneLane('lead', 'lead', ['C-4 .. E-4 .. ... ..', '... .. ^^^ .. ... ..', '=== .. ... .. ... ..'].join('\n'), 4)]);
+    seq.setSong(cutSong);
+    for (const lane of prepareSong(cutSong, defs, registry)) seq.setLane(lane);
+    events.length = 0;
+    seq.play();
+    seq.process(out[0], out[1], 48000);
+    assert.deepEqual(events, ['noteOn 60 v255', 'noteOn 64 v255', 'noteCut'], 'a cut ends everything and the later off finds nothing to release');
+
+    // changing the number of note columns keeps every other column's cells
+    const songBefore = { name: 'x', bpm: 120, ticksPerBeat: 4, length: 8, lanes: [oneLane('lead', 'lead', 'C-4 .. 70 50 40 4C9E', 8)] };
+    const one = { lead: structuredClone(instruments.lead) };
+    const lanes = prepareSong(songBefore, one, registry);
+    one.lead.noteColumns = 3;
+    const [changed] = rebuildInstrumentLanes(lanes, songBefore, one, registry, 'lead');
+    const row = Object.values(changed.patterns)[0].rows[0];
+    assert.deepEqual([row[0], row[6], row[7], row[8], row[9]], ['C-4', '70', '50', '40', '4C9E']);
+    assert.equal(row.length, 11);
+    one.lead.noteColumns = 1;
+    const [back] = rebuildInstrumentLanes(lanes, songBefore, one, registry, 'lead');
+    assert.deepEqual(Object.values(back.patterns)[0].rows[0].slice(0, 5), ['C-4', '..', '70', '50', '40']);
+
+    // the project file keeps both settings
+    const file = parseProject(serializeProject({ song: { name: 'p', bpm: 120, ticksPerBeat: 4, length: 8 }, instruments: { s: { ...structuredClone(instruments.kick), noteColumns: 3, graph: { ...structuredClone(instruments.kick.graph), voices: 6 } } }, samples: {}, lanes: [] }));
+    assert.equal(file.instruments.s.noteColumns, 3);
+    assert.equal(file.instruments.s.graph.voices, 6);
+  }
+}
+
 console.log('smoke test passed');

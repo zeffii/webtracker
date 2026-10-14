@@ -131,6 +131,26 @@ function renderInstList() {
     return b;
   });
   $('inst-list').replaceChildren(...buttons);
+  syncPoly();
+}
+
+// The polyphony fields show the selected instrument's settings.
+function syncPoly() {
+  const def = project.instruments[patcher.instrument];
+  $('inst-voices').value = def?.graph.voices ?? 1;
+  $('inst-notecols').value = def?.noteColumns ?? 1;
+}
+
+// Polyphony: how many copies of the instrument play at once, and how many notes a row can hold.
+for (const [id, field, max] of [['inst-voices', 'voices', 16], ['inst-notecols', 'noteColumns', 8]]) {
+  $(id).addEventListener('change', () => {
+    const def = project.instruments[patcher.instrument];
+    if (!def) return;
+    const n = Math.max(1, Math.min(max, Math.round(Number($(id).value)) || 1));
+    if (field === 'voices') def.graph.voices = n; else def.noteColumns = n;
+    reloadInstrument(patcher.instrument);
+    syncPoly();   // not renderInstList: the list must stay put, or a click that blurs this field is lost
+  });
 }
 
 const sendLoop = users => users.forEach(({ instrument, node }) => sendSample(instrument, node));
@@ -243,6 +263,7 @@ $('add-sampler').addEventListener('click', () => {
     sendSamples(id);
     addLaneFor(id);
     patcher.load({ instruments: project.instruments });
+    patcher.show(id);
     refreshProjectUi();
     $('new-inst-name').value = '';
     projStatus(`Added ${id} with its own lane.`);
@@ -258,6 +279,7 @@ $('add-synth').addEventListener('click', () => {
     engine.loadInstrument(id, project.instruments[id].graph);
     addLaneFor(id);
     patcher.load({ instruments: project.instruments });
+    patcher.show(id);
     refreshProjectUi();
     $('new-synth-name').value = '';
     projStatus(`Added ${id} with its own lane.`);
@@ -283,7 +305,7 @@ $('start').addEventListener('click', async () => {
     started = true;
     openProject(createDemoProject(engine.ctx.sampleRate));
     for (const id of ['start']) $(id).disabled = true;
-    for (const id of ['play', 'save', 'load', 'patch-add', 'load-samples', 'add-sampler', 'add-synth', 'add-lane']) $(id).disabled = false;
+    for (const id of ['play', 'save', 'load', 'patch-add', 'load-samples', 'add-sampler', 'add-synth', 'add-lane', 'inst-voices', 'inst-notecols']) $(id).disabled = false;
     $('status').textContent =
       `Running at ${engine.ctx.sampleRate} Hz, base latency ${(engine.ctx.baseLatency * 1000).toFixed(1)} ms`;
     const frame = () => { songInfo(); seqView.draw(); view.draw(); patcher.draw(); waveform.draw(); requestAnimationFrame(frame); };
