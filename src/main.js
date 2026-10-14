@@ -213,6 +213,7 @@ $('patch-add').addEventListener('click', () => patcher.add($('patch-type').value
 $('start').addEventListener('click', async () => {
   try {
     await engine.start();
+    engine.onFault = id => projStatus(`Instrument "${id}" produced invalid audio and was reset. If you can repeat it, note what you changed.`);
     started = true;
     openProject(createDemoProject(engine.ctx.sampleRate));
     for (const id of ['start']) $(id).disabled = true;

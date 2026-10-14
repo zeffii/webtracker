@@ -1143,4 +1143,60 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   assert.deepEqual(structures, ['lead']);
 }
 
+// 47. Delay time glides per sample, so the result does not depend on the block size.
+{
+  const run = block => {
+    const node = NODE_TYPES.delay.create({ sampleRate: sr, connected: [true] });
+    const params = Float32Array.of(300, 0.3, 1), slots = Int32Array.of(0, 1, 2);
+    const total = 48000, out = new Float32Array(total);
+    const input = new Float32Array(block), output = new Float32Array(block);
+    let seed = 7;
+    for (let at = 0; at < total; at += block) {
+      if (at === 19968) params[0] = 40;                               // a time change at a point both block sizes share
+      for (let i = 0; i < block; i++) input[i] = ((seed = (seed * 16807) % 2147483647) / 2147483647 - 0.5) * 0.2;
+      node.process([input], [output], block, params, slots);
+      out.set(output, at);
+    }
+    return out;
+  };
+  const a = run(128), b = run(32);
+  assert.ok(a.every((v, i) => Number.isFinite(v) && Math.abs(v - b[i]) < 1e-6), 'the glide depends on the block size');
+}
+
+// 48. An instrument that produces invalid audio is rebuilt and reported; the others keep sounding.
+{
+  const lanes2 = [oneLane('lead', 'lead', patternText(16, { 0: 'C-4 .. .. .. ..' })), oneLane('bass', 'bass', patternText(16, { 0: 'C-3 .. .. .. ..' }))];
+  const { seq, registry, rt } = songSetup(song120(lanes2));
+  const faults = [];
+  rt.onFault = id => faults.push(id);
+  seq.play();
+  render(seq, 0.05);
+  registry.values[registry.slots.get('bass.delay.time')] = NaN;      // poisons the delay line, bypassing the registry's guard
+  const after = render(seq, 0.4).left;
+  assert.ok(after.every(Number.isFinite), 'a bad instrument reached the output');
+  assert.ok(peak(after) > 0.05, 'the other instrument went quiet');
+  assert.deepEqual([...new Set(faults)], ['bass']);
+
+  // the bad instrument recovers once its parameter is valid again, with its sample still loaded
+  const solo = songSetup(song120([oneLane('bass', 'bass', patternText(16, { 0: 'C-3 .. .. .. ..' }))]));
+  solo.seq.play();
+  render(solo.seq, 0.05);
+  solo.registry.values[solo.registry.slots.get('bass.delay.time')] = NaN;
+  render(solo.seq, 0.2);
+  solo.registry.values[solo.registry.slots.get('bass.delay.time')] = 300;
+  const next = render(solo.seq, 2).left;                              // starts at 0.25 s; the song loops at 2 s, which is sample 84000 here
+  assert.ok(next.every(Number.isFinite));
+  assert.ok(peak(next.subarray(84100, 85500)) > 0.01, 'the rebuilt instrument did not play its sample');
+}
+
+// 49. The parameter registry ignores values that are not numbers.
+{
+  const registry = new ParamRegistry();
+  compile(instruments.kick.graph, { instrument: 'kick', nodeTypes: NODE_TYPES, registry });
+  registry.set('kick.ampEnv.decay', 123);
+  registry.set('kick.ampEnv.decay', NaN);
+  registry.set('kick.ampEnv.decay', Infinity);
+  assert.equal(registry.get('kick.ampEnv.decay'), 123);
+}
+
 console.log('smoke test passed');

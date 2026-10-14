@@ -8,6 +8,7 @@ class TrackerEngine extends AudioWorkletProcessor {
     const params = new Float32Array(sab);
     this.rt = new GraphRuntime({ sampleRate, params });
     this.seq = new Sequencer({ sampleRate, runtime: this.rt, params, transport: new Int32Array(transport) });
+    this.rt.onFault = instrument => this.port.postMessage({ type: 'fault', instrument });
     this.port.onmessage = ({ data }) => {
       if (data.type === 'load') this.rt.load(data.graph);
       else if (data.type === 'node') this.rt.message(data.instrument, data.node, data.msg);

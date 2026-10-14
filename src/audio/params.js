@@ -27,6 +27,7 @@ export class ParamRegistry {
   set(address, value) {
     const slot = this.slots.get(address);
     if (slot === undefined) throw new Error(`unknown parameter "${address}"`);
+    if (!Number.isFinite(value)) return;   // a NaN here would silence everything downstream
     const { min, max } = this.meta[slot];
     this.values[slot] = Math.min(max, Math.max(min, value));
   }

@@ -5,6 +5,7 @@ import { compile } from '../graph/compile.js';
 export class Engine {
   ctx = null;
   node = null;
+  onFault = null;   // called with an instrument id when the audio thread had to rebuild it
   registry = new ParamRegistry();
   transport = new Int32Array(new SharedArrayBuffer(8));   // [tick, playing], written by the worklet
 
@@ -19,6 +20,7 @@ export class Engine {
       outputChannelCount: [2],
       processorOptions: { sab: this.registry.sab, transport: this.transport.buffer },
     });
+    this.node.port.onmessage = ({ data }) => { if (data.type === 'fault') this.onFault?.(data.instrument); };
     this.node.connect(this.ctx.destination);
     await this.ctx.resume();
   }

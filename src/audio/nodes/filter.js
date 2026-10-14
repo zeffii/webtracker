@@ -38,6 +38,8 @@ export default {
           ic2 = 2 * v2 - ic2;
           out[i] = mode === 0 ? v2 : mode === 1 ? v1 : x - k * v1 - v2;
         }
+        if (Math.abs(ic1) < 1e-20) ic1 = 0;   // no slow denormals while silent
+        if (Math.abs(ic2) < 1e-20) ic2 = 0;
       },
     };
   },

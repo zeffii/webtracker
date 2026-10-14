@@ -89,7 +89,8 @@ export class Sequencer {
 
   // x is 0..1; the slot gets the value on the parameter's own scale.
   writeParam(slot, min, max, log, x) {
-    this.params[slot] = log ? min * Math.pow(max / min, x) : min + x * (max - min);
+    const value = log ? min * Math.pow(max / min, x) : min + x * (max - min);
+    if (Number.isFinite(value)) this.params[slot] = value;
   }
 
   playRow(lane) {
