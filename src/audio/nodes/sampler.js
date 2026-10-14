@@ -4,7 +4,9 @@
 // ring over the next hit. A looping sample cannot end by itself, so a new note fades
 // the looping voices out over nnaFade ms (0 cuts them at once). Note off releases
 // looping voices over release ms and leaves one-shots to finish; all-off (transport
-// stop) releases everything; note cut stops everything immediately.
+// stop) releases everything; note cut stops everything immediately. A note off that the
+// sequencer implies by playing a new note (msg.implied) is ignored here: the new note's
+// fade does that job.
 const VOICES = 16;
 const LEVEL = 0, ROOT = 1, RELEASE = 2, NNA_FADE = 3;
 const PLAYING = 0, RELEASING = 1, FADING = 2;   // voice modes
@@ -55,7 +57,7 @@ export default {
           active[v] = 1; mode[v] = PLAYING; note[v] = msg.note;
           pos[v] = 0; gain[v] = msg.vel ?? 1; env[v] = 0; age[v] = ++stamp;
         } else if (msg.type === 'noteOff') {
-          if (looping) {
+          if (looping && !msg.implied) {   // an implied release (a new note in the same column) is left to nnaFade
             for (let v = 0; v < VOICES; v++) {
               if (active[v] && mode[v] === PLAYING && note[v] === msg.note) mode[v] = RELEASING;
             }

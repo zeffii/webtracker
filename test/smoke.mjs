@@ -11,7 +11,7 @@ import { instruments } from '../src/instruments.js';
 import { buildColumns, buildPages, channelCount, flattenLane, prepareSong } from '../src/seq/lane.js';
 import { decodeNote, encodeCell, noteToken, EMPTY } from '../src/seq/cells.js';
 import { insertPattern, placementAt, setCell } from '../src/seq/edit.js';
-import { createTrackerView } from '../src/seq/view.js';
+import { createTrackerView, cellAt } from '../src/seq/view.js';
 import { createSequenceView } from '../src/seq/seqview.js';
 import { createEditor } from '../src/seq/editor.js';
 import * as ops from '../src/seq/edit.js';
@@ -2177,6 +2177,121 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     assert.equal(file.instruments.s.noteColumns, 3);
     assert.equal(file.instruments.s.graph.voices, 6);
   }
+}
+
+// 66. A new note releases the column's last note; rectangle selection, copy, cut, paste and clear.
+{
+  // a new note in a column is a note off for the one before, unless that was already released
+  const registry = new ParamRegistry();
+  const def = { ...structuredClone(instruments.kick), noteColumns: 1 };
+  compile(def.graph, { instrument: 'kick', nodeTypes: NODE_TYPES, registry });
+  const events = [];
+  const stub = { process() {}, note: (instrument, msg) => events.push(`${msg.type}${msg.note !== undefined ? ` ${msg.note}` : ''}${msg.type === 'noteOff' ? (msg.implied ? ' implied' : ' explicit') : ''}`) };
+  const seq = new Sequencer({ sampleRate: sr, runtime: stub, params: registry.values, transport: new Int32Array(new SharedArrayBuffer(8)) });
+  const song = song120([oneLane('kick', 'kick', ['C-4 ..', '... ..', 'E-4 ..', '=== ..', 'G-4 ..', 'A-4 ..'].join('\n'), 8)]);
+  seq.setSong(song);
+  for (const lane of prepareSong(song, { kick: def }, registry)) seq.setLane(lane);
+  seq.play();
+  const o = [new Float32Array(48000), new Float32Array(48000)];
+  seq.process(o[0], o[1], 48000);
+  assert.deepEqual(events, ['noteOn 60', 'noteOff 60 implied', 'noteOn 64', 'noteOff 64 explicit', 'noteOn 67', 'noteOff 67 implied', 'noteOn 69']);
+
+  // end to end: with voices, the first note of a one-column line dies away while the second sounds
+  {
+    const hz = n => 440 * Math.pow(2, (n - 69) / 12);
+    const mag = (x, f, a, b) => {
+      let re = 0, im = 0;
+      for (let i = a; i < b; i++) { const w = 0.5 - 0.5 * Math.cos(2 * Math.PI * (i - a) / (b - a)), ph = 2 * Math.PI * f * i / sr; re += x[i] * w * Math.cos(ph); im += x[i] * w * Math.sin(ph); }
+      return Math.hypot(re, im) / (b - a) * 4;
+    };
+    const graph = {
+      voices: 4,
+      nodes: [{ id: 'osc', type: 'osc', params: { wave: 0 } }, { id: 'env', type: 'env', params: { attack: 1, decay: 10, sustain: 1, release: 50, amount: 1 } }, { id: 'vca', type: 'gain' }, { id: 'poly', type: 'voices' }, { id: 'out', type: 'out' }],
+      connections: [['osc.out', 'vca.in'], ['env.out', 'vca.cv'], ['vca.out', 'poly.in'], ['poly.out', 'out.in']],
+    };
+    const reg = new ParamRegistry(), rt = new GraphRuntime({ sampleRate: sr, params: reg.values });
+    rt.load(compile(graph, { instrument: 'p', nodeTypes: NODE_TYPES, registry: reg }));
+    const s = new Sequencer({ sampleRate: sr, runtime: rt, params: reg.values, transport: new Int32Array(new SharedArrayBuffer(8)) });
+    const sg = song120([oneLane('p', 'p', ['C-4 ..', '... ..', '... ..', '... ..', 'E-4 ..'].join('\n'), 16)]);
+    s.setSong(sg);
+    for (const lane of prepareSong(sg, { p: { graph, exposed: [] } }, reg)) s.setLane(lane);
+    s.play();
+    const x = render(s, 1.5).left;
+    assert.ok(mag(x, hz(60), 60000, 70000) < 0.05 * mag(x, hz(64), 60000, 70000), 'the first note should have been released by the second');
+    assert.ok(mag(x, hz(64), 60000, 70000) > 0.02, 'and the second should sound');
+  }
+
+  // cells of a rectangle
+  const reg2 = new ParamRegistry();
+  for (const [id, d] of Object.entries(instruments)) compile(d.graph, { instrument: id, nodeTypes: NODE_TYPES, registry: reg2 });
+  const lanes = prepareSong(demoSong, instruments, reg2);
+  let onKey, backs = 0;
+  const el = { addEventListener: (type, f) => { if (type === 'keydown') onKey = f; }, innerHTML: '' };
+  const statusEl = { textContent: '' };
+  const view = createTrackerView({ el, statusEl, transport: new Int32Array(new SharedArrayBuffer(8)), onToggle() {}, onBack: () => backs++ });
+  view.load({ lanes, song: demoSong, editor: createEditor(lanes, demoSong.length) });
+  const press = (key, times = 1, extra = {}) => { for (let i = 0; i < times; i++) onKey({ key, preventDefault() {}, ...extra }); };
+  const ctrl = key => press(key, 1, { ctrlKey: true });
+  const [lead] = lanes;
+  const snap = (r0, r1, c0, c1) => lead.rows.slice(r0, r1 + 1).map(r => r.slice(c0, c1 + 1));
+  const before = lead.rows.map(r => r.slice());
+
+  press('ArrowDown', 1, { shiftKey: true }); press('ArrowDown', 1, { shiftKey: true });
+  press('ArrowRight', 1, { shiftKey: true }); press('ArrowRight', 1, { shiftKey: true });   // rows 0-2, Note Vel Cut
+  view.draw();
+  assert.ok(statusEl.textContent.includes('selected 3x3') && el.innerHTML.includes('class="sel"'), statusEl.textContent);
+  ctrl('c');
+  const copied = snap(0, 2, 0, 2);
+  press('ArrowLeft', 5);                                  // a plain move drops the selection; back to the Note column
+  press('ArrowDown', 8);                                  // the cursor was on row 2, so this is row 10
+  ctrl('v');
+  assert.deepEqual(snap(10, 12, 0, 2), copied, 'the rectangle should land at the cursor');
+  assert.equal(lead.rows[9][0], before[9][0]);
+  ctrl('z');
+  assert.deepEqual(lead.rows.map(r => r.slice()), before, 'one undo should take back the whole paste');
+
+  // a cell goes only into a column of its own kind
+  press('Home');
+  ctrl('c');                                              // the Note cell on row 0
+  press('ArrowRight', 3);                                 // the Vel column, same row
+  ctrl('v');
+  assert.deepEqual(lead.rows[0].slice(0, 3), before[0].slice(0, 3), 'a note must not paste into a velocity column');
+  view.draw();
+  assert.ok(statusEl.textContent.includes('Nothing fits'), statusEl.textContent);
+
+  // cut clears, paste puts it back elsewhere; delete clears a whole selection
+  press('ArrowLeft', 3);
+  press('ArrowDown', 1, { shiftKey: true }); press('ArrowRight', 1, { shiftKey: true });   // rows 0-1, Note Vel
+  const want = snap(0, 1, 0, 1);
+  ctrl('x');
+  assert.ok(snap(0, 1, 0, 1).flat().every(c => /^\.+$/.test(c)), 'cut should clear the rectangle');
+  press('ArrowLeft', 3); press('ArrowDown', 12); ctrl('v');
+  assert.deepEqual(snap(13, 14, 0, 1), want);
+  press('Home'); press('ArrowDown', 1, { shiftKey: true }); press('ArrowDown', 1, { shiftKey: true }); press('ArrowDown', 1, { shiftKey: true });
+  press('Delete');
+  assert.ok(snap(0, 3, 0, 0).flat().every(c => /^\.+$/.test(c)), 'delete should clear every selected cell');
+  ctrl('z');
+  assert.equal(lead.rows[2][0], before[2][0], 'one undo for the clear');
+
+  // escape drops a selection before it leaves the screen; select-all takes the whole lane
+  press('Home'); press('ArrowDown', 1, { shiftKey: true });
+  press('Escape'); assert.equal(backs, 0); view.draw(); assert.ok(!statusEl.textContent.includes('selected'));
+  press('Escape'); assert.equal(backs, 1);
+  ctrl('a'); view.draw();
+  assert.ok(statusEl.textContent.includes(`selected ${demoSong.length}x${lead.columns.length}`), statusEl.textContent);
+
+  // mouse geometry: which cell is under a character position
+  const widths = [[4, 3, 2, 2], [4, 3]];   // two lanes; lane 0 is 4+3+2+2 + 3 gaps = 14 wide
+  const at = (x, line, top = 0) => cellAt({ widths, x, line, top, len: 32 });
+  assert.equal(at(3, 2), null, 'the gutter');
+  assert.equal(at(10, 1), null, 'the header');
+  assert.deepEqual(at(5, 2), { lane: 0, tick: 0, col: 0, ch: 0 });          // 4 gutter + 1 marker: the first column
+  assert.deepEqual(at(7, 5, 10), { lane: 0, tick: 13, col: 0, ch: 2 });     // scrolled: line 5 is tick top + 3
+  assert.deepEqual(at(10, 2), { lane: 0, tick: 0, col: 1, ch: 0 });         // after the column and its space
+  assert.deepEqual(at(19, 2).col, 3);
+  assert.equal(at(5 + 14 + 2 + 1, 2).lane, 1, 'the second lane starts after a marker and two spaces');
+  assert.equal(at(200, 2).col, 1, 'far right is the last column');
+  assert.equal(at(5, 40), null, 'past the last row');
 }
 
 console.log('smoke test passed');

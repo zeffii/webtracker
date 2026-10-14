@@ -57,6 +57,25 @@ export function setCell(lane, length, tick, col, token) {
   return true;
 }
 
+// Writes many cells at once ([{ tick, col, token }]): one refresh, and one undo entry when the
+// editor wraps it. Cells that no pattern covers are skipped. Returns the number of cells that
+// changed, or 0 when nothing did.
+export function setCells(lane, length, items) {
+  let changed = 0;
+  for (const { tick, col, token } of items) {
+    const pl = placementAt(lane, tick);
+    if (!pl) continue;
+    const pat = lane.patterns[pl.puid], at = tick - pl.start;
+    if (pat.rows[at][col] === token) continue;
+    const row = pat.rows[at].slice();
+    row[col] = token;
+    pat.rows[at] = row;
+    changed++;
+  }
+  if (changed) refresh(lane, length);
+  return changed;
+}
+
 // New empty pattern at a tick. By default only where no pattern is; with overlay it
 // may sit on top of one. Never where a pattern already starts. Returns its puid.
 export function insertPattern(lane, length, tick, rowCount = 16, overlay = false) {

@@ -42,6 +42,7 @@ export function createEditor(lanes, length, { limit = 20 } = {}) {
   const at = li => lanes[li];
   return {
     setCell: (li, tick, col, token) => change('edit cell', `${li}:${tick}:${col}`, () => ops.setCell(at(li), length, tick, col, token)),
+    setCells: (li, items, label = 'edit cells') => change(label, null, () => ops.setCells(at(li), length, items)),
     insertPattern: (li, tick, { overlay = false } = {}) => change('insert pattern', null, () => ops.insertPattern(at(li), length, tick, 16, overlay)),
     placePattern: (li, tick, puid) => change('place pattern', null, () => ops.placePattern(at(li), length, tick, puid)),
     clone: (li, tick) => change('clone pattern', null, () => ops.clonePlacement(at(li), length, tick)),

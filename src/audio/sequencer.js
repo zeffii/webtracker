@@ -50,7 +50,7 @@ export class Sequencer {
       notes: new Float32Array(cols.reduce((n, c) => (c.kind === 'note' ? n + 1 : n), 0)),
       vels: new Float32Array(cols.reduce((n, c) => (c.kind === 'note' ? n + 1 : n), 0)),
       on: { type: 'noteOn', note: 0, vel: 1 },
-      off: { type: 'noteOff', note: 0 },
+      off: { type: 'noteOff', note: 0, implied: false },
       cut: { type: 'noteCut' },
       all: { type: 'allOff' },
     });
@@ -83,9 +83,11 @@ export class Sequencer {
     this.transport[1] = 0;
   }
 
-  release(lane, k) {
+  // implied: the release comes from a new note in the same column, not from a note off in the pattern.
+  release(lane, k, implied = false) {
     if (lane.prev[k] < 0) return;
     lane.off.note = lane.prev[k];
+    lane.off.implied = implied;
     this.runtime.note(lane.instrument, lane.off);
     lane.prev[k] = -1;
   }
@@ -133,10 +135,12 @@ export class Sequencer {
         lane.prev.fill(-1);
         continue;
       }
-      // A new note does not end the previous one: what happens to it is the instrument's
-      // new-note action (a one-shot sample plays out, a looping one fades or is cut), or, for a
-      // polyphonic instrument, it takes another voice. A note off ends the column's last note.
+      // A note off ends the column's last note. So does a new note, if the last one has not been
+      // released yet: it is released first, and then what happens to it is up to the instrument
+      // (a one-shot sample plays out, a looping one fades; a polyphonic instrument lets it ring
+      // through its release while the new note takes another voice).
       if (note === OFF) { this.release(lane, k); continue; }
+      this.release(lane, k, true);
       lane.on.note = decodeNote(note);
       lane.on.vel = lane.vels[k];
       this.runtime.note(lane.instrument, lane.on);
