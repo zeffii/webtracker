@@ -13,13 +13,14 @@ export function buildColumns(instrument, def, registry) {
     return { slot, min, max, int };
   };
   // noteColumns pairs of note and velocity: each is one voice's worth of notes, so a chord is
-  // several notes on one row. The first pair keeps the plain keys, so a pattern written before
+  // several notes on one row. They are headed N1 V1 N2 V2 ... so that the columns are evenly wide
+  // (a single pair keeps the plain Note and Vel). The first pair keeps the plain keys, so a pattern written before
   // the extra columns existed (or before the instrument was polyphonic) still loads.
   const pairs = Math.max(1, Math.min(8, def.noteColumns ?? 1));
   const columns = [];
   for (let k = 0; k < pairs; k++) {
-    columns.push({ kind: 'note', token: 'note', label: k ? `N${k + 1}` : 'Note', key: k ? `note:${k}` : 'note', nc: k });
-    columns.push({ kind: 'vel', token: '2hex', label: k ? `V${k + 1}` : 'Vel', key: k ? `vel:${k}` : 'vel', nc: k });
+    columns.push({ kind: 'note', token: 'note', label: pairs > 1 ? `N${k + 1}` : 'Note', key: k ? `note:${k}` : 'note', nc: k });
+    columns.push({ kind: 'vel', token: '2hex', label: pairs > 1 ? `V${k + 1}` : 'Vel', key: k ? `vel:${k}` : 'vel', nc: k });
   }
   for (const e of def.exposed) {
     // bits: 16 is a 4hex column, 4 is a 1hex column (a toggle or an enum), otherwise 2hex.

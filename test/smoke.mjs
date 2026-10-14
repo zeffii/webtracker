@@ -1926,7 +1926,7 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     const { left, right } = render(rt, 0.3);
     assert.ok(left.every(Number.isFinite) && peak(left) > 0.02 && peak(left) < 1, `${kind} instrument level ${peak(left)}`);
     const lane = pops.addLane(project, registry, id);
-    assert.deepEqual(lane.columns.map(c => c.label).slice(0, 2), ['Note', 'Vel']);
+    assert.deepEqual(lane.columns.map(c => c.label).slice(0, 2), ['N1', 'V1']);
     assert.ok(lane.columns.length >= 6, 'the exposed parameters should become columns');
   }
   assert.throws(() => pops.addSynthInstrument(project, 'x', 'nope'), /Unknown synth kind/);
@@ -2127,7 +2127,7 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     const defs = { lead: def };
     for (const n of ['filter.cutoff', 'filter.resonance', 'delay.mix', 'delay.time', 'delay.feedback', 'sampler.nnaFade']) registry.allocate(`lead.${n}`, 0.5, 0, 1000);
     const cols = buildColumns('lead', def, registry);
-    assert.deepEqual(cols.map(c => c.label), ['Note', 'Vel', 'N2', 'V2', 'N3', 'V3', 'Cut', 'Res', 'Mix', 'Time', 'Cmd']);
+    assert.deepEqual(cols.map(c => c.label), ['N1', 'V1', 'N2', 'V2', 'N3', 'V3', 'Cut', 'Res', 'Mix', 'Time', 'Cmd']);
     assert.deepEqual(cols.slice(0, 2).map(c => c.key), ['note', 'vel'], 'the first pair keeps its keys');
     assert.deepEqual(buildColumns('lead', { ...def, noteColumns: undefined }, registry).map(c => c.label).slice(0, 3), ['Note', 'Vel', 'Cut']);
 
