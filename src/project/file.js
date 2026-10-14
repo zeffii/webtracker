@@ -4,7 +4,8 @@
 //   format: 'webtracker', version: 1,
 //   song: { name, bpm, ticksPerBeat, length },
 //   instruments: { id: { graph, exposed, commands, samples: { nodeId: sampleId } } },
-//   samples: { id: { rate, data: base64 of little-endian float32, loopStart?, loopEnd? } },   (loop points in frames)
+//   samples: { id: { rate, encoding: 'pcm16' | 'float32', data: base64 of little-endian samples,
+//                    loopStart?, loopEnd? } },   (loop points in frames; no encoding means float32)
 //   lanes: [{ id, instrument, patterns: { puid: { name, index, rows: ['C-4 .. 70', ...] } },
 //             placements: [{ puid, start, length }] }],
 // }
@@ -25,17 +26,37 @@ const fromBase64 = text => {
   const binary = atob(text);
   const bytes = new Uint8Array(binary.length);
   for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-  return new Float32Array(bytes.buffer);
+  return bytes.buffer;
 };
 
+// 16-bit PCM: half the size of float32, with an error of at most 1/32767 of full scale.
+const toPcm16 = floats => Int16Array.from(floats, v => Math.round(Math.min(1, Math.max(-1, v)) * 32767));
+const fromPcm16 = ints => Float32Array.from(ints, v => v / 32767);
+
+const encodeSample = (s, format) => ({
+  rate: s.rate,
+  encoding: format,
+  data: toBase64(format === 'pcm16' ? toPcm16(s.data) : s.data),
+  loopStart: s.loopStart,
+  loopEnd: s.loopEnd,
+});
+
+const decodeSample = s => ({
+  rate: s.rate,
+  data: s.encoding === 'pcm16' ? fromPcm16(new Int16Array(fromBase64(s.data))) : new Float32Array(fromBase64(s.data)),
+  loopStart: s.loopStart,
+  loopEnd: s.loopEnd,
+});
+
 // lanes are the prepared working lanes (with any edits), not the song's source lanes.
-export function serializeProject({ song, instruments, samples, lanes }) {
+// Samples are stored as 16-bit PCM unless sampleFormat is 'float32'.
+export function serializeProject({ song, instruments, samples, lanes }, { sampleFormat = 'pcm16' } = {}) {
   return JSON.stringify({
     format: FORMAT,
     version: VERSION,
     song: { name: song.name ?? 'untitled', bpm: song.bpm, ticksPerBeat: song.ticksPerBeat, length: song.length },
     instruments,
-    samples: Object.fromEntries(Object.entries(samples).map(([id, s]) => [id, { rate: s.rate, data: toBase64(s.data), loopStart: s.loopStart, loopEnd: s.loopEnd }])),
+    samples: Object.fromEntries(Object.entries(samples).map(([id, s]) => [id, encodeSample(s, sampleFormat)])),
     lanes: lanes.map(l => ({
       id: l.id,
       instrument: l.instrument,
@@ -54,8 +75,7 @@ export function parseProject(text) {
   if (data.version !== VERSION) {
     throw new Error(`Unsupported file version ${data.version}; this build reads version ${VERSION}.`);
   }
-  const samples = Object.fromEntries(Object.entries(data.samples ?? {})
-    .map(([id, s]) => [id, { rate: s.rate, data: fromBase64(s.data), loopStart: s.loopStart, loopEnd: s.loopEnd }]));
+  const samples = Object.fromEntries(Object.entries(data.samples ?? {}).map(([id, s]) => [id, decodeSample(s)]));
   for (const [id, def] of Object.entries(data.instruments)) {
     for (const sampleId of Object.values(def.samples ?? {})) {
       if (!samples[sampleId]) throw new Error(`Instrument "${id}" uses unknown sample "${sampleId}".`);

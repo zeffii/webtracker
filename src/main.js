@@ -5,6 +5,7 @@ import { createPatcher } from './graph/patcher.js';
 import { createDemoProject } from './project/demo.js';
 import { addLane, addSample, addSamplerInstrument, toMono } from './project/ops.js';
 import { createSamplePanel } from './project/samplepanel.js';
+import { createWaveformView } from './project/waveform.js';
 import { FILE_EXT, parseProject, serializeProject } from './project/file.js';
 import { createEditor } from './seq/editor.js';
 import { prepareSong, rebuildInstrumentLanes } from './seq/lane.js';
@@ -81,12 +82,18 @@ function refreshProjectUi() {
   fill($('lane-inst'), Object.keys(project.instruments));
   fill($('new-inst-sample'), Object.keys(project.samples));
   samplePanel.render();
+  const ids = Object.keys(project.samples);
+  if (!(waveform.sampleId in project.samples)) waveform.show(ids[0] ?? null);
 }
 
+const sendLoop = users => users.forEach(({ instrument, node }) => sendSample(instrument, node));
 const samplePanel = createSamplePanel({
   container: $('sample-panel'), statusEl: $('proj-status'), getProject: () => project,
-  onLoop: users => users.forEach(({ instrument, node }) => sendSample(instrument, node)),
-  onRemove: refreshProjectUi,
+  onLoop: sendLoop, onRemove: refreshProjectUi, onSelect: id => waveform.show(id),
+});
+const waveform = createWaveformView({
+  canvas: $('wave'), statusEl: $('proj-status'), getProject: () => project,
+  onLoop: users => { sendLoop(users); samplePanel.render(); },   // render again so the numbers follow the markers
 });
 
 // A new empty lane for an instrument that is already loaded in the engine.
@@ -175,7 +182,8 @@ $('sample-file').addEventListener('change', async e => {
     try {
       // The browser decodes the file and resamples it to the audio context's rate.
       const buffer = await engine.ctx.decodeAudioData(await file.arrayBuffer());
-      addSample(project, file.name, buffer.sampleRate, toMono(buffer));
+      const sampleId = addSample(project, file.name, buffer.sampleRate, toMono(buffer));
+      waveform.show(sampleId);
       projStatus(`Loaded ${file.name}.`);
     } catch (err) {
       projStatus(`${file.name}: ${err.message}`);
@@ -220,7 +228,7 @@ $('start').addEventListener('click', async () => {
     for (const id of ['play', 'save', 'load', 'patch-add', 'load-samples', 'add-sampler', 'add-lane']) $(id).disabled = false;
     $('status').textContent =
       `Running at ${engine.ctx.sampleRate} Hz, base latency ${(engine.ctx.baseLatency * 1000).toFixed(1)} ms`;
-    const frame = () => { seqView.draw(); view.draw(); patcher.draw(); requestAnimationFrame(frame); };
+    const frame = () => { seqView.draw(); view.draw(); patcher.draw(); waveform.draw(); requestAnimationFrame(frame); };
     frame();
   } catch (err) {
     $('status').textContent = err.message;

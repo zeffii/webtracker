@@ -23,6 +23,7 @@
     #seq-status { min-height: 1.5em; }
     .srow { display: flex; flex-wrap: wrap; gap: .5rem 1rem; align-items: center; margin: .25rem 0; }
     .srow input[type=number] { width: 7rem; }
+    #wave { border: 1px solid; max-width: 100%; display: block; cursor: col-resize; }
     #patch { border: 1px solid; max-width: 100%; }
     #patch:focus { outline: 1px solid; }
     .prow { display: grid; grid-template-columns: 6rem 1fr 4rem auto; gap: .5rem; align-items: center; }
@@ -47,6 +48,9 @@
     <input id="sample-file" type="file" accept="audio/*" multiple hidden>
     Audio files are mixed down to mono. A loop start and end of 0 means no loop.</p>
   <div id="sample-panel"></div>
+  <canvas id="wave" width="900" height="140"></canvas>
+  <p class="help">The waveform shows the sample chosen with its Waveform button, with the loop between the
+    two markers. Drag a marker to move it, drag across the waveform to make a loop, double-click to clear it.</p>
   <p><input id="new-inst-name" placeholder="instrument name" aria-label="Instrument name">
     <select id="new-inst-sample" aria-label="Sample"></select>
     <button id="add-sampler" disabled>Add sampler instrument and lane</button></p>

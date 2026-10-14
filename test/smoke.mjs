@@ -20,6 +20,7 @@ import { createPatcher, hitTest, portPos } from '../src/graph/patcher.js';
 import { rebuildInstrumentLanes } from '../src/seq/lane.js';
 import * as pops from '../src/project/ops.js';
 import { createSamplePanel } from '../src/project/samplepanel.js';
+import { computePeaks, createWaveformView } from '../src/project/waveform.js';
 import { parseProject, serializeProject } from '../src/project/file.js';
 import { song as demoSong } from '../src/song.js';
 
@@ -358,7 +359,7 @@ const firstSound = x => x.findIndex(v => Math.abs(v) > 1e-9);
   const lanes = prepareSong(demoSong, instruments, registry);
   setCell(lanes[0], 32, 3, 0, 'G-4');
   const data = makePluck(sr);
-  const text = serializeProject({ song: demoSong, instruments, samples: { pluck: { rate: sr, data } }, lanes });
+  const text = serializeProject({ song: demoSong, instruments, samples: { pluck: { rate: sr, data } }, lanes }, { sampleFormat: 'float32' });
   const back = parseProject(text);
 
   assert.deepEqual(back.instruments, JSON.parse(JSON.stringify(instruments)));
@@ -1068,7 +1069,7 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   const editor = createEditor(project.lanes, project.song.length);
   editor.insertPattern(project.lanes.indexOf(lane), 4);
   editor.setCell(project.lanes.indexOf(lane), 4, 0, 'E-3');
-  const back = parseProject(serializeProject(project));
+  const back = parseProject(serializeProject(project, { sampleFormat: 'float32' }));
   assert.equal(back.samples.tick.loopStart, 200);
   assert.equal(back.samples.tick.loopEnd, 1000);
   assert.ok(Buffer.from(back.samples.tick.data.buffer).equals(Buffer.from(burst.buffer)));
@@ -1197,6 +1198,63 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   registry.set('kick.ampEnv.decay', NaN);
   registry.set('kick.ampEnv.decay', Infinity);
   assert.equal(registry.get('kick.ampEnv.decay'), 123);
+}
+
+// 50. 16-bit samples: half the size, small error, and older float32 files still load.
+{
+  const data = new Float32Array(10000).map((_, i) => 0.9 * Math.sin(i * 0.05));
+  const common = { song: demoSong, instruments: {}, lanes: [] };
+  const wide = serializeProject({ ...common, samples: { s: { rate: sr, data } } }, { sampleFormat: 'float32' });
+  const narrow = serializeProject({ ...common, samples: { s: { rate: sr, data, loopStart: 10, loopEnd: 900 } } });
+  assert.ok(JSON.parse(narrow).samples.s.encoding === 'pcm16');
+  assert.ok(JSON.parse(narrow).samples.s.data.length < JSON.parse(wide).samples.s.data.length * 0.6, 'pcm16 should be about half the size');
+  const back = parseProject(narrow).samples.s;
+  assert.equal(back.data.length, data.length);
+  assert.ok(back.data.every((v, i) => Math.abs(v - data[i]) <= 1 / 32767 + 1e-7), 'pcm16 error is too large');
+  assert.deepEqual([back.loopStart, back.loopEnd], [10, 900]);
+  // clipping and full scale
+  const edge = parseProject(serializeProject({ ...common, samples: { s: { rate: sr, data: Float32Array.of(1.5, -1.5, 1, -1, 0) } } })).samples.s.data;
+  assert.deepEqual(Array.from(edge), [1, -1, 1, -1, 0]);
+  // a file saved before the encoding field existed is float32
+  const old = JSON.parse(wide); delete old.samples.s.encoding;
+  assert.ok(Buffer.from(parseProject(JSON.stringify(old)).samples.s.data.buffer).equals(Buffer.from(data.buffer)));
+}
+
+// 51. The waveform view: peaks, drawing, and dragging loop markers.
+{
+  const peaks = computePeaks(Float32Array.of(0, 0.5, -0.25, 1, -1, 0), 3);
+  assert.deepEqual(Array.from(peaks), [0, 0.5, -0.25, 1, -1, 0]);
+  assert.equal(computePeaks(new Float32Array(0), 4).length, 8);
+
+  const ctx = new Proxy({}, { get: (t, k) => (k in t ? t[k] : () => {}), set: (t, k, v) => { t[k] = v; return true; } });
+  const canvas = { width: 900, height: 140, style: {}, listeners: {}, getContext: () => ctx, addEventListener(type, f) { this.listeners[type] = f; } };
+  const project = { samples: { s: { rate: sr, data: new Float32Array(9000).map((_, i) => Math.sin(i * 0.1)) } }, instruments: { a: { samples: { sampler: 's' } } } };
+  const statusEl = { textContent: '' }, loops = [];
+  const view = createWaveformView({ canvas, statusEl, getProject: () => project, onLoop: users => loops.push(users) });
+  const fire = (type, x) => canvas.listeners[type]?.({ offsetX: x, offsetY: 50 });
+  view.draw();                                           // nothing selected: no error
+  view.show('s');
+  view.draw();
+
+  fire('mousedown', 100); fire('mousemove', 400); fire('mouseup', 400);   // drag across empty waveform: a new loop (10 frames per pixel)
+  assert.deepEqual([project.samples.s.loopStart, project.samples.s.loopEnd], [1000, 4000]);
+  assert.deepEqual(loops.at(-1), [{ instrument: 'a', node: 'sampler' }]);
+  view.draw();
+
+  fire('mousedown', 401); fire('mousemove', 600); fire('mouseup', 600);   // grab the end marker and drag it
+  assert.deepEqual([project.samples.s.loopStart, project.samples.s.loopEnd], [1000, 6000]);
+  fire('mousedown', 99); fire('mousemove', 50); fire('mouseup', 50);      // grab the start marker
+  assert.deepEqual([project.samples.s.loopStart, project.samples.s.loopEnd], [500, 6000]);
+  fire('mousedown', 300); fire('mousemove', 305); fire('mouseleave', 305); // leaving the canvas cancels
+  assert.equal(project.samples.s.loopEnd, 6000);
+  fire('mousedown', 300); fire('mouseup', 300);                           // a plain click changes nothing
+  assert.equal(project.samples.s.loopEnd, 6000);
+  fire('mousedown', 598); fire('mousemove', 0); fire('mouseup', 0);        // the end cannot pass the start
+  assert.equal(project.samples.s.loopStart, 500);
+  assert.ok(project.samples.s.loopEnd >= 502);
+  canvas.listeners.dblclick();                                            // double-click clears
+  assert.equal(project.samples.s.loopStart, undefined);
+  view.draw();
 }
 
 console.log('smoke test passed');

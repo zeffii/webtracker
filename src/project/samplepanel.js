@@ -2,7 +2,7 @@ import { setLoop, removeSample, usersOfSample } from './ops.js';
 
 // The list of the project's samples: size, loop points, remove. Rebuilt with render().
 // onLoop(users) is called after loop points change, with the instruments that play it.
-export function createSamplePanel({ container, statusEl, doc = document, getProject, onLoop, onRemove }) {
+export function createSamplePanel({ container, statusEl, doc = document, getProject, onLoop, onRemove, onSelect = () => {} }) {
   const el = (tag, props = {}, ...kids) => {
     const e = doc.createElement(tag);
     Object.assign(e, props);
@@ -34,10 +34,12 @@ export function createSamplePanel({ container, statusEl, doc = document, getProj
       remove.addEventListener('click', () => {
         try { removeSample(project, id); say(''); render(); onRemove(id); } catch (err) { say(err.message); }
       });
+      const show = el('button', { textContent: 'Waveform' });
+      show.addEventListener('click', () => onSelect(id));
       return el('div', { className: 'srow' },
         el('strong', { textContent: id }),
         el('span', { textContent: `${(s.data.length / s.rate).toFixed(2)} s · ${s.rate} Hz · ${s.data.length} frames` }),
-        el('label', {}, 'loop start ', start), el('label', {}, 'end ', end), remove);
+        el('label', {}, 'loop start ', start), el('label', {}, 'end ', end), remove, show);
     }));
   }
 
