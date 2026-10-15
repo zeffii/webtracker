@@ -22,7 +22,7 @@
 // runs off the sample) and `ramp` what each repeat's volume is multiplied by (below 1 fades out). A repeat
 // restarts the sound with a 2 ms crossfade from the one before. Repeats end at the next note, note off or cut.
 const VOICES = 16;
-const LEVEL = 0, ROOT = 1, RELEASE = 2, NNA_FADE = 3, OFFSET = 4, REVERSE = 5, RETRIG = 6, REPEATS = 7, SHIFT = 8, RAMP = 9;
+const LEVEL = 0, ROOT = 1, RELEASE = 2, NNA_FADE = 3, OFFSET = 4, REVERSE = 5, RETRIG = 6, REPEATS = 7, SHIFT = 8, RAMP = 9, SAMPLE = 10;
 const PLAYING = 0, RELEASING = 1, FADING = 2, CUTTING = 3;   // voice modes (cutting: the 2 ms fade of a sound a repeat replaces)
 
 export default {
@@ -46,11 +46,14 @@ export default {
     { name: 'repeats', min: 0, max: 255, def: 0, int: true },          // 0: until the note ends
     { name: 'shift', min: -1, max: 65535 / 32768 - 1, def: 0 },        // per repeat; hex 8000 is zero
     { name: 'ramp', min: 0, max: 65535 / 49152, def: 1 },              // per repeat; hex C000 is one
+    { name: 'sample', min: 0, max: 255, def: 0, int: true },           // which sample of the instrument's list plays
   ],
   create({ sampleRate, stereo = false, clock }) {
-    let sample = null, right = null, ratio = 1, stamp = 0;
-    let volume = 1, globalVolume = 1, pan = 0;
-    const norm = { on: false, start: 0, end: 0, xf: 0 }, sus = { on: false, start: 0, end: 0, xf: 0 };
+    // The samples this node can play, by slot (the instrument's sample list); a note picks one by the `sample`
+    // parameter as it starts. Each has its own data, tuning, levels and loops.
+    const bank = [];
+    let stamp = 0;
+    const sm = new Int32Array(VOICES), loopy = new Uint8Array(VOICES);   // each voice's slot, and whether that sample loops
     const inSus = new Uint8Array(VOICES);
     const active = new Uint8Array(VOICES), mode = new Uint8Array(VOICES);
     const note = new Int32Array(VOICES);
@@ -67,8 +70,8 @@ export default {
 
     // A loop in frames; it counts only when it fits inside the sample. The crossfade needs that many
     // frames before the loop start and cannot be longer than the loop.
-    const setLoop = (loop, on, start = 0, end = 0, xfade = 0) => {
-      const ok = sample && end - start >= 2 && end <= sample.length && start >= 0;
+    const setLoop = (S, loop, on, start = 0, end = 0, xfade = 0) => {
+      const ok = end - start >= 2 && end <= S.sample.length && start >= 0;
       loop.on = !!ok && on !== false;
       loop.start = start; loop.end = end;
       loop.xf = ok ? Math.max(0, Math.min(Math.floor(xfade), start, end - start)) : 0;
@@ -82,42 +85,44 @@ export default {
     };
 
     return {
-      // { type: 'sample', data, right?, rate, volume?, globalVolume?, pan?,
+      // { type: 'sample', slot?, data, right?, rate, volume?, globalVolume?, pan?,
       //   loopStart?, loopEnd?, loopOn?, loopXfade?, susStart?, susEnd?, susOn?, susXfade? } in frames.
       message(msg) {
         if (msg.type !== 'sample') return;
-        sample = msg.data;
-        right = msg.right ?? null;   // second channel of a stereo sample
-        ratio = msg.rate / sampleRate;
-        volume = msg.volume ?? 1;
-        globalVolume = msg.globalVolume ?? 1;
-        pan = Math.max(-1, Math.min(1, msg.pan ?? 0));
-        setLoop(norm, msg.loopOn, msg.loopStart, msg.loopEnd, msg.loopXfade);
-        setLoop(sus, msg.susOn, msg.susStart, msg.susEnd, msg.susXfade);
+        const S = bank[msg.slot | 0] = {
+          sample: msg.data,
+          right: msg.right ?? null,   // second channel of a stereo sample
+          ratio: msg.rate / sampleRate,
+          volume: msg.volume ?? 1,
+          globalVolume: msg.globalVolume ?? 1,
+          pan: Math.max(-1, Math.min(1, msg.pan ?? 0)),
+          norm: { on: false, start: 0, end: 0, xf: 0 }, sus: { on: false, start: 0, end: 0, xf: 0 },
+        };
+        setLoop(S, S.norm, msg.loopOn, msg.loopStart, msg.loopEnd, msg.loopXfade);
+        setLoop(S, S.sus, msg.susOn, msg.susStart, msg.susEnd, msg.susXfade);
       },
       note(msg) {
-        const looping = norm.on || sus.on;
         if (msg.type === 'noteOn') {
           for (let v = 0; v < VOICES; v++) if (active[v]) endChain(v);   // a new note ends the repeats of the one before
-          if (looping || msg.choke) {   // choke: the keyjazz in the sample screen, where a new note fades the old one even if it is a one-shot
-            for (let v = 0; v < VOICES; v++) if (active[v] && mode[v] === PLAYING) mode[v] = FADING;
-          }
+          // a looping sample cannot end by itself, so a new note fades it; choke: the keyjazz in the sample screen,
+          // where a new note fades the old one even if it is a one-shot
+          for (let v = 0; v < VOICES; v++) if (active[v] && mode[v] === PLAYING && (loopy[v] || msg.choke)) mode[v] = FADING;
           let v = active.indexOf(0);
           if (v < 0) {   // all voices busy: take the oldest
             v = 0;
             for (let k = 1; k < VOICES; k++) if (age[k] < age[v]) v = k;
           }
-          active[v] = 1; mode[v] = PLAYING; note[v] = msg.note; inSus[v] = sus.on ? 1 : 0;
+          active[v] = 1; mode[v] = PLAYING; note[v] = msg.note; inSus[v] = 0; loopy[v] = 0;
           pos[v] = 0; gain[v] = msg.vel ?? 1; env[v] = 0; age[v] = ++stamp;
           fresh[v] = 1; countdown[v] = Infinity; dir[v] = 1; skip[v] = 0; cutAt[v] = Infinity;
         } else if (msg.type === 'noteOff') {
           for (let v = 0; v < VOICES; v++) if (active[v] && note[v] === msg.note) endChain(v);
-          if (looping && !msg.implied) {   // an implied release (a new note in the same column) is left to nnaFade
+          if (!msg.implied) {   // an implied release (a new note in the same column) is left to nnaFade
             for (let v = 0; v < VOICES; v++) {
-              if (!active[v] || mode[v] !== PLAYING || note[v] !== msg.note) continue;
-              const wasSus = inSus[v];
+              if (!active[v] || !loopy[v] || mode[v] !== PLAYING || note[v] !== msg.note) continue;
+              const S = bank[sm[v]], wasSus = inSus[v];
               inSus[v] = 0;
-              if (norm.on || !wasSus) mode[v] = RELEASING;   // with only a sustain loop the tail plays out
+              if (S.norm.on || !wasSus) mode[v] = RELEASING;   // with only a sustain loop the tail plays out
             }
           }
         } else if (msg.type === 'allOff') {
@@ -135,18 +140,21 @@ export default {
         const outL = stereo ? outputs[0][0] : outputs[0], outR = stereo ? outputs[0][1] : null;
         outL.fill(0, 0, n);
         if (outR) outR.fill(0, 0, n);
-        if (!sample) return;
-        const level = params[slots[LEVEL]] * globalVolume * volume, root = params[slots[ROOT]];
-        const panL = Math.min(1, 1 - pan), panR = Math.min(1, 1 + pan);
+        if (!bank.length) return;
+        const root = params[slots[ROOT]];
         const relStep = 1 / (Math.max(1, params[slots[RELEASE]]) * 0.001 * sampleRate);
         const fadeMs = params[slots[NNA_FADE]];
         const fadeStep = fadeMs <= 0 ? attack : 1 / (fadeMs * 0.001 * sampleRate);
-        const last = sample.length - 1;
         // Voices that have just started read where to start and whether to repeat.
         const tickSamples = clock?.tickSamples ?? 0;
         for (let v = 0; v < VOICES; v++) {
           if (!active[v] || !fresh[v]) continue;
           fresh[v] = 0;
+          const si = Math.max(0, Math.min(255, Math.floor(params[slots[SAMPLE]]) || 0));
+          if (!bank[si]) { active[v] = 0; continue; }   // no sample in that slot: the note is silent
+          sm[v] = si;
+          const last = bank[si].sample.length - 1;
+          inSus[v] = bank[si].sus.on ? 1 : 0; loopy[v] = bank[si].norm.on || bank[si].sus.on ? 1 : 0;
           const off = Math.max(0, Math.min(1, params[slots[OFFSET]]));
           frac[v] = off;
           dir[v] = params[slots[REVERSE]] >= 1 ? -1 : 1;
@@ -172,7 +180,8 @@ export default {
               w = cur === 0 ? 1 : 0;
               for (let k = 0; k < VOICES; k++) if (k !== cur && age[k] < age[w]) w = k;
             }
-            active[w] = 1; mode[w] = PLAYING; note[w] = note[cur]; inSus[w] = 0; fresh[w] = 0;
+            const last = bank[sm[cur]].sample.length - 1;
+            active[w] = 1; mode[w] = PLAYING; note[w] = note[cur]; inSus[w] = 0; fresh[w] = 0; sm[w] = sm[cur]; loopy[w] = loopy[cur];
             env[w] = 0; age[w] = ++stamp; skip[w] = at; cutAt[w] = Infinity;
             gain[w] = gain[cur] * rampBy[cur]; dir[w] = dir[cur]; frac[w] = nextFrac;
             pos[w] = dir[w] > 0 ? nextFrac * last : last - nextFrac * last;
@@ -185,7 +194,10 @@ export default {
         }
         for (let v = 0; v < VOICES; v++) {
           if (!active[v]) continue;
-          const rate = Math.pow(2, (note[v] - root) / 12) * ratio;
+          const S = bank[sm[v]], sample = S.sample, right = S.right, norm = S.norm, sus = S.sus, last = sample.length - 1;
+          const level = params[slots[LEVEL]] * S.globalVolume * S.volume;
+          const panL = Math.min(1, 1 - S.pan), panR = Math.min(1, 1 + S.pan);
+          const rate = Math.pow(2, (note[v] - root) / 12) * S.ratio;
           let m = mode[v];
           const back = dir[v] < 0;
           const loop = back ? null : inSus[v] ? sus : norm.on ? norm : null;

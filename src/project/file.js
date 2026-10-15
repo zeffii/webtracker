@@ -5,7 +5,7 @@ import { SAMPLE_KEYS } from './ops.js';
 //   format: 'webtracker', version: 1,
 //   patterns carry an optional `color`: 0..15 for one of the pastel presets, or '#rrggbb'
 //   song: { name, bpm, ticksPerBeat, length, swing? },   (swing 0.5 to 0.75: how much of each pair of ticks the first lasts; 0.5 or none is straight)
-//   instruments: { id: { graph, exposed, commands, samples: { nodeId: sampleId }, noteColumns?,
+//   instruments: { id: { graph, exposed, commands, samples: { nodeId: sampleId | [sampleId, ...] }, noteColumns?,
 //                         presets?: [{ id, name, values: { 'node.param': number }, data?: { node: { curve?, spectrum? } } }] } },
 //   (graph.voices, 1 to 16, runs that many copies of the graph for polyphony; noteColumns, 1 to 8,
 //    is how many note and velocity column pairs a row has; both default to 1)
@@ -93,7 +93,7 @@ export function parseProject(text) {
   }
   const samples = Object.fromEntries(Object.entries(data.samples ?? {}).map(([id, s]) => [id, decodeSample(s)]));
   for (const [id, def] of Object.entries(data.instruments)) {
-    for (const sampleId of Object.values(def.samples ?? {})) {
+    for (const sampleId of Object.values(def.samples ?? {}).flat()) {
       if (!samples[sampleId]) throw new Error(`Instrument "${id}" uses unknown sample "${sampleId}".`);
     }
   }
@@ -121,7 +121,7 @@ export const INSTRUMENT_EXT = '.waxi';
 export function serializeInstrument(project, id, { sampleFormat = 'pcm16' } = {}) {
   const def = project.instruments[id];
   if (!def) throw new Error(`No instrument called "${id}".`);
-  const used = [...new Set(Object.values(def.samples ?? {}))];
+  const used = [...new Set(Object.values(def.samples ?? {}).flat())];
   return JSON.stringify({
     format: INSTRUMENT_FORMAT,
     version: VERSION,
@@ -139,7 +139,7 @@ export function parseInstrument(text) {
   if (data.version !== VERSION) throw new Error(`Unsupported file version ${data.version}; this build reads version ${VERSION}.`);
   if (!data.instrument?.graph) throw new Error('The instrument file has no graph.');
   const samples = Object.fromEntries(Object.entries(data.samples ?? {}).map(([id, s]) => [id, decodeSample(s)]));
-  for (const sampleId of Object.values(data.instrument.samples ?? {})) {
+  for (const sampleId of Object.values(data.instrument.samples ?? {}).flat()) {
     if (!samples[sampleId]) throw new Error(`The instrument uses unknown sample "${sampleId}".`);
   }
   return { name: data.name ?? 'instrument', instrument: data.instrument, samples };

@@ -245,14 +245,29 @@ export function createPatcher({ canvas, panel, exposedPanel = null, onEscape = (
       });
       items.splice(1, 0, editor.el);
     }
-    if (node.type === 'sampler') {   // which sample this node plays
-      const picker = el('select', {}, ...getSampleIds().map(id => el('option', { value: id, textContent: id })));
-      picker.value = def().samples?.[node.id] ?? '';
-      picker.addEventListener('change', () => {
-        def().samples = { ...def().samples, [node.id]: picker.value };
+    if (node.type === 'sampler') {   // the samples this node plays: a list, picked from a pattern by the Smp column (00 is the first)
+      const cur = def().samples?.[node.id];
+      const list = Array.isArray(cur) ? [...cur] : cur === undefined ? [] : [cur];
+      const save = next => {
+        def().samples = { ...def().samples, [node.id]: next.length === 1 ? next[0] : next };
         structure();
+        renderNodePanel();   // the list changed length
+      };
+      const rows = list.map((sampleId, i) => {
+        const picker = el('select', {}, ...getSampleIds().map(id => el('option', { value: id, textContent: id })));
+        picker.value = sampleId;
+        picker.addEventListener('change', () => save(list.map((v, k) => (k === i ? picker.value : v))));
+        const parts = [el('span', { textContent: `sample ${i.toString(16).toUpperCase().padStart(2, '0')}` }), picker];
+        if (list.length > 1) {
+          const remove = el('button', { textContent: '✕', title: 'Remove this sample from the list' });
+          remove.addEventListener('click', () => save(list.filter((_, k) => k !== i)));
+          parts.push(remove);
+        }
+        return el('div', { className: 'prow' }, ...parts);
       });
-      items.splice(1, 0, el('div', { className: 'prow' }, el('span', { textContent: 'sample' }), picker));
+      const add = el('button', { textContent: 'Add sample', title: 'Add another sample to the list, to play with the Smp column' });
+      add.addEventListener('click', () => { if (getSampleIds().length) save([...list, getSampleIds()[0]]); });
+      items.splice(1, 0, ...rows, add);
     }
     if (!type.master) {
       const del = el('button', { textContent: 'Delete node' });

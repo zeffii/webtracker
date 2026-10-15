@@ -40,11 +40,15 @@ export function toMono(buffer) {
   return mono;
 }
 
-// Sets `stereo` on each sampler node by whether its sample has two channels.
+// A sampler node plays one sample (a sample id) or a list of them (the `sample` column of a pattern picks
+// from the list, 00 being the first); this is the list.
+export const slotsOf = v => (Array.isArray(v) ? v : v === undefined ? [] : [v]);
+
+// Sets `stereo` on each sampler node by whether any of its samples has two channels.
 export function syncSamplerStereo(def, samples) {
   for (const node of def.graph?.nodes ?? []) {
     if (node.type !== 'sampler') continue;
-    if (samples[def.samples?.[node.id]]?.right) node.stereo = true; else delete node.stereo;
+    if (slotsOf(def.samples?.[node.id]).some(id => samples[id]?.right)) node.stereo = true; else delete node.stereo;
   }
 }
 
@@ -57,7 +61,7 @@ export function addSample(project, name, rate, data, right) {
 // Every { instrument, node } that plays the sample.
 export function usersOfSample(project, id) {
   return Object.entries(project.instruments).flatMap(([instrument, def]) =>
-    Object.entries(def.samples ?? {}).filter(([, sampleId]) => sampleId === id).map(([node]) => ({ instrument, node })));
+    Object.entries(def.samples ?? {}).filter(([, sampleId]) => slotsOf(sampleId).includes(id)).map(([node]) => ({ instrument, node })));
 }
 
 export function removeSample(project, id) {
@@ -113,8 +117,8 @@ export function setSampleProps(project, id, props) {
 }
 
 // What the sampler node is sent for a sample.
-export function sampleMessage(s) {
-  const msg = { type: 'sample', data: s.data.slice(), rate: s.rate };
+export function sampleMessage(s, slot = 0) {
+  const msg = { type: 'sample', slot, data: s.data.slice(), rate: s.rate };
   if (s.right) msg.right = s.right.slice();
   for (const key of SAMPLE_KEYS) if (s[key] !== undefined) msg[key] = s[key];
   return msg;
