@@ -27,7 +27,7 @@ export function cellAt({ widths, x, line, top, len }) {
 // Keyboard-driven view of every lane side by side. The cursor sits on one character
 // of one cell. Edits go straight into the shared pages, so they are heard on the next
 // tick while the song plays. Call load() with the prepared lanes before drawing.
-export function createTrackerView({ el, statusEl, transport, onToggle, onBack, onMove }) {
+export function createTrackerView({ el, statusEl, transport, onToggle, onBack, onMove, onNote = () => {} }) {
   let lanes = null, len = 0, widths = [], editor = null;
   const cur = { lane: 0, tick: 0, col: 0, ch: 0 };
   let octave = 3, message = '';
@@ -50,6 +50,21 @@ export function createTrackerView({ el, statusEl, transport, onToggle, onBack, o
     return fontPx;
   };
   if (el.style) el.style.fontSize = `${fontPx}px`;
+  // Note preview: with it on, a note typed into the grid also sounds on that lane's instrument, for as long
+  // as the key is held. Backslash or Insert switches it on and off; it is remembered.
+  let preview = false;
+  try { preview = localStorage.getItem('patternPreview') === '1'; } catch {}
+  const sounding = new Map();   // key -> { instrument, note }, so the release stops what the press started
+  const stopSound = k => { const s = sounding.get(k); if (s) { onNote(s.instrument, s.note, false); sounding.delete(k); } };
+  const startSound = (k, note) => {
+    stopSound(k);
+    const l = lanes[cur.lane], vel = l.rows[cur.tick][cur.col + 1];
+    const v = l.columns[cur.col + 1]?.kind === 'vel' && /^[0-9A-F]{2}$/i.test(vel ?? '') ? Math.max(0.05, parseInt(vel, 16) / 255) : 1;
+    sounding.set(k, { instrument: l.instrument, note });
+    onNote(l.instrument, note, true, v);
+  };
+  el.addEventListener('keyup', e => stopSound(e.key.length === 1 ? e.key.toLowerCase() : e.key));
+  el.addEventListener('blur', () => { for (const k of [...sounding.keys()]) stopSound(k); });
   el.addEventListener('wheel', e => {
     if (!e.ctrlKey) return;
     e.preventDefault();
@@ -156,15 +171,19 @@ export function createTrackerView({ el, statusEl, transport, onToggle, onBack, o
     const kind = column().token, old = lanes[cur.lane].rows[cur.tick][cur.col];
     if (kind === 'note') {
       if (cur.ch === 0) {   // first character: a whole note at once
-        let next = null;
+        let next = null, note = null;
         if (k === '1') next = '===';
         else if (k === '`') next = '^^^';
         else {
           const n = Object.hasOwn(LOWER, k) ? LOWER[k] : Object.hasOwn(UPPER, k) ? UPPER[k] : null;
           if (n === null) return false;
           try { next = noteToken(octave * 12 + n); } catch { message = 'Note out of range.'; return true; }
+          note = octave * 12 + n;
         }
-        if (write(next)) { cur.ch = 0; moveRow(1); }
+        if (write(next)) {
+          if (preview && note !== null) startSound(k, note);   // before the cursor moves: the velocity is read from this row
+          cur.ch = 0; moveRow(1);
+        }
         return true;
       }
       // Second and third characters edit a note that is already there.
@@ -299,6 +318,11 @@ export function createTrackerView({ el, statusEl, transport, onToggle, onBack, o
       case ' ': onToggle(); break;
       case '[': octave = Math.max(0, octave - 1); message = `Octave ${octave}`; break;
       case ']': octave = Math.min(9, octave + 1); message = `Octave ${octave}`; break;
+      case '\\': case 'Insert':   // note preview on or off
+        preview = !preview;
+        try { localStorage.setItem('patternPreview', preview ? '1' : '0'); } catch {}
+        message = `Note preview ${preview ? 'on: typed notes sound' : 'off'}.`;
+        break;
       case 'Escape': message = ''; onBack(); break;
       case 'Enter':
         message = editor.insertPattern(cur.lane, cur.tick) ? 'Pattern inserted.' : 'A pattern is already here.';
@@ -355,7 +379,7 @@ export function createTrackerView({ el, statusEl, transport, onToggle, onBack, o
     while (lines.length < 2 + rowCount) lines.push('');   // always rowCount rows tall, so the drag bar works on a short song
     el.innerHTML = lines.join('\n');
     statusEl.textContent = [
-      lanes[cur.lane].id, `row ${cur.tick}`, patternName(), column().label, `char ${cur.ch + 1}/${cellWidth()}`,
+      lanes[cur.lane].id, `row ${cur.tick}`, patternName(), column().label, `char ${cur.ch + 1}/${cellWidth()}`, preview ? 'preview on' : '',
       sel ? `selected ${size(rect())}` : '', `octave ${octave}`, message,
     ].filter(Boolean).join(' · ');
   };
@@ -370,5 +394,5 @@ export function createTrackerView({ el, statusEl, transport, onToggle, onBack, o
 
   const setRows = n => { rowCount = Math.max(ROWS.min, Math.min(ROWS.max, Math.round(n))); draw(); return rowCount; };
   const lineHeight = () => (lanes ? metrics().lh : 18);
-  return { draw, load, goto, relayout, setSize, setRows, lineHeight, get rows() { return rowCount; }, get fontPx() { return fontPx; } };
+  return { draw, load, goto, relayout, setSize, setRows, lineHeight, get rows() { return rowCount; }, get fontPx() { return fontPx; }, get preview() { return preview; } };
 }

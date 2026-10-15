@@ -74,6 +74,7 @@ const view = createTrackerView({
   el: $('view'), statusEl: $('cursor'), transport: engine.transport, onToggle: togglePlay,
   onBack: () => tabs.show('arrange'),
   onMove: (lane, tick) => seqView.goto(lane, tick),
+  onNote: (instrument, note, on, vel = 1) => { if (!started) return; if (on) engine.noteOn(instrument, note, vel); else engine.noteOff(instrument, note); },
 });
 const seqView = createSequenceView({
   el: $('seq'), statusEl: $('seq-status'), listEl: $('seq-list'), transport: engine.transport, onToggle: togglePlay,

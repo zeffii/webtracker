@@ -3215,4 +3215,29 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   assert.equal(peak(after.subarray(after.length >> 1)), 0, 'panic silences the held note');
 }
 
+// 94. Note preview in the pattern editor
+{
+  const registry = new ParamRegistry();
+  for (const [id, def] of Object.entries(instruments)) compile(def.graph, { instrument: id, nodeTypes: NODE_TYPES, registry });
+  const lanes = prepareSong(demoSong, instruments, registry);
+  const listeners = {}, played = [];
+  const el = { addEventListener: (type, f) => { listeners[type] = f; }, innerHTML: '', style: {} };
+  const view = createTrackerView({ el, statusEl: { textContent: '' }, transport: new Int32Array(new SharedArrayBuffer(8)), onToggle() {}, onBack() {}, onNote: (...a) => played.push(a) });
+  view.load({ lanes, song: demoSong, editor: createEditor(lanes, demoSong.length) });
+  const press = (key, extra) => listeners.keydown({ key, preventDefault() {}, ...extra });
+  const release = key => listeners.keyup({ key });
+  const wasOn = view.preview;
+  if (wasOn) press('\\');
+  assert.equal(view.preview, false);
+  press('z'); assert.equal(played.length, 0, 'silent while preview is off');
+  press('Home'); press('\\');
+  assert.equal(view.preview, true, 'backslash turns it on');
+  press('x'); assert.equal(played.length, 1);
+  assert.deepEqual(played[0].slice(0, 3), [lanes[0].instrument, 38, true], 'the typed note sounds on the lane instrument');
+  release('x'); assert.deepEqual(played.at(-1).slice(0, 3), [lanes[0].instrument, 38, false], 'and stops when the key is let go');
+  press('Insert'); assert.equal(view.preview, false, 'Insert turns it off again');
+  press('c'); assert.equal(played.length, 2, 'nothing more plays');
+  press('Insert'); press('1'); assert.equal(played.length, 2, 'a note-off entry is not a note to hear');
+}
+
 console.log('smoke test passed');
