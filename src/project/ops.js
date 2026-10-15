@@ -181,6 +181,7 @@ export function duplicateLane(project, id, length = project.song.length) {
     patterns: structuredClone(lane.patterns),
     placements: structuredClone(lane.placements),
     mutes: [...(lane.mutes ?? [])],
+    silenced: lane.silenced === true,
   };
   copy.rows = flattenLane(copy, copy.columns, length);
   copy.pages = buildPages(copy.rows, copy.columns);
@@ -234,6 +235,7 @@ export function projectData(project) {
     patterns: Object.fromEntries(Object.entries(l.patterns).map(([puid, p]) => [puid, { name: p.name, index: p.index, text: p.rows.map(r => r.join(' ')).join('\n') }])),
     placements: l.placements.map(p => ({ ...p })),
     ...(l.mutes?.length ? { mutes: [...l.mutes] } : {}),
+    ...(l.silenced ? { silenced: true } : {}),
   }));
   return { song: { ...project.song, lanes }, instruments: project.instruments, samples: project.samples };
 }

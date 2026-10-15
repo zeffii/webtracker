@@ -116,10 +116,12 @@ export function buildPages(rows, columns) {
 
 // Instruments must already be compiled so their parameter slots exist. The lanes
 // A lane's mutes are the ticks where it flips between playing and muted: the first flip mutes it,
-// the next unmutes it, and so on. The mask says, for each tick, whether the lane is muted; it is
-// shared memory, so the sequencer reads what an edit writes.
+// the next unmutes it, and so on. A lane can also be silenced as a whole, which wins over the flips.
+// The mask says, for each tick, whether the lane is muted: 0 plays, 1 muted by the flips, 2 silenced.
+// It is shared memory, so the sequencer reads what an edit writes.
 export function writeMask(lane, length) {
   lane.mask ??= new Uint8Array(new SharedArrayBuffer(Math.max(1, length)));
+  if (lane.silenced) { lane.mask.fill(2); return; }
   lane.mask.fill(0);
   const flips = [...(lane.mutes ?? [])].sort((a, b) => a - b);
   for (let i = 0; i < flips.length; i += 2) lane.mask.fill(1, Math.max(0, flips[i]), Math.min(length, flips[i + 1] ?? length));
@@ -146,6 +148,7 @@ export function prepareSong(song, instruments, registry) {
       })),
       placements: src.placements.map(p => ({ ...p })),
       mutes: [...(src.mutes ?? [])].filter(t => t < song.length).sort((a, b) => a - b),
+      silenced: src.silenced === true,
     };
     lane.rows = flattenLane(lane, columns, song.length);
     lane.pages = buildPages(lane.rows, columns);

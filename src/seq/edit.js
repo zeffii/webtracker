@@ -46,6 +46,8 @@ export function refresh(lane, length) {
   writeMask(lane, length);
 }
 
+export const refreshMask = (lane, length) => writeMask(lane, length);
+
 // Flips the mute at a tick: puts a flip there, or takes the one that is there away.
 export function toggleMute(lane, length, tick) {
   if (tick < 0 || tick >= length) return false;

@@ -93,7 +93,8 @@ export function createSequenceView({ el, statusEl, transport, onToggle, onOpen, 
         break;
       }
       case 'Delete': case 'Backspace': act('remove', editor.remove(li, t), 'Removed. The pattern stays in the list.'); break;
-      case 'm': {   // start a mute here; again further down to unmute
+      case 'm': {   // start a mute here; again further down to unmute. Shift+M silences the whole lane.
+        if (e.shiftKey) { message = editor.silence(li) ? `${lane().id} silenced.` : `${lane().id} is back on.`; break; }
         const row = rowStart(cur.tick);
         if (!editor.toggleMute(li, row)) { message = "Can't mute here."; break; }
         const l = lane();
@@ -119,13 +120,16 @@ export function createSequenceView({ el, statusEl, transport, onToggle, onOpen, 
     const playing = Atomics.load(transport, 1) === 1, playTick = Atomics.load(transport, 0);
     const rows = Math.ceil(len / CELL), curRow = Math.floor(cur.tick / CELL);
     const top = Math.max(0, Math.min(curRow - 8, rows - ROWS));
-    const lines = [`      ${lanes.map((l, li) => `${li === cur.lane ? '>' : ' '}${esc(l.id.slice(0, COLW - 1).padEnd(COLW - 1))}`).join(' ')}`];
+    const lines = [`      ${lanes.map((l, li) => {
+      const head = `${li === cur.lane ? '>' : ' '}${esc(l.id.slice(0, COLW - 1).padEnd(COLW - 1))}`;
+      return l.silenced ? `<span class="silenced">${head}</span>` : head;
+    }).join(' ')}`];
 
     for (let r = top; r < Math.min(rows, top + ROWS); r++) {
       const t = r * CELL;
       const cells = lanes.map((l, li) => {
         const pl = inRow(l, t);
-        const muted = l.mask?.[t] === 1, flip = (l.mutes ?? []).includes(t);
+        const level = l.mask?.[t] ?? 0, muted = level > 0, flip = (l.mutes ?? []).includes(t);
         let text = muted ? '·'.repeat(COLW) : ' '.repeat(COLW), cls = '';
         if (pl) {
           const pat = l.patterns[pl.puid];
@@ -134,7 +138,7 @@ export function createSequenceView({ el, statusEl, transport, onToggle, onOpen, 
           cls = `p${pat.index % 6}`;
         }
         if (flip) text = `${text.slice(0, COLW - 1)}${muted ? 'm' : 'u'}`;   // m: muted from here, u: plays again
-        const classes = [cls, muted && 'muted', li === cur.lane && r === curRow && 'cur'].filter(Boolean).join(' ');
+        const classes = [cls, level === 2 ? 'silenced' : muted && 'muted', li === cur.lane && r === curRow && 'cur'].filter(Boolean).join(' ');
         return classes ? `<span class="${classes}">${esc(text)}</span>` : esc(text);
       });
       lines.push(`${playing && playTick >= t && playTick < t + CELL ? '>' : ' '}${String(t).padStart(4, '0')} ${cells.join(' ')}`);
@@ -151,7 +155,7 @@ export function createSequenceView({ el, statusEl, transport, onToggle, onOpen, 
     statusEl.textContent = [
       lane().id, `tick ${editTick()}`,
       owner ? `${hex2(lane().patterns[owner.puid].index)} ${lane().patterns[owner.puid].name}` : 'no pattern',
-      lane().mask?.[rowStart(cur.tick)] && 'muted',
+      lane().silenced ? 'silenced' : lane().mask?.[rowStart(cur.tick)] && 'muted',
       typed && `typing ${typed}`, message,
     ].filter(Boolean).join(' · ');
   };

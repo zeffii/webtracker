@@ -55,6 +55,8 @@ export function createEditor(lanes, length, { limit = 20 } = {}) {
     slice: (li, tick) => change('slice pattern', null, () => ops.slicePlacement(at(li), length, tick)),
     resize: (li, tick, delta) => change(delta > 0 ? 'extend pattern' : 'shrink pattern', null, () => ops.resizePlacement(at(li), length, tick, delta)),
     move: (li, tick, delta) => change('move pattern', null, () => ops.movePlacement(at(li), length, tick, delta)),
+    // Silences or restores the whole lane. A performance switch, not an edit: it is not undone.
+    silence: li => { const l = at(li); l.silenced = !l.silenced; ops.refreshMask(l, length); return l.silenced; },
     toggleMute: (li, tick) => change('toggle mute', null, () => ops.toggleMute(at(li), length, tick)),
     remove: (li, tick) => change('remove pattern', null, () => ops.removePlacement(at(li), length, tick)),
 
