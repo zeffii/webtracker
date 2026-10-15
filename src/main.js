@@ -344,7 +344,7 @@ for (const [id, field, max] of [['inst-voices', 'voices', 16], ['inst-notecols',
 const sendLoop = users => users.forEach(({ instrument, node }) => sendSample(instrument, node));
 const samplePanel = createSamplePanel({
   container: $('sample-panel'), statusEl: $('proj-status'), getProject: () => project,
-  onLoop: sendLoop, onRemove: refreshProjectUi, onSelect: id => waveform.show(id),
+  onLoop: sendLoop, onRemove: refreshProjectUi, onRename: (from, to) => { if (waveform.sampleId === from) waveform.show(to); refreshProjectUi(); patcher.show(patcher.instrument); }, onSelect: id => waveform.show(id),
 });
 const waveform = createWaveformView({
   canvas: $('wave'), statusEl: $('proj-status'), getProject: () => project,

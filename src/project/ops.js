@@ -123,6 +123,18 @@ const newName = (name, taken, what, current) => {
   return next;
 };
 
+// Renames a sample (keeping its place in the list) and every instrument node that plays it.
+export function renameSample(project, id, name) {
+  if (!project.samples[id]) throw new Error(`No sample called "${id}".`);
+  const next = newName(name, new Set(Object.keys(project.samples)), 'a sample', id);
+  if (next === id) return id;
+  project.samples = Object.fromEntries(Object.entries(project.samples).map(([k, v]) => [k === id ? next : k, v]));
+  for (const def of Object.values(project.instruments)) {
+    for (const [node, sid] of Object.entries(def.samples ?? {})) if (sid === id) def.samples[node] = next;
+  }
+  return next;
+}
+
 export function renameLane(project, id, name) {
   const lane = laneOf(project, id);
   lane.id = newName(name, new Set(project.lanes.map(l => l.id)), 'a lane', id);

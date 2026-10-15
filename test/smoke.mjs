@@ -1122,10 +1122,22 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   panel.render();
   const rows = container.children;
   assert.equal(rows.length, 2);
-  const parts = row => { const f = { numbers: [], buttons: [] }; walk(row, e => { if (e.tag === 'input') f.numbers.push(e); if (e.tag === 'button') f.buttons.push(e); }); return f; };
+  const parts = row => { const f = { numbers: [], buttons: [], name: null }; walk(row, e => { if (e.tag === 'input' && e.type === 'text') f.name = e; else if (e.tag === 'input') f.numbers.push(e); if (e.tag === 'button') f.buttons.push(e); }); return f; };
   const pluck = parts(rows[0]), tick = parts(rows[1]);
   assert.equal(pluck.buttons[0].disabled, true, 'a sample in use cannot be removed');
   assert.equal(tick.buttons[0].disabled, false);
+
+  // the name box renames the sample everywhere
+  const renamed = [];
+  const panel2 = createSamplePanel({ container, statusEl, doc, getProject: () => project, onLoop: () => {}, onRemove: () => {}, onRename: (a, b) => renamed.push([a, b]) });
+  panel2.render();
+  const tickName = parts(container.children[1]).name;
+  tickName.value = 'hat'; tickName.listeners.change();
+  assert.deepEqual(renamed, [['tick', 'hat']]);
+  assert.ok(project.samples.hat && !project.samples.tick);
+  project.samples.tick = project.samples.hat; delete project.samples.hat;   // put it back for the checks below
+  for (const d of Object.values(project.instruments)) for (const k of Object.keys(d.samples ?? {})) if (d.samples[k] === 'hat') d.samples[k] = 'tick';
+  panel.render();
 
   pluck.numbers[0].value = '100'; pluck.numbers[1].value = '5000'; pluck.numbers[1].listeners.change();
   assert.deepEqual(looped.at(-1).map(u => u.instrument).sort(), ['bass', 'lead']);
@@ -2595,6 +2607,18 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     const ch = pops.channelsOf({ numberOfChannels: 2, getChannelData: c => Float32Array.of(c, c + 1) });
     assert.deepEqual([...ch.data, ...ch.right], [0, 1, 1, 2]);
     assert.equal(pops.channelsOf({ numberOfChannels: 1, getChannelData: () => Float32Array.of(1) }).right, undefined);
+  }
+
+  // renaming a sample follows it into the instruments that play it
+  {
+    const project = { instruments: { a: { samples: { sampler: 'one' } }, b: { samples: { sampler: 'two' } } }, samples: { one: { rate: 1, data: Float32Array.of(1) }, two: { rate: 1, data: Float32Array.of(2) } } };
+    assert.equal(pops.renameSample(project, 'one', ' my kick! '), 'my_kick');
+    assert.deepEqual(Object.keys(project.samples), ['my_kick', 'two'], 'the list keeps its order');
+    assert.equal(project.instruments.a.samples.sampler, 'my_kick');
+    assert.equal(project.instruments.b.samples.sampler, 'two');
+    assert.throws(() => pops.renameSample(project, 'two', 'my_kick'), /already a sample/);
+    assert.throws(() => pops.renameSample(project, 'zzz', 'x'), /No sample/);
+    assert.equal(pops.renameSample(project, 'two', 'two'), 'two');
   }
 }
 

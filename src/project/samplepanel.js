@@ -1,8 +1,8 @@
-import { setLoop, removeSample, usersOfSample } from './ops.js';
+import { setLoop, removeSample, renameSample, usersOfSample } from './ops.js';
 
 // The list of the project's samples: size, loop points, remove. Rebuilt with render().
 // onLoop(users) is called after loop points change, with the instruments that play it.
-export function createSamplePanel({ container, statusEl, doc = document, getProject, onLoop, onRemove, onSelect = () => {} }) {
+export function createSamplePanel({ container, statusEl, doc = document, getProject, onLoop, onRemove, onRename = () => {}, onSelect = () => {} }) {
   const el = (tag, props = {}, ...kids) => {
     const e = doc.createElement(tag);
     Object.assign(e, props);
@@ -36,8 +36,20 @@ export function createSamplePanel({ container, statusEl, doc = document, getProj
       });
       const show = el('button', { textContent: 'Waveform' });
       show.addEventListener('click', () => onSelect(id));
+      const name = el('input', { type: 'text', value: id, size: 14, ariaLabel: 'Sample name' });
+      name.addEventListener('change', () => {
+        try {
+          const next = renameSample(project, id, name.value);
+          say('');
+          render();
+          onRename(id, next);
+        } catch (err) {
+          say(err.message);
+          name.value = id;
+        }
+      });
       return el('div', { className: 'srow' },
-        el('strong', { textContent: id }),
+        name,
         el('span', { textContent: `${(s.data.length / s.rate).toFixed(2)} s · ${s.rate} Hz · ${s.right ? 'stereo' : 'mono'} · ${s.data.length} frames` }),
         el('label', {}, 'loop start ', start), el('label', {}, 'end ', end), remove, show);
     }));
