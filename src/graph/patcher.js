@@ -6,6 +6,7 @@ import { addNode, autoLayout, connect, disconnect, pruneDef, removeNode, setBits
 // to the wiring or the exposed parameters calls onStructure so the instrument is rebuilt
 // and swapped in; a parameter change calls onParam and is heard at once.
 import { GLYPHS } from './glyphs.js';
+import { LOWER, UPPER } from '../seq/piano.js';
 import { portKind, resolveKinds } from './kinds.js';
 import { createCurveEditor } from './curveeditor.js';
 import { createSpectrumEditor } from './spectrumeditor.js';
@@ -87,7 +88,7 @@ const toValue = (spec, pos) => {
 const toPos = (spec, v) => (isLog(spec) ? Math.log(v / spec.min) / Math.log(spec.max / spec.min) : (v - spec.min) / (spec.max - spec.min));
 const fmt = v => String(Number(v.toPrecision(4)));
 
-export function createPatcher({ canvas, panel, exposedPanel = null, onEscape = () => {}, statusEl, doc = document, nodeTypes, onStructure, onParam, onData = () => {}, onContext = () => {}, getSampleIds = () => [] }) {
+export function createPatcher({ canvas, panel, exposedPanel = null, onEscape = () => {}, statusEl, doc = document, nodeTypes, onStructure, onParam, onData = () => {}, onContext = () => {}, onNote = () => {}, getSampleIds = () => [] }) {
   let instruments = {}, instId = null, selected = null, drag = null, dirty = true;
   const ctx = canvas.getContext('2d');
   const W = canvas.width;
@@ -103,6 +104,16 @@ export function createPatcher({ canvas, panel, exposedPanel = null, onEscape = (
 
   const def = () => instruments[instId];
   const desc = () => def().graph;
+  // Keyjazz: with a generator node (an oscillator, a sampler, a synth) selected, the piano keys play the whole
+  // instrument while held, as in the pattern view; [ and ] change the octave.
+  const PIANO = { ...LOWER, ...UPPER };
+  const held = new Map();   // key -> the note it started, so a key released after an octave change stops the right one
+  let octave = 3;
+  const generatorSelected = () => {
+    const node = selected?.kind === 'node' ? desc().nodes.find(n => n.id === selected.id) : null;
+    return !!node && !!nodeTypes[node.type]?.generator;
+  };
+  const releaseKeys = () => { for (const note of held.values()) onNote(instId, note, false); held.clear(); };
   const say = text => { if (statusEl) statusEl.textContent = text; };
   const structure = () => { dirty = true; onStructure(instId); };
 
@@ -353,9 +364,24 @@ export function createPatcher({ canvas, panel, exposedPanel = null, onEscape = (
       e.preventDefault();
       return;
     }
+    if (!e.ctrlKey && !e.altKey && !e.metaKey && generatorSelected()) {
+      const k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+      if (k === '[' || k === ']') { octave = Math.min(8, Math.max(0, octave + (k === ']' ? 1 : -1))); say(`Keyjazz octave ${octave}`); e.preventDefault(); return; }
+      if (Object.hasOwn(PIANO, k)) {
+        if (!e.repeat && !held.has(k)) { const note = octave * 12 + PIANO[k]; held.set(k, note); onNote(instId, note, true); }
+        e.preventDefault();
+        return;
+      }
+    }
     const way = { ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'up', ArrowDown: 'down' }[e.key] ?? (e.key === 'Tab' ? (e.shiftKey ? 'prev' : 'next') : null);
     if (way && !e.ctrlKey && !e.altKey && !e.metaKey && selectNear(way)) e.preventDefault();
   });
+
+  canvas.addEventListener('keyup', e => {
+    const k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+    if (held.has(k)) { onNote(instId, held.get(k), false); held.delete(k); }
+  });
+  canvas.addEventListener('blur', releaseKeys);
 
   // ---- drawing ----
   function draw() {
@@ -494,5 +520,7 @@ export function createPatcher({ canvas, panel, exposedPanel = null, onEscape = (
     get selectedNode() { return selected?.kind === 'node' ? selected.id : null; },
     draw,
     get instrument() { return instId; },
+    get octave() { return octave; },
+    releaseKeys,
   };
 }

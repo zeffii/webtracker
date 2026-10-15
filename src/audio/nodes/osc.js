@@ -11,6 +11,7 @@ export default {
   inputs: ['fm', 'sync'],   // fm is in octaves, per sample
   outputs: ['out'],
   category: 'Sources',
+  generator: true,   // makes sound from notes, so the instrument screen can play it from the keyboard
   shape: 'rounded',
   glyph: 'osc',
   kinds: { fm: 'control', sync: 'control' },   // ports are audio unless listed

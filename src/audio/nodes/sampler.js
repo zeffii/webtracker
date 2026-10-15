@@ -22,6 +22,7 @@ export default {
   inputs: [],
   outputs: ['out'],
   category: 'Sources',
+  generator: true,   // makes sound from notes, so the instrument screen can play it from the keyboard
   shape: 'rounded',
   glyph: 'sample',
   kinds: { out: 'audio' },   // ports are audio unless listed

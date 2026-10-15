@@ -156,6 +156,11 @@ export class GraphRuntime {
     }
   }
 
+  // Every voice of every instrument stops at once.
+  panic() {
+    for (const id of this.instruments.keys()) this.note(id, { type: 'noteCut' });
+  }
+
   process(left, right, n) {
     left.fill(0, 0, n);
     right.fill(0, 0, n);

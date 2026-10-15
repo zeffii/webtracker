@@ -13,6 +13,7 @@ class TrackerEngine extends AudioWorkletProcessor {
       if (data.type === 'load') this.rt.load(data.graph);
       else if (data.type === 'node') this.rt.message(data.instrument, data.node, data.msg);
       else if (data.type === 'note') this.rt.note(data.instrument, data.msg);
+      else if (data.type === 'panic') this.rt.panic();
       else if (data.type === 'reset') {
         const fresh = new Float32Array(data.sab);
         this.rt.reset(fresh);

@@ -47,6 +47,8 @@ const setPlaying = value => {
   $('play').textContent = playing ? 'Stop' : 'Play';
 };
 const togglePlay = () => setPlaying(!playing);
+// Panic: every sounding note stops, and held keyjazz keys are let go.
+$('panic').addEventListener('click', e => { engine.panic(); patcher.releaseKeys(); e.currentTarget.blur(); });
 $('play').addEventListener('click', e => { togglePlay(); e.currentTarget.blur(); });
 
 // Full-screen panes. Switching with an F-key or a click focuses the pane's main element.
@@ -80,6 +82,7 @@ const seqView = createSequenceView({
 });
 
 const patcher = createPatcher({
+  onNote: (id, note, on) => { if (!started) return; if (on) engine.noteOn(id, note, 1); else engine.noteOff(id, note); },
   canvas: $('patch'), panel: $('patch-panel'), exposedPanel: $('exposed-panel'), onEscape: () => $('inst-list').focus(), statusEl: $('patch-status'), nodeTypes: NODE_TYPES,
   onStructure: id => reloadInstrument(id),
   onContext: ({ x, y }) => menu.open(x, y),
@@ -602,7 +605,7 @@ $('start').addEventListener('click', async () => {
     started = true;
     openProject(createSynthwaveProject());
     for (const id of ['start']) $(id).disabled = true;
-    for (const id of ['play', 'save', 'load', 'patch-add', 'load-samples', 'add-sampler', 'add-synth', 'add-lane', 'inst-voices', 'inst-notecols', 'inst-name', 'inst-rename', 'inst-up', 'inst-down', 'inst-dup', 'inst-remove', 'lane-name', 'lane-rename', 'lane-left', 'lane-right', 'lane-dup', 'lane-remove', 'length', 'bpm', 'swing', 'preset-name', 'preset-save', 'preset-over', 'preset-rename', 'preset-remove', 'inst-export', 'inst-import', 'lib-load', 'lib-add', 'lib-save']) $(id).disabled = false;
+    for (const id of ['play', 'panic', 'save', 'load', 'patch-add', 'load-samples', 'add-sampler', 'add-synth', 'add-lane', 'inst-voices', 'inst-notecols', 'inst-name', 'inst-rename', 'inst-up', 'inst-down', 'inst-dup', 'inst-remove', 'lane-name', 'lane-rename', 'lane-left', 'lane-right', 'lane-dup', 'lane-remove', 'length', 'bpm', 'swing', 'preset-name', 'preset-save', 'preset-over', 'preset-rename', 'preset-remove', 'inst-export', 'inst-import', 'lib-load', 'lib-add', 'lib-save']) $(id).disabled = false;
     $('status').textContent =
       `Running at ${engine.ctx.sampleRate} Hz, base latency ${(engine.ctx.baseLatency * 1000).toFixed(1)} ms`;
     const frame = () => { songInfo(); seqView.draw(); view.draw(); patcher.draw(); sampleScreen.draw(); waveform.draw(); requestAnimationFrame(frame); };

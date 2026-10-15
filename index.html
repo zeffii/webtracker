@@ -195,6 +195,7 @@
       <label title="Song length in ticks; 16 ticks is one row of the arrangement">length <input id="length" type="number" min="16" max="4096" step="16" style="width:4.5em" disabled></label>
       <label>bpm <input id="bpm" type="number" min="20" max="400" step="1" style="width:4em" disabled></label>
       <label title="How much of each pair of rows the first one lasts: 50 is straight, 67 is a triplet shuffle">swing <input id="swing" type="number" min="50" max="75" step="1" style="width:3.5em" disabled>%</label>
+      <button id="panic" disabled title="Stop every sounding note (all notes off)" style="margin-left:auto">Panic</button>
     </div>
     <div class="line">
       <nav id="tabs">
@@ -312,7 +313,7 @@
             <button id="add-synth" disabled>Add synth and lane</button>
           </div>
         </details>
-        <p class="help">Keys: Up/Down in the list choose an instrument, Enter goes to the graph. In the graph the arrows (or Tab) move between nodes, Esc goes back to the list, Delete removes the node or wire. Drag a node to move it. Drag from an output dot (right side) to an input dot (left side) to
+        <p class="help">Keys: Up/Down in the list choose an instrument, with a generator node (oscillator, sampler, synth) selected the piano keys play the instrument ([ ] change the octave), Enter goes to the graph. In the graph the arrows (or Tab) move between nodes, Esc goes back to the list, Delete removes the node or wire. Drag a node to move it. Drag from an output dot (right side) to an input dot (left side) to
           wire them. An input can take several wires, which are added together; use a mix node when you want a ratio. Blue wires carry audio, amber wires carry control signals (envelopes, lfos, triggers), and heavier purple wires carry a stereo pair (a mono wire into a stereo input feeds both channels; stereo into a mono input is averaged). Right-click the graph, or double-click empty space, to insert a node. In the panels, sliders change a parameter (Left/Right, Shift for more) and "expose" adds it to the instrument's pattern
           columns. Changing the wiring or the exposed list swaps the instrument in live and clears undo.</p>
       </div>

@@ -53,6 +53,11 @@ export class Engine {
     this.node.port.postMessage({ type: 'note', instrument, msg: { type: 'noteOff', note } });
   }
 
+  // all notes off, everywhere
+  panic() {
+    this.node.port.postMessage({ type: 'panic' });
+  }
+
   setSong({ bpm, ticksPerBeat, length, swing = 0.5 }) {
     this.node.port.postMessage({ type: 'song', song: { bpm, ticksPerBeat, length, swing } });
   }

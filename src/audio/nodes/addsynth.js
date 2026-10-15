@@ -36,6 +36,7 @@ export default {
   inputs: ['pitch'],
   outputs: ['out'],
   category: 'Sources',
+  generator: true,   // makes sound from notes, so the instrument screen can play it from the keyboard
   shape: 'rounded',
   glyph: 'addsynth',
   editor: 'spectrum',   // the patcher panel offers the spectrum editor for this node

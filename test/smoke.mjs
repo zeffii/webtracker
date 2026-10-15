@@ -3174,4 +3174,45 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   assert.ok(!el.innerHTML.includes('patterns:'), 'the grid no longer carries the list line');
 }
 
+// 93. Keyjazz from the instrument screen, and panic.
+{
+  const makeEl = tag => ({
+    tag, children: [], listeners: {}, style: {}, textContent: '', value: '', checked: false,
+    appendChild(c) { this.children.push(c); return c; }, replaceChildren(...c) { this.children = c; },
+    addEventListener(type, f) { this.listeners[type] = f; }, focus() {},
+  });
+  const doc = { createElement: makeEl, createTextNode: text => ({ text }) };
+  const ctx = new Proxy({}, { get: (t, k) => (k in t ? t[k] : () => {}), set: (t, k, v) => { t[k] = v; return true; } });
+  const canvas = { width: 900, height: 360, style: {}, listeners: {}, getContext: () => ctx, addEventListener(type, f) { this.listeners[type] = f; }, focus() {} };
+  const defs = structuredClone(instruments), notes = [], status = { textContent: '' };
+  const patcher = createPatcher({ canvas, panel: makeEl('div'), exposedPanel: makeEl('div'), statusEl: status, doc, nodeTypes: NODE_TYPES, onStructure() {}, onParam() {}, onNote: (...a) => notes.push(a) });
+  patcher.load({ instruments: defs });
+  patcher.show('lead');
+  const down = (key, extra) => canvas.listeners.keydown({ key, preventDefault() {}, ...extra });
+  const up = key => canvas.listeners.keyup({ key });
+  down('z'); assert.equal(notes.length, 0, 'nothing plays with no node selected');
+  const nodes = defs.lead.graph.nodes, gen = nodes.find(n => NODE_TYPES[n.type].generator), other = nodes.find(n => !NODE_TYPES[n.type].generator && n.type !== 'out');
+  assert.ok(gen && other);
+  const pick = node => {
+    const { w, h } = nodeBox(NODE_TYPES[node.type]);
+    canvas.listeners.mousedown({ offsetX: node.x + w / 2, offsetY: node.y + h / 2, preventDefault() {} });
+    canvas.listeners.mouseup({ offsetX: node.x + w / 2, offsetY: node.y + h / 2 });
+  };
+  pick(other); down('z'); assert.equal(notes.length, 0, 'a node that is not a generator does not play');
+  pick(gen);
+  down('z'); down('z', { repeat: true }); assert.deepEqual(notes, [['lead', 36, true]], 'C of octave 3, once despite key repeat');
+  down('q'); assert.deepEqual(notes.at(-1), ['lead', 48, true], 'the upper row is an octave up');
+  down(']'); assert.equal(patcher.octave, 4); assert.match(status.textContent, /octave 4/);
+  up('z'); assert.deepEqual(notes.at(-1), ['lead', 36, false], 'a key stops the note it started, whatever the octave now is');
+  patcher.releaseKeys(); assert.deepEqual(notes.at(-1), ['lead', 48, false]);
+  down('Delete'); // still works: removing the generator is the node delete, not a note
+  // panic: the runtime stops every voice
+  const { rt } = setup();
+  rt.note('lead', { type: 'noteOn', note: 60, vel: 1 });
+  assert.ok(peak(render(rt, 0.1).left) > 0.01);
+  rt.panic();
+  const after = render(rt, 0.2).left;
+  assert.equal(peak(after.subarray(after.length >> 1)), 0, 'panic silences the held note');
+}
+
 console.log('smoke test passed');
