@@ -2226,7 +2226,7 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     const def = { ...structuredClone(instruments.lead), noteColumns: 3 };
     const registry = new ParamRegistry();
     const defs = { lead: def };
-    for (const n of ['filter.cutoff', 'filter.resonance', 'delay.mix', 'delay.time', 'delay.feedback', 'sampler.nnaFade']) registry.allocate(`lead.${n}`, 0.5, 0, 1000);
+    for (const n of ['filter.cutoff', 'filter.resonance', 'delay.mix', 'delay.time', 'delay.feedback', 'sampler.nnaFade', 'sampler.offset', 'sampler.retrig', 'sampler.repeats', 'sampler.shift', 'sampler.ramp', 'sampler.reverse']) registry.allocate(`lead.${n}`, 0.5, 0, 1000);
     const cols = buildColumns('lead', def, registry);
     assert.deepEqual(cols.map(c => c.label), ['N1', 'V1', 'N2', 'V2', 'N3', 'V3', 'Cut', 'Res', 'Mix', 'Time', 'Cmd']);
     assert.deepEqual(cols.slice(0, 2).map(c => c.key), ['note', 'vel'], 'the first pair keeps its keys');
@@ -2869,15 +2869,15 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
 {
   const sampler = (await import('../src/audio/nodes/sampler.js')).default;
   const ramp = Float32Array.from({ length: 2000 }, (_, i) => i / 2000);
-  const play = (msg, { stereo = false, frames = 3000, off = null, params = [1, 60, 150, 20] } = {}) => {
-    const node = sampler.create({ sampleRate: sr, stereo });
+  const play = (msg, { stereo = false, frames = 3000, off = null, params = [1, 60, 150, 20, 0, 0, 0, 0, 0, 1], clock } = {}) => {
+    const node = sampler.create({ sampleRate: sr, stereo, clock });
     node.message({ type: 'sample', data: ramp, rate: sr, ...msg });
     node.note({ type: 'noteOn', note: 60, vel: 1 });
     const L = new Float32Array(frames), R = new Float32Array(frames);
     for (let at = 0; at < frames; at += block) {
       if (off !== null && at === off) node.note({ type: 'noteOff', note: 60 });
       const outL = new Float32Array(block), outR = new Float32Array(block);
-      node.process([], [stereo ? [outL, outR] : outL], block, params, [0, 1, 2, 3]);
+      node.process([], [stereo ? [outL, outR] : outL], block, params, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
       L.set(outL.subarray(0, Math.min(block, frames - at)), at);
       R.set(outR.subarray(0, Math.min(block, frames - at)), at);
     }
@@ -2899,7 +2899,7 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   assert.ok(peak(released) > 0.9, 'the tail after the sustain loop plays out');
   assert.ok(released.subarray(2900).every(v => v === 0), 'and then the voice ends');
   // with a normal loop as well, note off carries on into it and fades out
-  const both = play({ susStart: 200, susEnd: 400, loopStart: 1000, loopEnd: 1200 }, { frames: 80000, off: 1024, params: [1, 60, 1000, 20] }).L;
+  const both = play({ susStart: 200, susEnd: 400, loopStart: 1000, loopEnd: 1200 }, { frames: 80000, off: 1024, params: [1, 60, 1000, 20, 0, 0, 0, 0, 0, 1] }).L;
   assert.ok(peak(both.subarray(2000, 8000)) > 0.3 && peak(both.subarray(2000, 8000)) <= 0.6 + 1e-6, 'the voice plays on in the normal loop');
   assert.ok(both.subarray(75000).every(v => v === 0), 'and fades out');
   // loop off ignores the loop points
@@ -3015,9 +3015,9 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
       node.message({ type: 'sample', data: hold, rate: sr });
       node.note({ type: 'noteOn', note: 60, vel: 1 });
       const out = new Float32Array(block);
-      for (let at = 0; at < 1024; at += block) node.process([], [out], block, [1, 60, 150, 20], [0, 1, 2, 3]);
+      for (let at = 0; at < 1024; at += block) node.process([], [out], block, [1, 60, 150, 20, 0, 0, 0, 0, 0, 1], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
       node.note({ type: 'noteOn', note: 60, vel: 1, ...extra });
-      for (let at = 0; at < 8192; at += block) node.process([], [out], block, [1, 60, 150, 20], [0, 1, 2, 3]);
+      for (let at = 0; at < 8192; at += block) node.process([], [out], block, [1, 60, 150, 20, 0, 0, 0, 0, 0, 1], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
       return out[block - 1];
     };
     assert.ok(Math.abs(run({ choke: true }) - 0.5) < 1e-6, 'one voice is left after the fade');
@@ -3272,6 +3272,57 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   for (let i = 0; i < 4 * 6200 / 128; i++) seq.process(l, r, 128);
   assert.deepEqual(log.slice(0, 3), [[48, -1], [52, 48], [55, -1]], 'a note over a sounding one slides from it; after a note off there is nothing to slide from');
   assert.ok(Math.abs(rt.clock.tickSamples - sr * 60 / (song.bpm * song.ticksPerBeat)) < 1, 'the node clock follows the tempo');
+}
+
+// 96. Sampler: start offset, reverse, repeats with window shift and volume ramp.
+{
+  const sampler = (await import('../src/audio/nodes/sampler.js')).default;
+  const N = 20000, saw = Float32Array.from({ length: N }, (_, i) => (i + 1) / N);   // rises 0..1
+  const clock = { tickSamples: 2000 };
+  const run = (extra, { frames = 12000, offAt = -1 } = {}) => {
+    const node = sampler.create({ sampleRate: sr, clock });
+    node.message({ type: 'sample', data: saw, rate: sr });
+    node.note({ type: 'noteOn', note: 60, vel: 1 });
+    const p = [1, 60, 150, 20, 0, 0, 0, 0, 0, 1];
+    Object.entries(extra).forEach(([k, v]) => { p[sampler.params.findIndex(q => q.name === k)] = v; });
+    const out = new Float32Array(frames);
+    for (let at = 0; at < frames; at += block) {
+      if (at === offAt) node.note({ type: 'noteOff', note: 60 });
+      const o = new Float32Array(block);
+      node.process([], [o], block, p, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
+      out.set(o.subarray(0, Math.min(block, frames - at)), at);
+    }
+    return out;
+  };
+  const plain = run({}), off = run({ offset: 0.5 });
+  assert.ok(plain[100] < 0.02 && Math.abs(off[100] - (0.5 + 100 / N)) < 0.02, 'offset starts part way in');
+  const rev = run({ reverse: 1 });
+  assert.ok(rev[100] > 0.9 && rev[100] > rev[3000] && rev[3000] > 0.5, 'reverse plays backwards');
+  const revOff = run({ reverse: 1, offset: 0.5 });
+  assert.ok(Math.abs(revOff[1000] - (0.5 - 1000 / N)) < 0.05, 'reverse offset counts from the end');
+  const rep = run({ retrig: 1 });
+  assert.ok(rep[1900] > 0.05 && rep[2200] < 0.08 && rep[3900] > 0.05 && rep[4200] < 0.08, 'the sound restarts every interval');
+  const two = run({ retrig: 1, repeats: 2 });
+  assert.ok(two[4200] < 0.08 && two[6100] > 0.05, 'the repeats stop after the count');
+  const sh = run({ retrig: 1, shift: 0.25 });
+  assert.ok(Math.abs(sh[2100] - (0.25 + 100 / N)) < 0.03 && Math.abs(sh[4100] - (0.5 + 100 / N)) < 0.03, 'each repeat starts further along');
+  const rp = run({ retrig: 1, ramp: 0.5 });
+  const peak = (a, from) => Math.max(...a.subarray(from, from + 1900));
+  assert.ok(Math.abs(peak(rp, 2100) / peak(rp, 100) - 0.5) < 0.06 && Math.abs(peak(rp, 4100) / peak(rp, 100) - 0.25) < 0.06, 'each repeat is quieter');
+  const stopped = run({ retrig: 1 }, { offAt: 3072 });
+  assert.ok(stopped[4100] > 0.05 && stopped[6100] > 0.05, 'a note off ends the repeats');
+}
+
+// 97. The sampler's start and repeat commands in a pattern.
+{
+  const { instruments } = await import('../src/instruments.js');
+  const ids = Object.fromEntries(instruments.lead.commands.map(c => [c.param, c.id]));
+  assert.deepEqual([ids.offset, ids.retrig, ids.repeats, ids.shift, ids.ramp, ids.reverse], [7, 8, 9, 10, 11, 12]);
+  const sampler = (await import('../src/audio/nodes/sampler.js')).default;
+  const q = n => sampler.params.find(p => p.name === n);
+  assert.ok(Math.abs(0x1000 / 65535 * q('retrig').max - 1) < 1e-4, 'hex 1000 is one tick');
+  assert.ok(Math.abs(0x8000 / 65535 * (q('shift').max - q('shift').min) + q('shift').min) < 1e-4, 'hex 8000 is no shift');
+  assert.ok(Math.abs(0xC000 / 65535 * q('ramp').max - 1) < 1e-4, 'hex C000 is x1');
 }
 
 console.log('smoke test passed');

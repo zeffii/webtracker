@@ -17,6 +17,17 @@ export const samplerCommands = [
   { id: 0x04, node: 'delay', param: 'feedback' },
   { id: 0x05, node: 'delay', param: 'mix' },
   { id: 0x06, node: 'sampler', param: 'nnaFade' },
+  // Where a note starts and how it repeats; each stays set until written again. 07 offset: start position
+  // (0000 start, FFFF end). 08 retrig: ticks between repeats (1000 is one tick, 0 off). 09 repeats: how many
+  // (a count; 0 until the note ends). 0A shift: how far each repeat's start moves (8000 none, above goes
+  // forward, below back). 0B ramp: each repeat's volume multiplier (C000 is x1, 8000 halves it).
+  // 0C reverse: 1 plays backwards, the offset then counting from the end.
+  { id: 0x07, node: 'sampler', param: 'offset' },
+  { id: 0x08, node: 'sampler', param: 'retrig' },
+  { id: 0x09, node: 'sampler', param: 'repeats' },
+  { id: 0x0A, node: 'sampler', param: 'shift' },
+  { id: 0x0B, node: 'sampler', param: 'ramp' },
+  { id: 0x0C, node: 'sampler', param: 'reverse' },
 ];
 
 export const withParams = (graph, overrides) => ({
