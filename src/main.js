@@ -417,7 +417,8 @@ for (const [id, field, max] of [['inst-voices', 'voices', 16], ['inst-notecols',
 const sendLoop = users => users.forEach(({ instrument, node }) => sendSample(instrument, node));
 const waveform = createWaveformView({
   canvas: $('wave'), statusEl: $('proj-status'), getProject: () => project,
-  onLoop: users => { sendLoop(users); auditionDirty = true; },   // the screen redraws itself, so its numbers follow the markers
+  onLoop: users => { sendLoop(users); auditionDirty = true; },
+  onSlices: users => { sendLoop(users); auditionDirty = true; },   // the screen redraws itself, so its numbers follow the markers
   onSelect: ({ from, to }) => sampleScreen.setSelection(from, to),
 });
 

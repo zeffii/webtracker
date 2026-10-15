@@ -28,6 +28,9 @@ export const samplerCommands = [
   { id: 0x08, node: 'sampler', param: 'shift' },
   { id: 0x09, node: 'sampler', param: 'ramp' },
   { id: 0x0A, node: 'sampler', param: 'reverse' },
+  // 10 slice: start at a slice marker of the sample (set on the Samples screen), 0000 the first, 0001 the second
+  // and so on, sorted by position. It wins over the Off column while it points at a marker; FFFF puts Off back in charge.
+  { id: 0x10, node: 'sampler', param: 'slice' },
 ];
 
 export const withParams = (graph, overrides) => ({

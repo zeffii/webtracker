@@ -1,4 +1,4 @@
-import { setLoop } from './ops.js';
+import { setLoop, setSlices, sliceHex } from './ops.js';
 import { computeSpectrogram, heat } from './spectrogram.js';
 
 // Min and max of the sample for each pixel column: what the waveform view draws.
@@ -23,8 +23,9 @@ const GRAB = 6;   // pixels either side of a marker that grab it
 
 // The waveform (or spectrogram) of one sample with its loop points, the sustain loop and the loop crossfade. Drag the start or end marker to move
 // it; drag across empty waveform to make a new loop; double-click to clear the loop. The
-// loop is applied when the mouse is released.
-export function createWaveformView({ canvas, statusEl, getProject, onLoop, onSelect = () => {} }) {
+// loop is applied when the mouse is released. Slice markers (red, labelled with their number and the hex value
+// an Off cell would need): Alt+click adds one, Alt+drag moves one, Alt+double-click removes the nearest.
+export function createWaveformView({ canvas, statusEl, getProject, onLoop, onSelect = () => {}, onSlices = () => {} }) {
   const ctx = canvas.getContext('2d');
   const W = canvas.width, H = canvas.height;
   const dpr = globalThis.devicePixelRatio || 1;
@@ -54,9 +55,26 @@ export function createWaveformView({ canvas, statusEl, getProject, onLoop, onSel
     }
   };
 
+  const slicesOf = s => drag?.kind === 'slice' ? drag.preview : s.slices ?? [];
+  const nearestSlice = (s, x, reach) => {
+    let best = -1;
+    (s.slices ?? []).forEach((f, i) => { const d = Math.abs(x - frameToX(f)); if (d <= reach && (best < 0 || d < Math.abs(x - frameToX(s.slices[best])))) best = i; });
+    return best;
+  };
+  const commitSlices = list => {
+    try { const users = setSlices(getProject(), id, list); say(''); onSlices(users); } catch (err) { say(err.message); }
+  };
+
   canvas.addEventListener('mousedown', e => {
     const s = sample();
     if (!s || !frames()) return;
+    if (e.altKey) {   // slice markers: grab the one under the mouse, or make a new one there
+      const at = nearestSlice(s, e.offsetX, GRAB);
+      const list = [...(s.slices ?? [])];
+      if (at < 0) list.push(Math.min(xToFrame(e.offsetX), frames() - 1));
+      drag = { kind: 'slice', i: at < 0 ? list.length - 1 : at, preview: list };
+      return;
+    }
     if (e.shiftKey) { drag = { kind: 'select', anchor: xToFrame(e.offsetX), preview: null }; return; }
     const { start, end } = loopOf(s);
     if (end > start && Math.abs(e.offsetX - frameToX(start)) <= GRAB) drag = { kind: 'start', preview: { start, end } };
@@ -68,7 +86,8 @@ export function createWaveformView({ canvas, statusEl, getProject, onLoop, onSel
     const s = sample();
     if (!drag || !s) return;
     const f = xToFrame(e.offsetX);
-    if (drag.kind === 'start') drag.preview = { start: Math.min(f, drag.preview.end - 2), end: drag.preview.end };
+    if (drag.kind === 'slice') drag.preview[drag.i] = Math.min(f, frames() - 1);
+    else if (drag.kind === 'start') drag.preview = { start: Math.min(f, drag.preview.end - 2), end: drag.preview.end };
     else if (drag.kind === 'select') { if (Math.abs(f - drag.anchor) >= 1) drag.preview = { start: Math.min(f, drag.anchor), end: Math.max(f, drag.anchor) }; }
     else if (drag.kind === 'end') drag.preview = { start: drag.preview.start, end: Math.max(f, drag.preview.start + 2) };
     else if (Math.abs(f - drag.anchor) >= 2) drag.preview = { start: Math.min(f, drag.anchor), end: Math.max(f, drag.anchor) };
@@ -77,6 +96,7 @@ export function createWaveformView({ canvas, statusEl, getProject, onLoop, onSel
   const finish = () => {
     const d = drag;
     drag = null;
+    if (d?.kind === 'slice') { commitSlices(d.preview); return; }
     if (d?.kind === 'select') { if (d.preview) onSelect({ from: d.preview.start, to: d.preview.end }); return; }
     if (d?.preview) commit(Math.max(0, d.preview.start), d.preview.end);
   };
@@ -84,6 +104,7 @@ export function createWaveformView({ canvas, statusEl, getProject, onLoop, onSel
   canvas.addEventListener('mouseleave', () => { drag = null; });
   canvas.addEventListener('dblclick', e => {
     if (!sample()) return;
+    if (e?.altKey) { const at = nearestSlice(sample(), e.offsetX, GRAB * 2); if (at >= 0) commitSlices(sample().slices.filter((_, i) => i !== at)); return; }
     if (e?.shiftKey) onSelect({ from: 0, to: 0 }); else commit(0, 0);
   });
 
@@ -96,7 +117,7 @@ export function createWaveformView({ canvas, statusEl, getProject, onLoop, onSel
     const s = sample();
     const { start, end } = s ? (drag?.kind === 'select' ? { start: s.loopStart ?? 0, end: s.loopEnd ?? 0 } : loopOf(s)) : { start: 0, end: 0 };
     const pick = drag?.kind === 'select' && drag.preview ? { from: drag.preview.start, to: drag.preview.end } : selection;
-    const key = s ? `${id}:${mode}:${s.data.length}:${start}:${end}:${LOOPS.slice(1).map(l => `${s[l.start]}.${s[l.end]}.${s[l.on]}`).join()}:${s.loopOn}:${s.loopXfade}:${s.susXfade}:${pick.from}-${pick.to}` : 'none';
+    const key = s ? `${id}:${mode}:${s.data.length}:${start}:${end}:${LOOPS.slice(1).map(l => `${s[l.start]}.${s[l.end]}.${s[l.on]}`).join()}:${s.loopOn}:${s.loopXfade}:${s.susXfade}:${pick.from}-${pick.to}:${slicesOf(s).join(',')}` : 'none';
     if (key === lastKey) return;
     lastKey = key;
     ctx.clearRect(0, 0, W, H);
@@ -157,6 +178,14 @@ export function createWaveformView({ canvas, statusEl, getProject, onLoop, onSel
       ctx.fillRect(xs, 0, 1, H);
       ctx.fillRect(xe - 1, 0, 1, H);
     }
+    slicesOf(s).forEach((f, i) => {   // the slice markers, numbered in order of position
+      const x = frameToX(f), label = `${(drag?.kind === 'slice' ? [...drag.preview].sort((a, b) => a - b).indexOf(f) : i).toString(16).toUpperCase().padStart(2, '0')} ${sliceHex(f, frames())}`;
+      ctx.fillStyle = '#f0707a';
+      ctx.fillRect(x, 0, 1, H);
+      ctx.textBaseline = 'top';
+      ctx.textAlign = x > W - 70 ? 'right' : 'left';
+      ctx.fillText(label, x + (x > W - 70 ? -3 : 3), 14 + (i % 3) * 12);
+    });
     ctx.fillStyle = mode === 'spec' ? '#fff' : ink;
     ctx.textBaseline = 'bottom';
     ctx.textAlign = 'left';

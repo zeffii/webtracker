@@ -22,7 +22,7 @@
 // runs off the sample) and `ramp` what each repeat's volume is multiplied by (below 1 fades out). A repeat
 // restarts the sound with a 2 ms crossfade from the one before. Repeats end at the next note, note off or cut.
 const VOICES = 16;
-const LEVEL = 0, ROOT = 1, RELEASE = 2, NNA_FADE = 3, OFFSET = 4, REVERSE = 5, RETRIG = 6, REPEATS = 7, SHIFT = 8, RAMP = 9, SAMPLE = 10;
+const LEVEL = 0, ROOT = 1, RELEASE = 2, NNA_FADE = 3, OFFSET = 4, REVERSE = 5, RETRIG = 6, REPEATS = 7, SHIFT = 8, RAMP = 9, SAMPLE = 10, SLICE = 11;
 const PLAYING = 0, RELEASING = 1, FADING = 2, CUTTING = 3;   // voice modes (cutting: the 2 ms fade of a sound a repeat replaces)
 
 export default {
@@ -47,12 +47,14 @@ export default {
     { name: 'shift', min: -1, max: 65535 / 32768 - 1, def: 0 },        // per repeat; hex 8000 is zero
     { name: 'ramp', min: 0, max: 65535 / 49152, def: 1 },              // per repeat; hex C000 is one
     { name: 'sample', min: 0, max: 255, def: 0, int: true },           // which sample of the instrument's list plays
+    { name: 'slice', min: 0, max: 65535, def: 65535, int: true },      // start at this slice marker of the sample (a number past the last: off, use `offset`)
   ],
   create({ sampleRate, stereo = false, clock }) {
     // The samples this node can play, by slot (the instrument's sample list); a note picks one by the `sample`
     // parameter as it starts. Each has its own data, tuning, levels and loops.
     const bank = [];
     let stamp = 0;
+    const fromSlice = new Uint8Array(VOICES);   // the chain started at a slice marker, where reverse plays backwards from the marker
     const sm = new Int32Array(VOICES), loopy = new Uint8Array(VOICES);   // each voice's slot, and whether that sample loops
     const inSus = new Uint8Array(VOICES);
     const active = new Uint8Array(VOICES), mode = new Uint8Array(VOICES);
@@ -96,6 +98,7 @@ export default {
           volume: msg.volume ?? 1,
           globalVolume: msg.globalVolume ?? 1,
           pan: Math.max(-1, Math.min(1, msg.pan ?? 0)),
+          slices: Array.isArray(msg.slices) ? msg.slices.filter(Number.isFinite) : [],   // marker frames, sorted
           norm: { on: false, start: 0, end: 0, xf: 0 }, sus: { on: false, start: 0, end: 0, xf: 0 },
         };
         setLoop(S, S.norm, msg.loopOn, msg.loopStart, msg.loopEnd, msg.loopXfade);
@@ -155,10 +158,11 @@ export default {
           sm[v] = si;
           const last = bank[si].sample.length - 1;
           inSus[v] = bank[si].sus.on ? 1 : 0; loopy[v] = bank[si].norm.on || bank[si].sus.on ? 1 : 0;
-          const off = Math.max(0, Math.min(1, params[slots[OFFSET]]));
-          frac[v] = off;
+          const marker = bank[si].slices[Math.floor(params[slots[SLICE]])];   // a slice marker, when the slice command picked one, wins over the offset
+          const off = marker !== undefined ? Math.min(1, marker / Math.max(1, last)) : Math.max(0, Math.min(1, params[slots[OFFSET]]));
+          frac[v] = off; fromSlice[v] = marker !== undefined ? 1 : 0;
           dir[v] = params[slots[REVERSE]] >= 1 ? -1 : 1;
-          pos[v] = dir[v] > 0 ? off * last : last - off * last;
+          pos[v] = dir[v] > 0 || fromSlice[v] ? off * last : last - off * last;
           const every = params[slots[RETRIG]] * tickSamples;
           if (every >= 1) {
             interval[v] = every; countdown[v] = every;
@@ -183,8 +187,8 @@ export default {
             const last = bank[sm[cur]].sample.length - 1;
             active[w] = 1; mode[w] = PLAYING; note[w] = note[cur]; inSus[w] = 0; fresh[w] = 0; sm[w] = sm[cur]; loopy[w] = loopy[cur];
             env[w] = 0; age[w] = ++stamp; skip[w] = at; cutAt[w] = Infinity;
-            gain[w] = gain[cur] * rampBy[cur]; dir[w] = dir[cur]; frac[w] = nextFrac;
-            pos[w] = dir[w] > 0 ? nextFrac * last : last - nextFrac * last;
+            gain[w] = gain[cur] * rampBy[cur]; dir[w] = dir[cur]; frac[w] = nextFrac; fromSlice[w] = fromSlice[cur];
+            pos[w] = dir[w] > 0 || fromSlice[w] ? nextFrac * last : last - nextFrac * last;
             interval[w] = interval[cur]; shiftBy[w] = shiftBy[cur]; rampBy[w] = rampBy[cur];
             left[w] = left[cur] - 1; countdown[w] = countdown[cur] + interval[cur];
             cutAt[cur] = at; countdown[cur] = Infinity;

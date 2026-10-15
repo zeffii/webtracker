@@ -2226,7 +2226,7 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     const def = { ...structuredClone(instruments.lead), noteColumns: 3 };
     const registry = new ParamRegistry();
     const defs = { lead: def };
-    for (const n of ['filter.cutoff', 'filter.resonance', 'delay.mix', 'delay.time', 'delay.feedback', 'sampler.nnaFade', 'sampler.offset', 'sampler.retrig', 'sampler.repeats', 'sampler.shift', 'sampler.ramp', 'sampler.reverse', 'sampler.sample']) registry.allocate(`lead.${n}`, 0.5, 0, 1000);
+    for (const n of ['filter.cutoff', 'filter.resonance', 'delay.mix', 'delay.time', 'delay.feedback', 'sampler.nnaFade', 'sampler.offset', 'sampler.retrig', 'sampler.repeats', 'sampler.shift', 'sampler.ramp', 'sampler.reverse', 'sampler.sample', 'sampler.slice']) registry.allocate(`lead.${n}`, 0.5, 0, 1000);
     const cols = buildColumns('lead', def, registry);
     assert.deepEqual(cols.map(c => c.label), ['N1', 'V1', 'N2', 'V2', 'N3', 'V3', 'Smp', 'Off', 'Rtg', 'Cut', 'Res', 'Mix', 'Time', 'Cmd']);
     assert.deepEqual(cols.slice(0, 2).map(c => c.key), ['note', 'vel'], 'the first pair keeps its keys');
@@ -3381,6 +3381,42 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   assert.equal(back.instruments.lead.layout, 2);
   assert.ok(back.instruments.lead.commands.some(c => c.param === 'repeats'), 'the repeat commands are added');
   assert.equal(parseProject(serializeProject({ song: back.song, instruments: back.instruments, samples: {}, lanes: prepareSong(back.song, back.instruments, (() => { const r = new ParamRegistry(); compile(back.instruments.lead.graph, { instrument: 'lead', nodeTypes: NODE_TYPES, registry: r }); return r; })()) })).instruments.lead.exposed.length, 7, 'loading it again changes nothing');
+}
+
+// 101. Slice markers: set on the sample, remapped by edits, and a note starts at one with the slice command.
+{
+  const { setSlices, sliceHex, sampleMessage } = await import('../src/project/ops.js');
+  const { applyEdit, createHistory } = await import('../src/project/sampleedit.js');
+  const sampler = (await import('../src/audio/nodes/sampler.js')).default;
+  const project = { samples: { s: { rate: sr, data: Float32Array.from({ length: 1001 }, (_, i) => i / 1000) } }, instruments: {} };
+  setSlices(project, 's', [500, 100, 100, 900]);
+  assert.deepEqual(project.samples.s.slices, [100, 500, 900], 'sorted, no duplicates');
+  assert.throws(() => setSlices(project, 's', [1001]), /inside the sample/);
+  assert.deepEqual([sliceHex(0, 1001), sliceHex(500, 1001), sliceHex(1000, 1001)], ['0000', '8000', 'FFFF']);
+  assert.deepEqual(sampleMessage(project.samples.s).slices, [100, 500, 900]);
+  const history = createHistory();
+  applyEdit(project, 's', history, 'cut', { from: 200, to: 600 });
+  assert.deepEqual(project.samples.s.slices, [100, 500], 'a cut drops markers inside it and moves the ones after');
+  applyEdit(project, 's', history, 'crop', { from: 50, to: 300 });
+  assert.deepEqual(project.samples.s.slices, [50], 'a trim keeps and moves the markers inside');
+  history.undo(project, 's'); history.undo(project, 's');
+  assert.deepEqual(project.samples.s.slices, [100, 500, 900], 'undo brings them back');
+  // the sampler: slice N starts the note at the Nth marker, and wins over the offset
+  const node = sampler.create({ sampleRate: sr, clock: { tickSamples: 2000 } });
+  node.message({ type: 'sample', data: Float32Array.from({ length: 20001 }, (_, i) => i / 20000), rate: sr, slices: [4000, 12000] });
+  const first = (slice, offset = 0, reverse = 0) => {
+    const p = [1, 60, 150, 20, offset, reverse, 0, 0, 0, 1, 0, slice];
+    node.note({ type: 'noteCut' }); node.note({ type: 'noteOn', note: 60, vel: 1 });
+    const o = new Float32Array(block);
+    node.process([], [o], block, p, p.map((_, i) => i));
+    return o[100];
+  };
+  assert.ok(Math.abs(first(0) - 0.2) < 0.01 && Math.abs(first(1) - 0.6) < 0.01, 'slices 0 and 1 start at their markers');
+  assert.ok(Math.abs(first(1, 0.1) - 0.6) < 0.01, 'the slice wins over the offset');
+  assert.ok(Math.abs(first(65535, 0.5) - 0.5) < 0.01 && Math.abs(first(2, 0.5) - 0.5) < 0.01, 'FFFF, or a number past the last marker, leaves the offset in charge');
+  assert.ok(first(1, 0, 1) < 0.6 && first(1, 0, 1) > 0.58, 'reverse from a slice plays backwards from the marker');
+  const { instruments } = await import('../src/instruments.js');
+  assert.ok(instruments.lead.commands.some(c => c.id === 0x10 && c.param === 'slice'));
 }
 
 console.log('smoke test passed');

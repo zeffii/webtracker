@@ -128,6 +128,16 @@ export function upgradeSamplerLayout(data) {
 }
 
 // Returns { song, instruments, samples } in the shape prepareSong and the engine use.
+// Sampler instruments saved before the slice command got it: it is added on loading.
+function ensureSliceCommand(data) {
+  for (const def of Object.values(data.instruments ?? {})) {
+    const node = def.graph?.nodes?.find(n => n.type === 'sampler');
+    if (!node || !def.commands) continue;
+    if (def.commands.some(c => c.id === 0x10 || (c.node === node.id && c.param === 'slice'))) continue;
+    def.commands.push({ id: 0x10, node: node.id, param: 'slice' });
+  }
+}
+
 export function parseProject(text) {
   let data;
   try { data = JSON.parse(text); } catch { throw new Error('Not a webtracker file (invalid JSON).'); }
@@ -136,6 +146,7 @@ export function parseProject(text) {
     throw new Error(`Unsupported file version ${data.version}; this build reads version ${VERSION}.`);
   }
   upgradeSamplerLayout(data);
+  ensureSliceCommand(data);
   const samples = Object.fromEntries(Object.entries(data.samples ?? {}).map(([id, s]) => [id, decodeSample(s)]));
   for (const [id, def] of Object.entries(data.instruments)) {
     for (const sampleId of Object.values(def.samples ?? {}).flat()) {

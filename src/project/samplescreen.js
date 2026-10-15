@@ -1,4 +1,4 @@
-import { setLoop, setSampleProps, SAMPLE_PROPS, removeSample, renameSample } from './ops.js';
+import { setLoop, setSampleProps, setSlices, sliceHex, SAMPLE_PROPS, removeSample, renameSample } from './ops.js';
 import { applyEdit, createHistory, redoEdit, undoEdit } from './sampleedit.js';
 import { LOWER, UPPER } from '../seq/piano.js';
 
@@ -191,6 +191,15 @@ export function createSampleScreen({ el, statusEl, getProject, onChange = () => 
     }
 
     if (e.shiftKey && focus !== 'name' && Object.hasOwn(EDITS, k)) { runEdit(EDITS[k]); return eat(); }
+    if (e.shiftKey && focus !== 'name' && (k === 'M' || k === 'U')) {   // M marks a slice at the start of the selection, U takes away the one nearest to it
+      const s = sample(), at = Math.min(selFrom, s.data.length - 1), slices = s.slices ?? [];
+      if (k === 'M') attempt(() => setSlices(getProject(), sel, [...slices, at]));
+      else if (slices.length) {
+        const nearest = slices.reduce((best, f) => (Math.abs(f - at) < Math.abs(best - at) ? f : best));
+        attempt(() => setSlices(getProject(), sel, slices.filter(f => f !== nearest)));
+      }
+      return eat();
+    }
     if ((k === '[' || k === ']') && focus !== 'name') {
       octave = Math.min(9, Math.max(0, octave + (k === ']' ? 1 : -1)));
       say(`Octave ${octave}`);
@@ -289,6 +298,14 @@ export function createSampleScreen({ el, statusEl, getProject, onChange = () => 
         const cls = id === sel ? (focus === 'list' ? 'sf on' : 'sf') : '';
         left.push(line(seg(`${id === sel ? '>' : ' '} ${String(i + 1).padStart(2, '0')} ${id.padEnd(22).slice(0, 22)} ${(d.data.length / d.rate).toFixed(2).padStart(6)}s `, cls)));
       }
+      // Slice markers: number, the hex value an Off cell would hold, the frame and the time. The slice command
+      // (10 0000 is the first) starts a note at one.
+      const sliceLines = d => {
+        const sl = d.slices ?? [];
+        return [line(` Slices    ${sl.length ? sl.length : 'none'}${sl.length ? '' : '  (Shift+M marks one at the selection start; Alt+click the display)'}`),
+          ...sl.slice(0, 8).map((f, i) => line(`   ${i.toString(16).toUpperCase().padStart(2, '0')}  ${sliceHex(f, d.data.length)}  ${String(f).padStart(8, '0')}  ${(f / d.rate).toFixed(3)}s`)),
+          ...(sl.length > 8 ? [line(`   ... ${sl.length - 8} more`)] : [])];
+      };
       const numCell = field => fieldCell(field, frameValue(s, field).toString().padStart(8, '0'), 8);
       const loopLine = (label, p, onField, begField, endField, xfField) => line(
         ` ${label.padEnd(9)}`, fieldCell(onField, isOn(s, p) ? ' on' : ' off', 4), ' Beg ', numCell(begField), ' End ', numCell(endField), ' Xfade ', numCell(xfField));
@@ -304,6 +321,8 @@ export function createSampleScreen({ el, statusEl, getProject, onChange = () => 
         line(''),
         line(' Levels'),
         ...Object.keys(SLIDERS).map(f => line(' ', slider(f))),
+        line(''),
+        ...sliceLines(s),
         line(''),
         line(' Display   ', seg(' Waveform ', mode === 'wave' ? `sf${focus === 'view' ? ' on' : ''}` : ''), ' ', seg(' Spectrum ', mode === 'spec' ? `sf${focus === 'view' ? ' on' : ''}` : '')),
       ];

@@ -5,7 +5,7 @@ import { buildPages, createLane, flattenLane, writeMask } from '../seq/lane.js';
 // project object { song, instruments, samples, lanes } so the page and the tests share them.
 
 // Everything a sample carries besides its audio.
-export const SAMPLE_KEYS = ['loopStart', 'loopEnd', 'loopOn', 'loopXfade', 'susStart', 'susEnd', 'susOn', 'susXfade', 'volume', 'globalVolume', 'pan'];
+export const SAMPLE_KEYS = ['loopStart', 'loopEnd', 'loopOn', 'loopXfade', 'susStart', 'susEnd', 'susOn', 'susXfade', 'volume', 'globalVolume', 'pan', 'slices'];
 
 export function uniqueId(taken, base) {
   let id = base, i = 2;
@@ -95,6 +95,19 @@ export const SAMPLE_PROPS = {
   loopOn: { bool: true }, susOn: { bool: true },
   loopXfade: { min: 0, int: true }, susXfade: { min: 0, int: true },
 };
+
+// Slice markers: frames of the sample, kept sorted. A slice's number is its place in the list, and its hex value
+// (what the Off column of a pattern would hold to start there) is its place in the sample from 0000 to FFFF.
+export const sliceHex = (frame, length) => Math.round(frame / Math.max(1, length - 1) * 65535).toString(16).toUpperCase().padStart(4, '0');
+
+// Replaces the sample's slice markers. Returns the instruments that play the sample.
+export function setSlices(project, id, frames) {
+  const sample = project.samples[id], n = sample.data.length;
+  if (!frames.every(f => Number.isInteger(f) && f >= 0 && f < n)) throw new Error(`Slice markers are whole frames inside the sample (0 to ${n - 1}).`);
+  const next = [...new Set(frames)].sort((a, b) => a - b);
+  if (next.length) sample.slices = next; else delete sample.slices;
+  return usersOfSample(project, id);
+}
 
 // Sets sample settings ({ volume, globalVolume, pan, loopOn, susOn, loopXfade, susXfade }). Returns the
 // instruments that play the sample.

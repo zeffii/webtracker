@@ -38,6 +38,8 @@ export const TOOLS = {
     s.data = s.data.slice(from, to);
     if (s.right) s.right = s.right.slice(from, to);
     remapLoops(s, p => p - from);
+    if (s.slices) s.slices = s.slices.filter(p => p >= from && p < to).map(p => p - from);
+    if (s.slices && !s.slices.length) delete s.slices;
   },
   // removes the range
   cut(s, range) {
@@ -47,6 +49,8 @@ export const TOOLS = {
     s.data = keep(s.data);
     if (s.right) s.right = keep(s.right);
     remapLoops(s, p => (p <= from ? p : p >= to ? p - (to - from) : from));
+    if (s.slices) s.slices = [...new Set(s.slices.filter(p => p < from || p >= to).map(p => (p >= to ? p - (to - from) : p)))];
+    if (s.slices && !s.slices.length) delete s.slices;
   },
   silence(s, range) {
     const { from, to } = clampRange(s, range);
