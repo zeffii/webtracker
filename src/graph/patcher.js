@@ -13,6 +13,7 @@ import { createSpectrumEditor } from './spectrumeditor.js';
 // Geometry. A node's shape comes from its type: 'box' for processors, 'rounded' for
 // sources and 'circle' for mixing and gain. Ports sit on the left (inputs) and right (outputs).
 export const ROW = 16, PORT_R = 4;
+export const MIN_HEIGHT = 160, MAX_HEIGHT = 1600;   // the graph area, in pixels
 const SHAPE_W = { box: 112, rounded: 100, speaker: 100 };
 export const nodeBox = def => {
   const rows = Math.max(def.inputs.length, def.outputs.length, 1);
@@ -89,7 +90,8 @@ const fmt = v => String(Number(v.toPrecision(4)));
 export function createPatcher({ canvas, panel, exposedPanel = null, onEscape = () => {}, statusEl, doc = document, nodeTypes, onStructure, onParam, onData = () => {}, onContext = () => {}, getSampleIds = () => [] }) {
   let instruments = {}, instId = null, selected = null, drag = null, dirty = true;
   const ctx = canvas.getContext('2d');
-  const W = canvas.width, H = canvas.height;
+  const W = canvas.width;
+  let H = canvas.height;
   const dpr = globalThis.devicePixelRatio || 1;
   if (dpr !== 1) {
     canvas.style.width = `${W}px`;
@@ -479,6 +481,16 @@ export function createPatcher({ canvas, panel, exposedPanel = null, onEscape = (
     },
     // Draws the panel again, for when parameters were changed from outside (a preset).
     refreshPanel() { renderPanel(); dirty = true; },
+    // Changes the height of the graph area in CSS pixels (the width stays); the graph is drawn again at once.
+    resize(height) {
+      H = Math.round(Math.min(MAX_HEIGHT, Math.max(MIN_HEIGHT, height)));
+      canvas.style.height = `${H}px`;
+      canvas.height = H * dpr;   // a new size clears the canvas and its transform
+      if (dpr !== 1) ctx.setTransform?.(dpr, 0, 0, dpr, 0, 0);
+      dirty = true;
+      return H;
+    },
+    get height() { return H; },
     get selectedNode() { return selected?.kind === 'node' ? selected.id : null; },
     draw,
     get instrument() { return instId; },

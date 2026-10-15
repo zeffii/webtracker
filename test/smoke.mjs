@@ -3069,6 +3069,12 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   key('Tab'); assert.equal(patcher.selectedNode, start, 'and comes back round');
   key('ArrowRight'); assert.notEqual(patcher.selectedNode, start, 'an arrow moves to a node in that direction');
   key('Escape'); assert.equal(escaped, 1, 'Escape asks to go back to the list');
+  // the graph area can be made taller; the size is clamped
+  assert.equal(patcher.height, 360);
+  assert.equal(patcher.resize(520), 520); assert.equal(canvas.height, 520); assert.equal(canvas.style.height, '520px');
+  assert.equal(patcher.resize(10), 160, 'not smaller than the minimum');
+  assert.equal(patcher.resize(99999), 1600, 'nor larger than the maximum');
+  patcher.draw();   // draws at the new size without throwing
 }
 
 console.log('smoke test passed');

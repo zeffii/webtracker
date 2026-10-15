@@ -90,6 +90,38 @@ const patcher = createPatcher({
   },
 });
 
+// The height of the graph area: drag the bar under it (or Up/Down on it); the rest of the screen follows.
+// The choice is remembered in this browser.
+{
+  const grip = $('patch-grip'), KEY = 'webtracker.graphHeight';
+  const remember = h => { try { localStorage.setItem(KEY, String(h)); } catch { /* private window: not remembered */ } };
+  try { const saved = Number(localStorage.getItem(KEY)); if (saved) patcher.resize(saved); } catch { /* none saved */ }
+  grip.addEventListener('pointerdown', e => {
+    const startY = e.clientY, startH = patcher.height;
+    grip.setPointerCapture?.(e.pointerId);
+    grip.classList.add('dragging');
+    const move = ev => patcher.resize(startH + ev.clientY - startY);
+    const up = () => {
+      grip.classList.remove('dragging');
+      grip.removeEventListener('pointermove', move);
+      grip.removeEventListener('pointerup', up);
+      grip.removeEventListener('pointercancel', up);
+      remember(patcher.height);
+    };
+    grip.addEventListener('pointermove', move);
+    grip.addEventListener('pointerup', up);
+    grip.addEventListener('pointercancel', up);
+    e.preventDefault();
+  });
+  grip.addEventListener('keydown', e => {
+    const dir = { ArrowDown: 1, ArrowUp: -1 }[e.key];
+    if (!dir) return;
+    remember(patcher.resize(patcher.height + dir * (e.shiftKey ? 100 : 20)));
+    e.preventDefault();
+  });
+  grip.addEventListener('dblclick', () => remember(patcher.resize(300)));
+}
+
 // The floating insert menu lives over the patcher canvas.
 const menu = createInsertMenu({ parent: $('patch-wrap'), nodeTypes: NODE_TYPES, onPick: (type, at) => patcher.add(type, at) });
 $('patch').addEventListener('mousedown', () => menu.close());

@@ -108,7 +108,11 @@
     #inst-head { display: flex; flex-wrap: wrap; gap: .75rem; align-items: center; margin-bottom: .5rem; }
     #inst-head input[type=number] { width: 3.5em; }
     #inst-head input, #inst-head button { font: inherit; }
+    #inst-main { --form-w: 42rem; }
+    #exposed-panel, #patch-panel, #preset-list, #preset-section { max-width: var(--form-w); }
     #exposed-panel .help, #patch-panel .help { opacity: .7; }
+    #patch-grip { height: 9px; cursor: ns-resize; margin-top: 2px; border-top: 1px solid color-mix(in srgb, currentColor 35%, transparent); background: repeating-linear-gradient(to right, transparent 0 6px, color-mix(in srgb, currentColor 22%, transparent) 6px 7px); outline: none; touch-action: none; }
+    #patch-grip:hover, #patch-grip:focus, #patch-grip.dragging { border-top-color: Highlight; background-color: color-mix(in srgb, Highlight 30%, transparent); }
     #preset-list button, #lib-list button, #lane-list button { display: block; width: 100%; font: inherit; text-align: left; padding: .1rem .5rem; border: 1px solid transparent; background: transparent; color: inherit; cursor: pointer; }
     #lib-list button.active, #preset-list button.active, #lane-list button.active { background: Highlight; color: HighlightText; }
     #inst-list button { font: inherit; text-align: left; padding: 0 .5rem; border: 0; background: transparent; color: inherit; cursor: pointer; white-space: pre; }
@@ -225,6 +229,7 @@
         </div>
         <div id="patch-wrap">
           <canvas id="patch" width="900" height="300" tabindex="0"></canvas>
+          <div id="patch-grip" tabindex="0" role="separator" aria-orientation="horizontal" aria-label="Graph height: drag, or use Up and Down" title="Drag to change the height of the graph"></div>
         </div>
         <p id="patch-status"></p>
         <h2>Exposed <span class="help">(pattern columns)</span></h2>
@@ -232,14 +237,14 @@
         <div id="patch-panel"></div>
         <h2>Presets</h2>
         <div id="preset-list"></div>
-        <div class="manage row">
+        <div id="preset-section" class="manage row">
           <input id="preset-name" placeholder="preset name" aria-label="Preset name" disabled>
           <button id="preset-save" disabled title="Keep the instrument's current sound as a new preset">Save new</button>
           <button id="preset-over" disabled title="Replace the selected preset with the current sound">Overwrite</button>
           <button id="preset-rename" disabled>Rename</button>
           <button id="preset-remove" disabled>Remove</button>
         </div>
-        <p class="help">A preset is recalled in a pattern with command 00: in the Cmd column, 00 and the preset's number, as 00 0003.</p>
+        <p class="help" style="max-width: var(--form-w)">A preset is recalled in a pattern with command 00: in the Cmd column, 00 and the preset's number, as 00 0003.</p>
         <details id="inst-more">
           <summary>Lanes, preset library, files, new instruments</summary>
           <h2>Lanes</h2>
