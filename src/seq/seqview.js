@@ -1,12 +1,14 @@
 import { esc } from './html.js';
 import { placementAt, puidByIndex, startsAt } from './edit.js';
 
-const ROWS = 24;     // ticks shown at once
+const ROWS = 24;     // rows shown at once
+const CELL = 16;     // ticks in one row
 const COLW = 14;     // characters per lane column
 const hex2 = n => n.toString(16).toUpperCase().padStart(2, '0');
 
-// The arrangement: time runs down the rows (one row per tick) and each lane is a column,
-// as in the grid. A pattern is a block that starts with its index and name; a later
+// The arrangement, zoomed out: time runs down the rows (one row is 16 ticks) and each lane is a
+// column. The cursor sits on a row; edits happen at the row's start, or at the start of a
+// pattern that begins inside it. A pattern is a block that starts with its index and name; a later
 // pattern covers the ones under it. Keyboard-driven.
 export function createSequenceView({ el, statusEl, transport, onToggle, onOpen, onMove }) {
   let lanes = null, len = 0, editor = null;
@@ -20,9 +22,18 @@ export function createSequenceView({ el, statusEl, transport, onToggle, onOpen, 
   };
 
   const lane = () => lanes[cur.lane];
-  const moveTick = d => { cur.tick = Math.min(len - 1, Math.max(0, cur.tick + d)); typed = ''; };
+  const rowStart = t => Math.floor(t / CELL) * CELL;
+  const moveTick = d => { cur.tick = rowStart(Math.min(len - 1, Math.max(0, rowStart(cur.tick) + d * CELL))); typed = ''; };
   const moveLane = d => { cur.lane = (cur.lane + d + lanes.length) % lanes.length; typed = ''; };
-  const here = () => placementAt(lane(), cur.tick);
+  // what a row of lane l shows: the first pattern that starts inside it, else the one covering it.
+  // `more` is true when several patterns start in the row (a short one was placed over another).
+  const inRow = (l, t0) => {
+    const starts = l.placements.filter(p => p.start >= t0 && p.start < t0 + CELL).sort((a, b) => a.start - b.start);
+    const pl = starts.length ? placementAt(l, starts[0].start) : placementAt(l, t0);
+    return pl ? { ...pl, more: starts.length > 1 } : null;
+  };
+  const here = () => inRow(lane(), rowStart(cur.tick));
+  const editTick = () => { const pl = here(); return pl && pl.start > rowStart(cur.tick) ? pl.start : rowStart(cur.tick); };
 
   // Placing a pattern by its two-digit shorthand; the cursor then jumps to the end of
   // it, so typing pairs of digits lays patterns out one after another.
@@ -33,7 +44,7 @@ export function createSequenceView({ el, statusEl, transport, onToggle, onOpen, 
     const placed = editor.placePattern(cur.lane, cur.tick, puid);
     if (!placed) { message = 'It does not fit here.'; return; }
     message = `Placed ${lane().patterns[puid].name}.`;
-    cur.tick = Math.min(len - 1, cur.tick + placed);
+    cur.tick = rowStart(Math.min(len - 1, cur.tick + placed));
   };
 
   // Each edit reports through the message line.
@@ -52,7 +63,7 @@ export function createSequenceView({ el, statusEl, transport, onToggle, onOpen, 
       return;
     }
     const k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
-    const li = cur.lane, t = cur.tick;
+    const li = cur.lane, t = editTick(), before = cur.tick;
     let used = true;
     switch (k) {
       case 'ArrowUp': moveTick(-1); break;
@@ -63,7 +74,7 @@ export function createSequenceView({ el, statusEl, transport, onToggle, onOpen, 
       case 'PageUp': moveTick(-16); break;
       case 'PageDown': moveTick(16); break;
       case 'Home': cur.tick = 0; typed = ''; break;
-      case 'End': cur.tick = len - 1; typed = ''; break;
+      case 'End': cur.tick = rowStart(len - 1); typed = ''; break;
       case ' ': onToggle(); break;
       case 'Escape': typed = ''; message = ''; break;
       case 'Enter':   // open the pattern under the cursor in the grid, or start a new one
@@ -76,7 +87,7 @@ export function createSequenceView({ el, statusEl, transport, onToggle, onOpen, 
       case '+': case '=': act('extend', editor.resize(li, t, 16), 'Extended.'); break;
       case '-': act('shrink', editor.resize(li, t, -16), 'Shrunk.'); break;
       case '.': case ',': case '>': case '<': {
-        const delta = { '.': 1, ',': -1, '>': 16, '<': -16 }[k];
+        const delta = { '.': CELL, ',': -CELL, '>': 16 * CELL, '<': -16 * CELL }[k];
         const moved = editor.move(li, t, delta);
         if (act('move', moved, 'Moved.')) cur.tick = moved.start;
         break;
@@ -93,28 +104,31 @@ export function createSequenceView({ el, statusEl, transport, onToggle, onOpen, 
         } else used = false;
     }
     if (used) e.preventDefault();
-    if (onMove && (cur.lane !== li || cur.tick !== t)) onMove(cur.lane, cur.tick);   // keep the grid in step
+    if (onMove && (cur.lane !== li || cur.tick !== before)) onMove(cur.lane, cur.tick);   // keep the grid in step
   });
 
   const draw = () => {
     if (!lanes) return;
     const playing = Atomics.load(transport, 1) === 1, playTick = Atomics.load(transport, 0);
-    const top = Math.max(0, Math.min(cur.tick - 8, len - ROWS));
-    const lines = [`    ${lanes.map((l, li) => `${li === cur.lane ? '>' : ' '}${esc(l.id.slice(0, COLW - 1).padEnd(COLW - 1))}`).join(' ')}`];
+    const rows = Math.ceil(len / CELL), curRow = Math.floor(cur.tick / CELL);
+    const top = Math.max(0, Math.min(curRow - 8, rows - ROWS));
+    const lines = [`      ${lanes.map((l, li) => `${li === cur.lane ? '>' : ' '}${esc(l.id.slice(0, COLW - 1).padEnd(COLW - 1))}`).join(' ')}`];
 
-    for (let t = top; t < Math.min(len, top + ROWS); t++) {
+    for (let r = top; r < Math.min(rows, top + ROWS); r++) {
+      const t = r * CELL;
       const cells = lanes.map((l, li) => {
-        const pl = placementAt(l, t);
+        const pl = inRow(l, t);
         let text = ' '.repeat(COLW), cls = '';
         if (pl) {
           const pat = l.patterns[pl.puid];
-          text = (t === pl.start ? `▌${hex2(pat.index)} ${pat.name}` : '│').slice(0, COLW).padEnd(COLW);
+          text = (pl.start >= t ? `▌${hex2(pat.index)} ${pat.name}` : '│').slice(0, COLW).padEnd(COLW);
+          if (pl.more) text = `${text.slice(0, COLW - 1)}+`;
           cls = `p${pat.index % 6}`;
         }
-        const classes = [cls, li === cur.lane && t === cur.tick && 'cur'].filter(Boolean).join(' ');
+        const classes = [cls, li === cur.lane && r === curRow && 'cur'].filter(Boolean).join(' ');
         return classes ? `<span class="${classes}">${esc(text)}</span>` : esc(text);
       });
-      lines.push(`${playing && t === playTick ? '>' : ' '}${String(t).padStart(2, '0')} ${cells.join(' ')}`);
+      lines.push(`${playing && playTick >= t && playTick < t + CELL ? '>' : ' '}${String(t).padStart(4, '0')} ${cells.join(' ')}`);
     }
 
     const pool = Object.values(lane().patterns).sort((a, b) => a.index - b.index)
@@ -126,12 +140,12 @@ export function createSequenceView({ el, statusEl, transport, onToggle, onOpen, 
 
     const owner = here();
     statusEl.textContent = [
-      lane().id, `tick ${cur.tick}`,
+      lane().id, `tick ${editTick()}`,
       owner ? `${hex2(lane().patterns[owner.puid].index)} ${lane().patterns[owner.puid].name}` : 'no pattern',
       typed && `typing ${typed}`, message,
     ].filter(Boolean).join(' · ');
   };
 
-  const goto = (laneIdx, tick) => { cur.lane = laneIdx; cur.tick = tick; typed = ''; };
+  const goto = (laneIdx, tick) => { cur.lane = laneIdx; cur.tick = rowStart(tick); typed = ''; };
   return { draw, load, goto };
 }

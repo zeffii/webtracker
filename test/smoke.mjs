@@ -523,12 +523,16 @@ const firstSound = x => x.findIndex(v => Math.abs(v) > 1e-9);
   view.draw();
   const rows = el.innerHTML.split('\n');
   assert.ok(rows[0].includes('&lt;b&gt;x&lt;/b&gt;'), 'lane names are the column headers');
-  assert.ok(rows[1].startsWith(' 00') && rows[2].startsWith(' 01'), 'one row per tick, counting down');
-  assert.ok(rows.slice(2, 10).some(r => r.includes('│')), 'blocks continue down the rows');
+  assert.ok(rows[1].startsWith(' 0000') && rows[2].startsWith(' 0016'), 'one row per 16 ticks, counting down');
+  assert.ok(rows.slice(1, 3).some(r => r.includes('▌')), 'blocks start on their row');
   press('ArrowDown'); press('ArrowDown');                                // time moves down the rows
-  assert.deepEqual(moves.at(-1), [0, 2]);
+  assert.deepEqual(moves.at(-1), [0, 16], 'the second row, 16 ticks down (the song is 32 ticks)');
   press('ArrowRight');                                                   // and right changes lane
-  assert.deepEqual(moves.at(-1), [1, 2]);
+  assert.deepEqual(moves.at(-1), [1, 16]);
+  view.goto(0, 5); press('ArrowDown'); assert.deepEqual(moves.at(-1), [0, 16], 'the cursor sits on a row start');
+  // two patterns start in the second row of the lead lane (an arp at 16 and a fill at 28): marked with a +
+  view.goto(0, 16); view.draw();
+  assert.ok(/\+<\/span>|\+ /.test(el.innerHTML.split('\n')[2]), 'a row with several starts is marked');
 }
 
 // 25. The two views follow each other: moving in one reports the position for the other.
