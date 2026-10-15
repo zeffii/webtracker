@@ -337,7 +337,13 @@ $('swing').addEventListener('change', () => {
   $('swing').value = pct;
   songChanged();
 });
-for (const id of ['bpm', 'swing']) $(id).addEventListener('keydown', e => e.stopPropagation());
+$('length').addEventListener('change', () => {
+  const before = project.song.length;
+  reshape(() => {
+    try { const n = ops.setSongLength(project, $('length').value); return { message: `Song length ${n} ticks.` }; } catch (err) { $('length').value = before; throw err; }
+  });
+});
+for (const id of ['length', 'bpm', 'swing']) $(id).addEventListener('keydown', e => e.stopPropagation());
 
 $('inst-rename').addEventListener('click', () => {
   const id = patcher.instrument;
@@ -450,6 +456,7 @@ function openProject({ song, instruments, samples }, { stay = false, instrument 
   view.load({ lanes, song, editor });
   const at = Math.max(0, lanes.findIndex(l => l.id === lane));
   view.goto(at, 0); seqView.goto(at, 0);
+  $('length').value = song.length;
   $('bpm').value = song.bpm;
   $('swing').value = Math.round((song.swing ?? 0.5) * 100);
   bindings.forEach(apply);
@@ -548,7 +555,7 @@ $('start').addEventListener('click', async () => {
     started = true;
     openProject(createDemoProject(engine.ctx.sampleRate));
     for (const id of ['start']) $(id).disabled = true;
-    for (const id of ['play', 'save', 'load', 'patch-add', 'load-samples', 'add-sampler', 'add-synth', 'add-lane', 'inst-voices', 'inst-notecols', 'inst-name', 'inst-rename', 'inst-up', 'inst-down', 'inst-dup', 'inst-remove', 'lane-name', 'lane-rename', 'lane-left', 'lane-right', 'lane-dup', 'lane-remove', 'bpm', 'swing', 'preset-name', 'preset-save', 'preset-over', 'preset-rename', 'preset-remove', 'inst-export', 'inst-import', 'lib-load', 'lib-add', 'lib-save']) $(id).disabled = false;
+    for (const id of ['play', 'save', 'load', 'patch-add', 'load-samples', 'add-sampler', 'add-synth', 'add-lane', 'inst-voices', 'inst-notecols', 'inst-name', 'inst-rename', 'inst-up', 'inst-down', 'inst-dup', 'inst-remove', 'lane-name', 'lane-rename', 'lane-left', 'lane-right', 'lane-dup', 'lane-remove', 'length', 'bpm', 'swing', 'preset-name', 'preset-save', 'preset-over', 'preset-rename', 'preset-remove', 'inst-export', 'inst-import', 'lib-load', 'lib-add', 'lib-save']) $(id).disabled = false;
     $('status').textContent =
       `Running at ${engine.ctx.sampleRate} Hz, base latency ${(engine.ctx.baseLatency * 1000).toFixed(1)} ms`;
     const frame = () => { songInfo(); seqView.draw(); view.draw(); patcher.draw(); waveform.draw(); requestAnimationFrame(frame); };

@@ -2650,6 +2650,17 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     assert.throws(() => lib.parseLibrary('{"format":"x"}'), /Not a preset library/);
     assert.throws(() => lib.parseLibrary('nope'), /invalid JSON/);
   }
+
+  // song length: rounds to rows, longer keeps everything, shorter trims placements
+  {
+    const project = { song: { length: 64 }, lanes: [{ placements: [{ puid: 'a', start: 0, length: 16 }, { puid: 'a', start: 40, length: 16 }, { puid: 'a', start: 48, length: 16 }] }] };
+    assert.equal(pops.setSongLength(project, 130), 128);
+    assert.equal(project.lanes[0].placements.length, 3);
+    pops.setSongLength(project, 48);
+    assert.deepEqual(project.lanes[0].placements.map(p => [p.start, p.length]), [[0, 16], [40, 8]], 'one dropped, one trimmed');
+    assert.throws(() => pops.setSongLength(project, 0), /16 to 4096/);
+    assert.throws(() => pops.setSongLength(project, 'x'), /16 to 4096/);
+  }
 }
 
 console.log('smoke test passed');

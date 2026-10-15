@@ -123,6 +123,21 @@ const newName = (name, taken, what, current) => {
   return next;
 };
 
+// Sets the song's length in ticks, a whole number of 16-tick rows from 16 to 4096. Shortening
+// drops the placements that start past the end and trims one that runs over it; the patterns
+// themselves stay in each lane's list. Returns the new length.
+export function setSongLength(project, ticks) {
+  const length = Math.round(Number(ticks) / 16) * 16;
+  if (!Number.isFinite(length) || length < 16 || length > 4096) throw new Error('A song is 16 to 4096 ticks long.');
+  for (const lane of project.lanes) {
+    lane.placements = lane.placements
+      .filter(p => p.start < length)
+      .map(p => (p.start + p.length > length ? { ...p, length: length - p.start } : p));
+  }
+  project.song.length = length;
+  return length;
+}
+
 // Renames a sample (keeping its place in the list) and every instrument node that plays it.
 export function renameSample(project, id, name) {
   if (!project.samples[id]) throw new Error(`No sample called "${id}".`);

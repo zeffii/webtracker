@@ -97,6 +97,7 @@
       <button id="save" disabled>Save</button>
       <button id="load" disabled>Load</button>
       <input id="file" type="file" accept=".wax,.wtrk,.json" hidden>
+      <label title="Song length in ticks; 16 ticks is one row of the arrangement">length <input id="length" type="number" min="16" max="4096" step="16" style="width:4.5em" disabled></label>
       <label>bpm <input id="bpm" type="number" min="20" max="400" step="1" style="width:4em" disabled></label>
       <label title="How much of each pair of rows the first one lasts: 50 is straight, 67 is a triplet shuffle">swing <input id="swing" type="number" min="50" max="75" step="1" style="width:3.5em" disabled>%</label>
       <span id="song-info"></span>
