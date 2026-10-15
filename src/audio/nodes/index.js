@@ -12,6 +12,9 @@ import sumst from './sumst.js';
 import fold from './fold.js';
 import pan from './pan.js';
 import chorus from './chorus.js';
+import phaser from './phaser.js';
+import flanger from './flanger.js';
+import distortion from './distortion.js';
 import multitap from './multitap.js';
 import waveshaper from './waveshaper.js';
 import exciter from './exciter.js';
@@ -24,4 +27,4 @@ import addsynth from './addsynth.js';
 import voices from './voices.js';
 
 // Node type registry. Adding a node type means adding a module and listing it here.
-export const NODE_TYPES = { sampler, osc, env, lfo, gain, mix, pan, filter, delay, chorus, multitap, waveshaper, exciter, transient, split, compressor, hall, subsynth, addsynth, voices, out, sum, sumst, fold };
+export const NODE_TYPES = { sampler, osc, env, lfo, gain, mix, pan, filter, delay, chorus, phaser, flanger, distortion, multitap, waveshaper, exciter, transient, split, compressor, hall, subsynth, addsynth, voices, out, sum, sumst, fold };

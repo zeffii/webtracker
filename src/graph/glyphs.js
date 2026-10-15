@@ -68,6 +68,9 @@ export const GLYPHS = {
     curve(ctx, cx, cy - h * 0.18, w, h * 0.5, t => Math.sin(t * Math.PI * 3));
     curve(ctx, cx, cy + h * 0.18, w, h * 0.5, t => Math.sin(t * Math.PI * 3 + 1.2));
   },
+  phaser: (ctx, cx, cy, w, h) => curve(ctx, cx, cy, w, h, t => 0.8 - 1.8 * Math.abs(Math.sin(t * Math.PI * 2.5)) * (0.4 + t * 0.6)),   // a response with moving notches
+  flanger: (ctx, cx, cy, w, h) => curve(ctx, cx, cy, w, h, t => Math.sin(Math.PI * 2 * (1.5 * t + 3 * t * t)) * 0.85, 40),   // a wave sweeping upwards
+  distortion: (ctx, cx, cy, w, h) => curve(ctx, cx, cy, w, h, t => Math.max(-0.55, Math.min(0.55, 1.7 * Math.sin(t * Math.PI * 2))) / 0.55 * 0.8),   // a sine with its peaks cut off
   multitap: (ctx, cx, cy, w, h) => {   // taps fanning left and right of a centre line
     line(ctx, [[cx - w / 2, cy], [cx + w / 2, cy]]);
     ctx.beginPath();

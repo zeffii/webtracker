@@ -1527,6 +1527,39 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   assert.ok(wide[1][960] > 1.3 && Math.abs(wide[0][960]) < 1e-3, 'the last tap should be hard right');
   const ring = stage('multitap', { time: 10, taps: 1, decay: 1, feedback: 0.5, mix: 1 })(impulse, impulse);
   assert.ok(ring[0][960] > 0.2 && ring[0].every(Number.isFinite), 'feedback should repeat the tap');
+
+  // phaser: mix 0 is dry, silence stays silent, a wet signal differs, stays finite even at high feedback
+  const ph0 = stage('phaser', { mix: 0 })(noise, noise);
+  assert.ok(ph0[0].every((v, i) => v === noise[i]), 'phaser mix 0 is dry');
+  const ph1 = stage('phaser', { mix: 1 })(noise, noise);
+  assert.ok(ph1[0].every(Number.isFinite) && ph1[0].some((v, i) => Math.abs(v - noise[i]) > 0.05));
+  assert.ok(ph1[0].some((v, i) => Math.abs(v - ph1[1][i]) > 0.01), 'the channels differ');
+  const phHot = stage('phaser', { mix: 1, feedback: 0.95, stages: 12 })(noise, noise);
+  assert.ok(phHot[0].every(Number.isFinite) && peak(phHot[0]) < 60, 'high feedback stays bounded');
+  assert.equal(peak(stage('phaser', {})(new Float32Array(2000), new Float32Array(2000))[0]), 0);
+
+  // flanger: an impulse comes back after `delay` ms, scaled by mix; feedback repeats it
+  const fl = stage('flanger', { depth: 0, delay: 2, feedback: 0, mix: 1 })(impulse, impulse);
+  const at = Math.round(2 * sr / 1000);
+  assert.ok(Math.abs(fl[0][at] - 1) < 1e-3 && Math.abs(fl[0][at + 50]) < 1e-6, 'the delayed copy');
+  const flFb = stage('flanger', { depth: 0, delay: 2, feedback: 0.5, mix: 1 })(impulse, impulse);
+  assert.ok(Math.abs(flFb[0][2 * at] - 0.5) < 1e-3, 'feedback repeats it, halved');
+  const flHot = stage('flanger', { feedback: 0.95, mix: 1 })(noise, noise);
+  assert.ok(flHot[0].every(Number.isFinite) && peak(flHot[0]) < 60);
+  assert.ok(stage('flanger', { mix: 0 })(noise, noise)[0].every((v, i) => v === noise[i]), 'flanger mix 0 is dry');
+
+  // distortion: hard clip limits the peak, mix 0 passes the dry signal, the modes differ, silence stays silent
+  const sine = Float32Array.from({ length: 9600 }, (_, i) => 0.5 * Math.sin(i * 0.07));
+  const hard = stage('distortion', { mode: 1, drive: 20, oversample: 0, tone: 20000, level: 1 })(sine, sine);
+  assert.ok(peak(hard[0]) < 1.1 && peak(hard[0]) > 0.8, 'hard clip tops out near 1');
+  const dry2 = stage('distortion', { mix: 0, oversample: 0, level: 1 })(sine, sine);
+  assert.ok(dry2[0].every((v, i) => Math.abs(v - sine[i]) < 1e-6), 'distortion mix 0 is dry');
+  const modes = [0, 1, 2, 3].map(mode => stage('distortion', { mode, drive: 5, oversample: 1 })(sine, sine)[0]);
+  for (let a = 0; a < 4; a++) for (let b = a + 1; b < 4; b++) assert.ok(modes[a].some((v, i) => Math.abs(v - modes[b][i]) > 0.01), `modes ${a} and ${b} differ`);
+  assert.ok(modes.every(m => m.every(Number.isFinite)));
+  const tube = modes[2].subarray(4800), mean = tube.reduce((x, y) => x + y, 0) / tube.length;
+  assert.ok(Math.abs(mean) < 0.03, 'the tube curve leaves no DC offset');
+  assert.equal(peak(stage('distortion', {})(new Float32Array(2000), new Float32Array(2000))[0]), 0);
 }
 
 // 58. The insert menu lists the placeable nodes by category, filters, and picks by keyboard.
