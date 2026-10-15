@@ -3,7 +3,7 @@ import { NODE_TYPES } from './audio/nodes/index.js';
 import { pruneDef } from './graph/edit.js';
 import { createPatcher } from './graph/patcher.js';
 import { createInsertMenu } from './graph/menu.js';
-import { createDemoProject } from './project/demo.js';
+import { createSynthwaveProject } from './project/synthwave.js';
 import * as ops from './project/ops.js';
 import * as presets from './project/presets.js';
 import { LIBRARY_EXT, addToLibrary, importFromLibrary, newLibrary, parseLibrary, serializeLibrary } from './project/library.js';
@@ -553,7 +553,7 @@ $('start').addEventListener('click', async () => {
     await engine.start();
     engine.onFault = id => projStatus(`Instrument "${id}" produced invalid audio and was reset. If you can repeat it, note what you changed.`);
     started = true;
-    openProject(createDemoProject(engine.ctx.sampleRate));
+    openProject(createSynthwaveProject());
     for (const id of ['start']) $(id).disabled = true;
     for (const id of ['play', 'save', 'load', 'patch-add', 'load-samples', 'add-sampler', 'add-synth', 'add-lane', 'inst-voices', 'inst-notecols', 'inst-name', 'inst-rename', 'inst-up', 'inst-down', 'inst-dup', 'inst-remove', 'lane-name', 'lane-rename', 'lane-left', 'lane-right', 'lane-dup', 'lane-remove', 'length', 'bpm', 'swing', 'preset-name', 'preset-save', 'preset-over', 'preset-rename', 'preset-remove', 'inst-export', 'inst-import', 'lib-load', 'lib-add', 'lib-save']) $(id).disabled = false;
     $('status').textContent =

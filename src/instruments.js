@@ -27,7 +27,7 @@ export const withParams = (graph, overrides) => ({
 // A bass drum built from nodes: a pitch envelope sweeps a sine oscillator down, and an
 // amplitude envelope shapes it. The oscillator restarts its phase on every note, so every
 // hit starts the same way. Played from note C-2.
-const kickGraph = {
+export const kickGraph = {
   nodes: [
     { id: 'pitchEnv', type: 'env', params: { attack: 0.2, decay: 70, sustain: 0, release: 50, amount: 2.5 } },
     { id: 'osc', type: 'osc', params: { wave: 0, reset: 1, phase: 0.25 } },

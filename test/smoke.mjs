@@ -33,6 +33,7 @@ import { createInsertMenu } from '../src/graph/menu.js';
 import { createTabs } from '../src/ui/tabs.js';
 import * as presetOps from '../src/project/presets.js';
 import { parseInstrument, serializeInstrument } from '../src/project/file.js';
+import { createSynthwaveProject } from '../src/project/synthwave.js';
 import * as lib from '../src/project/library.js';
 import { compileDsp } from '../src/audio/wasm/load.js';
 
@@ -2660,6 +2661,40 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     assert.deepEqual(project.lanes[0].placements.map(p => [p.start, p.length]), [[0, 16], [40, 8]], 'one dropped, one trimmed');
     assert.throws(() => pops.setSongLength(project, 0), /16 to 4096/);
     assert.throws(() => pops.setSongLength(project, 'x'), /16 to 4096/);
+  }
+
+  // patterns start on multiples of 16, wherever in the row the request lands
+  {
+    const registry = new ParamRegistry();
+    for (const [id, def] of Object.entries(instruments)) compile(def.graph, { instrument: id, nodeTypes: NODE_TYPES, registry });
+    const lanes = prepareSong(demoSong, instruments, registry);
+    const editor = createEditor(lanes, 64);
+    const lane = lanes[2];   // kick: patterns at 0 and 16
+    assert.ok(editor.remove(2, 16) && editor.remove(2, 0));
+    assert.ok(editor.insertPattern(2, 21));
+    assert.deepEqual(lane.placements.map(p => p.start), [16], 'an insert in the middle of a row starts at the row');
+    const puid = Object.keys(lane.patterns)[0];
+    assert.ok(editor.placePattern(2, 37, puid));
+    assert.deepEqual(lane.placements.map(p => p.start).sort((a, b) => a - b), [16, 32], 'so does a placement');
+  }
+
+  // the default project: loads, plays all six lanes, stays inside full scale
+  {
+    const p = createSynthwaveProject();
+    const registry = new ParamRegistry();
+    const rt = new GraphRuntime({ sampleRate: sr, params: registry.values });
+    const seq = new Sequencer({ sampleRate: sr, runtime: rt, params: registry.values, transport: new Int32Array(new SharedArrayBuffer(8)) });
+    for (const [id, def] of Object.entries(p.instruments)) rt.load(compile(def.graph, { instrument: id, nodeTypes: NODE_TYPES, registry }));
+    seq.setSong(p.song);
+    const lanes = prepareSong(p.song, p.instruments, registry);
+    assert.deepEqual(lanes.map(l => l.id), ['kick', 'snare', 'bass', 'pad', 'arp', 'lead']);
+    for (const lane of lanes) seq.setLane(lane);
+    seq.play();
+    const { left, right } = render(seq, 12);
+    assert.ok(![...left, ...right].some(Number.isNaN));
+    assert.ok(peak(left) > 0.3 && peak(left) < 1 && peak(right) < 1, `mix peak ${peak(left)}`);
+    const roundTrip = parseProject(serializeProject({ ...p, lanes }));
+    assert.equal(roundTrip.song.length, 128);
   }
 }
 
