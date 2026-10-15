@@ -130,7 +130,7 @@ function songSetup(song, wasm = null) {
   return { seq, registry, rt };
 }
 
-const patternText = (length, cells) => Array.from({ length }, (_, i) => cells[i] ?? '... .. .. .. ..').join('\n');
+const patternText = (length, cells) => Array.from({ length }, (_, i) => cells[i] ?? '... .. .. .... .... .. .. ..').join('\n');
 const oneLane = (id, instrument, text, length = 16) => ({
   id, instrument, patterns: { a: { text } }, placements: [{ puid: 'a', start: 0, length }],
 });
@@ -139,7 +139,7 @@ const firstSound = x => x.findIndex(v => Math.abs(v) > 1e-9);
 
 // 6. A note lands on its exact tick, sample-accurately.
 {
-  const { seq } = songSetup(song120([oneLane('lead', 'lead', patternText(16, { 2: 'C-4 .. .. .. ..' }))]));
+  const { seq } = songSetup(song120([oneLane('lead', 'lead', patternText(16, { 2: 'C-4 .. .. .... .... .. .. ..' }))]));
   seq.play();
   const at = firstSound(render(seq, 0.5).left);
   assert.ok(at >= 12000 && at <= 12003, `note started at sample ${at}, expected about 12000`);
@@ -147,7 +147,7 @@ const firstSound = x => x.findIndex(v => Math.abs(v) > 1e-9);
 
 // 7. A parameter column writes its slot; an empty cell leaves the slot alone.
 {
-  const { seq, registry } = songSetup(song120([oneLane('lead', 'lead', patternText(16, { 0: '... .. 80 .. ..' }))]));
+  const { seq, registry } = songSetup(song120([oneLane('lead', 'lead', patternText(16, { 0: '... .. .. .... .... 80 .. ..' }))]));
   registry.set('lead.filter.resonance', 0.7);
   seq.play();
   render(seq, 0.1);
@@ -158,8 +158,8 @@ const firstSound = x => x.findIndex(v => Math.abs(v) > 1e-9);
 
 // 8. Two lanes at once: the mix is exactly the sum of each lane on its own.
 {
-  const lead = oneLane('lead', 'lead', patternText(16, { 0: 'C-4 .. .. .. ..' }));
-  const bass = oneLane('bass', 'bass', patternText(16, { 0: 'C-3 .. .. .. ..' }));
+  const lead = oneLane('lead', 'lead', patternText(16, { 0: 'C-4 .. .. .... .... .. .. ..' }));
+  const bass = oneLane('bass', 'bass', patternText(16, { 0: 'C-3 .. .. .... .... .. .. ..' }));
   const run = lanes => { const { seq } = songSetup(song120(lanes)); seq.play(); return render(seq, 0.6).left; };
   const both = run([lead, bass]), a = run([lead]), b = run([bass]);
   assert.ok(peak(a) > 0.05 && peak(b) > 0.05, 'a lane is silent');
@@ -168,7 +168,7 @@ const firstSound = x => x.findIndex(v => Math.abs(v) > 1e-9);
 
 // 9. The song loops: a note on tick 0 sounds again when the song wraps.
 {
-  const text = patternText(16, { 0: 'C-4 .. .. .. ..', 4: '=== .. .. .. ..' });
+  const text = patternText(16, { 0: 'C-4 .. .. .... .... .. .. ..', 4: '=== .. .. .... .... .. .. ..' });
   const { seq } = songSetup(song120([oneLane('bass', 'bass', text)]));
   seq.play();
   const x = render(seq, 2.1).left;   // 96000 samples per pass
@@ -186,8 +186,8 @@ const firstSound = x => x.findIndex(v => Math.abs(v) > 1e-9);
   const lane = {
     id: 'l',
     patterns: {
-      long: { text: patternText(16, { 0: 'C-4 .. .. .. ..', 8: 'E-4 .. .. .. ..' }) },
-      over: { text: patternText(4, { 0: 'G-5 .. .. .. ..' }) },
+      long: { text: patternText(16, { 0: 'C-4 .. .. .... .... .. .. ..', 8: 'E-4 .. .. .... .... .. .. ..' }) },
+      over: { text: patternText(4, { 0: 'G-5 .. .. .... .... .. .. ..' }) },
     },
     placements: [{ puid: 'long', start: 0, length: 16 }, { puid: 'over', start: 4, length: 4 }],
   };
@@ -204,7 +204,7 @@ const firstSound = x => x.findIndex(v => Math.abs(v) > 1e-9);
   const columns = buildColumns('lead', instruments.lead, registry);
   const lane = {
     id: 'l',
-    patterns: { a: { text: patternText(16, { 7: 'G-3 .. .. .. ..', 8: 'A-3 .. .. .. ..' }) } },
+    patterns: { a: { text: patternText(16, { 7: 'G-3 .. .. .... .... .. .. ..', 8: 'A-3 .. .. .... .... .. .. ..' }) } },
     placements: [{ puid: 'a', start: PAGE_TICKS - 8, length: 16 }],
   };
   const pages = buildPages(flattenLane(lane, columns, 1500), columns);
@@ -224,7 +224,7 @@ const firstSound = x => x.findIndex(v => Math.abs(v) > 1e-9);
 
 // 13. 4hex cells: a 16-bit parameter column writes its slot.
 {
-  const { seq, registry } = songSetup(song120([oneLane('lead', 'lead', patternText(16, { 0: '... .. .. .. .. 8000' }))]));
+  const { seq, registry } = songSetup(song120([oneLane('lead', 'lead', patternText(16, { 0: '... .. .. .... .... .. .. .. 8000' }))]));
   seq.play();
   render(seq, 0.1);
   const expected = 1 + (0x8000 / 65535) * 999;   // delay time runs 1..1000 ms
@@ -240,9 +240,9 @@ const firstSound = x => x.findIndex(v => Math.abs(v) > 1e-9);
     render(seq, 0.1);
     return { registry, before };
   };
-  const known = run('... .. .. .. .. .... 02A000');
+  const known = run('... .. .. .... .... .. .. .. .... 02A000');
   assert.ok(Math.abs(known.registry.get('lead.filter.resonance') - 0.95 * (0xA000 / 65535)) < 1e-4, 'command 02 did not write resonance');
-  const unknown = run('... .. .. .. .. .... 99FFFF');
+  const unknown = run('... .. .. .... .... .. .. .. .... 99FFFF');
   assert.deepEqual(Array.from(unknown.registry.values), unknown.before, 'unknown command changed a parameter');
 }
 
@@ -270,8 +270,8 @@ const firstSound = x => x.findIndex(v => Math.abs(v) > 1e-9);
   assert.equal(lead.rows[3][0], 'G-4');
   assert.equal(lead.rows[19][0], 'G-4');            // same pattern, second placement
   assert.equal(decodeNote(lead.pages[0][3 * ch]), 67);
-  assert.ok(setCell(lead, 32, 3, 6, '02A000'));    // the Cmd column
-  assert.deepEqual(Array.from(lead.pages[0].subarray(3 * ch + 6, 3 * ch + 8)), encodeCell('02A000', 'cmd').map(Math.fround));
+  assert.ok(setCell(lead, 32, 3, 9, '02A000'));    // the Cmd column
+  assert.deepEqual(Array.from(lead.pages[0].subarray(3 * ch + 9, 3 * ch + 11)), encodeCell('02A000', 'cmd').map(Math.fround));
 
   const gap = { id: 'g', instrument: 'lead', patterns: { a: { text: patternText(8, {}) } }, placements: [{ puid: 'a', start: 0, length: 8 }] };
   const [lane] = prepareSong({ ...demoSong, lanes: [gap] }, instruments, registry);
@@ -323,24 +323,24 @@ const firstSound = x => x.findIndex(v => Math.abs(v) > 1e-9);
   press(']'); press('q');                       // octave 4, upper row: C one octave up
   assert.equal(lead.rows[1][0], 'C-5');
   press('1'); assert.equal(lead.rows[2][0], '===');
-  press('Home'); press('ArrowRight', 5);        // Note (3 chars), Vel (2 chars), then Cut
+  press('Home'); press('ArrowRight', 15);       // Note (3 chars), Vel, Smp, Off, Rtg (2+2+4+4), then Cut
   press('ArrowDown', 3);                        // row 3 holds Cut 88
-  press('a'); assert.equal(lead.rows[3][2], 'A8');   // overwrites one character
-  press('0'); assert.equal(lead.rows[3][2], 'A0');   // second character, then the cursor moves down a row
+  press('a'); assert.equal(lead.rows[3][5], 'A8');   // overwrites one character
+  press('0'); assert.equal(lead.rows[3][5], 'A0');   // second character, then the cursor moves down a row
   press('ArrowUp'); press('Delete');            // clearing does not advance
-  assert.equal(lead.rows[3][2], '..');
+  assert.equal(lead.rows[3][5], '..');
   press('ArrowRight', 10);                      // Cut, Res, Mix, Time (4 chars), then Cmd
   for (const k of '03ffff') press(k);           // an empty cell fills with zeros, then each digit lands in turn
-  assert.equal(lead.rows[3][6], '03FFFF');
+  assert.equal(lead.rows[3][9], '03FFFF');
 
-  press('Home'); press('ArrowLeft', 2);         // Cmd char 0 -> Time char 3 -> char 2
-  assert.equal(lead.rows[0][5], '4C9E');
-  press('f'); assert.equal(lead.rows[0][5], '4CFE');   // one character of a filled 4hex cell
+  press('Home'); press('ArrowLeft', 2);          // Cmd char 0 -> Time char 3 -> char 2
+  assert.equal(lead.rows[0][8], '4C9E');
+  press('f'); assert.equal(lead.rows[0][8], '4CFE');   // one character of a filled 4hex cell
 
   press('Tab'); press('8');                     // bass lane, Time char 3: an empty cell fills with zeros
-  assert.equal(bass.rows[0][5], '0008');
-  press('Home'); press('ArrowRight', 3);        // Time char 3 -> Cmd char 0..2
-  press('z'); assert.equal(bass.rows[0][6], '......');   // note keys do nothing in a hex cell
+  assert.equal(bass.rows[0][8], '0008');
+  press('Home'); press('ArrowRight', 3);         // Time char 3 -> Cmd char 0..2
+  press('z'); assert.equal(bass.rows[0][9], '......');   // note keys do nothing in a hex cell
 
   press(' '); assert.equal(toggled, 1);
   view.draw();
@@ -398,7 +398,7 @@ const firstSound = x => x.findIndex(v => Math.abs(v) > 1e-9);
 
 // 21. Reset drops lanes and instruments so another project can be loaded.
 {
-  const { seq, rt } = songSetup(song120([oneLane('lead', 'lead', patternText(16, { 0: 'C-4 .. .. .. ..' }))]));
+  const { seq, rt } = songSetup(song120([oneLane('lead', 'lead', patternText(16, { 0: 'C-4 .. .. .... .... .. .. ..' }))]));
   seq.play();
   assert.ok(peak(render(seq, 0.2).left) > 0.05);
   const fresh = new ParamRegistry();
@@ -465,7 +465,7 @@ const firstSound = x => x.findIndex(v => Math.abs(v) > 1e-9);
   const snap = () => lanes.map(l => l.rows.map(r => r.join('|')).join('/')).join('#');
   const start = snap();
 
-  editor.setCell(0, 3, 6, '010000'); editor.setCell(0, 3, 6, '01FF00'); editor.setCell(0, 3, 6, '01FFFF');
+  editor.setCell(0, 3, 9, '010000'); editor.setCell(0, 3, 9, '01FF00'); editor.setCell(0, 3, 9, '01FFFF');
   assert.equal(editor.log().length, 1);                                  // same cell: one entry
   editor.setWaypoint();
   editor.slice(0, 6); editor.clone(1, 0);
@@ -567,12 +567,12 @@ const firstSound = x => x.findIndex(v => Math.abs(v) > 1e-9);
     seq.play();
     return render(seq, 1).left;
   };
-  const a = run([[0, 'C-3 .. .. .. ..']]), b = run([[2, 'E-3 .. .. .. ..']]);
-  const both = run([[0, 'C-3 .. .. .. ..'], [2, 'E-3 .. .. .. ..']]);
+  const a = run([[0, 'C-3 .. .. .... .... .. .. ..']]), b = run([[2, 'E-3 .. .. .... .... .. .. ..']]);
+  const both = run([[0, 'C-3 .. .. .... .... .. .. ..'], [2, 'E-3 .. .. .... .... .. .. ..']]);
   assert.ok(peak(a) > 0.05 && peak(b) > 0.05);
   assert.ok(both.every((v, i) => Math.abs(v - (a[i] + b[i])) < 1e-5), 'the second hit cut the first');
   // note off leaves a one-shot alone
-  const withOff = run([[0, 'C-3 .. .. .. ..'], [4, '=== .. .. .. ..']]);
+  const withOff = run([[0, 'C-3 .. .. .... .... .. .. ..'], [4, '=== .. .. .... .... .. .. ..']]);
   assert.ok(withOff.every((v, i) => Math.abs(v - a[i]) < 1e-9), 'note off cut a one-shot');
 }
 
@@ -587,7 +587,7 @@ const firstSound = x => x.findIndex(v => Math.abs(v) > 1e-9);
     seq.play();
     return render(seq, 1.5).left;
   };
-  const note = 'C-4 .. .. .. ..';
+  const note = 'C-4 .. .. .... .... .. .. ..';
   const bOnly = run([[2, note]], 0);
   // fade 0: the old note is cut, so after a few ms only the new one sounds
   const cut = run([[0, note], [2, note]], 0);
@@ -599,14 +599,14 @@ const firstSound = x => x.findIndex(v => Math.abs(v) > 1e-9);
   assert.ok(peak(during) > 0.05, 'the fade did not leave the old note audible');
   assert.ok(fade.subarray(30000, 40000).every((v, i) => Math.abs(v - bOnly[30000 + i]) < 1e-3), 'the old note did not fade out');
   // note off releases a looping voice (default release 150 ms): audible before, silent after
-  const off = run([[0, note], [4, '=== .. .. .. ..']], 20);
+  const off = run([[0, note], [4, '=== .. .. .... .... .. .. ..']], 20);
   assert.ok(peak(off.subarray(20000, 23000)) > 0.05);
   assert.ok(peak(off.subarray(36000, 48000)) < 1e-4, 'note off did not release the looping voice');
 }
 
 // 28. Stopping fades every voice out, one-shots included.
 {
-  const { seq } = songSetup(song120([oneLane('bass', 'bass', patternText(16, { 0: 'C-4 .. .. .. ..', 1: 'E-4 .. .. .. ..' }))]));
+  const { seq } = songSetup(song120([oneLane('bass', 'bass', patternText(16, { 0: 'C-4 .. .. .... .... .. .. ..', 1: 'E-4 .. .. .... .... .. .. ..' }))]));
   seq.play();
   assert.ok(peak(render(seq, 0.2).left) > 0.05);
   seq.stop();
@@ -759,7 +759,7 @@ const hit = 'C-2 .. .. ..';
   assert.deepEqual(kick.rows[0], [row0[0], row0[1], row0[3], '..']);   // Dec kept its cell, Pit's is gone, Pha is empty
   assert.equal(kick.pages[0].length, 1024 * 4);
   assert.equal(decodeNote(kick.pages[0][0]), 36);
-  assert.equal(lanes[0].columns.length, 7);              // other instruments are untouched
+  assert.equal(lanes[0].columns.length, 10);              // other instruments are untouched
 }
 
 // 36. The patcher: hit testing, wiring with the mouse, loops refused, delete, sliders, expose.
@@ -1071,7 +1071,7 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   const second = pops.addLane(project, registry, id);
   assert.deepEqual([lane.id, second.id], ['Tick_Hat', 'Tick_Hat2']);          // two lanes for one instrument are independent
   assert.equal(project.lanes.at(-2), lane);
-  assert.deepEqual(lane.columns.map(c => c.label), ['Note', 'Vel', 'Cut', 'Res', 'Mix', 'Time', 'Cmd']);
+  assert.deepEqual(lane.columns.map(c => c.label), ['Note', 'Vel', 'Smp', 'Off', 'Rtg', 'Cut', 'Res', 'Mix', 'Time', 'Cmd']);
 
   // the new lane can be edited and heard
   const rt = new GraphRuntime({ sampleRate: sr, params: registry.values });
@@ -1229,7 +1229,7 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
 
 // 48. An instrument that produces invalid audio is rebuilt and reported; the others keep sounding.
 {
-  const lanes2 = [oneLane('lead', 'lead', patternText(16, { 0: 'C-4 .. .. .. ..' })), oneLane('bass', 'bass', patternText(16, { 0: 'C-3 .. .. .. ..' }))];
+  const lanes2 = [oneLane('lead', 'lead', patternText(16, { 0: 'C-4 .. .. .... .... .. .. ..' })), oneLane('bass', 'bass', patternText(16, { 0: 'C-3 .. .. .... .... .. .. ..' }))];
   const { seq, registry, rt } = songSetup(song120(lanes2));
   const faults = [];
   rt.onFault = id => faults.push(id);
@@ -1242,7 +1242,7 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   assert.deepEqual([...new Set(faults)], ['bass']);
 
   // the bad instrument recovers once its parameter is valid again, with its sample still loaded
-  const solo = songSetup(song120([oneLane('bass', 'bass', patternText(16, { 0: 'C-3 .. .. .. ..' }))]));
+  const solo = songSetup(song120([oneLane('bass', 'bass', patternText(16, { 0: 'C-3 .. .. .... .... .. .. ..' }))]));
   solo.seq.play();
   render(solo.seq, 0.05);
   solo.registry.values[solo.registry.slots.get('bass.delay.time')] = NaN;
@@ -1359,7 +1359,7 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
 {
   const wasm = compileDsp();
   const renderWith = wasmOn => {
-    const lanes2 = [oneLane('lead', 'lead', patternText(16, { 0: 'C-4 .. .. .. ..', 4: 'E-4 .. .. .. ..' })), oneLane('bass', 'bass', patternText(16, { 0: 'C-3 .. .. .. ..' }))];
+    const lanes2 = [oneLane('lead', 'lead', patternText(16, { 0: 'C-4 .. .. .... .... .. .. ..', 4: 'E-4 .. .. .... .... .. .. ..' })), oneLane('bass', 'bass', patternText(16, { 0: 'C-3 .. .. .... .... .. .. ..' }))];
     const { seq, rt } = songSetup(song120(lanes2), wasmOn ? wasm : null);
     seq.play();
     return render(seq, 0.4);
@@ -2226,11 +2226,11 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     const def = { ...structuredClone(instruments.lead), noteColumns: 3 };
     const registry = new ParamRegistry();
     const defs = { lead: def };
-    for (const n of ['filter.cutoff', 'filter.resonance', 'delay.mix', 'delay.time', 'delay.feedback', 'sampler.nnaFade', 'sampler.offset', 'sampler.retrig', 'sampler.repeats', 'sampler.shift', 'sampler.ramp', 'sampler.reverse']) registry.allocate(`lead.${n}`, 0.5, 0, 1000);
+    for (const n of ['filter.cutoff', 'filter.resonance', 'delay.mix', 'delay.time', 'delay.feedback', 'sampler.nnaFade', 'sampler.offset', 'sampler.retrig', 'sampler.repeats', 'sampler.shift', 'sampler.ramp', 'sampler.reverse', 'sampler.sample']) registry.allocate(`lead.${n}`, 0.5, 0, 1000);
     const cols = buildColumns('lead', def, registry);
-    assert.deepEqual(cols.map(c => c.label), ['N1', 'V1', 'N2', 'V2', 'N3', 'V3', 'Cut', 'Res', 'Mix', 'Time', 'Cmd']);
+    assert.deepEqual(cols.map(c => c.label), ['N1', 'V1', 'N2', 'V2', 'N3', 'V3', 'Smp', 'Off', 'Rtg', 'Cut', 'Res', 'Mix', 'Time', 'Cmd']);
     assert.deepEqual(cols.slice(0, 2).map(c => c.key), ['note', 'vel'], 'the first pair keeps its keys');
-    assert.deepEqual(buildColumns('lead', { ...def, noteColumns: undefined }, registry).map(c => c.label).slice(0, 3), ['Note', 'Vel', 'Cut']);
+    assert.deepEqual(buildColumns('lead', { ...def, noteColumns: undefined }, registry).map(c => c.label).slice(0, 3), ['Note', 'Vel', 'Smp']);
 
     const events = [];
     const stub = { process() {}, note: (instrument, msg) => events.push(`${msg.type}${msg.note !== undefined ? ` ${msg.note}` : ''}${msg.type === 'noteOn' ? ` v${Math.round(msg.vel * 255)}` : ''}`) };
@@ -2261,17 +2261,17 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     assert.deepEqual(events, ['noteOn 60 v255', 'noteOn 64 v255', 'noteCut'], 'a cut ends everything and the later off finds nothing to release');
 
     // changing the number of note columns keeps every other column's cells
-    const songBefore = { name: 'x', bpm: 120, ticksPerBeat: 4, length: 8, lanes: [oneLane('lead', 'lead', 'C-4 .. 70 50 40 4C9E', 8)] };
+    const songBefore = { name: 'x', bpm: 120, ticksPerBeat: 4, length: 8, lanes: [oneLane('lead', 'lead', 'C-4 .. .. .... .... 70 50 40 4C9E', 8)] };
     const one = { lead: structuredClone(instruments.lead) };
     const lanes = prepareSong(songBefore, one, registry);
     one.lead.noteColumns = 3;
     const [changed] = rebuildInstrumentLanes(lanes, songBefore, one, registry, 'lead');
     const row = Object.values(changed.patterns)[0].rows[0];
-    assert.deepEqual([row[0], row[6], row[7], row[8], row[9]], ['C-4', '70', '50', '40', '4C9E']);
-    assert.equal(row.length, 11);
+    assert.deepEqual([row[0], row[9], row[10], row[11], row[12]], ['C-4', '70', '50', '40', '4C9E']);
+    assert.equal(row.length, 14);
     one.lead.noteColumns = 1;
     const [back] = rebuildInstrumentLanes(lanes, songBefore, one, registry, 'lead');
-    assert.deepEqual(Object.values(back.patterns)[0].rows[0].slice(0, 5), ['C-4', '..', '70', '50', '40']);
+    { const r0 = Object.values(back.patterns)[0].rows[0]; assert.deepEqual([r0[0], r0[1], r0[5], r0[6], r0[7]], ['C-4', '..', '70', '50', '40']); }
 
     // the project file keeps both settings
     const file = parseProject(serializeProject({ song: { name: 'p', bpm: 120, ticksPerBeat: 4, length: 8 }, instruments: { s: { ...structuredClone(instruments.kick), noteColumns: 3, graph: { ...structuredClone(instruments.kick.graph), voices: 6 } } }, samples: {}, lanes: [] }));
@@ -2577,7 +2577,7 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
 
     const stub = { process() {}, note() {} };
     const seq = new Sequencer({ sampleRate: sr, runtime: stub, params: registry.values, transport: new Int32Array(new SharedArrayBuffer(8)) });
-    const rows = ['... .. .. .. .. .... ......', '... .. .. .. .. .... 000000', '... .. .. .. .. .... ......', '... .. .. .. .. .... 000001', '... .. .. .. .. .... 0000FF', '... .. .. .. .. .... 010000'];
+    const rows = ['... .. .. .... .... .. .. .. .... ......', '... .. .. .... .... .. .. .. .... 000000', '... .. .. .... .... .. .. .. .... ......', '... .. .. .... .... .. .. .. .... 000001', '... .. .. .... .... .. .. .. .... 0000FF', '... .. .. .... .... .. .. .. .... 010000'];
     const song = song120([oneLane('lead', 'lead', rows.join('\n'), 8)]);
     seq.setSong(song);
     for (const lane of prepareSong(song, { lead: withPresets }, registry)) seq.setLane(lane);
@@ -2814,7 +2814,7 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     assert.equal(parseProject(serializeProject({ song: { name: 's', bpm: 100, ticksPerBeat: 4, length: 32 }, instruments, samples: { pluck: { rate: sr, data: Float32Array.of(0) } }, lanes: [{ ...lanes[0], silenced: true }] })).song.lanes[0].silenced, true);
 
     // the sequencer plays no notes while muted, and keeps writing parameters
-    const p2 = songSetup(song120([oneLane('lead', 'lead', patternText(16, { 0: 'C-4 .. 80 .. ..', 8: 'E-4 .. 90 .. ..' }))]));
+    const p2 = songSetup(song120([oneLane('lead', 'lead', patternText(16, { 0: 'C-4 .. .. .... .... 80 .. ..', 8: 'E-4 .. .. .... .... 90 .. ..' }))]));
     const lane = prepareSong(p2.seq.song, instruments, p2.registry)[0];
     lane.mutes = [4, 12]; lane.mask = new Uint8Array(new SharedArrayBuffer(16)); lane.mask.fill(1, 4, 12);
     p2.seq.setLane(lane);
@@ -3092,7 +3092,7 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   assert.equal(rows.length, defs.lead.exposed.length, 'one slider per exposed parameter');
   assert.ok(rows.length >= 2);
   const sliderOf = row => row.children.find(c => c.type === 'range');
-  const first = sliderOf(rows[0]), x = defs.lead.exposed[0];
+  const x = defs.lead.exposed.find(e => e.param === 'cutoff'), first = sliderOf(rows[defs.lead.exposed.indexOf(x)]);
   const before = Number(first.value);
   first.listeners.keydown({ key: 'ArrowRight', preventDefault() {} });
   assert.equal(Number(first.value), before + 5, 'Right moves a slider a little');
@@ -3262,7 +3262,7 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
 
 // 95. The sequencer tells a new note which note its column was playing, for slides
 {
-  const song = { ...demoSong, lanes: [oneLane('s', 'lead', patternText(4, { 0: 'C-3 .. .. .. ..', 1: 'E-3 .. .. .. ..', 2: '=== .. .. .. ..', 3: 'G-3 .. .. .. ..' }), 4)] };
+  const song = { ...demoSong, lanes: [oneLane('s', 'lead', patternText(4, { 0: 'C-3 .. .. .... .... .. .. ..', 1: 'E-3 .. .. .... .... .. .. ..', 2: '=== .. .. .... .... .. .. ..', 3: 'G-3 .. .. .... .... .. .. ..' }), 4)] };
   const { seq, rt } = songSetup(song);
   const log = [];
   const real = rt.note.bind(rt);
@@ -3317,12 +3317,38 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
 {
   const { instruments } = await import('../src/instruments.js');
   const ids = Object.fromEntries(instruments.lead.commands.map(c => [c.param, c.id]));
-  assert.deepEqual([ids.offset, ids.retrig, ids.repeats, ids.shift, ids.ramp, ids.reverse], [7, 8, 9, 10, 11, 12]);
+  assert.deepEqual([ids.repeats, ids.shift, ids.ramp, ids.reverse], [7, 8, 9, 10]);
+  assert.deepEqual(instruments.lead.exposed.slice(0, 3).map(e => e.label), ['Smp', 'Off', 'Rtg']);
   const sampler = (await import('../src/audio/nodes/sampler.js')).default;
   const q = n => sampler.params.find(p => p.name === n);
   assert.ok(Math.abs(0x1000 / 65535 * q('retrig').max - 1) < 1e-4, 'hex 1000 is one tick');
   assert.ok(Math.abs(0x8000 / 65535 * (q('shift').max - q('shift').min) + q('shift').min) < 1e-4, 'hex 8000 is no shift');
   assert.ok(Math.abs(0xC000 / 65535 * q('ramp').max - 1) < 1e-4, 'hex C000 is x1');
+}
+
+// 98. One sampler, several samples: the sample parameter picks the slot as a note starts.
+{
+  const sampler = (await import('../src/audio/nodes/sampler.js')).default;
+  const { slotsOf, sampleMessage, usersOfSample, syncSamplerStereo } = await import('../src/project/ops.js');
+  const node = sampler.create({ sampleRate: sr, clock: { tickSamples: 2000 } });
+  node.message({ type: 'sample', slot: 0, data: new Float32Array(4000).fill(0.25), rate: sr });
+  node.message({ type: 'sample', slot: 1, data: new Float32Array(4000).fill(0.5), rate: sr });
+  const names = sampler.params.map(p => p.name), slotsIdx = names.map((_, i) => i);
+  const play = smp => {
+    const p = [1, 60, 150, 20, 0, 0, 0, 0, 0, 1, smp];
+    node.note({ type: 'noteCut' }); node.note({ type: 'noteOn', note: 60, vel: 1 });
+    const o = new Float32Array(block);
+    for (let i = 0; i < 4; i++) node.process([], [o], block, p, slotsIdx);
+    return o[block - 1];
+  };
+  assert.ok(Math.abs(play(0) - 0.25) < 1e-6 && Math.abs(play(1) - 0.5) < 1e-6, 'each slot plays its own sample');
+  assert.equal(play(5), 0, 'a slot with no sample is silent');
+  assert.deepEqual([slotsOf('a'), slotsOf(['a', 'b']), slotsOf(undefined)], [['a'], ['a', 'b'], []]);
+  const project = { samples: { a: { rate: sr, data: new Float32Array(2) }, b: { rate: sr, data: new Float32Array(2), right: new Float32Array(2) } }, instruments: { i: { graph: { nodes: [{ id: 'sampler', type: 'sampler' }] }, samples: { sampler: ['a', 'b'] } } } };
+  assert.deepEqual(usersOfSample(project, 'b'), [{ instrument: 'i', node: 'sampler' }], 'a sample in a list has its users');
+  syncSamplerStereo(project.instruments.i, project.samples);
+  assert.equal(project.instruments.i.graph.nodes[0].stereo, true, 'stereo when any sample of the list is');
+  assert.equal(sampleMessage(project.samples.a, 3).slot, 3);
 }
 
 console.log('smoke test passed');
