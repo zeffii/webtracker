@@ -26,7 +26,10 @@
     #header { position: sticky; top: 0; z-index: 1; background: Canvas; border-bottom: 1px solid; padding: .35rem .75rem; }
     #header .line { display: flex; flex-wrap: wrap; gap: .25rem .75rem; align-items: center; }
     #header .line + .line { margin-top: .3rem; }
-    #song-info { opacity: .85; font-variant-numeric: tabular-nums; }
+    /* the window's own status bar: song position and engine status, always at the bottom */
+    #footer { position: fixed; left: 0; right: 0; bottom: 0; z-index: 1; display: flex; gap: 1.5rem; border-top: 1px solid color-mix(in srgb, currentColor 25%, transparent); white-space: pre; overflow: hidden; }
+    body { padding-bottom: 2rem; }
+    #song-info { font-variant-numeric: tabular-nums; }
     #status { opacity: .7; }
     #tabs { display: flex; gap: .25rem; }
     #tabs button { font: inherit; padding: .1rem .6rem; border: 1px solid; background: transparent; color: inherit; cursor: pointer; }
@@ -192,8 +195,6 @@
       <label title="Song length in ticks; 16 ticks is one row of the arrangement">length <input id="length" type="number" min="16" max="4096" step="16" style="width:4.5em" disabled></label>
       <label>bpm <input id="bpm" type="number" min="20" max="400" step="1" style="width:4em" disabled></label>
       <label title="How much of each pair of rows the first one lasts: 50 is straight, 67 is a triplet shuffle">swing <input id="swing" type="number" min="50" max="75" step="1" style="width:3.5em" disabled>%</label>
-      <span id="song-info"></span>
-      <span id="status">Press Start to create the audio engine.</span>
     </div>
     <div class="line">
       <nav id="tabs">
@@ -334,6 +335,8 @@
       </div>
     </div>
   </section>
+
+  <div id="footer" class="statusbar"><span id="song-info"></span><span id="status">Press Start to create the audio engine.</span></div>
 
   <script type="module" src="src/main.js"></script>
 </body>
