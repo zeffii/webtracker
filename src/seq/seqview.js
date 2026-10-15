@@ -101,6 +101,7 @@ export function createSequenceView({ el, statusEl, transport, onToggle, onOpen, 
         message = !l.mutes.includes(row) ? 'Mute marker removed.' : l.mask[row] ? `${l.id} muted from here.` : `${l.id} plays again from here.`;
         break;
       }
+      case 'k': act('colour', editor.color(li, t, e.shiftKey ? -1 : 1), 'Pattern colour changed.'); break;   // Shift+K steps back
       case 'w':
         if (e.shiftKey) message = editor.restoreWaypoint() ? 'Restored the waypoint.' : 'No waypoint set.';
         else { editor.setWaypoint(); message = 'Waypoint set.'; }
@@ -130,16 +131,19 @@ export function createSequenceView({ el, statusEl, transport, onToggle, onOpen, 
       const cells = lanes.map((l, li) => {
         const pl = inRow(l, t);
         const level = l.mask?.[t] ?? 0, muted = level > 0, flip = (l.mutes ?? []).includes(t);
-        let text = muted ? '·'.repeat(COLW) : ' '.repeat(COLW), cls = '';
+        let text = muted ? '·'.repeat(COLW) : ' '.repeat(COLW), cls = '', style = '';
         if (pl) {
           const pat = l.patterns[pl.puid];
           text = (pl.start >= t ? `▌${hex2(pat.index)} ${pat.name}` : '│').slice(0, COLW).padEnd(COLW);
           if (pl.more) text = `${text.slice(0, COLW - 1)}+`;
-          cls = `p${pat.index % 6}`;
+          const c = pat.color;
+          if (Number.isInteger(c) && c >= 0 && c < 16) cls = `c${c}`;
+          else if (typeof c === 'string' && /^#[0-9a-f]{6}$/i.test(c)) style = ` style="background:${c}"`;
+          else cls = `p${pat.index % 6}`;
         }
         if (flip) text = `${text.slice(0, COLW - 1)}${muted ? 'm' : 'u'}`;   // m: muted from here, u: plays again
         const classes = [cls, level === 2 ? 'silenced' : muted && 'muted', li === cur.lane && r === curRow && 'cur'].filter(Boolean).join(' ');
-        return classes ? `<span class="${classes}">${esc(text)}</span>` : esc(text);
+        return classes || style ? `<span class="${classes}"${style}>${esc(text)}</span>` : esc(text);
       });
       lines.push(`${playing && playTick >= t && playTick < t + CELL ? '>' : ' '}${String(t).padStart(4, '0')} ${cells.join(' ')}`);
     }

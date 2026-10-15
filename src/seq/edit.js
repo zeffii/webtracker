@@ -31,11 +31,11 @@ const copyRows = rows => rows.map(r => r.slice());
 const blankRow = lane => lane.columns.map(c => KINDS[c.token].blank);
 
 // Adds a pattern definition to the lane's pool. Returns its puid, or null if all 256 indices are taken.
-function addPattern(lane, rows, name) {
+function addPattern(lane, rows, name, color) {
   const index = nextIndex(lane);
   if (index === null) return null;
   const puid = makePuid();
-  lane.patterns[puid] = { name: name ?? `pat${hex2(index)}`, index, length: rows.length, rows };
+  lane.patterns[puid] = { name: name ?? `pat${hex2(index)}`, index, length: rows.length, rows, ...(color !== undefined ? { color } : {}) };
   return puid;
 }
 
@@ -114,11 +114,25 @@ export function clonePlacement(lane, length, tick) {
   const pl = placementAt(lane, tick);
   if (!pl) return null;
   const pat = lane.patterns[pl.puid];
-  const puid = addPattern(lane, copyRows(pat.rows), `${pat.name} copy`);
+  const puid = addPattern(lane, copyRows(pat.rows), `${pat.name} copy`, pat.color);
   if (puid === null) return null;
   pl.puid = puid;
   refresh(lane, length);
   return puid;
+}
+
+// Steps the colour of the pattern under the tick through the 16 presets and back to the automatic
+// colour (no `color` set), forwards for a delta of 1 and backwards for -1. A custom colour (a
+// '#rrggbb' string) counts as the automatic one when stepping. Every placement of the pattern changes.
+export const COLOR_PRESETS = 16;
+export function colorPattern(lane, tick, delta) {
+  const pl = placementAt(lane, tick);
+  if (!pl) return false;
+  const pat = lane.patterns[pl.puid];
+  const at = Number.isInteger(pat.color) ? pat.color : -1;   // -1: automatic
+  const next = ((at + 1 + delta) % (COLOR_PRESETS + 1) + COLOR_PRESETS + 1) % (COLOR_PRESETS + 1) - 1;
+  if (next < 0) delete pat.color; else pat.color = next;
+  return true;
 }
 
 // Splits the placement under the tick in two at that tick. Both halves are new
@@ -129,8 +143,8 @@ export function slicePlacement(lane, length, tick) {
   const pat = lane.patterns[pl.puid];
   const n = Math.min(pl.length, pat.length), k = tick - pl.start;
   if (k <= 0 || k >= n) return false;
-  const first = addPattern(lane, copyRows(pat.rows.slice(0, k)), `${pat.name}.1`);
-  const second = addPattern(lane, copyRows(pat.rows.slice(k, n)), `${pat.name}.2`);
+  const first = addPattern(lane, copyRows(pat.rows.slice(0, k)), `${pat.name}.1`, pat.color);
+  const second = addPattern(lane, copyRows(pat.rows.slice(k, n)), `${pat.name}.2`, pat.color);
   pl.puid = first;
   pl.length = k;
   lane.placements.push({ puid: second, start: tick, length: n - k });

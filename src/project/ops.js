@@ -232,7 +232,7 @@ export function projectData(project) {
   const lanes = project.lanes.map(l => ({
     id: l.id,
     instrument: l.instrument,
-    patterns: Object.fromEntries(Object.entries(l.patterns).map(([puid, p]) => [puid, { name: p.name, index: p.index, text: p.rows.map(r => r.join(' ')).join('\n') }])),
+    patterns: Object.fromEntries(Object.entries(l.patterns).map(([puid, p]) => [puid, { name: p.name, index: p.index, ...(p.color !== undefined ? { color: p.color } : {}), text: p.rows.map(r => r.join(' ')).join('\n') }])),
     placements: l.placements.map(p => ({ ...p })),
     ...(l.mutes?.length ? { mutes: [...l.mutes] } : {}),
     ...(l.silenced ? { silenced: true } : {}),

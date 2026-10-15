@@ -144,7 +144,7 @@ export function prepareSong(song, instruments, registry) {
           while (taken.has(index)) index++;
           taken.add(index);
         }
-        return [puid, { name: p.name ?? puid, index, ...parsePattern(p.text, columns) }];
+        return [puid, { name: p.name ?? puid, index, ...(p.color !== undefined ? { color: p.color } : {}), ...parsePattern(p.text, columns) }];
       })),
       placements: src.placements.map(p => ({ ...p })),
       mutes: [...(src.mutes ?? [])].filter(t => t < song.length).sort((a, b) => a - b),

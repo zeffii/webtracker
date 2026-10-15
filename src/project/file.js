@@ -2,6 +2,7 @@
 //
 // {
 //   format: 'webtracker', version: 1,
+//   patterns carry an optional `color`: 0..15 for one of the pastel presets, or '#rrggbb'
 //   song: { name, bpm, ticksPerBeat, length, swing? },   (swing 0.5 to 0.75: how much of each pair of ticks the first lasts; 0.5 or none is straight)
 //   instruments: { id: { graph, exposed, commands, samples: { nodeId: sampleId }, noteColumns?,
 //                         presets?: [{ id, name, values: { 'node.param': number }, data?: { node: { curve?, spectrum? } } }] } },
@@ -71,7 +72,7 @@ export function serializeProject({ song, instruments, samples, lanes }, { sample
       id: l.id,
       instrument: l.instrument,
       patterns: Object.fromEntries(Object.entries(l.patterns)
-        .map(([puid, p]) => [puid, { name: p.name, index: p.index, rows: p.rows.map(row => row.join(' ')) }])),
+        .map(([puid, p]) => [puid, { name: p.name, index: p.index, ...(p.color !== undefined ? { color: p.color } : {}), rows: p.rows.map(row => row.join(' ')) }])),
       placements: l.placements,
       ...(l.mutes?.length ? { mutes: l.mutes } : {}),
       ...(l.silenced ? { silenced: true } : {}),
@@ -99,7 +100,7 @@ export function parseProject(text) {
       id: l.id,
       instrument: l.instrument,
       patterns: Object.fromEntries(Object.entries(l.patterns)
-        .map(([puid, p]) => [puid, { name: p.name, index: p.index, text: p.rows.join('\n') }])),
+        .map(([puid, p]) => [puid, { name: p.name, index: p.index, ...(p.color !== undefined ? { color: p.color } : {}), text: p.rows.join('\n') }])),
       placements: l.placements,
       ...(l.mutes?.length ? { mutes: l.mutes } : {}),
       ...(l.silenced ? { silenced: true } : {}),

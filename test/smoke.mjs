@@ -2751,6 +2751,37 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     assert.deepEqual(back.song.lanes[0].mutes, [0, 16]);
     assert.deepEqual(pops.projectData({ song: demoSong, instruments, samples: {}, lanes }).song.lanes[0].mutes, [0]);
   }
+
+  // pattern colours: K steps through 16 presets and back to automatic; saved with the project
+  {
+    const registry = new ParamRegistry();
+    for (const [id, def] of Object.entries(instruments)) compile(def.graph, { instrument: id, nodeTypes: NODE_TYPES, registry });
+    const lanes = prepareSong(demoSong, instruments, registry);
+    const editor = createEditor(lanes, 32);
+    let onKey;
+    const el = { addEventListener: (_, f) => { onKey = f; }, innerHTML: '' }, statusEl = { textContent: '' };
+    const view = createSequenceView({ el, statusEl, transport: new Int32Array(new SharedArrayBuffer(8)), onToggle() {}, onOpen() {} });
+    view.load({ lanes, song: demoSong, editor });
+    const key = (k, extra = {}) => onKey({ key: k, preventDefault() {}, ...extra });
+    const pat = () => lanes[0].patterns[lanes[0].placements.find(p => p.start === 0).puid];
+    assert.equal(pat().color, undefined);
+    key('k'); assert.equal(pat().color, 0);
+    view.draw(); assert.ok(el.innerHTML.includes('class="c0"'));
+    for (let i = 0; i < 15; i++) key('k');
+    assert.equal(pat().color, 15);
+    key('k'); assert.equal(pat().color, undefined, 'after the last preset comes automatic again');
+    key('k', { shiftKey: true }); assert.equal(pat().color, 15, 'Shift+K goes backwards');
+    editor.undo(); assert.equal(pat().color, undefined);
+    key('k'); key('k');
+    const back = parseProject(serializeProject({ song: { name: 's', bpm: 100, ticksPerBeat: 4, length: 32 }, instruments, samples: { pluck: { rate: sr, data: Float32Array.of(0) } }, lanes }));
+    assert.equal(Object.values(back.song.lanes[0].patterns).find(p => p.color !== undefined).color, 1);
+    assert.equal(Object.values(pops.projectData({ song: demoSong, instruments, samples: {}, lanes }).song.lanes[0].patterns).find(p => p.color !== undefined).color, 1);
+    const copy = pops.duplicateLane({ lanes, song: { length: 32 } }, 'lead');
+    assert.equal(Object.values(copy.patterns).find(p => p.color !== undefined).color, 1, 'a duplicated lane keeps its colours');
+    pat().color = '#aa3355'; view.draw();
+    assert.ok(el.innerHTML.includes('style="background:#aa3355"'), 'a custom colour is drawn');
+    pat().color = 'red; x'; view.draw(); assert.ok(!el.innerHTML.includes('red; x'), 'anything but #rrggbb is ignored');
+  }
 }
 
 console.log('smoke test passed');
