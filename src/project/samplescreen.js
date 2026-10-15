@@ -309,7 +309,7 @@ export function createSampleScreen({ el, statusEl, getProject, onChange = () => 
       ];
       const rows = Math.max(left.length, right.length);
       const out = [];
-      for (let i = 0; i < rows; i++) out.push(`${i < left.length ? padTo(left[i], LEFT) : ' '.repeat(LEFT)}│${i < right.length ? right[i].h : ''}`);
+      for (let i = 0; i < rows; i++) out.push(`<span class="lc">${i < left.length ? padTo(left[i], LEFT) : ' '.repeat(LEFT)}</span> ${i < right.length ? right[i].h : ''}`);   // the divider is the border of the left column
       out.push('', ...[' Tab/Shift+Tab fields · Left/Right or -/+ change (Shift bigger, Ctrl bigger still) · digits + Enter type a value',
         ` Piano keys play the sample (octave ${octave}, [ ] change it) · Space plays the root · Esc to list · L load · Del remove`,
         ' Edit the selection (Shift+drag on the display), or all: Shift+ C or T trim · X cut · S silence · R reverse · N normalise',

@@ -12,6 +12,8 @@
     .mono, #seq, #view, #header, #smp { font: 13px/1.35 ui-monospace, Consolas, monospace; }
     [hidden] { display: none !important; }
     #smp { margin: .5rem 0; outline: none; white-space: pre; }
+    /* the list and the fields are split by one continuous, dim line, as in the instrument screen */
+    #smp .lc { display: inline-block; width: 38ch; height: 1.35em; vertical-align: top; overflow: hidden; border-right: 1px solid color-mix(in srgb, currentColor 25%, transparent); }
     #smp .sf { background: rgba(128, 128, 128, .22); }
     #smp .sf.on { background: Highlight; color: HighlightText; }
     #smp .sf.ed { outline: 1px solid currentColor; }
