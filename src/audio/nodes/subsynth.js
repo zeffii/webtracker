@@ -2,7 +2,8 @@
 // naive triangle and sine) with unison, a sub oscillator and noise, into a 24 dB/oct
 // resonant ladder lowpass, shaped by a filter envelope and an amplitude envelope. Stereo
 // out: the unison voices are spread across the field. Monophonic, the last note wins,
-// with optional glide. The `pitch` input is in octaves (like osc.fm) and moves both
+// with optional glide (a smoothing time in ms) and slide (a straight-line glide measured in ticks that starts from the
+// previous note of the same pattern column). The `pitch` input is in octaves (like osc.fm) and moves both
 // oscillators; `cut` is in octaves and moves the filter cutoff, so an lfo can drive either.
 //
 // The ladder is a zero-delay-feedback four-pole with tanh saturation at its input, so
@@ -36,6 +37,7 @@ const SPEC = [
   { name: 'sus', min: 0, max: 1, def: 0.8 },
   { name: 'rel', min: 1, max: 5000, def: 150 },
   { name: 'glide', min: 0, max: 2000, def: 0 },               // ms
+  { name: 'slide', min: 0, max: 15.9375, def: 0 },            // ticks: a note that follows another in its column slides to its pitch in this long (linear; 0 is instant). In pattern units, hex 10 is one tick
   { name: 'vel', min: 0, max: 1, def: 0.5 },
   { name: 'level', min: 0, max: 1, def: 0.4 },
 ];
@@ -67,7 +69,7 @@ export default {
   glyph: 'subsynth',
   kinds: { pitch: 'control', cut: 'control', out: 'stereo' },
   params: SPEC,
-  create({ sampleRate, connected }) {
+  create({ sampleRate, connected, clock }) {
     const pitchOn = connected[0], cutOn = connected[1];
     const amp = new Adsr(sampleRate), fil = new Adsr(sampleRate);
     const ph1 = new Float64Array(MAXV), ph2 = new Float64Array(MAXV);
@@ -75,6 +77,7 @@ export default {
     const gl = new Float64Array(MAXV), gr = new Float64Array(MAXV);
     const start = Float64Array.from({ length: MAXV }, (_, i) => (i * 0.61803398875) % 1);
     let subPhase = 0, note = 60, pos = 60, velocity = 1, seed = 12345;
+    let latch = false, ampFresh = false, from = -1, rate = 0;   // a new note: read `slide` once, in the next block, and move pos in a straight line
     const s = new Float64Array(8);   // ladder states: 4 left, 4 right
     const flush = v => (Math.abs(v) < 1e-18 ? 0 : v);
     const resetPhases = () => { for (let i = 0; i < MAXV; i++) { ph1[i] = start[i]; ph2[i] = (start[i] + 0.37) % 1; } subPhase = 0; };
@@ -82,8 +85,10 @@ export default {
     return {
       note(msg) {
         if (msg.type === 'noteOn') {
+          ampFresh = amp.idle;
           if (amp.idle) { resetPhases(); s.fill(0); pos = msg.note; }
           note = msg.note; velocity = msg.vel ?? 1;
+          latch = true; from = msg.from ?? -1;
           amp.on(); fil.on();
         } else if (msg.type === 'noteOff' || msg.type === 'allOff') { amp.off(); fil.off(); }
         else if (msg.type === 'noteCut') { amp.cut(); fil.cut(); }
@@ -96,7 +101,20 @@ export default {
         amp.set(g('atk'), g('dec'), g('sus'), g('rel'));
         fil.set(g('fatk'), g('fdec'), g('fsus'), g('frel'));
         const glideMs = g('glide');
-        if (glideMs > 0.5) pos += (note - pos) * (1 - Math.exp(-n / (sampleRate * glideMs * 0.001 / 3)));
+        if (latch) {   // the slide time in force when the note started (the pattern writes it just before)
+          latch = false;
+          const ticks = g('slide'), tickSamples = clock?.tickSamples ?? sampleRate * 0.125;
+          if (ticks > 0) {
+            if (from >= 0 && pos !== from && ampFresh) pos = from;
+            rate = Math.abs(note - pos) / (ticks * tickSamples);
+          } else rate = 0;
+          ampFresh = false;
+        }
+        if (rate > 0) {
+          const step = rate * n;
+          pos = Math.abs(note - pos) <= step ? note : pos + Math.sign(note - pos) * step;
+          if (pos === note) rate = 0;
+        } else if (glideMs > 0.5) pos += (note - pos) * (1 - Math.exp(-n / (sampleRate * glideMs * 0.001 / 3)));
         else pos = note;
         const w1 = Math.round(g('wave1')), w2 = Math.round(g('wave2')), pw = g('pw');
         const lvl2 = g('osc2'), sub = g('sub'), noise = g('noise');

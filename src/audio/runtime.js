@@ -16,6 +16,7 @@ export class GraphRuntime {
     this.sampleRate = sampleRate;
     this.params = params;       // Float32Array over the shared parameter block
     this.maxBlock = maxBlock;
+    this.clock = { tickSamples: (sampleRate * 60) / (120 * 4) };   // the sequencer keeps this in step with the song's tempo
   }
 
   // Drops every instrument and switches to a new parameter block.
@@ -38,7 +39,7 @@ export class GraphRuntime {
     const fresh = () => Array.from({ length: compiled.bufferCount }, () => new Float32Array(this.maxBlock));
     const resolver = buffers => ref => (Array.isArray(ref) ? ref.map(b => buffers[b]) : buffers[ref]);   // stereo ports are [left, right]
     const make = (n, resolve) => {
-      const create = () => NODE_TYPES[n.type].create({ sampleRate: this.sampleRate, maxBlock: this.maxBlock, connected: n.connected, wasm: this.wasm, data: n.data, stereo: n.stereo === true });
+      const create = () => NODE_TYPES[n.type].create({ sampleRate: this.sampleRate, maxBlock: this.maxBlock, connected: n.connected, wasm: this.wasm, data: n.data, stereo: n.stereo === true, clock: this.clock });
       const node = { id: n.id, instance: create(), slots: Int32Array.from(n.slots), inputs: n.inputs.map(resolve), outputs: n.outputs.map(resolve) };
       if (n.dual) {   // a mono node on a stereo signal: one copy per channel over the same parameters
         const left = node.instance, right = create();

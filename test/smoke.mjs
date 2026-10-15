@@ -1934,6 +1934,26 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   const glide = play('subsynth', { ...pure, glide: 400 }, { note: 45, secs: 0.8, events: [[12800, node => node.note({ type: 'noteOn', note: 69, vel: 1 })]] }).L;
   const mid = crossings(glide, 12800 + 2000, 12800 + 8000);
   assert.ok(mid > hz(45) * 1.3 && mid < hz(69) * 0.95, `glide should be between the notes: ${mid}`);
+
+  // slide: a note that follows another in its column moves to its pitch in a straight line over `slide` ticks (6000 samples each here)
+  const slideRun = (values, msg, secs = 1.2) => {
+    const { node, params, slots } = makeSynth('subsynth', { ...pure, ...values });
+    node.note({ type: 'noteOn', vel: 1, ...msg });
+    const N = Math.floor(sr * secs / 128) * 128, L = new Float32Array(N), l = new Float32Array(128), r = new Float32Array(128), zero = new Float32Array(128);
+    for (let at = 0; at < N; at += 128) { node.process([zero, zero], [[l, r]], 128, params, slots); L.set(l, at); }
+    return L;
+  };
+  const sl4 = slideRun({ slide: 4 }, { note: 60, from: 48 });   // 4 ticks: 24000 samples, half a second
+  const f0 = crossings(sl4, 256, 2500), fMid = crossings(sl4, 11000, 13000), f1 = crossings(sl4, 32000, 40000);
+  assert.ok(Math.abs(f0 / hz(48) - 1) < 0.08, `starts at the previous note: ${f0}`);
+  assert.ok(fMid > hz(48) * 1.2 && fMid < hz(60) * 0.9, `halfway there it is between the two: ${fMid}`);
+  assert.ok(Math.abs(f1 / hz(60) - 1) < 0.01, `ends on the new note: ${f1}`);
+  const instant = slideRun({ slide: 0 }, { note: 60, from: 48 });
+  assert.ok(Math.abs(crossings(instant, 2000, 6000) / hz(60) - 1) < 0.01, 'slide 0 is instant');
+  const noFrom = slideRun({ slide: 4 }, { note: 60 });
+  assert.ok(Math.abs(crossings(noFrom, 2000, 6000) / hz(60) - 1) < 0.01, 'with no previous note there is nothing to slide from');
+  const a = crossings(sl4, 6000, 9000), b = crossings(sl4, 15000, 18000);
+  assert.ok(b > a, 'the pitch rises steadily');
   // release ends the voice; a cut ends it at once; extreme settings stay finite and bounded
   const rel = play('subsynth', { rel: 50 }, { secs: 1, events: [[12800, node => node.note({ type: 'noteOff' })]] }).L;
   assert.ok(pk(rel, 12800 + 12000, rel.length) < 1e-4, 'the voice should end after the release');
@@ -3238,6 +3258,20 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   press('Insert'); assert.equal(view.preview, false, 'Insert turns it off again');
   press('c'); assert.equal(played.length, 2, 'nothing more plays');
   press('Insert'); press('1'); assert.equal(played.length, 2, 'a note-off entry is not a note to hear');
+}
+
+// 95. The sequencer tells a new note which note its column was playing, for slides
+{
+  const song = { ...demoSong, lanes: [oneLane('s', 'lead', patternText(4, { 0: 'C-3 .. .. .. ..', 1: 'E-3 .. .. .. ..', 2: '=== .. .. .. ..', 3: 'G-3 .. .. .. ..' }), 4)] };
+  const { seq, rt } = songSetup(song);
+  const log = [];
+  const real = rt.note.bind(rt);
+  rt.note = (inst, msg) => { if (msg.type === 'noteOn') log.push([msg.note, msg.from]); real(inst, msg); };
+  seq.play();
+  const l = new Float32Array(128), r = new Float32Array(128);
+  for (let i = 0; i < 4 * 6200 / 128; i++) seq.process(l, r, 128);
+  assert.deepEqual(log.slice(0, 3), [[48, -1], [52, 48], [55, -1]], 'a note over a sounding one slides from it; after a note off there is nothing to slide from');
+  assert.ok(Math.abs(rt.clock.tickSamples - sr * 60 / (song.bpm * song.ticksPerBeat)) < 1, 'the node clock follows the tempo');
 }
 
 console.log('smoke test passed');

@@ -37,6 +37,7 @@ export class Sequencer {
 
   setSong(song) {
     this.song = song;
+    if (this.runtime.clock) this.runtime.clock.tickSamples = (this.sampleRate * 60) / (song.bpm * song.ticksPerBeat);
   }
 
   // lane = { id, instrument, columns, pages }. Messages are preallocated per lane
@@ -53,7 +54,7 @@ export class Sequencer {
       prev: new Int16Array(cols.reduce((n, c) => (c.kind === 'note' ? n + 1 : n), 0)).fill(-1),   // the note each note column last started
       notes: new Float32Array(cols.reduce((n, c) => (c.kind === 'note' ? n + 1 : n), 0)),
       vels: new Float32Array(cols.reduce((n, c) => (c.kind === 'note' ? n + 1 : n), 0)),
-      on: { type: 'noteOn', note: 0, vel: 1 },
+      on: { type: 'noteOn', note: 0, vel: 1, from: -1 },   // from: the note this column was playing, for a slide
       off: { type: 'noteOff', note: 0, implied: false },
       cut: { type: 'noteCut' },
       all: { type: 'allOff' },
@@ -161,7 +162,9 @@ export class Sequencer {
       // (a one-shot sample plays out, a looping one fades; a polyphonic instrument lets it ring
       // through its release while the new note takes another voice).
       if (note === OFF) { this.release(lane, k); continue; }
+      const from = lane.prev[k];   // still sounding in this column, or -1
       this.release(lane, k, true);
+      lane.on.from = from;
       lane.on.note = decodeNote(note);
       lane.on.vel = lane.vels[k];
       this.runtime.note(lane.instrument, lane.on);
