@@ -38,11 +38,13 @@
     #seq-below { display: flex; gap: 1.25rem; align-items: flex-start; margin-top: .6rem; }
     #seq-below .helps { flex: 1; min-width: 0; }
     #seq-below .helps .help:first-child { margin-top: 0; }
-    #seq-side { flex: none; width: 21ch; max-height: 16rem; overflow-y: auto; font: 12px/1.45 ui-monospace, Consolas, monospace; padding: 2px 0; white-space: pre; }
+    #seq-side { flex: none; box-sizing: content-box; width: 24ch; max-height: 361px; overflow-x: hidden; overflow-y: auto; scrollbar-width: thin; font: 12px/17px ui-monospace, Consolas, monospace; padding: 2px 0; white-space: pre; }
+    /* its own height: room for the header and 20 patterns, then (only then) it scrolls */
+    #seq-side .ph, #seq-side .pi { height: 17px; overflow: hidden; }
     #seq-side .ph { padding: 0 6px; opacity: .6; }
     #seq-side .pi { padding: 0 6px; }
     #seq-side .pi.here { background: color-mix(in srgb, currentColor 22%, transparent); }
-    #seq-side .sw { margin-right: 2px; }
+    #seq-side .sw { margin-right: 2px; vertical-align: middle; height: 11px; }
     #view:focus, #seq:focus { outline: 1px solid; }
     #seq { overflow-x: auto; line-height: 18px; }
     #seq .r { height: 18px; white-space: pre; }
