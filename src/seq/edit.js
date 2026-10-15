@@ -1,5 +1,5 @@
 import { KINDS } from './cells.js';
-import { flattenLane, writePages } from './lane.js';
+import { flattenLane, writeMask, writePages } from './lane.js';
 
 let counter = 0;
 // Pattern ids: unix time plus a tiebreak counter.
@@ -43,6 +43,16 @@ function addPattern(lane, rows, name) {
 export function refresh(lane, length) {
   lane.rows = flattenLane(lane, lane.columns, length);
   writePages(lane.rows, lane.columns, lane.pages);
+  writeMask(lane, length);
+}
+
+// Flips the mute at a tick: puts a flip there, or takes the one that is there away.
+export function toggleMute(lane, length, tick) {
+  if (tick < 0 || tick >= length) return false;
+  const flips = lane.mutes ?? [];
+  lane.mutes = flips.includes(tick) ? flips.filter(t => t !== tick) : [...flips, tick].sort((a, b) => a - b);
+  writeMask(lane, length);
+  return true;
 }
 
 // Edits the pattern under the tick, so every placement of that pattern changes.

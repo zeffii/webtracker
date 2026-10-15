@@ -1,5 +1,5 @@
 import { newSamplerInstrument, synthKinds } from '../instruments.js';
-import { buildPages, createLane, flattenLane } from '../seq/lane.js';
+import { buildPages, createLane, flattenLane, writeMask } from '../seq/lane.js';
 
 // Changes to the shape of a project: samples, instruments, lanes. Plain functions on the
 // project object { song, instruments, samples, lanes } so the page and the tests share them.
@@ -130,6 +130,7 @@ export function setSongLength(project, ticks) {
   const length = Math.round(Number(ticks) / 16) * 16;
   if (!Number.isFinite(length) || length < 16 || length > 4096) throw new Error('A song is 16 to 4096 ticks long.');
   for (const lane of project.lanes) {
+    lane.mutes = (lane.mutes ?? []).filter(t => t < length);
     lane.placements = lane.placements
       .filter(p => p.start < length)
       .map(p => (p.start + p.length > length ? { ...p, length: length - p.start } : p));
@@ -179,9 +180,11 @@ export function duplicateLane(project, id, length = project.song.length) {
     columns: structuredClone(lane.columns),
     patterns: structuredClone(lane.patterns),
     placements: structuredClone(lane.placements),
+    mutes: [...(lane.mutes ?? [])],
   };
   copy.rows = flattenLane(copy, copy.columns, length);
   copy.pages = buildPages(copy.rows, copy.columns);
+  writeMask(copy, length);
   project.lanes.splice(project.lanes.indexOf(lane) + 1, 0, copy);
   return copy;
 }
@@ -230,6 +233,7 @@ export function projectData(project) {
     instrument: l.instrument,
     patterns: Object.fromEntries(Object.entries(l.patterns).map(([puid, p]) => [puid, { name: p.name, index: p.index, text: p.rows.map(r => r.join(' ')).join('\n') }])),
     placements: l.placements.map(p => ({ ...p })),
+    ...(l.mutes?.length ? { mutes: [...l.mutes] } : {}),
   }));
   return { song: { ...project.song, lanes }, instruments: project.instruments, samples: project.samples };
 }

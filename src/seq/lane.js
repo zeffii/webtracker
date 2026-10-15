@@ -115,6 +115,16 @@ export function buildPages(rows, columns) {
 }
 
 // Instruments must already be compiled so their parameter slots exist. The lanes
+// A lane's mutes are the ticks where it flips between playing and muted: the first flip mutes it,
+// the next unmutes it, and so on. The mask says, for each tick, whether the lane is muted; it is
+// shared memory, so the sequencer reads what an edit writes.
+export function writeMask(lane, length) {
+  lane.mask ??= new Uint8Array(new SharedArrayBuffer(Math.max(1, length)));
+  lane.mask.fill(0);
+  const flips = [...(lane.mutes ?? [])].sort((a, b) => a - b);
+  for (let i = 0; i < flips.length; i += 2) lane.mask.fill(1, Math.max(0, flips[i]), Math.min(length, flips[i + 1] ?? length));
+}
+
 // returned are working copies (parsed patterns, placements, flattened rows, pages)
 // that the editor changes; the song description itself is left alone.
 export function prepareSong(song, instruments, registry) {
@@ -135,9 +145,11 @@ export function prepareSong(song, instruments, registry) {
         return [puid, { name: p.name ?? puid, index, ...parsePattern(p.text, columns) }];
       })),
       placements: src.placements.map(p => ({ ...p })),
+      mutes: [...(src.mutes ?? [])].filter(t => t < song.length).sort((a, b) => a - b),
     };
     lane.rows = flattenLane(lane, columns, song.length);
     lane.pages = buildPages(lane.rows, columns);
+    writeMask(lane, song.length);
     return lane;
   });
 }
@@ -184,8 +196,9 @@ export function rebuildInstrumentLanes(lanes, song, instruments, registry, instr
 // A new empty lane for an instrument (which must already be compiled).
 export function createLane(id, instrumentId, instruments, registry, length) {
   const columns = buildColumns(instrumentId, instruments[instrumentId], registry);
-  const lane = { id, instrument: instrumentId, columns, patterns: {}, placements: [] };
+  const lane = { id, instrument: instrumentId, columns, patterns: {}, placements: [], mutes: [] };
   lane.rows = flattenLane(lane, columns, length);
   lane.pages = buildPages(lane.rows, columns);
+  writeMask(lane, length);
   return lane;
 }

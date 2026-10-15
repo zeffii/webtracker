@@ -32,6 +32,7 @@
     #seq .p3 { background: hsl(280 60% 60% / .35); }
     #seq .p4 { background: hsl(0 70% 55% / .35); }
     #seq .p5 { background: hsl(55 70% 50% / .35); }
+    #seq .muted { opacity: .45; }
     #seq .cur { background: Highlight; color: HighlightText; }
     #seq-status, #cursor { min-height: 1.5em; }
     #view { overflow-x: auto; }
@@ -116,6 +117,7 @@
   <section id="pane-patterns" class="pane">
     <pre id="view" tabindex="0"></pre>
     <p id="cursor"></p>
+    <p class="help">In the arrangement, M on a row mutes that lane from there until the next M further down (shown dimmed, with m and u marking the changes).</p>
     <p class="help">Click the grid, then (Esc goes to the arrangement): arrows move, Tab next lane, PgUp/PgDn 16 rows, Space play/stop,
       Enter inserts a pattern, Z–M and Q–P play notes, [ ] octave, 1 note off, ` note cut,
       0–9 A–F overwrite the character under the cursor (an empty cell fills with zeros), Delete

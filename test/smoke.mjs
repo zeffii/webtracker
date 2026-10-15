@@ -2696,6 +2696,49 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     const roundTrip = parseProject(serializeProject({ ...p, lanes }));
     assert.equal(roundTrip.song.length, 128);
   }
+
+  // mute: m starts it, m again ends it; muted ticks play no notes but a held note is let go
+  {
+    const registry = new ParamRegistry();
+    for (const [id, def] of Object.entries(instruments)) compile(def.graph, { instrument: id, nodeTypes: NODE_TYPES, registry });
+    const lanes = prepareSong(demoSong, instruments, registry);
+    const editor = createEditor(lanes, 32);
+    let onKey;
+    const el = { addEventListener: (_, f) => { onKey = f; }, innerHTML: '' }, statusEl = { textContent: '' };
+    const view = createSequenceView({ el, statusEl, transport: new Int32Array(new SharedArrayBuffer(8)), onToggle() {}, onOpen() {} });
+    view.load({ lanes, song: demoSong, editor });
+    const press = key => onKey({ key, preventDefault() {} });
+    press('m');                                                            // row 0: mute the lead
+    assert.deepEqual(lanes[0].mutes, [0]);
+    assert.equal(lanes[0].mask[0], 1); assert.equal(lanes[0].mask[31], 1, 'with one flip it stays muted to the end');
+    press('ArrowDown'); press('m');                                        // row 1 (tick 16): play again
+    assert.deepEqual(lanes[0].mutes, [0, 16]);
+    assert.equal(lanes[0].mask[15], 1); assert.equal(lanes[0].mask[16], 0);
+    view.draw();
+    assert.ok(el.innerHTML.includes('muted') && /m<\/span>/.test(el.innerHTML) && /u<\/span>/.test(el.innerHTML), 'the view marks the flips');
+    onKey({ key: 'z', ctrlKey: true, preventDefault() {} });
+    assert.deepEqual(lanes[0].mutes, [0], 'undo takes the last flip away');
+    assert.equal(lanes[0].mask[20], 1);
+    press('m'); assert.deepEqual(lanes[0].mutes, [0, 16]);
+    press('m'); assert.deepEqual(lanes[0].mutes, [0], 'the same key on a flip removes it');
+
+    // the sequencer plays no notes while muted, and keeps writing parameters
+    const p2 = songSetup(song120([oneLane('lead', 'lead', patternText(16, { 0: 'C-4 .. 80 .. ..', 8: 'E-4 .. 90 .. ..' }))]));
+    const lane = prepareSong(p2.seq.song, instruments, p2.registry)[0];
+    lane.mutes = [4, 12]; lane.mask = new Uint8Array(new SharedArrayBuffer(16)); lane.mask.fill(1, 4, 12);
+    p2.seq.setLane(lane);
+    p2.seq.play();
+    const out = render(p2.seq, 1.9);
+    const first = out.left.findIndex(v => Math.abs(v) > 1e-9);
+    assert.ok(first >= 0 && first < 6000 * 4, 'the note before the mute plays');
+    const during = out.left.slice(6000 * 8, 6000 * 11);   // the E-4 at tick 8 is inside the mute; the first note is released at tick 4
+    assert.ok(peak(during) < peak(out.left.slice(0, 6000 * 4)) * 0.2, 'nothing new plays while muted');
+    assert.ok(Math.abs(p2.registry.get('lead.filter.cutoff') - 20 * Math.pow(18000 / 20, 144 / 255)) < 1, 'the parameter column still wrote its slot');
+    // saved and loaded
+    const back = parseProject(serializeProject({ song: { name: 's', bpm: 100, ticksPerBeat: 4, length: 32 }, instruments, samples: { pluck: { rate: sr, data: Float32Array.of(0) } }, lanes: [{ ...lanes[0], mutes: [0, 16] }] }));
+    assert.deepEqual(back.song.lanes[0].mutes, [0, 16]);
+    assert.deepEqual(pops.projectData({ song: demoSong, instruments, samples: {}, lanes }).song.lanes[0].mutes, [0]);
+  }
 }
 
 console.log('smoke test passed');

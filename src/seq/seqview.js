@@ -93,6 +93,13 @@ export function createSequenceView({ el, statusEl, transport, onToggle, onOpen, 
         break;
       }
       case 'Delete': case 'Backspace': act('remove', editor.remove(li, t), 'Removed. The pattern stays in the list.'); break;
+      case 'm': {   // start a mute here; again further down to unmute
+        const row = rowStart(cur.tick);
+        if (!editor.toggleMute(li, row)) { message = "Can't mute here."; break; }
+        const l = lane();
+        message = !l.mutes.includes(row) ? 'Mute marker removed.' : l.mask[row] ? `${l.id} muted from here.` : `${l.id} plays again from here.`;
+        break;
+      }
       case 'w':
         if (e.shiftKey) message = editor.restoreWaypoint() ? 'Restored the waypoint.' : 'No waypoint set.';
         else { editor.setWaypoint(); message = 'Waypoint set.'; }
@@ -118,14 +125,16 @@ export function createSequenceView({ el, statusEl, transport, onToggle, onOpen, 
       const t = r * CELL;
       const cells = lanes.map((l, li) => {
         const pl = inRow(l, t);
-        let text = ' '.repeat(COLW), cls = '';
+        const muted = l.mask?.[t] === 1, flip = (l.mutes ?? []).includes(t);
+        let text = muted ? '·'.repeat(COLW) : ' '.repeat(COLW), cls = '';
         if (pl) {
           const pat = l.patterns[pl.puid];
           text = (pl.start >= t ? `▌${hex2(pat.index)} ${pat.name}` : '│').slice(0, COLW).padEnd(COLW);
           if (pl.more) text = `${text.slice(0, COLW - 1)}+`;
           cls = `p${pat.index % 6}`;
         }
-        const classes = [cls, li === cur.lane && r === curRow && 'cur'].filter(Boolean).join(' ');
+        if (flip) text = `${text.slice(0, COLW - 1)}${muted ? 'm' : 'u'}`;   // m: muted from here, u: plays again
+        const classes = [cls, muted && 'muted', li === cur.lane && r === curRow && 'cur'].filter(Boolean).join(' ');
         return classes ? `<span class="${classes}">${esc(text)}</span>` : esc(text);
       });
       lines.push(`${playing && playTick >= t && playTick < t + CELL ? '>' : ' '}${String(t).padStart(4, '0')} ${cells.join(' ')}`);
@@ -142,6 +151,7 @@ export function createSequenceView({ el, statusEl, transport, onToggle, onOpen, 
     statusEl.textContent = [
       lane().id, `tick ${editTick()}`,
       owner ? `${hex2(lane().patterns[owner.puid].index)} ${lane().patterns[owner.puid].name}` : 'no pattern',
+      lane().mask?.[rowStart(cur.tick)] && 'muted',
       typed && `typing ${typed}`, message,
     ].filter(Boolean).join(' · ');
   };

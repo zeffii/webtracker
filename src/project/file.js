@@ -10,7 +10,8 @@
 //   samples: { id: { rate, encoding: 'pcm16' | 'float32', data: base64 of little-endian samples,
 //                    loopStart?, loopEnd? } },   (loop points in frames; no encoding means float32)
 //   lanes: [{ id, instrument, patterns: { puid: { name, index, rows: ['C-4 .. 70', ...] } },
-//             placements: [{ puid, start, length }] }],
+//             placements: [{ puid, start, length }],
+//             mutes?: [tick, ...] }],   (the lane is muted from the 1st tick to the 2nd, from the 3rd to the 4th, ...)
 // }
 //
 // Graphs are stored from the start, so a modular view needs no format change.
@@ -71,6 +72,7 @@ export function serializeProject({ song, instruments, samples, lanes }, { sample
       patterns: Object.fromEntries(Object.entries(l.patterns)
         .map(([puid, p]) => [puid, { name: p.name, index: p.index, rows: p.rows.map(row => row.join(' ')) }])),
       placements: l.placements,
+      ...(l.mutes?.length ? { mutes: l.mutes } : {}),
     })),
   }, null, 1);
 }
@@ -97,6 +99,7 @@ export function parseProject(text) {
       patterns: Object.fromEntries(Object.entries(l.patterns)
         .map(([puid, p]) => [puid, { name: p.name, index: p.index, text: p.rows.join('\n') }])),
       placements: l.placements,
+      ...(l.mutes?.length ? { mutes: l.mutes } : {}),
     };
   });
   return { song: { ...data.song, lanes }, instruments: data.instruments, samples };

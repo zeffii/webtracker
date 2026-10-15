@@ -41,10 +41,12 @@ export class Sequencer {
 
   // lane = { id, instrument, columns, pages }. Messages are preallocated per lane
   // so that playing a row does not allocate.
-  setLane({ id, instrument, columns, pages }) {
+  setLane({ id, instrument, columns, pages, mask }) {
     const cols = columns.map(c => ({ ...c, table: c.commands ? buildCommandTable(c.commands, c.presets) : null }));
     this.lanes.set(id, {
       instrument, pages,
+      mask: mask ?? new Uint8Array(0),   // 1 for each tick the lane is muted
+      muted: false,
       columns: cols,
       channels: cols.reduce((n, c) => Math.max(n, c.ch + (c.kind === 'cmd' ? 2 : 1)), 0),
       noteCols: cols.reduce((n, c) => (c.kind === 'note' ? n + 1 : n), 0),
@@ -139,6 +141,13 @@ export class Sequencer {
         lane.notes[col.nc] = v;
       }
     }
+    // A muted lane still writes its parameters but plays no notes; muting lets what is sounding go.
+    const muted = lane.mask[this.tick] === 1;
+    if (muted !== lane.muted) {
+      lane.muted = muted;
+      if (muted) { this.runtime.note(lane.instrument, lane.all); lane.prev.fill(-1); }
+    }
+    if (muted) return;
     for (let k = 0; k < lane.noteCols; k++) {
       const note = lane.notes[k];
       if (note === EMPTY) continue;

@@ -403,7 +403,7 @@ const waveform = createWaveformView({
 // A new empty lane for an instrument that is already loaded in the engine.
 function addLaneFor(instrumentId) {
   const lane = addLane(project, engine.registry, instrumentId);
-  engine.setLane({ id: lane.id, instrument: lane.instrument, columns: lane.columns, pages: lane.pages });
+  engine.setLane({ id: lane.id, instrument: lane.instrument, columns: lane.columns, pages: lane.pages, mask: lane.mask });
   project.editor.clear();
   view.relayout();
   return lane;
@@ -412,8 +412,8 @@ function addLaneFor(instrumentId) {
 // The columns of an instrument's lanes need rebuilding (its exposed parameters or presets changed).
 // Cells follow their column; undo history is cleared.
 function refreshLanes(id) {
-  for (const { id: laneId, instrument, columns, pages } of rebuildInstrumentLanes(project.lanes, project.song, project.instruments, engine.registry, id)) {
-    engine.setLane({ id: laneId, instrument, columns, pages });
+  for (const { id: laneId, instrument, columns, pages, mask } of rebuildInstrumentLanes(project.lanes, project.song, project.instruments, engine.registry, id)) {
+    engine.setLane({ id: laneId, instrument, columns, pages, mask });
   }
   project.editor.clear();
   view.relayout();
@@ -445,7 +445,7 @@ function openProject({ song, instruments, samples }, { stay = false, instrument 
   }
   const lanes = prepareSong(song, instruments, engine.registry);
   engine.setSong(song);
-  for (const { id, instrument, columns, pages } of lanes) engine.setLane({ id, instrument, columns, pages });
+  for (const { id, instrument, columns, pages, mask } of lanes) engine.setLane({ id, instrument, columns, pages, mask });
   const editor = createEditor(lanes, song.length);
   project = { song, instruments, samples, lanes, editor };
   patcher.load({ instruments });
