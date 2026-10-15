@@ -11,7 +11,7 @@ const hex2 = n => n.toString(16).toUpperCase().padStart(2, '0');
 // column. The cursor sits on a row; edits happen at the row's start, or at the start of a
 // pattern that begins inside it. A pattern is a block that starts with its index and name; a later
 // pattern covers the ones under it. Keyboard-driven.
-export function createSequenceView({ el, statusEl, transport, onToggle, onOpen, onMove }) {
+export function createSequenceView({ el, statusEl, listEl, transport, onToggle, onOpen, onMove }) {
   let lanes = null, len = 0, editor = null;
   const cur = { lane: 0, tick: 0 };
   let typed = '', message = '';
@@ -134,6 +134,7 @@ export function createSequenceView({ el, statusEl, transport, onToggle, onOpen, 
   };
 
   let top = 0;                  // the first row on screen
+  let lastList = '';
   let rowCount = ROWS.normal;   // how many rows are shown; the drag bar under the view changes it
   const draw = () => {
     if (!lanes) return;
@@ -183,20 +184,28 @@ export function createSequenceView({ el, statusEl, transport, onToggle, onOpen, 
       lines.push(row(`${playing && playTick >= t && playTick < t + CELL ? '>' : ' '}${String(t).padStart(4, '0')} ${cells.join(' ')}`));
     }
 
-    const pool = Object.values(lane().patterns).sort((a, b) => a.index - b.index)
-      .map(p => `${hex2(p.index)} ${esc(p.name)} (${p.length})`).join('  ');
-    lines.push(row(''), row(`${esc(lane().id)} patterns: ${pool || 'none yet'}`));
+    lines.push(row(''));
     const log = editor.log().slice(0, 5).map(esc).join(' < ');
     lines.push(row(`undo: ${log || 'nothing yet'}${editor.hasWaypoint() ? '   [waypoint set]' : ''}`));
     el.innerHTML = lines.join('');
 
     const owner = here();
+    const ownerPat = owner ? lane().patterns[owner.puid] : null;
     statusEl.textContent = [
-      lane().id, `tick ${editTick()}`,
-      owner ? `${hex2(lane().patterns[owner.puid].index)} ${lane().patterns[owner.puid].name}` : 'no pattern',
+      `lane ${cur.lane + 1}/${lanes.length} ${lane().id}`, `row ${curRow}/${rows - 1}`, `tick ${editTick()}`,
+      ownerPat ? `${hex2(ownerPat.index)} ${ownerPat.name}` : 'no pattern',
       lane().silenced ? 'silenced' : lane().mask?.[rowStart(cur.tick)] && 'muted',
       typed && `typing ${typed}`, message,
     ].filter(Boolean).join(' · ');
+    if (listEl) {
+      // The patterns of this lane: colour, two-digit shortcut, name and length; the one under the cursor is marked.
+      const html = `<div class="ph">${esc(lane().id)}: ${Object.keys(lane().patterns).length} patterns</div>${
+        Object.entries(lane().patterns).sort((a, b) => a[1].index - b[1].index).map(([puid, p]) => {
+          const { cls, style } = colourOf(p);
+          return `<div class="pi${owner && owner.puid === puid ? ' here' : ''}"><span class="sw${cls ? ` ${cls}` : ''}"${style ? ` style="background:${style}"` : ''}> </span> ${hex2(p.index)} ${esc(p.name.padEnd(10))} ${String(p.length).padStart(3)}</div>`;
+        }).join('') || '<div class="pi">none yet</div>'}`;
+      if (html !== lastList) { lastList = html; listEl.innerHTML = html; }
+    }
   };
 
   const goto = (laneIdx, tick) => { cur.lane = laneIdx; cur.tick = rowStart(tick); typed = ''; };

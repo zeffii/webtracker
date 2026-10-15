@@ -313,6 +313,12 @@ export function createTrackerView({ el, statusEl, transport, onToggle, onBack, o
     if (onMove && (cur.lane !== was[0] || cur.tick !== was[1])) onMove(cur.lane, cur.tick);   // keep the arrangement in step
   });
 
+  // The name of the pattern that owns the tick under the cursor: the one that started last.
+  const patternName = () => {
+    const l = lanes[cur.lane];
+    const pl = l.placements.filter(p => cur.tick >= p.start && cur.tick < p.start + p.length).sort((a, b) => b.start - a.start)[0];
+    return pl ? l.patterns[pl.puid]?.name : 'no pattern';
+  };
   const draw = () => {
     if (!lanes) return;
     const playing = Atomics.load(transport, 1) === 1, playTick = Atomics.load(transport, 0);
@@ -348,7 +354,7 @@ export function createTrackerView({ el, statusEl, transport, onToggle, onBack, o
     }
     el.innerHTML = lines.join('\n');
     statusEl.textContent = [
-      lanes[cur.lane].id, `row ${cur.tick}`, column().label, `char ${cur.ch + 1}/${cellWidth()}`,
+      lanes[cur.lane].id, `row ${cur.tick}`, patternName(), column().label, `char ${cur.ch + 1}/${cellWidth()}`,
       sel ? `selected ${size(rect())}` : '', `octave ${octave}`, message,
     ].filter(Boolean).join(' · ');
   };

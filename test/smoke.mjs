@@ -3126,4 +3126,19 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   assert.equal(view.setRows(1), 6, 'not fewer than the minimum'); assert.equal(view.setRows(9999), 128, 'nor more than the maximum');
 }
 
+// 92: arrangement side list and status bar
+{
+  const registry = new ParamRegistry();
+  for (const [id, def] of Object.entries(instruments)) compile(def.graph, { instrument: id, nodeTypes: NODE_TYPES, registry });
+  const lanes = prepareSong(demoSong, instruments, registry);
+  const statusEl = { textContent: '' }, listEl = { innerHTML: '' }, el = { addEventListener() {}, innerHTML: '' };
+  const view = createSequenceView({ el, statusEl, listEl, transport: new Int32Array(new SharedArrayBuffer(8)), onToggle() {}, onOpen() {} });
+  view.load({ lanes, song: demoSong, editor: createEditor(lanes, demoSong.length) });
+  view.draw();
+  assert.match(statusEl.textContent, /^lane 1\/\d+ lead · row 0\/1 · tick 0 · /, 'lane and row of the cursor');
+  assert.match(listEl.innerHTML, /class="pi here"/, 'the pattern under the cursor is marked in the list');
+  assert.match(listEl.innerHTML, /class="sw/, 'each pattern shows its colour');
+  assert.ok(!el.innerHTML.includes('patterns:'), 'the grid no longer carries the list line');
+}
+
 console.log('smoke test passed');

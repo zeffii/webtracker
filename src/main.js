@@ -74,7 +74,7 @@ const view = createTrackerView({
   onMove: (lane, tick) => seqView.goto(lane, tick),
 });
 const seqView = createSequenceView({
-  el: $('seq'), statusEl: $('seq-status'), transport: engine.transport, onToggle: togglePlay,
+  el: $('seq'), statusEl: $('seq-status'), listEl: $('seq-list'), transport: engine.transport, onToggle: togglePlay,
   onOpen: (lane, tick) => { view.goto(lane, tick); tabs.show('patterns'); },
   onMove: (lane, tick) => view.goto(lane, tick),
 });
