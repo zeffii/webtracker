@@ -19,7 +19,8 @@ import * as gedit from '../src/graph/edit.js';
 import { createPatcher, hitTest, nodeBox, portPos, portKind } from '../src/graph/patcher.js';
 import { rebuildInstrumentLanes } from '../src/seq/lane.js';
 import * as pops from '../src/project/ops.js';
-import { createSamplePanel } from '../src/project/samplepanel.js';
+import { createSampleScreen } from '../src/project/samplescreen.js';
+import { computeSpectrogram, fft } from '../src/project/spectrogram.js';
 import { computePeaks, createWaveformView } from '../src/project/waveform.js';
 import { parseProject, serializeProject } from '../src/project/file.js';
 import { song as demoSong } from '../src/song.js';
@@ -1111,50 +1112,72 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   assert.equal(lanes2.at(-1).rows[4][0], 'E-3');
 }
 
-// 45. The sample list: sizes, loop edits report which instruments to update, remove is for unused samples.
+// 45. The sample screen: keyboard fields change loops, levels and names; edits report which instruments to update.
 {
-  const makeEl = tag => ({
-    tag, children: [], listeners: {}, style: {}, textContent: '', value: '', disabled: false,
-    appendChild(c) { this.children.push(c); return c; }, replaceChildren(...c) { this.children = c; },
-    addEventListener(type, f) { this.listeners[type] = f; },
-  });
-  const walk = (el, fn) => { fn(el); (el.children ?? []).forEach(c => walk(c, fn)); };
-  const doc = { createElement: makeEl, createTextNode: text => ({ text }) };
   const { project } = makeProject();
   pops.addSample(project, 'tick.wav', 44100, burst);
-  const container = makeEl('div'), statusEl = { textContent: '' };
-  const looped = [], removed = [];
-  const panel = createSamplePanel({ container, statusEl, doc, getProject: () => project, onLoop: u => looped.push(u), onRemove: id => removed.push(id) });
-  panel.render();
-  const rows = container.children;
-  assert.equal(rows.length, 2);
-  const parts = row => { const f = { numbers: [], buttons: [], name: null }; walk(row, e => { if (e.tag === 'input' && e.type === 'text') f.name = e; else if (e.tag === 'input' && e.type === 'number') f.numbers.push(e); if (e.tag === 'button') f.buttons.push(e); }); return f; };
-  const pluck = parts(rows[0]), tick = parts(rows[1]);
-  assert.equal(pluck.buttons[0].disabled, true, 'a sample in use cannot be removed');
-  assert.equal(tick.buttons[0].disabled, false);
+  let onKey, onUp;
+  const el = { addEventListener: (type, f) => { if (type === 'keydown') onKey = f; if (type === 'keyup') onUp = f; }, innerHTML: '' };
+  const statusEl = { textContent: '' }, events = [];
+  const screen = createSampleScreen({
+    el, statusEl, getProject: () => project,
+    onChange: users => events.push(['change', users.map(u => u.instrument).sort()]),
+    onSelect: id => events.push(['select', id]), onRemove: id => events.push(['remove', id]),
+    onRename: (from, to) => events.push(['rename', from, to]), onAudition: (id, on) => events.push(['audition', id, on]), onLoad: () => events.push(['load']),
+    onView: mode => events.push(['view', mode]),
+  });
+  const key = (k, extra = {}) => onKey({ key: k, preventDefault() {}, ...extra });
+  const type = text => [...text].forEach(c => key(c));
+  const tab = n => { for (let i = 0; i < n; i++) key('Tab'); };
+  const pluck = project.samples.pluck, n = pluck.data.length;
+  screen.draw();
+  assert.ok(el.innerHTML.includes('pluck') && el.innerHTML.includes('tick'), 'the list shows both samples');
+  assert.deepEqual(events[0], ['select', 'pluck']);
+  key('ArrowDown'); assert.equal(screen.selected, 'tick');
+  key('ArrowUp'); assert.equal(screen.selected, 'pluck');
 
-  // the name box renames the sample everywhere
-  const renamed = [];
-  const panel2 = createSamplePanel({ container, statusEl, doc, getProject: () => project, onLoop: () => {}, onRemove: () => {}, onRename: (a, b) => renamed.push([a, b]) });
-  panel2.render();
-  const tickName = parts(container.children[1]).name;
-  tickName.value = 'hat'; tickName.listeners.change();
-  assert.deepEqual(renamed, [['tick', 'hat']]);
+  // loop end: type a value, step with the arrows and Shift
+  tab(4); assert.equal(screen.focus, 'loopEnd');
+  type('5000'); key('Enter');
+  assert.deepEqual([pluck.loopStart, pluck.loopEnd], [0, 5000]);
+  assert.deepEqual(events.at(-1), ['change', ['bass', 'lead']]);
+  key('ArrowRight', { shiftKey: true }); assert.equal(pluck.loopEnd, 5100);
+  key('ArrowLeft'); assert.equal(pluck.loopEnd, 5099);
+  type('99999999'); key('Enter'); assert.equal(pluck.loopEnd, n, 'a value past the end is clamped');
+  key('Tab'); type('64'); key('Enter'); assert.equal(pluck.loopXfade, 64);
+  tab(1); assert.equal(screen.focus, 'susOn');
+  key(' '); assert.equal(pluck.susEnd, n, 'switching a loop on with no points loops the whole sample');
+  key(' '); assert.equal(pluck.susOn, false);
+  key(' '); assert.equal(pluck.susOn, true);
+  tab(1); type('100'); key('Enter'); assert.equal(pluck.susStart, 100);
+  tab(1); type('0'); key('Enter'); assert.equal(pluck.susEnd, undefined, 'an end of 0 removes the loop');
+
+  // sliders answer to the same keys; the focused one is drawn brighter
+  tab(2); assert.equal(screen.focus, 'volume');
+  screen.draw(); assert.equal(el.innerHTML.split('class="sl on"').length - 1, 1, 'only the focused slider is bright');
+  key('ArrowLeft'); assert.equal(pluck.volume, 0.99);
+  key('ArrowLeft', { shiftKey: true }); assert.equal(pluck.volume, 0.89);
+  key('Equal', { key: '=', code: 'Equal' }); assert.equal(pluck.volume, 0.9, '+ and - work too');
+  tab(2); type('-0.5'); key('Enter'); assert.equal(pluck.pan, -0.5);
+  key('ArrowLeft', { shiftKey: true, ctrlKey: true }); assert.equal(pluck.pan, -0.75);
+  key('ArrowRight', { ctrlKey: true }); key('ArrowRight', { ctrlKey: true }); assert.equal(pluck.pan, -0.25);
+  tab(1); key(' '); assert.deepEqual(events.at(-1), ['view', 'spec']); assert.equal(screen.mode, 'spec');
+  key('Escape'); assert.equal(screen.focus, 'list');
+
+  // rename and remove
+  key('ArrowDown'); key('Tab'); type('hat'); key('Enter');
   assert.ok(project.samples.hat && !project.samples.tick);
-  project.samples.tick = project.samples.hat; delete project.samples.hat;   // put it back for the checks below
-  for (const d of Object.values(project.instruments)) for (const k of Object.keys(d.samples ?? {})) if (d.samples[k] === 'hat') d.samples[k] = 'tick';
-  panel.render();
-
-  pluck.numbers[0].value = '100'; pluck.numbers[1].value = '5000'; pluck.numbers[1].listeners.change();
-  assert.deepEqual(looped.at(-1).map(u => u.instrument).sort(), ['bass', 'lead']);
-  assert.equal(project.samples.pluck.loopEnd, 5000);
-  pluck.numbers[1].value = '99999999'; pluck.numbers[1].listeners.change();
-  assert.match(statusEl.textContent, /past the end/);
-  assert.equal(project.samples.pluck.loopEnd, 5000, 'a refused loop point changed the sample');
-
-  tick.buttons[0].listeners.click();
-  assert.deepEqual(removed, ['tick']);
-  assert.equal(project.samples.tick, undefined);
+  assert.deepEqual(events.at(-1), ['rename', 'tick', 'hat']);
+  assert.equal(screen.selected, 'hat');
+  key('Tab'); key('x'); key('Escape'); assert.ok(project.samples.hat, 'Escape abandons an edit');
+  key('Escape');
+  key(' '); onUp({ key: ' ' });
+  assert.deepEqual(events.slice(-2), [['audition', 'hat', true], ['audition', 'hat', false]]);
+  assert.match(statusEl.textContent, /No instrument plays/);
+  key('Delete'); assert.equal(project.samples.hat, undefined);
+  assert.deepEqual(events.at(-1), ['remove', 'hat']); assert.equal(screen.selected, 'pluck');
+  key('Delete'); assert.ok(project.samples.pluck, 'a sample in use cannot be removed'); assert.match(statusEl.textContent, /used by an instrument/);
+  key('l'); assert.deepEqual(events.at(-1), ['load']);
 }
 
 // 46. A sampler node in the patcher can be pointed at another sample.
@@ -2848,6 +2871,17 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   assert.deepEqual([msg.pan, msg.susStart, msg.susEnd, msg.susOn, msg.loopXfade], [-0.25, 100, 900, false, 64]);
   const back = parseProject(serializeProject({ song: { name: 's', bpm: 100, ticksPerBeat: 4, length: 16 }, instruments: {}, samples: project.samples, lanes: [] }));
   assert.deepEqual([back.samples.s.pan, back.samples.s.susEnd, back.samples.s.loopXfade, back.samples.s.volume], [-0.25, 900, 64, undefined]);
+}
+
+// 86. The spectrogram puts a pure tone on its own row and brightens with level.
+{
+  const tone = Float32Array.from({ length: 8000 }, (_, i) => Math.sin(i * 0.3));
+  const cells = computeSpectrogram(tone, null, 20, 40);
+  const column = x => Array.from({ length: 40 }, (_, y) => cells[y * 20 + x]);
+  assert.equal(column(10).indexOf(Math.max(...column(10))), 27, 'the tone sits at its frequency');
+  const re = Float64Array.from([1, 0, 0, 0, 0, 0, 0, 0]), im = new Float64Array(8);
+  fft(re, im);
+  assert.ok(re.every(v => Math.abs(v - 1) < 1e-12) && im.every(v => Math.abs(v) < 1e-12), 'the FFT of an impulse is flat');
 }
 
 console.log('smoke test passed');

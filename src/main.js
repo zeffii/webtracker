@@ -9,7 +9,7 @@ import * as presets from './project/presets.js';
 import { LIBRARY_EXT, addToLibrary, importFromLibrary, newLibrary, parseLibrary, serializeLibrary } from './project/library.js';
 import { addLane, addSample, addSamplerInstrument, addSynthInstrument, channelsOf, sampleMessage, syncSamplerStereo } from './project/ops.js';
 import { synthKinds } from './instruments.js';
-import { createSamplePanel } from './project/samplepanel.js';
+import { createSampleScreen } from './project/samplescreen.js';
 import { createWaveformView } from './project/waveform.js';
 import { FILE_EXT, INSTRUMENT_EXT, parseInstrument, parseProject, serializeInstrument, serializeProject } from './project/file.js';
 import { createEditor } from './seq/editor.js';
@@ -52,7 +52,7 @@ $('play').addEventListener('click', e => { togglePlay(); e.currentTarget.blur();
 const tabs = createTabs({
   tabs: [
     { id: 'patterns', key: 'F2', el: $('pane-patterns'), button: $('tab-patterns'), focus: $('view') },
-    { id: 'samples', key: 'F3', el: $('pane-samples'), button: $('tab-samples') },
+    { id: 'samples', key: 'F3', el: $('pane-samples'), button: $('tab-samples'), focus: $('smp') },
     { id: 'instruments', key: 'F4', el: $('pane-instruments'), button: $('tab-instruments'), focus: $('patch') },
     { id: 'arrange', key: 'F5', el: $('pane-arrange'), button: $('tab-arrange'), focus: $('seq') },
   ],
@@ -122,9 +122,6 @@ function refreshProjectUi() {
   };
   renderInstList();
   fill($('new-inst-sample'), Object.keys(project.samples));
-  samplePanel.render();
-  const ids = Object.keys(project.samples);
-  if (!(waveform.sampleId in project.samples)) waveform.show(ids[0] ?? null);
 }
 
 // The narrow instrument list beside the patcher.
@@ -390,13 +387,28 @@ for (const [id, field, max] of [['inst-voices', 'voices', 16], ['inst-notecols',
 }
 
 const sendLoop = users => users.forEach(({ instrument, node }) => sendSample(instrument, node));
-const samplePanel = createSamplePanel({
-  container: $('sample-panel'), statusEl: $('proj-status'), getProject: () => project,
-  onLoop: sendLoop, onRemove: refreshProjectUi, onRename: (from, to) => { if (waveform.sampleId === from) waveform.show(to); refreshProjectUi(); patcher.show(patcher.instrument); }, onSelect: id => waveform.show(id),
-});
 const waveform = createWaveformView({
   canvas: $('wave'), statusEl: $('proj-status'), getProject: () => project,
-  onLoop: users => { sendLoop(users); samplePanel.render(); },   // render again so the numbers follow the markers
+  onLoop: sendLoop,   // the screen redraws itself, so its numbers follow the markers
+});
+
+// Plays a sample while a key is held, through the first instrument that uses it, at that sampler's root note.
+const audition = (id, on) => {
+  const user = ops.usersOfSample(project, id)[0];
+  if (!user || !started) return;
+  const root = `${user.instrument}.${user.node}.root`;
+  const note = engine.registry.slots.has(root) ? Math.round(engine.registry.get(root)) : 60;
+  if (on) engine.noteOn(user.instrument, note, 1); else engine.noteOff(user.instrument, note);
+};
+const sampleScreen = createSampleScreen({
+  el: $('smp'), statusEl: $('proj-status'), getProject: () => project,
+  onChange: sendLoop,
+  onSelect: id => waveform.show(id),
+  onRemove: refreshProjectUi,
+  onRename: () => { refreshProjectUi(); patcher.show(patcher.instrument); },
+  onAudition: audition,
+  onLoad: () => $('sample-file').click(),
+  onView: mode => waveform.setMode(mode),
 });
 
 // A new empty lane for an instrument that is already loaded in the engine.
@@ -496,7 +508,7 @@ $('sample-file').addEventListener('change', async e => {
       // The browser decodes the file and resamples it to the audio context's rate.
       const buffer = await engine.ctx.decodeAudioData(await file.arrayBuffer());
       const sampleId = (({ data, right }) => addSample(project, file.name, buffer.sampleRate, data, right))(channelsOf(buffer));
-      waveform.show(sampleId);
+      sampleScreen.select(sampleId);
       projStatus(`Loaded ${file.name}.`);
     } catch (err) {
       projStatus(`${file.name}: ${err.message}`);
@@ -557,7 +569,7 @@ $('start').addEventListener('click', async () => {
     for (const id of ['play', 'save', 'load', 'patch-add', 'load-samples', 'add-sampler', 'add-synth', 'add-lane', 'inst-voices', 'inst-notecols', 'inst-name', 'inst-rename', 'inst-up', 'inst-down', 'inst-dup', 'inst-remove', 'lane-name', 'lane-rename', 'lane-left', 'lane-right', 'lane-dup', 'lane-remove', 'length', 'bpm', 'swing', 'preset-name', 'preset-save', 'preset-over', 'preset-rename', 'preset-remove', 'inst-export', 'inst-import', 'lib-load', 'lib-add', 'lib-save']) $(id).disabled = false;
     $('status').textContent =
       `Running at ${engine.ctx.sampleRate} Hz, base latency ${(engine.ctx.baseLatency * 1000).toFixed(1)} ms`;
-    const frame = () => { songInfo(); seqView.draw(); view.draw(); patcher.draw(); waveform.draw(); requestAnimationFrame(frame); };
+    const frame = () => { songInfo(); seqView.draw(); view.draw(); patcher.draw(); sampleScreen.draw(); waveform.draw(); requestAnimationFrame(frame); };
     frame();
   } catch (err) {
     $('status').textContent = err.message;

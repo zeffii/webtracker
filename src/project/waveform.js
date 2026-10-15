@@ -1,4 +1,5 @@
 import { setLoop } from './ops.js';
+import { computeSpectrogram, heat } from './spectrogram.js';
 
 // Min and max of the sample for each pixel column: what the waveform view draws.
 export function computePeaks(data, width) {
@@ -20,7 +21,7 @@ export function computePeaks(data, width) {
 
 const GRAB = 6;   // pixels either side of a marker that grab it
 
-// The waveform of one sample with its loop points. Drag the start or end marker to move
+// The waveform (or spectrogram) of one sample with its loop points, the sustain loop and the loop crossfade. Drag the start or end marker to move
 // it; drag across empty waveform to make a new loop; double-click to clear the loop. The
 // loop is applied when the mouse is released.
 export function createWaveformView({ canvas, statusEl, getProject, onLoop }) {
@@ -35,7 +36,7 @@ export function createWaveformView({ canvas, statusEl, getProject, onLoop }) {
     ctx.scale(dpr, dpr);
   }
 
-  let id = null, drag = null, cache = null, lastKey = null;
+  let id = null, drag = null, cache = null, lastKey = null, mode = 'wave';
   const say = text => { if (statusEl) statusEl.textContent = text; };
   const sample = () => (id ? getProject().samples[id] : undefined);
   const frames = () => sample().data.length;
@@ -80,44 +81,68 @@ export function createWaveformView({ canvas, statusEl, getProject, onLoop }) {
   canvas.addEventListener('mouseleave', () => { drag = null; });
   canvas.addEventListener('dblclick', () => { if (sample()) commit(0, 0); });
 
+  const LOOPS = [
+    { start: 'loopStart', end: 'loopEnd', on: 'loopOn', xf: 'loopXfade', colour: 'hsl(210 70% 55%)', fill: 'rgba(60, 140, 255, 0.2)', marks: 'AB' },
+    { start: 'susStart', end: 'susEnd', on: 'susOn', xf: 'susXfade', colour: 'hsl(35 90% 55%)', fill: 'rgba(255, 170, 40, 0.18)', marks: 'ab' },
+  ];
+
   function draw() {
     const s = sample();
     const { start, end } = s ? loopOf(s) : { start: 0, end: 0 };
-    const key = `${id}:${s?.data.length}:${start}:${end}`;
+    const key = s ? `${id}:${mode}:${s.data.length}:${start}:${end}:${LOOPS.slice(1).map(l => `${s[l.start]}.${s[l.end]}.${s[l.on]}`).join()}:${s.loopOn}:${s.loopXfade}:${s.susXfade}` : 'none';
     if (key === lastKey) return;
     lastKey = key;
     ctx.clearRect(0, 0, W, H);
     if (!s) return;
     const ink = typeof getComputedStyle === 'function' ? getComputedStyle(canvas).color : '#888';
-    const accent = 'hsl(210 70% 55%)';
-    if (!cache || cache.data !== s.data) cache = { data: s.data, peaks: computePeaks(s.data, W), rightPeaks: s.right ? computePeaks(s.right, W) : null };
-    // a stereo sample is drawn as two lanes, left above right
-    const lanes = cache.rightPeaks ? [[cache.peaks, H / 4], [cache.rightPeaks, 3 * H / 4]] : [[cache.peaks, H / 2]];
-    const amp = lanes.length === 2 ? H / 4 - 4 : H / 2 - 4;
-    ctx.fillStyle = ink;
-    for (const [peaks, mid] of lanes) {
-      ctx.fillRect(0, mid, W, 1);
-      for (let x = 0; x < W; x++) {
-        const lo = peaks[2 * x], hi = peaks[2 * x + 1];
-        ctx.fillRect(x, mid - hi * amp, 1, Math.max(1, (hi - lo) * amp));
+    if (mode === 'spec') {
+      const pw = canvas.width, ph = canvas.height;
+      if (!cache || cache.data !== s.data || cache.spec?.pw !== pw) cache = { ...(cache?.data === s.data ? cache : { data: s.data }), spec: { pw, ph, cells: computeSpectrogram(s.data, s.right, pw, ph) } };
+      const image = ctx.createImageData(pw, ph);
+      for (let i = 0; i < pw * ph; i++) image.data.set(heat(cache.spec.cells[i]), i * 4);
+      ctx.save();
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.putImageData(image, 0, 0);
+      ctx.restore();
+    } else {
+      if (!cache || cache.data !== s.data || !cache.peaks) cache = { data: s.data, peaks: computePeaks(s.data, W), rightPeaks: s.right ? computePeaks(s.right, W) : null };
+      // a stereo sample is drawn as two lanes, left above right
+      const lanes = cache.rightPeaks ? [[cache.peaks, H / 4], [cache.rightPeaks, 3 * H / 4]] : [[cache.peaks, H / 2]];
+      const amp = lanes.length === 2 ? H / 4 - 4 : H / 2 - 4;
+      ctx.fillStyle = ink;
+      for (const [peaks, mid] of lanes) {
+        ctx.fillRect(0, mid, W, 1);
+        for (let x = 0; x < W; x++) {
+          const lo = peaks[2 * x], hi = peaks[2 * x + 1];
+          ctx.fillRect(x, mid - hi * amp, 1, Math.max(1, (hi - lo) * amp));
+        }
       }
     }
-    if (end > start) {
-      const xs = frameToX(start), xe = frameToX(end);
-      ctx.fillStyle = 'rgba(60, 140, 255, 0.2)';
+    ctx.font = '11px ui-monospace, Consolas, monospace';
+    ctx.textBaseline = 'top';
+    LOOPS.forEach((l, n) => {
+      const a = n === 0 ? start : s[l.start] ?? 0, b = n === 0 ? end : s[l.end] ?? 0;
+      if (!(b > a) || (n === 0 && !drag && s[l.on] === false) || (n === 1 && s[l.on] === false)) return;
+      const xs = frameToX(a), xe = frameToX(b);
+      ctx.fillStyle = l.fill;
       ctx.fillRect(xs, 0, xe - xs, H);
-      ctx.fillStyle = accent;
+      const xf = Math.min(s[l.xf] ?? 0, a, b - a);
+      if (xf > 0) {   // the crossfade: the last frames of the loop blend with the audio just before its start
+        ctx.fillStyle = l.colour;
+        ctx.globalAlpha = 0.3;
+        ctx.fillRect(frameToX(b - xf), 0, frameToX(b) - frameToX(b - xf), H);
+        ctx.fillRect(frameToX(a - xf), H - 8, frameToX(a) - frameToX(a - xf), 8);
+        ctx.globalAlpha = 1;
+      }
+      ctx.fillStyle = l.colour;
       ctx.fillRect(xs, 0, 2, H);
       ctx.fillRect(xe - 2, 0, 2, H);
-      ctx.font = '11px ui-monospace, Consolas, monospace';
-      ctx.textBaseline = 'top';
       ctx.textAlign = 'left';
-      ctx.fillText(`start ${start}`, Math.min(xs + 4, W - 90), 2);
+      ctx.fillText(l.marks[0], xs + 4, 2 + n * 12);
       ctx.textAlign = 'right';
-      ctx.fillText(`end ${end}`, Math.max(xe - 4, 90), H - 14);
-    }
-    ctx.fillStyle = ink;
-    ctx.font = '11px ui-monospace, Consolas, monospace';
+      ctx.fillText(l.marks[1], xe - 4, 2 + n * 12);
+    });
+    ctx.fillStyle = mode === 'spec' ? '#fff' : ink;
     ctx.textBaseline = 'bottom';
     ctx.textAlign = 'left';
     ctx.fillText(`${id}  ${s.data.length} frames${s.right ? '  stereo' : ''}`, 4, H - 2);
@@ -125,6 +150,8 @@ export function createWaveformView({ canvas, statusEl, getProject, onLoop }) {
 
   return {
     show(next) { id = next; drag = null; lastKey = null; },
+    setMode(next) { mode = next === 'spec' ? 'spec' : 'wave'; lastKey = null; },
+    get mode() { return mode; },
     get sampleId() { return id; },
     draw,
   };
