@@ -323,7 +323,7 @@ export function createTrackerView({ el, statusEl, transport, onToggle, onBack, o
     ];
     for (let t = top; t < Math.min(len, top + ROWS); t++) {
       const chunks = lanes.map((lane, li) => {
-        const mark = lane.placements.some(p => p.start === t) ? '▌' : ' ';   // a pattern starts here
+        const mark = lane.placements.some(p => p.start === t) ? '<span class="ps">▌</span>' : ' ';   // a pattern starts here
         const covered = lane.placements.some(p => t >= p.start && t < p.start + p.length);   // else no pattern here
         return mark + lane.columns.map((c, ci) => {
           const text = lane.rows[t][ci].padEnd(widths[li][ci]);

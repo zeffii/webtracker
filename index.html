@@ -101,7 +101,10 @@
     #view .cur .d { opacity: 1; }
     #view .sel { background: color-mix(in srgb, Highlight 40%, transparent); }
     #view .cur { background: Highlight; color: HighlightText; }
-    .help { font-size: .85rem; opacity: .7; max-width: 60rem; }
+    /* every list of keyboard shortcuts: one small monospace style in all views */
+    .help { font: 11px/1.45 ui-monospace, Consolas, monospace; opacity: .7; max-width: 60rem; }
+    #smp .help { max-width: none; }
+    #view .ps { color: #f0707a; }   /* a pattern starts here */
 
     /* samples */
     .srow { display: flex; flex-wrap: wrap; gap: .5rem 1rem; align-items: center; margin: .25rem 0; }

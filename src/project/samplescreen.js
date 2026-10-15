@@ -310,10 +310,10 @@ export function createSampleScreen({ el, statusEl, getProject, onChange = () => 
       const rows = Math.max(left.length, right.length);
       const out = [];
       for (let i = 0; i < rows; i++) out.push(`${i < left.length ? padTo(left[i], LEFT) : ' '.repeat(LEFT)}│${i < right.length ? right[i].h : ''}`);
-      out.push('', ' Tab/Shift+Tab fields · Left/Right or -/+ change (Shift bigger, Ctrl bigger still) · digits + Enter type a value',
+      out.push('', ...[' Tab/Shift+Tab fields · Left/Right or -/+ change (Shift bigger, Ctrl bigger still) · digits + Enter type a value',
         ` Piano keys play the sample (octave ${octave}, [ ] change it) · Space plays the root · Esc to list · L load · Del remove`,
         ' Edit the selection (Shift+drag on the display), or all: Shift+ C or T trim · X cut · S silence · R reverse · N normalise',
-        ' I fade in · O fade out · D remove DC · B bake xfade · Ctrl+Z / Ctrl+Y undo and redo');
+        ' I fade in · O fade out · D remove DC · B bake xfade · Ctrl+Z / Ctrl+Y undo and redo'].map(t => `<span class="help">${t}</span>`));
       html = out.join('\n');
     }
     if (html !== last) { last = html; el.innerHTML = html; }
