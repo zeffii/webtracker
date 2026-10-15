@@ -140,8 +140,9 @@
     #wave { border: 1px solid; max-width: 100%; display: block; cursor: col-resize; }
 
     /* instruments: a narrow list, the graph on the right */
-    #inst-layout { display: grid; grid-template-columns: 17rem 1fr; gap: 1rem; align-items: start; }
+    #inst-layout { display: grid; grid-template-columns: 17rem minmax(0, 1fr); gap: 1rem; align-items: start; }
     #inst-side, #inst-main { font: 13px/1.45 ui-monospace, Consolas, monospace; }
+    #inst-side .help { max-width: none; }
     #inst-side .new { display: grid; gap: .25rem; margin-bottom: .5rem; }
     #inst-side .new input, #inst-side .new select { width: 100%; box-sizing: border-box; min-width: 0; }
     #inst-list { display: grid; gap: 0; margin-bottom: .5rem; outline: none; white-space: pre; }
@@ -175,7 +176,7 @@
     .curve-editor canvas { display: block; border: 1px solid; cursor: crosshair; background: var(--panel); }
     .curve-presets { display: flex; flex-wrap: wrap; gap: 2px; margin: .25rem 0; max-width: 200px; }
     .curve-presets button { font: inherit; font-size: 11px; padding: 0 .35rem; }
-    #patch-wrap { position: relative; width: max-content; }
+    #patch-wrap { position: relative; }
     .insert-menu { position: absolute; z-index: 2; width: 12rem; max-height: 20rem; overflow-y: auto; background: Canvas; color: CanvasText; border: 1px solid; box-shadow: 0 4px 14px rgb(0 0 0 / .3); font: 13px/1.3 ui-monospace, Consolas, monospace; }
     .insert-menu input { width: 100%; box-sizing: border-box; border: 0; border-bottom: 1px solid; padding: .3rem .5rem; font: inherit; background: transparent; color: inherit; }
     .insert-head { padding: .3rem .5rem 0; opacity: .6; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; }
@@ -313,6 +314,16 @@
             <button id="inst-dup" disabled>Duplicate</button><button id="inst-remove" disabled>Remove</button>
           </div>
           <button id="add-lane" disabled>Add lane for selected</button>
+      <h2>Presets</h2>
+        <div id="preset-list"></div>
+        <div id="preset-section" class="manage row new">
+          <input id="preset-name" placeholder="preset name" aria-label="Preset name" disabled>
+          <button id="preset-save" disabled title="Keep the instrument's current sound as a new preset">Save new</button>
+          <button id="preset-over" disabled title="Replace the selected preset with the current sound">Overwrite</button>
+          <button id="preset-rename" disabled>Rename</button>
+          <button id="preset-remove" disabled>Remove</button>
+        </div>
+        <p class="help">A preset is recalled in a pattern with command 00: in the Cmd column, 00 and the preset's number, as 00 0003.</p>
         </div>
         <div id="inst-main">
           <div id="inst-head">
@@ -330,16 +341,6 @@
           <h2>Exposed <span class="help">(pattern columns)</span></h2>
           <div id="exposed-panel"></div>
           <div id="patch-panel"></div>
-          <h2>Presets</h2>
-          <div id="preset-list"></div>
-          <div id="preset-section" class="manage row">
-            <input id="preset-name" placeholder="preset name" aria-label="Preset name" disabled>
-            <button id="preset-save" disabled title="Keep the instrument's current sound as a new preset">Save new</button>
-            <button id="preset-over" disabled title="Replace the selected preset with the current sound">Overwrite</button>
-            <button id="preset-rename" disabled>Rename</button>
-            <button id="preset-remove" disabled>Remove</button>
-          </div>
-          <p class="help" style="max-width: var(--form-w)">A preset is recalled in a pattern with command 00: in the Cmd column, 00 and the preset's number, as 00 0003.</p>
           <details id="inst-more">
             <summary>Lanes, preset library, files</summary>
             <h2>Lanes</h2>

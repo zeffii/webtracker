@@ -91,7 +91,7 @@ const fmt = v => String(Number(v.toPrecision(4)));
 export function createPatcher({ canvas, panel, exposedPanel = null, onEscape = () => {}, statusEl, doc = document, nodeTypes, onStructure, onParam, onData = () => {}, onContext = () => {}, onNote = () => {}, getSampleIds = () => [] }) {
   let instruments = {}, instId = null, selected = null, drag = null, dirty = true;
   const ctx = canvas.getContext('2d');
-  const W = canvas.width;
+  let W = canvas.width;
   let H = canvas.height;
   const dpr = globalThis.devicePixelRatio || 1;
   if (dpr !== 1) {
@@ -507,6 +507,18 @@ export function createPatcher({ canvas, panel, exposedPanel = null, onEscape = (
     },
     // Draws the panel again, for when parameters were changed from outside (a preset).
     refreshPanel() { renderPanel(); dirty = true; },
+    // Changes the width of the graph area in CSS pixels; the graph is drawn again at once.
+    fit(width) {
+      const w = Math.round(Math.max(400, width));
+      if (w === W) return W;
+      W = w;
+      canvas.style.width = `${W}px`;
+      canvas.width = W * dpr;
+      if (dpr !== 1) ctx.setTransform?.(dpr, 0, 0, dpr, 0, 0);
+      dirty = true;
+      return W;
+    },
+    get width() { return W; },
     // Changes the height of the graph area in CSS pixels (the width stays); the graph is drawn again at once.
     resize(height) {
       H = Math.round(Math.min(MAX_HEIGHT, Math.max(MIN_HEIGHT, height)));
