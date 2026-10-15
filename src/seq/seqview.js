@@ -184,6 +184,8 @@ export function createSequenceView({ el, statusEl, listEl, transport, onToggle, 
       lines.push(row(`${playing && playTick >= t && playTick < t + CELL ? '>' : ' '}${String(t).padStart(4, '0')} ${cells.join(' ')}`));
     }
 
+    // the rect is always rowCount rows tall, so the drag bar works even when the song has fewer rows
+    for (let r = Math.min(rows, top + rowCount) - top; r < rowCount; r++) lines.push(row(''));
     lines.push(row(''));
     const log = editor.log().slice(0, 5).map(esc).join(' < ');
     lines.push(row(`undo: ${log || 'nothing yet'}${editor.hasWaypoint() ? '   [waypoint set]' : ''}`));

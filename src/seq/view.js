@@ -352,6 +352,7 @@ export function createTrackerView({ el, statusEl, transport, onToggle, onBack, o
       const row = `${playing && t === playTick ? '>' : ' '}${String(t).padStart(4, '0')} ${chunks.join('  ')}`;
       lines.push(playing && t === playTick ? `<b>${row}</b>` : row);
     }
+    while (lines.length < 2 + rowCount) lines.push('');   // always rowCount rows tall, so the drag bar works on a short song
     el.innerHTML = lines.join('\n');
     statusEl.textContent = [
       lanes[cur.lane].id, `row ${cur.tick}`, patternName(), column().label, `char ${cur.ch + 1}/${cellWidth()}`,
