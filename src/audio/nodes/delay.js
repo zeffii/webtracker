@@ -7,6 +7,7 @@ export default {
   type: 'delay',
   inputs: ['in'],
   outputs: ['out'],
+  dual: true,   // runs as a left/right pair when a stereo signal arrives
   category: 'Effects',
   shape: 'box',
   glyph: 'delay',

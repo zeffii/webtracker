@@ -28,6 +28,7 @@ import { createSpectrumEditor, WIDTH, HEIGHT } from '../src/graph/spectrumeditor
 import { HARMONICS, SPECTRA, normalizeSpectrum } from '../src/audio/nodes/spectra.js';
 import { CURVE_POINTS, PRESETS } from '../src/audio/nodes/curves.js';
 import { Oversampler } from '../src/audio/nodes/oversample.js';
+import { resolveKinds } from '../src/graph/kinds.js';
 import { createInsertMenu } from '../src/graph/menu.js';
 import { createTabs } from '../src/ui/tabs.js';
 import * as presetOps from '../src/project/presets.js';
@@ -1436,9 +1437,14 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   assert.equal(peak(hardLeft.right), 0);
   assert.ok(Math.abs(peak(hardLeft.left) / peak(direct.left) - Math.SQRT2) < 1e-3);
 
-  const folded = run([osc, { id: 'p', type: 'pan', params: { pan: -1 } }, { id: 'g', type: 'gain' }], [['o.out', 'p.in'], ['p.out', 'g.in'], ['g.out', 'out.in']]);
+  const folded = run([osc, { id: 'p', type: 'pan', params: { pan: -1 } }, { id: 'q', type: 'pan' }], [['o.out', 'p.in'], ['p.out', 'q.in'], ['q.out', 'out.in']]);
   assert.ok(folded.compiled.nodes.some(n => n.type === 'fold'));
-  assert.ok(Math.abs(peak(folded.left) / peak(direct.left) - Math.SQRT1_2) < 1e-3, 'stereo into mono should be the average');
+  assert.ok(Math.abs(peak(folded.left) / peak(direct.left) - Math.SQRT1_2) < 1e-3, 'stereo into a mono input should be the average');
+  // a gain stage is a dual node: it keeps a stereo signal stereo instead of folding it
+  const kept = run([osc, { id: 'p', type: 'pan', params: { pan: -1 } }, { id: 'g', type: 'gain' }], [['o.out', 'p.in'], ['p.out', 'g.in'], ['g.out', 'out.in']]);
+  assert.ok(!kept.compiled.nodes.some(n => n.type === 'fold'));
+  assert.equal(peak(kept.right), 0);
+  assert.ok(Math.abs(peak(kept.left) - peak(hardLeft.left)) < 1e-6);
 
   const both = run([osc, { id: 'a', type: 'pan', params: { pan: -1 } }, { id: 'b', type: 'pan', params: { pan: 1 } }],
     [['o.out', 'a.in'], ['o.out', 'b.in'], ['a.out', 'out.in'], ['b.out', 'out.in']]);
@@ -2542,6 +2548,53 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     assert.equal(back.song.swing, 0.6);
     const straight = parseProject(serializeProject({ song: { ...song, swing: 0.5 }, instruments: {}, samples: {}, lanes: [] }));
     assert.equal(straight.song.swing, undefined);
+  }
+
+  // stereo samples: two channels reach the output without a mixdown
+  {
+    const pluck = makePluck(sr), silent = new Float32Array(pluck.length);
+    const desc = stereo => ({ ...samplerPreset, nodes: samplerPreset.nodes.map(n => (n.type === 'sampler' && stereo ? { ...n, stereo: true } : n)) });
+    const play = (stereo, data, right) => {
+      const registry = new ParamRegistry();
+      const rt = new GraphRuntime({ sampleRate: sr, params: registry.values });
+      rt.load(compile(desc(stereo), { instrument: 'lead', nodeTypes: NODE_TYPES, registry }));
+      rt.message('lead', 'sampler', { type: 'sample', data, right, rate: sr });
+      rt.note('lead', { type: 'noteOn', note: 60, vel: 1 });
+      return render(rt, 0.5);
+    };
+    const mono = play(false, pluck), both = play(true, pluck, Float32Array.from(pluck));
+    assert.ok(peak(mono.left) > 0.01);
+    for (let i = 0; i < mono.left.length; i += 97) assert.ok(Math.abs(mono.left[i] - both.left[i]) < 1e-5 && Math.abs(mono.left[i] - both.right[i]) < 1e-5, 'equal channels match the mono path');
+    const hard = play(true, pluck, silent);
+    assert.ok(peak(hard.left) > 0.01 && peak(hard.right) < 1e-6, 'filter and delay keep the channels apart');
+    const folded = play(false, pluck, silent);
+    assert.ok(peak(folded.left) > 0.01 && Math.abs(peak(folded.left) - peak(mono.left) / 2) < 0.01 * peak(mono.left), 'a stereo sample on a mono node plays its average');
+    // the graph compiles the effects as pairs and says so
+    const c = compile(desc(true), { instrument: 'x', nodeTypes: NODE_TYPES, registry: new ParamRegistry() });
+    assert.deepEqual(c.nodes.filter(n => n.dual).map(n => n.id), ['filter', 'delay']);
+    assert.ok(!compile(desc(false), { instrument: 'x', nodeTypes: NODE_TYPES, registry: new ParamRegistry() }).nodes.some(n => n.dual));
+    // the patcher colours follow
+    const kinds = resolveKinds(desc(true), NODE_TYPES).kindOf;
+    assert.equal(kinds(desc(true).nodes[1], 'out'), 'stereo');
+    assert.equal(resolveKinds(desc(false), NODE_TYPES).kindOf(desc(false).nodes[1], 'out'), 'audio');
+    // files and instruments keep both channels
+    const file = parseProject(serializeProject({ song: { name: 's', bpm: 100, ticksPerBeat: 4, length: 16 }, instruments: {}, samples: { st: { rate: sr, data: pluck.slice(0, 500), right: pluck.slice(100, 600) } }, lanes: [] }));
+    assert.equal(file.samples.st.right.length, 500);
+    assert.ok(Math.abs(file.samples.st.right[10] - pluck[110]) < 1e-3);
+    const proj = { instruments: { lead: structuredClone(instruments.lead) }, samples: { pluck: { rate: sr, data: pluck.slice(0, 50), right: pluck.slice(5, 55) } } };
+    const back = pops.importInstrument({ instruments: {}, samples: {} }, parseInstrument(serializeInstrument(proj, 'lead')));
+    assert.ok(back);
+    const target = { instruments: {}, samples: {} };
+    pops.importInstrument(target, parseInstrument(serializeInstrument(proj, 'lead')));
+    assert.equal(target.samples.pluck.right.length, 50);
+    pops.syncSamplerStereo(proj.instruments.lead, proj.samples);
+    assert.equal(proj.instruments.lead.graph.nodes.find(n => n.type === 'sampler').stereo, true);
+    delete proj.samples.pluck.right;
+    pops.syncSamplerStereo(proj.instruments.lead, proj.samples);
+    assert.equal(proj.instruments.lead.graph.nodes.find(n => n.type === 'sampler').stereo, undefined);
+    const ch = pops.channelsOf({ numberOfChannels: 2, getChannelData: c => Float32Array.of(c, c + 1) });
+    assert.deepEqual([...ch.data, ...ch.right], [0, 1, 1, 2]);
+    assert.equal(pops.channelsOf({ numberOfChannels: 1, getChannelData: () => Float32Array.of(1) }).right, undefined);
   }
 }
 

@@ -38,7 +38,7 @@ export function createSamplePanel({ container, statusEl, doc = document, getProj
       show.addEventListener('click', () => onSelect(id));
       return el('div', { className: 'srow' },
         el('strong', { textContent: id }),
-        el('span', { textContent: `${(s.data.length / s.rate).toFixed(2)} s · ${s.rate} Hz · ${s.data.length} frames` }),
+        el('span', { textContent: `${(s.data.length / s.rate).toFixed(2)} s · ${s.rate} Hz · ${s.right ? 'stereo' : 'mono'} · ${s.data.length} frames` }),
         el('label', {}, 'loop start ', start), el('label', {}, 'end ', end), remove, show);
     }));
   }

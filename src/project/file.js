@@ -36,17 +36,22 @@ const fromBase64 = text => {
 const toPcm16 = floats => Int16Array.from(floats, v => Math.round(Math.min(1, Math.max(-1, v)) * 32767));
 const fromPcm16 = ints => Float32Array.from(ints, v => v / 32767);
 
+const encodeChannel = (data, format) => toBase64(format === 'pcm16' ? toPcm16(data) : data);
+const decodeChannel = (text, encoding) => (encoding === 'pcm16' ? fromPcm16(new Int16Array(fromBase64(text))) : new Float32Array(fromBase64(text)));
+
 export const encodeSample = (s, format) => ({
   rate: s.rate,
   encoding: format,
-  data: toBase64(format === 'pcm16' ? toPcm16(s.data) : s.data),
+  data: encodeChannel(s.data, format),
+  ...(s.right ? { right: encodeChannel(s.right, format) } : {}),   // stereo samples only
   loopStart: s.loopStart,
   loopEnd: s.loopEnd,
 });
 
 export const decodeSample = s => ({
   rate: s.rate,
-  data: s.encoding === 'pcm16' ? fromPcm16(new Int16Array(fromBase64(s.data))) : new Float32Array(fromBase64(s.data)),
+  data: decodeChannel(s.data, s.encoding),
+  ...(s.right ? { right: decodeChannel(s.right, s.encoding) } : {}),
   loopStart: s.loopStart,
   loopEnd: s.loopEnd,
 });

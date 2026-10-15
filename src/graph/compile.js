@@ -9,7 +9,7 @@
 // stereo port is a pair [left, right]. A mono wire into a stereo input feeds both channels;
 // a stereo wire into a mono input is averaged (a hidden fold node); several wires into
 // one input are added (a hidden sum node).
-import { portKind } from './kinds.js';
+import { resolveKinds } from './kinds.js';
 
 export function compile(desc, { instrument, nodeTypes, registry }) {
   const byId = new Map();
@@ -63,9 +63,10 @@ export function compile(desc, { instrument, nodeTypes, registry }) {
   }
   if (order.length !== byId.size) throw new Error('graph has a cycle');
 
+  const { kindOf, wide } = resolveKinds(desc, nodeTypes);
   let nextBuf = 1;
-  const alloc = (def, name) => (portKind(def, name) === 'stereo' ? [nextBuf++, nextBuf++] : nextBuf++);
-  const outBufs = new Map(order.map(id => [id, byId.get(id).def.outputs.map(name => alloc(byId.get(id).def, name))]));
+  const alloc = (n, name) => (kindOf(n, name) === 'stereo' ? [nextBuf++, nextBuf++] : nextBuf++);
+  const outBufs = new Map(order.map(id => [id, byId.get(id).def.outputs.map(name => alloc(byId.get(id), name))]));
   const live = ref => (Array.isArray(ref) ? ref[0] !== 0 || ref[1] !== 0 : ref !== 0);
 
   const nodes = [];
@@ -74,7 +75,7 @@ export function compile(desc, { instrument, nodeTypes, registry }) {
     const slots = n.def.params.map(p =>
       registry.allocate(`${instrument}.${id}.${p.name}`, n.params?.[p.name] ?? p.def, p.min, p.max, p.int === true));
     const inputs = n.def.inputs.map((name, i) => {
-      const stereo = portKind(n.def, name) === 'stereo';
+      const stereo = kindOf(n, name) === 'stereo';
       const feeds = (inputSources.get(`${id}.${i}`) ?? []).map((l, k) => {
         const ref = outBufs.get(l.fromId)[l.outPort];
         if (stereo) return Array.isArray(ref) ? ref : [ref, ref];
@@ -89,7 +90,7 @@ export function compile(desc, { instrument, nodeTypes, registry }) {
       nodes.push({ id: `~sum.${id}.${i}`, type: stereo ? 'sumst' : 'sum', slots: [], inputs: feeds, outputs: [sum], connected: feeds.map(() => true) });
       return sum;
     });
-    nodes.push({ id, type: n.type, slots, inputs, outputs: outBufs.get(id), connected: inputs.map(live), ...(n.data ? { data: n.data } : {}) });
+    nodes.push({ id, type: n.type, slots, inputs, outputs: outBufs.get(id), connected: inputs.map(live), ...(wide.has(id) ? { dual: true } : {}), ...(n.stereo ? { stereo: true } : {}), ...(n.data ? { data: n.data } : {}) });
   }
 
   const masters = order.filter(id => byId.get(id).def.master);

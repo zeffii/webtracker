@@ -19,14 +19,15 @@ export default {
   shape: 'rounded',
   glyph: 'sample',
   kinds: { out: 'audio' },   // ports are audio unless listed
+  stereoOptional: ['out'],   // stereo when the sample has two channels
   params: [
     { name: 'level', min: 0, max: 1, def: 0.8 },
     { name: 'root', min: 0, max: 127, def: 60 },
     { name: 'release', min: 5, max: 2000, def: 150 },
     { name: 'nnaFade', min: 0, max: 2000, def: 20 },
   ],
-  create({ sampleRate }) {
-    let sample = null, ratio = 1, stamp = 0;
+  create({ sampleRate, stereo = false }) {
+    let sample = null, right = null, ratio = 1, stamp = 0;
     let looping = false, loopStart = 0, loopEnd = 0;
     const active = new Uint8Array(VOICES), mode = new Uint8Array(VOICES);
     const note = new Int32Array(VOICES);
@@ -39,6 +40,7 @@ export default {
       message(msg) {
         if (msg.type !== 'sample') return;
         sample = msg.data;
+        right = msg.right ?? null;   // second channel of a stereo sample
         ratio = msg.rate / sampleRate;
         loopStart = msg.loopStart ?? 0;
         loopEnd = msg.loopEnd ?? 0;
@@ -69,8 +71,10 @@ export default {
         }
       },
       process(inputs, outputs, n, params, slots) {
-        const out = outputs[0];
-        out.fill(0, 0, n);
+        // a stereo node has a [left, right] pair; a mono node plays a stereo sample as its average
+        const outL = stereo ? outputs[0][0] : outputs[0], outR = stereo ? outputs[0][1] : null;
+        outL.fill(0, 0, n);
+        if (outR) outR.fill(0, 0, n);
         if (!sample) return;
         const level = params[slots[LEVEL]], root = params[slots[ROOT]];
         const relStep = 1 / (Math.max(1, params[slots[RELEASE]]) * 0.001 * sampleRate);
@@ -97,7 +101,15 @@ export default {
             }
             const k = p | 0, f = p - k;
             const k1 = looping && k + 1 >= loopEnd ? loopStart : Math.min(k + 1, last);
-            out[i] += (sample[k] + (sample[k1] - sample[k]) * f) * e * gain[v] * level;
+            const amp = e * gain[v] * level;
+            const l = sample[k] + (sample[k1] - sample[k]) * f;
+            if (!right) {
+              outL[i] += l * amp;
+              if (outR) outR[i] += l * amp;
+            } else {
+              const r = right[k] + (right[k1] - right[k]) * f;
+              if (outR) { outL[i] += l * amp; outR[i] += r * amp; } else outL[i] += (l + r) * 0.5 * amp;
+            }
             p += rate;
           }
           pos[v] = p; env[v] = e;

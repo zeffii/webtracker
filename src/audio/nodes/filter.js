@@ -7,6 +7,7 @@ export default {
   type: 'filter',
   inputs: ['in', 'mod'],   // mod is in octaves, averaged over each block
   outputs: ['out'],
+  dual: true,   // runs as a left/right pair when a stereo signal arrives
   category: 'Effects',
   shape: 'box',
   glyph: 'lowpass',

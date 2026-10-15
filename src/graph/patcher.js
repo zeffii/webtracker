@@ -6,7 +6,7 @@ import { addNode, autoLayout, connect, disconnect, pruneDef, removeNode, setBits
 // to the wiring or the exposed parameters calls onStructure so the instrument is rebuilt
 // and swapped in; a parameter change calls onParam and is heard at once.
 import { GLYPHS } from './glyphs.js';
-import { portKind } from './kinds.js';
+import { portKind, resolveKinds } from './kinds.js';
 import { createCurveEditor } from './curveeditor.js';
 import { createSpectrumEditor } from './spectrumeditor.js';
 
@@ -46,13 +46,13 @@ const bezier = (a, b, t) => {
   return { x: w[0] * a.x + w[1] * c1.x + w[2] * c2.x + w[3] * b.x, y: w[0] * a.y + w[1] * c1.y + w[2] * c2.y + w[3] * b.y };
 };
 
-const linkEnds = (desc, nodeTypes, link) => {
+const linkEnds = (desc, nodeTypes, link, kindOf) => {
   const [from, to] = link.map(r => r.split('.'));
   const a = desc.nodes.find(n => n.id === from[0]), b = desc.nodes.find(n => n.id === to[0]);
   return {
     a: portPos(a, nodeTypes[a.type], 'out', nodeTypes[a.type].outputs.indexOf(from[1])),
     b: portPos(b, nodeTypes[b.type], 'in', nodeTypes[b.type].inputs.indexOf(to[1])),
-    kind: portKind(nodeTypes[a.type], from[1]),
+    kind: kindOf ? kindOf(a, from[1]) : portKind(nodeTypes[a.type], from[1], a),
   };
 };
 
@@ -285,8 +285,9 @@ export function createPatcher({ canvas, panel, statusEl, doc = document, nodeTyp
     ctx.font = '12px ui-monospace, Consolas, monospace';
     ctx.lineWidth = 1.5;
 
+    const { kindOf } = resolveKinds(desc(), nodeTypes);
     desc().connections.forEach((link, i) => {
-      const { a, b, kind } = linkEnds(desc(), nodeTypes, link);
+      const { a, b, kind } = linkEnds(desc(), nodeTypes, link, kindOf);
       const chosen = selected?.kind === 'link' && selected.index === i;
       ctx.beginPath();
       ctx.strokeStyle = chosen ? accent : KIND_COLOR[kind];
@@ -349,7 +350,7 @@ export function createPatcher({ canvas, panel, statusEl, doc = document, nodeTyp
           const p = portPos(node, type, side, i);
           ctx.beginPath();
           ctx.arc(p.x, p.y, PORT_R, 0, 2 * Math.PI);
-          ctx.fillStyle = KIND_COLOR[portKind(type, name)];
+          ctx.fillStyle = KIND_COLOR[kindOf(node, name)];
           ctx.fill();
           ctx.strokeStyle = ink;
           ctx.lineWidth = 1;

@@ -6,6 +6,7 @@ export default {
   type: 'gain',
   inputs: ['in', 'cv'],
   outputs: ['out'],
+  dual: true,   // runs as a left/right pair when a stereo signal arrives
   category: 'Mix & level',
   shape: 'circle',
   glyph: 'gain',

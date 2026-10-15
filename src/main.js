@@ -6,7 +6,7 @@ import { createInsertMenu } from './graph/menu.js';
 import { createDemoProject } from './project/demo.js';
 import * as ops from './project/ops.js';
 import * as presets from './project/presets.js';
-import { addLane, addSample, addSamplerInstrument, addSynthInstrument, toMono } from './project/ops.js';
+import { addLane, addSample, addSamplerInstrument, addSynthInstrument, channelsOf, syncSamplerStereo } from './project/ops.js';
 import { synthKinds } from './instruments.js';
 import { createSamplePanel } from './project/samplepanel.js';
 import { createWaveformView } from './project/waveform.js';
@@ -94,8 +94,12 @@ const menu = createInsertMenu({ parent: $('patch-wrap'), nodeTypes: NODE_TYPES, 
 $('patch').addEventListener('mousedown', () => menu.close());
 
 const sendSample = (id, node) => {
-  const { data, rate, loopStart, loopEnd } = project.samples[project.instruments[id].samples[node]];
-  engine.sendToNode(id, node, { type: 'sample', data: data.slice(), rate, loopStart, loopEnd });
+  const { data, right, rate, loopStart, loopEnd } = project.samples[project.instruments[id].samples[node]];
+  engine.sendToNode(id, node, { type: 'sample', data: data.slice(), right: right?.slice(), rate, loopStart, loopEnd });
+};
+const loadInst = id => {
+  syncSamplerStereo(project.instruments[id], project.samples);
+  engine.loadInstrument(id, project.instruments[id].graph);
 };
 const sendSamples = id => { for (const node of Object.keys(project.instruments[id].samples ?? {})) sendSample(id, node); };
 
@@ -372,7 +376,7 @@ function reloadInstrument(id) {
   try {
     const def = project.instruments[id];
     pruneDef(def, NODE_TYPES);
-    engine.loadInstrument(id, def.graph);
+    loadInst(id);
     sendSamples(id);
     refreshLanes(id);
     bindings.forEach(apply);
@@ -387,7 +391,7 @@ function openProject({ song, instruments, samples }, { stay = false, instrument 
   engine.reset();
   project = { song, instruments, samples, lanes: [], editor: null };
   for (const id of Object.keys(instruments)) {
-    engine.loadInstrument(id, instruments[id].graph);
+    loadInst(id);
     sendSamples(id);
   }
   const lanes = prepareSong(song, instruments, engine.registry);
@@ -442,7 +446,7 @@ $('sample-file').addEventListener('change', async e => {
     try {
       // The browser decodes the file and resamples it to the audio context's rate.
       const buffer = await engine.ctx.decodeAudioData(await file.arrayBuffer());
-      const sampleId = addSample(project, file.name, buffer.sampleRate, toMono(buffer));
+      const sampleId = (({ data, right }) => addSample(project, file.name, buffer.sampleRate, data, right))(channelsOf(buffer));
       waveform.show(sampleId);
       projStatus(`Loaded ${file.name}.`);
     } catch (err) {
@@ -455,7 +459,7 @@ $('sample-file').addEventListener('change', async e => {
 $('add-sampler').addEventListener('click', () => {
   try {
     const id = addSamplerInstrument(project, $('new-inst-name').value.trim(), $('new-inst-sample').value);
-    engine.loadInstrument(id, project.instruments[id].graph);
+    loadInst(id);
     sendSamples(id);
     addLaneFor(id);
     patcher.load({ instruments: project.instruments });
@@ -472,7 +476,7 @@ for (const [kind, { label }] of Object.entries(synthKinds)) $('new-synth-kind').
 $('add-synth').addEventListener('click', () => {
   try {
     const id = addSynthInstrument(project, $('new-synth-name').value.trim(), $('new-synth-kind').value);
-    engine.loadInstrument(id, project.instruments[id].graph);
+    loadInst(id);
     addLaneFor(id);
     patcher.load({ instruments: project.instruments });
     patcher.show(id);

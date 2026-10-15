@@ -6,6 +6,7 @@ export default {
   inputs: ['a', 'b'],
   outputs: ['out'],
   params: [{ name: 'mix', min: 0, max: 1, def: 0.5 }],
+  dual: true,   // runs as a left/right pair when a stereo signal arrives
   category: 'Mix & level',
   shape: 'circle',
   glyph: 'mix',

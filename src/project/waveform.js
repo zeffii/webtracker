@@ -90,13 +90,17 @@ export function createWaveformView({ canvas, statusEl, getProject, onLoop }) {
     if (!s) return;
     const ink = typeof getComputedStyle === 'function' ? getComputedStyle(canvas).color : '#888';
     const accent = 'hsl(210 70% 55%)';
-    if (!cache || cache.data !== s.data) cache = { data: s.data, peaks: computePeaks(s.data, W) };
-    const mid = H / 2, amp = H / 2 - 4;
+    if (!cache || cache.data !== s.data) cache = { data: s.data, peaks: computePeaks(s.data, W), rightPeaks: s.right ? computePeaks(s.right, W) : null };
+    // a stereo sample is drawn as two lanes, left above right
+    const lanes = cache.rightPeaks ? [[cache.peaks, H / 4], [cache.rightPeaks, 3 * H / 4]] : [[cache.peaks, H / 2]];
+    const amp = lanes.length === 2 ? H / 4 - 4 : H / 2 - 4;
     ctx.fillStyle = ink;
-    ctx.fillRect(0, mid, W, 1);
-    for (let x = 0; x < W; x++) {
-      const lo = cache.peaks[2 * x], hi = cache.peaks[2 * x + 1];
-      ctx.fillRect(x, mid - hi * amp, 1, Math.max(1, (hi - lo) * amp));
+    for (const [peaks, mid] of lanes) {
+      ctx.fillRect(0, mid, W, 1);
+      for (let x = 0; x < W; x++) {
+        const lo = peaks[2 * x], hi = peaks[2 * x + 1];
+        ctx.fillRect(x, mid - hi * amp, 1, Math.max(1, (hi - lo) * amp));
+      }
     }
     if (end > start) {
       const xs = frameToX(start), xe = frameToX(end);
@@ -116,7 +120,7 @@ export function createWaveformView({ canvas, statusEl, getProject, onLoop }) {
     ctx.font = '11px ui-monospace, Consolas, monospace';
     ctx.textBaseline = 'bottom';
     ctx.textAlign = 'left';
-    ctx.fillText(`${id}  ${s.data.length} frames`, 4, H - 2);
+    ctx.fillText(`${id}  ${s.data.length} frames${s.right ? '  stereo' : ''}`, 4, H - 2);
   }
 
   return {

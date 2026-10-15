@@ -19,7 +19,14 @@ export const idFromName = name => notNumeric(name.replace(/\.[^.]+$/, '').replac
 // A typed name made into an id: letters, digits, _ and - only, trimmed, at most 24 characters.
 export const cleanName = name => notNumeric(name.trim().replace(/[^A-Za-z0-9_-]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 24));
 
-// Averages all channels of a decoded audio buffer (or anything shaped like one) into one.
+// The channels of a decoded audio buffer (or anything shaped like one): one for mono, the
+// first two otherwise.
+export function channelsOf(buffer) {
+  const left = Float32Array.from(buffer.getChannelData(0));
+  return buffer.numberOfChannels > 1 ? { data: left, right: Float32Array.from(buffer.getChannelData(1)) } : { data: left };
+}
+
+// Averages all channels of a decoded audio buffer into one (kept for callers that want mono).
 export function toMono(buffer) {
   const mono = new Float32Array(buffer.length);
   const n = buffer.numberOfChannels;
@@ -30,9 +37,17 @@ export function toMono(buffer) {
   return mono;
 }
 
-export function addSample(project, name, rate, data) {
+// Sets `stereo` on each sampler node by whether its sample has two channels.
+export function syncSamplerStereo(def, samples) {
+  for (const node of def.graph?.nodes ?? []) {
+    if (node.type !== 'sampler') continue;
+    if (samples[def.samples?.[node.id]]?.right) node.stereo = true; else delete node.stereo;
+  }
+}
+
+export function addSample(project, name, rate, data, right) {
   const id = uniqueId(new Set(Object.keys(project.samples)), idFromName(name));
-  project.samples[id] = { rate, data };
+  project.samples[id] = right ? { rate, data, right } : { rate, data };
   return id;
 }
 
@@ -199,7 +214,7 @@ export function importInstrument(project, { name, instrument, samples }) {
   const renamed = {};
   for (const [sid, s] of Object.entries(samples)) {
     renamed[sid] = uniqueId(new Set(Object.keys(project.samples)), sid);
-    project.samples[renamed[sid]] = { ...s, data: s.data.slice() };
+    project.samples[renamed[sid]] = { ...s, data: s.data.slice(), ...(s.right ? { right: s.right.slice() } : {}) };
   }
   if (def.samples) def.samples = Object.fromEntries(Object.entries(def.samples).map(([node, sid]) => [node, renamed[sid]]));
   const id = uniqueId(new Set(Object.keys(project.instruments)), cleanName(name) || 'instrument');

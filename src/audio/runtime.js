@@ -37,13 +37,21 @@ export class GraphRuntime {
     const V = Math.max(1, Math.min(MAX_VOICES, Math.round(compiled.voices ?? 1) || 1));
     const fresh = () => Array.from({ length: compiled.bufferCount }, () => new Float32Array(this.maxBlock));
     const resolver = buffers => ref => (Array.isArray(ref) ? ref.map(b => buffers[b]) : buffers[ref]);   // stereo ports are [left, right]
-    const make = (n, resolve) => ({
-      id: n.id,
-      instance: NODE_TYPES[n.type].create({ sampleRate: this.sampleRate, maxBlock: this.maxBlock, connected: n.connected, wasm: this.wasm, data: n.data }),
-      slots: Int32Array.from(n.slots),
-      inputs: n.inputs.map(resolve),
-      outputs: n.outputs.map(resolve),
-    });
+    const make = (n, resolve) => {
+      const create = () => NODE_TYPES[n.type].create({ sampleRate: this.sampleRate, maxBlock: this.maxBlock, connected: n.connected, wasm: this.wasm, data: n.data, stereo: n.stereo === true });
+      const node = { id: n.id, instance: create(), slots: Int32Array.from(n.slots), inputs: n.inputs.map(resolve), outputs: n.outputs.map(resolve) };
+      if (n.dual) {   // a mono node on a stereo signal: one copy per channel over the same parameters
+        const left = node.instance, right = create();
+        const side = (refs, c) => refs.map(r => (Array.isArray(r) ? r[c] : r));
+        const inL = side(node.inputs, 0), inR = side(node.inputs, 1), outL = side(node.outputs, 0), outR = side(node.outputs, 1);
+        node.instance = {
+          process: (_in, _out, len, params, slots) => { left.process(inL, outL, len, params, slots); right.process(inR, outR, len, params, slots); },
+          message: msg => { left.message?.(msg); right.message?.(msg); },
+          note: msg => { left.note?.(msg); right.note?.(msg); },
+        };
+      }
+      return node;
+    };
     const buffers0 = fresh(), resolve0 = resolver(buffers0);
     const inst = { nodes: [], sets: [], byId: new Map(), left: null, right: null };
     const register = (node, at) => { const list = inst.byId.get(node.id) ?? []; list[at] = node; inst.byId.set(node.id, list); };
