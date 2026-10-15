@@ -83,6 +83,50 @@ export function serializeProject({ song, instruments, samples, lanes }, { sample
   }, null, 1);
 }
 
+// Sampler instruments saved before the sample, offset and retrig columns existed keep their own exposed list, so
+// they would never get them. On loading, those columns are put first (Smp Off Rtg, then the old ones as they were),
+// the pattern cells are moved to match, and the missing repeat commands are added. `layout: 2` marks an instrument
+// that has been through this, or was made with the columns, so a layout chosen later is left alone.
+export function upgradeSamplerLayout(data) {
+  for (const [id, def] of Object.entries(data.instruments ?? {})) {
+    if (def.layout !== undefined) continue;
+    const node = def.graph?.nodes?.find(n => n.type === 'sampler');
+    if (!node) continue;
+    def.layout = 2;
+    const old = def.exposed ?? [];
+    if (old.some(e => e.node === node.id && e.param === 'sample')) continue;
+    const front = [{ node: node.id, param: 'sample', label: 'Smp' }, { node: node.id, param: 'offset', label: 'Off', bits: 16 }, { node: node.id, param: 'retrig', label: 'Rtg', bits: 16 }]
+      .map(w => old.find(e => e.node === w.node && e.param === w.param) ?? w);
+    const next = [...front, ...old.filter(e => !front.includes(e))];
+    const blank = e => (e.bits === 16 ? '....' : e.bits === 4 ? '.' : '..');
+    const pairs = Math.max(1, Math.min(8, def.noteColumns ?? 1));
+    const hasCmd = Boolean(def.commands?.length || def.presets?.length);
+    const total = pairs * 2 + old.length + (hasCmd ? 1 : 0);
+    const blanks = [...Array.from({ length: pairs }, () => ['...', '..']).flat(), ...old.map(blank), ...(hasCmd ? ['......'] : [])];
+    for (const lane of data.lanes ?? []) {
+      if (lane.instrument !== id) continue;
+      for (const pat of Object.values(lane.patterns ?? {})) {
+        pat.rows = (pat.rows ?? []).map(line => {
+          const cells = line.trim().split(/\s+/);
+          while (cells.length < total) cells.push(blanks[cells.length]);
+          return [
+            ...cells.slice(0, pairs * 2),
+            ...next.map(e => { const k = old.indexOf(e); return k >= 0 ? cells[pairs * 2 + k] : blank(e); }),
+            ...(hasCmd ? [cells[total - 1]] : []),
+          ].join(' ');
+        });
+      }
+    }
+    def.exposed = next;
+    if (def.commands) {
+      for (const [cid, param] of [[0x07, 'repeats'], [0x08, 'shift'], [0x09, 'ramp'], [0x0A, 'reverse']]) {
+        if (def.commands.some(c => c.node === node.id && c.param === param) || def.commands.some(c => c.id === cid)) continue;
+        def.commands.push({ id: cid, node: node.id, param });
+      }
+    }
+  }
+}
+
 // Returns { song, instruments, samples } in the shape prepareSong and the engine use.
 export function parseProject(text) {
   let data;
@@ -91,6 +135,7 @@ export function parseProject(text) {
   if (data.version !== VERSION) {
     throw new Error(`Unsupported file version ${data.version}; this build reads version ${VERSION}.`);
   }
+  upgradeSamplerLayout(data);
   const samples = Object.fromEntries(Object.entries(data.samples ?? {}).map(([id, s]) => [id, decodeSample(s)]));
   for (const [id, def] of Object.entries(data.instruments)) {
     for (const sampleId of Object.values(def.samples ?? {}).flat()) {

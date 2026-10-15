@@ -58,12 +58,14 @@ export const instruments = {
   // Output gain is lowered so two lanes together stay under full scale.
   lead: {
     graph: withParams(samplerPreset, { out: { gain: 0.45 } }),
+    layout: 2,
     exposed: samplerExposed,
     commands: samplerCommands,
     samples: { sampler: 'pluck' },   // node id -> sample id
   },
   bass: {
     graph: withParams(samplerPreset, { filter: { cutoff: 500 }, delay: { mix: 0 }, out: { gain: 0.45 } }),
+    layout: 2,
     exposed: samplerExposed,
     commands: samplerCommands,
     samples: { sampler: 'pluck' },
@@ -81,6 +83,7 @@ export const instruments = {
 // as the demo's sampler instruments.
 export const newSamplerInstrument = sampleId => structuredClone({
   graph: withParams(samplerPreset, { out: { gain: 0.45 } }),
+  layout: 2,
   exposed: samplerExposed,
   commands: samplerCommands,
   samples: { sampler: sampleId },

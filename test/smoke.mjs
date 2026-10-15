@@ -3351,4 +3351,36 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   assert.equal(sampleMessage(project.samples.a, 3).slot, 3);
 }
 
+// 99. The Smp column in a pattern chooses the sample a note plays.
+{
+  const rows = ['C-4 .. 00', '... .. ..', '... .. ..', '... .. ..', 'C-4 .. 01', '... .. ..'].map(r => `${r} .... .... .. .. .. ....`);
+  const { seq, rt } = songSetup(song120([oneLane('lead', 'lead', patternText(16, Object.fromEntries(rows.map((r, i) => [i, r]))))]));
+  rt.message('lead', 'sampler', { type: 'sample', slot: 0, data: new Float32Array(40000).fill(0.1), rate: sr });
+  rt.message('lead', 'sampler', { type: 'sample', slot: 1, data: new Float32Array(40000).fill(0.5), rate: sr });
+  seq.play();
+  const L = render(seq, 1).left;
+  const pk = (from, to) => peak(L.subarray(from, to));
+  const a = pk(4000, 5900), b = pk(4 * 6000 + 4000, 4 * 6000 + 5900);
+  assert.ok(!Number.isNaN(a) && a > 0.01 && b > a * 3, `the second note plays the second sample (${a}, ${b})`);
+}
+
+// 100. A project saved before the Smp, Off and Rtg columns gets them on loading, with its cells moved.
+{
+  const { serializeProject, parseProject } = await import('../src/project/file.js');
+  const old = structuredClone(instruments.lead);
+  delete old.layout; delete old.samples;
+  old.exposed = old.exposed.filter(e => ['cutoff', 'resonance', 'mix', 'time'].includes(e.param));
+  old.commands = old.commands.filter(c => c.id <= 6);
+  const text = serializeProject({
+    song: { name: 'old', bpm: 120, ticksPerBeat: 4, length: 16 }, instruments: { lead: old }, samples: {},
+    lanes: [{ id: 'lead', instrument: 'lead', patterns: { a: { name: 'a', index: 0, rows: [['C-4', '..', '70', '50', '40', '4C9E', '02A000'], ['...', '..', '..']] } }, placements: [{ puid: 'a', start: 0, length: 2 }] }],
+  });
+  const back = parseProject(text);
+  assert.deepEqual(back.instruments.lead.exposed.map(e => e.label), ['Smp', 'Off', 'Rtg', 'Cut', 'Res', 'Mix', 'Time']);
+  assert.equal(back.song.lanes[0].patterns.a.text, 'C-4 .. .. .... .... 70 50 40 4C9E 02A000\n... .. .. .... .... .. .. .. .... ......');
+  assert.equal(back.instruments.lead.layout, 2);
+  assert.ok(back.instruments.lead.commands.some(c => c.param === 'repeats'), 'the repeat commands are added');
+  assert.equal(parseProject(serializeProject({ song: back.song, instruments: back.instruments, samples: {}, lanes: prepareSong(back.song, back.instruments, (() => { const r = new ParamRegistry(); compile(back.instruments.lead.graph, { instrument: 'lead', nodeTypes: NODE_TYPES, registry: r }); return r; })()) })).instruments.lead.exposed.length, 7, 'loading it again changes nothing');
+}
+
 console.log('smoke test passed');
