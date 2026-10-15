@@ -2971,6 +2971,16 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     assert.ok(Math.abs(run({}) - 1) < 1e-6, 'without choke a one-shot rings on');
   }
 
+  // trim with no selection keeps the loop region; with neither it refuses
+  {
+    const t = { rate: sr, data: Float32Array.from({ length: 1000 }, (_, i) => i), loopStart: 200, loopEnd: 600, susStart: 700, susEnd: 800 };
+    const pt = { samples: { t }, instruments: {} };
+    edit.applyEdit(pt, 't', edit.createHistory(), 'crop', null);
+    assert.equal(t.data.length, 400); assert.equal(t.data[0], 200);
+    assert.deepEqual([t.loopStart, t.loopEnd, t.susStart], [0, 400, undefined], 'the loop now spans the sample; the loop outside went');
+    assert.throws(() => edit.applyEdit(pt, 't', edit.createHistory(), 'crop', null) && (delete t.loopStart, delete t.loopEnd, edit.applyEdit(pt, 't', edit.createHistory(), 'crop', null)), /Select the part to keep/);
+  }
+
   // the screen: selection fields, edit keys, undo keys, keyjazz
   const { project: pr } = makeProject();
   pops.addSample(pr, 'w.wav', 44100, Float32Array.from({ length: 4000 }, (_, i) => Math.sin(i * 0.05)));
