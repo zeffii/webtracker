@@ -45,8 +45,8 @@ export class Engine {
     this.node.port.postMessage({ type: 'node', instrument, node, msg }, transfer);
   }
 
-  noteOn(instrument, note, vel = 1) {
-    this.node.port.postMessage({ type: 'note', instrument, msg: { type: 'noteOn', note, vel } });
+  noteOn(instrument, note, vel = 1, extra = {}) {
+    this.node.port.postMessage({ type: 'note', instrument, msg: { type: 'noteOn', note, vel, ...extra } });
   }
 
   noteOff(instrument, note) {

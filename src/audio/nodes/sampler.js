@@ -76,7 +76,7 @@ export default {
       note(msg) {
         const looping = norm.on || sus.on;
         if (msg.type === 'noteOn') {
-          if (looping) {
+          if (looping || msg.choke) {   // choke: the keyjazz in the sample screen, where a new note fades the old one even if it is a one-shot
             for (let v = 0; v < VOICES; v++) if (active[v] && mode[v] === PLAYING) mode[v] = FADING;
           }
           let v = active.indexOf(0);

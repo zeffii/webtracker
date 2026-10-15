@@ -411,7 +411,7 @@ const prepareAudition = id => {
 };
 const playSample = (id, note, on) => {
   if (!started || !(id in project.samples)) return;
-  if (on) { prepareAudition(id); engine.noteOn(AUDITION, note, 1); } else if (audition) engine.noteOff(AUDITION, note);
+  if (on) { prepareAudition(id); engine.noteOn(AUDITION, note, 1, { choke: true }); }   // a new note fades the old one, loop or not else if (audition) engine.noteOff(AUDITION, note);
 };
 const sampleScreen = createSampleScreen({
   el: $('smp'), statusEl: $('proj-status'), getProject: () => project,

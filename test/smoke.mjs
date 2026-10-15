@@ -2953,6 +2953,24 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     assert.ok(out.right.every(v => v === 0), 'the sample pan applies');
   }
 
+  // keyjazz chokes: a new note fades a one-shot that is still playing; without it the two ring together
+  {
+    const sampler = (await import('../src/audio/nodes/sampler.js')).default;
+    const hold = Float32Array.from({ length: 40000 }, () => 0.5);
+    const run = extra => {
+      const node = sampler.create({ sampleRate: sr });
+      node.message({ type: 'sample', data: hold, rate: sr });
+      node.note({ type: 'noteOn', note: 60, vel: 1 });
+      const out = new Float32Array(block);
+      for (let at = 0; at < 1024; at += block) node.process([], [out], block, [1, 60, 150, 20], [0, 1, 2, 3]);
+      node.note({ type: 'noteOn', note: 60, vel: 1, ...extra });
+      for (let at = 0; at < 8192; at += block) node.process([], [out], block, [1, 60, 150, 20], [0, 1, 2, 3]);
+      return out[block - 1];
+    };
+    assert.ok(Math.abs(run({ choke: true }) - 0.5) < 1e-6, 'one voice is left after the fade');
+    assert.ok(Math.abs(run({}) - 1) < 1e-6, 'without choke a one-shot rings on');
+  }
+
   // the screen: selection fields, edit keys, undo keys, keyjazz
   const { project: pr } = makeProject();
   pops.addSample(pr, 'w.wav', 44100, Float32Array.from({ length: 4000 }, (_, i) => Math.sin(i * 0.05)));
