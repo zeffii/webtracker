@@ -133,12 +133,14 @@ export function createSequenceView({ el, statusEl, transport, onToggle, onOpen, 
     return { cls: `p${pat.index % 6}`, style: '' };
   };
 
+  let top = 0;                  // the first row on screen
   let rowCount = ROWS.normal;   // how many rows are shown; the drag bar under the view changes it
   const draw = () => {
     if (!lanes) return;
     const playing = Atomics.load(transport, 1) === 1, playTick = Atomics.load(transport, 0);
     const rows = Math.ceil(len / CELL), curRow = Math.floor(cur.tick / CELL);
-    const top = Math.max(0, Math.min(curRow - Math.min(8, rowCount >> 2), rows - rowCount));
+    if (curRow < top || curRow >= top + rowCount) top = curRow - Math.min(8, rowCount >> 2);   // only scroll when the cursor leaves the window
+    top = Math.max(0, Math.min(top, rows - rowCount));
     const blocks = lanes.map(layout);
     const row = text => `<div class="r">${text}</div>`;
     const lines = [row(`      ${lanes.map((l, li) => {

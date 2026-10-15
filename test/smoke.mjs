@@ -3118,6 +3118,11 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   view.draw();
   assert.equal(el.innerHTML.split('\n').length, 2 + 24);
   assert.equal(view.setRows(10), 10); assert.equal(el.innerHTML.split('\n').length, 2 + 10);
+  // the window holds still while the cursor moves inside it
+  view.setRows(8); view.goto(0, 0); view.draw();
+  const first = el.innerHTML.split('\n')[2].slice(0, 6);
+  view.goto(0, 5); view.draw(); assert.equal(el.innerHTML.split('\n')[2].slice(0, 6), first, 'moving within the window does not scroll');
+  view.goto(0, 20); view.draw(); assert.notEqual(el.innerHTML.split('\n')[2].slice(0, 6), first, 'leaving it does');
   assert.equal(view.setRows(1), 6, 'not fewer than the minimum'); assert.equal(view.setRows(9999), 128, 'nor more than the maximum');
 }
 

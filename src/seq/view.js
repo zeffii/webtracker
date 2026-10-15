@@ -316,7 +316,10 @@ export function createTrackerView({ el, statusEl, transport, onToggle, onBack, o
   const draw = () => {
     if (!lanes) return;
     const playing = Atomics.load(transport, 1) === 1, playTick = Atomics.load(transport, 0);
-    top = Math.max(0, Math.min(cur.tick - Math.min(8, rowCount >> 2), len - rowCount));
+    // The window stays where it is while the cursor is inside it (so clicking does not move the grid); when the
+    // cursor leaves it, the window jumps to put the cursor a few rows in from the top.
+    if (cur.tick < top || cur.tick >= top + rowCount) top = cur.tick - Math.min(8, rowCount >> 2);
+    top = Math.max(0, Math.min(top, len - rowCount));
     const r = sel ? rect() : null;
     const lines = [
       `${' '.repeat(GUTTER)}${lanes.map((l, li) => ` ${esc(l.id.padEnd(block(li)))}`).join('  ')}`,
