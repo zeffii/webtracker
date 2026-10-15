@@ -395,6 +395,8 @@ export function createPatcher({ canvas, panel, statusEl, doc = document, nodeTyp
         say(err.message);
       }
     },
+    // Draws the panel again, for when parameters were changed from outside (a preset).
+    refreshPanel() { renderPanel(); dirty = true; },
     draw,
     get instrument() { return instId; },
   };

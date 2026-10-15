@@ -191,3 +191,18 @@ export function projectData(project) {
   }));
   return { song: { ...project.song, lanes }, instruments: project.instruments, samples: project.samples };
 }
+
+// Adds an instrument read from an instrument file ({ name, instrument, samples }): a new id if the
+// name is taken, and new sample ids where the file's would clash. Returns the instrument's id.
+export function importInstrument(project, { name, instrument, samples }) {
+  const def = structuredClone(instrument);
+  const renamed = {};
+  for (const [sid, s] of Object.entries(samples)) {
+    renamed[sid] = uniqueId(new Set(Object.keys(project.samples)), sid);
+    project.samples[renamed[sid]] = { ...s, data: s.data.slice() };
+  }
+  if (def.samples) def.samples = Object.fromEntries(Object.entries(def.samples).map(([node, sid]) => [node, renamed[sid]]));
+  const id = uniqueId(new Set(Object.keys(project.instruments)), cleanName(name) || 'instrument');
+  project.instruments[id] = def;
+  return id;
+}

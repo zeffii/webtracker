@@ -2,8 +2,9 @@
 //
 // {
 //   format: 'webtracker', version: 1,
-//   song: { name, bpm, ticksPerBeat, length },
-//   instruments: { id: { graph, exposed, commands, samples: { nodeId: sampleId }, noteColumns? } },
+//   song: { name, bpm, ticksPerBeat, length, swing? },   (swing 0.5 to 0.75: how much of each pair of ticks the first lasts; 0.5 or none is straight)
+//   instruments: { id: { graph, exposed, commands, samples: { nodeId: sampleId }, noteColumns?,
+//                         presets?: [{ id, name, values: { 'node.param': number }, data?: { node: { curve?, spectrum? } } }] } },
 //   (graph.voices, 1 to 16, runs that many copies of the graph for polyphony; noteColumns, 1 to 8,
 //    is how many note and velocity column pairs a row has; both default to 1)
 //   samples: { id: { rate, encoding: 'pcm16' | 'float32', data: base64 of little-endian samples,
@@ -35,7 +36,7 @@ const fromBase64 = text => {
 const toPcm16 = floats => Int16Array.from(floats, v => Math.round(Math.min(1, Math.max(-1, v)) * 32767));
 const fromPcm16 = ints => Float32Array.from(ints, v => v / 32767);
 
-const encodeSample = (s, format) => ({
+export const encodeSample = (s, format) => ({
   rate: s.rate,
   encoding: format,
   data: toBase64(format === 'pcm16' ? toPcm16(s.data) : s.data),
@@ -43,7 +44,7 @@ const encodeSample = (s, format) => ({
   loopEnd: s.loopEnd,
 });
 
-const decodeSample = s => ({
+export const decodeSample = s => ({
   rate: s.rate,
   data: s.encoding === 'pcm16' ? fromPcm16(new Int16Array(fromBase64(s.data))) : new Float32Array(fromBase64(s.data)),
   loopStart: s.loopStart,
@@ -56,7 +57,7 @@ export function serializeProject({ song, instruments, samples, lanes }, { sample
   return JSON.stringify({
     format: FORMAT,
     version: VERSION,
-    song: { name: song.name ?? 'untitled', bpm: song.bpm, ticksPerBeat: song.ticksPerBeat, length: song.length },
+    song: { name: song.name ?? 'untitled', bpm: song.bpm, ticksPerBeat: song.ticksPerBeat, length: song.length, ...(song.swing && song.swing !== 0.5 ? { swing: song.swing } : {}) },
     instruments,
     samples: Object.fromEntries(Object.entries(samples).map(([id, s]) => [id, encodeSample(s, sampleFormat)])),
     lanes: lanes.map(l => ({
@@ -94,4 +95,37 @@ export function parseProject(text) {
     };
   });
   return { song: { ...data.song, lanes }, instruments: data.instruments, samples };
+}
+
+// A single instrument on its own, to keep as a preset library or move between projects:
+//   { format: 'webtracker-instrument', version: 1, name, instrument: { graph, exposed, ... },
+//     samples: { id: <as in a project> } }   (only the samples the instrument uses)
+export const INSTRUMENT_FORMAT = 'webtracker-instrument';
+export const INSTRUMENT_EXT = '.waxi';
+
+export function serializeInstrument(project, id, { sampleFormat = 'pcm16' } = {}) {
+  const def = project.instruments[id];
+  if (!def) throw new Error(`No instrument called "${id}".`);
+  const used = [...new Set(Object.values(def.samples ?? {}))];
+  return JSON.stringify({
+    format: INSTRUMENT_FORMAT,
+    version: VERSION,
+    name: id,
+    instrument: def,
+    samples: Object.fromEntries(used.map(s => [s, encodeSample(project.samples[s], sampleFormat)])),
+  }, null, 1);
+}
+
+// Returns { name, instrument, samples }.
+export function parseInstrument(text) {
+  let data;
+  try { data = JSON.parse(text); } catch { throw new Error('Not an instrument file (invalid JSON).'); }
+  if (data?.format !== INSTRUMENT_FORMAT) throw new Error('Not an instrument file.');
+  if (data.version !== VERSION) throw new Error(`Unsupported file version ${data.version}; this build reads version ${VERSION}.`);
+  if (!data.instrument?.graph) throw new Error('The instrument file has no graph.');
+  const samples = Object.fromEntries(Object.entries(data.samples ?? {}).map(([id, s]) => [id, decodeSample(s)]));
+  for (const sampleId of Object.values(data.instrument.samples ?? {})) {
+    if (!samples[sampleId]) throw new Error(`The instrument uses unknown sample "${sampleId}".`);
+  }
+  return { name: data.name ?? 'instrument', instrument: data.instrument, samples };
 }

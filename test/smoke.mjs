@@ -30,6 +30,8 @@ import { CURVE_POINTS, PRESETS } from '../src/audio/nodes/curves.js';
 import { Oversampler } from '../src/audio/nodes/oversample.js';
 import { createInsertMenu } from '../src/graph/menu.js';
 import { createTabs } from '../src/ui/tabs.js';
+import * as presetOps from '../src/project/presets.js';
+import { parseInstrument, serializeInstrument } from '../src/project/file.js';
 import { compileDsp } from '../src/audio/wasm/load.js';
 
 const sr = 48000, block = 128;
@@ -2395,6 +2397,151 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     const file = parseProject(serializeProject({ ...p, samples: { pluck: { rate: sr, data: makePluck(sr) } } }));
     assert.deepEqual(Object.keys(file.instruments), Object.keys(p.instruments));
     assert.deepEqual(file.song.lanes.map(l => l.id), ids(p));
+  }
+}
+
+// 68. Swing, instrument presets, preset recall from a pattern, and instrument files.
+{
+  // swing: the second of each pair of rows comes late; 0.5 is straight
+  const timings = swing => {
+    let now = 0;
+    const log = [];
+    const stub = { process: (l, r, n) => { now += n; }, note: (instrument, msg) => { if (msg.type === 'noteOn') log.push(now); } };
+    const registry = new ParamRegistry();
+    const def = { ...structuredClone(instruments.kick) };
+    compile(def.graph, { instrument: 'kick', nodeTypes: NODE_TYPES, registry });
+    const seq = new Sequencer({ sampleRate: sr, runtime: stub, params: registry.values, transport: new Int32Array(new SharedArrayBuffer(8)) });
+    const song = { ...song120([oneLane('kick', 'kick', Array.from({ length: 8 }, () => 'C-2 ..').join('\n'), 8)]), swing };
+    seq.setSong(song);
+    for (const lane of prepareSong(song, { kick: def }, registry)) seq.setLane(lane);
+    seq.play();
+    const o = [new Float32Array(512), new Float32Array(512)];
+    for (let i = 0; i < 100; i++) seq.process(o[0], o[1], 512);
+    return log.slice(0, 6);
+  };
+  assert.deepEqual(timings(0.5), [0, 6000, 12000, 18000, 24000, 30000], 'straight is an even grid');
+  assert.deepEqual(timings(undefined), [0, 6000, 12000, 18000, 24000, 30000], 'no swing setting is straight');
+  assert.deepEqual(timings(0.75), [0, 9000, 12000, 21000, 24000, 33000], 'the off-beats land late, the pairs stay in step');
+  const triplet = timings(2 / 3);
+  assert.ok(Math.abs(triplet[1] - 8000) <= 1 && Math.abs(triplet[2] - 12000) <= 1, `triplet swing ${triplet}`);
+  assert.deepEqual(timings(0.9).slice(0, 3), timings(0.75).slice(0, 3), 'swing is limited to 75 percent');
+  assert.deepEqual(timings(0.2).slice(0, 3), [0, 6000, 12000], 'and never goes the other way');
+
+  // the preset list: stable numbers, capture, apply
+  const def = structuredClone(instruments.lead);
+  const live = { 'filter.cutoff': 1234 };
+  const snap = presetOps.capturePreset(def, NODE_TYPES, (node, name) => live[`${node}.${name}`], 'warm');
+  assert.equal(snap.values['filter.cutoff'], 1234, 'live values are taken');
+  assert.equal(snap.values['filter.resonance'], 0.3, 'the rest come from the graph');
+  assert.equal(snap.values['sampler.level'], 0.8, 'and from the defaults');
+  assert.equal(presetOps.addPreset(def, snap), 0);
+  assert.equal(presetOps.addPreset(def, { ...snap, name: '' }), 1);
+  assert.equal(def.presets[1].name, 'preset 01');
+  presetOps.removePreset(def, 0);
+  assert.deepEqual(def.presets.map(p => p.id), [1], 'the others keep their numbers');
+  assert.equal(presetOps.addPreset(def, snap), 0, 'a freed number is used again');
+  assert.deepEqual(def.presets.map(p => p.id), [0, 1]);
+  presetOps.renamePreset(def, 1, '  pad  ');
+  assert.equal(def.presets[1].name, 'pad');
+  assert.throws(() => presetOps.renamePreset(def, 1, ' '), /needs a name/);
+  assert.throws(() => presetOps.removePreset(def, 9), /No preset number 9/);
+  presetOps.overwritePreset(def, 1, { values: { 'filter.cutoff': 77 } });
+  assert.deepEqual([def.presets[1].name, def.presets[1].values['filter.cutoff']], ['pad', 77]);
+  const applied = presetOps.applyPreset(def, NODE_TYPES, 1);
+  assert.deepEqual(applied.params, [['filter', 'cutoff', 77]]);
+  assert.equal(def.graph.nodes.find(n => n.id === 'filter').params.cutoff, 77, 'recalling puts the values in the graph, so they are saved');
+  def.presets[0].values['gone.cutoff'] = 1; def.presets[0].values['filter.nothing'] = 1;
+  assert.ok(!presetOps.applyPreset(def, NODE_TYPES, 0).params.some(([n]) => n === 'gone'), 'missing nodes and parameters are skipped');
+  assert.equal(presetOps.capturePreset({ graph: { nodes: [{ id: 'w', type: 'waveshaper', data: { curve: [0, 1] } }] } }, NODE_TYPES).data.w.curve.length, 2, 'drawn curves are part of a preset');
+
+  // recall from a pattern: command 00, the preset number in the value
+  {
+    const withPresets = structuredClone(instruments.lead);
+    presetOps.addPreset(withPresets, { name: 'dark', values: { 'filter.cutoff': 400, 'filter.resonance': 0.8, 'delay.mix': 0.1 } });
+    presetOps.addPreset(withPresets, { name: 'bright', values: { 'filter.cutoff': 9000 } });
+    const registry = new ParamRegistry();
+    compile(withPresets.graph, { instrument: 'lead', nodeTypes: NODE_TYPES, registry });
+    const cols = buildColumns('lead', withPresets, registry);
+    const cmd = cols.at(-1);
+    assert.equal(cmd.kind, 'cmd');
+    assert.deepEqual(cmd.presets.map(p => p.id), [0, 1]);
+    assert.equal(cmd.presets[0].slots.length, 3);
+    const noCommands = { ...structuredClone(instruments.kick) };
+    assert.ok(!buildColumns('kick', noCommands, (() => { const r = new ParamRegistry(); compile(noCommands.graph, { instrument: 'kick', nodeTypes: NODE_TYPES, registry: r }); return r; })()).some(c => c.kind === 'cmd'), 'no commands and no presets: no Cmd column');
+    const kickWith = structuredClone(instruments.kick); presetOps.addPreset(kickWith, { name: 'x', values: {} });
+    const rk = new ParamRegistry(); compile(kickWith.graph, { instrument: 'kick', nodeTypes: NODE_TYPES, registry: rk });
+    assert.ok(buildColumns('kick', kickWith, rk).some(c => c.kind === 'cmd'), 'a preset brings the Cmd column');
+
+    const stub = { process() {}, note() {} };
+    const seq = new Sequencer({ sampleRate: sr, runtime: stub, params: registry.values, transport: new Int32Array(new SharedArrayBuffer(8)) });
+    const rows = ['... .. .. .. .. .... ......', '... .. .. .. .. .... 000000', '... .. .. .. .. .... ......', '... .. .. .. .. .... 000001', '... .. .. .. .. .... 0000FF', '... .. .. .. .. .... 010000'];
+    const song = song120([oneLane('lead', 'lead', rows.join('\n'), 8)]);
+    seq.setSong(song);
+    for (const lane of prepareSong(song, { lead: withPresets }, registry)) seq.setLane(lane);
+    const at = (name) => registry.get(`lead.${name}`);
+    const o = [new Float32Array(6000), new Float32Array(6000)];
+    seq.play();
+    seq.process(o[0], o[1], 6000);
+    assert.equal(at('filter.cutoff'), 3000, 'nothing has happened on the first row');
+    seq.process(o[0], o[1], 6000);
+    assert.equal(at('filter.cutoff'), 400);
+    assert.ok(Math.abs(at('filter.resonance') - 0.8) < 1e-6 && Math.abs(at('delay.mix') - 0.1) < 1e-6, 'one command sets every parameter in the preset');
+    seq.process(o[0], o[1], 6000); seq.process(o[0], o[1], 6000);
+    assert.equal(at('filter.cutoff'), 9000, 'the second preset');
+    assert.ok(Math.abs(at('filter.resonance') - 0.8) < 1e-6, 'and leaves what it does not hold alone');
+    seq.process(o[0], o[1], 6000);
+    assert.equal(at('filter.cutoff'), 9000, 'an unknown preset number does nothing');
+    seq.process(o[0], o[1], 6000);
+    assert.equal(at('filter.cutoff'), 20, 'the ordinary commands still work beside it (01 0000 is the lowest cutoff)');
+  }
+
+  // a preset also sends the drawn spectrum
+  {
+    const synth = { graph: { nodes: [{ id: 's', type: 'addsynth' }, { id: 'out', type: 'out' }], connections: [['s.out', 'out.in']] }, exposed: [] };
+    presetOps.addPreset(synth, { name: 'x', values: { 's.tilt': -6 }, data: { s: { spectrum: Array.from({ length: 32 }, (_, i) => (i === 2 ? 1 : 0)) } } });
+    const registry = new ParamRegistry();
+    compile(synth.graph, { instrument: 'syn', nodeTypes: NODE_TYPES, registry });
+    const sent = [];
+    const stub = { process() {}, note() {}, message: (...a) => sent.push(a) };
+    const seq = new Sequencer({ sampleRate: sr, runtime: stub, params: registry.values, transport: new Int32Array(new SharedArrayBuffer(8)) });
+    const song = song120([oneLane('syn', 'syn', 'C-4 .. 000000', 8)]);
+    seq.setSong(song);
+    for (const lane of prepareSong(song, { syn: synth }, registry)) seq.setLane(lane);
+    seq.play();
+    seq.process(new Float32Array(100), new Float32Array(100), 100);
+    assert.equal(sent.length, 1);
+    assert.deepEqual([sent[0][0], sent[0][1], sent[0][2].type, sent[0][2].points[2]], ['syn', 's', 'spectrum', 1]);
+    assert.equal(registry.get('syn.s.tilt'), -6);
+  }
+
+  // an instrument on its own in a file, and back into a project that has names to clash with
+  {
+    const project = { instruments: { lead: structuredClone(instruments.lead) }, samples: { pluck: { rate: sr, data: makePluck(sr) } } };
+    presetOps.addPreset(project.instruments.lead, { name: 'dark', values: { 'filter.cutoff': 400 } });
+    const text = serializeInstrument(project, 'lead');
+    const parsed = parseInstrument(text);
+    assert.equal(parsed.name, 'lead');
+    assert.deepEqual(Object.keys(parsed.samples), ['pluck'], 'only the samples it uses go along');
+    assert.equal(parsed.instrument.presets[0].name, 'dark', 'presets travel with the instrument');
+    const other = { instruments: { lead: structuredClone(instruments.kick) }, samples: { pluck: { rate: 100, data: Float32Array.of(1, 2, 3) } } };
+    const id = pops.importInstrument(other, parsed);
+    assert.equal(id, 'lead2');
+    assert.deepEqual(other.instruments.lead2.samples, { sampler: 'pluck2' }, 'a clashing sample gets a new id');
+    assert.equal(other.samples.pluck.data.length, 3, 'and the project\'s own sample is untouched');
+    assert.ok(Math.abs(other.samples.pluck2.data[1000] - project.samples.pluck.data[1000]) < 1e-4);
+    assert.equal(pops.importInstrument(other, { ...parsed, name: 'my kit!' }), 'my_kit');
+    assert.throws(() => parseInstrument('{"format":"nope"}'), /Not an instrument file/);
+    assert.throws(() => parseInstrument('nope'), /invalid JSON/);
+    assert.throws(() => serializeInstrument(project, 'zzz'), /No instrument called/);
+  }
+
+  // swing is saved with the song (and straight leaves no trace)
+  {
+    const song = { name: 's', bpm: 100, ticksPerBeat: 4, length: 16, swing: 0.6 };
+    const back = parseProject(serializeProject({ song, instruments: {}, samples: {}, lanes: [] }));
+    assert.equal(back.song.swing, 0.6);
+    const straight = parseProject(serializeProject({ song: { ...song, swing: 0.5 }, instruments: {}, samples: {}, lanes: [] }));
+    assert.equal(straight.song.swing, undefined);
   }
 }
 

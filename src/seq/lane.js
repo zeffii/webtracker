@@ -31,10 +31,23 @@ export function buildColumns(instrument, def, registry) {
       denom: { '4hex': 65535, '1hex': 15, '2hex': 255 }[token], log: e.scale === 'log', ...target(e.node, e.param),
     });
   }
-  if (def.commands?.length) {
+  // Presets are recalled by command 00 (CC00XXYY, the preset's number in XXYY): each becomes the
+  // slots and values to write, so the audio thread does no lookups, and the drawn curves and
+  // spectra to send. Parameters that no longer exist are left out.
+  const presets = (def.presets ?? []).map(p => {
+    const slots = [], values = [];
+    for (const [key, value] of Object.entries(p.values ?? {})) {
+      const slot = registry.slots.get(`${instrument}.${key}`);
+      if (slot !== undefined && Number.isFinite(value)) { slots.push(slot); values.push(value); }
+    }
+    const msgs = Object.entries(p.data ?? {}).flatMap(([node, d]) => Object.entries(d).map(([type, points]) => ({ node, msg: { type, points } })));
+    return { id: p.id, slots, values, msgs };
+  });
+  if (def.commands?.length || presets.length) {
     columns.push({
       kind: 'cmd', token: 'cmd', label: 'Cmd', key: 'cmd',
-      commands: def.commands.map(c => ({ id: c.id, log: c.scale === 'log', ...target(c.node, c.param) })),
+      commands: (def.commands ?? []).map(c => ({ id: c.id, log: c.scale === 'log', ...target(c.node, c.param) })),
+      presets,
     });
   }
   let ch = 0;

@@ -6,8 +6,10 @@ export const PAGE_TICKS = 1024;
 
 // Command table for a CCXXYY column: id -> parameter target, as flat arrays so
 // that playing a row does not allocate.
-function buildCommandTable(commands) {
-  const t = { slot: new Int32Array(256).fill(-1), min: new Float64Array(256), max: new Float64Array(256), log: new Uint8Array(256), int: new Uint8Array(256) };
+function buildCommandTable(commands, presets = []) {
+  const t = {
+    presets: new Map(presets.map(p => [p.id, p])),   // preset id -> { slots, values, msgs }, recalled by command 00
+    slot: new Int32Array(256).fill(-1), min: new Float64Array(256), max: new Float64Array(256), log: new Uint8Array(256), int: new Uint8Array(256) };
   for (const c of commands) {
     t.slot[c.id] = c.slot; t.min[c.id] = c.min; t.max[c.id] = c.max; t.log[c.id] = c.log ? 1 : 0; t.int[c.id] = c.int ? 1 : 0;
   }
@@ -19,7 +21,7 @@ function buildCommandTable(commands) {
 // note events to the lane's instrument. Pure logic, so it also runs offline.
 export class Sequencer {
   lanes = new Map();
-  song = { bpm: 120, ticksPerBeat: 4, length: 16 };
+  song = { bpm: 120, ticksPerBeat: 4, length: 16, swing: 0.5 };
   tick = 0;
   countdown = 0;
   playing = false;
@@ -40,7 +42,7 @@ export class Sequencer {
   // lane = { id, instrument, columns, pages }. Messages are preallocated per lane
   // so that playing a row does not allocate.
   setLane({ id, instrument, columns, pages }) {
-    const cols = columns.map(c => ({ ...c, table: c.commands ? buildCommandTable(c.commands) : null }));
+    const cols = columns.map(c => ({ ...c, table: c.commands ? buildCommandTable(c.commands, c.presets) : null }));
     this.lanes.set(id, {
       instrument, pages,
       columns: cols,
@@ -92,6 +94,12 @@ export class Sequencer {
     lane.prev[k] = -1;
   }
 
+  // A preset: every parameter it holds, and the drawn curves and spectra, set at once.
+  recall(lane, preset) {
+    for (let i = 0; i < preset.slots.length; i++) this.params[preset.slots[i]] = preset.values[i];
+    for (const { node, msg } of preset.msgs) this.runtime.message?.(lane.instrument, node, msg);
+  }
+
   // x is 0..1; the slot gets the value on the parameter's own scale.
   writeParam(slot, min, max, log, x) {
     const value = log ? min * Math.pow(max / min, x) : min + x * (max - min);
@@ -120,6 +128,10 @@ export class Sequencer {
           // 0003 is wave 3 for a whole-number target; otherwise the value runs across the range.
           if (t.int[id] === 1) this.params[t.slot[id]] = Math.min(t.max[id], t.min[id] + decodeHex4(value));
           else this.writeParam(t.slot[id], t.min[id], t.max[id], t.log[id] === 1, decodeHex4(value) / 65535);
+        } else if (value !== EMPTY && id === 0 && t.presets.size) {
+          // Command 00 recalls the preset numbered by the value; an unknown number does nothing.
+          const preset = t.presets.get(decodeHex4(value));
+          if (preset) this.recall(lane, preset);
         }
       } else if (col.kind === 'vel') {
         lane.vels[col.nc] = decodeHex2(v) / 255;
@@ -156,13 +168,17 @@ export class Sequencer {
 
   process(left, right, n) {
     const samplesPerTick = this.sampleRate * 60 / (this.song.bpm * this.song.ticksPerBeat);
+    const swing = Math.min(0.75, Math.max(0.5, this.song.swing ?? 0.5));
     let done = 0;
     while (done < n) {
       let span = n - done;
       if (this.playing) {
         if (this.countdown <= 0) {
+          // Swing: ticks come in pairs, and the first of a pair lasts `swing` of the pair, so the
+          // second (the off-beat) lands late. 0.5 is straight; 2/3 is a triplet shuffle.
+          const first = (this.tick & 1) === 0;
           this.fireTick();
-          this.countdown += samplesPerTick;
+          this.countdown += 2 * samplesPerTick * (first ? swing : 1 - swing);
         }
         span = Math.min(span, Math.max(1, Math.ceil(this.countdown)));
       }

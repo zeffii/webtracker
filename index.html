@@ -53,6 +53,8 @@
     .manage { margin: .3rem 0; display: flex; flex-wrap: wrap; gap: 2px; }
     .manage input { width: 100%; box-sizing: border-box; font: inherit; }
     .manage button { font: inherit; font-size: 12px; padding: 0 .35rem; }
+    #preset-list button { display: block; width: 100%; font: inherit; text-align: left; padding: .1rem .5rem; border: 1px solid transparent; background: transparent; color: inherit; cursor: pointer; }
+    #preset-list button.active { background: Highlight; color: HighlightText; }
     #lane-list button { display: block; width: 100%; font: inherit; text-align: left; padding: .15rem .5rem; border: 1px solid transparent; background: transparent; color: inherit; cursor: pointer; }
     #lane-list button.active { background: Highlight; color: HighlightText; }
     #inst-list button { font: inherit; text-align: left; padding: .15rem .5rem; border: 1px solid transparent; background: transparent; color: inherit; cursor: pointer; }
@@ -93,6 +95,8 @@
       <button id="save" disabled>Save</button>
       <button id="load" disabled>Load</button>
       <input id="file" type="file" accept=".wax,.wtrk,.json" hidden>
+      <label>bpm <input id="bpm" type="number" min="20" max="400" step="1" style="width:4em" disabled></label>
+      <label title="How much of each pair of rows the first one lasts: 50 is straight, 67 is a triplet shuffle">swing <input id="swing" type="number" min="50" max="75" step="1" style="width:3.5em" disabled>%</label>
       <span id="song-info"></span>
       <span id="status">Press Start to create the audio engine.</span>
     </div>
@@ -160,6 +164,22 @@
         <h2>Polyphony</h2>
         <label class="help">voices <input id="inst-voices" type="number" min="1" max="16" step="1" style="width:3.5em" disabled></label><br>
         <label class="help">note columns <input id="inst-notecols" type="number" min="1" max="8" step="1" style="width:3.5em" disabled></label>
+        <h2>Presets</h2>
+        <div id="preset-list"></div>
+        <div class="manage">
+          <input id="preset-name" placeholder="preset name" aria-label="Preset name" disabled>
+          <button id="preset-save" disabled title="Keep the instrument's current sound as a new preset">Save new</button>
+          <button id="preset-over" disabled title="Replace the selected preset with the current sound">Overwrite</button>
+          <button id="preset-rename" disabled>Rename</button>
+          <button id="preset-remove" disabled>Remove</button>
+        </div>
+        <p class="help">A preset is recalled in a pattern with command 00: in the Cmd column, 00 and the preset's number, as 00 0003.</p>
+        <h2>Instrument file</h2>
+        <div class="manage">
+          <button id="inst-export" disabled>Export…</button>
+          <button id="inst-import" disabled>Import…</button>
+          <input id="inst-file" type="file" accept=".waxi,.json" hidden>
+        </div>
         <h2>New sampler</h2>
         <input id="new-inst-name" placeholder="instrument name" aria-label="Instrument name">
         <select id="new-inst-sample" aria-label="Sample"></select>

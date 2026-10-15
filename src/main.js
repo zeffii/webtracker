@@ -5,11 +5,12 @@ import { createPatcher } from './graph/patcher.js';
 import { createInsertMenu } from './graph/menu.js';
 import { createDemoProject } from './project/demo.js';
 import * as ops from './project/ops.js';
+import * as presets from './project/presets.js';
 import { addLane, addSample, addSamplerInstrument, addSynthInstrument, toMono } from './project/ops.js';
 import { synthKinds } from './instruments.js';
 import { createSamplePanel } from './project/samplepanel.js';
 import { createWaveformView } from './project/waveform.js';
-import { FILE_EXT, parseProject, serializeProject } from './project/file.js';
+import { FILE_EXT, INSTRUMENT_EXT, parseInstrument, parseProject, serializeInstrument, serializeProject } from './project/file.js';
 import { createEditor } from './seq/editor.js';
 import { prepareSong, rebuildInstrumentLanes } from './seq/lane.js';
 import { createSequenceView } from './seq/seqview.js';
@@ -101,9 +102,9 @@ const sendSamples = id => { for (const node of Object.keys(project.instruments[i
 // Song name, tempo and position, shown in the header on every screen.
 const songInfo = () => {
   if (!project) return;
-  const { name, bpm, length } = project.song;
+  const { name, length } = project.song;
   const tick = Atomics.load(engine.transport, 0);
-  $('song-info').textContent = `${name ?? 'untitled'} · ${bpm} bpm · row ${String(tick).padStart(2, '0')}/${length}`;
+  $('song-info').textContent = `${name ?? 'untitled'} · row ${String(tick).padStart(2, '0')}/${length}`;
 };
 
 const projStatus = text => { $('proj-status').textContent = text; };
@@ -134,6 +135,7 @@ function renderInstList() {
   $('inst-list').replaceChildren(...buttons);
   $('inst-name').value = patcher.instrument ?? '';
   renderLaneList();
+  renderPresetList();
   syncPoly();
 }
 
@@ -180,6 +182,115 @@ function confirmed(button, label, action) {
     action();
   });
 }
+
+// ---- presets ----
+let selectedPreset = null;
+function renderPresetList() {
+  const def = project.instruments[patcher.instrument];
+  const list = def?.presets ?? [];
+  if (!list.some(p => p.id === selectedPreset)) selectedPreset = null;
+  $('preset-list').replaceChildren(...list.map(p => {
+    const b = document.createElement('button');
+    b.textContent = `${p.id.toString(16).toUpperCase().padStart(2, '0')}  ${p.name}`;
+    b.title = 'Click to recall it';
+    b.classList.toggle('active', p.id === selectedPreset);
+    b.addEventListener('click', () => recallPreset(p.id));
+    return b;
+  }));
+  $('preset-name').value = list.find(p => p.id === selectedPreset)?.name ?? '';
+}
+
+// What the instrument sounds like now: the live value of every parameter.
+const snapshotNow = (id, name) => presets.capturePreset(project.instruments[id], NODE_TYPES, (node, param) => {
+  const address = `${id}.${node}.${param}`;
+  return engine.registry.slots.has(address) ? engine.registry.get(address) : undefined;
+}, name);
+
+function recallPreset(presetId) {
+  const id = patcher.instrument, def = project.instruments[id];
+  if (!def) return;
+  try {
+    const { params, data } = presets.applyPreset(def, NODE_TYPES, presetId);
+    for (const [node, name, value] of params) {
+      const address = `${id}.${node}.${name}`;
+      if (engine.registry.slots.has(address)) engine.set(address, value);
+    }
+    for (const [node, type, points] of data) engine.sendToNode(id, node, { type, points });
+    selectedPreset = presetId;
+    patcher.refreshPanel();
+    renderPresetList();
+    $('patch-status').textContent = `Recalled preset ${presetId.toString(16).toUpperCase().padStart(2, '0')}.`;
+  } catch (err) {
+    $('patch-status').textContent = err.message;
+  }
+}
+
+// Changing the list of presets changes the Cmd column's table, so the lanes are rebuilt.
+function presetsChanged(message) {
+  refreshLanes(patcher.instrument);
+  renderPresetList();
+  $('patch-status').textContent = message;
+}
+$('preset-save').addEventListener('click', () => {
+  const id = patcher.instrument;
+  if (!id) return;
+  selectedPreset = presets.addPreset(project.instruments[id], snapshotNow(id, $('preset-name').value.trim()));
+  presetsChanged(`Saved preset ${selectedPreset.toString(16).toUpperCase().padStart(2, '0')}.`);
+});
+$('preset-over').addEventListener('click', () => {
+  const id = patcher.instrument;
+  if (!id || selectedPreset === null) { $('patch-status').textContent = 'Click a preset to select it first.'; return; }
+  presets.overwritePreset(project.instruments[id], selectedPreset, snapshotNow(id, ''));
+  presetsChanged('Replaced the preset with the current sound.');
+});
+$('preset-rename').addEventListener('click', () => {
+  const id = patcher.instrument;
+  if (!id || selectedPreset === null) { $('patch-status').textContent = 'Click a preset to select it first.'; return; }
+  try { presets.renamePreset(project.instruments[id], selectedPreset, $('preset-name').value); presetsChanged('Renamed.'); } catch (err) { $('patch-status').textContent = err.message; }
+});
+$('preset-name').addEventListener('keydown', e => { if (e.key === 'Enter') $('preset-save').click(); e.stopPropagation(); });
+confirmed($('preset-remove'), 'Remove', () => {
+  const id = patcher.instrument;
+  if (!id || selectedPreset === null) { $('patch-status').textContent = 'Click a preset to select it first.'; return; }
+  presets.removePreset(project.instruments[id], selectedPreset);
+  selectedPreset = null;
+  presetsChanged('Removed the preset; the others keep their numbers.');
+});
+
+// ---- instrument files ----
+$('inst-export').addEventListener('click', () => {
+  const id = patcher.instrument;
+  if (!id) return;
+  download(`${id}${INSTRUMENT_EXT}`, serializeInstrument(project, id));
+  $('patch-status').textContent = `Saved ${id}${INSTRUMENT_EXT}.`;
+});
+$('inst-import').addEventListener('click', () => $('inst-file').click());
+$('inst-file').addEventListener('change', async e => {
+  const [file] = e.target.files;
+  e.target.value = '';
+  if (!file) return;
+  try {
+    const parsed = parseInstrument(await file.text());
+    reshape(() => { const id = ops.importInstrument(project, parsed); return { instrument: id, message: `Imported ${id}.` }; });
+  } catch (err) {
+    $('patch-status').textContent = err.message;
+  }
+});
+
+// ---- tempo and swing ----
+const songChanged = () => { engine.setSong(project.song); songInfo(); };
+$('bpm').addEventListener('change', () => {
+  project.song.bpm = Math.max(20, Math.min(400, Math.round(Number($('bpm').value)) || project.song.bpm));
+  $('bpm').value = project.song.bpm;
+  songChanged();
+});
+$('swing').addEventListener('change', () => {
+  const pct = Math.max(50, Math.min(75, Math.round(Number($('swing').value)) || 50));
+  project.song.swing = pct / 100;
+  $('swing').value = pct;
+  songChanged();
+});
+for (const id of ['bpm', 'swing']) $(id).addEventListener('keydown', e => e.stopPropagation());
 
 $('inst-rename').addEventListener('click', () => {
   const id = patcher.instrument;
@@ -245,6 +356,16 @@ function addLaneFor(instrumentId) {
   return lane;
 }
 
+// The columns of an instrument's lanes need rebuilding (its exposed parameters or presets changed).
+// Cells follow their column; undo history is cleared.
+function refreshLanes(id) {
+  for (const { id: laneId, instrument, columns, pages } of rebuildInstrumentLanes(project.lanes, project.song, project.instruments, engine.registry, id)) {
+    engine.setLane({ id: laneId, instrument, columns, pages });
+  }
+  project.editor.clear();
+  view.relayout();
+}
+
 // The wiring or the exposed parameters of an instrument changed: recompile it, swap it in,
 // and rebuild the columns of its lanes. Cells follow their column; undo history is cleared.
 function reloadInstrument(id) {
@@ -253,11 +374,7 @@ function reloadInstrument(id) {
     pruneDef(def, NODE_TYPES);
     engine.loadInstrument(id, def.graph);
     sendSamples(id);
-    for (const { id: laneId, instrument, columns, pages } of rebuildInstrumentLanes(project.lanes, project.song, project.instruments, engine.registry, id)) {
-      engine.setLane({ id: laneId, instrument, columns, pages });
-    }
-    project.editor.clear();
-    view.relayout();
+    refreshLanes(id);
     bindings.forEach(apply);
   } catch (err) {
     $('patch-status').textContent = err.message;
@@ -286,6 +403,8 @@ function openProject({ song, instruments, samples }, { stay = false, instrument 
   view.load({ lanes, song, editor });
   const at = Math.max(0, lanes.findIndex(l => l.id === lane));
   view.goto(at, 0); seqView.goto(at, 0);
+  $('bpm').value = song.bpm;
+  $('swing').value = Math.round((song.swing ?? 0.5) * 100);
   bindings.forEach(apply);
   if (!stay) tabs.show('patterns');
 }
@@ -382,7 +501,7 @@ $('start').addEventListener('click', async () => {
     started = true;
     openProject(createDemoProject(engine.ctx.sampleRate));
     for (const id of ['start']) $(id).disabled = true;
-    for (const id of ['play', 'save', 'load', 'patch-add', 'load-samples', 'add-sampler', 'add-synth', 'add-lane', 'inst-voices', 'inst-notecols', 'inst-name', 'inst-rename', 'inst-up', 'inst-down', 'inst-dup', 'inst-remove', 'lane-name', 'lane-rename', 'lane-left', 'lane-right', 'lane-dup', 'lane-remove']) $(id).disabled = false;
+    for (const id of ['play', 'save', 'load', 'patch-add', 'load-samples', 'add-sampler', 'add-synth', 'add-lane', 'inst-voices', 'inst-notecols', 'inst-name', 'inst-rename', 'inst-up', 'inst-down', 'inst-dup', 'inst-remove', 'lane-name', 'lane-rename', 'lane-left', 'lane-right', 'lane-dup', 'lane-remove', 'bpm', 'swing', 'preset-name', 'preset-save', 'preset-over', 'preset-rename', 'preset-remove', 'inst-export', 'inst-import']) $(id).disabled = false;
     $('status').textContent =
       `Running at ${engine.ctx.sampleRate} Hz, base latency ${(engine.ctx.baseLatency * 1000).toFixed(1)} ms`;
     const frame = () => { songInfo(); seqView.draw(); view.draw(); patcher.draw(); waveform.draw(); requestAnimationFrame(frame); };
