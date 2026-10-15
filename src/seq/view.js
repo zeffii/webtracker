@@ -2,7 +2,7 @@ import { KINDS, encodeCell, noteToken } from './cells.js';
 import { esc } from './html.js';
 
 import { LOWER, UPPER } from './piano.js';
-const ROWS = 24;
+const ROWS = { min: 6, max: 128, normal: 24 };   // rows shown at once
 const isBlank = token => /^\.+$/.test(token);
 const isNote = token => /^[A-G][-#]\d$/.test(token);
 
@@ -34,6 +34,7 @@ export function createTrackerView({ el, statusEl, transport, onToggle, onBack, o
   let sel = null;          // { lane, tick, col }: the corner opposite the cursor, while a rectangle is selected
   let clipboard = null;    // rows of { token, cell } from the last copy
   let top = 0;             // the first tick on screen, as last drawn
+  let rowCount = ROWS.normal;   // how many rows are shown; the drag bar under the view changes it
 
   // The whole view is measured in characters and lines of its monospace font, so its size is the font size.
   // Ctrl + and Ctrl - (or Ctrl + wheel) change it, Ctrl 0 puts it back; it is remembered.
@@ -315,13 +316,13 @@ export function createTrackerView({ el, statusEl, transport, onToggle, onBack, o
   const draw = () => {
     if (!lanes) return;
     const playing = Atomics.load(transport, 1) === 1, playTick = Atomics.load(transport, 0);
-    top = Math.max(0, Math.min(cur.tick - 8, len - ROWS));
+    top = Math.max(0, Math.min(cur.tick - Math.min(8, rowCount >> 2), len - rowCount));
     const r = sel ? rect() : null;
     const lines = [
       `${' '.repeat(GUTTER)}${lanes.map((l, li) => ` ${esc(l.id.padEnd(block(li)))}`).join('  ')}`,
       `${' '.repeat(GUTTER)}${lanes.map((l, li) => ` ${l.columns.map((c, ci) => esc(c.label.padEnd(widths[li][ci]))).join(' ')}`).join('  ')}`,
     ];
-    for (let t = top; t < Math.min(len, top + ROWS); t++) {
+    for (let t = top; t < Math.min(len, top + rowCount); t++) {
       const chunks = lanes.map((lane, li) => {
         const mark = lane.placements.some(p => p.start === t) ? '<span class="ps">▌</span>' : ' ';   // a pattern starts here
         const covered = lane.placements.some(p => t >= p.start && t < p.start + p.length);   // else no pattern here
@@ -357,5 +358,7 @@ export function createTrackerView({ el, statusEl, transport, onToggle, onBack, o
     message = '';
   };
 
-  return { draw, load, goto, relayout, setSize, get fontPx() { return fontPx; } };
+  const setRows = n => { rowCount = Math.max(ROWS.min, Math.min(ROWS.max, Math.round(n))); draw(); return rowCount; };
+  const lineHeight = () => (lanes ? metrics().lh : 18);
+  return { draw, load, goto, relayout, setSize, setRows, lineHeight, get rows() { return rowCount; }, get fontPx() { return fontPx; } };
 }

@@ -126,8 +126,8 @@
     #inst-main { --form-w: 42rem; }
     #exposed-panel, #patch-panel, #preset-list, #preset-section { max-width: var(--form-w); }
     #exposed-panel .help, #patch-panel .help { opacity: .7; }
-    #patch-grip { height: 9px; cursor: ns-resize; margin-top: 2px; border-top: 1px solid color-mix(in srgb, currentColor 35%, transparent); background: repeating-linear-gradient(to right, transparent 0 6px, color-mix(in srgb, currentColor 22%, transparent) 6px 7px); outline: none; touch-action: none; }
-    #patch-grip:hover, #patch-grip:focus, #patch-grip.dragging { border-top-color: Highlight; background-color: color-mix(in srgb, Highlight 30%, transparent); }
+    .grip { height: 9px; cursor: ns-resize; margin-top: 2px; border-top: 1px solid color-mix(in srgb, currentColor 35%, transparent); background: repeating-linear-gradient(to right, transparent 0 6px, color-mix(in srgb, currentColor 22%, transparent) 6px 7px); outline: none; touch-action: none; }
+    .grip:hover, .grip:focus, .grip.dragging { border-top-color: Highlight; background-color: color-mix(in srgb, Highlight 30%, transparent); }
     #preset-list button, #lib-list button, #lane-list button { display: block; width: 100%; font: inherit; text-align: left; padding: .1rem .5rem; border: 1px solid transparent; background: transparent; color: inherit; cursor: pointer; }
     #lib-list button.active, #preset-list button.active, #lane-list button.active { background: Highlight; color: HighlightText; }
     #inst-list button { font: inherit; text-align: left; padding: 0 .5rem; border: 0; background: transparent; color: inherit; cursor: pointer; white-space: pre; }
@@ -193,6 +193,7 @@
 
   <section id="pane-patterns" class="pane">
     <pre id="view" tabindex="0"></pre>
+    <div id="view-grip" class="grip" tabindex="0" role="separator" aria-orientation="horizontal" aria-label="Rows shown: drag, or use Up and Down" title="Drag to change how many rows are shown"></div>
     <p id="cursor"></p>
     <p class="help">In the arrangement, M on a row mutes that lane from there until the next M further down (shown dimmed, with m and u marking the changes). K steps the colour of the pattern under the cursor through 16 pastel presets and back to the automatic colour (Shift+K goes backwards). Shift+M silences the whole lane, whatever its marks say, and darkens it further; press it again to bring the lane back.</p>
     <p class="help">Click the grid, then (Esc goes to the arrangement): arrows move, Tab next lane, PgUp/PgDn 16 rows, Space play/stop,
@@ -244,7 +245,7 @@
         </div>
         <div id="patch-wrap">
           <canvas id="patch" width="900" height="300" tabindex="0"></canvas>
-          <div id="patch-grip" tabindex="0" role="separator" aria-orientation="horizontal" aria-label="Graph height: drag, or use Up and Down" title="Drag to change the height of the graph"></div>
+          <div id="patch-grip" class="grip" tabindex="0" role="separator" aria-orientation="horizontal" aria-label="Graph height: drag, or use Up and Down" title="Drag to change the height of the graph"></div>
         </div>
         <p id="patch-status"></p>
         <h2>Exposed <span class="help">(pattern columns)</span></h2>
@@ -306,6 +307,7 @@
 
   <section id="pane-arrange" class="pane" hidden>
     <pre id="seq" tabindex="0"></pre>
+    <div id="seq-grip" class="grip" tabindex="0" role="separator" aria-orientation="horizontal" aria-label="Rows shown: drag, or use Up and Down" title="Drag to change how many rows are shown"></div>
     <p id="seq-status"></p>
     <p class="help">Up/Down move in time, Left/Right change lane, PgUp/PgDn 16 ticks. Enter opens the pattern under
       the cursor in the grid, or inserts a new one; I inserts a new pattern on top. Two hex digits place that pattern

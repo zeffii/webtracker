@@ -1,7 +1,7 @@
 import { esc } from './html.js';
 import { placementAt, puidByIndex, startsAt } from './edit.js';
 
-const ROWS = 24;     // rows shown at once
+const ROWS = { min: 6, max: 128, normal: 24 };   // rows shown at once
 const CELL = 16;     // ticks in one row
 const COLW = 14;     // characters per lane column
 const INSET = 6;     // pixels a pattern is inset from the right for each pattern under it
@@ -133,11 +133,12 @@ export function createSequenceView({ el, statusEl, transport, onToggle, onOpen, 
     return { cls: `p${pat.index % 6}`, style: '' };
   };
 
+  let rowCount = ROWS.normal;   // how many rows are shown; the drag bar under the view changes it
   const draw = () => {
     if (!lanes) return;
     const playing = Atomics.load(transport, 1) === 1, playTick = Atomics.load(transport, 0);
     const rows = Math.ceil(len / CELL), curRow = Math.floor(cur.tick / CELL);
-    const top = Math.max(0, Math.min(curRow - 8, rows - ROWS));
+    const top = Math.max(0, Math.min(curRow - Math.min(8, rowCount >> 2), rows - rowCount));
     const blocks = lanes.map(layout);
     const row = text => `<div class="r">${text}</div>`;
     const lines = [row(`      ${lanes.map((l, li) => {
@@ -145,7 +146,7 @@ export function createSequenceView({ el, statusEl, transport, onToggle, onOpen, 
       return l.silenced ? `<span class="silenced">${head}</span>` : head;
     }).join(' ')}`)];
 
-    for (let r = top; r < Math.min(rows, top + ROWS); r++) {
+    for (let r = top; r < Math.min(rows, top + rowCount); r++) {
       const t = r * CELL;
       const cells = lanes.map((l, li) => {
         const pl = inRow(l, t);
@@ -197,5 +198,6 @@ export function createSequenceView({ el, statusEl, transport, onToggle, onOpen, 
   };
 
   const goto = (laneIdx, tick) => { cur.lane = laneIdx; cur.tick = rowStart(tick); typed = ''; };
-  return { draw, load, goto };
+  const setRows = n => { rowCount = Math.max(ROWS.min, Math.min(ROWS.max, Math.round(n))); draw(); return rowCount; };
+  return { draw, load, goto, setRows, get rows() { return rowCount; } };
 }

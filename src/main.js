@@ -15,6 +15,7 @@ import { FILE_EXT, INSTRUMENT_EXT, parseInstrument, parseProject, serializeInstr
 import { createEditor } from './seq/editor.js';
 import { prepareSong, rebuildInstrumentLanes } from './seq/lane.js';
 import { createSequenceView } from './seq/seqview.js';
+import { attachGrip } from './ui/grip.js';
 import { createTrackerView } from './seq/view.js';
 import { createTabs } from './ui/tabs.js';
 
@@ -90,37 +91,11 @@ const patcher = createPatcher({
   },
 });
 
-// The height of the graph area: drag the bar under it (or Up/Down on it); the rest of the screen follows.
-// The choice is remembered in this browser.
-{
-  const grip = $('patch-grip'), KEY = 'webtracker.graphHeight';
-  const remember = h => { try { localStorage.setItem(KEY, String(h)); } catch { /* private window: not remembered */ } };
-  try { const saved = Number(localStorage.getItem(KEY)); if (saved) patcher.resize(saved); } catch { /* none saved */ }
-  grip.addEventListener('pointerdown', e => {
-    const startY = e.clientY, startH = patcher.height;
-    grip.setPointerCapture?.(e.pointerId);
-    grip.classList.add('dragging');
-    const move = ev => patcher.resize(startH + ev.clientY - startY);
-    const up = () => {
-      grip.classList.remove('dragging');
-      grip.removeEventListener('pointermove', move);
-      grip.removeEventListener('pointerup', up);
-      grip.removeEventListener('pointercancel', up);
-      remember(patcher.height);
-    };
-    grip.addEventListener('pointermove', move);
-    grip.addEventListener('pointerup', up);
-    grip.addEventListener('pointercancel', up);
-    e.preventDefault();
-  });
-  grip.addEventListener('keydown', e => {
-    const dir = { ArrowDown: 1, ArrowUp: -1 }[e.key];
-    if (!dir) return;
-    remember(patcher.resize(patcher.height + dir * (e.shiftKey ? 100 : 20)));
-    e.preventDefault();
-  });
-  grip.addEventListener('dblclick', () => remember(patcher.resize(300)));
-}
+// The height of the graph area, the pattern editor and the arrangement: drag the bar under each (or Up/Down on it);
+// the rest of the screen follows. The choices are remembered in this browser.
+attachGrip({ grip: $('patch-grip'), key: 'webtracker.graphHeight', get: () => patcher.height, set: h => patcher.resize(h), step: 20, bigStep: 100, normal: 300 });
+attachGrip({ grip: $('view-grip'), key: 'webtracker.patternRows', get: () => view.rows, set: n => view.setRows(n), unit: () => view.lineHeight(), step: 1, bigStep: 8, normal: 24 });
+attachGrip({ grip: $('seq-grip'), key: 'webtracker.arrangementRows', get: () => seqView.rows, set: n => seqView.setRows(n), unit: () => 18, step: 1, bigStep: 8, normal: 24 });
 
 // The floating insert menu lives over the patcher canvas.
 const menu = createInsertMenu({ parent: $('patch-wrap'), nodeTypes: NODE_TYPES, onPick: (type, at) => patcher.add(type, at) });

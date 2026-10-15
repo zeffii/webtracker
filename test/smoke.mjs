@@ -3107,4 +3107,18 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   assert.match(el.innerHTML, /<span class="d">\.\.\.<\/span>/, 'empty cells are wrapped for dimming');
 }
 
+// 91: the number of rows shown is adjustable
+{
+  const registry = new ParamRegistry();
+  for (const [id, def] of Object.entries(instruments)) compile(def.graph, { instrument: id, nodeTypes: NODE_TYPES, registry });
+  const lanes = prepareSong(demoSong, instruments, registry);
+  const el = { addEventListener() {}, innerHTML: '', style: {} };
+  const view = createTrackerView({ el, statusEl: {}, transport: new Int32Array(new SharedArrayBuffer(8)), onToggle() {}, onBack() {} });
+  view.load({ lanes, song: demoSong, editor: createEditor(lanes, demoSong.length) });
+  view.draw();
+  assert.equal(el.innerHTML.split('\n').length, 2 + 24);
+  assert.equal(view.setRows(10), 10); assert.equal(el.innerHTML.split('\n').length, 2 + 10);
+  assert.equal(view.setRows(1), 6, 'not fewer than the minimum'); assert.equal(view.setRows(9999), 128, 'nor more than the maximum');
+}
+
 console.log('smoke test passed');
