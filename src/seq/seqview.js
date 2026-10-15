@@ -143,7 +143,14 @@ export function createSequenceView({ el, statusEl, transport, onToggle, onOpen, 
         }
         if (flip) text = `${text.slice(0, COLW - 1)}${muted ? 'm' : 'u'}`;   // m: muted from here, u: plays again
         const classes = [cls, level === 2 ? 'silenced' : muted && 'muted', li === cur.lane && r === curRow && 'cur'].filter(Boolean).join(' ');
-        return classes || style ? `<span class="${classes}"${style}>${esc(text)}</span>` : esc(text);
+        // The cell under the cursor is drawn in the selection colour, which hides the pattern's own;
+        // a small swatch of it is drawn on top so a colour change can be seen.
+        let inner = esc(text);
+        if (li === cur.lane && r === curRow && pl) {
+          const at = COLW - 2;
+          inner = `${esc(text.slice(0, at))}<span class="sw ${cls}"${style}> </span>${esc(text.slice(at + 1))}`;
+        }
+        return classes || style ? `<span class="${classes}"${style}>${inner}</span>` : inner;
       });
       lines.push(`${playing && playTick >= t && playTick < t + CELL ? '>' : ' '}${String(t).padStart(4, '0')} ${cells.join(' ')}`);
     }

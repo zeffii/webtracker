@@ -2771,6 +2771,8 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     assert.equal(pat().color, undefined);
     key('k'); assert.equal(pat().color, 0);
     view.draw(); assert.ok(el.innerHTML.includes('class="c0"'));
+    assert.ok(el.innerHTML.includes('<span class="sw c0"> </span>'), 'the cell under the cursor shows a swatch of the pattern colour');
+    assert.equal(el.innerHTML.split('class="sw ').length - 1, 1, 'and only that cell');
     for (let i = 0; i < 15; i++) key('k');
     assert.equal(pat().color, 15);
     key('k'); assert.equal(pat().color, undefined, 'after the last preset comes automatic again');
