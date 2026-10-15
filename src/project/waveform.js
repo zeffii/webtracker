@@ -24,7 +24,7 @@ const GRAB = 6;   // pixels either side of a marker that grab it
 // The waveform (or spectrogram) of one sample with its loop points, the sustain loop and the loop crossfade. Drag the start or end marker to move
 // it; drag across empty waveform to make a new loop; double-click to clear the loop. The
 // loop is applied when the mouse is released.
-export function createWaveformView({ canvas, statusEl, getProject, onLoop }) {
+export function createWaveformView({ canvas, statusEl, getProject, onLoop, onSelect = () => {} }) {
   const ctx = canvas.getContext('2d');
   const W = canvas.width, H = canvas.height;
   const dpr = globalThis.devicePixelRatio || 1;
@@ -36,7 +36,7 @@ export function createWaveformView({ canvas, statusEl, getProject, onLoop }) {
     ctx.scale(dpr, dpr);
   }
 
-  let id = null, drag = null, cache = null, lastKey = null, mode = 'wave';
+  let id = null, drag = null, cache = null, lastKey = null, mode = 'wave', selection = { from: 0, to: 0 };
   const say = text => { if (statusEl) statusEl.textContent = text; };
   const sample = () => (id ? getProject().samples[id] : undefined);
   const frames = () => sample().data.length;
@@ -57,6 +57,7 @@ export function createWaveformView({ canvas, statusEl, getProject, onLoop }) {
   canvas.addEventListener('mousedown', e => {
     const s = sample();
     if (!s || !frames()) return;
+    if (e.shiftKey) { drag = { kind: 'select', anchor: xToFrame(e.offsetX), preview: null }; return; }
     const { start, end } = loopOf(s);
     if (end > start && Math.abs(e.offsetX - frameToX(start)) <= GRAB) drag = { kind: 'start', preview: { start, end } };
     else if (end > start && Math.abs(e.offsetX - frameToX(end)) <= GRAB) drag = { kind: 'end', preview: { start, end } };
@@ -68,6 +69,7 @@ export function createWaveformView({ canvas, statusEl, getProject, onLoop }) {
     if (!drag || !s) return;
     const f = xToFrame(e.offsetX);
     if (drag.kind === 'start') drag.preview = { start: Math.min(f, drag.preview.end - 2), end: drag.preview.end };
+    else if (drag.kind === 'select') { if (Math.abs(f - drag.anchor) >= 1) drag.preview = { start: Math.min(f, drag.anchor), end: Math.max(f, drag.anchor) }; }
     else if (drag.kind === 'end') drag.preview = { start: drag.preview.start, end: Math.max(f, drag.preview.start + 2) };
     else if (Math.abs(f - drag.anchor) >= 2) drag.preview = { start: Math.min(f, drag.anchor), end: Math.max(f, drag.anchor) };
   });
@@ -75,11 +77,15 @@ export function createWaveformView({ canvas, statusEl, getProject, onLoop }) {
   const finish = () => {
     const d = drag;
     drag = null;
+    if (d?.kind === 'select') { if (d.preview) onSelect({ from: d.preview.start, to: d.preview.end }); return; }
     if (d?.preview) commit(Math.max(0, d.preview.start), d.preview.end);
   };
   canvas.addEventListener('mouseup', finish);
   canvas.addEventListener('mouseleave', () => { drag = null; });
-  canvas.addEventListener('dblclick', () => { if (sample()) commit(0, 0); });
+  canvas.addEventListener('dblclick', e => {
+    if (!sample()) return;
+    if (e?.shiftKey) onSelect({ from: 0, to: 0 }); else commit(0, 0);
+  });
 
   const LOOPS = [
     { start: 'loopStart', end: 'loopEnd', on: 'loopOn', xf: 'loopXfade', colour: 'hsl(210 70% 55%)', fill: 'rgba(60, 140, 255, 0.2)', marks: 'AB' },
@@ -88,8 +94,9 @@ export function createWaveformView({ canvas, statusEl, getProject, onLoop }) {
 
   function draw() {
     const s = sample();
-    const { start, end } = s ? loopOf(s) : { start: 0, end: 0 };
-    const key = s ? `${id}:${mode}:${s.data.length}:${start}:${end}:${LOOPS.slice(1).map(l => `${s[l.start]}.${s[l.end]}.${s[l.on]}`).join()}:${s.loopOn}:${s.loopXfade}:${s.susXfade}` : 'none';
+    const { start, end } = s ? (drag?.kind === 'select' ? { start: s.loopStart ?? 0, end: s.loopEnd ?? 0 } : loopOf(s)) : { start: 0, end: 0 };
+    const pick = drag?.kind === 'select' && drag.preview ? { from: drag.preview.start, to: drag.preview.end } : selection;
+    const key = s ? `${id}:${mode}:${s.data.length}:${start}:${end}:${LOOPS.slice(1).map(l => `${s[l.start]}.${s[l.end]}.${s[l.on]}`).join()}:${s.loopOn}:${s.loopXfade}:${s.susXfade}:${pick.from}-${pick.to}` : 'none';
     if (key === lastKey) return;
     lastKey = key;
     ctx.clearRect(0, 0, W, H);
@@ -142,6 +149,14 @@ export function createWaveformView({ canvas, statusEl, getProject, onLoop }) {
       ctx.textAlign = 'right';
       ctx.fillText(l.marks[1], xe - 4, 2 + n * 12);
     });
+    if (pick.to > pick.from) {   // the selection the edit tools act on
+      const xs = frameToX(pick.from), xe = frameToX(pick.to);
+      ctx.fillStyle = 'rgba(128, 128, 128, 0.35)';
+      ctx.fillRect(xs, 0, xe - xs, H);
+      ctx.fillStyle = mode === 'spec' ? '#fff' : ink;
+      ctx.fillRect(xs, 0, 1, H);
+      ctx.fillRect(xe - 1, 0, 1, H);
+    }
     ctx.fillStyle = mode === 'spec' ? '#fff' : ink;
     ctx.textBaseline = 'bottom';
     ctx.textAlign = 'left';
@@ -150,6 +165,7 @@ export function createWaveformView({ canvas, statusEl, getProject, onLoop }) {
 
   return {
     show(next) { id = next; drag = null; lastKey = null; },
+    setSelection(from, to) { selection = { from, to }; lastKey = null; },
     setMode(next) { mode = next === 'spec' ? 'spec' : 'wave'; lastKey = null; },
     get mode() { return mode; },
     get sampleId() { return id; },

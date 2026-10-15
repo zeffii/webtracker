@@ -389,24 +389,38 @@ for (const [id, field, max] of [['inst-voices', 'voices', 16], ['inst-notecols',
 const sendLoop = users => users.forEach(({ instrument, node }) => sendSample(instrument, node));
 const waveform = createWaveformView({
   canvas: $('wave'), statusEl: $('proj-status'), getProject: () => project,
-  onLoop: sendLoop,   // the screen redraws itself, so its numbers follow the markers
+  onLoop: users => { sendLoop(users); auditionDirty = true; },   // the screen redraws itself, so its numbers follow the markers
+  onSelect: ({ from, to }) => sampleScreen.setSelection(from, to),
 });
 
-// Plays a sample while a key is held, through the first instrument that uses it, at that sampler's root note.
-const audition = (id, on) => {
-  const user = ops.usersOfSample(project, id)[0];
-  if (!user || !started) return;
-  const root = `${user.instrument}.${user.node}.root`;
-  const note = engine.registry.slots.has(root) ? Math.round(engine.registry.get(root)) : 60;
-  if (on) engine.noteOn(user.instrument, note, 1); else engine.noteOff(user.instrument, note);
+// Keyjazz in the sample screen: the sample on its own, through a hidden instrument that is just a sampler
+// into the output, so only the sample's own volume, global volume and pan apply. The instrument lives in the
+// engine only, never in the project, and is rebuilt when the project is loaded or the sample changes shape.
+const AUDITION = '__audition';
+let audition = null, auditionDirty = true;   // { id, stereo } of what is loaded; whether the engine needs the sample again
+const prepareAudition = id => {
+  const s = project.samples[id];
+  if (!audition || audition.id !== id || audition.stereo !== !!s.right) {
+    const def = { graph: { nodes: [{ id: 'sampler', type: 'sampler' }, { id: 'out', type: 'out', params: { gain: 0.45 } }], connections: [['sampler.out', 'out.in']] }, samples: { sampler: id } };
+    syncSamplerStereo(def, project.samples);
+    engine.loadInstrument(AUDITION, def.graph);
+    audition = { id, stereo: !!s.right };
+    auditionDirty = true;
+  }
+  if (auditionDirty) { engine.sendToNode(AUDITION, 'sampler', sampleMessage(s)); auditionDirty = false; }
+};
+const playSample = (id, note, on) => {
+  if (!started || !(id in project.samples)) return;
+  if (on) { prepareAudition(id); engine.noteOn(AUDITION, note, 1); } else if (audition) engine.noteOff(AUDITION, note);
 };
 const sampleScreen = createSampleScreen({
   el: $('smp'), statusEl: $('proj-status'), getProject: () => project,
-  onChange: sendLoop,
-  onSelect: id => waveform.show(id),
+  onChange: users => { sendLoop(users); auditionDirty = true; },   // loops, levels and edits change what the sample plays
+  onSelect: id => { waveform.show(id); auditionDirty = true; },
   onRemove: refreshProjectUi,
   onRename: () => { refreshProjectUi(); patcher.show(patcher.instrument); },
-  onAudition: audition,
+  onNote: playSample,
+  onSelection: (from, to) => waveform.setSelection(from, to),
   onLoad: () => $('sample-file').click(),
   onView: mode => waveform.setMode(mode),
 });
@@ -449,6 +463,8 @@ function reloadInstrument(id) {
 function openProject({ song, instruments, samples }, { stay = false, instrument = null, lane = null } = {}) {
   if (playing) setPlaying(false);
   engine.reset();
+  audition = null;
+  sampleScreen.history.clear();
   project = { song, instruments, samples, lanes: [], editor: null };
   for (const id of Object.keys(instruments)) {
     loadInst(id);

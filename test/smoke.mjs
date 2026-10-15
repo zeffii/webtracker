@@ -1123,7 +1123,7 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     el, statusEl, getProject: () => project,
     onChange: users => events.push(['change', users.map(u => u.instrument).sort()]),
     onSelect: id => events.push(['select', id]), onRemove: id => events.push(['remove', id]),
-    onRename: (from, to) => events.push(['rename', from, to]), onAudition: (id, on) => events.push(['audition', id, on]), onLoad: () => events.push(['load']),
+    onRename: (from, to) => events.push(['rename', from, to]), onNote: (id, note, on) => events.push(['note', id, note, on]), onLoad: () => events.push(['load']),
     onView: mode => events.push(['view', mode]),
   });
   const key = (k, extra = {}) => onKey({ key: k, preventDefault() {}, ...extra });
@@ -1153,7 +1153,7 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   tab(1); type('0'); key('Enter'); assert.equal(pluck.susEnd, undefined, 'an end of 0 removes the loop');
 
   // sliders answer to the same keys; the focused one is drawn brighter
-  tab(2); assert.equal(screen.focus, 'volume');
+  tab(4); assert.equal(screen.focus, 'volume');
   screen.draw(); assert.equal(el.innerHTML.split('class="sl on"').length - 1, 1, 'only the focused slider is bright');
   key('ArrowLeft'); assert.equal(pluck.volume, 0.99);
   key('ArrowLeft', { shiftKey: true }); assert.equal(pluck.volume, 0.89);
@@ -1172,8 +1172,7 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   key('Tab'); key('x'); key('Escape'); assert.ok(project.samples.hat, 'Escape abandons an edit');
   key('Escape');
   key(' '); onUp({ key: ' ' });
-  assert.deepEqual(events.slice(-2), [['audition', 'hat', true], ['audition', 'hat', false]]);
-  assert.match(statusEl.textContent, /No instrument plays/);
+  assert.deepEqual(events.slice(-2), [['note', 'hat', 60, true], ['note', 'hat', 60, false]]);
   key('Delete'); assert.equal(project.samples.hat, undefined);
   assert.deepEqual(events.at(-1), ['remove', 'hat']); assert.equal(screen.selected, 'pluck');
   key('Delete'); assert.ok(project.samples.pluck, 'a sample in use cannot be removed'); assert.match(statusEl.textContent, /used by an instrument/);
@@ -2882,6 +2881,113 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   const re = Float64Array.from([1, 0, 0, 0, 0, 0, 0, 0]), im = new Float64Array(8);
   fft(re, im);
   assert.ok(re.every(v => Math.abs(v - 1) < 1e-12) && im.every(v => Math.abs(v) < 1e-12), 'the FFT of an impulse is flat');
+}
+
+// 87. Sample editing tools, undo, selection and keyjazz.
+{
+  const edit = await import('../src/project/sampleedit.js');
+  const mk = (n = 1000, right = false) => {
+    const s = { rate: sr, data: Float32Array.from({ length: n }, (_, i) => 0.5 * Math.sin(i * 0.1) + 0.1) };
+    if (right) s.right = Float32Array.from({ length: n }, (_, i) => 0.25 * Math.cos(i * 0.1));
+    return s;
+  };
+  const project = { samples: { s: mk(1000, true) }, instruments: { a: { samples: { sampler: 's' } } } };
+  const history = edit.createHistory();
+  const s = project.samples.s;
+  const orig = s.data.slice();
+  // crop keeps a loop that lies inside the range, moved; cut shifts the points after the removed part
+  s.loopStart = 300; s.loopEnd = 700; s.susStart = 100; s.susEnd = 200;
+  assert.deepEqual(edit.applyEdit(project, 's', history, 'crop', { from: 250, to: 800 }), [{ instrument: 'a', node: 'sampler' }]);
+  assert.equal(s.data.length, 550); assert.equal(s.right.length, 550);
+  assert.deepEqual([s.loopStart, s.loopEnd, s.susStart], [50, 450, undefined], 'the loop inside the crop survives, the one outside goes');
+  assert.equal(s.data[0], orig[250]);
+  edit.undoEdit(project, 's', history);
+  assert.equal(s.data.length, 1000); assert.deepEqual([s.loopStart, s.loopEnd, s.susStart, s.susEnd], [300, 700, 100, 200], 'undo restores the audio and the loops');
+  edit.redoEdit(project, 's', history); assert.equal(s.data.length, 550);
+  edit.undoEdit(project, 's', history);
+  edit.applyEdit(project, 's', history, 'cut', { from: 400, to: 500 });
+  assert.deepEqual([s.data.length, s.loopStart, s.loopEnd, s.susEnd], [900, 300, 600, 200]);
+  edit.undoEdit(project, 's', history);
+  // reverse, silence, fades, normalise, DC removal, on a range and on both channels
+  const before = s.data.slice(), beforeR = s.right.slice();
+  edit.applyEdit(project, 's', history, 'reverse', { from: 10, to: 20 });
+  assert.equal(s.data[10], before[19]); assert.equal(s.right[10], beforeR[19]); assert.equal(s.data[25], before[25]);
+  edit.applyEdit(project, 's', history, 'silence', { from: 0, to: 5 });
+  assert.ok(s.data.subarray(0, 5).every(v => v === 0) && s.right.subarray(0, 5).every(v => v === 0));
+  edit.applyEdit(project, 's', history, 'fadeIn', { from: 100, to: 200 });
+  assert.equal(Math.abs(s.data[100]), 0); assert.ok(Math.abs(s.data[150] - before[150] * 0.5) < 1e-6);
+  edit.applyEdit(project, 's', history, 'fadeOut', { from: 300, to: 400 });
+  assert.ok(Math.abs(s.data[350] - before[350] * 0.5) < 1e-6);
+  edit.applyEdit(project, 's', history, 'normalise', null);
+  assert.ok(Math.abs(peak(s.data) - 1) < 1e-6 || Math.abs(peak(s.right) - 1) < 1e-6);
+  assert.ok(Math.max(peak(s.data), peak(s.right)) <= 1 + 1e-6 && Math.max(peak(s.data), peak(s.right)) > 0.999, 'normalise reaches full scale in the louder channel');
+  edit.applyEdit(project, 's', history, 'removeDc', null);
+  assert.ok(Math.abs(s.data.reduce((a, v) => a + v, 0) / s.data.length) < 1e-5);
+  assert.throws(() => edit.applyEdit(project, 's', history, 'cut', { from: 0, to: 1000 }), /whole sample/);
+  assert.throws(() => edit.applyEdit(project, 's', history, 'reverse', { from: 5, to: 5 }), /empty/);
+  assert.throws(() => edit.applyEdit(project, 's', history, 'bakeCrossfade', null), /crossfade/);
+  edit.applyEdit(project, 's', history, 'silence', { from: 0, to: 5 });
+  const depth = history.depth('s');
+  assert.throws(() => edit.applyEdit(project, 's', history, 'normalise', { from: 0, to: 5 }), /silent/);
+  assert.equal(history.depth('s'), depth, 'a refused edit leaves no undo step');
+
+  // baking the crossfade writes what the sampler would play: no jump at the loop seam, and the setting is cleared
+  const saw = { rate: sr, data: Float32Array.from({ length: 2000 }, (_, i) => i / 2000), loopStart: 600, loopEnd: 1400, loopXfade: 200 };
+  const p2 = { samples: { w: saw }, instruments: {} };
+  edit.applyEdit(p2, 'w', edit.createHistory(), 'bakeCrossfade', null);
+  assert.equal(saw.loopXfade, undefined);
+  assert.ok(Math.abs(saw.data[1399] - saw.data[599 + 0]) < 0.01 + 1 / 2000 * 2, 'the end of the loop now leads into its start');
+  assert.ok(saw.data[1300] !== 1300 / 2000, 'the audio before the end changed');
+
+  // the keyjazz instrument: a sampler straight into the output plays the sample with only its own settings
+  {
+    const registry = new ParamRegistry();
+    const rt = new GraphRuntime({ sampleRate: sr, params: registry.values });
+    const def = { nodes: [{ id: 'sampler', type: 'sampler', stereo: true }, { id: 'out', type: 'out', params: { gain: 0.45 } }], connections: [['sampler.out', 'out.in']] };
+    rt.load(compile(def, { instrument: '__audition', nodeTypes: NODE_TYPES, registry }));
+    const st = { rate: sr, data: Float32Array.from({ length: 20000 }, (_, i) => Math.sin(i * 0.2)), right: Float32Array.from({ length: 20000 }, (_, i) => 0.5 * Math.sin(i * 0.3)), pan: -1, volume: 0.5 };
+    rt.message('__audition', 'sampler', pops.sampleMessage(st));
+    rt.note('__audition', { type: 'noteOn', note: 60, vel: 1 });
+    const out = render(rt, 0.2);
+    assert.ok(peak(out.left) > 0.05, 'the audition instrument is audible');
+    assert.ok(out.right.every(v => v === 0), 'the sample pan applies');
+  }
+
+  // the screen: selection fields, edit keys, undo keys, keyjazz
+  const { project: pr } = makeProject();
+  pops.addSample(pr, 'w.wav', 44100, Float32Array.from({ length: 4000 }, (_, i) => Math.sin(i * 0.05)));
+  let onKey, onUp;
+  const el = { addEventListener: (type, f) => { if (type === 'keydown') onKey = f; if (type === 'keyup') onUp = f; }, innerHTML: '' };
+  const events = [];
+  const screen = createSampleScreen({ el, statusEl: { textContent: '' }, getProject: () => pr, onChange: () => events.push('change'), onNote: (id, note, on) => events.push(['note', id, note, on]), onSelection: (a, b) => events.push(['sel', a, b]) });
+  const key = (k, extra = {}) => onKey({ key: k, preventDefault() {}, ...extra });
+  screen.select('w');
+  // keyjazz: Z plays the root (octave 5), keys release on key up, [ and ] move the octave, Space plays the root
+  key('z'); onUp({ key: 'z' });
+  key('q'); onUp({ key: 'q' });
+  key(']'); key('z'); onUp({ key: 'z' });
+  key(' '); onUp({ key: ' ' });
+  assert.deepEqual(events.filter(e => e[0] === 'note'), [60, 72, 72, 60].flatMap(n => [['note', 'w', n, true], ['note', 'w', n, false]]));
+  key('[');
+  key('z'); key('z', { repeat: true }); assert.equal(events.filter(e => e[0] === 'note').length, 9, 'a held key does not retrigger');
+  onUp({ key: 'z' });
+  // a selection from the fields, then edit keys act on it
+  for (let i = 0; i < 10; i++) key('Tab');
+  assert.equal(screen.focus, 'selBeg');
+  for (const c of '1000') key(c); key('Enter');
+  assert.deepEqual(screen.selection, [1000, 4000]);
+  key('Tab'); for (const c of '2000') key(c); key('Enter');
+  assert.deepEqual(screen.selection, [1000, 2000]);
+  const w = pr.samples.w, keep = w.data.slice();
+  key('S', { shiftKey: true });
+  assert.ok(w.data.subarray(1000, 2000).every(v => v === 0) && w.data[999] === keep[999] && w.data[2000] === keep[2000], 'Shift+S silences the selection only');
+  key('z', { ctrlKey: true }); assert.equal(w.data[1500], keep[1500]);
+  key('y', { ctrlKey: true }); assert.equal(w.data[1500], 0);
+  key('z', { ctrlKey: true });
+  key('C', { shiftKey: true }); assert.equal(w.data.length, 1000, 'Shift+C crops to the selection');
+  assert.deepEqual(screen.selection, [0, 0], 'the selection is cleared after a crop');
+  key('z', { ctrlKey: true }); assert.equal(w.data.length, 4000);
+  key('R', { shiftKey: true }); assert.equal(w.data[0], keep[3999], 'with no selection a tool takes the whole sample');
 }
 
 console.log('smoke test passed');
