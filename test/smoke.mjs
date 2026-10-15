@@ -33,6 +33,7 @@ import { createInsertMenu } from '../src/graph/menu.js';
 import { createTabs } from '../src/ui/tabs.js';
 import * as presetOps from '../src/project/presets.js';
 import { parseInstrument, serializeInstrument } from '../src/project/file.js';
+import * as lib from '../src/project/library.js';
 import { compileDsp } from '../src/audio/wasm/load.js';
 
 const sr = 48000, block = 128;
@@ -2619,6 +2620,31 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     assert.throws(() => pops.renameSample(project, 'two', 'my_kick'), /already a sample/);
     assert.throws(() => pops.renameSample(project, 'zzz', 'x'), /No sample/);
     assert.equal(pops.renameSample(project, 'two', 'two'), 'two');
+  }
+
+  // preset library: copies in and out, the local list stays its own
+  {
+    const a = { graph: { nodes: [] }, presets: [] }, b = { graph: { nodes: [] } };
+    presetOps.addPreset(a, { name: 'dark', values: { 'f.cutoff': 400 } });
+    presetOps.addPreset(a, { name: 'bright', values: { 'f.cutoff': 9000 }, data: { w: { curve: [0, 1] } } });
+    const library = lib.newLibrary();
+    assert.equal(lib.addToLibrary(library, a, 'lead', [1]), 1, 'only the listed preset');
+    assert.equal(lib.addToLibrary(library, a, 'lead'), 2);
+    assert.equal(library.presets.length, 2, 'the same name from the same machine is replaced');
+    a.presets[1].values['f.cutoff'] = 1;
+    assert.equal(library.presets.find(p => p.name === 'bright').values['f.cutoff'], 9000, 'the library holds a copy');
+    const back = lib.parseLibrary(lib.serializeLibrary(library));
+    assert.deepEqual(back.presets.map(p => p.name).sort(), ['bright', 'dark']);
+    const bright = back.presets.find(p => p.name === 'bright');
+    const id = lib.importFromLibrary(b, bright);
+    assert.equal(b.presets[0].values['f.cutoff'], 9000);
+    assert.deepEqual(b.presets[0].data.w.curve, [0, 1]);
+    b.presets[0].values['f.cutoff'] = 5;
+    assert.equal(bright.values['f.cutoff'], 9000, 'and the instrument gets its own');
+    assert.equal(lib.importFromLibrary(b, bright), id, 'importing the same name again overwrites it in place');
+    assert.equal(b.presets.length, 1);
+    assert.throws(() => lib.parseLibrary('{"format":"x"}'), /Not a preset library/);
+    assert.throws(() => lib.parseLibrary('nope'), /invalid JSON/);
   }
 }
 

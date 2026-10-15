@@ -6,6 +6,7 @@ import { createInsertMenu } from './graph/menu.js';
 import { createDemoProject } from './project/demo.js';
 import * as ops from './project/ops.js';
 import * as presets from './project/presets.js';
+import { LIBRARY_EXT, addToLibrary, importFromLibrary, newLibrary, parseLibrary, serializeLibrary } from './project/library.js';
 import { addLane, addSample, addSamplerInstrument, addSynthInstrument, channelsOf, syncSamplerStereo } from './project/ops.js';
 import { synthKinds } from './instruments.js';
 import { createSamplePanel } from './project/samplepanel.js';
@@ -261,6 +262,48 @@ confirmed($('preset-remove'), 'Remove', () => {
   presetsChanged('Removed the preset; the others keep their numbers.');
 });
 
+// ---- preset library (.wxpr) ----
+let library = newLibrary(), libSelected = null;
+function renderLibrary() {
+  if (libSelected >= library.presets.length) libSelected = null;
+  $('lib-list').replaceChildren(...library.presets.map((p, i) => {
+    const b = document.createElement('button');
+    b.textContent = p.machine ? `${p.name}  (${p.machine})` : p.name;
+    b.classList.toggle('active', i === libSelected);
+    b.addEventListener('click', () => { libSelected = i; renderLibrary(); });
+    return b;
+  }));
+}
+$('lib-load').addEventListener('click', () => $('lib-file').click());
+$('lib-file').addEventListener('change', async e => {
+  const [file] = e.target.files;
+  e.target.value = '';
+  if (!file) return;
+  try {
+    library = parseLibrary(await file.text());
+    libSelected = null;
+    renderLibrary();
+    $('patch-status').textContent = `Opened ${file.name}: ${library.presets.length} presets.`;
+  } catch (err) {
+    $('patch-status').textContent = err.message;
+  }
+});
+$('lib-add').addEventListener('click', () => {
+  const id = patcher.instrument;
+  if (!id || libSelected === null) { $('patch-status').textContent = 'Click a library preset first.'; return; }
+  selectedPreset = importFromLibrary(project.instruments[id], library.presets[libSelected]);
+  presetsChanged(`Added "${library.presets[libSelected].name}" to ${id}.`);
+});
+$('lib-save').addEventListener('click', () => {
+  const id = patcher.instrument;
+  if (!id) return;
+  const count = addToLibrary(library, project.instruments[id], id, selectedPreset === null ? null : [selectedPreset]);
+  if (!count) { $('patch-status').textContent = 'This instrument has no presets to save.'; return; }
+  renderLibrary();
+  download(`presets${LIBRARY_EXT}`, serializeLibrary(library));
+  $('patch-status').textContent = `Saved ${count} to presets${LIBRARY_EXT} (${library.presets.length} in the library).`;
+});
+
 // ---- instrument files ----
 $('inst-export').addEventListener('click', () => {
   const id = patcher.instrument;
@@ -505,7 +548,7 @@ $('start').addEventListener('click', async () => {
     started = true;
     openProject(createDemoProject(engine.ctx.sampleRate));
     for (const id of ['start']) $(id).disabled = true;
-    for (const id of ['play', 'save', 'load', 'patch-add', 'load-samples', 'add-sampler', 'add-synth', 'add-lane', 'inst-voices', 'inst-notecols', 'inst-name', 'inst-rename', 'inst-up', 'inst-down', 'inst-dup', 'inst-remove', 'lane-name', 'lane-rename', 'lane-left', 'lane-right', 'lane-dup', 'lane-remove', 'bpm', 'swing', 'preset-name', 'preset-save', 'preset-over', 'preset-rename', 'preset-remove', 'inst-export', 'inst-import']) $(id).disabled = false;
+    for (const id of ['play', 'save', 'load', 'patch-add', 'load-samples', 'add-sampler', 'add-synth', 'add-lane', 'inst-voices', 'inst-notecols', 'inst-name', 'inst-rename', 'inst-up', 'inst-down', 'inst-dup', 'inst-remove', 'lane-name', 'lane-rename', 'lane-left', 'lane-right', 'lane-dup', 'lane-remove', 'bpm', 'swing', 'preset-name', 'preset-save', 'preset-over', 'preset-rename', 'preset-remove', 'inst-export', 'inst-import', 'lib-load', 'lib-add', 'lib-save']) $(id).disabled = false;
     $('status').textContent =
       `Running at ${engine.ctx.sampleRate} Hz, base latency ${(engine.ctx.baseLatency * 1000).toFixed(1)} ms`;
     const frame = () => { songInfo(); seqView.draw(); view.draw(); patcher.draw(); waveform.draw(); requestAnimationFrame(frame); };

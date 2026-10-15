@@ -54,6 +54,8 @@
     .manage input { width: 100%; box-sizing: border-box; font: inherit; }
     .manage button { font: inherit; font-size: 12px; padding: 0 .35rem; }
     #preset-list button { display: block; width: 100%; font: inherit; text-align: left; padding: .1rem .5rem; border: 1px solid transparent; background: transparent; color: inherit; cursor: pointer; }
+    #lib-list button { display: block; width: 100%; font: inherit; text-align: left; padding: .1rem .5rem; border: 1px solid transparent; background: transparent; color: inherit; cursor: pointer; }
+    #lib-list button.active { background: Highlight; color: HighlightText; }
     #preset-list button.active { background: Highlight; color: HighlightText; }
     #lane-list button { display: block; width: 100%; font: inherit; text-align: left; padding: .15rem .5rem; border: 1px solid transparent; background: transparent; color: inherit; cursor: pointer; }
     #lane-list button.active { background: Highlight; color: HighlightText; }
@@ -174,6 +176,14 @@
           <button id="preset-remove" disabled>Remove</button>
         </div>
         <p class="help">A preset is recalled in a pattern with command 00: in the Cmd column, 00 and the preset's number, as 00 0003.</p>
+        <h2>Preset library</h2>
+        <div id="lib-list"></div>
+        <div class="manage">
+          <button id="lib-load" disabled title="Open a .wxpr library">Open…</button>
+          <button id="lib-add" disabled title="Copy the selected library preset into this instrument">Add to instrument</button>
+          <button id="lib-save" disabled title="Put the selected preset (or all of them) in the library and save it">Save to library…</button>
+          <input id="lib-file" type="file" accept=".wxpr,.json" hidden>
+        </div>
         <h2>Instrument file</h2>
         <div class="manage">
           <button id="inst-export" disabled>Export…</button>
