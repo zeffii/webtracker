@@ -86,7 +86,7 @@ const toValue = (spec, pos) => {
 const toPos = (spec, v) => (isLog(spec) ? Math.log(v / spec.min) / Math.log(spec.max / spec.min) : (v - spec.min) / (spec.max - spec.min));
 const fmt = v => String(Number(v.toPrecision(4)));
 
-export function createPatcher({ canvas, panel, statusEl, doc = document, nodeTypes, onStructure, onParam, onData = () => {}, onContext = () => {}, getSampleIds = () => [] }) {
+export function createPatcher({ canvas, panel, exposedPanel = null, onEscape = () => {}, statusEl, doc = document, nodeTypes, onStructure, onParam, onData = () => {}, onContext = () => {}, getSampleIds = () => [] }) {
   let instruments = {}, instId = null, selected = null, drag = null, dirty = true;
   const ctx = canvas.getContext('2d');
   const W = canvas.width, H = canvas.height;
@@ -131,7 +131,51 @@ export function createPatcher({ canvas, panel, statusEl, doc = document, nodeTyp
     }
   }
 
-  function renderPanel() {
+  // A slider that reads as a small rect: filled to its value (--p), and moved by Left/Right (Shift for more),
+  // - and = as well. onMove runs after every change, by mouse or key.
+  function rectSlider(slider, onMove) {
+    const paint = () => slider.style.setProperty?.('--p', `${Number(slider.value) / 10}%`);
+    slider.className = 'rect';
+    slider.addEventListener('input', () => { paint(); onMove(); });
+    slider.addEventListener('keydown', e => {
+      const dir = { ArrowRight: 1, ArrowLeft: -1, '=': 1, '+': 1, '-': -1, _: -1 }[e.key];
+      if (!dir) return;
+      const step = e.shiftKey ? 50 : 5;
+      slider.value = Math.min(1000, Math.max(0, Number(slider.value) + dir * step));
+      paint();
+      onMove();
+      e.preventDefault();
+    });
+    paint();
+    return slider;
+  }
+
+  // The exposed parameters as sliders of their own, so a sound can be played with without finding the node.
+  function renderExposed() {
+    if (!exposedPanel) return;
+    if (!instId) { exposedPanel.replaceChildren(); return; }
+    const rows = def().exposed.flatMap(x => {
+      const node = desc().nodes.find(n => n.id === x.node);
+      const spec = node && nodeTypes[node.type]?.params.find(p => p.name === x.param);
+      if (!spec) return [];
+      const value = node.params?.[spec.name] ?? spec.def;
+      const out = el('output', { textContent: fmt(value) });
+      const slider = el('input', { type: 'range', min: 0, max: 1000, step: 1, value: Math.round(toPos(spec, value) * 1000), ariaLabel: `${x.label} (${x.node}.${x.param})` });
+      rectSlider(slider, () => {
+        const v = toValue(spec, Number(slider.value) / 1000);
+        setParam(desc(), node.id, spec.name, v);
+        out.textContent = fmt(v);
+        onParam(instId, node.id, spec.name, v);
+        if (selected?.kind === 'node' && selected.id === node.id) renderNodePanel();   // the node's own slider follows
+      });
+      return [el('div', { className: 'prow xrow' }, el('span', { textContent: x.label, title: `${x.node}.${x.param}` }), slider, out, el('span', { className: 'help', textContent: `${x.node}.${x.param}` }))];
+    });
+    exposedPanel.replaceChildren(...(rows.length ? rows : [el('p', { className: 'help' }, 'Nothing exposed yet: tick "expose" on a node parameter to make it a pattern column.')]));
+  }
+
+  const renderPanel = () => { renderNodePanel(); renderExposed(); };
+
+  function renderNodePanel() {
     const node = selected?.kind === 'node' ? desc().nodes.find(n => n.id === selected.id) : null;
     if (!node) {
       panel.replaceChildren(el('p', {}, instId ? 'Click a node to edit its parameters.' : 'No instrument.'));
@@ -142,11 +186,12 @@ export function createPatcher({ canvas, panel, statusEl, doc = document, nodeTyp
       const value = node.params?.[spec.name] ?? spec.def;
       const out = el('output', { textContent: fmt(value) });
       const slider = el('input', { type: 'range', min: 0, max: 1000, step: spec.int ? 1000 / (spec.max - spec.min) : 1, value: Math.round(toPos(spec, value) * 1000) });
-      slider.addEventListener('input', () => {
+      rectSlider(slider, () => {
         const v = toValue(spec, Number(slider.value) / 1000);
         setParam(desc(), node.id, spec.name, v);
         out.textContent = fmt(v);
         onParam(instId, node.id, spec.name, v);
+        if (def().exposed.some(x => x.node === node.id && x.param === spec.name)) renderExposed();   // the exposed copy follows
       });
       const current = def().exposed.find(e => e.node === node.id && e.param === spec.name);
       const exposed = el('input', { type: 'checkbox', checked: !!current });
@@ -267,11 +312,47 @@ export function createPatcher({ canvas, panel, statusEl, doc = document, nodeTyp
 
   canvas.addEventListener('mouseleave', () => { drag = null; dirty = true; });
 
+  // Moves the selection to the nearest node in a direction ('left', 'right', 'up', 'down'), or to the next one
+  // ('next', 'prev') in left-to-right order. With nothing selected the leftmost node is chosen.
+  function selectNear(way) {
+    if (!instId) return false;
+    const boxOf = n => { const { w, h } = nodeBox(nodeTypes[n.type]); return { x: n.x + w / 2, y: n.y + h / 2 }; };
+    const nodes = desc().nodes.filter(n => n.x !== undefined);
+    if (!nodes.length) return false;
+    const order = [...nodes].sort((a, b) => boxOf(a).x - boxOf(b).x || boxOf(a).y - boxOf(b).y);
+    const here = selected?.kind === 'node' ? nodes.find(n => n.id === selected.id) : null;
+    let next = null;
+    if (!here) next = order[0];
+    else if (way === 'next' || way === 'prev') next = order[(order.indexOf(here) + (way === 'next' ? 1 : order.length - 1)) % order.length];
+    else {
+      const c = boxOf(here);
+      let best = Infinity;
+      for (const n of nodes) {
+        if (n === here) continue;
+        const p = boxOf(n), dx = p.x - c.x, dy = p.y - c.y;
+        const along = way === 'right' ? dx : way === 'left' ? -dx : way === 'down' ? dy : -dy;
+        const across = way === 'left' || way === 'right' ? Math.abs(dy) : Math.abs(dx);
+        if (along <= 0) continue;
+        const score = along + 2 * across;
+        if (score < best) { best = score; next = n; }
+      }
+    }
+    if (!next) return true;
+    selected = { kind: 'node', id: next.id };
+    renderPanel();
+    dirty = true;
+    return true;
+  }
+
   canvas.addEventListener('keydown', e => {
+    if (e.key === 'Escape') { onEscape(); e.preventDefault?.(); return; }
     if (e.key === 'Delete' || e.key === 'Backspace') {
       removeSelected();
       e.preventDefault();
+      return;
     }
+    const way = { ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'up', ArrowDown: 'down' }[e.key] ?? (e.key === 'Tab' ? (e.shiftKey ? 'prev' : 'next') : null);
+    if (way && !e.ctrlKey && !e.altKey && !e.metaKey && selectNear(way)) e.preventDefault();
   });
 
   // ---- drawing ----
@@ -398,6 +479,7 @@ export function createPatcher({ canvas, panel, statusEl, doc = document, nodeTyp
     },
     // Draws the panel again, for when parameters were changed from outside (a preset).
     refreshPanel() { renderPanel(); dirty = true; },
+    get selectedNode() { return selected?.kind === 'node' ? selected.id : null; },
     draw,
     get instrument() { return instId; },
   };

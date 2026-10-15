@@ -53,7 +53,7 @@ const tabs = createTabs({
   tabs: [
     { id: 'patterns', key: 'F2', el: $('pane-patterns'), button: $('tab-patterns'), focus: $('view') },
     { id: 'samples', key: 'F3', el: $('pane-samples'), button: $('tab-samples'), focus: $('smp') },
-    { id: 'instruments', key: 'F4', el: $('pane-instruments'), button: $('tab-instruments'), focus: $('patch') },
+    { id: 'instruments', key: 'F4', el: $('pane-instruments'), button: $('tab-instruments'), focus: $('inst-list') },
     { id: 'arrange', key: 'F5', el: $('pane-arrange'), button: $('tab-arrange'), focus: $('seq') },
   ],
 });
@@ -79,7 +79,7 @@ const seqView = createSequenceView({
 });
 
 const patcher = createPatcher({
-  canvas: $('patch'), panel: $('patch-panel'), statusEl: $('patch-status'), nodeTypes: NODE_TYPES,
+  canvas: $('patch'), panel: $('patch-panel'), exposedPanel: $('exposed-panel'), onEscape: () => $('inst-list').focus(), statusEl: $('patch-status'), nodeTypes: NODE_TYPES,
   onStructure: id => reloadInstrument(id),
   onContext: ({ x, y }) => menu.open(x, y),
   onData: (id, node, msg) => engine.sendToNode(id, node, msg),
@@ -124,11 +124,24 @@ function refreshProjectUi() {
   fill($('new-inst-sample'), Object.keys(project.samples));
 }
 
+// Keys in the instrument list: Up/Down choose, Home/End jump, Enter goes to the graph.
+$('inst-list').addEventListener('keydown', e => {
+  if (!project || e.ctrlKey || e.altKey || e.metaKey) return;
+  const ids = Object.keys(project.instruments), at = ids.indexOf(patcher.instrument);
+  const go = to => { patcher.show(ids[Math.min(ids.length - 1, Math.max(0, to))]); renderInstList(); e.preventDefault(); };
+  if (e.key === 'ArrowUp') go(at - 1);
+  else if (e.key === 'ArrowDown') go(at + 1);
+  else if (e.key === 'Home') go(0);
+  else if (e.key === 'End') go(ids.length - 1);
+  else if (e.key === 'Enter' || e.key === 'ArrowRight' || e.key === 'Tab' && !e.shiftKey) { $('patch').focus(); e.preventDefault(); }
+});
+
 // The narrow instrument list beside the patcher.
 function renderInstList() {
-  const buttons = Object.keys(project.instruments).map(id => {
+  const buttons = Object.keys(project.instruments).map((id, i) => {
     const b = document.createElement('button');
-    b.textContent = id;
+    b.textContent = `${id === patcher.instrument ? '>' : ' '} ${String(i + 1).padStart(2, '0')} ${id}`;
+    b.tabIndex = -1;
     b.classList.toggle('active', id === patcher.instrument);
     b.addEventListener('click', () => { patcher.show(id); renderInstList(); $('patch').focus(); });
     return b;

@@ -97,20 +97,30 @@
     #wave { border: 1px solid; max-width: 100%; display: block; cursor: col-resize; }
 
     /* instruments: a narrow list, the graph on the right */
-    #inst-layout { display: grid; grid-template-columns: 13rem 1fr; gap: 1rem; align-items: start; }
-    #inst-list { display: grid; gap: 2px; margin-bottom: .5rem; }
+    #inst-layout { display: grid; grid-template-columns: 17rem 1fr; gap: 1rem; align-items: start; }
+    #inst-side, #inst-main { font: 13px/1.45 ui-monospace, Consolas, monospace; }
+    #inst-list { display: grid; gap: 0; margin-bottom: .5rem; outline: none; white-space: pre; }
+    #inst-side { border-right: 1px solid color-mix(in srgb, currentColor 25%, transparent); padding-right: .75rem; min-height: 60vh; }
     .manage { margin: .3rem 0; display: flex; flex-wrap: wrap; gap: 2px; }
-    .manage input { width: 100%; box-sizing: border-box; font: inherit; }
+    .manage input { box-sizing: border-box; font: inherit; }
+    .manage.row input { flex: 1 1 10rem; }
     .manage button { font: inherit; font-size: 12px; padding: 0 .35rem; }
-    #preset-list button { display: block; width: 100%; font: inherit; text-align: left; padding: .1rem .5rem; border: 1px solid transparent; background: transparent; color: inherit; cursor: pointer; }
-    #lib-list button { display: block; width: 100%; font: inherit; text-align: left; padding: .1rem .5rem; border: 1px solid transparent; background: transparent; color: inherit; cursor: pointer; }
-    #lib-list button.active { background: Highlight; color: HighlightText; }
-    #preset-list button.active { background: Highlight; color: HighlightText; }
-    #lane-list button { display: block; width: 100%; font: inherit; text-align: left; padding: .15rem .5rem; border: 1px solid transparent; background: transparent; color: inherit; cursor: pointer; }
-    #lane-list button.active { background: Highlight; color: HighlightText; }
-    #inst-list button { font: inherit; text-align: left; padding: .15rem .5rem; border: 1px solid transparent; background: transparent; color: inherit; cursor: pointer; }
-    #inst-list button.active { background: Highlight; color: HighlightText; }
-    #inst-side input, #inst-side select { width: 100%; box-sizing: border-box; margin: .15rem 0; }
+    #inst-head { display: flex; flex-wrap: wrap; gap: .75rem; align-items: center; margin-bottom: .5rem; }
+    #inst-head input[type=number] { width: 3.5em; }
+    #inst-head input, #inst-head button { font: inherit; }
+    #exposed-panel .help, #patch-panel .help { opacity: .7; }
+    #preset-list button, #lib-list button, #lane-list button { display: block; width: 100%; font: inherit; text-align: left; padding: .1rem .5rem; border: 1px solid transparent; background: transparent; color: inherit; cursor: pointer; }
+    #lib-list button.active, #preset-list button.active, #lane-list button.active { background: Highlight; color: HighlightText; }
+    #inst-list button { font: inherit; text-align: left; padding: 0 .5rem; border: 0; background: transparent; color: inherit; cursor: pointer; white-space: pre; }
+    #inst-list button.active { background: color-mix(in srgb, currentColor 22%, transparent); }
+    #inst-list:focus button.active { background: Highlight; color: HighlightText; }
+    #inst-main h2, #inst-side h2 { font-size: 13px; font-weight: normal; opacity: .65; margin: .9rem 0 .25rem; }
+    #inst-more summary { cursor: pointer; opacity: .75; margin-top: .75rem; }
+    /* sliders as small rects, filled to their value; the focused one is brighter */
+    input[type=range].rect { appearance: none; -webkit-appearance: none; height: 13px; box-sizing: border-box; border: 1px solid color-mix(in srgb, currentColor 55%, transparent); border-radius: 0; background: linear-gradient(to right, color-mix(in srgb, currentColor 45%, transparent) var(--p, 0%), transparent var(--p, 0%)); padding: 0; margin: 0; outline: none; }
+    input[type=range].rect::-webkit-slider-thumb { appearance: none; width: 0; height: 0; }
+    input[type=range].rect::-moz-range-thumb { width: 0; height: 0; border: 0; }
+    input[type=range].rect:focus { border-color: Highlight; background: linear-gradient(to right, Highlight var(--p, 0%), transparent var(--p, 0%)); }
     #inst-main { min-width: 0; overflow-x: auto; }
     .curve-editor { margin: .25rem 0 .5rem; }
     .curve-editor canvas { display: block; border: 1px solid; cursor: crosshair; background: color-mix(in srgb, Canvas 92%, CanvasText); }
@@ -125,7 +135,7 @@
     #patch { border: 1px solid; display: block; }   /* never squeezed: that would skew the mouse positions */
     #patch:focus { outline: 1px solid; }
     /* compact parameter rows: label, dark inset bar with a block handle, value */
-    .prow { display: grid; grid-template-columns: 7rem 11rem 5rem auto; gap: .5rem; align-items: center; font: 13px/1.2 ui-monospace, Consolas, monospace; margin: 2px 0; }
+    .prow { display: grid; grid-template-columns: 8rem 12rem 5rem auto; gap: .5rem; align-items: center; font: 13px/1.2 ui-monospace, Consolas, monospace; margin: 2px 0; }
     .prow output { text-align: right; }
     input[type=range] { -webkit-appearance: none; appearance: none; width: 100%; height: 14px; margin: 0; padding: 0; background: #111; border: 1px solid; border-color: #555 #bbb #bbb #555; border-radius: 0; cursor: ew-resize; }
     input[type=range]::-webkit-slider-runnable-track { height: 12px; background: transparent; }
@@ -198,28 +208,31 @@
     <div id="inst-layout">
       <div id="inst-side">
         <h2>Instruments</h2>
-        <div id="inst-list"></div>
-        <button id="add-lane" disabled>Add lane for selected</button>
+        <div id="inst-list" tabindex="0" aria-label="Instruments"></div>
         <div class="manage">
-          <input id="inst-name" aria-label="Rename the selected instrument" disabled>
-          <button id="inst-rename" disabled>Rename</button>
           <button id="inst-up" disabled title="Move earlier">▲</button><button id="inst-down" disabled title="Move later">▼</button>
           <button id="inst-dup" disabled>Duplicate</button><button id="inst-remove" disabled>Remove</button>
         </div>
-        <h2>Lanes</h2>
-        <div id="lane-list"></div>
-        <div class="manage">
-          <input id="lane-name" aria-label="Rename the selected lane" disabled>
-          <button id="lane-rename" disabled>Rename</button>
-          <button id="lane-left" disabled title="Move earlier">◀</button><button id="lane-right" disabled title="Move later">▶</button>
-          <button id="lane-dup" disabled>Duplicate</button><button id="lane-remove" disabled>Remove</button>
+        <button id="add-lane" disabled>Add lane for selected</button>
+      </div>
+      <div id="inst-main">
+        <div id="inst-head">
+          <label>Name <input id="inst-name" aria-label="Rename the selected instrument" disabled size="18"></label>
+          <button id="inst-rename" disabled>Rename</button>
+          <label>Voices <input id="inst-voices" type="number" min="1" max="16" step="1" disabled></label>
+          <label>NoteCols <input id="inst-notecols" type="number" min="1" max="8" step="1" disabled></label>
+          <button id="patch-add" disabled>Add node…</button>
         </div>
-        <h2>Polyphony</h2>
-        <label class="help">voices <input id="inst-voices" type="number" min="1" max="16" step="1" style="width:3.5em" disabled></label><br>
-        <label class="help">note columns <input id="inst-notecols" type="number" min="1" max="8" step="1" style="width:3.5em" disabled></label>
+        <div id="patch-wrap">
+          <canvas id="patch" width="900" height="300" tabindex="0"></canvas>
+        </div>
+        <p id="patch-status"></p>
+        <h2>Exposed <span class="help">(pattern columns)</span></h2>
+        <div id="exposed-panel"></div>
+        <div id="patch-panel"></div>
         <h2>Presets</h2>
         <div id="preset-list"></div>
-        <div class="manage">
+        <div class="manage row">
           <input id="preset-name" placeholder="preset name" aria-label="Preset name" disabled>
           <button id="preset-save" disabled title="Keep the instrument's current sound as a new preset">Save new</button>
           <button id="preset-over" disabled title="Replace the selected preset with the current sound">Overwrite</button>
@@ -227,39 +240,45 @@
           <button id="preset-remove" disabled>Remove</button>
         </div>
         <p class="help">A preset is recalled in a pattern with command 00: in the Cmd column, 00 and the preset's number, as 00 0003.</p>
-        <h2>Preset library</h2>
-        <div id="lib-list"></div>
-        <div class="manage">
-          <button id="lib-load" disabled title="Open a .wxpr library">Open…</button>
-          <button id="lib-add" disabled title="Copy the selected library preset into this instrument">Add to instrument</button>
-          <button id="lib-save" disabled title="Put the selected preset (or all of them) in the library and save it">Save to library…</button>
-          <input id="lib-file" type="file" accept=".wxpr,.json" hidden>
-        </div>
-        <h2>Instrument file</h2>
-        <div class="manage">
-          <button id="inst-export" disabled>Export…</button>
-          <button id="inst-import" disabled>Import…</button>
-          <input id="inst-file" type="file" accept=".waxi,.json" hidden>
-        </div>
-        <h2>New sampler</h2>
-        <input id="new-inst-name" placeholder="instrument name" aria-label="Instrument name">
-        <select id="new-inst-sample" aria-label="Sample"></select>
-        <button id="add-sampler" disabled>Add instrument and lane</button>
-        <h2>New synth</h2>
-        <input id="new-synth-name" placeholder="instrument name" aria-label="Synth name">
-        <select id="new-synth-kind" aria-label="Synth kind"></select>
-        <button id="add-synth" disabled>Add synth and lane</button>
-      </div>
-      <div id="inst-main">
-        <p><button id="patch-add" disabled>Add node…</button> <span class="help">or right-click the graph</span></p>
-        <div id="patch-wrap">
-          <canvas id="patch" width="900" height="360" tabindex="0"></canvas>
-        </div>
-        <p id="patch-status"></p>
-        <div id="patch-panel"></div>
-        <p class="help">Drag a node to move it. Drag from an output dot (right side) to an input dot (left side) to
-          wire them. An input can take several wires, which are added together; use a mix node when you want a ratio. Blue wires carry audio, amber wires carry control signals (envelopes, lfos, triggers), and heavier purple wires carry a stereo pair (a mono wire into a stereo input feeds both channels; stereo into a mono input is averaged). Right-click the graph, or double-click empty space, to insert a node. Click a wire or a node and press Delete
-          to remove it. In the panel, sliders change a parameter and "expose" adds it to the instrument's pattern
+        <details id="inst-more">
+          <summary>Lanes, preset library, files, new instruments</summary>
+          <h2>Lanes</h2>
+          <div id="lane-list"></div>
+          <div class="manage row">
+            <input id="lane-name" aria-label="Rename the selected lane" disabled>
+            <button id="lane-rename" disabled>Rename</button>
+            <button id="lane-left" disabled title="Move earlier">◀</button><button id="lane-right" disabled title="Move later">▶</button>
+            <button id="lane-dup" disabled>Duplicate</button><button id="lane-remove" disabled>Remove</button>
+          </div>
+          <h2>Preset library</h2>
+          <div id="lib-list"></div>
+          <div class="manage row">
+            <button id="lib-load" disabled title="Open a .wxpr library">Open…</button>
+            <button id="lib-add" disabled title="Copy the selected library preset into this instrument">Add to instrument</button>
+            <button id="lib-save" disabled title="Put the selected preset (or all of them) in the library and save it">Save to library…</button>
+            <input id="lib-file" type="file" accept=".wxpr,.json" hidden>
+          </div>
+          <h2>Instrument file</h2>
+          <div class="manage row">
+            <button id="inst-export" disabled>Export…</button>
+            <button id="inst-import" disabled>Import…</button>
+            <input id="inst-file" type="file" accept=".waxi,.json" hidden>
+          </div>
+          <h2>New sampler</h2>
+          <div class="manage row">
+            <input id="new-inst-name" placeholder="instrument name" aria-label="Instrument name">
+            <select id="new-inst-sample" aria-label="Sample"></select>
+            <button id="add-sampler" disabled>Add instrument and lane</button>
+          </div>
+          <h2>New synth</h2>
+          <div class="manage row">
+            <input id="new-synth-name" placeholder="instrument name" aria-label="Synth name">
+            <select id="new-synth-kind" aria-label="Synth kind"></select>
+            <button id="add-synth" disabled>Add synth and lane</button>
+          </div>
+        </details>
+        <p class="help">Keys: Up/Down in the list choose an instrument, Enter goes to the graph. In the graph the arrows (or Tab) move between nodes, Esc goes back to the list, Delete removes the node or wire. Drag a node to move it. Drag from an output dot (right side) to an input dot (left side) to
+          wire them. An input can take several wires, which are added together; use a mix node when you want a ratio. Blue wires carry audio, amber wires carry control signals (envelopes, lfos, triggers), and heavier purple wires carry a stereo pair (a mono wire into a stereo input feeds both channels; stereo into a mono input is averaged). Right-click the graph, or double-click empty space, to insert a node. In the panels, sliders change a parameter (Left/Right, Shift for more) and "expose" adds it to the instrument's pattern
           columns. Changing the wiring or the exposed list swaps the instrument in live and clears undo.</p>
       </div>
     </div>

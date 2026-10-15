@@ -3018,4 +3018,57 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   key('R', { shiftKey: true }); assert.equal(w.data[0], keep[3999], 'with no selection a tool takes the whole sample');
 }
 
+// 88. The instrument screen: exposed parameters as sliders of their own, slider keys, and keyboard moves between nodes.
+{
+  const makeEl = tag => ({
+    tag, children: [], listeners: {}, style: {}, textContent: '', value: '', checked: false,
+    appendChild(c) { this.children.push(c); return c; }, replaceChildren(...c) { this.children = c; },
+    addEventListener(type, f) { this.listeners[type] = f; }, focus() {},
+  });
+  const walk = (el, fn) => { fn(el); (el.children ?? []).forEach(c => walk(c, fn)); };
+  const doc = { createElement: makeEl, createTextNode: text => ({ text }) };
+  const ctx = new Proxy({}, { get: (t, k) => (k in t ? t[k] : () => {}), set: (t, k, v) => { t[k] = v; return true; } });
+  const canvas = { width: 900, height: 360, style: {}, listeners: {}, getContext: () => ctx, addEventListener(type, f) { this.listeners[type] = f; }, focus() {} };
+  const panel = makeEl('div'), exposedPanel = makeEl('div'), defs = structuredClone(instruments);
+  const params = [];
+  let escaped = 0;
+  const patcher = createPatcher({ canvas, panel, exposedPanel, onEscape: () => { escaped++; }, statusEl: {}, doc, nodeTypes: NODE_TYPES, onStructure() {}, onParam: (...a) => params.push(a) });
+  patcher.load({ instruments: defs });
+  patcher.show('lead');
+  const rows = []; walk(exposedPanel, e => { if (e.className === 'prow xrow') rows.push(e); });
+  assert.equal(rows.length, defs.lead.exposed.length, 'one slider per exposed parameter');
+  assert.ok(rows.length >= 2);
+  const sliderOf = row => row.children.find(c => c.type === 'range');
+  const first = sliderOf(rows[0]), x = defs.lead.exposed[0];
+  const before = Number(first.value);
+  first.listeners.keydown({ key: 'ArrowRight', preventDefault() {} });
+  assert.equal(Number(first.value), before + 5, 'Right moves a slider a little');
+  first.listeners.keydown({ key: 'ArrowRight', shiftKey: true, preventDefault() {} });
+  assert.equal(Number(first.value), before + 55, 'Shift moves it further');
+  first.listeners.keydown({ key: 'ArrowLeft', shiftKey: true, preventDefault() {} });
+  assert.equal(Number(first.value), before + 5);
+  assert.deepEqual(params.at(-1).slice(0, 3), ['lead', x.node, x.param], 'moving it changes the parameter');
+  first.value = '1000'; first.listeners.keydown({ key: 'ArrowRight', preventDefault() {} });
+  assert.equal(Number(first.value), 1000, 'a slider stops at its end');
+  // the node's own slider follows when the node is selected, and the other way round
+  const node = defs.lead.graph.nodes.find(n => n.id === x.node);
+  const { w, h } = nodeBox(NODE_TYPES[node.type]);
+  canvas.listeners.mousedown({ offsetX: node.x + w / 2, offsetY: node.y + h / 2, preventDefault() {} });
+  canvas.listeners.mouseup({ offsetX: node.x + w / 2, offsetY: node.y + h / 2 });
+  const nodeRows = []; walk(panel, e => { if (e.className === 'prow') nodeRows.push(e); });
+  const own = sliderOf(nodeRows[NODE_TYPES[node.type].params.findIndex(p => p.name === x.param)]);
+  assert.equal(Number(own.value), 1000);
+  // keyboard moves between nodes
+  const key = k => canvas.listeners.keydown({ key: k, preventDefault() {} });
+  patcher.show('lead');
+  assert.equal(patcher.selectedNode, null);
+  key('Tab'); const start = patcher.selectedNode;
+  assert.ok(start, 'Tab selects the leftmost node');
+  const order = [start]; for (let i = 0; i < defs.lead.graph.nodes.length - 1; i++) { key('Tab'); order.push(patcher.selectedNode); }
+  assert.equal(new Set(order).size, defs.lead.graph.nodes.length, 'Tab visits every node once');
+  key('Tab'); assert.equal(patcher.selectedNode, start, 'and comes back round');
+  key('ArrowRight'); assert.notEqual(patcher.selectedNode, start, 'an arrow moves to a node in that direction');
+  key('Escape'); assert.equal(escaped, 1, 'Escape asks to go back to the list');
+}
+
 console.log('smoke test passed');
