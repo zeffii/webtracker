@@ -374,7 +374,9 @@ export function createTrackerView({ el, statusEl, transport, onToggle, onBack, o
         }).join(' ');
       });
       const row = `${playing && t === playTick ? '>' : ' '}${String(t).padStart(4, '0')} ${chunks.join('  ')}`;
-      lines.push(playing && t === playTick ? `<b>${row}</b>` : row);
+      const shade = t % 16 === 0 ? 'r16' : t % 4 === 0 ? 'r4' : '';
+      const line = playing && t === playTick ? `<b>${row}</b>` : row;
+      lines.push(shade ? `<span class="${shade}">${line}</span>` : line);
     }
     while (lines.length < 2 + rowCount) lines.push('');   // always rowCount rows tall, so the drag bar works on a short song
     el.innerHTML = lines.join('\n');
