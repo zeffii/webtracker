@@ -1,3 +1,4 @@
+import { SAMPLE_KEYS } from './ops.js';
 // The project file: plain JSON, version 1, extension .wax.
 //
 // {
@@ -9,7 +10,8 @@
 //   (graph.voices, 1 to 16, runs that many copies of the graph for polyphony; noteColumns, 1 to 8,
 //    is how many note and velocity column pairs a row has; both default to 1)
 //   samples: { id: { rate, encoding: 'pcm16' | 'float32', data: base64 of little-endian samples,
-//                    loopStart?, loopEnd? } },   (loop points in frames; no encoding means float32)
+//                    loopStart?, loopEnd?, loopOn?, loopXfade?, susStart?, susEnd?, susOn?, susXfade?,
+//                    volume?, globalVolume?, pan? } },   (loops in frames, crossfades in frames, volume 0..1, pan -1..1; no encoding means float32)
 //   lanes: [{ id, instrument, patterns: { puid: { name, index, rows: ['C-4 .. 70', ...] } },
 //             placements: [{ puid, start, length }],
 //             mutes?: [tick, ...],
@@ -42,21 +44,22 @@ const fromPcm16 = ints => Float32Array.from(ints, v => v / 32767);
 const encodeChannel = (data, format) => toBase64(format === 'pcm16' ? toPcm16(data) : data);
 const decodeChannel = (text, encoding) => (encoding === 'pcm16' ? fromPcm16(new Int16Array(fromBase64(text))) : new Float32Array(fromBase64(text)));
 
+// The loop points, loop switches and crossfades, volume, global volume and pan, where set.
+const pickKeys = s => Object.fromEntries(SAMPLE_KEYS.filter(k => s[k] !== undefined).map(k => [k, s[k]]));
+
 export const encodeSample = (s, format) => ({
   rate: s.rate,
   encoding: format,
   data: encodeChannel(s.data, format),
   ...(s.right ? { right: encodeChannel(s.right, format) } : {}),   // stereo samples only
-  loopStart: s.loopStart,
-  loopEnd: s.loopEnd,
+  ...pickKeys(s),
 });
 
 export const decodeSample = s => ({
   rate: s.rate,
   data: decodeChannel(s.data, s.encoding),
   ...(s.right ? { right: decodeChannel(s.right, s.encoding) } : {}),
-  loopStart: s.loopStart,
-  loopEnd: s.loopEnd,
+  ...pickKeys(s),
 });
 
 // lanes are the prepared working lanes (with any edits), not the song's source lanes.

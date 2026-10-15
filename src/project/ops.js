@@ -4,6 +4,9 @@ import { buildPages, createLane, flattenLane, writeMask } from '../seq/lane.js';
 // Changes to the shape of a project: samples, instruments, lanes. Plain functions on the
 // project object { song, instruments, samples, lanes } so the page and the tests share them.
 
+// Everything a sample carries besides its audio.
+export const SAMPLE_KEYS = ['loopStart', 'loopEnd', 'loopOn', 'loopXfade', 'susStart', 'susEnd', 'susOn', 'susXfade', 'volume', 'globalVolume', 'pan'];
+
 export function uniqueId(taken, base) {
   let id = base, i = 2;
   while (taken.has(id)) id = `${base}${i++}`;
@@ -62,20 +65,59 @@ export function removeSample(project, id) {
   delete project.samples[id];
 }
 
-// Loop points in frames. 0 and 0 mean no loop. Returns the instruments that play the sample.
-export function setLoop(project, id, loopStart, loopEnd) {
+// Loop points in frames. 0 and 0 mean no loop. `kind` is 'loop' (the normal loop) or 'sus' (the
+// sustain loop). Returns the instruments that play the sample.
+export function setLoop(project, id, loopStart, loopEnd, kind = 'loop') {
   const sample = project.samples[id];
+  const [startKey, endKey, onKey, xfKey] = kind === 'sus'
+    ? ['susStart', 'susEnd', 'susOn', 'susXfade'] : ['loopStart', 'loopEnd', 'loopOn', 'loopXfade'];
   if (![loopStart, loopEnd].every(Number.isInteger) || loopStart < 0 || loopEnd < 0) throw new Error('Loop points are whole numbers of frames.');
   if (loopStart === 0 && loopEnd === 0) {
-    delete sample.loopStart;
-    delete sample.loopEnd;
+    for (const key of [startKey, endKey, onKey, xfKey]) delete sample[key];
   } else {
     if (loopEnd > sample.data.length) throw new Error(`The loop end is past the end of the sample (${sample.data.length} frames).`);
     if (loopEnd - loopStart < 2) throw new Error('The loop must be at least two frames long.');
-    sample.loopStart = loopStart;
-    sample.loopEnd = loopEnd;
+    sample[startKey] = loopStart;
+    sample[endKey] = loopEnd;
   }
   return usersOfSample(project, id);
+}
+
+// The sample-level settings, each with its range. Defaults are not stored.
+export const SAMPLE_PROPS = {
+  volume: { min: 0, max: 1, def: 1 },          // default level of every note
+  globalVolume: { min: 0, max: 1, def: 1 },    // on top of that, wherever the sample plays
+  pan: { min: -1, max: 1, def: 0 },
+  loopOn: { bool: true }, susOn: { bool: true },
+  loopXfade: { min: 0, int: true }, susXfade: { min: 0, int: true },
+};
+
+// Sets sample settings ({ volume, globalVolume, pan, loopOn, susOn, loopXfade, susXfade }). Returns the
+// instruments that play the sample.
+export function setSampleProps(project, id, props) {
+  const sample = project.samples[id];
+  for (const [key, value] of Object.entries(props)) {
+    const spec = SAMPLE_PROPS[key];
+    if (!spec) throw new Error(`Unknown sample setting: ${key}`);
+    if (spec.bool) {
+      if (typeof value !== 'boolean') throw new Error(`${key} is on or off.`);
+    } else {
+      if (!Number.isFinite(value) || (spec.int && !Number.isInteger(value))) throw new Error(`${key} must be a ${spec.int ? 'whole ' : ''}number.`);
+      if (value < spec.min || (spec.max !== undefined && value > spec.max)) throw new Error(`${key} must be ${spec.max === undefined ? `at least ${spec.min}` : `between ${spec.min} and ${spec.max}`}.`);
+    }
+  }
+  for (const [key, value] of Object.entries(props)) {
+    if (value === SAMPLE_PROPS[key].def) delete sample[key]; else sample[key] = value;
+  }
+  return usersOfSample(project, id);
+}
+
+// What the sampler node is sent for a sample.
+export function sampleMessage(s) {
+  const msg = { type: 'sample', data: s.data.slice(), rate: s.rate };
+  if (s.right) msg.right = s.right.slice();
+  for (const key of SAMPLE_KEYS) if (s[key] !== undefined) msg[key] = s[key];
+  return msg;
 }
 
 // Adds a sampler instrument playing a sample. Returns its id.

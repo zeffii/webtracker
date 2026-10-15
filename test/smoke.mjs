@@ -1128,7 +1128,7 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   panel.render();
   const rows = container.children;
   assert.equal(rows.length, 2);
-  const parts = row => { const f = { numbers: [], buttons: [], name: null }; walk(row, e => { if (e.tag === 'input' && e.type === 'text') f.name = e; else if (e.tag === 'input') f.numbers.push(e); if (e.tag === 'button') f.buttons.push(e); }); return f; };
+  const parts = row => { const f = { numbers: [], buttons: [], name: null }; walk(row, e => { if (e.tag === 'input' && e.type === 'text') f.name = e; else if (e.tag === 'input' && e.type === 'number') f.numbers.push(e); if (e.tag === 'button') f.buttons.push(e); }); return f; };
   const pluck = parts(rows[0]), tick = parts(rows[1]);
   assert.equal(pluck.buttons[0].disabled, true, 'a sample in use cannot be removed');
   assert.equal(tick.buttons[0].disabled, false);
@@ -2788,6 +2788,66 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     assert.ok(el.innerHTML.includes('style="background:#aa3355"'), 'a custom colour is drawn');
     pat().color = 'red; x'; view.draw(); assert.ok(!el.innerHTML.includes('red; x'), 'anything but #rrggbb is ignored');
   }
+}
+
+// 85. Sample-level settings, a sustain loop and loop crossfades in the sampler.
+{
+  const sampler = (await import('../src/audio/nodes/sampler.js')).default;
+  const ramp = Float32Array.from({ length: 2000 }, (_, i) => i / 2000);
+  const play = (msg, { stereo = false, frames = 3000, off = null, params = [1, 60, 150, 20] } = {}) => {
+    const node = sampler.create({ sampleRate: sr, stereo });
+    node.message({ type: 'sample', data: ramp, rate: sr, ...msg });
+    node.note({ type: 'noteOn', note: 60, vel: 1 });
+    const L = new Float32Array(frames), R = new Float32Array(frames);
+    for (let at = 0; at < frames; at += block) {
+      if (off !== null && at === off) node.note({ type: 'noteOff', note: 60 });
+      const outL = new Float32Array(block), outR = new Float32Array(block);
+      node.process([], [stereo ? [outL, outR] : outL], block, params, [0, 1, 2, 3]);
+      L.set(outL.subarray(0, Math.min(block, frames - at)), at);
+      R.set(outR.subarray(0, Math.min(block, frames - at)), at);
+    }
+    return { L, R };
+  };
+  // volume and global volume scale every note, and so do both together
+  const base = play({}, { frames: 1024 }).L;
+  const half = play({ volume: 0.5 }, { frames: 1024 }).L, quarter = play({ volume: 0.5, globalVolume: 0.5 }, { frames: 1024 }).L;
+  assert.ok(Math.abs(half[800] - base[800] * 0.5) < 1e-6 && Math.abs(quarter[800] - base[800] * 0.25) < 1e-6);
+  // pan: hard left silences the right channel; centre leaves both
+  const left = play({ pan: -1 }, { stereo: true, frames: 1024 });
+  assert.ok(left.R.every(v => v === 0) && Math.abs(left.L[800] - base[800]) < 1e-6);
+  const mid = play({}, { stereo: true, frames: 1024 });
+  assert.ok(Math.abs(mid.L[800] - mid.R[800]) < 1e-9 && Math.abs(mid.L[800] - base[800]) < 1e-6);
+  // sustain loop: held notes stay inside it; at note off, with no normal loop, the tail plays on to the end
+  const held = play({ susStart: 200, susEnd: 400 }, { frames: 3000 }).L;
+  assert.ok(peak(held) <= 0.2 + 1e-6 && peak(held) > 0.15, 'the sustain loop holds the voice between its points');
+  const released = play({ susStart: 200, susEnd: 400 }, { frames: 3000, off: 1024 }).L;
+  assert.ok(peak(released) > 0.9, 'the tail after the sustain loop plays out');
+  assert.ok(released.subarray(2900).every(v => v === 0), 'and then the voice ends');
+  // with a normal loop as well, note off carries on into it and fades out
+  const both = play({ susStart: 200, susEnd: 400, loopStart: 1000, loopEnd: 1200 }, { frames: 80000, off: 1024, params: [1, 60, 1000, 20] }).L;
+  assert.ok(peak(both.subarray(2000, 8000)) > 0.3 && peak(both.subarray(2000, 8000)) <= 0.6 + 1e-6, 'the voice plays on in the normal loop');
+  assert.ok(both.subarray(75000).every(v => v === 0), 'and fades out');
+  // loop off ignores the loop points
+  assert.ok(peak(play({ loopStart: 200, loopEnd: 400, loopOn: false }, { frames: 3000 }).L) > 0.9);
+  // crossfade: the seam of a sawtooth loop is a jump; the crossfade smooths it away
+  const maxJump = out => out.subarray(1500, 5500).reduce((m, v, i, a) => (i ? Math.max(m, Math.abs(v - a[i - 1])) : m), 0);
+  const seam = play({ loopStart: 600, loopEnd: 1400 }, { frames: 6000 }).L;
+  const smooth = play({ loopStart: 600, loopEnd: 1400, loopXfade: 200 }, { frames: 6000 }).L;
+  assert.ok(maxJump(seam) > 0.3, 'an unfaded loop jumps at its seam');
+  assert.ok(maxJump(smooth) < 0.01, 'the crossfade removes the jump');
+  // settings are validated, defaults are not stored, and the sampler message carries them
+  const project = { samples: { s: { rate: sr, data: ramp } }, instruments: { a: { samples: { sampler: 's' } } } };
+  assert.deepEqual(pops.setSampleProps(project, 's', { volume: 0.5, pan: -0.25, susOn: false, loopXfade: 64 }), [{ instrument: 'a', node: 'sampler' }]);
+  assert.throws(() => pops.setSampleProps(project, 's', { volume: 2 }));
+  assert.throws(() => pops.setSampleProps(project, 's', { loopXfade: 1.5 }));
+  assert.throws(() => pops.setSampleProps(project, 's', { nope: 1 }));
+  pops.setSampleProps(project, 's', { volume: 1 });
+  assert.equal(project.samples.s.volume, undefined);
+  pops.setLoop(project, 's', 100, 900, 'sus');
+  const msg = pops.sampleMessage(project.samples.s);
+  assert.deepEqual([msg.pan, msg.susStart, msg.susEnd, msg.susOn, msg.loopXfade], [-0.25, 100, 900, false, 64]);
+  const back = parseProject(serializeProject({ song: { name: 's', bpm: 100, ticksPerBeat: 4, length: 16 }, instruments: {}, samples: project.samples, lanes: [] }));
+  assert.deepEqual([back.samples.s.pan, back.samples.s.susEnd, back.samples.s.loopXfade, back.samples.s.volume], [-0.25, 900, 64, undefined]);
 }
 
 console.log('smoke test passed');

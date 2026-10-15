@@ -7,7 +7,7 @@ import { createSynthwaveProject } from './project/synthwave.js';
 import * as ops from './project/ops.js';
 import * as presets from './project/presets.js';
 import { LIBRARY_EXT, addToLibrary, importFromLibrary, newLibrary, parseLibrary, serializeLibrary } from './project/library.js';
-import { addLane, addSample, addSamplerInstrument, addSynthInstrument, channelsOf, syncSamplerStereo } from './project/ops.js';
+import { addLane, addSample, addSamplerInstrument, addSynthInstrument, channelsOf, sampleMessage, syncSamplerStereo } from './project/ops.js';
 import { synthKinds } from './instruments.js';
 import { createSamplePanel } from './project/samplepanel.js';
 import { createWaveformView } from './project/waveform.js';
@@ -95,8 +95,7 @@ const menu = createInsertMenu({ parent: $('patch-wrap'), nodeTypes: NODE_TYPES, 
 $('patch').addEventListener('mousedown', () => menu.close());
 
 const sendSample = (id, node) => {
-  const { data, right, rate, loopStart, loopEnd } = project.samples[project.instruments[id].samples[node]];
-  engine.sendToNode(id, node, { type: 'sample', data: data.slice(), right: right?.slice(), rate, loopStart, loopEnd });
+  engine.sendToNode(id, node, sampleMessage(project.samples[project.instruments[id].samples[node]]));
 };
 const loadInst = id => {
   syncSamplerStereo(project.instruments[id], project.samples);
