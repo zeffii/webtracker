@@ -2306,18 +2306,22 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   ctrl('a'); view.draw();
   assert.ok(statusEl.textContent.includes(`selected ${demoSong.length}x${lead.columns.length}`), statusEl.textContent);
 
+  view.draw();
+  const labels = el.innerHTML.split('\n').slice(2).map(l => l.replace(/<[^>]+>/g, '').slice(0, 6));
+  assert.ok(labels.length > 4 && labels.every(l => /^[> ]\d{4} $/.test(l)), `the tick column is four digits, zero-padded: ${labels.slice(0, 3)}`);
+
   // mouse geometry: which cell is under a character position
   const widths = [[4, 3, 2, 2], [4, 3]];   // two lanes; lane 0 is 4+3+2+2 + 3 gaps = 14 wide
   const at = (x, line, top = 0) => cellAt({ widths, x, line, top, len: 32 });
-  assert.equal(at(3, 2), null, 'the gutter');
+  assert.equal(at(5, 2), null, 'the gutter');
   assert.equal(at(10, 1), null, 'the header');
-  assert.deepEqual(at(5, 2), { lane: 0, tick: 0, col: 0, ch: 0 });          // 4 gutter + 1 marker: the first column
-  assert.deepEqual(at(7, 5, 10), { lane: 0, tick: 13, col: 0, ch: 2 });     // scrolled: line 5 is tick top + 3
-  assert.deepEqual(at(10, 2), { lane: 0, tick: 0, col: 1, ch: 0 });         // after the column and its space
-  assert.deepEqual(at(19, 2).col, 3);
-  assert.equal(at(5 + 14 + 2 + 1, 2).lane, 1, 'the second lane starts after a marker and two spaces');
+  assert.deepEqual(at(7, 2), { lane: 0, tick: 0, col: 0, ch: 0 });          // 6 gutter + 1 marker: the first column
+  assert.deepEqual(at(9, 5, 10), { lane: 0, tick: 13, col: 0, ch: 2 });     // scrolled: line 5 is tick top + 3
+  assert.deepEqual(at(12, 2), { lane: 0, tick: 0, col: 1, ch: 0 });         // after the column and its space
+  assert.deepEqual(at(21, 2).col, 3);
+  assert.equal(at(7 + 14 + 2 + 1, 2).lane, 1, 'the second lane starts after a marker and two spaces');
   assert.equal(at(200, 2).col, 1, 'far right is the last column');
-  assert.equal(at(5, 40), null, 'past the last row');
+  assert.equal(at(7, 40), null, 'past the last row');
 }
 
 // 67. Managing lanes and instruments: rename, reorder, copy, remove, and loading the result back.

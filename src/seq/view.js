@@ -11,13 +11,14 @@ const isNote = token => /^[A-G][-#]\d$/.test(token);
 
 // Which cell is under a point of the text grid? x is in characters from the left of the text, line
 // is the line (the two header lines come first), top the first tick on screen. The layout is the
-// one draw() writes: a four-character gutter, then each lane as a one-character marker and its
+// one draw() writes: a six-character gutter (playhead marker, four digits of tick, a space), then each lane as a one-character marker and its
 // columns separated by single spaces, with two spaces between lanes. Returns null in the header
 // or the gutter; to the right of a lane's last column, or between lanes, it picks the nearest cell.
+export const GUTTER = 6;
 export function cellAt({ widths, x, line, top, len }) {
   const tick = top + line - 2;
-  if (line < 2 || tick >= len || x < 4) return null;
-  let start = 4, lane = 0;
+  if (line < 2 || tick >= len || x < GUTTER) return null;
+  let start = GUTTER, lane = 0;
   const starts = widths.map(w => { const s = start; start += 1 + w.reduce((a, b) => a + b, 0) + w.length - 1 + 2; return s; });
   starts.forEach((s, i) => { if (x >= s) lane = i; });
   let col = 0, at = starts[lane] + 1;
@@ -295,8 +296,8 @@ export function createTrackerView({ el, statusEl, transport, onToggle, onBack, o
     top = Math.max(0, Math.min(cur.tick - 8, len - ROWS));
     const r = sel ? rect() : null;
     const lines = [
-      `    ${lanes.map((l, li) => ` ${esc(l.id.padEnd(block(li)))}`).join('  ')}`,
-      `    ${lanes.map((l, li) => ` ${l.columns.map((c, ci) => esc(c.label.padEnd(widths[li][ci]))).join(' ')}`).join('  ')}`,
+      `${' '.repeat(GUTTER)}${lanes.map((l, li) => ` ${esc(l.id.padEnd(block(li)))}`).join('  ')}`,
+      `${' '.repeat(GUTTER)}${lanes.map((l, li) => ` ${l.columns.map((c, ci) => esc(c.label.padEnd(widths[li][ci]))).join(' ')}`).join('  ')}`,
     ];
     for (let t = top; t < Math.min(len, top + ROWS); t++) {
       const chunks = lanes.map((lane, li) => {
@@ -316,7 +317,7 @@ export function createTrackerView({ el, statusEl, transport, onToggle, onBack, o
           return covered ? html : `<span class="off">${html}</span>`;
         }).join(' ');
       });
-      const row = `${playing && t === playTick ? '>' : ' '}${String(t).padStart(2, '0')} ${chunks.join('  ')}`;
+      const row = `${playing && t === playTick ? '>' : ' '}${String(t).padStart(4, '0')} ${chunks.join('  ')}`;
       lines.push(playing && t === playTick ? `<b>${row}</b>` : row);
     }
     el.innerHTML = lines.join('\n');
