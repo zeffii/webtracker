@@ -4,6 +4,7 @@ import { placementAt, puidByIndex, startsAt } from './edit.js';
 const ROWS = 24;     // rows shown at once
 const CELL = 16;     // ticks in one row
 const COLW = 14;     // characters per lane column
+const INSET = 6;     // pixels a pattern is inset from the right for each pattern under it
 const hex2 = n => n.toString(16).toUpperCase().padStart(2, '0');
 
 // The arrangement, zoomed out: time runs down the rows (one row is 16 ticks) and each lane is a
@@ -116,51 +117,75 @@ export function createSequenceView({ el, statusEl, transport, onToggle, onOpen, 
     if (onMove && (cur.lane !== li || cur.tick !== before)) onMove(cur.lane, cur.tick);   // keep the grid in step
   });
 
+  // The patterns of a lane as blocks: where each starts and ends, and how many patterns lie under it.
+  // A pattern placed over another is drawn inset from the right by one step for each pattern under it,
+  // so its name stays at the same x and the one below still shows at the edge.
+  const layout = l => l.placements.map((pl, i) => {
+    const end = pl.start + Math.min(pl.length, l.patterns[pl.puid].length);
+    return { pl, i, start: pl.start, end };
+  }).map((e, _, all) => ({ ...e, depth: all.filter(o => o.start < e.start && o.end > e.start).length }))
+    .sort((a, b) => a.start - b.start || a.i - b.i);
+
+  const colourOf = pat => {
+    const c = pat.color;
+    if (Number.isInteger(c) && c >= 0 && c < 16) return { cls: `c${c}`, style: '' };
+    if (typeof c === 'string' && /^#[0-9a-f]{6}$/i.test(c)) return { cls: '', style: c };
+    return { cls: `p${pat.index % 6}`, style: '' };
+  };
+
   const draw = () => {
     if (!lanes) return;
     const playing = Atomics.load(transport, 1) === 1, playTick = Atomics.load(transport, 0);
     const rows = Math.ceil(len / CELL), curRow = Math.floor(cur.tick / CELL);
     const top = Math.max(0, Math.min(curRow - 8, rows - ROWS));
-    const lines = [`      ${lanes.map((l, li) => {
+    const blocks = lanes.map(layout);
+    const row = text => `<div class="r">${text}</div>`;
+    const lines = [row(`      ${lanes.map((l, li) => {
       const head = `${li === cur.lane ? '>' : ' '}${esc(l.id.slice(0, COLW - 1).padEnd(COLW - 1))}`;
       return l.silenced ? `<span class="silenced">${head}</span>` : head;
-    }).join(' ')}`];
+    }).join(' ')}`)];
 
     for (let r = top; r < Math.min(rows, top + ROWS); r++) {
       const t = r * CELL;
       const cells = lanes.map((l, li) => {
         const pl = inRow(l, t);
         const level = l.mask?.[t] ?? 0, muted = level > 0, flip = (l.mutes ?? []).includes(t);
-        let text = muted ? '·'.repeat(COLW) : ' '.repeat(COLW), cls = '', style = '';
+        const isCur = li === cur.lane && r === curRow;
+        // the patterns that touch this row, lowest first; each is a rect, inset by the patterns under it
+        const layers = blocks[li].filter(e => e.start < t + CELL && e.end > t).map(e => {
+          const { cls, style } = colourOf(l.patterns[e.pl.puid]);
+          const edges = `${e.start >= t ? ' st' : ''}${e.end <= t + CELL ? ' en' : ''}`;
+          const css = `right:${Math.min(e.depth, 4) * INSET}px${style ? `;--c:${style}` : ''}`;
+          return `<i class="L${cls ? ` ${cls}` : ''}${edges}" style="${css}"></i>`;
+        }).join('');
+        let text = muted && !pl ? '·'.repeat(COLW) : ' '.repeat(COLW);
+        let swatch = null;
         if (pl) {
           const pat = l.patterns[pl.puid];
-          text = (pl.start >= t ? `▌${hex2(pat.index)} ${pat.name}` : '│').slice(0, COLW).padEnd(COLW);
+          text = (pl.start >= t ? `${hex2(pat.index)} ${pat.name}` : '').slice(0, COLW).padEnd(COLW);
           if (pl.more) text = `${text.slice(0, COLW - 1)}+`;
-          const c = pat.color;
-          if (Number.isInteger(c) && c >= 0 && c < 16) cls = `c${c}`;
-          else if (typeof c === 'string' && /^#[0-9a-f]{6}$/i.test(c)) style = ` style="background:${c}"`;
-          else cls = `p${pat.index % 6}`;
+          swatch = colourOf(pat);
         }
         if (flip) text = `${text.slice(0, COLW - 1)}${muted ? 'm' : 'u'}`;   // m: muted from here, u: plays again
-        const classes = [cls, level === 2 ? 'silenced' : muted && 'muted', li === cur.lane && r === curRow && 'cur'].filter(Boolean).join(' ');
+        const classes = ['cell', level === 2 ? 'silenced' : muted && 'muted', isCur && 'cur'].filter(Boolean).join(' ');
         // The cell under the cursor is drawn in the selection colour, which hides the pattern's own;
         // a small swatch of it is drawn on top so a colour change can be seen.
         let inner = esc(text);
-        if (li === cur.lane && r === curRow && pl) {
-          const at = COLW - 2;
-          inner = `${esc(text.slice(0, at))}<span class="sw ${cls}"${style}> </span>${esc(text.slice(at + 1))}`;
+        if (isCur && swatch) {
+          const at = COLW - 2, style = swatch.style ? ` style="background:${swatch.style}"` : '';
+          inner = `${esc(text.slice(0, at))}<span class="sw ${swatch.cls}"${style}> </span>${esc(text.slice(at + 1))}`;
         }
-        return classes || style ? `<span class="${classes}"${style}>${inner}</span>` : inner;
+        return `<span class="${classes}">${layers}${isCur ? '<i class="cb"></i>' : ''}<span class="t">${inner}</span></span>`;
       });
-      lines.push(`${playing && playTick >= t && playTick < t + CELL ? '>' : ' '}${String(t).padStart(4, '0')} ${cells.join(' ')}`);
+      lines.push(row(`${playing && playTick >= t && playTick < t + CELL ? '>' : ' '}${String(t).padStart(4, '0')} ${cells.join(' ')}`));
     }
 
     const pool = Object.values(lane().patterns).sort((a, b) => a.index - b.index)
       .map(p => `${hex2(p.index)} ${esc(p.name)} (${p.length})`).join('  ');
-    lines.push('', `${esc(lane().id)} patterns: ${pool || 'none yet'}`);
+    lines.push(row(''), row(`${esc(lane().id)} patterns: ${pool || 'none yet'}`));
     const log = editor.log().slice(0, 5).map(esc).join(' < ');
-    lines.push(`undo: ${log || 'nothing yet'}${editor.hasWaypoint() ? '   [waypoint set]' : ''}`);
-    el.innerHTML = lines.join('\n');
+    lines.push(row(`undo: ${log || 'nothing yet'}${editor.hasWaypoint() ? '   [waypoint set]' : ''}`));
+    el.innerHTML = lines.join('');
 
     const owner = here();
     statusEl.textContent = [

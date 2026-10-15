@@ -523,10 +523,10 @@ const firstSound = x => x.findIndex(v => Math.abs(v) > 1e-9);
   // layout: time runs down, lanes are columns
   view.goto(0, 0);
   view.draw();
-  const rows = el.innerHTML.split('\n');
+  const rows = el.innerHTML.split('<div class="r">').slice(1);
   assert.ok(rows[0].includes('&lt;b&gt;x&lt;/b&gt;'), 'lane names are the column headers');
   assert.ok(rows[1].startsWith(' 0000') && rows[2].startsWith(' 0016'), 'one row per 16 ticks, counting down');
-  assert.ok(rows.slice(1, 3).some(r => r.includes('▌')), 'blocks start on their row');
+  assert.ok(rows.slice(1, 3).some(r => /class="L[^"]* st/.test(r)), 'blocks start on their row');
   press('ArrowDown'); press('ArrowDown');                                // time moves down the rows
   assert.deepEqual(moves.at(-1), [0, 16], 'the second row, 16 ticks down (the song is 32 ticks)');
   press('ArrowRight');                                                   // and right changes lane
@@ -534,7 +534,7 @@ const firstSound = x => x.findIndex(v => Math.abs(v) > 1e-9);
   view.goto(0, 5); press('ArrowDown'); assert.deepEqual(moves.at(-1), [0, 16], 'the cursor sits on a row start');
   // two patterns start in the second row of the lead lane (an arp at 16 and a fill at 28): marked with a +
   view.goto(0, 16); view.draw();
-  assert.ok(/\+<\/span>|\+ /.test(el.innerHTML.split('\n')[2]), 'a row with several starts is marked');
+  assert.ok(/\+<\/span>/.test(el.innerHTML.split('<div class="r">')[3]), 'a row with several starts is marked');
 }
 
 // 25. The two views follow each other: moving in one reports the position for the other.
@@ -2792,7 +2792,7 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     const pat = () => lanes[0].patterns[lanes[0].placements.find(p => p.start === 0).puid];
     assert.equal(pat().color, undefined);
     key('k'); assert.equal(pat().color, 0);
-    view.draw(); assert.ok(el.innerHTML.includes('class="c0"'));
+    view.draw(); assert.ok(/class="L c0/.test(el.innerHTML));
     assert.ok(el.innerHTML.includes('<span class="sw c0"> </span>'), 'the cell under the cursor shows a swatch of the pattern colour');
     assert.equal(el.innerHTML.split('class="sw ').length - 1, 1, 'and only that cell');
     for (let i = 0; i < 15; i++) key('k');

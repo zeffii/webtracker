@@ -33,29 +33,40 @@
 
     /* patterns and arrangement */
     #view:focus, #seq:focus { outline: 1px solid; }
-    #seq { overflow-x: auto; }
-    #seq .p0 { background: hsl(210 70% 55% / .35); }
-    #seq .p1 { background: hsl(150 60% 45% / .35); }
-    #seq .p2 { background: hsl(30 80% 55% / .35); }
-    #seq .p3 { background: hsl(280 60% 60% / .35); }
-    #seq .p4 { background: hsl(0 70% 55% / .35); }
-    #seq .p5 { background: hsl(55 70% 50% / .35); }
-    #seq .c0 { background: hsl(0 65% 72% / .6); }
-    #seq .c1 { background: hsl(22 65% 72% / .6); }
-    #seq .c2 { background: hsl(45 65% 72% / .6); }
-    #seq .c3 { background: hsl(68 65% 72% / .6); }
-    #seq .c4 { background: hsl(90 65% 72% / .6); }
-    #seq .c5 { background: hsl(112 65% 72% / .6); }
-    #seq .c6 { background: hsl(135 65% 72% / .6); }
-    #seq .c7 { background: hsl(158 65% 72% / .6); }
-    #seq .c8 { background: hsl(180 65% 72% / .6); }
-    #seq .c9 { background: hsl(202 65% 72% / .6); }
-    #seq .c10 { background: hsl(225 65% 72% / .6); }
-    #seq .c11 { background: hsl(248 65% 72% / .6); }
-    #seq .c12 { background: hsl(270 65% 72% / .6); }
-    #seq .c13 { background: hsl(292 65% 72% / .6); }
-    #seq .c14 { background: hsl(315 65% 72% / .6); }
-    #seq .c15 { background: hsl(338 65% 72% / .6); }
+    #seq { overflow-x: auto; line-height: 18px; }
+    #seq .r { height: 18px; white-space: pre; }
+    #seq .cell { position: relative; display: inline-block; width: 14ch; height: 18px; vertical-align: top; overflow: hidden; }
+    #seq .cell > i { position: absolute; top: 0; bottom: 0; left: 0; right: 0; display: block; }
+    /* a pattern is one rect from its first row to its last; opaque, so one placed over another hides it */
+    #seq .L { background-color: Canvas; background-image: linear-gradient(var(--c, transparent), var(--c, transparent)); }
+    #seq .L.st { box-shadow: inset 0 2px 0 color-mix(in srgb, CanvasText 40%, transparent); }
+    #seq .L.en { box-shadow: inset 0 -2px 0 color-mix(in srgb, CanvasText 40%, transparent); }
+    #seq .L.st.en { box-shadow: inset 0 2px 0 color-mix(in srgb, CanvasText 40%, transparent), inset 0 -2px 0 color-mix(in srgb, CanvasText 40%, transparent); }
+    #seq .cb { background: Highlight; }
+    #seq .t { position: relative; padding-left: 4px; }
+    #seq .cell.cur .t { color: HighlightText; }
+    #seq .L.p0 { --c: hsl(210 70% 55% / .35); }
+    #seq .L.p1 { --c: hsl(150 60% 45% / .35); }
+    #seq .L.p2 { --c: hsl(30 80% 55% / .35); }
+    #seq .L.p3 { --c: hsl(280 60% 60% / .35); }
+    #seq .L.p4 { --c: hsl(0 70% 55% / .35); }
+    #seq .L.p5 { --c: hsl(55 70% 50% / .35); }
+    #seq .L.c0 { --c: hsl(0 65% 72% / .6); }
+    #seq .L.c1 { --c: hsl(22 65% 72% / .6); }
+    #seq .L.c2 { --c: hsl(45 65% 72% / .6); }
+    #seq .L.c3 { --c: hsl(68 65% 72% / .6); }
+    #seq .L.c4 { --c: hsl(90 65% 72% / .6); }
+    #seq .L.c5 { --c: hsl(112 65% 72% / .6); }
+    #seq .L.c6 { --c: hsl(135 65% 72% / .6); }
+    #seq .L.c7 { --c: hsl(158 65% 72% / .6); }
+    #seq .L.c8 { --c: hsl(180 65% 72% / .6); }
+    #seq .L.c9 { --c: hsl(202 65% 72% / .6); }
+    #seq .L.c10 { --c: hsl(225 65% 72% / .6); }
+    #seq .L.c11 { --c: hsl(248 65% 72% / .6); }
+    #seq .L.c12 { --c: hsl(270 65% 72% / .6); }
+    #seq .L.c13 { --c: hsl(292 65% 72% / .6); }
+    #seq .L.c14 { --c: hsl(315 65% 72% / .6); }
+    #seq .L.c15 { --c: hsl(338 65% 72% / .6); }
     #seq .sw { display: inline-block; width: 1ch; height: 1em; vertical-align: text-bottom; box-sizing: border-box; border: 1px solid CanvasText; }
     #seq .sw.c0 { background: hsl(0 65% 72%); }
     #seq .sw.c1 { background: hsl(22 65% 72%); }
@@ -81,7 +92,6 @@
     #seq .sw.p5 { background: hsl(55 70% 50%); }
     #seq .muted { opacity: .45; }
     #seq .silenced { opacity: .2; }
-    #seq .cur { background: Highlight; color: HighlightText; }
     #seq-status, #cursor { min-height: 1.5em; }
     #view { overflow-x: auto; }
     #view .cell { background: color-mix(in srgb, Highlight 25%, transparent); }
