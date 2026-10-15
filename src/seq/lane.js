@@ -127,6 +127,13 @@ export function writeMask(lane, length) {
   for (let i = 0; i < flips.length; i += 2) lane.mask.fill(1, Math.max(0, flips[i]), Math.min(length, flips[i + 1] ?? length));
 }
 
+// A lane never has two patterns starting on the same tick: when loaded data has them, the first one
+// in the list stays (the one placementAt already preferred) and the others are dropped.
+export function uniqueStarts(placements) {
+  const seen = new Set();
+  return placements.filter(p => (seen.has(p.start) ? false : (seen.add(p.start), true)));
+}
+
 // returned are working copies (parsed patterns, placements, flattened rows, pages)
 // that the editor changes; the song description itself is left alone.
 export function prepareSong(song, instruments, registry) {
@@ -146,7 +153,7 @@ export function prepareSong(song, instruments, registry) {
         }
         return [puid, { name: p.name ?? puid, index, ...(p.color !== undefined ? { color: p.color } : {}), ...parsePattern(p.text, columns) }];
       })),
-      placements: src.placements.map(p => ({ ...p })),
+      placements: uniqueStarts(src.placements.map(p => ({ ...p }))),
       mutes: [...(src.mutes ?? [])].filter(t => t < song.length).sort((a, b) => a - b),
       silenced: src.silenced === true,
     };

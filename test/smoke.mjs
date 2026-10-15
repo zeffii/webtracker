@@ -8,7 +8,7 @@ import { samplerPreset } from '../src/presets.js';
 import { makePluck } from '../src/audio/sample.js';
 import { Sequencer, PAGE_TICKS } from '../src/audio/sequencer.js';
 import { instruments } from '../src/instruments.js';
-import { buildColumns, buildPages, channelCount, flattenLane, prepareSong } from '../src/seq/lane.js';
+import { buildColumns, buildPages, channelCount, flattenLane, prepareSong, uniqueStarts } from '../src/seq/lane.js';
 import { decodeNote, encodeCell, noteToken, EMPTY } from '../src/seq/cells.js';
 import { insertPattern, placementAt, setCell } from '../src/seq/edit.js';
 import { createTrackerView, cellAt } from '../src/seq/view.js';
@@ -3075,6 +3075,17 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   assert.equal(patcher.resize(10), 160, 'not smaller than the minimum');
   assert.equal(patcher.resize(99999), 1600, 'nor larger than the maximum');
   patcher.draw();   // draws at the new size without throwing
+}
+
+// 89: one pattern per start tick in a lane
+{
+  const registry = new ParamRegistry();
+  for (const [id, def] of Object.entries(instruments)) compile(def.graph, { instrument: id, nodeTypes: NODE_TYPES, registry });
+  const dup = { id: 'd', instrument: 'lead', patterns: { a: { text: patternText(8, {}) }, b: { text: patternText(8, {}) } },
+    placements: [{ puid: 'a', start: 0, length: 8 }, { puid: 'b', start: 0, length: 4 }, { puid: 'b', start: 8, length: 8 }] };
+  const [lane] = prepareSong({ ...demoSong, lanes: [dup] }, instruments, registry);
+  assert.deepEqual(lane.placements.map(p => [p.puid, p.start]), [['a', 0], ['b', 8]], 'the first placement at a tick stays');
+  assert.deepEqual(uniqueStarts([{ start: 1 }, { start: 1 }, { start: 2 }]).length, 2);
 }
 
 console.log('smoke test passed');
