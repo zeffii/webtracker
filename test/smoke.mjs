@@ -3088,4 +3088,23 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   assert.deepEqual(uniqueStarts([{ start: 1 }, { start: 1 }, { start: 2 }]).length, 2);
 }
 
+// 90: pattern font size and dim dots
+{
+  const registry = new ParamRegistry();
+  for (const [id, def] of Object.entries(instruments)) compile(def.graph, { instrument: id, nodeTypes: NODE_TYPES, registry });
+  const lanes = prepareSong(demoSong, instruments, registry);
+  let onKey; const el = { addEventListener: (_, f) => { if (_ === 'keydown') onKey = f; }, innerHTML: '', style: {} };
+  const view = createTrackerView({ el, statusEl: {}, transport: new Int32Array(new SharedArrayBuffer(8)), onToggle() {}, onBack() {} });
+  view.load({ lanes, song: demoSong, editor: createEditor(lanes, demoSong.length) });
+  const k = (key, extra) => onKey({ key, ctrlKey: true, preventDefault() {}, ...extra });
+  const start = view.fontPx;
+  k('+'); assert.equal(view.fontPx, start + 1); assert.equal(el.style.fontSize, `${start + 1}px`);
+  k('-'); k('-'); assert.equal(view.fontPx, start - 1);
+  k('0'); assert.equal(view.fontPx, 13);
+  for (let i = 0; i < 60; i++) k('+');
+  assert.equal(view.fontPx, 40, 'clamped');
+  view.draw();
+  assert.match(el.innerHTML, /<span class="d">\.\.\.<\/span>/, 'empty cells are wrapped for dimming');
+}
+
 console.log('smoke test passed');

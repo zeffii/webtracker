@@ -35,6 +35,26 @@ export function createTrackerView({ el, statusEl, transport, onToggle, onBack, o
   let clipboard = null;    // rows of { token, cell } from the last copy
   let top = 0;             // the first tick on screen, as last drawn
 
+  // The whole view is measured in characters and lines of its monospace font, so its size is the font size.
+  // Ctrl + and Ctrl - (or Ctrl + wheel) change it, Ctrl 0 puts it back; it is remembered.
+  const SIZES = { min: 8, max: 40, normal: 13 };
+  let fontPx = SIZES.normal;
+  try { fontPx = Number(localStorage.getItem('patternFontSize')) || SIZES.normal; } catch {}
+  const setSize = px => {
+    fontPx = Math.max(SIZES.min, Math.min(SIZES.max, px));
+    if (el.style) el.style.fontSize = `${fontPx}px`;
+    try { localStorage.setItem('patternFontSize', String(fontPx)); } catch {}
+    message = `Font ${fontPx}px.`;
+    draw();
+    return fontPx;
+  };
+  if (el.style) el.style.fontSize = `${fontPx}px`;
+  el.addEventListener('wheel', e => {
+    if (!e.ctrlKey) return;
+    e.preventDefault();
+    setSize(fontPx + (e.deltaY < 0 ? 1 : -1));
+  }, { passive: false });
+
   const load = ({ lanes: l, song, editor: e }) => {
     lanes = l;
     len = song.length;
@@ -210,6 +230,11 @@ export function createTrackerView({ el, statusEl, transport, onToggle, onBack, o
     if (!lanes || e.altKey) return;
     if (e.ctrlKey || e.metaKey) {
       const key = e.key.toLowerCase();
+      if (key === '+' || key === '=' || key === '-' || key === '_' || key === '0') {
+        e.preventDefault();
+        setSize(key === '0' ? SIZES.normal : fontPx + (key === '-' || key === '_' ? -1 : 1));
+        return;
+      }
       if (key === 'z' || key === 'y') {
         const redo = key === 'y' || e.shiftKey;
         const label = redo ? editor.redo() : editor.undo();
@@ -307,7 +332,7 @@ export function createTrackerView({ el, statusEl, transport, onToggle, onBack, o
           const html = Array.from(text, (ch, i) => {
             const cls = [isCur && i === cur.ch ? 'cur' : '', c.token === 'cmd' && i < 2 ? 'cc' : ''].filter(Boolean).join(' ');
             return cls ? `<span class="${cls}">${esc(ch)}</span>` : esc(ch);
-          }).join('');
+          }).join('').replace(/\.+/g, dots => `<span class="d">${dots}</span>`);   // empty digits, dimmer
           const picked = r && li === r.lane && t >= r.t0 && t <= r.t1 && ci >= r.c0 && ci <= r.c1;
           if (isCur) return `<span class="cell${picked ? ' sel' : ''}">${html}</span>`;
           if (picked) return `<span class="sel">${html}</span>`;
@@ -332,5 +357,5 @@ export function createTrackerView({ el, statusEl, transport, onToggle, onBack, o
     message = '';
   };
 
-  return { draw, load, goto, relayout };
+  return { draw, load, goto, relayout, setSize, get fontPx() { return fontPx; } };
 }
