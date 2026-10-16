@@ -135,6 +135,20 @@ export function createTrackerView({ el, statusEl, transport, onToggle, onBack, o
     }
   };
 
+  // A held arrow key (the repeats the browser sends) moves a whole column at a time, to the start of it: to the right,
+  // the next column; to the left, the start of this column, and then of each one before it. Lanes are hopped at the ends.
+  const moveColumn = d => {
+    if (d < 0 && cur.ch > 0) { cur.ch = 0; return; }
+    const there = neighbour(cur.lane, cur.col, d);
+    if (there >= 0) cur.col = there;
+    else {
+      cur.lane = (cur.lane + d + lanes.length) % lanes.length;
+      const cols = visibleCols(cur.lane, -1);
+      cur.col = d > 0 ? cols[0] : cols.at(-1);
+    }
+    cur.ch = 0;
+  };
+
   // The selected rectangle (or just the cursor's cell): ticks t0..t1 and columns c0..c1 of one lane.
   const rect = () => {
     const a = sel ?? { lane: cur.lane, tick: cur.tick, col: cur.col };
@@ -409,8 +423,8 @@ export function createTrackerView({ el, statusEl, transport, onToggle, onBack, o
     switch (k) {
       case 'ArrowUp': moveRow(-1); break;
       case 'ArrowDown': moveRow(1); break;
-      case 'ArrowLeft': moveChar(-1); break;
-      case 'ArrowRight': moveChar(1); break;
+      case 'ArrowLeft': if (e.repeat) moveColumn(-1); else moveChar(-1); break;
+      case 'ArrowRight': if (e.repeat) moveColumn(1); else moveChar(1); break;
       case 'Tab': moveLane(e.shiftKey ? -1 : 1); break;
       case 'PageUp': moveRow(-16); break;
       case 'PageDown': moveRow(16); break;

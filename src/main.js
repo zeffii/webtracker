@@ -142,6 +142,9 @@ function refreshProjectUi() {
   fill($('new-inst-sample'), Object.keys(project.samples));
 }
 
+// Alt+Left and Alt+Right are the browser's back and forward; they must not leave the page.
+document.addEventListener('keydown', e => { if (e.altKey && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) e.preventDefault(); }, true);
+
 // Keys in the instrument list: Up/Down choose, Home/End jump, Enter goes to the graph.
 $('inst-list').addEventListener('keydown', e => {
   if (!project || e.ctrlKey || e.altKey || e.metaKey) return;

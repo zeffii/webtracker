@@ -343,6 +343,21 @@ const firstSound = x => x.findIndex(v => Math.abs(v) > 1e-9);
   press('Home'); press('ArrowRight', 3);         // Time char 3 -> Cmd char 0..2
   press('z'); assert.equal(bass.rows[0][9], '......');   // note keys do nothing in a hex cell
 
+  // a held arrow (the browser's key repeats) moves a column at a time, to the start of it
+  view.goto(0, 12);
+  press('ArrowLeft', 9, { repeat: true });      // from inside the Cmd column: its start, then each column before it, to the Note column's start
+  const row = () => lead.rows[12];
+  press('ArrowRight', 1, { repeat: true });     // Note -> Vel, first character
+  press('7');
+  assert.equal(row()[1][0], '7', 'a held right arrow lands on the start of the next column');
+  press('ArrowLeft', 1, { repeat: true }); press('1');   // the cursor is inside Vel: held left goes to its start first
+  assert.equal(row()[1][0], '1', 'held left first goes to the start of this column');
+  press('ArrowLeft', 2, { repeat: true }); press('z');   // to the start of Vel again (it was left inside), then the Note column (z is C)
+  assert.equal(row()[0][0], 'C', 'and then to the start of the column before');
+  view.goto(0, 12); press('ArrowRight', 3, { repeat: true });     // Vel, Smp, Off
+  press('f'); assert.equal(row()[3][0], 'F', 'repeats keep going column by column');
+  press('Tab');                                 // back to the bass lane, where the checks below expect the cursor
+
   press(' '); assert.equal(toggled, 1);
   view.draw();
   assert.ok(el.innerHTML.includes('class="cur"') && el.innerHTML.includes('lead') && el.innerHTML.includes('bass'));
