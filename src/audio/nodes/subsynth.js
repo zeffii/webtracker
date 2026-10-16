@@ -154,8 +154,8 @@ export default {
             const d1 = inc1[u] * fm, d2 = inc2[u] * fm;
             const v = osc(w1, ph1[u], d1, pw) + (lvl2 > 0 ? lvl2 * osc(w2, ph2[u], d2, pw) : 0);
             l += v * gl[u]; r += v * gr[u];
-            ph1[u] += d1; if (ph1[u] >= 1) ph1[u] -= 1;
-            ph2[u] += d2; if (ph2[u] >= 1) ph2[u] -= 1;
+            let q1 = ph1[u] + d1; if (q1 >= 1) q1 -= 1; ph1[u] = q1;
+            let q2 = ph2[u] + d2; if (q2 >= 1) q2 -= 1; ph2[u] = q2;
           }
           let c = 0;
           if (sub > 0) { c += sub * Math.sin(TWO_PI * subPhase); }
@@ -167,7 +167,8 @@ export default {
             const o = ch * 4, h = 1 - G;
             const S1 = h * s[o], S2 = h * s[o + 1], S3 = h * s[o + 2], S4 = h * s[o + 3];
             const sigma = G3 * S1 + G2 * S2 + G * S3 + S4;
-            const x1 = Math.tanh(((ch ? r : l) * comp * drive - k * sigma) * norm);
+            const z = ((ch ? r : l) * comp * drive - k * sigma) * norm, z2 = z * z;
+            const x1 = z > 3 ? 1 : z < -3 ? -1 : z * (27 + z2) / (27 + 9 * z2);   // rational tanh
             const y1 = G * x1 + S1, y2 = G * y1 + S2, y3 = G * y2 + S3, y4 = G * y3 + S4;
             s[o] = flush(2 * y1 - s[o]);
             s[o + 1] = flush(2 * y2 - s[o + 1]);

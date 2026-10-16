@@ -8,8 +8,8 @@ const SIZE = 0, DECAY = 1, DAMP = 2, PREDELAY = 3, DIFFUSION = 4, MOD = 5, WIDTH
 const LINES = 8;
 const BASE_MS = [29.7, 37.1, 41.1, 43.7, 53.0, 61.3, 67.7, 73.9];
 const DIFFUSERS_44K = [142, 107, 379, 277];
-const SIGN_IN = [1, -1, 1, -1, -1, 1, -1, 1];
-const SIGN_L = [1, 1, -1, -1, 1, 1, -1, -1], SIGN_R = [1, -1, 1, -1, -1, 1, -1, 1];
+const SIGN_IN = Float64Array.of(1, -1, 1, -1, -1, 1, -1, 1);
+const SIGN_L = Float64Array.of(1, 1, -1, -1, 1, 1, -1, -1), SIGN_R = Float64Array.of(1, -1, 1, -1, -1, 1, -1, 1);
 
 export default {
   type: 'hall',
@@ -33,10 +33,10 @@ export default {
     const ms = sampleRate / 1000;
     const maxDepth = 40 * sampleRate / 48000;
     const size = Math.ceil(BASE_MS[LINES - 1] * 2 * ms + maxDepth) + 8;
-    const lines = Array.from({ length: LINES }, () => new Float32Array(size));
+    const lines = new Float32Array(LINES * size);   // the eight lines one after another
     const damp = new Float64Array(LINES), phase = Float64Array.from({ length: LINES }, (_, i) => i / LINES);
     const rate = Float64Array.from({ length: LINES }, (_, i) => (0.31 + 0.037 * i) / sampleRate);
-    const gain = new Float64Array(LINES), len = new Float64Array(LINES), y = new Float64Array(LINES);
+    const gain = new Float64Array(LINES), len = new Float64Array(LINES), y = new Float64Array(LINES), at = new Float64Array(LINES), step = new Float64Array(LINES);
     let w = 0;
     const preSize = Math.ceil(0.2 * sampleRate) + 4, pre = new Float32Array(preSize);
     let pw = 0, preCur = -1;
@@ -45,12 +45,6 @@ export default {
       return { buf: new Float32Array(length), pos: 0, length };
     });
     const slew = 1 - Math.exp(-1 / (sampleRate * 0.05));
-    const read = (buf, at, length) => {
-      let r = w - at;
-      while (r < 0) r += length;
-      const k = r | 0, f = r - k, k1 = k + 1 === length ? 0 : k + 1;
-      return buf[k] + (buf[k1] - buf[k]) * f;
-    };
     return {
       process(inputs, outputs, n, params, slots) {
         const [inL, inR] = inputs[0], [outL, outR] = outputs[0];
@@ -65,6 +59,15 @@ export default {
           gain[k] = Math.pow(10, (-3 * len[k]) / (sampleRate * rt60));   // 60 dB down after rt60 seconds
         }
         if (preCur < 0) preCur = preTarget;
+        // The modulation moves a few times a second, so its sine is worked out at the start and end of the block and the
+        // read position slides between them, instead of eight sines for every sample.
+        const inv = 1 / n;
+        for (let k = 0; k < LINES; k++) {
+          const a0 = len[k] + depth * (0.5 + 0.5 * Math.sin(2 * Math.PI * phase[k]));
+          phase[k] += rate[k] * n; if (phase[k] >= 1) phase[k] -= 1;
+          const a1 = len[k] + depth * (0.5 + 0.5 * Math.sin(2 * Math.PI * phase[k]));
+          at[k] = a0; step[k] = (a1 - a0) * inv;
+        }
         for (let i = 0; i < n; i++) {
           const l = inL[i], r = inR[i];
           preCur += (preTarget - preCur) * slew;
@@ -74,7 +77,8 @@ export default {
           const pk = rp | 0, pf = rp - pk;
           let x = pre[pk] + (pre[pk + 1 === preSize ? 0 : pk + 1] - pre[pk]) * pf;
           if (++pw === preSize) pw = 0;
-          for (const d of diff) {   // Schroeder allpass: v = x - g * v[n-D]; y = g * v + v[n-D]
+          for (let q = 0; q < diff.length; q++) {   // Schroeder allpass: v = x - g * v[n-D]; y = g * v + v[n-D]
+            const d = diff[q];
             const delayed = d.buf[d.pos], v = x - g * delayed;
             d.buf[d.pos] = Math.abs(v) < 1e-20 ? 0 : v;
             x = g * v + delayed;
@@ -82,19 +86,24 @@ export default {
           }
           let sum = 0, wl = 0, wr = 0;
           for (let k = 0; k < LINES; k++) {
-            const at = len[k] + depth * (0.5 + 0.5 * Math.sin(2 * Math.PI * phase[k]));
-            phase[k] += rate[k]; if (phase[k] >= 1) phase[k] -= 1;
-            const v = read(lines[k], at, size);
-            damp[k] += lpCoef * (v - damp[k]);
-            y[k] = gain[k] * damp[k];
-            sum += y[k];
-            wl += SIGN_L[k] * damp[k];
-            wr += SIGN_R[k] * damp[k];
+            let rr = w - at[k];
+            if (rr < 0) rr += size;
+            const o = k * size, ki = rr | 0, f = rr - ki, k1 = ki + 1 === size ? 0 : ki + 1;
+            const a0 = lines[o + ki];
+            const v = a0 + (lines[o + k1] - a0) * f;
+            at[k] += step[k];
+            const dk = damp[k] + lpCoef * (v - damp[k]);
+            damp[k] = dk;
+            const yk = gain[k] * dk;
+            y[k] = yk;
+            sum += yk;
+            wl += SIGN_L[k] * dk;
+            wr += SIGN_R[k] * dk;
           }
           const mixTerm = (2 / LINES) * sum;
           for (let k = 0; k < LINES; k++) {
             const v = x * 0.35 * SIGN_IN[k] + y[k] - mixTerm;   // Householder: y - (2/N) * sum
-            lines[k][w] = Math.abs(v) < 1e-20 ? 0 : v;
+            lines[k * size + w] = Math.abs(v) < 1e-20 ? 0 : v;
           }
           if (++w === size) w = 0;
           wl *= 0.5; wr *= 0.5;

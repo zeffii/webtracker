@@ -54,7 +54,7 @@ export default {
       return (x - Math.floor(x)) * 2 - 1;
     });
     const target = new Float64Array(HARMONICS), c = new Float64Array(HARMONICS), sn = new Float64Array(HARMONICS);
-    let env = new Float64Array(maxBlock);
+    let env = new Float64Array(maxBlock), sumO = new Float64Array(maxBlock), sumE = new Float64Array(maxBlock);
     let note = 60, pos = 60, velocity = 1, time = 0;
     const reset = () => { re.fill(1); im.fill(0); aPrev.fill(0); time = 0; };
     reset();
@@ -99,17 +99,21 @@ export default {
           c[h] = Math.cos(w); sn[h] = Math.sin(w);
         }
         const norm = energy > 1e-12 ? level / Math.sqrt(energy) : 0;
+        let peakA = 0;
+        for (let h = 0; h < count; h++) peakA = Math.max(peakA, target[h] * norm);
         if (env.length < n) env = new Float64Array(n);
         for (let i = 0; i < n; i++) env[i] = amp.next();
-        outL.fill(0, 0, n); outR.fill(0, 0, n);
+        // Odd and even partials sit on opposite sides of the stereo field, so each group is added up on its own and
+        // panned once at the end; the envelope too is applied once to the sums, not to every partial.
+        if (sumO.length < n) { sumO = new Float64Array(n); sumE = new Float64Array(n); }
+        sumO.fill(0, 0, n); sumE.fill(0, 0, n);
+        const quiet = peakA * 1e-4;   // a partial this far (-80 dB) below the loudest adds nothing to hear
         for (let h = 0; h < count; h++) {
-          const m = h + 1;
-          const bright = hdecay > 0 ? Math.exp(-hdecay * Math.log2(m) * (time + dt)) : 1;
+          const bright = hdecay > 0 ? Math.exp(-hdecay * Math.log2(h + 1) * (time + dt)) : 1;   // higher partials die faster
           const a1 = target[h] * norm * bright, a0 = aPrev[h];
-          if (a0 === 0 && a1 === 0) continue;
+          if (a0 < quiet && a1 < quiet) { aPrev[h] = a1; continue; }
           aPrev[h] = a1;
-          const pan = m % 2 ? -width : width, ang = ((pan + 1) * Math.PI) / 4;
-          const gl = Math.cos(ang) * Math.SQRT2, gr = Math.sin(ang) * Math.SQRT2;
+          const sum = h & 1 ? sumE : sumO;   // partial h + 1: even partials are the odd indexes
           let x = re[h], y = im[h];
           const cc = c[h], ss = sn[h], step = (a1 - a0) / n;
           let a = a0;
@@ -117,11 +121,18 @@ export default {
             const nx = x * cc - y * ss;
             y = x * ss + y * cc; x = nx;
             a += step;
-            const v = y * a * env[i];
-            outL[i] += v * gl; outR[i] += v * gr;
+            sum[i] += y * a;
           }
           const mag = 1 / Math.sqrt(x * x + y * y);
           re[h] = x * mag; im[h] = y * mag;
+        }
+        {
+          const angO = ((-width + 1) * Math.PI) / 4, angE = ((width + 1) * Math.PI) / 4;
+          const olo = Math.cos(angO) * Math.SQRT2, oro = Math.sin(angO) * Math.SQRT2, ole = Math.cos(angE) * Math.SQRT2, ore = Math.sin(angE) * Math.SQRT2;
+          for (let i = 0; i < n; i++) {
+            const e = env[i], o = sumO[i] * e, v = sumE[i] * e;
+            outL[i] = o * olo + v * ole; outR[i] = o * oro + v * ore;
+          }
         }
         time += dt;
       },
