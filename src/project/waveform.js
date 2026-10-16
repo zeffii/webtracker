@@ -214,6 +214,8 @@ export function createWaveformView({ canvas, statusEl, getProject, onLoop, onSel
       return W;
     },
     setActiveSlice(i) { active = i; lastKey = null; },
+    activeFrame() { const s = sample(); return s && active >= 0 ? slicesOf(s)[active] ?? -1 : -1; },
+    sample,
     setSelection(from, to) { selection = { from, to }; lastKey = null; },
     setMode(next) { mode = next === 'spec' ? 'spec' : 'wave'; lastKey = null; },
     get mode() { return mode; },

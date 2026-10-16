@@ -11,6 +11,7 @@ import { addLane, addSample, addSamplerInstrument, addSynthInstrument, channelsO
 import { synthKinds } from './instruments.js';
 import { createSampleScreen } from './project/samplescreen.js';
 import { createWaveformView } from './project/waveform.js';
+import { createMarkerRegionView } from './project/markerregion.js';
 import { FILE_EXT, INSTRUMENT_EXT, parseInstrument, parseProject, serializeInstrument, serializeProject } from './project/file.js';
 import { createEditor } from './seq/editor.js';
 import { prepareSong, rebuildInstrumentLanes } from './seq/lane.js';
@@ -415,8 +416,16 @@ for (const [id, field, max] of [['inst-voices', 'voices', 16], ['inst-notecols',
 }
 
 // The waveform fills the width of the sample screen.
-if (globalThis.ResizeObserver) new ResizeObserver(() => { const w = $('wave').parentElement.clientWidth; if (w > 0) waveform.fit(w - 2); }).observe($('wave').parentElement);
+// The marker region view sits to its right, a sixteenth of its width.
+if (globalThis.ResizeObserver) new ResizeObserver(() => {
+  const total = $('wave-row').clientWidth - 8;
+  if (total <= 0) return;
+  const r = Math.max(24, Math.floor(total / 17));
+  region.fit(r - 2);
+  waveform.fit(total - r - 2);
+}).observe($('wave-row'));
 const sendLoop = users => users.forEach(({ instrument, node }) => sendSample(instrument, node));
+const region = createMarkerRegionView({ canvas: $('region'), getSample: () => waveform.sample(), getActive: () => waveform.activeFrame() });
 const waveform = createWaveformView({
   canvas: $('wave'), statusEl: $('proj-status'), getProject: () => project,
   onLoop: users => { sendLoop(users); auditionDirty = true; },
@@ -618,7 +627,7 @@ $('start').addEventListener('click', async () => {
     for (const id of ['play', 'panic', 'save', 'load', 'patch-add', 'load-samples', 'add-sampler', 'add-synth', 'add-lane', 'inst-voices', 'inst-notecols', 'inst-name', 'inst-rename', 'inst-up', 'inst-down', 'inst-dup', 'inst-remove', 'lane-name', 'lane-rename', 'lane-left', 'lane-right', 'lane-dup', 'lane-remove', 'length', 'bpm', 'swing', 'preset-name', 'preset-save', 'preset-over', 'preset-rename', 'preset-remove', 'inst-export', 'inst-import', 'lib-load', 'lib-add', 'lib-save']) $(id).disabled = false;
     $('status').textContent =
       `Running at ${engine.ctx.sampleRate} Hz, base latency ${(engine.ctx.baseLatency * 1000).toFixed(1)} ms`;
-    const frame = () => { songInfo(); seqView.draw(); view.draw(); patcher.draw(); sampleScreen.draw(); waveform.draw(); requestAnimationFrame(frame); };
+    const frame = () => { songInfo(); seqView.draw(); view.draw(); patcher.draw(); sampleScreen.draw(); waveform.draw(); region.draw(); requestAnimationFrame(frame); };
     frame();
   } catch (err) {
     $('status').textContent = err.message;

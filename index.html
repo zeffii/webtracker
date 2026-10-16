@@ -137,6 +137,8 @@
     /* samples */
     .srow { display: flex; flex-wrap: wrap; gap: .5rem 1rem; align-items: center; margin: .25rem 0; }
     .srow input[type=number] { width: 7rem; }
+    #wave-row { display: flex; gap: 4px; align-items: flex-start; }
+    #region { border: 1px solid; display: block; flex: none; background: var(--panel); }
     #wave { border: 1px solid; max-width: 100%; display: block; cursor: col-resize; }
 
     /* instruments: a narrow list, the graph on the right */
@@ -260,7 +262,7 @@
 
   <section id="pane-samples" class="pane keyed" hidden>
     <div class="pane-main">
-      <canvas id="wave" width="900" height="160"></canvas>
+      <div id="wave-row"><canvas id="wave" width="900" height="160"></canvas><canvas id="region" width="60" height="160" title="marker region"></canvas></div>
       <pre id="smp" tabindex="0"></pre>
       <p><button id="load-samples" disabled>Load samples…</button>
         <input id="sample-file" type="file" accept="audio/*" multiple hidden>
@@ -277,7 +279,8 @@
           <dt>L</dt><dd>load samples</dd>
           <dt>Delete</dt><dd>remove the sample</dd>
           <dt>Shift+drag</dt><dd>select part of the display; drag across it to make a loop, drag a marker to move it, double-click to clear</dd>
-          <dt>+ −</dt><dd>in the list: nudge the current slice marker one frame (Ctrl 100); &lt; and &gt; choose the previous and next marker. The current one is drawn heavier and marked &gt; in the Slices list</dd>
+          <dt>Marker region</dt><dd>the narrow view right of the waveform shows 800 frames around the current marker, the red line is the marker</dd>
+      <dt>+ −</dt><dd>in the list: nudge the current slice marker one frame (Ctrl 100); &lt; and &gt; choose the previous and next marker. The current one is drawn heavier and marked &gt; in the Slices list</dd>
           <dt>Shift+M, Shift+U</dt><dd>mark a slice at the selection start, unmark the nearest one. The Slices list shows each one's number and hex value; in a pattern, command 10 0000 starts a note at the first, 10 0001 at the second, and so on (10 FFFF gives the Off column back its say)</dd>
           <dt>Alt+click, Alt+drag</dt><dd>on the display: add a slice marker, move one. Alt+double-click removes the nearest</dd>
           <dt>Shift+C / T</dt><dd>trim</dd>
