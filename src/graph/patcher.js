@@ -10,6 +10,7 @@ import { LOWER, UPPER } from '../seq/piano.js';
 import { portKind, resolveKinds } from './kinds.js';
 import { createCurveEditor } from './curveeditor.js';
 import { createSpectrumEditor } from './spectrumeditor.js';
+import { createWaveEditor } from './waveeditor.js';
 
 // Geometry. A node's shape comes from its type: 'box' for processors, 'rounded' for
 // sources and 'circle' for mixing and gain. Ports sit on the left (inputs) and right (outputs).
@@ -241,6 +242,16 @@ export function createPatcher({ canvas, panel, exposedPanel = null, onEscape = (
         onChange: points => {
           node.data = { ...node.data, spectrum: points };
           onData(instId, node.id, { type: 'spectrum', points });
+        },
+      });
+      items.splice(1, 0, editor.el);
+    }
+    if (type.editor === 'wave') {   // one drawable single-cycle waveform per operator, kept on the node and sent live
+      const editor = createWaveEditor({
+        doc, waves: node.data?.waves,
+        onChange: waves => {
+          node.data = { ...node.data, waves };
+          onData(instId, node.id, { type: 'waves', points: waves });
         },
       });
       items.splice(1, 0, editor.el);

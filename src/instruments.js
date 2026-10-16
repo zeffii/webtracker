@@ -114,6 +114,31 @@ export const synthKinds = {
       ],
     }),
   },
+  fm: {
+    label: 'FM synth',
+    make: () => ({
+      graph: { nodes: [{ id: 'synth', type: 'fmsynth' }, { id: 'poly', type: 'voices' }, { id: 'out', type: 'out', params: { gain: 0.5 } }], connections: [['synth.out', 'poly.in'], ['poly.out', 'out.in']], voices: 10 },
+      noteColumns: 5,   // five note and velocity lanes
+      exposed: [
+        { node: 'synth', param: 'algo', label: 'Alg' },
+        { node: 'synth', param: 'index', label: 'Idx' },
+        { node: 'synth', param: 'fb', label: 'Fb' },
+        { node: 'synth', param: 'ratio2', label: 'Rt2' },
+      ],
+      commands: [
+        { id: 0x01, node: 'synth', param: 'index' },
+        { id: 0x02, node: 'synth', param: 'fb' },
+        { id: 0x03, node: 'synth', param: 'algo' },
+        { id: 0x04, node: 'synth', param: 'glide' },
+        { id: 0x05, node: 'synth', param: 'level2' },
+        { id: 0x06, node: 'synth', param: 'level3' },
+        { id: 0x07, node: 'synth', param: 'level4' },
+        { id: 0x08, node: 'synth', param: 'ratio2' },
+        { id: 0x09, node: 'synth', param: 'ratio3' },
+        { id: 0x0A, node: 'synth', param: 'ratio4' },
+      ],
+    }),
+  },
   additive: {
     label: 'Additive synth',
     make: () => ({

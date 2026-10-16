@@ -119,6 +119,7 @@ export const GLYPHS = {
     const x = f => cx - w / 2 + f * w, y = f => cy + h / 2 - f * h;
     line(ctx, [[x(0), y(0.1)], [x(0.3), y(0.95)], [x(0.3), y(0.1)], [x(0.6), y(0.95)], [x(0.6), y(0.1)], [x(1), y(0.95)]]);
   },
+  fmsynth: (ctx, cx, cy, w, h) => curve(ctx, cx, cy, w, h, t => Math.sin(t * Math.PI * 4 + 2.2 * Math.sin(t * Math.PI * 10)) * 0.85, 48),   // a sine bent by another
   addsynth: (ctx, cx, cy, w, h) => {   // a row of harmonics falling away
     ctx.beginPath();
     [1, 0.5, 0.33, 0.25, 0.2, 0.16, 0.14].forEach((a, i) => {

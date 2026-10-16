@@ -7,7 +7,7 @@ import { compile } from '../src/graph/compile.js';
 import { samplerPreset } from '../src/presets.js';
 import { makePluck } from '../src/audio/sample.js';
 import { Sequencer, PAGE_TICKS } from '../src/audio/sequencer.js';
-import { instruments } from '../src/instruments.js';
+import { instruments, synthKinds } from '../src/instruments.js';
 import { buildColumns, buildPages, channelCount, flattenLane, prepareSong, uniqueStarts } from '../src/seq/lane.js';
 import { decodeNote, encodeCell, noteToken, EMPTY } from '../src/seq/cells.js';
 import { insertPattern, placementAt, setCell } from '../src/seq/edit.js';
@@ -27,6 +27,7 @@ import { song as demoSong } from '../src/song.js';
 import { createCurveEditor, SIZE } from '../src/graph/curveeditor.js';
 import { createSpectrumEditor, WIDTH, HEIGHT } from '../src/graph/spectrumeditor.js';
 import { HARMONICS, SPECTRA, normalizeSpectrum } from '../src/audio/nodes/spectra.js';
+import { WAVE_POINTS, WAVES, normalizeWave } from '../src/audio/nodes/waves.js';
 import { CURVE_POINTS, PRESETS } from '../src/audio/nodes/curves.js';
 import { Oversampler } from '../src/audio/nodes/oversample.js';
 import { resolveKinds } from '../src/graph/kinds.js';
@@ -1962,6 +1963,48 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   const wild = play('subsynth', { res: 1, drive: 1, unison: 7, spread: 50, noise: 1, sub: 1, osc2: 1, cutoff: 3000, fenv: 8, level: 1 }, { note: 110, secs: 0.6 }).L;
   assert.ok(wild.every(Number.isFinite) && pk(wild) < 4, `extreme settings should stay bounded: ${pk(wild)}`);
 
+  // ---- fmsynth ----
+  {
+    const fmBase = { atk1: 0.1, sus1: 1, atk2: 0.1, sus2: 1, atk3: 0.1, sus3: 1, atk4: 0.1, sus4: 1, level: 1 };
+    const solo = { ...fmBase, algo: 7, level2: 0, level3: 0, level4: 0 };
+    const lone = play('fmsynth', solo, { note: 57 }).L;
+    assert.ok(Math.abs(crossings(lone, 8000, 23000) / hz(57) - 1) < 0.01, 'a lone operator plays at the note');
+    assert.ok(pk(lone) > 0.1 && pk(lone) < 1, `level ${pk(lone)}`);
+    const oct = play('fmsynth', { ...solo, ratio1: 2 }, { note: 57 }).L;
+    assert.ok(Math.abs(crossings(oct, 8000, 23000) / (2 * hz(57)) - 1) < 0.01, 'the ratio multiplies the pitch');
+    // modulation adds sidebands: operator 2 modulating operator 1 puts energy at the carrier plus and minus the modulator
+    const f1 = hz(57);
+    const pure = play('fmsynth', { ...fmBase, algo: 3, level3: 0, level4: 0, index: 0 }, { note: 57 }).L;
+    const bent = play('fmsynth', { ...fmBase, algo: 3, level3: 0, level4: 0, index: 2, level2: 1 }, { note: 57 }).L;
+    assert.ok(mag(pure, 2 * f1, 8000, 23000) < 0.01 && mag(bent, 2 * f1, 8000, 23000) > 0.01, 'the modulator should add sidebands');
+    const ratio2 = play('fmsynth', { ...fmBase, algo: 3, level3: 0, level4: 0, index: 2, level2: 1, ratio2: 3 }, { note: 57 }).L;
+    assert.ok(mag(ratio2, 4 * f1, 8000, 23000) > 0.02, 'sidebands move with the modulator ratio');
+    // a carrier-only algorithm ignores the index
+    const a7 = play('fmsynth', { ...fmBase, algo: 7, index: 0 }, { note: 57 }).L, a7b = play('fmsynth', { ...fmBase, algo: 7, index: 6 }, { note: 57 }).L;
+    assert.ok(a7.every((v, i) => v === a7b[i]), 'with every operator a carrier the index does nothing');
+    // drawn waveforms: a square operator is louder and brighter than the sine it replaces
+    const sq = Array.from({ length: 64 }, (_, i) => (i < 32 ? 1 : -1));
+    const sineRms = rms(lone, 8000, 23000);
+    const squareRms = rms(play('fmsynth', solo, { note: 57, data: { waves: [sq] } }).L, 8000, 23000);
+    assert.ok(squareRms > sineRms * 1.2, `square ${squareRms} vs sine ${sineRms}`);
+    const sqL = play('fmsynth', solo, { note: 57, data: { waves: [sq] } }).L;
+    assert.ok(mag(sqL, 3 * f1, 8000, 23000) > 0.1 && mag(lone, 3 * f1, 8000, 23000) < 0.01, 'a square wave has its third harmonic');
+    const live = play('fmsynth', solo, { note: 57, secs: 1, events: [[24064, node => node.message({ type: 'waves', points: [sq] })]] }).L;
+    assert.ok(mag(live, 3 * f1, 30000, 46000) > 0.1 && mag(live, 3 * f1, 4000, 20000) < 0.01, 'a waves message changes the sound while playing');
+    assert.deepEqual(Array.from(normalizeWave('junk')), Array.from(Float32Array.from(WAVES.sine())));
+    assert.equal(normalizeWave([0, 1, 0, -1]).length, WAVE_POINTS, 'any length is resampled');
+    // feedback and extremes stay bounded; release and cut end the voice
+    const wild = play('fmsynth', { ...fmBase, algo: 4, index: 8, fb: 1, ratio1: 16, ratio2: 16, ratio3: 0.25, ratio4: 16 }, { note: 110, secs: 0.6 }).L;
+    assert.ok(wild.every(Number.isFinite) && pk(wild) < 4, `extreme settings should stay bounded: ${pk(wild)}`);
+    const fbOn = play('fmsynth', { ...solo, algo: 7, level1: 0, level4: 1, fb: 0.8 }, { note: 57 }).L;
+    assert.ok(mag(fbOn, 2 * f1, 8000, 23000) > 0.02, 'feedback makes operator 4 brighter');
+    const rel = play('fmsynth', { ...fmBase, rel1: 50, rel2: 50, rel3: 50, rel4: 50 }, { secs: 1, events: [[12800, node => node.note({ type: 'noteOff' })]] }).L;
+    assert.ok(pk(rel, 12800 + 12000, rel.length) < 1e-4, 'the voice ends after the release');
+    const cut = play('fmsynth', fmBase, { secs: 0.5, events: [[12800, node => node.note({ type: 'noteCut' })]] }).L;
+    assert.equal(pk(cut, 12800, cut.length), 0);
+    assert.ok(pk(play('fmsynth', {}).L) > 0.02, 'the defaults make a sound');
+  }
+
   // ---- addsynth ----
   const base = { atk: 0.1, sus: 1, level: 1, width: 0 };
   const spec1 = n => Array.from({ length: 32 }, (_, i) => (i + 1 === n ? 1 : 0));
@@ -2064,6 +2107,33 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   assert.equal(node.data.spectrum.length, HARMONICS);
   assert.deepEqual(sent.at(-1).slice(0, 2), ['kick', 'addsynth1']);
   assert.equal(sent.at(-1)[2].type, 'spectrum');
+
+  // the FM synth panel holds the wave editor: four operator tabs, drawing sends all four waves live
+  patcher.add('fmsynth', { x: 300, y: 300 });
+  let fmCanvas = null; const fmButtons = [];
+  walk(panel, e => { if (e.className === 'curve') fmCanvas = e; if (e.tag === 'button') fmButtons.push(e); });
+  assert.ok(fmCanvas && fmButtons.some(b => b.textContent === 'op 4'), 'the fmsynth panel should hold the wave editor');
+  fmButtons.find(b => b.textContent === 'op 2').listeners.click();
+  fmButtons.find(b => b.textContent === 'square').listeners.click();
+  const fmNode = defs.kick.graph.nodes.find(n => n.id === 'fmsynth1');
+  assert.equal(fmNode.data.waves.length, 4);
+  assert.equal(fmNode.data.waves[1][0], 1);
+  assert.equal(fmNode.data.waves[0][0], 0, 'the other operators keep their sine');
+  assert.equal(sent.at(-1)[2].type, 'waves');
+  fmCanvas.listeners.mousedown({ offsetX: 0, offsetY: 0 }); fmCanvas.listeners.mouseup({});
+  assert.equal(fmNode.data.waves[1][0], 1, 'drawing changes only the chosen operator');
+  // the FM kind: five note and velocity lanes, and every named parameter exists
+  const fmKind = synthKinds.fm.make();
+  assert.equal(fmKind.noteColumns, 5);
+  for (const item of [...fmKind.exposed, ...fmKind.commands]) assert.ok(NODE_TYPES.fmsynth.params.some(q => q.name === item.param), `fmsynth.${item.param}`);
+  const fmProject = { instruments: {}, samples: {}, lanes: [], song: { length: 16 } };
+  const fmId = pops.addSynthInstrument(fmProject, 'My FM', 'fm');
+  const fmRegistry = new ParamRegistry(), fmRt = new GraphRuntime({ sampleRate: sr, params: fmRegistry.values });
+  fmRt.load(compile(fmProject.instruments[fmId].graph, { instrument: fmId, nodeTypes: NODE_TYPES, registry: fmRegistry }));
+  for (const n of [48, 52, 55, 59, 62]) fmRt.note(fmId, { type: 'noteOn', note: n, vel: 1 });
+  const chord = render(fmRt, 0.3);
+  assert.ok(chord.left.every(Number.isFinite) && peak(chord.left) > 0.05 && peak(chord.left) < 1, `five voices at once ${peak(chord.left)}`);
+  assert.deepEqual(pops.addLane(fmProject, fmRegistry, fmId).columns.map(c => c.label).slice(0, 10), ['N1', 'V1', 'N2', 'V2', 'N3', 'V3', 'N4', 'V4', 'N5', 'V5']);
 
   // the stored spectrum survives a rebuild: the runtime replays it
   const registry = new ParamRegistry();

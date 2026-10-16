@@ -1,6 +1,6 @@
 // Instrument presets: a snapshot of every parameter of an instrument's nodes (and the curves and
 // spectra drawn on them), kept on the instrument as
-//   presets: [{ id, name, values: { 'node.param': number }, data?: { node: { curve?, spectrum? } } }]
+//   presets: [{ id, name, values: { 'node.param': number }, data?: { node: { curve?, spectrum?, waves? } } }]
 // The id (0 to 65535, in practice small) is what a pattern's command 00 refers to, so it is stable:
 // it is given once, the lowest free one, and removing a preset leaves the others where they are.
 
@@ -14,7 +14,7 @@ export function capturePreset(def, nodeTypes, read, name = '') {
       const live = read?.(node.id, spec.name);
       values[`${node.id}.${spec.name}`] = Number.isFinite(live) ? live : node.params?.[spec.name] ?? spec.def;
     }
-    for (const key of ['curve', 'spectrum']) if (node.data?.[key]) data[node.id] = { ...data[node.id], [key]: [...node.data[key]] };
+    for (const key of ['curve', 'spectrum', 'waves']) if (node.data?.[key]) data[node.id] = { ...data[node.id], [key]: [...node.data[key]] };
   }
   return { name, values, ...(Object.keys(data).length ? { data } : {}) };
 }
