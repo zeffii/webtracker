@@ -4015,7 +4015,8 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   assert.equal(nodeBox(NODE_TYPES.filter, filt).h > nodeBox(NODE_TYPES.filter).h, true, 'a node with ports is taller');
   const p = portPos(filt, NODE_TYPES.filter, 'in', 2);
   assert.deepEqual(hitTest(td, NODE_TYPES, p.x, p.y), { kind: 'port', side: 'in', node: 'filt', port: '@cutoff' });
-  assert.equal(portKind(NODE_TYPES.filter, '@cutoff', filt), 'control');
+  assert.equal(portKind(NODE_TYPES.filter, '@cutoff', filt), 'param');
+  assert.equal(portKind(NODE_TYPES.ctrl, 'out'), 'param');
 }
 
 // 114. A pattern drives a ctrl object: `to` and `time` as columns, a glide timed in subticks.

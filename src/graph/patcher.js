@@ -42,7 +42,7 @@ const inside = (node, def, x, y) => {
 
 // Wire and port colours by what the signal is: audio, or control (envelopes, lfos, triggers).
 export { portKind };
-export const KIND_COLOR = { audio: 'hsl(210 50% 58%)', control: 'hsl(35 75% 52%)', stereo: 'hsl(285 40% 62%)' };
+export const KIND_COLOR = { audio: 'hsl(210 50% 58%)', control: 'hsl(35 75% 52%)', stereo: 'hsl(285 40% 62%)', param: 'hsl(5 85% 72%)' };
 
 const bezier = (a, b, t) => {
   const c1 = { x: a.x + 60, y: a.y }, c2 = { x: b.x - 60, y: b.y }, u = 1 - t;

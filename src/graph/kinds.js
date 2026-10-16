@@ -1,5 +1,6 @@
 // What a port carries. Ports are audio unless the node type lists them in `kinds`.
-// 'audio' and 'control' are mono buffers (control is for envelopes, lfos and triggers);
+// 'audio', 'control' and 'param' are mono buffers (control is for envelopes, lfos and triggers; param is what a ctrl
+// node sends into a parameter port, drawn in its own colour);
 // 'stereo' is a left/right pair that travels on one wire.
 //
 // Two node-type flags make a port's kind depend on the graph:
@@ -9,7 +10,7 @@
 //                            stereo signal reaches one of its audio inputs; its audio
 //                            ports are then stereo
 export const portKind = (def, name, node) =>
-  name.startsWith('@') ? 'control' : node?.stereo && def.stereoOptional?.includes(name) ? 'stereo' : def.kinds?.[name] ?? 'audio';
+  name.startsWith('@') ? 'param' : node?.stereo && def.stereoOptional?.includes(name) ? 'stereo' : def.kinds?.[name] ?? 'audio';
 
 // A node's input ports: those of its type, then one for each parameter it has been given a port for
 // (node.ports, a list of parameter names). A parameter port is named '@name' and carries a control signal from 0 to 1
