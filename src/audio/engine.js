@@ -58,8 +58,8 @@ export class Engine {
     this.node.port.postMessage({ type: 'panic' });
   }
 
-  setSong({ bpm, ticksPerBeat, length, swing = 0.5 }) {
-    this.node.port.postMessage({ type: 'song', song: { bpm, ticksPerBeat, length, swing } });
+  setSong({ bpm, ticksPerBeat, length, swing = 0.5, loop }) {
+    this.node.port.postMessage({ type: 'song', song: { bpm, ticksPerBeat, length, swing, ...(loop ? { loop: { start: loop.start, end: loop.end } } : {}) } });
   }
 
   // lane = { id, instrument, columns, pages }. The pages are shared memory.

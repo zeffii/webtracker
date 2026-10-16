@@ -2898,6 +2898,18 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     press('m'); assert.deepEqual(lanes[0].mutes, [0, 16]);
     press('m'); assert.deepEqual(lanes[0].mutes, [0], 'the same key on a flip removes it');
 
+    // the loop: Ctrl+B starts it at the cursor's row, Ctrl+E ends it with the row; the same key on the same point takes it away
+    {
+      const ctrl = key => onKey({ key, ctrlKey: true, preventDefault() {} });
+      ctrl('b'); assert.deepEqual(demoSong.loop, { start: 16, end: demoSong.length });
+      view.draw();
+      assert.ok(el.innerHTML.includes('<span class="lp ls le">'), 'the loop row is marked in the tick column');
+      press('ArrowUp'); ctrl('e');                                           // row 0: ticks 0 to 15
+      assert.deepEqual(demoSong.loop, { start: 0, end: 16 }, 'an end before the start moves the start back');
+      ctrl('e'); assert.equal(demoSong.loop, undefined, 'the same point again takes it away, and with both gone there is no loop');
+      press('ArrowDown');
+    }
+
     // Shift+M silences the whole lane over the flips, and again brings it back
     onKey({ key: 'M', shiftKey: true, preventDefault() {} });
     assert.equal(lanes[0].silenced, true);
@@ -4219,4 +4231,40 @@ console.log('smoke test passed');
   const proj = { samples: { s1: { rate: sr, data: new Float32Array(10) } }, instruments: {} };
   const id = pops.addSynthInstrument(proj, 'sp', 'spectral');
   assert.deepEqual(proj.instruments[id].samples, { synth: 's1' });
+}
+
+// 118. The loop: points, clamping, and the sequencer playing it.
+{
+  const { loopRange, inLoop, setLoopPoint, clampLoop } = await import('../src/seq/loop.js');
+  const song = { length: 128 };
+  assert.deepEqual(loopRange(song), { start: 0, end: 128 });
+  setLoopPoint(song, 'start', 32); assert.deepEqual(song.loop, { start: 32, end: 128 });
+  setLoopPoint(song, 'end', 64); assert.deepEqual(song.loop, { start: 32, end: 64 });
+  assert.ok(inLoop(song, 32) && inLoop(song, 63) && !inLoop(song, 64) && !inLoop(song, 31));
+  setLoopPoint(song, 'start', 96); assert.deepEqual(song.loop, { start: 96, end: 128 }, 'a start past the end moves the end out to the song end');
+  setLoopPoint(song, 'end', 48); assert.deepEqual(song.loop, { start: 0, end: 48 }, 'an end before the start moves the start back to 0');
+  setLoopPoint(song, 'end', 48); assert.equal(song.loop, undefined, 'the same point again clears it, and no loop is left when both are the song');
+  setLoopPoint(song, 'start', 32); setLoopPoint(song, 'end', 64);
+  song.length = 48; clampLoop(song); assert.deepEqual(song.loop, { start: 32, end: 48 }, 'a shorter song cuts the loop');
+  song.length = 32; clampLoop(song); assert.equal(song.loop, undefined, 'a loop past the end is dropped');
+
+  // the sequencer starts at the loop start and wraps at its end
+  const lane = oneLane('lead', 'lead', patternText(16, { 0: 'C-4 .. .. .... .... .. .. ..' }));
+  const s2 = { ...song120([lane]), length: 64 };
+  const { seq } = songSetup(s2);
+  s2.loop = { start: 16, end: 32 };
+  seq.setSong(s2);
+  seq.play();
+  assert.equal(seq.tick, 16, 'play starts at the loop start');
+  const seen = [];
+  for (let i = 0; i < 40; i++) { seq.fireTick(); seen.push(seq.transport[0]); }
+  assert.deepEqual(seen.slice(0, 18), [...Array(16).keys()].map(k => 16 + k).concat([16, 17]), 'ticks 16 to 31, then back to 16');
+  assert.ok(seen.every(t => t >= 16 && t < 32), 'it never leaves the loop');
+  delete s2.loop; seq.setSong(s2); seq.play();
+  assert.equal(seq.tick, 0, 'without a loop it starts at 0 again');
+  // saved with the project, and only when there is one
+  const proj = { song: { name: 's', bpm: 100, ticksPerBeat: 4, length: 64, loop: { start: 16, end: 32 } }, instruments: {}, samples: {}, lanes: [] };
+  assert.deepEqual(parseProject(serializeProject(proj)).song.loop, { start: 16, end: 32 });
+  delete proj.song.loop;
+  assert.equal(parseProject(serializeProject(proj)).song.loop, undefined);
 }

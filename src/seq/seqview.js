@@ -1,5 +1,6 @@
 import { esc } from './html.js';
 import { placementAt, puidByIndex, startsAt } from './edit.js';
+import { setLoopPoint } from './loop.js';
 
 const ROWS = { min: 6, max: 128, normal: 24 };   // rows shown at once
 const CELL = 16;     // ticks in one row
@@ -11,13 +12,13 @@ const hex2 = n => n.toString(16).toUpperCase().padStart(2, '0');
 // column. The cursor sits on a row; edits happen at the row's start, or at the start of a
 // pattern that begins inside it. A pattern is a block that starts with its index and name; a later
 // pattern covers the ones under it. Keyboard-driven.
-export function createSequenceView({ el, statusEl, listEl, transport, onToggle, onOpen, onMove }) {
-  let lanes = null, len = 0, editor = null;
+export function createSequenceView({ el, statusEl, listEl, transport, onToggle, onOpen, onMove, onSong = () => {} }) {
+  let lanes = null, len = 0, editor = null, song = null;
   const cur = { lane: 0, tick: 0 };
   let typed = '', message = '';
 
-  const load = ({ lanes: l, song, editor: e }) => {
-    lanes = l; len = song.length; editor = e;
+  const load = ({ lanes: l, song: s, editor: e }) => {
+    lanes = l; len = s.length; editor = e; song = s;
     Object.assign(cur, { lane: 0, tick: 0 });
     typed = ''; message = '';
   };
@@ -55,6 +56,13 @@ export function createSequenceView({ el, statusEl, listEl, transport, onToggle, 
     if (!lanes || e.altKey) return;
     if (e.ctrlKey || e.metaKey) {
       const key = e.key.toLowerCase();
+      if ((key === 'b' || key === 'e') && !e.shiftKey) {   // the loop: Ctrl+B starts it at this row, Ctrl+E ends it with this row
+        const row = rowStart(cur.tick);
+        message = key === 'b' ? setLoopPoint(song, 'start', row) : setLoopPoint(song, 'end', row + CELL);
+        onSong();
+        e.preventDefault();
+        return;
+      }
       if (key === 'z' || key === 'y') {
         const redo = key === 'y' || e.shiftKey;
         const label = redo ? editor.redo() : editor.undo();
@@ -189,7 +197,8 @@ export function createSequenceView({ el, statusEl, listEl, transport, onToggle, 
         }
         return `<span class="${classes}">${layers}${isCur ? '<i class="cb"></i>' : ''}<span class="t">${inner}</span></span>`;
       });
-      lines.push(row(`${playing && playTick >= t && playTick < t + CELL ? '>' : ' '}${num(t)}${cells.join('')}`));
+      const lp = song.loop && t + CELL > song.loop.start && t < song.loop.end ? ` lp${t <= song.loop.start ? ' ls' : ''}${t + CELL >= song.loop.end ? ' le' : ''}` : '';
+      lines.push(row(`${lp ? `<span class="${lp.trim()}">` : ''}${playing && playTick >= t && playTick < t + CELL ? '>' : ' '}${num(t)}${lp ? '</span>' : ''}${cells.join('')}`));
     }
 
     // the rect is always rowCount rows tall, so the drag bar works even when the song has fewer rows

@@ -1,4 +1,5 @@
 import { newSamplerInstrument, synthKinds } from '../instruments.js';
+import { clampLoop } from '../seq/loop.js';
 import { buildPages, createLane, flattenLane, writeMask } from '../seq/lane.js';
 
 // Changes to the shape of a project: samples, instruments, lanes. Plain functions on the
@@ -197,6 +198,7 @@ export function setSongLength(project, ticks) {
       .map(p => (p.start + p.length > length ? { ...p, length: length - p.start } : p));
   }
   project.song.length = length;
+  clampLoop(project.song);
   return length;
 }
 

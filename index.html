@@ -112,6 +112,11 @@
     .sw.p3 { background: hsl(280 60% 60%); }
     .sw.p4 { background: hsl(0 70% 55%); }
     .sw.p5 { background: hsl(55 70% 50%); }
+    /* the song's loop: an amber bar beside the tick numbers of the rows inside it, with a line where it starts and ends */
+    .lp { box-shadow: inset 3px 0 0 hsl(45 90% 50%); }
+    .lp.ls { box-shadow: inset 3px 0 0 hsl(45 90% 50%), inset 0 1px 0 hsl(45 90% 50%); }
+    .lp.le { box-shadow: inset 3px 0 0 hsl(45 90% 50%), inset 0 -1px 0 hsl(45 90% 50%); }
+    .lp.ls.le { box-shadow: inset 3px 0 0 hsl(45 90% 50%), inset 0 1px 0 hsl(45 90% 50%), inset 0 -1px 0 hsl(45 90% 50%); }
     #seq .gn.g2 { background: color-mix(in srgb, CanvasText 12%, transparent); }
     #seq .gn.g1 { background: color-mix(in srgb, CanvasText 24%, transparent); }
     #seq .mk { color: inherit; }
@@ -333,6 +338,7 @@
           <dt>Shift+I / O</dt><dd>fade in / out</dd>
           <dt>Shift+D</dt><dd>remove DC</dd>
           <dt>Shift+B</dt><dd>bake the loop crossfade</dd>
+          <dt>Ctrl+B, Ctrl+E</dt><dd>start the loop at this tick, end it with this tick (again on the same tick to take it away)</dd>
           <dt>Ctrl+Z, Ctrl+Y</dt><dd>undo, redo</dd>
         </dl>
         <p>Edits apply to the selection, or to the whole sample when nothing is selected. Stereo samples stay stereo. The display shows the chosen sample as Waveform or Spectrum, with the loop between markers A and B and the sustain loop between a and b.</p>
@@ -457,6 +463,7 @@
           <dt>, .</dt><dd>move up or down a tick (&lt; &gt; sixteen)</dd>
           <dt>Delete</dt><dd>remove the pattern</dd>
           <dt>Ctrl+Z, Ctrl+Y</dt><dd>undo, redo</dd>
+          <dt>Ctrl+B, Ctrl+E</dt><dd>start the loop at this row, end it with this row (again on the same row to take it away); play starts at the loop and repeats it</dd>
           <dt>W, Shift+W</dt><dd>set a waypoint, restore it</dd>
           <dt>Space</dt><dd>play</dd>
           <dt>M</dt><dd>mute the lane from this row until the next M further down (shown dimmed, with &lt;mute&gt; and &lt;play&gt; cells marking the changes)</dd>

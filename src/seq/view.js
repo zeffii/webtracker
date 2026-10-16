@@ -1,3 +1,4 @@
+import { setLoopPoint } from './loop.js';
 import { KINDS, encodeCell, noteSemitones, noteToken } from './cells.js';
 import { esc } from './html.js';
 
@@ -27,8 +28,8 @@ export function cellAt({ widths, x, line, top, len }) {
 // Keyboard-driven view of every lane side by side. The cursor sits on one character
 // of one cell. Edits go straight into the shared pages, so they are heard on the next
 // tick while the song plays. Call load() with the prepared lanes before drawing.
-export function createTrackerView({ el, statusEl, transport, onToggle, onBack, onMove, onNote = () => {}, readParam = () => undefined }) {
-  let lanes = null, len = 0, widths = [], editor = null;
+export function createTrackerView({ el, statusEl, transport, onToggle, onBack, onMove, onNote = () => {}, onSong = () => {}, readParam = () => undefined }) {
+  let lanes = null, len = 0, widths = [], editor = null, song = null;
   const cur = { lane: 0, tick: 0, col: 0, ch: 0 };
   let octave = 3, message = '';
   let sel = null;          // { lane, tick, col }: the corner opposite the cursor, while a rectangle is selected
@@ -77,9 +78,10 @@ export function createTrackerView({ el, statusEl, transport, onToggle, onBack, o
     setSize(fontPx + (e.deltaY < 0 ? 1 : -1));
   }, { passive: false });
 
-  const load = ({ lanes: l, song, editor: e }) => {
+  const load = ({ lanes: l, song: s, editor: e }) => {
     lanes = l;
-    len = song.length;
+    len = s.length;
+    song = s;
     editor = e;
     widths = lanes.map(lane => lane.columns.map(c => Math.max(c.label.length, KINDS[c.token].width)));
     Object.assign(cur, { lane: 0, tick: 0, col: 0, ch: 0 });
@@ -368,6 +370,11 @@ export function createTrackerView({ el, statusEl, transport, onToggle, onBack, o
         message = on ? `Hiding empty columns in ${lanes[li].id}.` : `Showing every column of ${lanes[li].id}.`;
         e.preventDefault(); return;
       }
+      if ((key === 'b' || key === 'e') && !e.shiftKey) {   // the loop: Ctrl+B starts it at this tick, Ctrl+E ends it with this tick
+        message = key === 'b' ? setLoopPoint(song, 'start', cur.tick) : setLoopPoint(song, 'end', cur.tick + 1);
+        onSong();
+        e.preventDefault(); return;
+      }
       if (key === 'enter') { insertLive(e.shiftKey); e.preventDefault(); return; }
       if (key === 'i') { interpolate(); e.preventDefault(); return; }
       if (key === 'z' || key === 'y') {
@@ -490,7 +497,9 @@ export function createTrackerView({ el, statusEl, transport, onToggle, onBack, o
           return covered ? html : `<span class="off">${html}</span>`;
         }).join(' ');
       });
-      const row = `<span class="g">${playing && t === playTick ? '>' : ' '}${String(t).padStart(4, '0')} </span>${chunks.join('  ')}`;
+      const inLoop = song.loop && t >= song.loop.start && t < song.loop.end;
+      const edge = inLoop ? `${t === song.loop.start ? ' ls' : ''}${t === song.loop.end - 1 ? ' le' : ''}` : '';
+      const row = `<span class="g${inLoop ? ` lp${edge}` : ''}">${playing && t === playTick ? '>' : ' '}${String(t).padStart(4, '0')} </span>${chunks.join('  ')}`;
       const shade = t % 16 === 0 ? 'r16' : t % 4 === 0 ? 'r4' : '';
       const line = playing && t === playTick ? `<b>${row}</b>` : row;
       lines.push(shade ? `<span class="${shade}">${line}</span>` : line);

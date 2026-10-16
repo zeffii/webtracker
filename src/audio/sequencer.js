@@ -1,4 +1,5 @@
 import { EMPTY, CUT, OFF, decodeNote, decodeHex2, decodeHex4 } from '../seq/cells.js';
+import { loopRange } from '../seq/loop.js';
 
 // The sequence lives in fixed-size pages of ticks. Each lane has one buffer per
 // page, with one float channel per cell channel (see KINDS in cells.js).
@@ -72,7 +73,7 @@ export class Sequencer {
   }
 
   play() {
-    this.tick = 0;
+    this.tick = this.song.loop ? loopRange(this.song).start : 0;   // a loop is played from its start
     this.countdown = 0;
     this.playing = true;
     this.transport[1] = 1;
@@ -182,7 +183,10 @@ export class Sequencer {
   fireTick() {
     for (const lane of this.lanes.values()) this.playRow(lane);
     Atomics.store(this.transport, 0, this.tick);   // the tick now sounding
-    if (++this.tick >= this.song.length) this.tick = 0;
+    if (this.song.loop) {   // the loop: back to its start when its end is reached
+      const { start, end } = loopRange(this.song);
+      if (++this.tick >= end || this.tick < start) this.tick = start;
+    } else if (++this.tick >= this.song.length) this.tick = 0;
   }
 
   process(left, right, n) {
