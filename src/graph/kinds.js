@@ -9,7 +9,16 @@
 //                            stereo signal reaches one of its audio inputs; its audio
 //                            ports are then stereo
 export const portKind = (def, name, node) =>
-  node?.stereo && def.stereoOptional?.includes(name) ? 'stereo' : def.kinds?.[name] ?? 'audio';
+  name.startsWith('@') ? 'control' : node?.stereo && def.stereoOptional?.includes(name) ? 'stereo' : def.kinds?.[name] ?? 'audio';
+
+// A node's input ports: those of its type, then one for each parameter it has been given a port for
+// (node.ports, a list of parameter names). A parameter port is named '@name' and carries a control signal from 0 to 1
+// (a ctrl node's output) that is mapped onto the parameter's own range, on its own scale; while a wire is
+// connected it replaces the value of the parameter's slider.
+export const inputsOf = (node, def) => (node?.ports?.length ? [...def.inputs, ...node.ports.map(p => `@${p}`)] : def.inputs);
+
+// Whether a wide positive range is logarithmic (the patcher's sliders and the exposed pattern columns use the same rule).
+export const isLogSpec = spec => spec.min > 0 && spec.max / spec.min >= 50;
 
 // Returns { kindOf(node, port), wide: Set of dual node ids that run as a stereo pair }.
 export function resolveKinds(desc, nodeTypes) {

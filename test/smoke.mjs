@@ -823,7 +823,7 @@ const hit = 'C-2 .. .. ..';
   assert.equal(params.at(-1)[2], 'tune');
   assert.ok(Math.abs(params.at(-1)[3] - 24) < 1e-6);
   assert.equal(node('osc').params.tune, 24);
-  boxes[tune].checked = true; boxes[tune].listeners.change();
+  boxes[tune * 2].checked = true; boxes[tune * 2].listeners.change();
   assert.ok(defs.kick.exposed.some(e => e.node === 'osc' && e.param === 'tune'));
   assert.equal(structures.length, 3);
 
@@ -3933,6 +3933,122 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   const dith = run({ bits: 3, rate: 48000, dither: 1 }, Float32Array.from({ length: 4000 }, () => 0.03));
   assert.ok(new Set(Array.from(dith, v => v.toFixed(4))).size > 1, 'dither makes a steady quiet level flicker between steps');
   assert.ok(run({ bits: 5, rate: 9000, jitter: 1, dither: 1 }, x).every(Number.isFinite));
+}
+
+// 113. Ctrl objects and parameter ports: glides timed in subticks into a parameter, the curves, the seeded stagger.
+{
+  const { shape, stagger, CURVES } = await import('../src/audio/nodes/ctrl.js');
+  assert.equal(CURVES.length, 5);
+  for (const c of [0, 1, 2, 3]) assert.ok(shape(c, 0) === 0 && shape(c, 1) === 1 && shape(c, 0.5) > 0 && shape(c, 0.5) < 1, `curve ${c} runs from 0 to 1`);
+  assert.ok(shape(2, 0.25) > 0.25 && shape(3, 0.25) < 0.25, 'fast in slow out is above the line early, slow in fast out below');
+  const a = stagger(7, 8, 0), b = stagger(7, 8, 0), c2 = stagger(8, 8, 0);
+  assert.deepEqual(a, b, 'the same seed gives the same stagger');
+  assert.notDeepEqual(a.times, c2.times, 'another seed gives another one');
+  assert.ok(a.times.every((t, i) => i === 0 || t >= a.times[i - 1]) && a.times.at(-1) === 1 && a.levels.at(-1) === 1, 'the stagger ends at the destination');
+  assert.ok(a.levels.every((v, i) => i === 0 || v >= a.levels[i - 1]), 'with no wobble it only climbs');
+
+  const desc = voices => ({
+    nodes: [{ id: 'osc', type: 'osc' }, { id: 'filt', type: 'filter', params: { cutoff: 2000 }, ports: ['cutoff'] }, { id: 'c', type: 'ctrl' }, ...(voices ? [{ id: 'poly', type: 'voices' }] : []), { id: 'out', type: 'out' }],
+    connections: [['osc.out', 'filt.in'], ['c.out', 'filt.@cutoff'], voices ? ['filt.out', 'poly.in'] : ['filt.out', 'out.in'], ...(voices ? [['poly.out', 'out.in']] : [])],
+    ...(voices ? { voices } : {}),
+  });
+  const rig = voices => {
+    const registry = new ParamRegistry(), rt = new GraphRuntime({ sampleRate: sr, params: registry.values });
+    rt.load(compile(desc(voices), { instrument: 'x', nodeTypes: NODE_TYPES, registry }));
+    const l = new Float32Array(block), r = new Float32Array(block);
+    const write = (name, v) => { registry.set(`x.c.${name}`, v); rt.clock.stamps[registry.slots.get(`x.c.${name}`)]++; };   // what the sequencer does for a pattern cell
+    const run = blocks => { for (let i = 0; i < blocks; i++) rt.process(l, r, block); };
+    const cutoff = () => registry.get('x.filt.cutoff');
+    return { registry, rt, write, run, cutoff };
+  };
+  const logAt = x => 20 * Math.pow(18000 / 20, x);
+  const x0 = Math.log(2000 / 20) / Math.log(18000 / 20);
+  const g = rig(0);
+  g.rt.note('x', { type: 'noteOn', note: 60, vel: 1 });
+  g.run(4);
+  assert.ok(Math.abs(g.cutoff() - 2000) < 1, `until the first event the slider's value stands (${g.cutoff()})`);
+  const tick = g.rt.clock.tickSamples;   // 6000 at 120 bpm
+  g.write('time', 16); g.write('to', 1);   // one tick (16 subticks) to the top
+  g.run(Math.round(tick / block / 2));
+  const mid = g.cutoff(), want = logAt(x0 + 0.5 * (1 - x0));
+  assert.ok(Math.abs(Math.log(mid / want)) < 0.12, `half way is half way across the octaves (${mid.toFixed(0)} vs ${want.toFixed(0)})`);
+  g.run(Math.ceil(tick / block / 2) + 2);
+  assert.ok(Math.abs(g.cutoff() - 18000) < 1, `and it arrives (${g.cutoff()})`);
+  // from: a jump; the same `to` written again glides again
+  g.write('from', 0); g.run(1);
+  assert.ok(Math.abs(g.cutoff() - 20) < 1, 'from jumps at once');
+  g.write('time', 8); g.write('to', 1); g.run(2);
+  assert.ok(g.cutoff() > 20 && g.cutoff() < 18000, 'writing the same to again starts another glide');
+  g.run(60);
+  assert.ok(Math.abs(g.cutoff() - 18000) < 1);
+  g.write('time', 0); g.write('to', 0.25); g.run(1);
+  assert.ok(Math.abs(g.cutoff() - logAt(0.25)) < 1, 'a time of 0 is a jump');
+  // a hand-moved slider (no pattern stamp) glides too
+  g.registry.set('x.c.to', 0.75); g.run(1);
+  assert.ok(g.cutoff() >= logAt(0.25), 'moving the slider by hand also starts a glide (time 0 jumps)');
+  // curves: with the stagger, the value is flat between steps and ends on target
+  g.write('curve', 4); g.write('seed', 3); g.write('steps', 6); g.write('time', 32); g.write('from', 0); g.run(1); g.write('to', 1);
+  const seen = new Set(); for (let i = 0; i < 100; i++) { g.run(1); seen.add(Math.round(g.cutoff())); }
+  assert.ok(seen.size >= 3 && seen.size <= 8, `the stagger moves in a few steps (${seen.size} levels)`);
+  g.run(100); assert.ok(Math.abs(g.cutoff() - 18000) < 1, 'and arrives');
+  const g2 = rig(0); g2.rt.note('x', { type: 'noteOn', note: 60, vel: 1 }); g2.run(2);
+  g2.write('curve', 4); g2.write('seed', 3); g2.write('steps', 6); g2.write('time', 32); g2.write('from', 0); g2.run(1); g2.write('to', 1);
+  const again = new Set(); for (let i = 0; i < 100; i++) { g2.run(1); again.add(Math.round(g2.cutoff())); }
+  assert.deepEqual([...again], [...seen], 'the same seed gives the same stagger every time');
+  // with voices, the one ctrl feeds every voice
+  const v = rig(3);
+  v.rt.note('x', { type: 'noteOn', note: 60, vel: 1 }); v.rt.note('x', { type: 'noteOn', note: 64, vel: 1 }); v.run(2);
+  v.write('time', 4); v.write('to', 1); v.run(30);
+  assert.ok(Math.abs(v.cutoff() - 18000) < 1, `a voiced instrument follows the ctrl (${v.cutoff()})`);
+  assert.equal(v.rt.instruments.get('x').pre.length, 1, 'the ctrl runs once, ahead of the voices');
+  // the graph edits
+  const d = { nodes: [{ id: 'filt', type: 'filter' }, { id: 'c', type: 'ctrl' }], connections: [] };
+  assert.throws(() => gedit.connect(d, NODE_TYPES, 'c.out', 'filt.@cutoff'), /no input/);
+  gedit.setPort(d, NODE_TYPES, 'filt', 'cutoff', true);
+  gedit.connect(d, NODE_TYPES, 'c.out', 'filt.@cutoff');
+  assert.deepEqual(d.connections, [['c.out', 'filt.@cutoff']]);
+  gedit.setPort(d, NODE_TYPES, 'filt', 'cutoff', false);
+  assert.deepEqual(d.connections, [], 'taking the port away takes its wire');
+  assert.equal(d.nodes[0].ports, undefined);
+  // the patcher draws the extra input and finds it
+  const filt = { id: 'filt', type: 'filter', x: 100, y: 100, ports: ['cutoff', 'mode'] }, td = { nodes: [filt], connections: [] };
+  assert.equal(nodeBox(NODE_TYPES.filter, filt).h > nodeBox(NODE_TYPES.filter).h, true, 'a node with ports is taller');
+  const p = portPos(filt, NODE_TYPES.filter, 'in', 2);
+  assert.deepEqual(hitTest(td, NODE_TYPES, p.x, p.y), { kind: 'port', side: 'in', node: 'filt', port: '@cutoff' });
+  assert.equal(portKind(NODE_TYPES.filter, '@cutoff', filt), 'control');
+}
+
+// 114. A pattern drives a ctrl object: `to` and `time` as columns, a glide timed in subticks.
+{
+  const graph = {
+    nodes: [{ id: 'osc', type: 'osc' }, { id: 'filt', type: 'filter', params: { cutoff: 2000 }, ports: ['cutoff'] }, { id: 'c', type: 'ctrl' }, { id: 'out', type: 'out' }],
+    connections: [['osc.out', 'filt.in'], ['c.out', 'filt.@cutoff'], ['filt.out', 'out.in']],
+  };
+  const inst = { graph, exposed: [{ node: 'c', param: 'to', label: 'To' }, { node: 'c', param: 'time', label: 'Tim' }, { node: 'c', param: 'from', label: 'Frm' }] };
+  const registry = new ParamRegistry(), rt = new GraphRuntime({ sampleRate: sr, params: registry.values });
+  rt.load(compile(graph, { instrument: 'p', nodeTypes: NODE_TYPES, registry }));
+  const seq = new Sequencer({ sampleRate: sr, runtime: rt, params: registry.values, transport: new Int32Array(new SharedArrayBuffer(8)) });
+  // tick 1: from 00, then to FF over 20 subticks (16 are a tick, so 1.25 ticks); tick 8 the same again with no from
+  const rows = Array.from({ length: 16 }, (_, i) => (i === 1 ? '... .. FF 20 00' : i === 8 ? '... .. FF 20 ..' : '... .. .. .. ..')).join('\n');
+  const song = song120([oneLane('p', 'p', rows)]);
+  seq.setSong(song);
+  for (const lane of prepareSong(song, { p: inst }, registry)) seq.setLane(lane);
+  seq.play();
+  const grab = () => registry.get('p.filt.cutoff');
+  const run = samples => { render(seq, samples / sr); return grab(); };
+  const before = run(6000 * 1 - 256);                       // up to just before tick 1
+  assert.ok(Math.abs(before - 2000) < 5, `the slider's value stands before the first event (${before.toFixed(0)})`);
+  const tick1 = run(256 + 128);                             // just after tick 1: from 00 jumped to the bottom, a glide begun
+  assert.ok(tick1 < 60, `from 00 jumps to the bottom (${tick1.toFixed(0)})`);
+  const half = run(7500 - 384);                             // 0.625 ticks into a 1.25 tick glide
+  assert.ok(half > 100 && half < 18000, `the glide is under way (${half.toFixed(0)})`);
+  const done = run(7500);
+  assert.ok(Math.abs(done - 18000) < 20, `20 subticks later it has arrived (${done.toFixed(0)})`);
+  // tick 8 writes the same `to` again, and the glide runs again from where it stands (the top: no movement), so
+  // write something lower first by hand and check the pattern's rewrite still starts a glide
+  registry.set('p.c.to', 0.2); rt.clock.stamps[registry.slots.get('p.c.to')]++;
+  render(seq, 256 / sr);
+  assert.ok(grab() < 18000, 'a rewrite of the column starts a glide');
 }
 
 console.log('smoke test passed');

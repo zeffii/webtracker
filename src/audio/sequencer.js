@@ -99,7 +99,7 @@ export class Sequencer {
 
   // A preset: every parameter it holds, and the drawn curves and spectra, set at once.
   recall(lane, preset) {
-    for (let i = 0; i < preset.slots.length; i++) this.params[preset.slots[i]] = preset.values[i];
+    for (let i = 0; i < preset.slots.length; i++) { this.params[preset.slots[i]] = preset.values[i]; this.touch(preset.slots[i]); }
     for (const { node, msg } of preset.msgs) this.runtime.message?.(lane.instrument, node, msg);
   }
 
@@ -107,6 +107,13 @@ export class Sequencer {
   writeParam(slot, min, max, log, x) {
     const value = log ? min * Math.pow(max / min, x) : min + x * (max - min);
     if (Number.isFinite(value)) this.params[slot] = value;
+    this.touch(slot);
+  }
+
+  // Counts a pattern's write to a slot (nodes watch the count to tell a new event from an unchanged value).
+  touch(slot) {
+    const stamps = this.runtime.clock?.stamps;
+    if (stamps) stamps[slot]++;
   }
 
   playRow(lane) {
@@ -121,7 +128,7 @@ export class Sequencer {
       if (v === EMPTY) continue;
       if (col.kind === 'param') {
         // A whole-number parameter (toggle, enum) takes the number in the cell itself, at any width.
-        if (col.int) this.params[col.slot] = Math.min(col.max, col.min + Math.round(v * col.denom));
+        if (col.int) { this.params[col.slot] = Math.min(col.max, col.min + Math.round(v * col.denom)); this.touch(col.slot); }
         else this.writeParam(col.slot, col.min, col.max, col.log, Math.round(v * col.denom) / col.denom);
       } else if (col.kind === 'cmd') {
         // Needs both halves: the command id and its value.
@@ -129,7 +136,7 @@ export class Sequencer {
         const id = decodeHex2(v), t = col.table;
         if (value !== EMPTY && t.slot[id] >= 0) {
           // 0003 is wave 3 for a whole-number target; otherwise the value runs across the range.
-          if (t.int[id] === 1) this.params[t.slot[id]] = Math.min(t.max[id], t.min[id] + decodeHex4(value));
+          if (t.int[id] === 1) { this.params[t.slot[id]] = Math.min(t.max[id], t.min[id] + decodeHex4(value)); this.touch(t.slot[id]); }
           else this.writeParam(t.slot[id], t.min[id], t.max[id], t.log[id] === 1, decodeHex4(value) / 65535);
         } else if (value !== EMPTY && id === 0 && t.presets.size) {
           // Command 00 recalls the preset numbered by the value; an unknown number does nothing.

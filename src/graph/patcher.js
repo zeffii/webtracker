@@ -1,4 +1,4 @@
-import { addNode, autoLayout, connect, disconnect, pruneDef, removeNode, setBits, setExposed, setParam } from './edit.js';
+import { addNode, autoLayout, connect, disconnect, pruneDef, removeNode, setBits, setExposed, setParam, setPort } from './edit.js';
 
 // The modular view: a canvas of nodes and wires for one instrument's graph, plus a panel
 // for the selected node's parameters. Drag a node to move it, drag from an output dot to
@@ -7,7 +7,7 @@ import { addNode, autoLayout, connect, disconnect, pruneDef, removeNode, setBits
 // and swapped in; a parameter change calls onParam and is heard at once.
 import { GLYPHS } from './glyphs.js';
 import { LOWER, UPPER } from '../seq/piano.js';
-import { portKind, resolveKinds } from './kinds.js';
+import { inputsOf, portKind, resolveKinds } from './kinds.js';
 import { createCurveEditor } from './curveeditor.js';
 import { createSpectrumEditor } from './spectrumeditor.js';
 import { createWaveEditor } from './waveeditor.js';
@@ -18,14 +18,14 @@ import { createWavetableEditor } from './wavetableeditor.js';
 export const ROW = 16, PORT_R = 4;
 export const MIN_HEIGHT = 160, MAX_HEIGHT = 1600;   // the graph area, in pixels
 const SHAPE_W = { box: 112, rounded: 100, speaker: 100 };
-export const nodeBox = def => {
-  const rows = Math.max(def.inputs.length, def.outputs.length, 1);
+export const nodeBox = (def, node) => {
+  const rows = Math.max(inputsOf(node, def).length, def.outputs.length, 1);
   const h = Math.max(rows * ROW + 10, def.shape === 'circle' ? 44 : 0);
   return { w: def.shape === 'circle' ? h : SHAPE_W[def.shape ?? 'box'], h };
 };
 export const portPos = (node, def, side, index) => {
-  const { w, h } = nodeBox(def);
-  const n = side === 'in' ? def.inputs.length : def.outputs.length;
+  const { w, h } = nodeBox(def, node);
+  const n = side === 'in' ? inputsOf(node, def).length : def.outputs.length;
   const y = node.y + (h - n * ROW) / 2 + ROW / 2 + index * ROW;
   let x = side === 'in' ? node.x : node.x + w;
   if (def.shape === 'circle') {   // keep the dot on the circle's edge
@@ -35,7 +35,7 @@ export const portPos = (node, def, side, index) => {
   return { x, y };
 };
 const inside = (node, def, x, y) => {
-  const { w, h } = nodeBox(def);
+  const { w, h } = nodeBox(def, node);
   if (def.shape === 'circle') return Math.hypot(x - (node.x + w / 2), y - (node.y + h / 2)) <= w / 2 + 2;
   return x >= node.x && x <= node.x + w && y >= node.y && y <= node.y + h;
 };
@@ -55,7 +55,7 @@ const linkEnds = (desc, nodeTypes, link, kindOf) => {
   const a = desc.nodes.find(n => n.id === from[0]), b = desc.nodes.find(n => n.id === to[0]);
   return {
     a: portPos(a, nodeTypes[a.type], 'out', nodeTypes[a.type].outputs.indexOf(from[1])),
-    b: portPos(b, nodeTypes[b.type], 'in', nodeTypes[b.type].inputs.indexOf(to[1])),
+    b: portPos(b, nodeTypes[b.type], 'in', inputsOf(b, nodeTypes[b.type]).indexOf(to[1])),
     kind: kindOf ? kindOf(a, from[1]) : portKind(nodeTypes[a.type], from[1], a),
   };
 };
@@ -65,7 +65,7 @@ export function hitTest(desc, nodeTypes, x, y) {
   const near = (p, r) => Math.hypot(p.x - x, p.y - y) <= r;
   for (const node of [...desc.nodes].reverse()) {
     const def = nodeTypes[node.type];
-    for (const [side, names] of [['in', def.inputs], ['out', def.outputs]]) {
+    for (const [side, names] of [['in', inputsOf(node, def)], ['out', def.outputs]]) {
       for (let i = 0; i < names.length; i++) {
         if (near(portPos(node, def, side, i), PORT_R + 4)) return { kind: 'port', side, node: node.id, port: names[i] };
       }
@@ -228,7 +228,14 @@ export function createPatcher({ canvas, panel, exposedPanel = null, onEscape = (
         setBits(def(), node.id, spec.name, Number(width.value));
         structure();
       });
-      return el('div', { className: 'prow' }, el('span', { textContent: spec.name }), slider, out, el('span', {}, el('label', {}, exposed, ' expose '), width));
+      // a port of its own: a wire from a ctrl node into the node then drives this parameter
+      const port = el('input', { type: 'checkbox', checked: (node.ports ?? []).includes(spec.name) });
+      port.addEventListener('change', () => {
+        setPort(desc(), nodeTypes, node.id, spec.name, port.checked);
+        structure();
+        dirty = true;
+      });
+      return el('div', { className: 'prow' }, el('span', { textContent: spec.name }), slider, out, el('span', {}, el('label', {}, exposed, ' expose '), width, el('label', { title: 'Give this parameter an input on the node, to wire a ctrl node into' }, port, ' port')));
     });
     const items = [el('h3', {}, `${node.id} (${node.type})`), ...rows];
     if (type.editor === 'curve') {   // a drawable transfer curve, kept on the node and sent live
@@ -374,7 +381,7 @@ export function createPatcher({ canvas, panel, exposedPanel = null, onEscape = (
   // ('next', 'prev') in left-to-right order. With nothing selected the leftmost node is chosen.
   function selectNear(way) {
     if (!instId) return false;
-    const boxOf = n => { const { w, h } = nodeBox(nodeTypes[n.type]); return { x: n.x + w / 2, y: n.y + h / 2 }; };
+    const boxOf = n => { const { w, h } = nodeBox(nodeTypes[n.type], n); return { x: n.x + w / 2, y: n.y + h / 2 }; };
     const nodes = desc().nodes.filter(n => n.x !== undefined);
     if (!nodes.length) return false;
     const order = [...nodes].sort((a, b) => boxOf(a).x - boxOf(b).x || boxOf(a).y - boxOf(b).y);
@@ -600,7 +607,7 @@ export function createPatcher({ canvas, panel, exposedPanel = null, onEscape = (
     }
 
     for (const node of desc().nodes) {
-      const type = nodeTypes[node.type], { w, h } = nodeBox(type);
+      const type = nodeTypes[node.type], { w, h } = nodeBox(type, node);
       const chosen = selected?.kind === 'node' && selected.id === node.id;
       ctx.beginPath();
       if (type.shape === 'circle') ctx.arc(node.x + w / 2, node.y + h / 2, w / 2, 0, 2 * Math.PI);
@@ -636,7 +643,7 @@ export function createPatcher({ canvas, panel, exposedPanel = null, onEscape = (
 
       ctx.font = '10px ui-monospace, Consolas, monospace';
       ctx.textBaseline = 'middle';
-      for (const [side, names] of [['in', type.inputs], ['out', type.outputs]]) {
+      for (const [side, names] of [['in', inputsOf(node, type)], ['out', type.outputs]]) {
         names.forEach((name, i) => {
           const p = portPos(node, type, side, i);
           ctx.beginPath();
@@ -650,7 +657,7 @@ export function createPatcher({ canvas, panel, exposedPanel = null, onEscape = (
             ctx.fillStyle = ink;
             ctx.globalAlpha = 0.75;
             ctx.textAlign = side === 'in' ? 'left' : 'right';
-            ctx.fillText(name, p.x + (side === 'in' ? 8 : -8), p.y);
+            ctx.fillText(name.startsWith('@') ? name.slice(1) : name, p.x + (side === 'in' ? 8 : -8), p.y);
             ctx.globalAlpha = 1;
           }
         });
@@ -658,8 +665,8 @@ export function createPatcher({ canvas, panel, exposedPanel = null, onEscape = (
     }
     const chosenNode = selected?.kind === 'node' ? desc().nodes.find(n => n.id === selected.id) : null;
     const chosenType = chosenNode && nodeTypes[chosenNode.type];
-    if (chosenType?.curves) drawResponse(chosenNode, chosenType, { x: chosenNode.x, y: chosenNode.y, ...nodeBox(chosenType) }, ink);
-    if (chosenType?.adsr?.length) drawEnvelopes(chosenNode, chosenType, { x: chosenNode.x, y: chosenNode.y, ...nodeBox(chosenType) }, ink);
+    if (chosenType?.curves) drawResponse(chosenNode, chosenType, { x: chosenNode.x, y: chosenNode.y, ...nodeBox(chosenType, chosenNode) }, ink);
+    if (chosenType?.adsr?.length) drawEnvelopes(chosenNode, chosenType, { x: chosenNode.x, y: chosenNode.y, ...nodeBox(chosenType, chosenNode) }, ink);
   }
 
   return {

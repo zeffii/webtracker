@@ -1,4 +1,5 @@
 import { NODE_TYPES } from './nodes/index.js';
+import { PARAM_CAPACITY } from './params.js';
 
 const MAX_VOICES = 16;
 
@@ -16,7 +17,9 @@ export class GraphRuntime {
     this.sampleRate = sampleRate;
     this.params = params;       // Float32Array over the shared parameter block
     this.maxBlock = maxBlock;
-    this.clock = { tickSamples: (sampleRate * 60) / (120 * 4) };   // the sequencer keeps this in step with the song's tempo
+    // the sequencer keeps tickSamples in step with the song's tempo, and counts in `stamps` every time a pattern writes a
+    // parameter (even to the value it already has), which is how a node can tell a new event from an unchanged value
+    this.clock = { tickSamples: (sampleRate * 60) / (120 * 4), stamps: new Uint32Array(PARAM_CAPACITY) };
   }
 
   // Drops every instrument and switches to a new parameter block.
@@ -39,7 +42,7 @@ export class GraphRuntime {
     const fresh = () => Array.from({ length: compiled.bufferCount }, () => new Float32Array(this.maxBlock));
     const resolver = buffers => ref => (Array.isArray(ref) ? ref.map(b => buffers[b]) : buffers[ref]);   // stereo ports are [left, right]
     const make = (n, resolve) => {
-      const create = () => NODE_TYPES[n.type].create({ sampleRate: this.sampleRate, maxBlock: this.maxBlock, connected: n.connected, wasm: this.wasm, data: n.data, stereo: n.stereo === true, clock: this.clock });
+      const create = () => NODE_TYPES[n.type].create({ sampleRate: this.sampleRate, maxBlock: this.maxBlock, connected: n.connected, wasm: this.wasm, data: n.data, init: n.init, stereo: n.stereo === true, clock: this.clock });
       const node = { id: n.id, instance: create(), slots: Int32Array.from(n.slots), inputs: n.inputs.map(resolve), outputs: n.outputs.map(resolve) };
       if (n.dual) {   // a mono node on a stereo signal: one copy per channel over the same parameters
         const left = node.instance, right = create();
@@ -51,6 +54,22 @@ export class GraphRuntime {
           note: msg => { left.note?.(msg); right.note?.(msg); },
         };
       }
+      if (n.paramPorts) {   // a wire into a parameter port sets the parameter, from 0 to 1 on its own scale, before the node runs
+        const inner = node.instance, ports = n.paramPorts;
+        node.instance = {
+          ...inner,
+          process: (ins, outs, len, params, slots) => {
+            for (const p of ports) {
+              const x = Math.min(1, Math.max(0, ins[p.input][len - 1]));
+              const v = p.log ? p.min * Math.pow(p.max / p.min, x) : p.min + x * (p.max - p.min);
+              params[p.slot] = Number.isFinite(v) ? (p.int ? Math.round(v) : v) : params[p.slot];
+            }
+            inner.process(ins, outs, len, params, slots);
+          },
+          message: msg => inner.message?.(msg),
+          note: msg => inner.note?.(msg),
+        };
+      }
       return node;
     };
     const buffers0 = fresh(), resolve0 = resolver(buffers0);
@@ -58,6 +77,7 @@ export class GraphRuntime {
     const register = (node, at) => { const list = inst.byId.get(node.id) ?? []; list[at] = node; inst.byId.set(node.id, list); };
     this.instruments.set(compiled.instrument, inst);
 
+    inst.pre = [];   // shared nodes that run before the voices (see below)
     if (V === 1) {
       inst.nodes = compiled.nodes.map(n => make(n, resolve0));
       inst.nodes.forEach(node => register(node, 0));
@@ -67,6 +87,10 @@ export class GraphRuntime {
     }
 
     // Which nodes are per voice: those that feed a voices node, or all of them without one.
+    // A node type marked `shared` (the ctrl node) is never copied per voice, even when it feeds something that is: one
+    // copy runs first and every voice reads its output, so a sweep is the same for all of them.
+    const isShared = n => NODE_TYPES[n.type]?.shared === true && n.inputs.length === 0;
+    const sharedBufs = new Set(compiled.nodes.filter(isShared).flatMap(n => n.outputs.flat()));
     const producer = new Map();
     compiled.nodes.forEach((n, i) => n.outputs.flat().forEach(b => producer.set(b, i)));
     const boundary = compiled.nodes.map((n, i) => (n.type === 'voices' ? i : -1)).filter(i => i >= 0);
@@ -74,16 +98,17 @@ export class GraphRuntime {
     const visit = i => {
       if (perVoice.has(i)) return;
       perVoice.add(i);
-      for (const b of compiled.nodes[i].inputs.flat()) if (producer.has(b)) visit(producer.get(b));
+      for (const b of compiled.nodes[i].inputs.flat()) if (producer.has(b) && !sharedBufs.has(b)) visit(producer.get(b));
     };
-    if (boundary.length) for (const i of boundary) for (const b of compiled.nodes[i].inputs.flat()) { if (producer.has(b)) visit(producer.get(b)); }
+    if (boundary.length) for (const i of boundary) for (const b of compiled.nodes[i].inputs.flat()) { if (producer.has(b) && !sharedBufs.has(b)) visit(producer.get(b)); }
     else compiled.nodes.forEach((_, i) => perVoice.add(i));
+    compiled.nodes.forEach((n, i) => { if (isShared(n)) perVoice.delete(i); });
     for (const i of boundary) perVoice.delete(i);   // a voices node is shared, whatever feeds it
 
     const mixing = boundary.length === 0;
     const mixL = new Float32Array(this.maxBlock), mixR = new Float32Array(this.maxBlock);
     for (let v = 0; v < V; v++) {
-      const buffers = v === 0 ? buffers0 : fresh(), resolve = resolver(buffers);
+      const buffers = v === 0 ? buffers0 : fresh(), resolve = ref => { const at = b => (sharedBufs.has(b) ? buffers0[b] : buffers[b]); return Array.isArray(ref) ? ref.map(at) : at(ref); };
       const set = {
         nodes: compiled.nodes.filter((_, i) => perVoice.has(i)).map(n => make(n, resolve)),
         taps: mixing ? [[buffers[compiled.master[0]], buffers[compiled.master[1]]]] : boundary.map(i => resolve(compiled.nodes[i].inputs[0])),
@@ -96,6 +121,7 @@ export class GraphRuntime {
     compiled.nodes.forEach((n, i) => {
       if (perVoice.has(i)) return;
       const node = make(n, resolve0);
+      if (isShared(n)) { inst.pre.push(node); register(node, 0); return; }
       if (n.type === 'voices') {
         const at = boundary.indexOf(i), [outL, outR] = node.outputs[0];
         node.instance = {
@@ -166,6 +192,7 @@ export class GraphRuntime {
     left.fill(0, 0, n);
     right.fill(0, 0, n);
     for (const [id, inst] of this.instruments) {
+      for (const node of inst.pre) node.instance.process(node.inputs, node.outputs, n, this.params, node.slots);
       if (inst.sets.length) {
         if (inst.mixing) { inst.left.fill(0, 0, n); inst.right.fill(0, 0, n); }
         for (const set of inst.sets) {

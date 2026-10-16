@@ -9,7 +9,7 @@
 // stereo port is a pair [left, right]. A mono wire into a stereo input feeds both channels;
 // a stereo wire into a mono input is averaged (a hidden fold node); several wires into
 // one input are added (a hidden sum node).
-import { resolveKinds } from './kinds.js';
+import { inputsOf, isLogSpec, resolveKinds } from './kinds.js';
 
 export function compile(desc, { instrument, nodeTypes, registry }) {
   const byId = new Map();
@@ -22,6 +22,9 @@ export function compile(desc, { instrument, nodeTypes, registry }) {
         throw new Error(`node "${n.id}" has no parameter "${name}"`);
       }
     }
+    for (const name of n.ports ?? []) {
+      if (!def.params.some(p => p.name === name)) throw new Error(`node "${n.id}" has no parameter "${name}" to give a port`);
+    }
     byId.set(n.id, { ...n, def });
   }
 
@@ -30,7 +33,7 @@ export function compile(desc, { instrument, nodeTypes, registry }) {
     const a = byId.get(fromId), b = byId.get(toId);
     if (!a) throw new Error(`unknown node "${fromId}" in connection ${from} -> ${to}`);
     if (!b) throw new Error(`unknown node "${toId}" in connection ${from} -> ${to}`);
-    const outPort = a.def.outputs.indexOf(fromPort), inPort = b.def.inputs.indexOf(toPort);
+    const outPort = a.def.outputs.indexOf(fromPort), inPort = inputsOf(b, b.def).indexOf(toPort);
     if (outPort < 0) throw new Error(`"${fromId}" has no output "${fromPort}"`);
     if (inPort < 0) throw new Error(`"${toId}" has no input "${toPort}"`);
     return { fromId, outPort, toId, inPort };
@@ -69,12 +72,24 @@ export function compile(desc, { instrument, nodeTypes, registry }) {
   const outBufs = new Map(order.map(id => [id, byId.get(id).def.outputs.map(name => alloc(byId.get(id), name))]));
   const live = ref => (Array.isArray(ref) ? ref[0] !== 0 || ref[1] !== 0 : ref !== 0);
 
+  // A node feeding a parameter port starts at where that parameter's slider is (0 to 1 on its scale), so wiring
+  // it up does not jump the sound.
+  const hints = new Map();
+  for (const l of links) {
+    const b = byId.get(l.toId), name = inputsOf(b, b.def)[l.inPort];
+    if (!name?.startsWith('@') || hints.has(l.fromId)) continue;
+    const spec = b.def.params.find(p => p.name === name.slice(1)), v = b.params?.[spec.name] ?? spec.def;
+    const x = isLogSpec(spec) ? Math.log(v / spec.min) / Math.log(spec.max / spec.min) : (v - spec.min) / (spec.max - spec.min);
+    hints.set(l.fromId, Math.min(1, Math.max(0, x)));
+  }
+
   const nodes = [];
   for (const id of order) {
     const n = byId.get(id);
     const slots = n.def.params.map(p =>
       registry.allocate(`${instrument}.${id}.${p.name}`, n.params?.[p.name] ?? p.def, p.min, p.max, p.int === true));
-    const inputs = n.def.inputs.map((name, i) => {
+    const inNames = inputsOf(n, n.def);
+    const inputs = inNames.map((name, i) => {
       const stereo = kindOf(n, name) === 'stereo';
       const feeds = (inputSources.get(`${id}.${i}`) ?? []).map((l, k) => {
         const ref = outBufs.get(l.fromId)[l.outPort];
@@ -90,7 +105,12 @@ export function compile(desc, { instrument, nodeTypes, registry }) {
       nodes.push({ id: `~sum.${id}.${i}`, type: stereo ? 'sumst' : 'sum', slots: [], inputs: feeds, outputs: [sum], connected: feeds.map(() => true) });
       return sum;
     });
-    nodes.push({ id, type: n.type, slots, inputs, outputs: outBufs.get(id), connected: inputs.map(live), ...(wide.has(id) ? { dual: true } : {}), ...(n.stereo ? { stereo: true } : {}), ...(n.data ? { data: n.data } : {}) });
+    // parameter ports: which input carries the value of which parameter, and how a 0 to 1 signal maps onto it
+    const paramPorts = (n.ports ?? []).map((name, k) => {
+      const at = n.def.params.findIndex(p => p.name === name), spec = n.def.params[at];
+      return { input: n.def.inputs.length + k, slot: slots[at], min: spec.min, max: spec.max, log: isLogSpec(spec), int: spec.int === true };
+    }).filter(p => live(inputs[p.input]));
+    nodes.push({ id, type: n.type, slots, inputs, outputs: outBufs.get(id), connected: inputs.map(live), ...(paramPorts.length ? { paramPorts } : {}), ...(hints.get(id) !== undefined ? { init: hints.get(id) } : {}), ...(wide.has(id) ? { dual: true } : {}), ...(n.stereo ? { stereo: true } : {}), ...(n.data ? { data: n.data } : {}) });
   }
 
   const masters = order.filter(id => byId.get(id).def.master);

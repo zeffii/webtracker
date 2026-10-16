@@ -1,3 +1,5 @@
+import { inputsOf } from './kinds.js';
+
 // Edits to a graph description ({ nodes, connections }) and an instrument definition
 // ({ graph, exposed, commands, samples }). Plain data in, plain data out, so the
 // patcher UI and the tests drive the same functions.
@@ -45,7 +47,7 @@ export function connect(desc, nodeTypes, from, to) {
   const a = desc.nodes.find(n => n.id === fromId), b = desc.nodes.find(n => n.id === toId);
   if (!a || !b) throw new Error('Unknown node.');
   if (!nodeTypes[a.type].outputs.includes(fromPort)) throw new Error(`"${fromId}" has no output "${fromPort}".`);
-  if (!nodeTypes[b.type].inputs.includes(toPort)) throw new Error(`"${toId}" has no input "${toPort}".`);
+  if (!inputsOf(b, nodeTypes[b.type]).includes(toPort)) throw new Error(`"${toId}" has no input "${toPort}".`);
   if (desc.connections.some(([f, t]) => f === from && t === to)) return;
   if (reaches(desc, toId, fromId)) throw new Error('That would make a loop.');
   desc.connections = [...desc.connections, [from, to]];
@@ -55,6 +57,20 @@ export function disconnect(desc, from, to) {
   const before = desc.connections.length;
   desc.connections = desc.connections.filter(([f, t]) => !(f === from && t === to));
   return desc.connections.length !== before;
+}
+
+// Gives a parameter an input port of its own (a wire from a ctrl node then drives it), or takes it away again
+// together with the wires into it.
+export function setPort(desc, nodeTypes, nodeId, param, on) {
+  const node = desc.nodes.find(n => n.id === nodeId);
+  if (!node || !nodeTypes[node.type].params.some(p => p.name === param)) throw new Error(`No parameter "${param}" on "${nodeId}".`);
+  const has = (node.ports ?? []).includes(param);
+  if (on && !has) node.ports = [...(node.ports ?? []), param];
+  if (!on && has) {
+    node.ports = node.ports.filter(p => p !== param);
+    if (!node.ports.length) delete node.ports;
+    desc.connections = desc.connections.filter(([, to]) => to !== `${nodeId}.@${param}`);
+  }
 }
 
 export function setParam(desc, nodeId, name, value) {
@@ -71,10 +87,10 @@ export function setExposed(def, nodeTypes, nodeId, param, on) {
   if (at >= 0) return;
   let label = param.slice(0, 3).replace(/^./, c => c.toUpperCase());
   while (def.exposed.some(e => e.label === label)) label = label.slice(0, 2) + (Number(label[2]) + 1 || 2);
-  // Whole-number parameters (toggles, enums) get a 1hex column; the rest a 2hex one.
+  // Whole-number parameters of up to 16 values (toggles, enums) get a 1hex column; the rest a 2hex one.
   def.exposed.push({
     node: nodeId, param, label,
-    ...(spec.int ? { bits: 4 } : {}),
+    ...(spec.int && spec.max - spec.min < 16 ? { bits: 4 } : {}),
     ...(spec.min > 0 && spec.max / spec.min >= 50 ? { scale: 'log' } : {}),
   });
 }

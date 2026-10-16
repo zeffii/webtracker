@@ -31,7 +31,8 @@ import addsynth from './addsynth.js';
 import fmsynth from './fmsynth.js';
 import wavetable from './wavetable.js';
 import granular from './granular.js';
+import ctrl from './ctrl.js';
 import voices from './voices.js';
 
 // Node type registry. Adding a node type means adding a module and listing it here.
-export const NODE_TYPES = { sampler, osc, env, lfo, gain, mix, pan, filter, delay, chorus, phaser, flanger, distortion, multitap, waveshaper, exciter, transient, split, compressor, gate, envfx, eq, crusher, hall, subsynth, addsynth, fmsynth, wavetable, granular, voices, out, sum, sumst, fold };
+export const NODE_TYPES = { sampler, osc, env, lfo, gain, mix, pan, filter, delay, chorus, phaser, flanger, distortion, multitap, waveshaper, exciter, transient, split, compressor, gate, envfx, eq, crusher, ctrl, hall, subsynth, addsynth, fmsynth, wavetable, granular, voices, out, sum, sumst, fold };
