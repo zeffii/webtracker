@@ -106,6 +106,10 @@ export const GLYPHS = {
     const x = f => cx - w / 2 + f * w, y = f => cy + h / 2 - f * h;
     line(ctx, [[x(0), y(0)], [x(0.45), y(0.45)], [x(0.6), y(0.55)], [x(1), y(0.7)]]);
   },
+  gate: (ctx, cx, cy, w, h) => {   // a signal chopped into blocks
+    const x = f => cx - w / 2 + f * w, y = f => cy + h / 2 - f * h;
+    line(ctx, [[x(0), y(0.5)], [x(0.05), y(0.95)], [x(0.15), y(0.05)], [x(0.25), y(0.9)], [x(0.3), y(0.5)], [x(0.45), y(0.5)], [x(0.5), y(0.95)], [x(0.6), y(0.05)], [x(0.7), y(0.9)], [x(0.75), y(0.5)], [x(1), y(0.5)]]);
+  },
   hall: (ctx, cx, cy, w, h) => {   // reflections thinning out under a decaying envelope
     ctx.beginPath();
     [1, 0.55, 0.7, 0.35, 0.45, 0.2, 0.28, 0.1, 0.14, 0.05].forEach((a, i) => {

@@ -180,6 +180,7 @@ export function createPatcher({ canvas, panel, exposedPanel = null, onEscape = (
         setParam(desc(), node.id, spec.name, v);
         out.textContent = fmt(v);
         onParam(instId, node.id, spec.name, v);
+        dirty = true;
         if (selected?.kind === 'node' && selected.id === node.id) renderNodePanel();   // the node's own slider follows
       });
       return [el('div', { className: 'prow xrow' }, el('span', { textContent: x.label, title: `${x.node}.${x.param}` }), slider, out, el('span', { className: 'help', textContent: `${x.node}.${x.param}` }))];
@@ -205,6 +206,7 @@ export function createPatcher({ canvas, panel, exposedPanel = null, onEscape = (
         setParam(desc(), node.id, spec.name, v);
         out.textContent = fmt(v);
         onParam(instId, node.id, spec.name, v);
+        dirty = true;   // the envelope drawn beside the node follows
         if (def().exposed.some(x => x.node === node.id && x.param === spec.name)) renderExposed();   // the exposed copy follows
       });
       const current = def().exposed.find(e => e.node === node.id && e.param === spec.name);
@@ -410,6 +412,67 @@ export function createPatcher({ canvas, panel, exposedPanel = null, onEscape = (
   canvas.addEventListener('blur', releaseKeys);
 
   // ---- drawing ----
+  // The envelope of the selected node, drawn big in a box beside it: every ADSR the node type lists (a synth with
+  // a filter envelope, or an FM synth with one per operator, shows them overlaid). Attack is a straight rise;
+  // decay and release fall exponentially, and the node's times are to fall by 60 dB, so the drawing shows the
+  // part that matters (down to 1%) and a sustain stage of a quarter of the whole length.
+  const GROUP_COLOUR = ['hsl(35 85% 52%)', 'hsl(200 70% 50%)', 'hsl(145 55% 42%)', 'hsl(300 50% 55%)'];
+  const ENV_W = 230, ENV_H = 134;
+  function drawEnvelopes(node, type, box, ink) {
+    const value = name => node.params?.[name] ?? type.params.find(p => p.name === name)?.def ?? 0;
+    const groups = type.adsr.map(g => ({ a: value(g.atk), d: value(g.dec), s: value(g.sus), r: value(g.rel) }));
+    const widest = Math.max(...groups.map(g => g.a + g.d * 0.67 + g.r * 0.67));
+    const total = widest * 1.33, hold = total * 0.25;   // the sustain stage is drawn a quarter as long as the rest
+    // below the node, where the row of the graph leaves room (above it when the node is low in the graph)
+    const x0 = Math.min(Math.max(4, box.x + box.w / 2 - ENV_W / 2), Math.max(4, W - ENV_W - 4));
+    const below = box.y + box.h + 16;
+    const y0 = below + ENV_H <= H - 4 ? below : Math.max(4, box.y - ENV_H - 22);
+    const px = x0 + 10, pw = ENV_W - 20, py = y0 + 18, ph = ENV_H - 56;
+    ctx.save();
+    ctx.fillStyle = (typeof getComputedStyle === 'function' && getComputedStyle(canvas).backgroundColor) || '#d9dae0';   // opaque, so the wires behind it do not show through
+    ctx.fillRect(x0, y0, ENV_W, ENV_H);
+    ctx.fillStyle = 'rgba(128, 128, 128, 0.16)';
+    ctx.fillRect(x0, y0, ENV_W, ENV_H);
+    ctx.strokeStyle = 'rgba(128, 128, 128, 0.7)';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(x0 + 0.5, y0 + 0.5, ENV_W - 1, ENV_H - 1);
+    ctx.fillStyle = ink;
+    ctx.font = '11px ui-monospace, Consolas, monospace';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+    ctx.fillText(`${node.id} envelope`, x0 + 8, y0 + 4);
+    ctx.globalAlpha = 0.25;   // the baseline and the top
+    ctx.fillRect(px, py + ph, pw, 1);
+    ctx.fillRect(px, py, pw, 1);
+    ctx.globalAlpha = 1;
+    const xt = ms => px + (ms / (total + hold)) * pw, yv = v => py + ph - v * ph;
+    groups.forEach((g, gi) => {
+      const aEnd = g.a, dEnd = g.a + g.d * 0.67, sEnd = dEnd + hold, rEnd = sEnd + g.r * 0.67;
+      ctx.beginPath();
+      ctx.strokeStyle = GROUP_COLOUR[gi % GROUP_COLOUR.length];
+      ctx.lineWidth = groups.length > 1 ? 1.75 : 2.5;
+      ctx.moveTo(xt(0), yv(0));
+      ctx.lineTo(xt(aEnd), yv(1));
+      for (let k = 1; k <= 24; k++) { const t = (g.d * 0.67 * k) / 24; ctx.lineTo(xt(aEnd + t), yv(g.s + (1 - g.s) * Math.pow(0.001, t / g.d))); }
+      ctx.lineTo(xt(sEnd), yv(g.s));
+      for (let k = 1; k <= 24; k++) { const t = (g.r * 0.67 * k) / 24; ctx.lineTo(xt(sEnd + t), yv(g.s * Math.pow(0.001, t / g.r))); }
+      ctx.stroke();
+      if (gi === 0) {   // the stage boundaries, and the stage names along the bottom
+        ctx.globalAlpha = 0.3;
+        ctx.strokeStyle = ink;
+        ctx.lineWidth = 1;
+        for (const e of [aEnd, dEnd, sEnd]) { ctx.beginPath(); ctx.moveTo(xt(e), py); ctx.lineTo(xt(e), py + ph); ctx.stroke(); }
+        ctx.globalAlpha = 1;
+        ctx.fillStyle = ink;
+        [['A', 0, aEnd], ['D', aEnd, dEnd], ['S', dEnd, sEnd], ['R', sEnd, rEnd]].forEach(([name, a, b]) => ctx.fillText(name, (xt(a) + xt(b)) / 2 - 3, py + ph + 3));
+      }
+    });
+    ctx.fillStyle = ink;
+    const g = groups[0], ms = v => (v >= 100 ? Math.round(v) : v.toFixed(1));
+    ctx.fillText(`A ${ms(g.a)}  D ${ms(g.d)}  S ${g.s.toFixed(2)}  R ${ms(g.r)}`, x0 + 8, y0 + ENV_H - 18);
+    ctx.restore();
+  }
+
   function draw() {
     if (!dirty) return;
     dirty = false;
@@ -500,6 +563,9 @@ export function createPatcher({ canvas, panel, exposedPanel = null, onEscape = (
         });
       }
     }
+    const chosenNode = selected?.kind === 'node' ? desc().nodes.find(n => n.id === selected.id) : null;
+    const chosenType = chosenNode && nodeTypes[chosenNode.type];
+    if (chosenType?.adsr?.length) drawEnvelopes(chosenNode, chosenType, { x: chosenNode.x, y: chosenNode.y, ...nodeBox(chosenType) }, ink);
   }
 
   return {

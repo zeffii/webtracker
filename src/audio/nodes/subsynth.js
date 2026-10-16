@@ -64,7 +64,8 @@ export default {
   inputs: ['pitch', 'cut'],
   outputs: ['out'],
   category: 'Sources',
-  generator: true,   // makes sound from notes, so the instrument screen can play it from the keyboard
+  generator: true,
+  adsr: [{ atk: 'atk', dec: 'dec', sus: 'sus', rel: 'rel' }, { atk: 'fatk', dec: 'fdec', sus: 'fsus', rel: 'frel' }],   // amplitude and filter envelopes, drawn beside the node when it is selected   // makes sound from notes, so the instrument screen can play it from the keyboard
   shape: 'rounded',
   glyph: 'subsynth',
   kinds: { pitch: 'control', cut: 'control', out: 'stereo' },

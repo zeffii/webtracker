@@ -3624,4 +3624,90 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   assert.ok(!statusEl.textContent.includes('empty columns hidden'));
 }
 
+// 107. Gate: opens on signal, holds, closes to its range, and 0 dB range does nothing.
+{
+  const run = (values, inL) => {
+    const def = NODE_TYPES.gate;
+    const params = Float32Array.from(def.params.map(p => values[p.name] ?? p.def)), slots = Int32Array.from(def.params.map((_, i) => i));
+    const node = def.create({ sampleRate: sr, connected: [true] });
+    const out = new Float32Array(inL.length), outR = new Float32Array(inL.length);
+    for (let at = 0; at < inL.length; at += 128) {
+      const n = Math.min(128, inL.length - at);
+      node.process([[inL.subarray(at, at + n), inL.subarray(at, at + n)]], [[out.subarray(at, at + n), outR.subarray(at, at + n)]], n, params, slots);
+    }
+    return out;
+  };
+  const tone = (a, n, f = 220) => Float32Array.from({ length: n }, (_, i) => a * Math.sin(2 * Math.PI * f * i / sr));
+  const rms = (x, a, b) => { let t = 0; for (let i = a; i < b; i++) t += x[i] * x[i]; return Math.sqrt(t / (b - a)); };
+  // loud for 0.25 s, then quiet (-60 dB) for 0.5 s
+  const input = new Float32Array(36000); input.set(tone(0.5, 12000)); input.set(tone(0.0005, 24000), 12000);
+  const gated = run({ threshold: -40, hold: 50, release: 20 }, input);
+  assert.ok(Math.abs(rms(gated, 6000, 12000) / rms(input, 6000, 12000) - 1) < 0.02, 'the loud part passes unchanged');
+  assert.ok(rms(gated, 24000, 36000) < rms(input, 24000, 36000) * 0.01, 'the quiet part is closed off');
+  // hold keeps it open for a while after the signal drops
+  const held = run({ threshold: -40, hold: 100, release: 20 }, input);
+  assert.ok(rms(held, 12500, 14000) > rms(input, 12500, 14000) * 0.9, 'the gate holds open at first');
+  assert.ok(rms(held, 20000, 24000) < rms(input, 20000, 24000) * 0.05, 'and closes after the hold');
+  // range: a gate that only drops by 6 dB leaves half the level
+  const half = run({ threshold: -40, hold: 0, release: 5, range: -6.0206 }, input);
+  assert.ok(Math.abs(rms(half, 30000, 36000) / rms(input, 30000, 36000) - 0.5) < 0.03, 'the range sets how far it closes');
+  assert.ok(run({ range: 0 }, input).every((v, i) => Math.abs(v - input[i]) < 1e-6), 'range 0 dB does nothing');
+  assert.ok(gated.every(Number.isFinite));
+}
+
+// 108. Envelope effect: a manual ADSR on a stereo stream, and the envelope drawn beside the selected node.
+{
+  const def = NODE_TYPES.envfx;
+  const base = Object.fromEntries(def.params.map(p => [p.name, p.def]));
+  const make = values => {
+    const params = Float32Array.from(def.params.map(p => values[p.name] ?? base[p.name])), slots = Int32Array.from(def.params.map((_, i) => i));
+    return { node: def.create({ sampleRate: sr, connected: [true] }), params, slots };
+  };
+  const run = (values, steps) => {   // steps: [[samples, trig]]: the trigger value for each stretch of samples
+    const { node, params, slots } = make(values);
+    const total = steps.reduce((a, [n]) => a + n, 0), out = new Float32Array(total), one = new Float32Array(128).fill(1);
+    let at = 0;
+    for (const [n, trig] of steps) {
+      params[0] = trig;
+      for (let k = 0; k < n; k += 128, at += 128) {
+        const l = new Float32Array(128), r = new Float32Array(128);
+        node.process([[one, one]], [[l, r]], 128, params, slots);
+        out.set(l, at);
+      }
+    }
+    return out;
+  };
+  const q = 128 * 100;   // about a quarter of a second
+  const silent = run({}, [[q, 0]]);
+  assert.ok(silent.every(v => Math.abs(v) < 1e-3), 'before a trigger the signal is shut');
+  const hit = run({ attack: 5, decay: 50, sustain: 0.5, release: 50 }, [[q, 1], [q, 0]]);
+  assert.ok(Math.abs(hit[q - 1] - 0.5) < 0.02, `it settles at the sustain level (${hit[q - 1]})`);
+  assert.ok(hit.slice(0, 600).some(v => v > 0.95), 'the attack reaches the top');
+  assert.ok(hit[2 * q - 1] < 0.01, 'a 0 releases it');
+  const perc = run({ attack: 1, decay: 40, sustain: 0 }, [[q, 1]]);
+  assert.ok(perc[q - 1] < 0.01, 'with sustain 0 the hit dies by itself');
+  const again = run({ attack: 1, decay: 40, sustain: 0 }, [[q, 1], [128 * 4, 2]]);
+  assert.ok(again.slice(q).some(v => v > perc[q - 1] + 0.001) || again[q + 5] >= perc[q - 1], 'a different non-zero value starts the attack again');
+  const rangeHalf = run({ range: -6.0206 }, [[q, 0]]);
+  assert.ok(Math.abs(rangeHalf[q - 1] - 0.5) < 0.01, 'range sets the level when shut');
+  // the patcher draws the envelope next to the selected node, for any node type that lists an ADSR
+  const makeEl = tag => ({ tag, children: [], listeners: {}, style: {}, textContent: '', value: '', checked: false, className: '', appendChild(c) { this.children.push(c); return c; }, replaceChildren(...c) { this.children = c; }, addEventListener(type, f) { this.listeners[type] = f; }, focus() {}, getContext: () => new Proxy({}, { get: (t, k) => (k in t ? t[k] : () => {}), set: (t, k, v) => { t[k] = v; return true; } }) });
+  const doc = { createElement: makeEl, createTextNode: text => ({ text }) };
+  const calls = [];
+  const canvas = { width: 900, height: 360, style: {}, listeners: {}, getContext: () => new Proxy({}, { get: (t, k) => (k in t ? t[k] : (...a) => { calls.push([k, ...a]); }), set: (t, k, v) => { t[k] = v; return true; } }), addEventListener(type, f) { this.listeners[type] = f; }, focus() {} };
+  const defs = structuredClone(instruments);
+  const patcher = createPatcher({ canvas, panel: makeEl('div'), statusEl: { textContent: '' }, doc, nodeTypes: NODE_TYPES, onStructure() {}, onParam() {} });
+  patcher.load({ instruments: defs });
+  patcher.show('kick');
+  patcher.add('envfx', { x: 300, y: 200 });
+  patcher.refreshPanel(); calls.length = 0; patcher.draw();
+  assert.ok(calls.some(c => c[0] === 'fillText' && /envfx1 envelope/.test(c[1])), 'the envelope box is drawn for a selected envelope node');
+  for (const type of ['env', 'subsynth', 'addsynth', 'fmsynth']) {
+    patcher.add(type, { x: 320, y: 120 }); patcher.refreshPanel(); calls.length = 0; patcher.draw();
+    assert.ok(calls.some(c => c[0] === 'fillText' && / envelope$/.test(c[1])), `${type} shows its envelope`);
+  }
+  patcher.add('gain', { x: 200, y: 100 }); patcher.refreshPanel(); calls.length = 0; patcher.draw();
+  assert.ok(!calls.some(c => c[0] === 'fillText' && / envelope$/.test(c[1])), 'other nodes show none');
+}
+
 console.log('smoke test passed');

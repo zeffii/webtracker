@@ -15,6 +15,7 @@ export default {
   category: 'Sources',
   shape: 'rounded',
   glyph: 'adsr',
+  adsr: [{ atk: 'attack', dec: 'decay', sus: 'sustain', rel: 'release' }],   // drawn beside the node when it is selected
   kinds: { out: 'control' },   // ports are audio unless listed
   params: [
     { name: 'attack', min: 0.1, max: 5000, def: 1 },      // ms
