@@ -1021,7 +1021,7 @@ const hit = 'C-2 .. .. ..';
   canvas.listeners.mousedown({ offsetX: point.x, offsetY: point.y, preventDefault() {} });
   canvas.listeners.mouseup({ offsetX: point.x, offsetY: point.y });
   const rows = [];
-  walk(panel, e => { if (e.className === 'prow') rows.push(e); });
+  walk(panel, e => { if (e.className === 'prow nrow') rows.push(e); });
   const rowFor = name => rows[NODE_TYPES.osc.params.findIndex(p => p.name === name)];
   const parts = row => { const f = { boxes: [], selects: [] }; walk(row, e => { if (e.tag === 'input' && e.type === 'checkbox') f.boxes.push(e); if (e.tag === 'select') f.selects.push(e); }); return f; };
 
@@ -3194,7 +3194,7 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   const { w, h } = nodeBox(NODE_TYPES[node.type]);
   canvas.listeners.mousedown({ offsetX: node.x + w / 2, offsetY: node.y + h / 2, preventDefault() {} });
   canvas.listeners.mouseup({ offsetX: node.x + w / 2, offsetY: node.y + h / 2 });
-  const nodeRows = []; walk(panel, e => { if (e.className === 'prow') nodeRows.push(e); });
+  const nodeRows = []; walk(panel, e => { if (e.className === 'prow nrow') nodeRows.push(e); });
   const own = sliderOf(nodeRows[NODE_TYPES[node.type].params.findIndex(p => p.name === x.param)]);
   assert.equal(Number(own.value), 1000);
   // keyboard moves between nodes

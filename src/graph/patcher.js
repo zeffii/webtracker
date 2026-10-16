@@ -235,9 +235,16 @@ export function createPatcher({ canvas, panel, exposedPanel = null, onEscape = (
         structure();
         dirty = true;
       });
-      return el('div', { className: 'prow' }, el('span', { textContent: spec.name }), slider, out, el('span', {}, el('label', {}, exposed, ' expose '), width, el('label', { title: 'Give this parameter an input on the node, to wire a ctrl node into' }, port, ' port')));
+      exposed.title = `Make ${spec.name} a pattern column`; exposed.ariaLabel = `expose ${spec.name}`;
+      port.title = `Give ${spec.name} an input on the node, to wire a control node into`; port.ariaLabel = `port ${spec.name}`;
+      return el('div', { className: 'prow nrow' }, el('span', { textContent: spec.name }), slider, out, exposed, width, port);
     });
-    const items = [el('h3', {}, `${node.id} (${node.type})`), ...rows];
+    // one set of column labels above the rows, instead of a label on every row
+    const head = el('div', { className: 'prow nrow phead' }, el('span'), el('span'), el('span'),
+      el('span', { textContent: 'expose', title: 'Make the parameter a column in the pattern' }),
+      el('span', { textContent: 'width', title: 'How many hex digits the pattern column takes' }),
+      el('span', { textContent: 'port', title: 'Give the parameter an input on the node, to wire a control node into' }));
+    const items = [el('h3', {}, `${node.id} (${node.type})`), head, ...rows];
     if (type.editor === 'curve') {   // a drawable transfer curve, kept on the node and sent live
       const editor = createCurveEditor({
         doc, points: node.data?.curve,
