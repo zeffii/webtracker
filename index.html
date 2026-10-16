@@ -36,6 +36,9 @@
     #song-info { font-variant-numeric: tabular-nums; }
     #status { opacity: .7; }
     #tabs { display: flex; gap: .25rem; }
+    #load { margin-left: auto; margin-right: .75rem; cursor: pointer; opacity: .75; white-space: nowrap; font-variant-numeric: tabular-nums; }
+    #load.warn { color: hsl(40 90% 60%); opacity: 1; }
+    #load.bad { color: hsl(5 85% 65%); opacity: 1; }
     #tabs button { font: inherit; padding: .1rem .6rem; border: 1px solid; background: transparent; color: inherit; cursor: pointer; }
     #tabs button.active { background: Highlight; color: HighlightText; border-color: Highlight; }
     .pane { padding: .5rem .75rem 2rem; }
@@ -260,7 +263,8 @@
         <button id="tab-instruments">F4 Instruments</button>
         <button id="tab-arrange">F5 Arrangement</button>
       </nav>
-      <button id="keys-toggle" title="Show or hide the keyboard shortcut panels" style="margin-left:auto">Shortcuts</button>
+      <span id="load" title="Audio load: average, worst block (as a share of the time each block is allowed), blocks that ran late, output latency. Click to reset.">cpu --</span>
+      <button id="keys-toggle" title="Show or hide the keyboard shortcut panels">Shortcuts</button>
     </div>
   </div>
 

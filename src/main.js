@@ -676,6 +676,18 @@ $('patch-add').addEventListener('click', () => menu.open(12, 24));
 $('start').addEventListener('click', async () => {
   try {
     await engine.start();
+    {
+      const el = $('load');
+      let peak = 0, late = 0, avg = 0;
+      const show = () => {
+        const h = engine.health();
+        const drops = h.drops ? ` drops ${h.drops}` : '';
+        el.textContent = `cpu ${Math.round(avg * 100)}% pk ${Math.round(peak * 100)}% late ${late}${drops} ${h.latency.toFixed(0)}ms`;
+        el.className = late || h.drops ? 'bad' : peak > 0.6 ? 'warn' : '';
+      };
+      engine.onLoad = d => { avg = avg ? avg * 0.7 + d.avg * 0.3 : d.avg; peak = Math.max(peak, d.peak); late += d.late; show(); };
+      el.addEventListener('click', () => { peak = 0; late = 0; show(); });
+    }
     engine.onFault = id => projStatus(`Instrument "${id}" produced invalid audio and was reset. If you can repeat it, note what you changed.`);
     started = true;
     // the demo song is a saved project shipped beside the code; the generated one is the fallback

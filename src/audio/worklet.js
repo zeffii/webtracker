@@ -8,6 +8,10 @@ class TrackerEngine extends AudioWorkletProcessor {
     const params = new Float32Array(sab);
     this.rt = new GraphRuntime({ sampleRate, params, wasm });
     this.seq = new Sequencer({ sampleRate, runtime: this.rt, params, transport: new Int32Array(transport) });
+    // Load meter. The worklet has no fine clock, only Date.now() in whole milliseconds, but the average of many such
+    // readings is unbiased, so the load is exact on average; the peak is good to about a millisecond.
+    this.budget = (128 / sampleRate) * 1000;
+    this.blocks = 0; this.sumMs = 0; this.peakMs = 0; this.late = 0;
     this.rt.onFault = instrument => this.port.postMessage({ type: 'fault', instrument });
     this.port.onmessage = ({ data }) => {
       if (data.type === 'load') this.rt.load(data.graph);
@@ -27,7 +31,16 @@ class TrackerEngine extends AudioWorkletProcessor {
 
   process(_inputs, outputs) {
     const out = outputs[0];
+    const t0 = Date.now();
     this.seq.process(out[0], out[1], out[0].length);
+    const ms = Date.now() - t0;
+    this.sumMs += ms; this.blocks++;
+    if (ms > this.peakMs) this.peakMs = ms;
+    if (ms - 1 >= this.budget) this.late++;   // surely over the budget: a reading is at most 1 ms above the true time
+    if (this.blocks >= 100) {
+      this.port.postMessage({ type: 'load', avg: this.sumMs / this.blocks / this.budget, peak: this.peakMs / this.budget, late: this.late });
+      this.blocks = 0; this.sumMs = 0; this.peakMs = 0; this.late = 0;
+    }
     return true;
   }
 }

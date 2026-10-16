@@ -23,9 +23,24 @@ export class Engine {
       outputChannelCount: [2],
       processorOptions: { sab: this.registry.sab, transport: this.transport.buffer, wasm: this.wasmModule },
     });
-    this.node.port.onmessage = ({ data }) => { if (data.type === 'fault') this.onFault?.(data.instrument); };
+    this.node.port.onmessage = ({ data }) => {
+      if (data.type === 'fault') this.onFault?.(data.instrument);
+      else if (data.type === 'load') this.onLoad?.(data);
+    };
     this.node.connect(this.ctx.destination);
     await this.ctx.resume();
+  }
+
+  // Where the audio stack says we stand: output latency in ms and, where the browser reports it, how many times it
+  // had to fill in silence because a block arrived late.
+  health() {
+    const ctx = this.ctx;
+    if (!ctx) return { latency: 0, drops: null };
+    const stats = ctx.playoutStats;
+    return {
+      latency: ((ctx.baseLatency || 0) + (ctx.outputLatency || 0)) * 1000,
+      drops: stats ? (stats.fallbackFramesEvents ?? null) : null,
+    };
   }
 
   // Forgets every instrument and lane and starts a fresh parameter block, so a new
