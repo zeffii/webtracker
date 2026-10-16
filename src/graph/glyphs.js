@@ -107,6 +107,7 @@ export const GLYPHS = {
     line(ctx, [[x(0), y(0)], [x(0.45), y(0.45)], [x(0.6), y(0.55)], [x(1), y(0.7)]]);
   },
   eq: (ctx, cx, cy, w, h) => curve(ctx, cx, cy, w, h, t => 0.55 * Math.exp(-Math.pow((t - 0.3) / 0.1, 2)) - 0.45 * Math.exp(-Math.pow((t - 0.72) / 0.12, 2)), 40),   // a boost and a cut
+  crusher: (ctx, cx, cy, w, h) => { const pts = []; for (let i = 0; i < 8; i++) { const y = Math.round(Math.sin(i / 7 * Math.PI * 1.5 + 0.2) * 2.4) / 2.4 * 0.4; const x0 = cx - w / 2 + i / 8 * w, x1 = cx - w / 2 + (i + 1) / 8 * w; pts.push([x0, cy - y * h], [x1, cy - y * h]); } line(ctx, pts); },   // a stepped wave
   gate: (ctx, cx, cy, w, h) => {   // a signal chopped into blocks
     const x = f => cx - w / 2 + f * w, y = f => cy + h / 2 - f * h;
     line(ctx, [[x(0), y(0.5)], [x(0.05), y(0.95)], [x(0.15), y(0.05)], [x(0.25), y(0.9)], [x(0.3), y(0.5)], [x(0.45), y(0.5)], [x(0.5), y(0.95)], [x(0.6), y(0.05)], [x(0.7), y(0.9)], [x(0.75), y(0.5)], [x(1), y(0.5)]]);

@@ -23,6 +23,7 @@ import split from './split.js';
 import compressor from './compressor.js';
 import gate from './gate.js';
 import envfx from './envfx.js';
+import crusher from './crusher.js';
 import eq from './eq.js';
 import hall from './hall.js';
 import subsynth from './subsynth.js';
@@ -33,4 +34,4 @@ import granular from './granular.js';
 import voices from './voices.js';
 
 // Node type registry. Adding a node type means adding a module and listing it here.
-export const NODE_TYPES = { sampler, osc, env, lfo, gain, mix, pan, filter, delay, chorus, phaser, flanger, distortion, multitap, waveshaper, exciter, transient, split, compressor, gate, envfx, eq, hall, subsynth, addsynth, fmsynth, wavetable, granular, voices, out, sum, sumst, fold };
+export const NODE_TYPES = { sampler, osc, env, lfo, gain, mix, pan, filter, delay, chorus, phaser, flanger, distortion, multitap, waveshaper, exciter, transient, split, compressor, gate, envfx, eq, crusher, hall, subsynth, addsynth, fmsynth, wavetable, granular, voices, out, sum, sumst, fold };

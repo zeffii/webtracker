@@ -3904,4 +3904,35 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   assert.equal(proj.instruments[id].noteColumns, 3);
 }
 
+// 112. Bitcrusher: fewer levels, a held sample rate, a dry/wet mix.
+{
+  const def = NODE_TYPES.crusher;
+  const run = (values, x) => {
+    const params = Float32Array.from(def.params.map(p => values[p.name] ?? p.def)), slots = Int32Array.from(def.params.map((_, i) => i));
+    const node = def.create({ sampleRate: sr });
+    const L = new Float32Array(x.length), R = new Float32Array(x.length);
+    for (let at = 0; at < x.length; at += 128) {
+      const m = Math.min(128, x.length - at);
+      node.process([[x.subarray(at, at + m), x.subarray(at, at + m)]], [[L.subarray(at, at + m), R.subarray(at, at + m)]], m, params, slots);
+    }
+    return L;
+  };
+  const x = Float32Array.from({ length: 12000 }, (_, i) => 0.9 * Math.sin(2 * Math.PI * 200 * i / sr));
+  const four = run({ bits: 4, rate: 48000 }, x);
+  const levels = new Set(Array.from(four, v => Math.round(v * 1e5)));
+  assert.ok(levels.size <= 16, `4 bits gives at most 16 levels (${levels.size})`);
+  assert.ok(Math.abs(Math.round(four[1000] * 8) / 8 - four[1000]) < 1e-6, 'the levels are multiples of 1/8');
+  const clean = run({ bits: 16, rate: 48000 }, x);
+  assert.ok(x.every((v, i) => Math.abs(v - clean[i]) < 1e-3), '16 bits at full rate is nearly clean');
+  const held = run({ bits: 16, rate: sr / 8 }, x);
+  let runs = 0; for (let i = 8000; i < 8800; i++) if (held[i] === held[i - 1]) runs++;
+  assert.ok(runs > 600, `an eighth of the rate holds each sample for 8 (${runs} repeats in 800)`);
+  const half = run({ bits: 3, rate: sr / 4, mix: 0.5 }, x);
+  const full = run({ bits: 3, rate: sr / 4, mix: 1 }, x);
+  assert.ok(Math.abs(half[3000] - (x[3000] + full[3000]) / 2) < 1e-5, 'mix blends dry and crushed');
+  const dith = run({ bits: 3, rate: 48000, dither: 1 }, Float32Array.from({ length: 4000 }, () => 0.03));
+  assert.ok(new Set(Array.from(dith, v => v.toFixed(4))).size > 1, 'dither makes a steady quiet level flicker between steps');
+  assert.ok(run({ bits: 5, rate: 9000, jitter: 1, dither: 1 }, x).every(Number.isFinite));
+}
+
 console.log('smoke test passed');
