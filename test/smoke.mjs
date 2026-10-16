@@ -4358,3 +4358,37 @@ console.log('smoke test passed');
   const on = run('shimmer', { shimmer: 0.8, decay: 6, mix: 1, damp: 0.2 }, tone)[0], off = run('shimmer', { shimmer: 0, decay: 6, mix: 1, damp: 0.2 }, tone)[0];
   assert.ok(level(on, 880) > 4 * level(off, 880), 'shimmer should put an octave up into the tail');
 }
+
+// 121. Oberheim-style synth: pitch, filter modes, sync, drift, polyphony through voices.
+{
+  const def = NODE_TYPES.oberheim;
+  const render = (values, note = 69, secs = 0.6, seedNodes = 1) => {
+    const params = Float32Array.from(def.params.map(p => values[p.name] ?? p.def)), slots = Int32Array.from(def.params.map((_, i) => i));
+    const node = def.create({ sampleRate: sr, connected: [false, false] });
+    node.note({ type: 'noteOn', note, vel: 1 });
+    const L = new Float32Array(Math.floor(sr * secs)), R = new Float32Array(L.length);
+    for (let a = 0; a < L.length; a += 128) { const n = Math.min(128, L.length - a); node.process([[], []], [[L.subarray(a, a + n), R.subarray(a, a + n)]], n, params, slots); }
+    return [L, R];
+  };
+  const rms = (x, a = 0, b = x.length) => { let t = 0; for (let i = a; i < b; i++) t += x[i] * x[i]; return Math.sqrt(t / (b - a)); };
+  const bin = (x, f, a = sr * 0.2, b = sr * 0.5) => { let re = 0, im = 0; for (let i = a; i < b; i++) { re += x[i] * Math.cos(2 * Math.PI * f * i / sr); im += x[i] * Math.sin(2 * Math.PI * f * i / sr); } return Math.hypot(re, im) / (b - a); };
+  const open = { cutoff: 18000, res: 0, fenv: 0, osc2: 0, drift: 0, pwm: 0, drive: 0, scatter: 0, vib: 0 };
+  const [a] = render(open);
+  assert.ok(a.every(Number.isFinite) && rms(a, sr * 0.2) > 0.02, 'it makes sound');
+  assert.ok(bin(a, 440) > 6 * bin(a, 660), 'a saw at A4 has its fundamental at 440 Hz');
+  // the filter modes: a low cutoff passes the fundamental in LP, removes it in HP, notches it at 0.5
+  const lp = bin(render({ ...open, cutoff: 2000, mode: 0 })[0], 440), hp = bin(render({ ...open, cutoff: 2000, mode: 1 })[0], 440);
+  const through = bin(render({ ...open, cutoff: 440, mode: 0 })[0], 440), notch = bin(render({ ...open, cutoff: 440, mode: 0.5 })[0], 440);
+  assert.ok(lp > 5 * hp, `a lowpass passes the fundamental and a highpass does not: ${lp} ${hp}`);
+  assert.ok(through > 3 * notch, `a notch on the fundamental removes it: ${through} ${notch}`);
+  const dark = rms(render({ ...open, cutoff: 200 })[0], sr * 0.2), bright = rms(render(open)[0], sr * 0.2);
+  assert.ok(dark < bright * 0.5, 'a lower cutoff is quieter');
+  const ring = render({ ...open, cutoff: 1500, res: 1, wave1: 0 })[0];
+  assert.ok(ring.every(Number.isFinite) && ring.reduce((m, v) => Math.max(m, Math.abs(v)), 0) < 8, 'full resonance stays bounded');
+  // sync with a sweep stays finite; two instances drift differently
+  const sw = render({ ...open, osc2: 1, sync: 1, sweep: 24, tune2: 7, wave2: 0, wave1: 0 })[0];
+  assert.ok(sw.every(Number.isFinite), 'sync stays finite');
+  const x = render({ drift: 1, osc2: 1 })[0], y = render({ drift: 1, osc2: 1 })[0];
+  assert.ok(x.some((v, i) => v !== y[i]), 'each voice drifts differently');
+  assert.ok(x.every((v, i) => Number.isFinite(v)), 'drift stays finite');
+}

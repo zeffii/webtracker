@@ -131,6 +131,11 @@ export const GLYPHS = {
     const star = (sx, sy, r) => { line(ctx, [[sx - r, sy], [sx + r, sy]]); line(ctx, [[sx, sy - r], [sx, sy + r]]); };
     star(cx - w * 0.15, cy + h * 0.1, h * 0.36); star(cx + w * 0.28, cy - h * 0.22, h * 0.2); star(cx + w * 0.1, cy + h * 0.3, h * 0.12);
   },
+  oberheim: (ctx, cx, cy, w, h) => {   // a notch swept across a pulse: the filter's lowpass, notch and highpass in one curve
+    const x = f => cx - w / 2 + f * w, y = f => cy + h / 2 - f * h;
+    line(ctx, [[x(0), y(0.35)], [x(0.12), y(0.35)], [x(0.12), y(0.8)], [x(0.3), y(0.8)], [x(0.3), y(0.35)], [x(0.42), y(0.35)], [x(0.42), y(0.8)], [x(0.6), y(0.8)], [x(0.6), y(0.35)], [x(1), y(0.35)]]);
+    curve(ctx, cx, cy + h * 0.3, w, h * 0.3, t => 0.8 - 1.6 * Math.exp(-Math.pow((t - 0.5) / 0.14, 2)) , 40);
+  },
   subsynth: (ctx, cx, cy, w, h) => {   // a saw, the raw material the filter carves
     const x = f => cx - w / 2 + f * w, y = f => cy + h / 2 - f * h;
     line(ctx, [[x(0), y(0.1)], [x(0.3), y(0.95)], [x(0.3), y(0.1)], [x(0.6), y(0.95)], [x(0.6), y(0.1)], [x(1), y(0.95)]]);

@@ -114,6 +114,29 @@ export const synthKinds = {
       ],
     }),
   },
+  oberheim: {
+    label: 'Oberheim-style synth',
+    make: () => ({
+      graph: { nodes: [{ id: 'synth', type: 'oberheim' }, { id: 'poly', type: 'voices' }, { id: 'out', type: 'out', params: { gain: 0.5 } }], connections: [['synth.out', 'poly.in'], ['poly.out', 'out.in']], voices: 8 },
+      noteColumns: 4,
+      exposed: [
+        { node: 'synth', param: 'cutoff', label: 'Cut', scale: 'log' },
+        { node: 'synth', param: 'res', label: 'Res' },
+        { node: 'synth', param: 'mode', label: 'Mod' },
+        { node: 'synth', param: 'pw', label: 'PW' },
+      ],
+      commands: [
+        { id: 0x01, node: 'synth', param: 'cutoff', scale: 'log' },
+        { id: 0x02, node: 'synth', param: 'res' },
+        { id: 0x03, node: 'synth', param: 'mode' },
+        { id: 0x04, node: 'synth', param: 'fenv' },
+        { id: 0x05, node: 'synth', param: 'pwm' },
+        { id: 0x06, node: 'synth', param: 'sweep' },
+        { id: 0x07, node: 'synth', param: 'detune' },
+        { id: 0x08, node: 'synth', param: 'glide' },
+      ],
+    }),
+  },
   fm: {
     label: 'FM synth',
     make: () => ({
