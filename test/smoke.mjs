@@ -4068,3 +4068,51 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
 }
 
 console.log('smoke test passed');
+
+// 115. Plucked string: pitch, decay time, damping, pluck position, release.
+{
+  const def = NODE_TYPES.string;
+  const run = (values, { note = 57, secs = 1.5, off = null } = {}) => {
+    const params = Float32Array.from(def.params.map(p => values[p.name] ?? p.def)), slots = Int32Array.from(def.params.map((_, i) => i));
+    const node = def.create({ sampleRate: sr, connected: [false] });
+    node.note({ type: 'noteOn', note, vel: 1 });
+    const N = Math.floor(sr * secs / 128) * 128, L = new Float32Array(N), l = new Float32Array(128), r = new Float32Array(128), zero = new Float32Array(128);
+    for (let at = 0; at < N; at += 128) {
+      if (off !== null && at === off) node.note({ type: 'noteOff' });
+      node.process([zero], [[l, r]], 128, params, slots);
+      L.set(l, at);
+    }
+    return L;
+  };
+  const rms = (x, a, b) => { let s = 0; for (let i = a; i < b; i++) s += x[i] * x[i]; return Math.sqrt(s / (b - a)); };
+  const freq = x => {   // autocorrelation peak of 0.2 s to 0.4 s, refined by interpolation
+    const s0 = Math.floor(sr * 0.2), len = 9600, ac = lag => { let c = 0; for (let i = 0; i < len; i++) c += x[s0 + i] * x[s0 + i + lag]; return c; };
+    let best = 0, bestLag = 0;
+    for (let lag = Math.floor(sr / 1500); lag < Math.floor(sr / 60); lag++) { const c = ac(lag); if (c > best) { best = c; bestLag = lag; } }
+    const a = ac(bestLag - 1), b = ac(bestLag), c = ac(bestLag + 1);
+    return sr / (bestLag + 0.5 * (a - c) / (a - 2 * b + c));
+  };
+  const a3 = run({ damp: 0.2, bright: 0.2 });
+  assert.ok(a3.every(Number.isFinite) && rms(a3, 0, 4000) > 0.02, 'the string sounds');
+  for (const note of [45, 57, 69, 81]) {
+    const want = 440 * Math.pow(2, (note - 69) / 12);
+    assert.ok(Math.abs(freq(run({ damp: 0.2, bright: 0.2 }, { note })) / want - 1) < 0.01, `note ${note} rings at ${want.toFixed(1)} Hz`);
+  }
+  const t60 = db => { const a = rms(run({ decay: 1, damp: 0 }), 0, 6000), b = rms(run({ decay: 1, damp: 0 }), Math.floor(sr * db), Math.floor(sr * db) + 6000); return 20 * Math.log10(b / a); };
+  assert.ok(Math.abs(t60(1) + 60) < 10, `decay 1 s falls about 60 dB in a second (${t60(1).toFixed(1)} dB)`);
+  const slow = run({ decay: 8, damp: 0 }), fast = run({ decay: 0.5, damp: 0 });
+  assert.ok(rms(slow, sr, sr + 4000) > 20 * rms(fast, sr, sr + 4000), 'a longer decay rings longer');
+  const hi = x => { let s = 0; for (let i = 1; i < x.length; i++) s += (x[i] - x[i - 1]) ** 2; return s; };
+  const open = run({ damp: 0, bright: 1 }), dull = run({ damp: 1, bright: 1 });
+  assert.ok(hi(dull.subarray(20000, 40000)) < 0.3 * hi(open.subarray(20000, 40000)), 'damping removes the highs as it rings');
+  const soft = run({ bright: 0.05 }), hard = run({ bright: 1 });
+  assert.ok(hi(soft.subarray(0, 3000)) < 0.3 * hi(hard.subarray(0, 3000)), 'a duller strike has less top');
+  const held = run({ decay: 20, damp: 0 }, { secs: 1, off: 12800 });
+  assert.ok(rms(held, 40000, 44000) < 0.01 * rms(held, 8000, 12000), 'note off damps the string');
+  assert.deepEqual(Array.from(run({}).subarray(0, 500)), Array.from(run({}).subarray(0, 500)), 'the same note sounds the same');
+  const wide = run({ pos: 0.5 }, { note: 45 });   // plucked in the middle: the second harmonic is missing
+  const edge = run({ pos: 0.1 }, { note: 45 });
+  const mag = (x, f) => { let re = 0, im = 0; for (let i = 0; i < 16384; i++) { const ph = 2 * Math.PI * f * i / sr; re += x[i] * Math.cos(ph); im += x[i] * Math.sin(ph); } return Math.hypot(re, im); };
+  const f45 = 440 * Math.pow(2, -24 / 12);
+  assert.ok(mag(wide, 2 * f45) / mag(wide, f45) < 0.4 * mag(edge, 2 * f45) / mag(edge, f45), 'plucking at the middle thins out the second harmonic');
+}

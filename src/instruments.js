@@ -190,6 +190,27 @@ export const synthKinds = {
       ],
     }),
   },
+  string: {
+    label: 'Plucked string',
+    make: () => ({
+      graph: { nodes: [{ id: 'synth', type: 'string' }, { id: 'poly', type: 'voices' }, { id: 'out', type: 'out', params: { gain: 0.5 } }], connections: [['synth.out', 'poly.in'], ['poly.out', 'out.in']], voices: 6 },
+      noteColumns: 3,
+      exposed: [
+        { node: 'synth', param: 'decay', label: 'Dec', scale: 'log' },
+        { node: 'synth', param: 'damp', label: 'Dmp' },
+        { node: 'synth', param: 'bright', label: 'Brt' },
+        { node: 'synth', param: 'pos', label: 'Pos' },
+      ],
+      commands: [
+        { id: 0x01, node: 'synth', param: 'decay', scale: 'log' },
+        { id: 0x02, node: 'synth', param: 'damp' },
+        { id: 0x03, node: 'synth', param: 'bright' },
+        { id: 0x04, node: 'synth', param: 'pos' },
+        { id: 0x05, node: 'synth', param: 'release' },
+        { id: 0x06, node: 'synth', param: 'tune' },
+      ],
+    }),
+  },
   additive: {
     label: 'Additive synth',
     make: () => ({

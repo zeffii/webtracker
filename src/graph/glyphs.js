@@ -128,6 +128,7 @@ export const GLYPHS = {
   },
   wavetable: (ctx, cx, cy, w, h) => { for (let r = 0; r < 4; r++) { const oy = cy + (r - 1.5) * h * 0.2; ctx.beginPath(); for (let i = 0; i <= 24; i++) { const t = i / 24, x = cx - w / 2 + t * w, y = oy - Math.sin(t * Math.PI * 2 * (1 + r * 0.5)) * h * 0.1; if (i) ctx.lineTo(x, y); else ctx.moveTo(x, y); } ctx.stroke(); } },   // a stack of waves
   granular: (ctx, cx, cy, w, h) => { for (let i = 0; i < 7; i++) { const x = cx + (i - 3) * w * 0.13, a = h * (0.16 + 0.1 * ((i * 5) % 4)); ctx.beginPath(); ctx.ellipse(x, cy + ((i * 3) % 3 - 1) * h * 0.12, w * 0.05, a, 0, 0, Math.PI * 2); ctx.stroke(); } },
+  string: (ctx, cx, cy, w, h) => curve(ctx, cx, cy, w, h, t => Math.sin(t * Math.PI * 7) * Math.pow(1 - t, 1.3) * 0.9, 56),   // a ringing, fading string
   fmsynth: (ctx, cx, cy, w, h) => curve(ctx, cx, cy, w, h, t => Math.sin(t * Math.PI * 4 + 2.2 * Math.sin(t * Math.PI * 10)) * 0.85, 48),   // a sine bent by another
   addsynth: (ctx, cx, cy, w, h) => {   // a row of harmonics falling away
     ctx.beginPath();
