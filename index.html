@@ -36,9 +36,9 @@
     #song-info { font-variant-numeric: tabular-nums; }
     #status { opacity: .7; }
     #tabs { display: flex; gap: .25rem; }
-    #load { margin-left: auto; margin-right: .75rem; cursor: pointer; opacity: .75; white-space: nowrap; font-variant-numeric: tabular-nums; }
-    #load.warn { color: hsl(40 90% 60%); opacity: 1; }
-    #load.bad { color: hsl(5 85% 65%); opacity: 1; }
+    #load { margin-left: auto; margin-right: .75rem; cursor: pointer; white-space: pre; font-variant-numeric: tabular-nums; padding: .1rem .5rem; border: 1px solid; }
+    #load.warn { background: hsl(40 90% 55%); border-color: hsl(40 90% 55%); color: #000; }
+    #load.bad { background: hsl(5 80% 52%); border-color: hsl(5 80% 52%); color: #fff; }
     #tabs button { font: inherit; padding: .1rem .6rem; border: 1px solid; background: transparent; color: inherit; cursor: pointer; }
     #tabs button.active { background: Highlight; color: HighlightText; border-color: Highlight; }
     .pane { padding: .5rem .75rem 2rem; }

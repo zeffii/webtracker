@@ -12,6 +12,7 @@ class TrackerEngine extends AudioWorkletProcessor {
     // readings is unbiased, so the load is exact on average; the peak is good to about a millisecond.
     this.budget = (128 / sampleRate) * 1000;
     this.blocks = 0; this.sumMs = 0; this.peakMs = 0; this.late = 0;
+    this.tick = Infinity; this.seen = 0;   // the clock's step, found as the smallest non-zero reading (it is 1 ms on some systems, coarser on others)
     this.rt.onFault = instrument => this.port.postMessage({ type: 'fault', instrument });
     this.port.onmessage = ({ data }) => {
       if (data.type === 'load') this.rt.load(data.graph);
@@ -34,9 +35,11 @@ class TrackerEngine extends AudioWorkletProcessor {
     const t0 = Date.now();
     this.seq.process(out[0], out[1], out[0].length);
     const ms = Date.now() - t0;
-    this.sumMs += ms; this.blocks++;
-    if (ms > this.peakMs) this.peakMs = ms;
-    if (ms - 1 >= this.budget) this.late++;   // surely over the budget: a reading is at most 1 ms above the true time
+    this.sumMs += ms; this.blocks++; this.seen++;
+    if (ms > 0 && ms < this.tick) this.tick = ms;
+    const sure = Math.max(0, ms - this.tick);   // a reading is at most one clock step above the true time, so this is certainly spent
+    if (sure > this.peakMs && this.seen > 400) this.peakMs = sure;
+    if (this.seen > 400 && sure >= this.budget) this.late++;
     if (this.blocks >= 100) {
       this.port.postMessage({ type: 'load', avg: this.sumMs / this.blocks / this.budget, peak: this.peakMs / this.budget, late: this.late });
       this.blocks = 0; this.sumMs = 0; this.peakMs = 0; this.late = 0;
