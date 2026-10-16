@@ -414,11 +414,14 @@ for (const [id, field, max] of [['inst-voices', 'voices', 16], ['inst-notecols',
   });
 }
 
+// The waveform fills the width of the sample screen.
+if (globalThis.ResizeObserver) new ResizeObserver(() => { const w = $('wave').parentElement.clientWidth; if (w > 0) waveform.fit(w - 2); }).observe($('wave').parentElement);
 const sendLoop = users => users.forEach(({ instrument, node }) => sendSample(instrument, node));
 const waveform = createWaveformView({
   canvas: $('wave'), statusEl: $('proj-status'), getProject: () => project,
   onLoop: users => { sendLoop(users); auditionDirty = true; },
-  onSlices: users => { sendLoop(users); auditionDirty = true; },   // the screen redraws itself, so its numbers follow the markers
+  onSlices: users => { sendLoop(users); auditionDirty = true; },
+  onActiveSlice: i => sampleScreen.setActiveSlice(i),   // the screen redraws itself, so its numbers follow the markers
   onSelect: ({ from, to }) => sampleScreen.setSelection(from, to),
 });
 
@@ -450,6 +453,7 @@ const sampleScreen = createSampleScreen({
   onRename: () => { refreshProjectUi(); patcher.show(patcher.instrument); },
   onNote: playSample,
   onSelection: (from, to) => waveform.setSelection(from, to),
+  onSlice: i => waveform.setActiveSlice(i),
   onLoad: () => $('sample-file').click(),
   onView: mode => waveform.setMode(mode),
 });

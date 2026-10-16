@@ -25,9 +25,10 @@ const GRAB = 6;   // pixels either side of a marker that grab it
 // it; drag across empty waveform to make a new loop; double-click to clear the loop. The
 // loop is applied when the mouse is released. Slice markers (red, labelled with their number and the hex value
 // an Off cell would need): Alt+click adds one, Alt+drag moves one, Alt+double-click removes the nearest.
-export function createWaveformView({ canvas, statusEl, getProject, onLoop, onSelect = () => {}, onSlices = () => {} }) {
+export function createWaveformView({ canvas, statusEl, getProject, onLoop, onSelect = () => {}, onSlices = () => {}, onActiveSlice = () => {} }) {
   const ctx = canvas.getContext('2d');
-  const W = canvas.width, H = canvas.height;
+  let W = canvas.width;
+  const H = canvas.height;
   const dpr = globalThis.devicePixelRatio || 1;
   if (dpr !== 1) {
     canvas.style.width = `${W}px`;
@@ -37,6 +38,7 @@ export function createWaveformView({ canvas, statusEl, getProject, onLoop, onSel
     ctx.scale(dpr, dpr);
   }
 
+  let active = -1;   // the slice marker the keys nudge, drawn brighter
   let id = null, drag = null, cache = null, lastKey = null, mode = 'wave', selection = { from: 0, to: 0 };
   const say = text => { if (statusEl) statusEl.textContent = text; };
   const sample = () => (id ? getProject().samples[id] : undefined);
@@ -61,8 +63,13 @@ export function createWaveformView({ canvas, statusEl, getProject, onLoop, onSel
     (s.slices ?? []).forEach((f, i) => { const d = Math.abs(x - frameToX(f)); if (d <= reach && (best < 0 || d < Math.abs(x - frameToX(s.slices[best])))) best = i; });
     return best;
   };
-  const commitSlices = list => {
-    try { const users = setSlices(getProject(), id, list); say(''); onSlices(users); } catch (err) { say(err.message); }
+  const commitSlices = (list, grabbed) => {
+    try {
+      const users = setSlices(getProject(), id, list);
+      say('');
+      onSlices(users);
+      if (grabbed !== undefined) { active = (sample().slices ?? []).indexOf(grabbed); onActiveSlice(active); }
+    } catch (err) { say(err.message); }
   };
 
   canvas.addEventListener('mousedown', e => {
@@ -96,7 +103,7 @@ export function createWaveformView({ canvas, statusEl, getProject, onLoop, onSel
   const finish = () => {
     const d = drag;
     drag = null;
-    if (d?.kind === 'slice') { commitSlices(d.preview); return; }
+    if (d?.kind === 'slice') { commitSlices(d.preview, d.preview[d.i]); return; }
     if (d?.kind === 'select') { if (d.preview) onSelect({ from: d.preview.start, to: d.preview.end }); return; }
     if (d?.preview) commit(Math.max(0, d.preview.start), d.preview.end);
   };
@@ -117,7 +124,7 @@ export function createWaveformView({ canvas, statusEl, getProject, onLoop, onSel
     const s = sample();
     const { start, end } = s ? (drag?.kind === 'select' ? { start: s.loopStart ?? 0, end: s.loopEnd ?? 0 } : loopOf(s)) : { start: 0, end: 0 };
     const pick = drag?.kind === 'select' && drag.preview ? { from: drag.preview.start, to: drag.preview.end } : selection;
-    const key = s ? `${id}:${mode}:${s.data.length}:${start}:${end}:${LOOPS.slice(1).map(l => `${s[l.start]}.${s[l.end]}.${s[l.on]}`).join()}:${s.loopOn}:${s.loopXfade}:${s.susXfade}:${pick.from}-${pick.to}:${slicesOf(s).join(',')}` : 'none';
+    const key = s ? `${id}:${mode}:${s.data.length}:${start}:${end}:${LOOPS.slice(1).map(l => `${s[l.start]}.${s[l.end]}.${s[l.on]}`).join()}:${s.loopOn}:${s.loopXfade}:${s.susXfade}:${pick.from}-${pick.to}:${slicesOf(s).join(',')}:${active}:${W}` : 'none';
     if (key === lastKey) return;
     lastKey = key;
     ctx.clearRect(0, 0, W, H);
@@ -133,7 +140,7 @@ export function createWaveformView({ canvas, statusEl, getProject, onLoop, onSel
       ctx.putImageData(image, 0, 0);
       ctx.restore();
     } else {
-      if (!cache || cache.data !== s.data || !cache.peaks) cache = { data: s.data, peaks: computePeaks(s.data, W), rightPeaks: s.right ? computePeaks(s.right, W) : null };
+      if (!cache || cache.data !== s.data || !cache.peaks || cache.w !== W) cache = { data: s.data, w: W, peaks: computePeaks(s.data, W), rightPeaks: s.right ? computePeaks(s.right, W) : null };
       // a stereo sample is drawn as two lanes, left above right
       const lanes = cache.rightPeaks ? [[cache.peaks, H / 4], [cache.rightPeaks, 3 * H / 4]] : [[cache.peaks, H / 2]];
       const amp = lanes.length === 2 ? H / 4 - 4 : H / 2 - 4;
@@ -180,8 +187,9 @@ export function createWaveformView({ canvas, statusEl, getProject, onLoop, onSel
     }
     slicesOf(s).forEach((f, i) => {   // the slice markers, numbered in order of position
       const x = frameToX(f), label = `${(drag?.kind === 'slice' ? [...drag.preview].sort((a, b) => a - b).indexOf(f) : i).toString(16).toUpperCase().padStart(2, '0')} ${sliceHex(f, frames())}`;
+      const here = drag?.kind !== 'slice' && i === active;
       ctx.fillStyle = '#f0707a';
-      ctx.fillRect(x, 0, 1, H);
+      ctx.fillRect(x - (here ? 1 : 0), 0, here ? 3 : 1, H);
       ctx.textBaseline = 'top';
       ctx.textAlign = x > W - 70 ? 'right' : 'left';
       ctx.fillText(label, x + (x > W - 70 ? -3 : 3), 14 + (i % 3) * 12);
@@ -193,7 +201,19 @@ export function createWaveformView({ canvas, statusEl, getProject, onLoop, onSel
   }
 
   return {
-    show(next) { id = next; drag = null; lastKey = null; },
+    show(next) { id = next; drag = null; lastKey = null; active = -1; },
+    // The width follows the space the view has (CSS pixels); the picture is drawn again at once.
+    fit(width) {
+      const w = Math.round(Math.max(300, width));
+      if (w === W) return W;
+      W = w;
+      canvas.style.width = `${W}px`;
+      canvas.width = W * dpr;
+      if (dpr !== 1) ctx.setTransform?.(dpr, 0, 0, dpr, 0, 0);
+      cache = null; lastKey = null;
+      return W;
+    },
+    setActiveSlice(i) { active = i; lastKey = null; },
     setSelection(from, to) { selection = { from, to }; lastKey = null; },
     setMode(next) { mode = next === 'spec' ? 'spec' : 'wave'; lastKey = null; },
     get mode() { return mode; },

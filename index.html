@@ -260,8 +260,8 @@
 
   <section id="pane-samples" class="pane keyed" hidden>
     <div class="pane-main">
+      <canvas id="wave" width="900" height="160"></canvas>
       <pre id="smp" tabindex="0"></pre>
-      <canvas id="wave" width="900" height="140"></canvas>
       <p><button id="load-samples" disabled>Load samples…</button>
         <input id="sample-file" type="file" accept="audio/*" multiple hidden>
         <span id="proj-status"></span></p>
@@ -277,6 +277,7 @@
           <dt>L</dt><dd>load samples</dd>
           <dt>Delete</dt><dd>remove the sample</dd>
           <dt>Shift+drag</dt><dd>select part of the display; drag across it to make a loop, drag a marker to move it, double-click to clear</dd>
+          <dt>+ −</dt><dd>in the list: nudge the current slice marker one frame (Ctrl 100); &lt; and &gt; choose the previous and next marker. The current one is drawn heavier and marked &gt; in the Slices list</dd>
           <dt>Shift+M, Shift+U</dt><dd>mark a slice at the selection start, unmark the nearest one. The Slices list shows each one's number and hex value; in a pattern, command 10 0000 starts a note at the first, 10 0001 at the second, and so on (10 FFFF gives the Off column back its say)</dd>
           <dt>Alt+click, Alt+drag</dt><dd>on the display: add a slice marker, move one. Alt+double-click removes the nearest</dd>
           <dt>Shift+C / T</dt><dd>trim</dd>

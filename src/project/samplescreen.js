@@ -30,9 +30,9 @@ const EDITS = { C: 'crop', T: 'crop', X: 'cut', S: 'silence', R: 'reverse', N: '
 const ROOT = 60;
 const round2 = v => Math.round(v * 100) / 100;
 
-export function createSampleScreen({ el, statusEl, getProject, onChange = () => {}, onSelect = () => {}, onRemove = () => {}, onRename = () => {}, onNote = () => {}, onLoad = () => {}, onView = () => {}, onSelection = () => {} }) {
+export function createSampleScreen({ el, statusEl, getProject, onChange = () => {}, onSelect = () => {}, onRemove = () => {}, onRename = () => {}, onNote = () => {}, onLoad = () => {}, onView = () => {}, onSelection = () => {}, onSlice = () => {} }) {
   let sel = null, focus = 'list', edit = null, mode = 'wave', announced = null, last = null, top = 0;
-  let selFrom = 0, selTo = 0, octave = 5;
+  let selFrom = 0, selTo = 0, octave = 5, activeSlice = -1;   // the slice marker + and - move
   const held = new Map();   // key -> note it is playing
   const history = createHistory();
   const say = text => { if (statusEl) statusEl.textContent = text; };
@@ -73,6 +73,18 @@ export function createSampleScreen({ el, statusEl, getProject, onChange = () => 
       return attempt(() => setLoop(project, sel, beg, Math.min(Math.max(Math.round(value), beg + 2), n), p));
     }
     return attempt(() => setSampleProps(project, sel, { [xk]: Math.min(Math.max(0, Math.round(value)), n) }));
+  }
+
+  const setActive = i => { activeSlice = i; onSlice(i); };
+  // Moves the current slice marker by some frames; it keeps its number only while it stays between its neighbours.
+  function nudgeSlice(delta) {
+    const s = sample(), slices = s.slices ?? [];
+    if (!slices.length) return;
+    const i = Math.min(Math.max(activeSlice, 0), slices.length - 1);
+    const to = Math.min(Math.max(slices[i] + delta, 0), s.data.length - 1);
+    if (to === slices[i]) return;
+    if (slices.includes(to)) { say('Another marker is already there.'); return; }
+    if (attempt(() => setSlices(getProject(), sel, slices.map((f, k) => (k === i ? to : f))))) setActive(sample().slices.indexOf(to));
   }
 
   function setSelection(from, to) {
@@ -135,7 +147,7 @@ export function createSampleScreen({ el, statusEl, getProject, onChange = () => 
 
   function select(id) {
     if (!id || !(id in getProject().samples)) return;
-    if (id !== sel) { selFrom = 0; selTo = 0; onSelection(0, 0); }
+    if (id !== sel) { selFrom = 0; selTo = 0; onSelection(0, 0); activeSlice = -1; onSlice(-1); }
     sel = id; edit = null;
     const at = ids().indexOf(id);
     if (at < top) top = at;
@@ -193,10 +205,10 @@ export function createSampleScreen({ el, statusEl, getProject, onChange = () => 
     if (e.shiftKey && focus !== 'name' && Object.hasOwn(EDITS, k)) { runEdit(EDITS[k]); return eat(); }
     if (e.shiftKey && focus !== 'name' && (k === 'M' || k === 'U')) {   // M marks a slice at the start of the selection, U takes away the one nearest to it
       const s = sample(), at = Math.min(selFrom, s.data.length - 1), slices = s.slices ?? [];
-      if (k === 'M') attempt(() => setSlices(getProject(), sel, [...slices, at]));
+      if (k === 'M') { if (attempt(() => setSlices(getProject(), sel, [...slices, at]))) setActive(sample().slices.indexOf(at)); }
       else if (slices.length) {
         const nearest = slices.reduce((best, f) => (Math.abs(f - at) < Math.abs(best - at) ? f : best));
-        attempt(() => setSlices(getProject(), sel, slices.filter(f => f !== nearest)));
+        if (attempt(() => setSlices(getProject(), sel, slices.filter(f => f !== nearest)))) setActive(-1);
       }
       return eat();
     }
@@ -225,6 +237,12 @@ export function createSampleScreen({ el, statusEl, getProject, onChange = () => 
           select(rest[Math.min(at, rest.length - 1)]);
           onRemove(gone);
         }
+        return eat();
+      }
+      if ((k === '+' || k === '=' || k === '-' || k === '_') && sample().slices?.length) { nudgeSlice((k === '+' || k === '=' ? 1 : -1) * (e.ctrlKey ? 100 : 1)); return eat(); }
+      if ((k === '<' || k === '>') && sample().slices?.length) {   // choose the previous or next marker
+        const n = sample().slices.length;
+        setActive(Math.min(n - 1, Math.max(0, (activeSlice < 0 ? (k === '>' ? -1 : n) : activeSlice) + (k === '>' ? 1 : -1))));
         return eat();
       }
       if (k === ' ') { if (!e.repeat) startNote(' ', ROOT); return eat(); }
@@ -303,7 +321,7 @@ export function createSampleScreen({ el, statusEl, getProject, onChange = () => 
       const sliceLines = d => {
         const sl = d.slices ?? [];
         return [line(` Slices    ${sl.length ? sl.length : 'none'}${sl.length ? '' : '  (Shift+M marks one at the selection start; Alt+click the display)'}`),
-          ...sl.slice(0, 8).map((f, i) => line(`   ${i.toString(16).toUpperCase().padStart(2, '0')}  ${sliceHex(f, d.data.length)}  ${String(f).padStart(8, '0')}  ${(f / d.rate).toFixed(3)}s`)),
+          ...sl.slice(0, 8).map((f, i) => line(`${i === activeSlice ? ' >' : '  '} ${i.toString(16).toUpperCase().padStart(2, '0')}  ${sliceHex(f, d.data.length)}  ${String(f).padStart(8, '0')}  ${(f / d.rate).toFixed(3)}s`)),
           ...(sl.length > 8 ? [line(`   ... ${sl.length - 8} more`)] : [])];
       };
       const numCell = field => fieldCell(field, frameValue(s, field).toString().padStart(8, '0'), 8);
@@ -334,5 +352,5 @@ export function createSampleScreen({ el, statusEl, getProject, onChange = () => 
     if (html !== last) { last = html; el.innerHTML = html; }
   }
 
-  return { draw, key, select, setSelection(from, to) { if (sel) setSelection(Math.max(0, from), Math.max(0, to)); }, history, get octave() { return octave; }, get selection() { return [selFrom, selTo]; }, get selected() { return sel; }, get focus() { return focus; }, get mode() { return mode; } };
+  return { draw, key, select, setActiveSlice(i) { activeSlice = i; }, setSelection(from, to) { if (sel) setSelection(Math.max(0, from), Math.max(0, to)); }, history, get octave() { return octave; }, get selection() { return [selFrom, selTo]; }, get selected() { return sel; }, get focus() { return focus; }, get mode() { return mode; } };
 }
