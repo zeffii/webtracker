@@ -27,13 +27,18 @@ export function cellAt({ widths, x, line, top, len }) {
 // Keyboard-driven view of every lane side by side. The cursor sits on one character
 // of one cell. Edits go straight into the shared pages, so they are heard on the next
 // tick while the song plays. Call load() with the prepared lanes before drawing.
-export function createTrackerView({ el, statusEl, transport, onToggle, onBack, onMove, onNote = () => {} }) {
+export function createTrackerView({ el, statusEl, transport, onToggle, onBack, onMove, onNote = () => {}, readParam = () => undefined }) {
   let lanes = null, len = 0, widths = [], editor = null;
   const cur = { lane: 0, tick: 0, col: 0, ch: 0 };
   let octave = 3, message = '';
   let sel = null;          // { lane, tick, col }: the corner opposite the cursor, while a rectangle is selected
   let clipboard = null;    // rows of { token, cell } from the last copy
   let top = 0;             // the first tick on screen, as last drawn
+  // Hiding empty columns, lane by lane (Ctrl+Shift+H, for the lane the cursor is in). A hidden column has no value at
+  // any row of the lane; the column the cursor is in always stays, so nothing disappears from under it. The cursor
+  // steps over hidden columns; show them again to type into one.
+  const compact = new Set();   // indexes of the lanes whose empty columns are hidden
+  let vis = [];                // the columns shown in each lane, as of the last draw
   let shownAt = '';        // where the cursor was when the view last scrolled sideways to follow it
   let rowCount = ROWS.normal;   // how many rows are shown; the drag bar under the view changes it
 
@@ -91,28 +96,41 @@ export function createTrackerView({ el, statusEl, transport, onToggle, onBack, o
 
   const column = (li = cur.lane, ci = cur.col) => lanes[li].columns[ci];
   const cellWidth = (li = cur.lane, ci = cur.col) => KINDS[column(li, ci).token].width;
-  const block = li => widths[li].reduce((a, w) => a + w, 0) + widths[li].length - 1;
+  const block = li => vis[li].reduce((a, ci) => a + widths[li][ci], 0) + vis[li].length - 1;
+
+  // The columns of a lane that are shown. `keep` is a column that stays whatever it holds (the cursor's, in its own lane).
+  const visibleCols = (li, keep = li === cur.lane ? cur.col : -1) => {
+    const all = lanes[li].columns.map((_, ci) => ci);
+    if (!compact.has(li)) return all;
+    const rows = lanes[li].rows, shown = all.filter(ci => ci === keep || rows.some(r => !isBlank(r[ci])));
+    return shown.length ? shown : [keep >= 0 ? keep : 0];
+  };
+  const nearest = (cols, ci) => cols.reduce((best, c) => (Math.abs(c - ci) < Math.abs(best - ci) ? c : best), cols[0]);
+  const neighbour = (li, ci, dir) => { const v = visibleCols(li), i = v.indexOf(ci); return i < 0 ? nearest(v, ci) : v[i + dir] ?? -1; };
+  const snapCol = () => { cur.col = nearest(visibleCols(cur.lane, -1), Math.min(cur.col, lanes[cur.lane].columns.length - 1)); };
 
   const moveRow = d => { cur.tick = (cur.tick + d + len) % len; };
   const moveLane = d => {
     cur.lane = (cur.lane + d + lanes.length) % lanes.length;
-    cur.col = Math.min(cur.col, lanes[cur.lane].columns.length - 1);
+    snapCol();
     cur.ch = Math.min(cur.ch, cellWidth() - 1);
   };
   // One character at a time, hopping to the next cell, column and lane at the ends.
   const moveChar = d => {
     cur.ch += d;
     if (cur.ch < 0) {
-      if (--cur.col < 0) {
+      const prev = neighbour(cur.lane, cur.col, -1);
+      if (prev < 0) {
         cur.lane = (cur.lane + lanes.length - 1) % lanes.length;
-        cur.col = lanes[cur.lane].columns.length - 1;
-      }
+        cur.col = visibleCols(cur.lane, -1).at(-1);
+      } else cur.col = prev;
       cur.ch = cellWidth() - 1;
     } else if (cur.ch >= cellWidth()) {
-      if (++cur.col >= lanes[cur.lane].columns.length) {
+      const next = neighbour(cur.lane, cur.col, 1);
+      if (next < 0) {
         cur.lane = (cur.lane + 1) % lanes.length;
-        cur.col = 0;
-      }
+        cur.col = visibleCols(cur.lane, -1)[0];
+      } else cur.col = next;
       cur.ch = 0;
     }
   };
@@ -204,6 +222,28 @@ export function createTrackerView({ el, statusEl, transport, onToggle, onBack, o
     message = changed ? `Interpolated ${items.length} cells.` : 'Nothing to interpolate: each column needs a value at both ends (command and 1hex columns are skipped).';
   };
 
+  // Takes a parameter's live value (a slider, or whatever the song last wrote) and turns it into the cell that would
+  // write it back: the inverse of how the sequencer reads a cell. Ctrl+Enter writes it into the cursor's cell and moves
+  // down a row, so a sweep can be recorded with one key press per row; Ctrl+Shift+Enter writes the live values of every
+  // parameter column of the row at once (not the notes, velocities or commands) and moves down.
+  const liveToken = col => {
+    const v = readParam(col.slot);
+    if (!Number.isFinite(v)) return null;
+    const x = col.int ? v - col.min : col.log ? (Math.log(v / col.min) / Math.log(col.max / col.min)) * col.denom : ((v - col.min) / (col.max - col.min)) * col.denom;
+    return clamp(Math.round(x), 0, col.denom).toString(16).toUpperCase().padStart(KINDS[col.token].width, '0');
+  };
+  const insertLive = whole => {
+    const lane = lanes[cur.lane], items = [];
+    lane.columns.forEach((col, c) => {
+      if (col.kind !== 'param' || (!whole && c !== cur.col)) return;
+      const token = liveToken(col);
+      if (token !== null) items.push({ tick: cur.tick, col: c, token });
+    });
+    if (!items.length) { message = whole ? 'This lane has no parameter columns with a live value.' : 'Only parameter columns have a live value; move to one.'; return; }
+    if (editor.setCells(cur.lane, items, 'insert live value')) { message = `Inserted ${items.length} live ${items.length === 1 ? 'value' : 'values'}.`; moveRow(1); }
+    else message = 'No pattern here. Press Enter to insert one.';
+  };
+
   const write = token => {
     if (editor.setCell(cur.lane, cur.tick, cur.col, token)) { message = ''; return true; }
     message = 'No pattern here. Press Enter to insert one.';
@@ -266,7 +306,9 @@ export function createTrackerView({ el, statusEl, transport, onToggle, onBack, o
   const pointed = e => {
     const m = metrics(), box = el.getBoundingClientRect();
     const x = (e.clientX - box.left - m.left + el.scrollLeft) / m.cw, y = (e.clientY - box.top - m.up + el.scrollTop) / m.lh;
-    return cellAt({ widths, x: Math.floor(x), line: Math.floor(y), top, len });
+    // measured on the columns that are shown, then translated back to the lane's own column numbers
+    const hit = cellAt({ widths: widths.map((w, li) => w.filter((_, ci) => (vis[li] ?? w.map((__, i) => i)).includes(ci))), x: Math.floor(x), line: Math.floor(y), top, len });
+    return hit && { ...hit, col: (vis[hit.lane] ?? [])[hit.col] ?? hit.col };
   };
   el.addEventListener('mousedown', e => {
     if (!lanes || e.button !== 0) return;
@@ -306,6 +348,13 @@ export function createTrackerView({ el, statusEl, transport, onToggle, onBack, o
       }
       if (key === 'arrowup' || key === 'arrowdown') { transpose(true, key === 'arrowup' ? 1 : -1, e.shiftKey); e.preventDefault(); return; }
       if (key === 'arrowleft' || key === 'arrowright') { transpose(false, key === 'arrowright' ? 1 : -1, e.shiftKey); e.preventDefault(); return; }
+      if (key === 'h' && e.shiftKey) {   // hide or show the empty columns of the lane the cursor is in
+        const li = cur.lane, on = !compact.has(li);
+        if (on) compact.add(li); else compact.delete(li);
+        message = on ? `Hiding empty columns in ${lanes[li].id}.` : `Showing every column of ${lanes[li].id}.`;
+        e.preventDefault(); return;
+      }
+      if (key === 'enter') { insertLive(e.shiftKey); e.preventDefault(); return; }
       if (key === 'i') { interpolate(); e.preventDefault(); return; }
       if (key === 'z' || key === 'y') {
         const redo = key === 'y' || e.shiftKey;
@@ -337,7 +386,7 @@ export function createTrackerView({ el, statusEl, transport, onToggle, onBack, o
     // Shift with a movement key grows a rectangle from where the cursor was, by whole cells and
     // within the lane; Delete clears it; any other key drops it.
     const grow = { ArrowUp: () => { cur.tick = clamp(cur.tick - 1, 0, len - 1); }, ArrowDown: () => { cur.tick = clamp(cur.tick + 1, 0, len - 1); },
-      ArrowLeft: () => { cur.col = clamp(cur.col - 1, 0, lanes[cur.lane].columns.length - 1); }, ArrowRight: () => { cur.col = clamp(cur.col + 1, 0, lanes[cur.lane].columns.length - 1); },
+      ArrowLeft: () => { const n = neighbour(cur.lane, cur.col, -1); if (n >= 0) cur.col = n; }, ArrowRight: () => { const n = neighbour(cur.lane, cur.col, 1); if (n >= 0) cur.col = n; },
       PageUp: () => { cur.tick = clamp(cur.tick - 16, 0, len - 1); }, PageDown: () => { cur.tick = clamp(cur.tick + 16, 0, len - 1); },
       Home: () => { cur.tick = 0; }, End: () => { cur.tick = len - 1; } };
     if (e.shiftKey && Object.hasOwn(grow, k)) {
@@ -403,15 +452,17 @@ export function createTrackerView({ el, statusEl, transport, onToggle, onBack, o
     if (cur.tick < top || cur.tick >= top + rowCount) top = cur.tick - Math.min(8, rowCount >> 2);
     top = Math.max(0, Math.min(top, len - rowCount));
     const r = sel ? rect() : null;
+    vis = lanes.map((_, li) => visibleCols(li));
     const lines = [
       `<span class="g">${' '.repeat(GUTTER)}</span>${lanes.map((l, li) => ` ${esc(l.id.padEnd(block(li)))}`).join('  ')}`,
-      `<span class="g">${' '.repeat(GUTTER)}</span>${lanes.map((l, li) => ` ${l.columns.map((c, ci) => esc(c.label.padEnd(widths[li][ci]))).join(' ')}`).join('  ')}`,
+      `<span class="g">${' '.repeat(GUTTER)}</span>${lanes.map((l, li) => ` ${vis[li].map(ci => esc(l.columns[ci].label.padEnd(widths[li][ci]))).join(' ')}`).join('  ')}`,
     ];
     for (let t = top; t < Math.min(len, top + rowCount); t++) {
       const chunks = lanes.map((lane, li) => {
         const mark = lane.placements.some(p => p.start === t) ? '<span class="ps">▌</span>' : ' ';   // a pattern starts here
         const covered = lane.placements.some(p => t >= p.start && t < p.start + p.length);   // else no pattern here
-        return mark + lane.columns.map((c, ci) => {
+        return mark + vis[li].map(ci => {
+          const c = lane.columns[ci];
           const text = lane.rows[t][ci].padEnd(widths[li][ci]);
           const isCur = li === cur.lane && ci === cur.col && t === cur.tick;
           // Characters one at a time so the cursor and the command id can each be styled.
@@ -445,7 +496,7 @@ export function createTrackerView({ el, statusEl, transport, onToggle, onBack, o
       }
     }
     statusEl.textContent = [
-      lanes[cur.lane].id, `row ${cur.tick}`, patternName(), column().label, `char ${cur.ch + 1}/${cellWidth()}`, preview ? 'preview on' : '',
+      lanes[cur.lane].id, compact.has(cur.lane) ? 'empty columns hidden' : '', `row ${cur.tick}`, patternName(), column().label, `char ${cur.ch + 1}/${cellWidth()}`, preview ? 'preview on' : '',
       sel ? `selected ${size(rect())}` : '', `octave ${octave}`, message,
     ].filter(Boolean).join(' · ');
   };
@@ -453,7 +504,7 @@ export function createTrackerView({ el, statusEl, transport, onToggle, onBack, o
   const goto = (laneIdx, tick) => {
     cur.lane = laneIdx;
     cur.tick = tick;
-    cur.col = Math.min(cur.col, lanes[laneIdx].columns.length - 1);
+    snapCol();
     cur.ch = Math.min(cur.ch, cellWidth() - 1);
     message = '';
   };

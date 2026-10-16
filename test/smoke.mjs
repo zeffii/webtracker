@@ -3542,4 +3542,86 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   assert.equal(lane.rows[1][vc], '..', 'the interpolation is one undo step');
 }
 
+// 105. Pattern editor: insert the live value of a parameter, or of a whole row of them.
+{
+  const registry = new ParamRegistry();
+  for (const [id, def] of Object.entries(instruments)) compile(def.graph, { instrument: id, nodeTypes: NODE_TYPES, registry });
+  const lanes = prepareSong(demoSong, instruments, registry);
+  const editor = createEditor(lanes, 32);
+  let onKey;
+  const view = createTrackerView({ el: { addEventListener: (_, f) => { onKey = f; }, innerHTML: '' }, statusEl: {}, transport: new Int32Array(new SharedArrayBuffer(8)), onToggle() {}, onBack() {}, readParam: slot => registry.values[slot] });
+  view.load({ lanes, song: demoSong, editor });
+  const press = (key, extra = {}) => onKey({ key, preventDefault() {}, ...extra });
+  const lane = lanes[0], cols = lane.columns;
+  const pcs = cols.map((c, i) => i).filter(i => cols[i].kind === 'param');
+  const widthOf = i => ({ note: 3, '1hex': 1, '2hex': 2, '4hex': 4, cmd: 6 })[cols[i].token];
+  const toCol = c => { view.goto(0, 4); for (let n = 0; n < cols.slice(0, c).reduce((a, k) => a + ({ note: 3, '1hex': 1, '2hex': 2, '4hex': 4, cmd: 6 })[k.token], 0); n++) press('ArrowRight'); };
+  const col = cols[pcs[0]];
+  registry.values[col.slot] = col.int ? col.min + 7 : col.min + (col.max - col.min) * (0x80 / col.denom);
+  // note column first: nothing to take
+  view.goto(0, 4);
+  const noteBefore = lane.rows[4][0];
+  press('Enter', { ctrlKey: true });
+  assert.equal(lane.rows[4][0], noteBefore, 'a note column is left alone');
+  view.goto(0, 4);
+  // a parameter column: its live value is written and the cursor moves down
+  toCol(pcs[0]);
+  press('Enter', { ctrlKey: true });
+  const expected = (col.int ? 7 : 0x80).toString(16).toUpperCase().padStart(widthOf(pcs[0]), '0');
+  assert.equal(lane.rows[4][pcs[0]], expected, `live value written (${lane.rows[4][pcs[0]]} vs ${expected})`);
+  // the whole row: every parameter column of the next row, nothing else
+  const before = lane.rows[5].slice();
+  press('Enter', { ctrlKey: true, shiftKey: true });
+  pcs.forEach(i => assert.notEqual(lane.rows[5][i], '.'.repeat(widthOf(i)), `column ${cols[i].label} gets its live value`));
+  cols.forEach((c, i) => { if (c.kind !== 'param') assert.equal(lane.rows[5][i], before[i], `${c.label} is left as it was`); });
+  // the value goes back through the sequencer's own reading: a cell turns into the same value
+  const roundTrip = tokenValue => {
+    const n = parseInt(tokenValue, 16);
+    return col.int ? col.min + n : col.log ? col.min * Math.pow(col.max / col.min, n / col.denom) : col.min + (n / col.denom) * (col.max - col.min);
+  };
+  assert.ok(Math.abs(roundTrip(lane.rows[4][pcs[0]]) - registry.values[col.slot]) < (col.max - col.min) / col.denom + 1e-6, 'the cell reads back as the live value');
+  press('z', { ctrlKey: true });
+  assert.equal(lane.rows[5][pcs[0]], before[pcs[0]], 'one undo takes the whole row back');
+}
+
+// 106. Pattern editor: hide the empty columns of the lane the cursor is in.
+{
+  const registry = new ParamRegistry();
+  for (const [id, def] of Object.entries(instruments)) compile(def.graph, { instrument: id, nodeTypes: NODE_TYPES, registry });
+  const lanes = prepareSong(demoSong, instruments, registry);
+  const editor = createEditor(lanes, 32);
+  let onKey;
+  const el = { addEventListener: (_, f) => { onKey = f; }, innerHTML: '' }, statusEl = { textContent: '' };
+  const view = createTrackerView({ el, statusEl, transport: new Int32Array(new SharedArrayBuffer(8)), onToggle() {}, onBack() {} });
+  view.load({ lanes, song: demoSong, editor });
+  const press = (key, extra = {}) => onKey({ key, preventDefault() {}, ...extra });
+  const lane = lanes[0], isEmpty = ci => lane.rows.every(r => /^\.+$/.test(r[ci]));
+  const empty = lane.columns.map((c, i) => i).filter(i => i > 0 && isEmpty(i));
+  assert.ok(empty.length > 0 && empty.length < lane.columns.length - 1, 'the demo lead has some empty columns and some full ones');
+  const header = () => { view.draw(); return el.innerHTML.split('\n')[1].replace(/<[^>]+>/g, ''); };
+  const shown = () => lane.columns.filter((_, i) => header().includes(lane.columns[i].label)).length;
+  const before = header().trim().split(/\s+/).length;
+  press('h', { ctrlKey: true, shiftKey: true });
+  const after = header().trim().split(/\s+/);
+  assert.equal(after.length, before - empty.length, 'the empty columns are gone from the header');
+  assert.ok(statusEl.textContent.includes('empty columns hidden'));
+  // the cursor steps over them: walk to the end of the lane's visible cells and see only labels that were kept
+  const kept = new Set(lane.columns.filter((_, i) => !empty.includes(i)).map(c => c.label));
+  for (let i = 0; i < 40; i++) {
+    view.draw();
+    const label = statusEl.textContent.split(' · ').find(x => lane.columns.some(c => c.label === x));
+    if (label && statusEl.textContent.startsWith(lane.id)) assert.ok(kept.has(label), `the cursor never rests on the hidden column ${label}`);
+    press('ArrowRight');
+  }
+  view.goto(0, 0);
+  press('h', { ctrlKey: true, shiftKey: true });
+  assert.equal(header().trim().split(/\s+/).length, before, 'toggling again shows them all');
+  // only the lane the cursor is in is affected
+  press('h', { ctrlKey: true, shiftKey: true });
+  press('Tab');
+  const other = lanes[1], hdr = () => { view.draw(); return el.innerHTML.split('\n')[1].replace(/<[^>]+>/g, ''); };
+  assert.ok(other.columns.every(c => hdr().includes(c.label)), 'the next lane still shows every column');
+  assert.ok(!statusEl.textContent.includes('empty columns hidden'));
+}
+
 console.log('smoke test passed');
