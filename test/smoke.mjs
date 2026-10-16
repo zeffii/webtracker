@@ -3766,4 +3766,44 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   assert.equal(def.samples, true);
 }
 
+// 110. Equaliser: the measured gain matches the drawn curve, cuts and bands work, and the patcher draws the response.
+{
+  const def = NODE_TYPES.eq;
+  const run = (values, f, frames = 24000) => {
+    const params = Float32Array.from(def.params.map(p => values[p.name] ?? p.def)), slots = Int32Array.from(def.params.map((_, i) => i));
+    const node = def.create({ sampleRate: sr });
+    const x = Float32Array.from({ length: frames }, (_, i) => Math.sin(2 * Math.PI * f * i / sr));
+    const L = new Float32Array(frames), R = new Float32Array(frames);
+    for (let at = 0; at < frames; at += 128) {
+      const m = Math.min(128, frames - at);
+      node.process([[x.subarray(at, at + m), x.subarray(at, at + m)]], [[L.subarray(at, at + m), R.subarray(at, at + m)]], m, params, slots);
+    }
+    let a = 0, b = 0;
+    for (let i = frames / 2; i < frames; i++) { a += x[i] * x[i]; b += L[i] * L[i]; }
+    return { db: 10 * Math.log10(b / a), L, R };
+  };
+  const drawn = (values, f) => def.curves(name => values[name] ?? def.params.find(p => p.name === name).def, sr).reduce((t, b) => (b.off ? t : t + b.db(f)), 0);
+  assert.ok(Math.abs(run({}, 1000).db) < 0.01, 'flat by default');
+  for (const [values, f] of [[{ g3: 12 }, 1200], [{ g3: -9, q3: 3 }, 1000], [{ g1: 10 }, 40], [{ g5: -12 }, 15000], [{ lowcut: 200 }, 100], [{ highcut: 4000 }, 8000], [{ g2: 6, g4: -6, lowcut: 80 }, 500]]) {
+    const m = run(values, f).db, d = drawn(values, f);
+    assert.ok(Math.abs(m - d) < 0.3, `${JSON.stringify(values)} at ${f} Hz: measured ${m.toFixed(2)} dB, drawn ${d.toFixed(2)} dB`);
+  }
+  assert.ok(Math.abs(run({ g3: 12 }, 1200).db - 12) < 0.2, 'a +12 dB peak is +12 dB at its centre');
+  assert.ok(run({ lowcut: 200 }, 50).db < -20, 'the low cut removes the lows');
+  const st = run({ g3: 6 }, 1200); assert.ok(st.L.every((v, i) => v === st.R[i]), 'both channels are treated alike');
+  assert.ok(run({ g3: 12 }, 1200).L.every(Number.isFinite));
+  const makeEl = tag => ({ tag, children: [], listeners: {}, style: {}, textContent: '', value: '', checked: false, className: '', appendChild(c) { this.children.push(c); return c; }, replaceChildren(...c) { this.children = c; }, addEventListener(type, f) { this.listeners[type] = f; }, focus() {}, getContext: () => new Proxy({}, { get: (t, k) => (k in t ? t[k] : () => {}), set: (t, k, v) => { t[k] = v; return true; } }) });
+  const doc = { createElement: makeEl, createTextNode: text => ({ text }) };
+  const calls = [];
+  const canvas = { width: 900, height: 360, style: {}, listeners: {}, getContext: () => new Proxy({}, { get: (t, k) => (k in t ? t[k] : (...a) => { calls.push([k, ...a]); }), set: (t, k, v) => { t[k] = v; return true; } }), addEventListener(type, f) { this.listeners[type] = f; }, focus() {} };
+  const defs = structuredClone(instruments);
+  const patcher = createPatcher({ canvas, panel: makeEl('div'), statusEl: { textContent: '' }, doc, nodeTypes: NODE_TYPES, onStructure() {}, onParam() {} });
+  patcher.load({ instruments: defs });
+  patcher.show('kick');
+  patcher.add('eq', { x: 300, y: 120 });
+  patcher.refreshPanel(); calls.length = 0; patcher.draw();
+  assert.ok(calls.some(c => c[0] === 'fillText' && /eq1 response/.test(c[1])), 'the response box is drawn for a selected equaliser');
+  assert.ok(calls.filter(c => c[0] === 'arc').length >= 5, 'one dot per band');
+}
+
 console.log('smoke test passed');

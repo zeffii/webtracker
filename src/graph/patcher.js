@@ -473,6 +473,82 @@ export function createPatcher({ canvas, panel, exposedPanel = null, onEscape = (
     ctx.restore();
   }
 
+  // The frequency response of an equaliser-like node: the sum of its bands as a filled curve, each band's own curve
+  // thin in its colour, a dot per band (numbered), a 20 Hz to 20 kHz log axis and a +-18 dB scale.
+  const RESP_W = 320, RESP_H = 190, RESP_DB = 18, F_LO = 20, F_HI = 20000;
+  function drawResponse(node, type, box, ink) {
+    const value = name => node.params?.[name] ?? type.params.find(p => p.name === name)?.def ?? 0;
+    const bands = type.curves(value, 48000);
+    const x0 = Math.min(Math.max(4, box.x + box.w / 2 - RESP_W / 2), Math.max(4, W - RESP_W - 4));
+    const below = box.y + box.h + 16;
+    const y0 = below + RESP_H <= H - 4 ? below : Math.max(4, box.y - RESP_H - 22);
+    const px = x0 + 30, pw = RESP_W - 42, py = y0 + 20, ph = RESP_H - 44;
+    const xf = f => px + (Math.log(f / F_LO) / Math.log(F_HI / F_LO)) * pw;
+    const yd = db => py + ph / 2 - (Math.max(-RESP_DB, Math.min(RESP_DB, db)) / RESP_DB) * (ph / 2);
+    ctx.save();
+    ctx.fillStyle = (typeof getComputedStyle === 'function' && getComputedStyle(canvas).backgroundColor) || '#d9dae0';
+    ctx.fillRect(x0, y0, RESP_W, RESP_H);
+    ctx.fillStyle = 'rgba(128, 128, 128, 0.16)';
+    ctx.fillRect(x0, y0, RESP_W, RESP_H);
+    ctx.strokeStyle = 'rgba(128, 128, 128, 0.7)';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(x0 + 0.5, y0 + 0.5, RESP_W - 1, RESP_H - 1);
+    ctx.fillStyle = ink;
+    ctx.font = '11px ui-monospace, Consolas, monospace';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+    ctx.fillText(`${node.id} response`, x0 + 8, y0 + 4);
+    // the grid: decades and octave-ish marks across, 6 dB steps down
+    ctx.strokeStyle = ink;
+    ctx.lineWidth = 1;
+    for (const f of [50, 100, 200, 500, 1000, 2000, 5000, 10000]) {
+      ctx.globalAlpha = f === 100 || f === 1000 || f === 10000 ? 0.28 : 0.12;
+      ctx.beginPath(); ctx.moveTo(Math.round(xf(f)) + 0.5, py); ctx.lineTo(Math.round(xf(f)) + 0.5, py + ph); ctx.stroke();
+    }
+    for (const db of [-18, -12, -6, 0, 6, 12, 18]) {
+      ctx.globalAlpha = db === 0 ? 0.45 : 0.12;
+      ctx.beginPath(); ctx.moveTo(px, Math.round(yd(db)) + 0.5); ctx.lineTo(px + pw, Math.round(yd(db)) + 0.5); ctx.stroke();
+    }
+    ctx.globalAlpha = 0.75;
+    ctx.textBaseline = 'middle';
+    for (const db of [-12, 0, 12]) ctx.fillText(`${db > 0 ? '+' : ''}${db}`, x0 + 5, yd(db));
+    ctx.textBaseline = 'top';
+    for (const [f, name] of [[100, '100'], [1000, '1k'], [10000, '10k']]) ctx.fillText(name, xf(f) - 6, py + ph + 4);
+    ctx.globalAlpha = 1;
+    const steps = Math.floor(pw), freq = i => F_LO * Math.pow(F_HI / F_LO, i / steps);
+    bands.forEach((b, bi) => {
+      if (b.off) return;
+      ctx.beginPath();
+      ctx.strokeStyle = GROUP_COLOUR[bi % GROUP_COLOUR.length];
+      ctx.globalAlpha = 0.6;
+      ctx.lineWidth = 1;
+      for (let i = 0; i <= steps; i += 2) { const x = px + (i / steps) * pw, y = yd(b.db(freq(i))); if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y); }
+      ctx.stroke();
+    });
+    ctx.globalAlpha = 1;
+    const total = i => bands.reduce((t, b) => (b.off ? t : t + b.db(freq(i))), 0);
+    ctx.beginPath();   // the combined response: filled down to the 0 dB line, then the line itself
+    ctx.moveTo(px, yd(0));
+    for (let i = 0; i <= steps; i++) ctx.lineTo(px + (i / steps) * pw, yd(total(i)));
+    ctx.lineTo(px + pw, yd(0));
+    ctx.closePath();
+    ctx.globalAlpha = 0.18; ctx.fillStyle = ink; ctx.fill(); ctx.globalAlpha = 1;
+    ctx.beginPath();
+    for (let i = 0; i <= steps; i++) { const x = px + (i / steps) * pw, y = yd(total(i)); if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y); }
+    ctx.strokeStyle = ink; ctx.lineWidth = 2.25; ctx.stroke();
+    bands.forEach((b, bi) => {   // a dot for each band, at its frequency and its gain on the combined curve
+      if (b.cut) return;
+      const x = xf(b.f), y = yd(bands.reduce((t, c) => (c.off ? t : t + c.db(b.f)), 0));   // on the combined curve
+      ctx.fillStyle = GROUP_COLOUR[bi % GROUP_COLOUR.length];
+      ctx.beginPath(); ctx.arc(x, y, 4.5, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = ink;
+      ctx.fillText(String(b.band), x - 3, y - 17);
+    });
+    ctx.fillStyle = ink;
+    ctx.fillText('dB', x0 + 5, y0 + RESP_H - 18);
+    ctx.restore();
+  }
+
   function draw() {
     if (!dirty) return;
     dirty = false;
@@ -565,6 +641,7 @@ export function createPatcher({ canvas, panel, exposedPanel = null, onEscape = (
     }
     const chosenNode = selected?.kind === 'node' ? desc().nodes.find(n => n.id === selected.id) : null;
     const chosenType = chosenNode && nodeTypes[chosenNode.type];
+    if (chosenType?.curves) drawResponse(chosenNode, chosenType, { x: chosenNode.x, y: chosenNode.y, ...nodeBox(chosenType) }, ink);
     if (chosenType?.adsr?.length) drawEnvelopes(chosenNode, chosenType, { x: chosenNode.x, y: chosenNode.y, ...nodeBox(chosenType) }, ink);
   }
 
