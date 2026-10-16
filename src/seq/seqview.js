@@ -170,12 +170,18 @@ export function createSequenceView({ el, statusEl, listEl, transport, onToggle, 
           if (pl.more) text = `${text.slice(0, COLW - 1)}+`;
           swatch = colourOf(pat);
         }
-        if (flip) text = `${text.slice(0, COLW - 1)}${muted ? 'm' : 'u'}`;   // m: muted from here, u: plays again
+        // a mute marker is a labelled cell: <mute> from here down, <play> where the lane comes back. The label sits at
+        // the right when a pattern starts in the row, so the pattern's name still shows.
+        const label = flip ? (muted ? '<mute>' : '<play>') : '';
+        const room = COLW - label.length - 1;   // the cell's last character is hidden by the text's left padding
+        if (flip) text = `${(pl && pl.start >= t ? text.slice(0, room - 1).trimEnd() : '').padEnd(room)}${label} `;
         const classes = ['cell', level === 2 ? 'silenced' : muted && 'muted', isCur && 'cur'].filter(Boolean).join(' ');
         // The cell under the cursor is drawn in the selection colour, which hides the pattern's own;
         // a small swatch of it is drawn on top so a colour change can be seen.
         let inner = esc(text);
-        if (isCur && swatch) {
+        if (flip) {
+          inner = `${esc(text.slice(0, room))}<span class="mk ${muted ? 'mm' : 'mu'}">${esc(label)}</span> `;
+        } else if (isCur && swatch) {
           const at = COLW - 2, style = swatch.style ? ` style="background:${swatch.style}"` : '';
           inner = `${esc(text.slice(0, at))}<span class="sw ${swatch.cls}"${style}> </span>${esc(text.slice(at + 1))}`;
         }

@@ -2879,7 +2879,7 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     assert.deepEqual(lanes[0].mutes, [0, 16]);
     assert.equal(lanes[0].mask[15], 1); assert.equal(lanes[0].mask[16], 0);
     view.draw();
-    assert.ok(el.innerHTML.includes('muted') && /m<\/span>/.test(el.innerHTML) && /u<\/span>/.test(el.innerHTML), 'the view marks the flips');
+    assert.ok(el.innerHTML.includes('muted') && el.innerHTML.includes('&lt;mute&gt;</span>') && el.innerHTML.includes('&lt;play&gt;</span>'), 'the view marks the flips with <mute> and <play> cells');
     onKey({ key: 'z', ctrlKey: true, preventDefault() {} });
     assert.deepEqual(lanes[0].mutes, [0], 'undo takes the last flip away');
     assert.equal(lanes[0].mask[20], 1);
