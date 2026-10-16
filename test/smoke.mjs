@@ -16,7 +16,7 @@ import { createSequenceView } from '../src/seq/seqview.js';
 import { createEditor } from '../src/seq/editor.js';
 import * as ops from '../src/seq/edit.js';
 import * as gedit from '../src/graph/edit.js';
-import { createPatcher, hitTest, nodeBox, portPos, portKind } from '../src/graph/patcher.js';
+import { createPatcher, hitTest, nodeBox, portPos, portKind, hexOf } from '../src/graph/patcher.js';
 import { rebuildInstrumentLanes } from '../src/seq/lane.js';
 import * as pops from '../src/project/ops.js';
 import { createSampleScreen } from '../src/project/samplescreen.js';
@@ -1032,6 +1032,17 @@ const hit = 'C-2 .. .. ..';
   assert.equal(reset.selects[0].value, '4', 'a whole-number parameter defaults to 1hex');
   reset.selects[0].value = '16'; reset.selects[0].listeners.change();
   assert.equal(defs.kick.exposed.find(e => e.param === 'reset').bits, 16);
+  {
+    const hexSpan = row => { let h; walk(row, e => { if (e.className === 'hexv') h = e; }); return h; };
+    assert.equal(hexSpan(rowFor('reset')).textContent, '0001', 'an exposed parameter shows its pattern value in hex, at the column width (reset is 1, 4hex)');
+    assert.equal(hexSpan(rowFor('freq')).textContent, '', 'a parameter that is not exposed shows none');
+    const spec = { min: 20, max: 18000 };
+    assert.equal(hexOf(spec, { bits: 8 }, 20), '00');
+    assert.equal(hexOf(spec, { bits: 8 }, 18000), 'FF');
+    assert.equal(hexOf(spec, { bits: 8, scale: 'log' }, Math.sqrt(20 * 18000)), '80', 'log columns put the geometric middle at half');
+    assert.equal(hexOf({ min: 0, max: 255, int: true }, { bits: 4 }, 300), 'F', 'whole numbers are the number itself, clamped to the column');
+    assert.equal(hexOf({ min: -1, max: 1 }, { bits: 16 }, 0), '8000');
+  }
   reset.selects[0].value = '8'; reset.selects[0].listeners.change();
   assert.equal(defs.kick.exposed.find(e => e.param === 'reset').bits, undefined, '2hex is the default and is stored as no bits');
   assert.equal(structures.length, 3);

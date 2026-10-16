@@ -16,6 +16,19 @@ import { createWavetableEditor } from './wavetableeditor.js';
 // Geometry. A node's shape comes from its type: 'box' for processors, 'rounded' for
 // sources and 'circle' for mixing and gain. Ports sit on the left (inputs) and right (outputs).
 export const ROW = 16, PORT_R = 4;
+// The value a pattern cell holds for a parameter's value: what an exposed parameter's column would show, in hex.
+// A whole-number parameter's cell is the number itself (counted from its minimum); the others run across the range.
+export const hexOf = (spec, entry, value) => {
+  const digits = entry.bits === 16 ? 4 : entry.bits === 4 ? 1 : 2, denom = 16 ** digits - 1;
+  let n;
+  if (spec.int) n = value - spec.min;
+  else {
+    const x = entry.scale === 'log' && spec.min > 0 ? Math.log(value / spec.min) / Math.log(spec.max / spec.min) : (value - spec.min) / (spec.max - spec.min);
+    n = x * denom;
+  }
+  return Math.min(denom, Math.max(0, Math.round(n))).toString(16).toUpperCase().padStart(digits, '0');
+};
+
 export const MIN_HEIGHT = 160, MAX_HEIGHT = 1600;   // the graph area, in pixels
 const SHAPE_W = { box: 112, rounded: 100, speaker: 100 };
 export const nodeBox = (def, node) => {
@@ -202,11 +215,18 @@ export function createPatcher({ canvas, panel, exposedPanel = null, onEscape = (
     const rows = type.params.map(spec => {
       const value = node.params?.[spec.name] ?? spec.def;
       const out = el('output', { textContent: fmt(value) });
+      // the hex a pattern cell would hold for the slider's value, shown only while the parameter is exposed
+      const entry = () => def().exposed.find(e => e.node === node.id && e.param === spec.name);
+      const hex = el('span', { className: 'hexv', title: 'The pattern cell value for this setting' });
+      let shown = value;
+      const showHex = () => { const e = entry(); hex.textContent = e ? hexOf(spec, e, shown) : ''; };
+      showHex();
       const slider = el('input', { type: 'range', min: 0, max: 1000, step: spec.int ? 1000 / (spec.max - spec.min) : 1, value: Math.round(toPos(spec, value) * 1000) });
       rectSlider(slider, () => {
         const v = toValue(spec, Number(slider.value) / 1000);
         setParam(desc(), node.id, spec.name, v);
         out.textContent = fmt(v);
+        shown = v; showHex();
         onParam(instId, node.id, spec.name, v);
         dirty = true;   // the envelope drawn beside the node follows
         if (spec.name === 'position' || spec.name === 'mix' || spec.name === 'source') tableEditor?.refresh();
@@ -222,10 +242,12 @@ export function createPatcher({ canvas, panel, exposedPanel = null, onEscape = (
         setExposed(def(), nodeTypes, node.id, spec.name, exposed.checked);
         width.disabled = !exposed.checked;
         width.value = String(def().exposed.find(e => e.node === node.id && e.param === spec.name)?.bits ?? 8);
+        showHex();
         structure();
       });
       width.addEventListener('change', () => {
         setBits(def(), node.id, spec.name, Number(width.value));
+        showHex();
         structure();
       });
       // a port of its own: a wire from a ctrl node into the node then drives this parameter
@@ -237,10 +259,10 @@ export function createPatcher({ canvas, panel, exposedPanel = null, onEscape = (
       });
       exposed.title = `Make ${spec.name} a pattern column`; exposed.ariaLabel = `expose ${spec.name}`;
       port.title = `Give ${spec.name} an input on the node, to wire a control node into`; port.ariaLabel = `port ${spec.name}`;
-      return el('div', { className: 'prow nrow' }, el('span', { textContent: spec.name }), slider, out, exposed, width, port);
+      return el('div', { className: 'prow nrow' }, el('span', { textContent: spec.name }), hex, slider, out, exposed, width, port);
     });
     // one set of column labels above the rows, instead of a label on every row
-    const head = el('div', { className: 'prow nrow phead' }, el('span'), el('span'), el('span'),
+    const head = el('div', { className: 'prow nrow phead' }, el('span'), el('span'), el('span'), el('span'),
       el('span', { textContent: 'expose', title: 'Make the parameter a column in the pattern' }),
       el('span', { textContent: 'width', title: 'How many hex digits the pattern column takes' }),
       el('span', { textContent: 'port', title: 'Give the parameter an input on the node, to wire a control node into' }));
