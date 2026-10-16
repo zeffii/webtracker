@@ -258,7 +258,7 @@ export function createPatcher({ canvas, panel, exposedPanel = null, onEscape = (
       });
       items.splice(1, 0, editor.el);
     }
-    if (node.type === 'sampler') {   // the samples this node plays: a list, picked from a pattern by the Smp column (00 is the first)
+    if (nodeTypes[node.type]?.samples) {   // the samples this node plays: a list, picked from a pattern by the Smp column (00 is the first)
       const cur = def().samples?.[node.id];
       const list = Array.isArray(cur) ? [...cur] : cur === undefined ? [] : [cur];
       const save = next => {
@@ -588,7 +588,7 @@ export function createPatcher({ canvas, panel, exposedPanel = null, onEscape = (
         const n = desc().nodes.length;
         const pos = at ? { x: Math.max(0, at.x), y: Math.max(14, at.y) } : { x: 20 + (n % 5) * 150, y: 30 + Math.floor(n / 5) * 80 };
         const id = addNode(desc(), nodeTypes, type, pos);
-        if (type === 'sampler' && getSampleIds().length) def().samples = { ...def().samples, [id]: getSampleIds()[0] };
+        if (nodeTypes[type]?.samples && getSampleIds().length) def().samples = { ...def().samples, [id]: getSampleIds()[0] };
         selected = { kind: 'node', id };
         say('');
         renderPanel();

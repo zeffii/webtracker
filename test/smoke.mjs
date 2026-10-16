@@ -3710,4 +3710,60 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   assert.ok(!calls.some(c => c[0] === 'fillText' && / envelope$/.test(c[1])), 'other nodes show none');
 }
 
+// 109. Granular synth: grains read the sample at `position`, follow the note, spread in stereo and stop after release.
+{
+  const def = NODE_TYPES.granular;
+  const len = sr;   // one second: silent first half, a 500 Hz tone in the second half
+  const wav = Float32Array.from({ length: len }, (_, i) => (i < len / 2 ? 0 : 0.8 * Math.sin(2 * Math.PI * 500 * i / sr)));
+  const make = values => {
+    const node = def.create({ sampleRate: sr });
+    node.message({ type: 'sample', slot: 0, data: wav, rate: sr });
+    const params = Float32Array.from(def.params.map(p => values[p.name] ?? p.def)), slots = Int32Array.from(def.params.map((_, i) => i));
+    return { node, params, slots };
+  };
+  const render = (values, frames, notes = [[0, 60]], off = null) => {
+    const { node, params, slots } = make(values);
+    const L = new Float32Array(frames), R = new Float32Array(frames);
+    for (let at = 0; at < frames; at += 128) {
+      for (const [when, nt] of notes) if (when === at) node.note({ type: 'noteOn', note: nt, vel: 1 });
+      if (off !== null && off === at) node.note({ type: 'noteOff', note: 60 });
+      node.process([], [[L.subarray(at, at + 128), R.subarray(at, at + 128)]], 128, params, slots);
+    }
+    return [L, R];
+  };
+  const rms = (x, a, b) => { let t = 0; for (let i = a; i < b; i++) t += x[i] * x[i]; return Math.sqrt(t / (b - a)); };
+  const crossings = (x, a, b) => { let c = 0; for (let i = a + 1; i < b; i++) if (x[i - 1] < 0 && x[i] >= 0) c++; return c; };
+  const { node: idle, params: ip, slots: is } = make({});
+  const z = new Float32Array(128), z2 = new Float32Array(128);
+  idle.process([], [[z, z2]], 128, ip, is);
+  assert.ok(z.every(v => v === 0), 'silent before a note');
+  const quiet = render({ position: 0.1, spray: 0, size: 30, density: 60 }, 16000);
+  const loud = render({ position: 0.7, spray: 0, size: 30, density: 60 }, 16000);
+  assert.ok(rms(quiet[0], 4000, 16000) < 0.001, 'position 0.1 reads the silent half');
+  assert.ok(rms(loud[0], 4000, 16000) > 0.02, 'position 0.7 reads the tone');
+  assert.ok(loud[0].every(Number.isFinite) && loud[1].every(Number.isFinite));
+  const centre = render({ position: 0.7, spray: 0, spread: 0, size: 30, density: 60 }, 8000);
+  assert.ok(centre[0].every((v, i) => Math.abs(v - centre[1][i]) < 1e-6), 'no spread: left equals right');
+  const wide = render({ position: 0.7, spray: 0, spread: 1, size: 30, density: 60 }, 16000);
+  assert.ok(Math.abs(rms(wide[0], 4000, 16000) - rms(wide[1], 4000, 16000)) >= 0 && wide[0].some((v, i) => Math.abs(v - wide[1][i]) > 1e-4), 'spread scatters grains across the field');
+  // the note sets the grain pitch: an octave up doubles the zero crossings (one long grain train, no spray)
+  const lo = render({ position: 0.6, spray: 0, spread: 0, size: 400, density: 10, scan: 0 }, 22000, [[0, 60]]);
+  const hi = render({ position: 0.6, spray: 0, spread: 0, size: 400, density: 10, scan: 0 }, 22000, [[0, 72]]);
+  const cl = crossings(lo[0], 8000, 20000), ch = crossings(hi[0], 8000, 20000);
+  assert.ok(ch > cl * 1.7 && ch < cl * 2.3, `an octave up has twice the crossings (${cl} vs ${ch})`);
+  const flat = render({ position: 0.6, spray: 0, spread: 0, size: 400, density: 10, keytrack: 0 }, 22000, [[0, 72]]);
+  assert.ok(Math.abs(crossings(flat[0], 8000, 20000) - cl) <= 3, 'keytrack off ignores the note');
+  // scan moves the read position through the sample: starting in the silent half it reaches the tone
+  const scanned = render({ position: 0.2, spray: 0, size: 30, density: 60, scan: 0.5 }, 48000);
+  assert.ok(rms(scanned[0], 2000, 12000) < 0.001 && rms(scanned[0], 36000, 48000) > 0.02, 'scan carries the position into the tone');
+  // release ends the cloud
+  const ended = render({ position: 0.7, spray: 0, size: 30, density: 60, release: 20 }, 24000, [[0, 60]], 8192);
+  assert.ok(rms(ended[0], 4000, 8000) > 0.02 && rms(ended[0], 16000, 24000) === 0, 'after the release it is silent');
+  // the synth kind lists the project's first sample
+  const proj = { samples: { drum: { rate: sr, data: wav } }, instruments: {} };
+  const id = pops.addSynthInstrument(proj, 'cloud', 'granular');
+  assert.deepEqual(proj.instruments[id].samples, { synth: 'drum' });
+  assert.equal(def.samples, true);
+}
+
 console.log('smoke test passed');

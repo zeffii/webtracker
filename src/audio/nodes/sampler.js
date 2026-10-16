@@ -30,6 +30,7 @@ export default {
   inputs: [],
   outputs: ['out'],
   category: 'Sources',
+  samples: true,     // plays the samples listed for the node
   generator: true,   // makes sound from notes, so the instrument screen can play it from the keyboard
   shape: 'rounded',
   glyph: 'sample',

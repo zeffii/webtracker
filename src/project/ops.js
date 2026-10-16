@@ -150,6 +150,8 @@ export function addSynthInstrument(project, name, kind) {
   if (!synthKinds[kind]) throw new Error(`Unknown synth kind: ${kind}`);
   const id = uniqueId(new Set(Object.keys(project.instruments)), idFromName(name || kind));
   project.instruments[id] = structuredClone(synthKinds[kind].make());
+  const first = Object.keys(project.samples)[0];
+  if (synthKinds[kind].needsSample && first) project.instruments[id].samples = { synth: first };
   return id;
 }
 

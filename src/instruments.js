@@ -139,6 +139,33 @@ export const synthKinds = {
       ],
     }),
   },
+  granular: {
+    label: 'Granular synth',
+    needsSample: true,   // plays the project's samples: the first one is listed when it is added
+    make: () => ({
+      graph: { nodes: [{ id: 'synth', type: 'granular' }, { id: 'poly', type: 'voices' }, { id: 'out', type: 'out', params: { gain: 0.5 } }], connections: [['synth.out', 'poly.in'], ['poly.out', 'out.in']], voices: 4 },
+      noteColumns: 2,
+      exposed: [
+        { node: 'synth', param: 'position', label: 'Pos' },
+        { node: 'synth', param: 'size', label: 'Siz' },
+        { node: 'synth', param: 'density', label: 'Den' },
+        { node: 'synth', param: 'spray', label: 'Spr' },
+        { node: 'synth', param: 'sample', label: 'Smp' },
+      ],
+      commands: [
+        { id: 0x01, node: 'synth', param: 'position' },
+        { id: 0x02, node: 'synth', param: 'size' },
+        { id: 0x03, node: 'synth', param: 'density' },
+        { id: 0x04, node: 'synth', param: 'spray' },
+        { id: 0x05, node: 'synth', param: 'scan' },
+        { id: 0x06, node: 'synth', param: 'pitchRand' },
+        { id: 0x07, node: 'synth', param: 'reverse' },
+        { id: 0x08, node: 'synth', param: 'spread' },
+        { id: 0x09, node: 'synth', param: 'shape' },
+        { id: 0x0A, node: 'synth', param: 'tune' },
+      ],
+    }),
+  },
   additive: {
     label: 'Additive synth',
     make: () => ({

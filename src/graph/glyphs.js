@@ -123,6 +123,7 @@ export const GLYPHS = {
     const x = f => cx - w / 2 + f * w, y = f => cy + h / 2 - f * h;
     line(ctx, [[x(0), y(0.1)], [x(0.3), y(0.95)], [x(0.3), y(0.1)], [x(0.6), y(0.95)], [x(0.6), y(0.1)], [x(1), y(0.95)]]);
   },
+  granular: (ctx, cx, cy, w, h) => { for (let i = 0; i < 7; i++) { const x = cx + (i - 3) * w * 0.13, a = h * (0.16 + 0.1 * ((i * 5) % 4)); ctx.beginPath(); ctx.ellipse(x, cy + ((i * 3) % 3 - 1) * h * 0.12, w * 0.05, a, 0, 0, Math.PI * 2); ctx.stroke(); } },
   fmsynth: (ctx, cx, cy, w, h) => curve(ctx, cx, cy, w, h, t => Math.sin(t * Math.PI * 4 + 2.2 * Math.sin(t * Math.PI * 10)) * 0.85, 48),   // a sine bent by another
   addsynth: (ctx, cx, cy, w, h) => {   // a row of harmonics falling away
     ctx.beginPath();
