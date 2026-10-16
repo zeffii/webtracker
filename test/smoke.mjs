@@ -4117,3 +4117,53 @@ console.log('smoke test passed');
   const f45 = 440 * Math.pow(2, -24 / 12);
   assert.ok(mag(wide, 2 * f45) / mag(wide, f45) < 0.4 * mag(edge, 2 * f45) / mag(edge, f45), 'plucking at the middle thins out the second harmonic');
 }
+
+// 116. Envelope follower: level to control signal, attack and release, window, peak and rms, invert, and into a port.
+{
+  const def = NODE_TYPES.follower;
+  const rig = values => {
+    const params = Float32Array.from(def.params.map(p => values[p.name] ?? p.def)), slots = Int32Array.from(def.params.map((_, i) => i));
+    const node = def.create({ sampleRate: sr });
+    return (x, from = 0, n = 128) => {
+      const l = Float32Array.from({ length: n }, (_, i) => x(from + i)), out = new Float32Array(n);
+      node.process([[l, l]], [out], n, params, slots);
+      return out[n - 1];
+    };
+  };
+  const sine = a => i => a * Math.sin(2 * Math.PI * 440 * i / sr);
+  const settle = (values, amp, blocks = 80) => { const run = rig(values); let v = 0; for (let b = 0; b < blocks; b++) v = run(sine(amp), b * 128); return v; };
+  const quiet = settle({}, 0.001), mid = settle({}, 0.1), loud = settle({}, 1);
+  assert.ok(quiet < mid && mid < loud && loud > 0.95 && quiet < 0.3, `louder input, higher output (${quiet.toFixed(2)} ${mid.toFixed(2)} ${loud.toFixed(2)})`);
+  assert.ok(Math.abs(mid - (1 - 20 / 48)) < 0.05, `0.1 is -20 dB, a bit over half the 48 dB window (${mid.toFixed(2)})`);
+  assert.ok(settle({}, 0.5) < settle({ gain: 12 }, 0.5), 'gain pushes the level up the window');
+  assert.ok(settle({ floor: -20 }, 0.05) < settle({ floor: -60 }, 0.05), 'a higher floor needs more level to start');
+  assert.ok(Math.abs(settle({ invert: 1 }, 0.1) - (1 - mid)) < 0.01, 'invert flips it');
+  const peak = settle({ mode: 0 }, 0.3), rms = settle({ mode: 1 }, 0.3);
+  assert.ok(Math.abs(peak - rms) < 0.1 && peak !== rms, 'peak and rms read a sine alike, but not identically');
+  // attack and release: a burst, then silence
+  const timing = values => {
+    const run = rig(values), at = []; let b = 0;
+    for (; b < 40; b++) at.push(run(sine(0.8), b * 128));
+    for (let k = 0; k < 80; k++, b++) at.push(run(() => 0, b * 128));
+    return at;
+  };
+  const fast = timing({ attack: 1, release: 20 }), slow = timing({ attack: 40, release: 1000 });
+  assert.ok(fast[1] > slow[1] + 0.2, 'a short attack rises faster');
+  assert.ok(fast[70] < slow[70] - 0.2, 'a long release falls slower');
+  assert.ok(slow.every(v => v >= 0 && v <= 1) && fast.every(Number.isFinite));
+  // wired into a filter's cutoff port: the loud input opens it
+  const desc = {
+    nodes: [{ id: 'osc', type: 'osc' }, { id: 'f', type: 'follower', params: { attack: 1, release: 50 } }, { id: 'filt', type: 'filter', params: { cutoff: 500 }, ports: ['cutoff'] }, { id: 'out', type: 'out' }],
+    connections: [['osc.out', 'f.in'], ['osc.out', 'filt.in'], ['f.out', 'filt.@cutoff'], ['filt.out', 'out.in']],
+  };
+  const registry = new ParamRegistry(), rt = new GraphRuntime({ sampleRate: sr, params: registry.values });
+  rt.load(compile(desc, { instrument: 'x', nodeTypes: NODE_TYPES, registry }));
+  const l = new Float32Array(block), r = new Float32Array(block);
+  rt.note('x', { type: 'noteOn', note: 60, vel: 1 });
+  for (let i = 0; i < 60; i++) rt.process(l, r, block);
+  const open = registry.get('x.filt.cutoff');
+  assert.ok(open > 5000, `a loud oscillator drives the cutoff well up (${open.toFixed(0)})`);
+  rt.note('x', { type: 'noteCut' });
+  for (let i = 0; i < 200; i++) rt.process(l, r, block);
+  assert.ok(registry.get('x.filt.cutoff') < open / 3, 'and it comes back down when the sound stops');
+}
