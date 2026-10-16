@@ -4167,3 +4167,45 @@ console.log('smoke test passed');
   for (let i = 0; i < 200; i++) rt.process(l, r, block);
   assert.ok(registry.get('x.filt.cutoff') < open / 3, 'and it comes back down when the sound stops');
 }
+
+// 117. Spectral synth: the sample's harmonics set the timbre, the note sets the pitch.
+{
+  const def = NODE_TYPES.specsynth;
+  const secs = 2, len = Math.floor(sr * secs), f = 220;
+  const data = new Float32Array(len);
+  for (let i = 0; i < len; i++) {
+    const odd = i < len / 2;
+    for (const h of odd ? [1, 3, 5, 7] : [2, 4, 6, 8]) data[i] += Math.sin(2 * Math.PI * f * h * i / sr) / h;
+  }
+  const run = (values, { note = 57, secs: t = 0.6, skip = 0.3 } = {}) => {
+    const params = Float32Array.from(def.params.map(p => values[p.name] ?? p.def)), slots = Int32Array.from(def.params.map((_, i) => i));
+    const node = def.create({ sampleRate: sr, connected: [false], maxBlock: 128 });
+    node.message({ type: 'sample', slot: 0, data, rate: sr });
+    node.note({ type: 'noteOn', note, vel: 1 });
+    const N = Math.floor(sr * t / 128) * 128, L = new Float32Array(N), l = new Float32Array(128), r = new Float32Array(128), zero = new Float32Array(128);
+    for (let at = 0; at < N; at += 128) { node.process([zero], [[l, r]], 128, params, slots); L.set(l, at); }
+    return L.subarray(Math.floor(sr * skip));
+  };
+  const mag = (x, freq) => { let re = 0, im = 0; for (let i = 0; i < x.length; i++) { const w = 0.5 - 0.5 * Math.cos(2 * Math.PI * i / x.length), ph = 2 * Math.PI * freq * i / sr; re += x[i] * w * Math.cos(ph); im += x[i] * w * Math.sin(ph); } return Math.hypot(re, im) / x.length * 4; };
+  const first = run({ position: 0.1, root: 57 }), second = run({ position: 0.9, root: 57 });
+  assert.ok(first.every(Number.isFinite) && Math.max(...first.map(Math.abs)) > 0.02, 'it sounds');
+  assert.ok(mag(first, 660) > 10 * mag(first, 440), `first half has partial 3 but not 2 (${mag(first, 660).toFixed(3)} vs ${mag(first, 440).toFixed(3)})`);
+  assert.ok(mag(second, 440) > 10 * mag(second, 660), 'second half has partial 2 but not 3');
+  // the note sets the pitch: an octave up moves every partial up
+  const up = run({ position: 0.1, root: 57 }, { note: 69 });
+  assert.ok(mag(up, 1320) > 10 * mag(up, 660) && mag(up, 1320) > 10 * mag(up, 880), 'an octave up: partial 3 now sits at 1320 Hz');
+  // contrast sharpens: partials 5 and 7 are weaker than 1 and 3, and fall further with more contrast
+  const flat = run({ position: 0.1, root: 57, contrast: 0.5 }), sharp = run({ position: 0.1, root: 57, contrast: 2.5 });
+  assert.ok(mag(sharp, 1540) / mag(sharp, 220) < 0.5 * mag(flat, 1540) / mag(flat, 220), 'contrast pulls the weak partials down');
+  // scan moves through the sample: starting in the first half, it ends up in the second
+  const scanned = run({ position: 0.1, root: 57, scan: 0.4, blur: 0 }, { secs: 2.2, skip: 0 });
+  const early = scanned.subarray(Math.floor(sr * 0.2), Math.floor(sr * 0.5)), late = scanned.subarray(Math.floor(sr * 1.8), Math.floor(sr * 2.1));
+  assert.ok(mag(early, 660) > 3 * mag(early, 440) && mag(late, 440) > 3 * mag(late, 660), 'scan carries the timbre through the sample');
+  // tilt and partials
+  assert.ok(mag(run({ position: 0.1, root: 57, partials: 1 }), 660) < 0.05 * mag(run({ position: 0.1, root: 57, partials: 1 }), 220), 'partials limits the series');
+  assert.ok(run({ sample: 5 }).every(v => v === 0), 'a slot with no sample is silent');
+  // the instrument kind
+  const proj = { samples: { s1: { rate: sr, data: new Float32Array(10) } }, instruments: {} };
+  const id = pops.addSynthInstrument(proj, 'sp', 'spectral');
+  assert.deepEqual(proj.instruments[id].samples, { synth: 's1' });
+}

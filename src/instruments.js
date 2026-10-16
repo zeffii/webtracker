@@ -190,6 +190,31 @@ export const synthKinds = {
       ],
     }),
   },
+  spectral: {
+    label: 'Spectral synth',
+    needsSample: true,   // takes its timbre from the project's samples: the first one is listed when it is added
+    make: () => ({
+      graph: { nodes: [{ id: 'synth', type: 'specsynth' }, { id: 'poly', type: 'voices' }, { id: 'out', type: 'out', params: { gain: 0.5 } }], connections: [['synth.out', 'poly.in'], ['poly.out', 'out.in']], voices: 6 },
+      noteColumns: 3,
+      exposed: [
+        { node: 'synth', param: 'position', label: 'Pos' },
+        { node: 'synth', param: 'contrast', label: 'Con' },
+        { node: 'synth', param: 'blur', label: 'Blr' },
+        { node: 'synth', param: 'sample', label: 'Smp' },
+      ],
+      commands: [
+        { id: 0x01, node: 'synth', param: 'position' },
+        { id: 0x02, node: 'synth', param: 'scan' },
+        { id: 0x03, node: 'synth', param: 'blur' },
+        { id: 0x04, node: 'synth', param: 'contrast' },
+        { id: 0x05, node: 'synth', param: 'partials' },
+        { id: 0x06, node: 'synth', param: 'tilt' },
+        { id: 0x07, node: 'synth', param: 'evenodd' },
+        { id: 0x08, node: 'synth', param: 'stretch' },
+        { id: 0x09, node: 'synth', param: 'tune' },
+      ],
+    }),
+  },
   string: {
     label: 'Plucked string',
     make: () => ({
