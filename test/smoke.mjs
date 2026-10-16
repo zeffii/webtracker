@@ -3500,4 +3500,46 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   assert.equal(lanes.length, loaded.song.lanes.length);
 }
 
+// 104. Pattern editor: transpose notes, transpose values, interpolate.
+{
+  const registry = new ParamRegistry();
+  for (const [id, def] of Object.entries(instruments)) compile(def.graph, { instrument: id, nodeTypes: NODE_TYPES, registry });
+  const lanes = prepareSong(demoSong, instruments, registry);
+  const editor = createEditor(lanes, 32);
+  let onKey;
+  const view = createTrackerView({ el: { addEventListener: (_, f) => { onKey = f; }, innerHTML: '' }, statusEl: {}, transport: new Int32Array(new SharedArrayBuffer(8)), onToggle() {}, onBack() {} });
+  view.load({ lanes, song: demoSong, editor });
+  const press = (key, extra = {}) => onKey({ key, preventDefault() {}, ...extra });
+  const ctrl = (key, extra = {}) => press(key, { ctrlKey: true, ...extra });
+  const lane = lanes[0], cols = lane.columns;
+  const nc = cols.findIndex(c => c.token === 'note'), vc = cols.findIndex(c => c.token === '2hex');
+  const set = (t, c, token) => editor.setCell(0, t, c, token);
+  // a note and a velocity at three rows, then select the three rows of both columns
+  set(0, nc, 'C-4'); set(1, nc, '...'); set(2, nc, 'E-4'); set(0, vc, '10'); set(1, vc, '..'); set(2, vc, '50');
+  view.goto(0, 0);
+  press('ArrowDown', { shiftKey: true }); press('ArrowDown', { shiftKey: true });
+  for (let i = 0; i < vc - nc; i++) press('ArrowRight', { shiftKey: true });
+  // transpose notes only
+  ctrl('ArrowUp');
+  assert.equal(lane.rows[0][nc], 'C#4'); assert.equal(lane.rows[2][nc], 'F-4'); assert.equal(lane.rows[1][nc], '...', 'blank cells stay blank');
+  assert.equal(lane.rows[0][vc], '10', 'values are not touched by a note transpose');
+  ctrl('ArrowDown', { shiftKey: true });
+  assert.equal(lane.rows[0][nc], 'C#3', 'Shift moves a whole octave');
+  ctrl('ArrowUp', { shiftKey: true });
+  // transpose everything else
+  ctrl('ArrowRight');
+  assert.equal(lane.rows[0][vc], '11'); assert.equal(lane.rows[2][vc], '51'); assert.equal(lane.rows[1][vc], '..');
+  assert.equal(lane.rows[0][nc], 'C#4', 'notes are not touched by a value transpose');
+  ctrl('ArrowLeft', { shiftKey: true });
+  assert.equal(lane.rows[0][vc], '01'); assert.equal(lane.rows[2][vc], '41');
+  ctrl('ArrowLeft', { shiftKey: true });
+  assert.equal(lane.rows[0][vc], '00', 'values stop at their ends');
+  // interpolate: the middle row of both columns gets the midpoint
+  set(0, vc, '10'); set(2, vc, '50'); set(0, nc, 'C-4'); set(2, nc, 'E-4');
+  ctrl('i');
+  assert.equal(lane.rows[1][vc], '30'); assert.equal(lane.rows[1][nc], 'D-4');
+  ctrl('z');
+  assert.equal(lane.rows[1][vc], '..', 'the interpolation is one undo step');
+}
+
 console.log('smoke test passed');

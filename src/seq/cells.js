@@ -42,6 +42,12 @@ export function encodeCell(token, kind) {
   throw new Error(`unknown cell kind "${kind}"`);
 }
 
+// The semitone count above C-0 of a note token such as "C#4", or null for anything else (a blank, note off, note cut).
+export function noteSemitones(token) {
+  const i = NAMES.indexOf(token?.slice(0, 2)), octave = Number(token?.[2]);
+  return i < 0 || token.length !== 3 || !Number.isInteger(octave) ? null : octave * 12 + i;
+}
+
 // A note token from an absolute semitone count above C-0. Throws if out of range.
 export function noteToken(semitones) {
   const token = `${NAMES[semitones % 12]}${Math.floor(semitones / 12)}`;

@@ -1,4 +1,4 @@
-import { KINDS, encodeCell, noteToken } from './cells.js';
+import { KINDS, encodeCell, noteSemitones, noteToken } from './cells.js';
 import { esc } from './html.js';
 
 import { LOWER, UPPER } from './piano.js';
@@ -34,6 +34,7 @@ export function createTrackerView({ el, statusEl, transport, onToggle, onBack, o
   let sel = null;          // { lane, tick, col }: the corner opposite the cursor, while a rectangle is selected
   let clipboard = null;    // rows of { token, cell } from the last copy
   let top = 0;             // the first tick on screen, as last drawn
+  let shownAt = '';        // where the cursor was when the view last scrolled sideways to follow it
   let rowCount = ROWS.normal;   // how many rows are shown; the drag bar under the view changes it
 
   // The whole view is measured in characters and lines of its monospace font, so its size is the font size.
@@ -155,6 +156,54 @@ export function createTrackerView({ el, statusEl, transport, onToggle, onBack, o
     sel = null;
   };
 
+  // Transposing the selection (or the cell under the cursor). Notes move by semitones (Shift: octaves); every other
+  // value moves by one (Shift: a bigger step, one digit up), stopping at its ends. A command's id is left alone.
+  // Blank cells stay blank.
+  const STEP = { '1hex': [1, 1], '2hex': [1, 16], '4hex': [1, 256], cmd: [1, 256] };
+  const transpose = (notes, dir, big) => {
+    const r = rect(), lane = lanes[r.lane], items = [];
+    let skipped = 0;
+    for (let t = r.t0; t <= r.t1; t++) {
+      for (let c = r.c0; c <= r.c1; c++) {
+        const kind = lane.columns[c].token, token = lane.rows[t][c];
+        if (isBlank(token)) continue;
+        if (notes) {
+          const s = kind === 'note' ? noteSemitones(token) : null;
+          if (s === null) continue;
+          try { if (s + dir * (big ? 12 : 1) < 0) throw new Error('low'); items.push({ tick: t, col: c, token: noteToken(s + dir * (big ? 12 : 1)) }); } catch { skipped++; }
+        } else if (kind !== 'note') {
+          const head = kind === 'cmd' ? token.slice(0, 2) : '', digits = KINDS[kind].width - head.length;
+          const v = parseInt(token.slice(head.length), 16), max = 16 ** digits - 1;
+          const next = clamp(v + dir * STEP[kind][big ? 1 : 0], 0, max);
+          if (next !== v) items.push({ tick: t, col: c, token: head + next.toString(16).toUpperCase().padStart(digits, '0') });
+        }
+      }
+    }
+    const changed = items.length && editor.setCells(r.lane, items, notes ? 'transpose notes' : 'transpose values');
+    message = changed ? `${notes ? 'Transposed' : 'Moved'} ${items.length} ${notes ? 'notes' : 'values'}${skipped ? `, ${skipped} out of range` : ''}.`
+      : skipped ? 'Out of range.' : `No ${notes ? 'notes' : 'values'} to change (is there a pattern here?).`;
+  };
+
+  // Fills the rows between the first and last row of the selection with a straight line from one end to the other,
+  // column by column. Notes, 2hex and 4hex columns take part; command and 1hex columns are left alone, and so is
+  // a column whose first or last cell is empty (or, for notes, is not a note).
+  const interpolate = () => {
+    const r = rect(), lane = lanes[r.lane], items = [];
+    if (r.t1 - r.t0 < 2) { message = 'Select at least three rows to interpolate between.'; return; }
+    for (let c = r.c0; c <= r.c1; c++) {
+      const kind = lane.columns[c].token, a = lane.rows[r.t0][c], b = lane.rows[r.t1][c];
+      if (kind === 'cmd' || kind === '1hex' || isBlank(a) || isBlank(b)) continue;
+      const isN = kind === 'note', va = isN ? noteSemitones(a) : parseInt(a, 16), vb = isN ? noteSemitones(b) : parseInt(b, 16);
+      if (va === null || vb === null || Number.isNaN(va) || Number.isNaN(vb)) continue;
+      for (let t = r.t0 + 1; t < r.t1; t++) {
+        const v = Math.round(va + ((vb - va) * (t - r.t0)) / (r.t1 - r.t0));
+        items.push({ tick: t, col: c, token: isN ? noteToken(v) : v.toString(16).toUpperCase().padStart(KINDS[kind].width, '0') });
+      }
+    }
+    const changed = items.length && editor.setCells(r.lane, items, 'interpolate');
+    message = changed ? `Interpolated ${items.length} cells.` : 'Nothing to interpolate: each column needs a value at both ends (command and 1hex columns are skipped).';
+  };
+
   const write = token => {
     if (editor.setCell(cur.lane, cur.tick, cur.col, token)) { message = ''; return true; }
     message = 'No pattern here. Press Enter to insert one.';
@@ -255,6 +304,9 @@ export function createTrackerView({ el, statusEl, transport, onToggle, onBack, o
         setSize(key === '0' ? SIZES.normal : fontPx + (key === '-' || key === '_' ? -1 : 1));
         return;
       }
+      if (key === 'arrowup' || key === 'arrowdown') { transpose(true, key === 'arrowup' ? 1 : -1, e.shiftKey); e.preventDefault(); return; }
+      if (key === 'arrowleft' || key === 'arrowright') { transpose(false, key === 'arrowright' ? 1 : -1, e.shiftKey); e.preventDefault(); return; }
+      if (key === 'i') { interpolate(); e.preventDefault(); return; }
       if (key === 'z' || key === 'y') {
         const redo = key === 'y' || e.shiftKey;
         const label = redo ? editor.redo() : editor.undo();
@@ -380,6 +432,18 @@ export function createTrackerView({ el, statusEl, transport, onToggle, onBack, o
     }
     while (lines.length < 2 + rowCount) lines.push('');   // always rowCount rows tall, so the drag bar works on a short song
     el.innerHTML = lines.join('\n');
+    // When the cursor has moved, scroll sideways just far enough to keep it in view, clear of the sticky tick numbers.
+    const where = `${cur.lane}:${cur.col}:${cur.ch}`;
+    if (where !== shownAt && el.querySelector) {
+      shownAt = where;
+      const caret = el.querySelector('.cur'), gutter = el.querySelector('.g');
+      if (caret && el.scrollWidth > el.clientWidth) {
+        const box = el.getBoundingClientRect(), c = caret.getBoundingClientRect(), pad = c.width * 3;
+        const left = box.left + (gutter ? gutter.getBoundingClientRect().width : 0) + pad;
+        if (c.left < left) el.scrollLeft -= left - c.left;
+        else if (c.right + pad > box.right) el.scrollLeft += c.right + pad - box.right;
+      }
+    }
     statusEl.textContent = [
       lanes[cur.lane].id, `row ${cur.tick}`, patternName(), column().label, `char ${cur.ch + 1}/${cellWidth()}`, preview ? 'preview on' : '',
       sel ? `selected ${size(rect())}` : '', `octave ${octave}`, message,
