@@ -3243,9 +3243,9 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   assert.equal(view.setRows(10), 10); assert.equal(el.innerHTML.split('\n').length, 2 + 10);
   // the window holds still while the cursor moves inside it
   view.setRows(8); view.goto(0, 0); view.draw();
-  const first = el.innerHTML.split('\n')[2].slice(0, 6);
-  view.goto(0, 5); view.draw(); assert.equal(el.innerHTML.split('\n')[2].slice(0, 6), first, 'moving within the window does not scroll');
-  view.goto(0, 20); view.draw(); assert.notEqual(el.innerHTML.split('\n')[2].slice(0, 6), first, 'leaving it does');
+  const first = el.innerHTML.split('\n')[2].replace(/<[^>]+>/g, '').slice(0, 6);
+  view.goto(0, 5); view.draw(); assert.equal(el.innerHTML.split('\n')[2].replace(/<[^>]+>/g, '').slice(0, 6), first, 'moving within the window does not scroll');
+  view.goto(0, 20); view.draw(); assert.notEqual(el.innerHTML.split('\n')[2].replace(/<[^>]+>/g, '').slice(0, 6), first, 'leaving it does');
   assert.equal(view.setRows(1), 6, 'not fewer than the minimum'); assert.equal(view.setRows(9999), 128, 'nor more than the maximum');
 }
 
@@ -3487,6 +3487,17 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   assert.ok(first(1, 0, 1) < 0.6 && first(1, 0, 1) > 0.58, 'reverse from a slice plays backwards from the marker');
   const { instruments } = await import('../src/instruments.js');
   assert.ok(instruments.lead.commands.some(c => c.id === 0x10 && c.param === 'slice'));
+}
+
+// 103. The shipped demo song loads like any saved project and renders.
+{
+  const { readFileSync } = await import('node:fs');
+  const loaded = parseProject(readFileSync(new URL('../src/project/demo.wax', import.meta.url), 'utf8'));
+  assert.ok(loaded.song.lanes.length >= 5 && Object.keys(loaded.instruments).length >= 5, 'the demo has its instruments and lanes');
+  const registry = new ParamRegistry();
+  for (const [id, def] of Object.entries(loaded.instruments)) compile(def.graph, { instrument: id, nodeTypes: NODE_TYPES, registry });
+  const lanes = prepareSong(loaded.song, loaded.instruments, registry);
+  assert.equal(lanes.length, loaded.song.lanes.length);
 }
 
 console.log('smoke test passed');

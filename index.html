@@ -25,6 +25,10 @@
     /* header: transport, song info, tab bar */
     #header { position: sticky; top: 0; z-index: 1; background: Canvas; border-bottom: 1px solid; padding: .35rem .75rem; }
     #header .line { display: flex; flex-wrap: wrap; gap: .25rem .75rem; align-items: center; }
+    #new-wrap { position: relative; }
+    #new-menu { position: absolute; left: 0; top: 100%; z-index: 5; display: flex; flex-direction: column; min-width: 16rem; background: Canvas; border: 1px solid; padding: 2px; }
+    #new-menu button { font: inherit; text-align: left; padding: .25rem .5rem; border: 0; background: transparent; color: inherit; cursor: pointer; }
+    #new-menu button:hover, #new-menu button:focus { background: Highlight; color: HighlightText; }
     #header .line + .line { margin-top: .3rem; }
     /* the window's own status bar: song position and engine status, always at the bottom */
     #footer { position: fixed; left: 0; right: 0; bottom: 0; z-index: 1; display: flex; gap: 1.5rem; border-top: 1px solid color-mix(in srgb, currentColor 25%, transparent); white-space: pre; overflow: hidden; }
@@ -109,6 +113,7 @@
     #seq .muted { opacity: .45; }
     #seq .silenced { opacity: .2; }
     #view { overflow-x: auto; }
+    #view .g { position: sticky; left: 0; display: inline-block; background: var(--panel); }   /* the tick numbers stay put when scrolled sideways */
     #view .cell { background: color-mix(in srgb, Highlight 25%, transparent); }
     #view .cc { color: light-dark(#2a5db0, #7fb0ff); }
     #view .off { opacity: .3; }
@@ -205,6 +210,12 @@
       <strong>webtracker</strong>
       <button id="start">Start</button>
       <button id="play" disabled>Play</button>
+      <span id="new-wrap"><button id="new" disabled aria-haspopup="menu" aria-expanded="false">New ▾</button>
+        <span id="new-menu" role="menu" hidden>
+          <button role="menuitem" data-clear="arrangement" title="Remove every pattern placement; the patterns stay">Clear arrangement only</button>
+          <button role="menuitem" data-clear="patterns" title="Remove every pattern and the arrangement; instruments and samples stay">Clear patterns and arrangement</button>
+          <button role="menuitem" data-clear="everything" title="Start over: one empty synth, no samples, patterns or arrangement">Clear everything</button>
+        </span></span>
       <button id="save" disabled>Save</button>
       <button id="load" disabled>Load</button>
       <input id="file" type="file" accept=".wax,.wtrk,.json" hidden>

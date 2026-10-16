@@ -458,7 +458,7 @@ export function createPatcher({ canvas, panel, exposedPanel = null, onEscape = (
       else ctx.rect(node.x, node.y, w, h);
       ctx.fillStyle = 'rgba(128, 128, 128, 0.18)';
       ctx.fill();
-      ctx.strokeStyle = chosen ? accent : ink;
+      ctx.strokeStyle = chosen ? accent : 'rgba(128, 128, 128, 0.55)';   // a quiet grey until selected
       ctx.lineWidth = chosen ? 2.5 : 1.5;
       ctx.stroke();
 

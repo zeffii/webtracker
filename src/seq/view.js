@@ -352,8 +352,8 @@ export function createTrackerView({ el, statusEl, transport, onToggle, onBack, o
     top = Math.max(0, Math.min(top, len - rowCount));
     const r = sel ? rect() : null;
     const lines = [
-      `${' '.repeat(GUTTER)}${lanes.map((l, li) => ` ${esc(l.id.padEnd(block(li)))}`).join('  ')}`,
-      `${' '.repeat(GUTTER)}${lanes.map((l, li) => ` ${l.columns.map((c, ci) => esc(c.label.padEnd(widths[li][ci]))).join(' ')}`).join('  ')}`,
+      `<span class="g">${' '.repeat(GUTTER)}</span>${lanes.map((l, li) => ` ${esc(l.id.padEnd(block(li)))}`).join('  ')}`,
+      `<span class="g">${' '.repeat(GUTTER)}</span>${lanes.map((l, li) => ` ${l.columns.map((c, ci) => esc(c.label.padEnd(widths[li][ci]))).join(' ')}`).join('  ')}`,
     ];
     for (let t = top; t < Math.min(len, top + rowCount); t++) {
       const chunks = lanes.map((lane, li) => {
@@ -373,7 +373,7 @@ export function createTrackerView({ el, statusEl, transport, onToggle, onBack, o
           return covered ? html : `<span class="off">${html}</span>`;
         }).join(' ');
       });
-      const row = `${playing && t === playTick ? '>' : ' '}${String(t).padStart(4, '0')} ${chunks.join('  ')}`;
+      const row = `<span class="g">${playing && t === playTick ? '>' : ' '}${String(t).padStart(4, '0')} </span>${chunks.join('  ')}`;
       const shade = t % 16 === 0 ? 'r16' : t % 4 === 0 ? 'r4' : '';
       const line = playing && t === playTick ? `<b>${row}</b>` : row;
       lines.push(shade ? `<span class="${shade}">${line}</span>` : line);

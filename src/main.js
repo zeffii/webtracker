@@ -540,6 +540,35 @@ const download = (name, text) => {
   URL.revokeObjectURL(a.href);
 };
 
+// New: clear part of the project or all of it. Clearing patterns or the arrangement works on a copy of what is saved,
+// then reopens it, so the instruments, samples and settings come back exactly as they were.
+const newMenu = $('new-menu');
+const closeNew = () => { newMenu.hidden = true; $('new').setAttribute('aria-expanded', 'false'); };
+$('new').addEventListener('click', e => {
+  e.stopPropagation();
+  newMenu.hidden = !newMenu.hidden;
+  $('new').setAttribute('aria-expanded', String(!newMenu.hidden));
+});
+document.addEventListener('click', closeNew);
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && !newMenu.hidden) closeNew(); });
+newMenu.addEventListener('click', e => {
+  const kind = e.target.dataset?.clear;
+  if (!kind) return;
+  closeNew();
+  const what = { arrangement: 'the arrangement', patterns: 'every pattern and the arrangement', everything: 'everything (instruments, samples, patterns and arrangement; one empty synth is left to start from)' }[kind];
+  if (!confirm(`Clear ${what}? This cannot be undone; save first if you want to keep it.`)) return;
+  const { song } = project;
+  if (kind === 'everything') {
+    // the views need at least one lane, so the empty project holds a single plain synth with nothing written for it
+    openProject({ song: { name: 'untitled', bpm: song.bpm, ticksPerBeat: song.ticksPerBeat, length: song.length, lanes: [{ id: 'synth', instrument: 'synth', patterns: {}, placements: [] }] }, instruments: { synth: synthKinds.subtractive.make() }, samples: {} });
+  } else {
+    const saved = parseProject(serializeProject(project));
+    for (const lane of saved.song.lanes) { lane.placements = []; if (kind === 'patterns') lane.patterns = {}; }
+    openProject(saved, { stay: true, instrument: patcher.instrument, lane: selectedLane });
+  }
+  projStatus(kind === 'everything' ? 'Cleared everything.' : `Cleared ${what}.`);
+});
+
 $('save').addEventListener('click', () => {
   download(`${project.song.name ?? 'untitled'}${FILE_EXT}`, serializeProject(project));
   $('status').textContent = 'Saved.';
@@ -622,9 +651,17 @@ $('start').addEventListener('click', async () => {
     await engine.start();
     engine.onFault = id => projStatus(`Instrument "${id}" produced invalid audio and was reset. If you can repeat it, note what you changed.`);
     started = true;
-    openProject(createSynthwaveProject());
+    // the demo song is a saved project shipped beside the code; the generated one is the fallback
+    try {
+      const reply = await fetch(new URL('./project/demo.wax', import.meta.url));
+      if (!reply.ok) throw new Error(`demo.wax: ${reply.status}`);
+      openProject(parseProject(await reply.text()));
+    } catch (err) {
+      console.warn(err);
+      openProject(createSynthwaveProject());
+    }
     for (const id of ['start']) $(id).disabled = true;
-    for (const id of ['play', 'panic', 'save', 'load', 'patch-add', 'load-samples', 'add-sampler', 'add-synth', 'add-lane', 'inst-voices', 'inst-notecols', 'inst-name', 'inst-rename', 'inst-up', 'inst-down', 'inst-dup', 'inst-remove', 'lane-name', 'lane-rename', 'lane-left', 'lane-right', 'lane-dup', 'lane-remove', 'length', 'bpm', 'swing', 'preset-name', 'preset-save', 'preset-over', 'preset-rename', 'preset-remove', 'inst-export', 'inst-import', 'lib-load', 'lib-add', 'lib-save']) $(id).disabled = false;
+    for (const id of ['play', 'panic', 'new', 'save', 'load', 'patch-add', 'load-samples', 'add-sampler', 'add-synth', 'add-lane', 'inst-voices', 'inst-notecols', 'inst-name', 'inst-rename', 'inst-up', 'inst-down', 'inst-dup', 'inst-remove', 'lane-name', 'lane-rename', 'lane-left', 'lane-right', 'lane-dup', 'lane-remove', 'length', 'bpm', 'swing', 'preset-name', 'preset-save', 'preset-over', 'preset-rename', 'preset-remove', 'inst-export', 'inst-import', 'lib-load', 'lib-add', 'lib-save']) $(id).disabled = false;
     $('status').textContent =
       `Running at ${engine.ctx.sampleRate} Hz, base latency ${(engine.ctx.baseLatency * 1000).toFixed(1)} ms`;
     const frame = () => { songInfo(); seqView.draw(); view.draw(); patcher.draw(); sampleScreen.draw(); waveform.draw(); region.draw(); requestAnimationFrame(frame); };
