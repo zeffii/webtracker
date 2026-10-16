@@ -181,8 +181,12 @@
     #inst-main { min-width: 0; overflow-x: auto; }
     .curve-editor { margin: .25rem 0 .5rem; }
     .curve-editor canvas { display: block; border: 1px solid; cursor: crosshair; background: var(--panel); }
-    .wt-side { margin: .4rem 0; }
-    .wt-side input.num { width: 5.5rem; font: inherit; }
+    .wt-editor { display: flex; flex-wrap: wrap; gap: .5rem 1rem; align-items: flex-start; max-width: none; }
+    .wt-block { width: 150px; }
+    .wt-block canvas { display: block; margin: .25rem 0; }
+    .wt-block .curve-presets { max-width: 150px; }
+    .wt-block select { max-width: 150px; }
+    .wt-side input.num { width: 4rem; font: inherit; }
     .curve-presets { display: flex; flex-wrap: wrap; gap: 2px; margin: .25rem 0; max-width: 200px; }
     .curve-presets button { font: inherit; font-size: 11px; padding: 0 .35rem; }
     #patch-wrap { position: relative; }
