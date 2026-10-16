@@ -541,7 +541,8 @@ const firstSound = x => x.findIndex(v => Math.abs(v) > 1e-9);
   view.draw();
   const rows = el.innerHTML.split('<div class="r">').slice(1);
   assert.ok(rows[0].includes('&lt;b&gt;x&lt;/b&gt;'), 'lane names are the column headers');
-  assert.ok(rows[1].startsWith(' 0000') && rows[2].startsWith(' 0016'), 'one row per 16 ticks, counting down');
+  assert.ok(/^ (<span[^>]*>)?0000/.test(rows[1]) && rows[2].startsWith(' 0016'), 'one row per 16 ticks, counting down');
+  assert.ok(rows[1].includes('gn g1'), 'a bar start has the darker number shade');
   assert.ok(rows.slice(1, 3).some(r => /class="L[^"]* st/.test(r)), 'blocks start on their row');
   press('ArrowDown'); press('ArrowDown');                                // time moves down the rows
   assert.deepEqual(moves.at(-1), [0, 16], 'the second row, 16 ticks down (the song is 32 ticks)');

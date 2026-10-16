@@ -144,6 +144,8 @@ export function createSequenceView({ el, statusEl, listEl, transport, onToggle, 
     top = Math.max(0, Math.min(top, rows - rowCount));
     const blocks = lanes.map(layout);
     const row = text => `<div class="r">${text}</div>`;
+    // the tick numbers: every 64 ticks a subtle shade, a darker one every 256 (a bar)
+    const num = t => { const s = String(t).padStart(4, '0'); return t % 64 ? `${s} ` : `<span class="gn ${t % 256 ? 'g2' : 'g1'}">${s} </span>`; };
     const lines = [row(`      ${lanes.map((l, li) => {
       const head = `${li === cur.lane ? '>' : ' '}${esc(l.id.slice(0, COLW - 1).padEnd(COLW - 1))}`;
       return l.silenced ? `<span class="silenced">${head}</span>` : head;
@@ -187,7 +189,7 @@ export function createSequenceView({ el, statusEl, listEl, transport, onToggle, 
         }
         return `<span class="${classes}">${layers}${isCur ? '<i class="cb"></i>' : ''}<span class="t">${inner}</span></span>`;
       });
-      lines.push(row(`${playing && playTick >= t && playTick < t + CELL ? '>' : ' '}${String(t).padStart(4, '0')} ${cells.join('')}`));
+      lines.push(row(`${playing && playTick >= t && playTick < t + CELL ? '>' : ' '}${num(t)}${cells.join('')}`));
     }
 
     // the rect is always rowCount rows tall, so the drag bar works even when the song has fewer rows
