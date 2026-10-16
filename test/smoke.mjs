@@ -4322,3 +4322,39 @@ console.log('smoke test passed');
   const proj = { song: { name: 's', bpm: 100, ticksPerBeat: 4, length: 16 }, instruments: { a: tone(), b: listener('a') }, samples: {}, lanes: [] };
   assert.equal(parseProject(serializeProject(proj)).instruments.b.graph.nodes[0].source, 'a');
 }
+
+// 120. Plate and shimmer reverbs.
+{
+  const run = (type, values, inp) => {
+    const def = NODE_TYPES[type];
+    const params = Float32Array.from(def.params.map(p => values[p.name] ?? p.def)), slots = Int32Array.from(def.params.map((_, i) => i));
+    const node = def.create({ sampleRate: sr });
+    const L = new Float32Array(inp.length), R = new Float32Array(inp.length);
+    for (let a = 0; a < inp.length; a += 128) {
+      const n = Math.min(128, inp.length - a);
+      node.process([[inp.subarray(a, a + n), inp.subarray(a, a + n)]], [[L.subarray(a, a + n), R.subarray(a, a + n)]], n, params, slots);
+    }
+    return [L, R];
+  };
+  const peak = (x, a = 0, b = x.length) => { let m = 0; for (let i = a; i < b; i++) m = Math.max(m, Math.abs(x[i])); return m; };
+  const impulse = new Float32Array(sr * 3); impulse[0] = 1;
+  const noise = new Float32Array(sr * 3); let seed = 7;
+  for (let i = 0; i < noise.length; i++) noise[i] = ((seed = (seed * 16807) % 2147483647) / 2147483647 - 0.5) * 2;
+  // plate: the decay time is about right, the channels differ, mix 0 is dry, extremes stay bounded
+  const [pl, pr] = run('plate', { decay: 1, mix: 1, mod: 0 }, impulse);
+  const e = new Float64Array(pl.length); let acc = 0;
+  for (let i = pl.length - 1; i >= 0; i--) { acc += pl[i] ** 2; e[i] = acc; }
+  const edc = t => 10 * Math.log10(e[Math.floor(t * sr)] / e[0]);
+  assert.ok(edc(0.5) < -20 && edc(0.5) > -40, `plate energy decay at 0.5 s is ${edc(0.5)} dB`);
+  assert.ok(pl.some((v, i) => Math.abs(v - pr[i]) > 1e-4), 'plate channels should differ');
+  assert.ok(run('plate', { mix: 0 }, noise)[0].every((v, i) => v === noise[i]), 'plate mix 0 is dry');
+  const pe = run('plate', { decay: 20, damp: 0, mod: 1, diffusion: 1, bandwidth: 1, mix: 1 }, noise)[0];
+  assert.ok(pe.every(Number.isFinite) && peak(pe) < 20, 'a long plate decay stays bounded');
+  // shimmer: finite and bounded at the extreme, an octave appears in the tail, shimmer 0 adds none
+  const se = run('shimmer', { shimmer: 0.95, decay: 20, tone: 1, mix: 1 }, noise)[0];
+  assert.ok(se.every(Number.isFinite) && peak(se) < 20, 'shimmer stays bounded');
+  const tone = new Float32Array(sr * 3); for (let i = 0; i < sr / 2; i++) tone[i] = 0.5 * Math.sin(2 * Math.PI * 440 * i / sr);
+  const level = (x, f) => { let re = 0, im = 0; for (let i = sr * 1.5; i < sr * 2.5; i++) { re += x[i] * Math.cos(2 * Math.PI * f * i / sr); im += x[i] * Math.sin(2 * Math.PI * f * i / sr); } return Math.hypot(re, im) / sr; };
+  const on = run('shimmer', { shimmer: 0.8, decay: 6, mix: 1, damp: 0.2 }, tone)[0], off = run('shimmer', { shimmer: 0, decay: 6, mix: 1, damp: 0.2 }, tone)[0];
+  assert.ok(level(on, 880) > 4 * level(off, 880), 'shimmer should put an octave up into the tail');
+}

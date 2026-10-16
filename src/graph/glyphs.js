@@ -122,6 +122,15 @@ export const GLYPHS = {
     });
     ctx.stroke();
   },
+  plate: (ctx, cx, cy, w, h) => {   // a thin sheet, shaking
+    const x = f => cx - w / 2 + f * w, y = f => cy + h / 2 - f * h;
+    line(ctx, [[x(0.1), y(0.15)], [x(0.9), y(0.15)], [x(0.9), y(0.85)], [x(0.1), y(0.85)], [x(0.1), y(0.15)]]);
+    curve(ctx, cx, cy, w * 0.7, h * 0.5, t => Math.sin(t * Math.PI * 5) * Math.exp(-t * 1.2) * 0.9, 40);
+  },
+  shimmer: (ctx, cx, cy, w, h) => {   // sparkles rising
+    const star = (sx, sy, r) => { line(ctx, [[sx - r, sy], [sx + r, sy]]); line(ctx, [[sx, sy - r], [sx, sy + r]]); };
+    star(cx - w * 0.15, cy + h * 0.1, h * 0.36); star(cx + w * 0.28, cy - h * 0.22, h * 0.2); star(cx + w * 0.1, cy + h * 0.3, h * 0.12);
+  },
   subsynth: (ctx, cx, cy, w, h) => {   // a saw, the raw material the filter carves
     const x = f => cx - w / 2 + f * w, y = f => cy + h / 2 - f * h;
     line(ctx, [[x(0), y(0.1)], [x(0.3), y(0.95)], [x(0.3), y(0.1)], [x(0.6), y(0.95)], [x(0.6), y(0.1)], [x(1), y(0.95)]]);

@@ -30,6 +30,8 @@ import sidechain from './sidechain.js';
 import specsynth from './specsynth.js';
 import eq from './eq.js';
 import hall from './hall.js';
+import plate from './plate.js';
+import shimmer from './shimmer.js';
 import subsynth from './subsynth.js';
 import addsynth from './addsynth.js';
 import fmsynth from './fmsynth.js';
@@ -39,4 +41,4 @@ import ctrl from './ctrl.js';
 import voices from './voices.js';
 
 // Node type registry. Adding a node type means adding a module and listing it here.
-export const NODE_TYPES = { sampler, osc, env, lfo, gain, mix, pan, filter, delay, chorus, phaser, flanger, distortion, multitap, waveshaper, exciter, transient, split, compressor, gate, envfx, eq, crusher, ctrl, follower, sidechain, hall, subsynth, addsynth, fmsynth, wavetable, granular, specsynth, string, voices, out, sum, sumst, fold };
+export const NODE_TYPES = { sampler, osc, env, lfo, gain, mix, pan, filter, delay, chorus, phaser, flanger, distortion, multitap, waveshaper, exciter, transient, split, compressor, gate, envfx, eq, crusher, ctrl, follower, sidechain, hall, plate, shimmer, subsynth, addsynth, fmsynth, wavetable, granular, specsynth, string, voices, out, sum, sumst, fold };
