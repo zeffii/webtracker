@@ -4,6 +4,9 @@
 // The id (0 to 65535, in practice small) is what a pattern's command 00 refers to, so it is stable:
 // it is given once, the lowest free one, and removing a preset leaves the others where they are.
 
+// Drawn data is an array of numbers, a text (a wavetable) or a small object (what a wavetable was cut from).
+const copyData = v => (Array.isArray(v) ? [...v] : typeof v === 'object' && v !== null ? structuredClone(v) : v);
+
 // The current sound: `read(nodeId, param)` gives the live value (or undefined for the stored one).
 export function capturePreset(def, nodeTypes, read, name = '') {
   const values = {}, data = {};
@@ -14,7 +17,7 @@ export function capturePreset(def, nodeTypes, read, name = '') {
       const live = read?.(node.id, spec.name);
       values[`${node.id}.${spec.name}`] = Number.isFinite(live) ? live : node.params?.[spec.name] ?? spec.def;
     }
-    for (const key of ['curve', 'spectrum', 'waves']) if (node.data?.[key]) data[node.id] = { ...data[node.id], [key]: [...node.data[key]] };
+    for (const key of ['curve', 'spectrum', 'waves', 'table', 'pair', 'meta']) if (node.data?.[key]) data[node.id] = { ...data[node.id], [key]: copyData(node.data[key]) };
   }
   return { name, values, ...(Object.keys(data).length ? { data } : {}) };
 }
@@ -71,8 +74,8 @@ export function applyPreset(def, nodeTypes, id) {
     const node = def.graph.nodes.find(n => n.id === nodeId);
     if (!node) continue;
     for (const [type, points] of Object.entries(d)) {
-      node.data = { ...node.data, [type]: [...points] };
-      data.push([nodeId, type, [...points]]);
+      node.data = { ...node.data, [type]: copyData(points) };
+      data.push([nodeId, type, copyData(points)]);
     }
   }
   return { params, data };

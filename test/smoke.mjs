@@ -3806,4 +3806,102 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   assert.ok(calls.filter(c => c[0] === 'arc').length >= 5, 'one dot per band');
 }
 
+// 111. Wavetable synth: the Braids set, tables and A/B pairs cut from samples, position and mix, and the panel.
+{
+  const def = NODE_TYPES.wavetable;
+  const wt = await import('../src/audio/nodes/wtutil.js');
+  const braids = wt.braidsFrames();
+  assert.equal(braids.length, 256 * wt.FRAME, 'the Braids set is 256 frames of 512 points');
+  assert.ok(braids.every(Number.isFinite) && Math.max(...braids.slice(0, 5000)) <= 1, 'the frames are finite and in range');
+  const first = braids.subarray(0, wt.FRAME), last = braids.subarray(255 * wt.FRAME);
+  let diff = 0; for (let i = 0; i < wt.FRAME; i++) diff += Math.abs(first[i] - last[i]);
+  assert.ok(diff > 10, 'the first and last waves differ');
+  // base64 round trip, without atob
+  const flat = Float32Array.from({ length: 1024 }, (_, i) => Math.sin(i / 7) * 0.8);
+  const back = wt.decodeFrames(wt.encodeFrames(flat));
+  assert.ok(back.length === 1024 && flat.every((v, i) => Math.abs(v - back[i]) < 1e-4), 'frames survive being stored as text');
+  const make = (values = {}, data) => {
+    const node = def.create({ sampleRate: sr, data });
+    const params = Float32Array.from(def.params.map(p => values[p.name] ?? p.def)), slots = Int32Array.from(def.params.map((_, i) => i));
+    return { node, params, slots };
+  };
+  const render = (values, data, frames = 12000, note = 69, msgs = []) => {
+    const { node, params, slots } = make(values, data);
+    for (const m of msgs) node.message(m);
+    const L = new Float32Array(frames), R = new Float32Array(frames);
+    for (let at = 0; at < frames; at += 128) {
+      if (at === 0) node.note({ type: 'noteOn', note, vel: 1 });
+      node.process([], [[L.subarray(at, at + 128), R.subarray(at, at + 128)]], 128, params, slots);
+    }
+    return L;
+  };
+  const rms = (x, a, b) => { let t = 0; for (let i = a; i < b; i++) t += x[i] * x[i]; return Math.sqrt(t / (b - a)); };
+  const idleNode = make().node, z = new Float32Array(128);
+  idleNode.process([], [[z, new Float32Array(128)]], 128, make().params, make().slots);
+  assert.ok(z.every(v => v === 0), 'silent before a note');
+  const a = render({ position: 0 }), b = render({ position: 1 });
+  assert.ok(rms(a, 3000, 12000) > 0.05 && a.every(Number.isFinite), 'it plays');
+  let d = 0; for (let i = 3000; i < 12000; i++) d += Math.abs(a[i] - b[i]);
+  assert.ok(d > 50, 'the first and last frames sound different');
+  const pitch = render({ position: 0.5, sustain: 1 }, undefined, 24000, 69);
+  let cross = 0; for (let i = 6001; i < 18000; i++) if (pitch[i - 1] < 0 && pitch[i] >= 0) cross++;
+  assert.ok(cross >= 12000 / sr * 440 * 0.9 && cross <= 12000 / sr * 440 * 3, `the note sets the pitch (${cross} rising crossings in 12000 samples)`);
+  // pair: mix 0 is wave A, mix 1 is wave B; a cut from a sample is stored on the node
+  const src = Float32Array.from({ length: 4096 }, (_, i) => (i < 2048 ? 0.9 * Math.sin(2 * Math.PI * 4 * i / 512) : (((i % 128) / 128) * 2 - 1) * 0.9));
+  const winA = wt.windowFrom(src, 0), winB = wt.windowFrom(src, 2048);
+  assert.equal(winA.length, wt.FRAME);
+  const both = new Float32Array(2 * wt.FRAME); both.set(winA); both.set(winB, wt.FRAME);
+  const data = { pair: wt.encodeFrames(both) };
+  const m0 = render({ source: 1, mix: 0, sustain: 1 }, data), m1 = render({ source: 1, mix: 1, sustain: 1 }, data), mh = render({ source: 1, mix: 0.5, sustain: 1 }, data);
+  const dist = (x, y) => { let t = 0; for (let i = 3000; i < 12000; i++) t += Math.abs(x[i] - y[i]); return t; };
+  assert.ok(dist(m0, m1) > 50, 'mix 0 and mix 1 differ');
+  assert.ok(dist(mh, m0) > 5 && dist(mh, m1) > 5, 'half way is neither');
+  assert.ok(rms(m0, 3000, 12000) > 0.05 && rms(m1, 3000, 12000) > 0.05);
+  // messages replace the table and the pair; null brings the defaults back
+  const viaMsg = render({ source: 1, mix: 1, sustain: 1 }, undefined, 12000, 69, [{ type: 'pair', points: data.pair }]);
+  assert.ok(dist(viaMsg, m1) < 1e-3, 'a pair message sets the pair');
+  const tbl = wt.framesFromSample(src, 512);
+  assert.equal(tbl.length / wt.FRAME, 8, 'a 4096 point sample cut into 512 point frames makes 8');
+  const own = render({ position: 0.3, sustain: 1 }, { table: wt.encodeFrames(tbl) });
+  assert.ok(dist(own, a) > 20, 'a table from a sample sounds unlike the Braids set');
+  // the position envelope moves the position over the note
+  const still = render({ position: 0, pamt: 0 }, undefined, 24000), moving = render({ position: 0, pamt: 1, patk: 1, pdec: 2000, psus: 1 }, undefined, 24000);
+  let dm = 0; for (let i = 12000; i < 24000; i++) dm += Math.abs(still[i] - moving[i]);
+  assert.ok(dm > 50, 'the position envelope changes the sound');
+  // the panel: pick a sample for A, and the node keeps the cut
+  const makeEl = tag => ({ tag, children: [], listeners: {}, style: {}, textContent: '', value: '', checked: false, className: '', appendChild(c) { this.children.push(c); return c; }, replaceChildren(...c) { this.children = c; }, addEventListener(type, f) { this.listeners[type] = f; }, focus() {}, getContext: () => new Proxy({}, { get: (t, k) => (k in t ? t[k] : () => {}), set: (t, k, v) => { t[k] = v; return true; } }) });
+  const doc = { createElement: makeEl, createTextNode: text => ({ text }) };
+  const sent = [];
+  const canvas = { width: 900, height: 360, style: {}, listeners: {}, getContext: () => new Proxy({}, { get: (t, k) => (k in t ? t[k] : () => {}), set: (t, k, v) => { t[k] = v; return true; } }), addEventListener(type, f) { this.listeners[type] = f; }, focus() {} };
+  const defs = structuredClone(instruments);
+  const patcher = createPatcher({ canvas, panel: makeEl('div'), statusEl: { textContent: '' }, doc, nodeTypes: NODE_TYPES, onStructure() {}, onParam() {}, onData: (...a) => sent.push(a), getSampleIds: () => ['drum'], getSample: id => (id === 'drum' ? { data: src, rate: sr } : null) });
+  patcher.load({ instruments: defs });
+  patcher.show('kick');
+  patcher.add('wavetable', { x: 300, y: 120 });
+  patcher.refreshPanel(); patcher.draw();
+  // the panel's pickers cut windows from the sample and tell the node
+  const { createWavetableEditor } = await import('../src/graph/wavetableeditor.js');
+  const got = [];
+  const editor = createWavetableEditor({ doc, data: undefined, getSampleIds: () => ['drum'], getSample: id => (id === 'drum' ? { data: src, rate: sr } : null), getParam: () => 0.5, onChange: (kind, points) => got.push([kind, points]) });
+  const find = (node, test, out = []) => { if (test(node)) out.push(node); for (const c of node.children ?? []) find(c, test, out); return out; };
+  const pickerA = find(editor.el, n => n.tag === 'select' && /wave A/.test(n.title ?? ''))[0];
+  assert.ok(pickerA, 'wave A has a sample picker');
+  pickerA.value = 'drum'; pickerA.listeners.change();
+  assert.ok(got.some(([k, v]) => k === 'pair' && typeof v === 'string'), 'picking a sample cuts a window and sends the pair');
+  assert.ok(got.some(([k, v]) => k === 'meta' && v.pair.a.sample === 'drum'), 'where it came from is remembered');
+  const startA = find(editor.el, n => n.tag === 'input' && /First frame/.test(n.title ?? ''))[0];
+  startA.value = '2048'; startA.listeners.change();
+  const lastPair = got.filter(([k]) => k === 'pair').at(-1)[1];
+  assert.ok(Math.abs(wt.decodeFrames(lastPair).slice(0, wt.FRAME).reduce((t, v, i) => t + Math.abs(v - winB[i]), 0)) < 1, 'a start of 2048 cuts the second half of the sample');
+  find(editor.el, n => n.tag === 'select' && /cut a table/.test(n.title ?? ''))[0].value = 'drum';
+  const cutBtn = find(editor.el, n => n.tag === 'button' && n.textContent === 'Cut table')[0];
+  cutBtn.listeners.click();
+  assert.ok(got.some(([k, v]) => k === 'table' && typeof v === 'string'), 'cutting a table sends it');
+  find(editor.el, n => n.tag === 'button' && n.textContent === 'Braids set')[0].listeners.click();
+  assert.ok(got.some(([k, v]) => k === 'table' && v === null), 'the Braids set button clears the table');
+  const proj = { samples: {}, instruments: {} };
+  const id = pops.addSynthInstrument(proj, 'wt', 'wavetable');
+  assert.equal(proj.instruments[id].noteColumns, 3);
+}
+
 console.log('smoke test passed');

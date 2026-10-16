@@ -139,6 +139,30 @@ export const synthKinds = {
       ],
     }),
   },
+  wavetable: {
+    label: 'Wavetable synth',
+    make: () => ({
+      graph: { nodes: [{ id: 'synth', type: 'wavetable' }, { id: 'poly', type: 'voices' }, { id: 'out', type: 'out', params: { gain: 0.5 } }], connections: [['synth.out', 'poly.in'], ['poly.out', 'out.in']], voices: 6 },
+      noteColumns: 3,
+      exposed: [
+        { node: 'synth', param: 'position', label: 'Pos' },
+        { node: 'synth', param: 'mix', label: 'Mix' },
+        { node: 'synth', param: 'pamt', label: 'PAm' },
+        { node: 'synth', param: 'source', label: 'Src' },
+      ],
+      commands: [
+        { id: 0x01, node: 'synth', param: 'position' },
+        { id: 0x02, node: 'synth', param: 'mix' },
+        { id: 0x03, node: 'synth', param: 'source' },
+        { id: 0x04, node: 'synth', param: 'pamt' },
+        { id: 0x05, node: 'synth', param: 'pdec' },
+        { id: 0x06, node: 'synth', param: 'lfoDepth' },
+        { id: 0x07, node: 'synth', param: 'lfoRate' },
+        { id: 0x08, node: 'synth', param: 'snap' },
+        { id: 0x09, node: 'synth', param: 'glide' },
+      ],
+    }),
+  },
   granular: {
     label: 'Granular synth',
     needsSample: true,   // plays the project's samples: the first one is listed when it is added

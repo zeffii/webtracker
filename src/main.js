@@ -91,6 +91,7 @@ const patcher = createPatcher({
   onContext: ({ x, y }) => menu.open(x, y),
   onData: (id, node, msg) => engine.sendToNode(id, node, msg),
   getSampleIds: () => Object.keys(project.samples),
+  getSample: id => { const s = project.samples[id]; return s ? { data: s.right ? Float32Array.from(s.data, (v, i) => (v + s.right[i]) * 0.5) : s.data, rate: s.rate } : null; },
   onParam: (id, node, name, value) => {
     const address = `${id}.${node}.${name}`;
     if (engine.registry.slots.has(address)) engine.set(address, value);

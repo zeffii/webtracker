@@ -11,6 +11,7 @@ import { portKind, resolveKinds } from './kinds.js';
 import { createCurveEditor } from './curveeditor.js';
 import { createSpectrumEditor } from './spectrumeditor.js';
 import { createWaveEditor } from './waveeditor.js';
+import { createWavetableEditor } from './wavetableeditor.js';
 
 // Geometry. A node's shape comes from its type: 'box' for processors, 'rounded' for
 // sources and 'circle' for mixing and gain. Ports sit on the left (inputs) and right (outputs).
@@ -89,7 +90,8 @@ const toValue = (spec, pos) => {
 const toPos = (spec, v) => (isLog(spec) ? Math.log(v / spec.min) / Math.log(spec.max / spec.min) : (v - spec.min) / (spec.max - spec.min));
 const fmt = v => String(Number(v.toPrecision(4)));
 
-export function createPatcher({ canvas, panel, exposedPanel = null, onEscape = () => {}, statusEl, doc = document, nodeTypes, onStructure, onParam, onData = () => {}, onContext = () => {}, onNote = () => {}, getSampleIds = () => [] }) {
+export function createPatcher({ canvas, panel, exposedPanel = null, onEscape = () => {}, statusEl, doc = document, nodeTypes, onStructure, onParam, onData = () => {}, onContext = () => {}, onNote = () => {}, getSampleIds = () => [], getSample = () => null }) {
+  let tableEditor = null;   // the wavetable panel of the selected node, redrawn when position or mix move
   let instruments = {}, instId = null, selected = null, drag = null, dirty = true;
   const ctx = canvas.getContext('2d');
   let W = canvas.width;
@@ -181,7 +183,7 @@ export function createPatcher({ canvas, panel, exposedPanel = null, onEscape = (
         out.textContent = fmt(v);
         onParam(instId, node.id, spec.name, v);
         dirty = true;
-        if (selected?.kind === 'node' && selected.id === node.id) renderNodePanel();   // the node's own slider follows
+        if (selected?.kind === 'node' && selected.id === node.id) { renderNodePanel(); tableEditor?.refresh(); }   // the node's own slider follows
       });
       return [el('div', { className: 'prow xrow' }, el('span', { textContent: x.label, title: `${x.node}.${x.param}` }), slider, out, el('span', { className: 'help', textContent: `${x.node}.${x.param}` }))];
     });
@@ -207,6 +209,7 @@ export function createPatcher({ canvas, panel, exposedPanel = null, onEscape = (
         out.textContent = fmt(v);
         onParam(instId, node.id, spec.name, v);
         dirty = true;   // the envelope drawn beside the node follows
+        if (spec.name === 'position' || spec.name === 'mix' || spec.name === 'source') tableEditor?.refresh();
         if (def().exposed.some(x => x.node === node.id && x.param === spec.name)) renderExposed();   // the exposed copy follows
       });
       const current = def().exposed.find(e => e.node === node.id && e.param === spec.name);
@@ -257,6 +260,20 @@ export function createPatcher({ canvas, panel, exposedPanel = null, onEscape = (
         },
       });
       items.splice(1, 0, editor.el);
+    }
+    tableEditor = null;
+    if (type.editor === 'wavetable') {   // the table and the A / B waves, kept on the node and sent live
+      tableEditor = createWavetableEditor({
+        doc, data: node.data, getSampleIds, getSample,
+        getParam: name => node.params?.[name] ?? type.params.find(p => p.name === name)?.def ?? 0,
+        onChange: (kind, points) => {
+          node.data = { ...node.data };
+          if (points === null) delete node.data[kind]; else node.data[kind] = points;
+          if (kind !== 'meta') onData(instId, node.id, { type: kind, points });
+          else if (!node.data.meta) delete node.data.meta;
+        },
+      });
+      items.splice(1, 0, tableEditor.el);
     }
     if (nodeTypes[node.type]?.samples) {   // the samples this node plays: a list, picked from a pattern by the Smp column (00 is the first)
       const cur = def().samples?.[node.id];
