@@ -1,5 +1,6 @@
 import { newSamplerInstrument, synthKinds } from '../instruments.js';
 import { clampLoop } from '../seq/loop.js';
+import { dropSource, renameSource } from '../graph/sidechain.js';
 import { buildPages, createLane, flattenLane, writeMask } from '../seq/lane.js';
 
 // Changes to the shape of a project: samples, instruments, lanes. Plain functions on the
@@ -260,6 +261,7 @@ export function renameInstrument(project, id, name) {
   if (next === id) return id;
   project.instruments = Object.fromEntries(Object.entries(project.instruments).map(([k, v]) => [k === id ? next : k, v]));
   for (const lane of project.lanes) if (lane.instrument === id) lane.instrument = next;
+  renameSource(project.instruments, id, next);   // sidechain nodes that listened to it follow
   return next;
 }
 
@@ -269,6 +271,7 @@ export function removeInstrument(project, id) {
   const users = project.lanes.filter(l => l.instrument === id).map(l => l.id);
   if (users.length) throw new Error(`"${id}" is played by ${users.length > 1 ? 'lanes' : 'lane'} ${users.join(', ')}; remove ${users.length > 1 ? 'those lanes' : 'that lane'} first.`);
   delete project.instruments[id];
+  dropSource(project.instruments, id);
 }
 
 // A copy of the instrument (graph, exposed parameters, samples), listed right after it.

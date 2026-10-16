@@ -110,7 +110,7 @@ export function compile(desc, { instrument, nodeTypes, registry }) {
       const at = n.def.params.findIndex(p => p.name === name), spec = n.def.params[at];
       return { input: n.def.inputs.length + k, slot: slots[at], min: spec.min, max: spec.max, log: isLogSpec(spec), int: spec.int === true };
     }).filter(p => live(inputs[p.input]));
-    nodes.push({ id, type: n.type, slots, inputs, outputs: outBufs.get(id), connected: inputs.map(live), ...(paramPorts.length ? { paramPorts } : {}), ...(hints.get(id) !== undefined ? { init: hints.get(id) } : {}), ...(wide.has(id) ? { dual: true } : {}), ...(n.stereo ? { stereo: true } : {}), ...(n.data ? { data: n.data } : {}) });
+    nodes.push({ id, type: n.type, slots, inputs, outputs: outBufs.get(id), connected: inputs.map(live), ...(paramPorts.length ? { paramPorts } : {}), ...(hints.get(id) !== undefined ? { init: hints.get(id) } : {}), ...(wide.has(id) ? { dual: true } : {}), ...(n.stereo ? { stereo: true } : {}), ...(n.source ? { source: n.source } : {}), ...(n.data ? { data: n.data } : {}) });
   }
 
   const masters = order.filter(id => byId.get(id).def.master);

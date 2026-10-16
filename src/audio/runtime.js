@@ -28,6 +28,7 @@ export class GraphRuntime {
     this.instruments.clear();
     this.graphs.clear();
     this.samples.clear();
+    this.order = null;
   }
 
   // Allocates buffers and node state. Runs on a message, not per block.
@@ -38,11 +39,12 @@ export class GraphRuntime {
   // note()), copies that are not sounding are not run, and parameters are shared by all.
   load(compiled) {
     this.graphs.set(compiled.instrument, compiled);
+    this.order = null;
     const V = Math.max(1, Math.min(MAX_VOICES, Math.round(compiled.voices ?? 1) || 1));
     const fresh = () => Array.from({ length: compiled.bufferCount }, () => new Float32Array(this.maxBlock));
     const resolver = buffers => ref => (Array.isArray(ref) ? ref.map(b => buffers[b]) : buffers[ref]);   // stereo ports are [left, right]
     const make = (n, resolve) => {
-      const create = () => NODE_TYPES[n.type].create({ sampleRate: this.sampleRate, maxBlock: this.maxBlock, connected: n.connected, wasm: this.wasm, data: n.data, init: n.init, stereo: n.stereo === true, clock: this.clock });
+      const create = () => NODE_TYPES[n.type].create({ sampleRate: this.sampleRate, maxBlock: this.maxBlock, connected: n.connected, wasm: this.wasm, data: n.data, init: n.init, stereo: n.stereo === true, clock: this.clock, source: n.source, tap: id => this.tap(id) });
       const node = { id: n.id, instance: create(), slots: Int32Array.from(n.slots), inputs: n.inputs.map(resolve), outputs: n.outputs.map(resolve) };
       if (n.dual) {   // a mono node on a stereo signal: one copy per channel over the same parameters
         const left = node.instance, right = create();
@@ -188,10 +190,35 @@ export class GraphRuntime {
     for (const id of this.instruments.keys()) this.note(id, { type: 'noteCut' });
   }
 
+  // The sound of an instrument that has already run in this block, for a sidechain node: its left and right buffers, or null
+  // when it does not exist or has not run yet (so a loop of listeners, should one get in, hears silence instead of looping).
+  tap(id) {
+    const inst = this.instruments.get(id);
+    return inst && inst.block === this.blockNo ? inst : null;
+  }
+
+  // The order the instruments run in: one that listens to another (through a sidechain node) comes after it. Otherwise the
+  // order they were loaded in. A loop among them is cut where it closes.
+  runOrder() {
+    if (this.order) return this.order;
+    const order = [], state = new Map();
+    const visit = id => {
+      if (state.has(id)) return;
+      state.set(id, 1);
+      for (const n of this.graphs.get(id)?.nodes ?? []) if (n.type === 'sidechain' && n.source && this.instruments.has(n.source)) visit(n.source);
+      order.push(id);
+    };
+    for (const id of this.instruments.keys()) visit(id);
+    return (this.order = order);
+  }
+
   process(left, right, n) {
     left.fill(0, 0, n);
     right.fill(0, 0, n);
-    for (const [id, inst] of this.instruments) {
+    this.blockNo = (this.blockNo ?? 0) + 1;
+    for (const id of this.runOrder()) {
+      const inst = this.instruments.get(id);
+      if (!inst) continue;
       for (const node of inst.pre) node.instance.process(node.inputs, node.outputs, n, this.params, node.slots);
       if (inst.sets.length) {
         if (inst.mixing) { inst.left.fill(0, 0, n); inst.right.fill(0, 0, n); }
@@ -218,6 +245,7 @@ export class GraphRuntime {
         this.onFault?.(id);
         continue;
       }
+      inst.block = this.blockNo;
       for (let i = 0; i < n; i++) {
         left[i] += inst.left[i];
         right[i] += inst.right[i];

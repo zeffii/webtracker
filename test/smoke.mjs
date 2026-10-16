@@ -4268,3 +4268,57 @@ console.log('smoke test passed');
   delete proj.song.loop;
   assert.equal(parseProject(serializeProject(proj)).song.loop, undefined);
 }
+
+// 119. Sidechain: an instrument listens to another's finished sound; loops are refused or silent.
+{
+  const { sourcesOf, wouldLoop, eligibleSources, renameSource, dropSource, setSource } = await import('../src/graph/sidechain.js');
+  const listener = source => ({ graph: { nodes: [{ id: 'sc', type: 'sidechain', ...(source ? { source } : {}) }, { id: 'out', type: 'out' }], connections: [['sc.out', 'out.in']] } });
+  const tone = () => ({ graph: { nodes: [{ id: 'osc', type: 'osc', params: { freq: 220 } }, { id: 'out', type: 'out' }], connections: [['osc.out', 'out.in']] } });
+  // who listens to whom, and loops
+  const set = { a: tone(), b: listener('a'), c: listener('b'), d: tone() };
+  assert.deepEqual(sourcesOf(set.c), ['b']);
+  assert.ok(wouldLoop(set, 'a', 'c'), 'a would hear itself through c and b');
+  assert.ok(wouldLoop(set, 'b', 'b'), 'nothing listens to itself');
+  assert.ok(!wouldLoop(set, 'd', 'c'), 'd is free to listen to c');
+  assert.deepEqual(eligibleSources(set, 'a'), ['d'], 'a may only listen to d: b and c hear a');
+  assert.throws(() => setSource(set, 'a', 'x', 'b'), /No sidechain node/);
+  set.a.graph.nodes.push({ id: 'sc', type: 'sidechain' });
+  assert.throws(() => setSource(set, 'a', 'sc', 'c'), /loop/);
+  assert.ok(setSource(set, 'a', 'sc', 'd') && set.a.graph.nodes.at(-1).source === 'd');
+  renameSource(set, 'd', 'drums'); assert.equal(set.a.graph.nodes.at(-1).source, 'drums');
+  dropSource(set, 'drums'); assert.equal(set.a.graph.nodes.at(-1).source, undefined);
+
+  // the sound: b outputs a's sound, scaled by level, in the same block
+  const rig = (defs, order = Object.keys(defs)) => {
+    const registry = new ParamRegistry(), rt = new GraphRuntime({ sampleRate: sr, params: registry.values });
+    for (const id of order) rt.load(compile(defs[id].graph, { instrument: id, nodeTypes: NODE_TYPES, registry }));
+    return { rt, registry };
+  };
+  const renderOne = (rt, id, note = 60, blocks = 20) => {
+    const l = new Float32Array(block), r = new Float32Array(block), out = [];
+    rt.note(id, { type: 'noteOn', note, vel: 1 });
+    for (let i = 0; i < blocks; i++) { rt.process(l, r, block); out.push(l.slice()); }
+    return out;
+  };
+  const solo = rig({ a: tone() }), soloOut = renderOne(solo.rt, 'a');
+  for (const order of [['a', 'b'], ['b', 'a']]) {   // the order they were loaded in does not matter
+    const { rt } = rig({ a: tone(), b: listener('a') }, order);
+    const both = renderOne(rt, 'a');
+    // with b listening, the master holds a's sound plus b's copy of it, which b's out node (gain 0.8) scales
+    assert.ok(both.every((blk, i) => blk.every((v, k) => Math.abs(v - 1.8 * soloOut[i][k]) < 1e-5)), `b hears a in the same block (load order ${order})`);
+  }
+  const half = rig({ a: tone(), b: { graph: { nodes: [{ id: 'sc', type: 'sidechain', source: 'a', params: { level: 0.5 } }, { id: 'out', type: 'out' }], connections: [['sc.out', 'out.in']] } } });
+  assert.ok(renderOne(half.rt, 'a').every((blk, i) => blk.every((v, k) => Math.abs(v - 1.4 * soloOut[i][k]) < 1e-5)), 'level scales what it hears');
+  const none = rig({ a: tone(), b: listener(null) }), missing = rig({ a: tone(), b: listener('nobody') });
+  for (const g of [none, missing]) assert.ok(renderOne(g.rt, 'a').every((blk, i) => blk.every((v, k) => Math.abs(v - soloOut[i][k]) < 1e-5)), 'no source, or one that does not exist, is silent');
+  // a loop that gets in anyway: no hang, no blow-up, and each hears nothing from the one that has not run yet
+  const loop = rig({ a: { graph: { nodes: [{ id: 'osc', type: 'osc', params: { freq: 220 } }, { id: 'sc', type: 'sidechain', source: 'b' }, { id: 'm', type: 'mix' }, { id: 'out', type: 'out' }], connections: [['osc.out', 'm.a'], ['sc.out', 'm.b'], ['m.out', 'out.in']] } }, b: listener('a') });
+  const looped = renderOne(loop.rt, 'a', 60, 40);
+  assert.ok(looped.every(blk => blk.every(Number.isFinite)) && looped.at(-1).every(v => Math.abs(v) < 4), 'a loop stays finite');
+  // with voices: the sidechain runs once and every voice can read it
+  const poly = rig({ a: tone(), b: { graph: { nodes: [{ id: 'osc', type: 'osc', params: { freq: 110 } }, { id: 'sc', type: 'sidechain', source: 'a' }, { id: 'poly', type: 'voices' }, { id: 'out', type: 'out' }], connections: [['osc.out', 'poly.in'], ['poly.out', 'out.in'], ['sc.out', 'out.in']], voices: 4 } } });
+  assert.ok(renderOne(poly.rt, 'a').every(blk => blk.every(Number.isFinite)), 'a sidechain beside voices runs');
+  // the saved project keeps the source
+  const proj = { song: { name: 's', bpm: 100, ticksPerBeat: 4, length: 16 }, instruments: { a: tone(), b: listener('a') }, samples: {}, lanes: [] };
+  assert.equal(parseProject(serializeProject(proj)).instruments.b.graph.nodes[0].source, 'a');
+}

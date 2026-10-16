@@ -8,6 +8,7 @@ import { addNode, autoLayout, connect, disconnect, pruneDef, removeNode, setBits
 import { GLYPHS } from './glyphs.js';
 import { LOWER, UPPER } from '../seq/piano.js';
 import { inputsOf, portKind, resolveKinds } from './kinds.js';
+import { eligibleSources } from './sidechain.js';
 import { createCurveEditor } from './curveeditor.js';
 import { createSpectrumEditor } from './spectrumeditor.js';
 import { createWaveEditor } from './waveeditor.js';
@@ -267,6 +268,18 @@ export function createPatcher({ canvas, panel, exposedPanel = null, onEscape = (
       el('span', { textContent: 'width', title: 'How many hex digits the pattern column takes' }),
       el('span', { textContent: 'port', title: 'Give the parameter an input on the node, to wire a control node into' }));
     const items = [el('h3', {}, `${node.id} (${node.type})`), head, ...rows];
+    if (type.instrumentSource) {   // which instrument this node listens to; the ones that would make a loop are not offered
+      const options = eligibleSources(instruments, instId).filter(id => id !== instId);
+      const pick = el('select', { ariaLabel: 'Instrument to listen to' }, el('option', { value: '', textContent: '(none)' }), ...options.map(id => el('option', { value: id, textContent: id })));
+      pick.value = options.includes(node.source) ? node.source : '';
+      pick.addEventListener('change', () => {
+        if (pick.value) node.source = pick.value; else delete node.source;
+        structure();
+        dirty = true;
+      });
+      items.splice(1, 0, el('div', { className: 'prow' }, el('span', { textContent: 'listens to' }), pick),
+        el('p', { className: 'help' }, 'Instruments that already listen to this one are not offered: an instrument cannot hear itself, not even by way of others.'));
+    }
     if (type.editor === 'curve') {   // a drawable transfer curve, kept on the node and sent live
       const editor = createCurveEditor({
         doc, points: node.data?.curve,
@@ -659,6 +672,7 @@ export function createPatcher({ canvas, panel, exposedPanel = null, onEscape = (
       ctx.textBaseline = 'alphabetic';
       ctx.textAlign = 'center';
       ctx.fillText(node.id, node.x + w / 2, node.y - 5);   // the name sits above the shape
+      if (node.type === 'sidechain') { ctx.fillText(node.source ? `\u2190 ${node.source}` : '\u2190 (none)', node.x + w / 2, node.y + h + 12); }   // where it listens to
 
       const glyph = GLYPHS[type.glyph];
       if (glyph) {
