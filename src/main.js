@@ -106,6 +106,26 @@ attachGrip({ grip: $('patch-grip'), key: 'webtracker.graphHeight', get: () => pa
 attachGrip({ grip: $('view-grip'), key: 'webtracker.patternRows', get: () => view.rows, set: n => view.setRows(n), unit: () => view.lineHeight(), step: 1, bigStep: 8, normal: 24 });
 attachGrip({ grip: $('seq-grip'), key: 'webtracker.arrangementRows', get: () => seqView.rows, set: n => seqView.setRows(n), unit: () => 18, step: 1, bigStep: 8, normal: 24 });
 
+// The keyboard shortcut panels can be hidden (the button in the tab bar, or "hide" in a panel); the screens then
+// use the whole width. The choice is remembered in this browser.
+{
+  const toggle = $('keys-toggle');
+  const apply = hidden => {
+    document.body.classList.toggle('nokeys', hidden);
+    toggle.setAttribute('aria-pressed', String(!hidden));
+    try { localStorage.setItem('webtracker.hideKeys', hidden ? '1' : '0'); } catch { /* not remembered */ }
+  };
+  let saved = false;
+  try { saved = localStorage.getItem('webtracker.hideKeys') === '1'; } catch { /* none saved */ }
+  apply(saved);
+  toggle.addEventListener('click', () => apply(!document.body.classList.contains('nokeys')));
+  for (const h of document.querySelectorAll('.keys h3')) {
+    const hide = Object.assign(document.createElement('button'), { textContent: 'hide', title: 'Hide the shortcut panels' });
+    hide.addEventListener('click', () => apply(true));
+    h.append(hide);
+  }
+}
+
 // The floating insert menu lives over the patcher canvas.
 const menu = createInsertMenu({ parent: $('patch-wrap'), nodeTypes: NODE_TYPES, onPick: (type, at) => patcher.add(type, at) });
 $('patch').addEventListener('mousedown', () => menu.close());
