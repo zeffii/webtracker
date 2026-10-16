@@ -59,9 +59,11 @@
     #seq .cell > i { position: absolute; top: 0; bottom: 0; left: 0; right: 0; display: block; }
     /* a pattern is one rect from its first row to its last; opaque, so one placed over another hides it */
     #seq .L { background-color: var(--panel); background-image: linear-gradient(var(--c, transparent), var(--c, transparent)); }
-    #seq .L.st { box-shadow: inset 0 2px 0 color-mix(in srgb, CanvasText 40%, transparent); }
-    #seq .L.en { box-shadow: inset 0 -2px 0 color-mix(in srgb, CanvasText 40%, transparent); }
-    #seq .L.st.en { box-shadow: inset 0 2px 0 color-mix(in srgb, CanvasText 40%, transparent), inset 0 -2px 0 color-mix(in srgb, CanvasText 40%, transparent); }
+    /* each pattern is a rectangle with a one pixel outline; where the next one starts right below, its top line is the shared edge */
+    #seq .L { --o: color-mix(in srgb, CanvasText 45%, transparent); box-shadow: inset 1px 0 0 var(--o), inset -1px 0 0 var(--o); }
+    #seq .L.st { box-shadow: inset 1px 0 0 var(--o), inset -1px 0 0 var(--o), inset 0 1px 0 var(--o); }
+    #seq .L.en { box-shadow: inset 1px 0 0 var(--o), inset -1px 0 0 var(--o), inset 0 -1px 0 var(--o); }
+    #seq .L.st.en { box-shadow: inset 1px 0 0 var(--o), inset -1px 0 0 var(--o), inset 0 1px 0 var(--o), inset 0 -1px 0 var(--o); }
     #seq .cb { background: Highlight; }
     #seq .t { position: relative; padding-left: 4px; }
     #seq .cell.cur .t { color: HighlightText; }

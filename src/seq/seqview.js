@@ -158,7 +158,7 @@ export function createSequenceView({ el, statusEl, listEl, transport, onToggle, 
         // the patterns that touch this row, lowest first; each is a rect, inset by the patterns under it
         const layers = blocks[li].filter(e => e.start < t + CELL && e.end > t).map(e => {
           const { cls, style } = colourOf(l.patterns[e.pl.puid]);
-          const edges = `${e.start >= t ? ' st' : ''}${e.end <= t + CELL ? ' en' : ''}`;
+          const edges = `${e.start >= t ? ' st' : ''}${e.end <= t + CELL && !blocks[li].some(o => o.start === e.end) ? ' en' : ''}`;
           const css = `right:${Math.min(e.depth, 4) * INSET}px${style ? `;--c:${style}` : ''}`;
           return `<i class="L${cls ? ` ${cls}` : ''}${edges}" style="${css}"></i>`;
         }).join('');
