@@ -124,7 +124,7 @@ const toValue = (spec, pos) => {
 const toPos = (spec, v) => (isLog(spec) ? Math.log(v / spec.min) / Math.log(spec.max / spec.min) : (v - spec.min) / (spec.max - spec.min));
 const fmt = v => String(Number(v.toPrecision(4)));
 
-export function createPatcher({ canvas, panel, paramPanel = null, exposedPanel = null, onEscape = () => {}, statusEl, doc = document, nodeTypes, onStructure, onParam, onData = () => {}, onContext = () => {}, onNote = () => {}, getSampleIds = () => [], getSample = () => null }) {
+export function createPatcher({ canvas, panel, paramPanel = null, exposedPanel = null, exposedDock = null, onEscape = () => {}, statusEl, doc = document, nodeTypes, onStructure, onParam, onData = () => {}, onContext = () => {}, onNote = () => {}, getSampleIds = () => [], getSample = () => null }) {
   let tableEditor = null;   // the wavetable panel of the selected node, redrawn when position or mix move
   let instruments = {}, instId = null, selected = null, drag = null, dirty = true;
   const ctx = canvas.getContext('2d');
@@ -164,6 +164,8 @@ export function createPatcher({ canvas, panel, paramPanel = null, exposedPanel =
 
   // The docked parameter panel (when the page has one): rows for the selected node, driven by the keys of the graph.
   const paramView = paramPanel ? createParamView({ doc, el: paramPanel, showTip, hideTip, onFocusBack: () => canvas.focus?.() }) : null;
+  // The exposed parameters, always shown in a dock of their own on the left of the graph.
+  const exposedView = exposedDock ? createParamView({ doc, el: exposedDock, side: 'left', showTip, hideTip, onFocusBack: () => canvas.focus?.() }) : null;
   const cursorMemo = new Map();   // the row last selected in each node's panel
   let shownNode = null;
   const clamp01 = x => Math.min(1, Math.max(0, x));
@@ -254,6 +256,17 @@ export function createPatcher({ canvas, panel, paramPanel = null, exposedPanel =
 
   // The exposed parameters as sliders of their own, so a sound can be played with without finding the node.
   function renderExposed() {
+    if (exposedView) {
+      if (!instId) { exposedView.hide(); return; }
+      const rows = def().exposed.flatMap(x => {
+        const node = desc().nodes.find(n => n.id === x.node);
+        const type = node && nodeTypes[node.type];
+        const row = type && rowsFor(node, type).find(r => r.name === x.param);
+        return row ? [Object.create(row, { name: { value: x.label } })] : [];
+      });
+      exposedView.show('exposed', rows, exposedView.cursor, 'Nothing exposed yet. Select a node, press Enter on a row and choose "Expose".');
+      return;
+    }
     if (!exposedPanel) return;
     if (!instId) { exposedPanel.replaceChildren(); return; }
     const rows = def().exposed.flatMap(x => {

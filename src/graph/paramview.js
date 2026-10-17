@@ -11,7 +11,7 @@
 //
 // Keys (the owner calls key(e) from whatever has the focus): Up/Down choose a row, Left/Right change it (Shift more,
 // Ctrl less), Home/End go to the ends, PageUp/PageDown jump rows, Enter opens the row's menu.
-export function createParamView({ doc = document, el: host, showTip = () => {}, hideTip = () => {}, onFocusBack = () => {} }) {
+export function createParamView({ doc = document, el: host, side = 'right', showTip = () => {}, hideTip = () => {}, onFocusBack = () => {} }) {
   let rows = [], head = '', cursor = 0, menu = null, typing = null;
   const box = host.parentElement ?? host;   // the dock around the scrolling list: it is shown, hidden and resized as a whole
   const display = on => { box.style.display = on ? 'flex' : 'none'; };
@@ -140,7 +140,7 @@ export function createParamView({ doc = document, el: host, showTip = () => {}, 
 
   // The left edge of the dock drags it wider or narrower (Left/Right on it too, double-click for the usual width); the
   // width is remembered. How much each row shows depends on the width, through container queries in the stylesheet.
-  const WIDTH = { min: 90, max: 520, normal: 210 }, KEY = 'webtracker.paramWidth';
+  const WIDTH = { min: 90, max: 520, normal: 210 }, KEY = side === 'left' ? 'webtracker.exposedWidth' : 'webtracker.paramWidth';
   const setWidth = w => { const room = (box.parentElement?.clientWidth || 1000) - 40; box.style.width = `${Math.round(Math.min(Math.min(WIDTH.max, room), Math.max(WIDTH.min, w)))}px`; };
   try { setWidth(Number(localStorage.getItem(KEY)) || WIDTH.normal); } catch { setWidth(WIDTH.normal); }
   const save = () => { try { localStorage.setItem(KEY, String(box.offsetWidth)); } catch {} };
@@ -148,12 +148,12 @@ export function createParamView({ doc = document, el: host, showTip = () => {}, 
   if (grip) {
     let from = null;
     grip.addEventListener('pointerdown', e => { e.preventDefault(); from = { x: e.clientX, w: box.offsetWidth }; grip.setPointerCapture?.(e.pointerId); });
-    grip.addEventListener('pointermove', e => { if (from) setWidth(from.w + from.x - e.clientX); });
+    grip.addEventListener('pointermove', e => { if (from) setWidth(from.w + (side === 'left' ? e.clientX - from.x : from.x - e.clientX)); });
     const done = () => { if (from) { from = null; save(); onFocusBack(); } };
     grip.addEventListener('pointerup', done); grip.addEventListener('pointercancel', done);
     grip.addEventListener('dblclick', () => { setWidth(WIDTH.normal); save(); });
     grip.addEventListener('keydown', e => {
-      const d = { ArrowLeft: 1, ArrowRight: -1 }[e.key];
+      const d = (side === 'left' ? { ArrowRight: 1, ArrowLeft: -1 } : { ArrowLeft: 1, ArrowRight: -1 })[e.key];
       if (d) { setWidth(box.offsetWidth + d * (e.shiftKey ? 50 : 10)); save(); e.preventDefault(); }
     });
   }
@@ -162,15 +162,17 @@ export function createParamView({ doc = document, el: host, showTip = () => {}, 
     setWidth,
     get width() { return box.offsetWidth; },
     // Shows a node's rows under a title strip. `at` is the row to select (kept between redraws).
-    show(title, list, at = cursor) {
+    show(title, list, at = cursor, empty = '') {
       head = title; rows = list; cursor = Math.min(Math.max(0, at), Math.max(0, rows.length - 1));
-      display(rows.length > 0);
+      display(rows.length > 0 || !!empty);
       build();
+      if (!rows.length && empty) host.append(make('div', 'pv-empty', empty));
     },
     hide() { rows = []; closeMenu(); cancelType(); display(false); hideTip(); },
     refresh: paintAll,
     get cursor() { return cursor; },
     get open() { return rows.length > 0 && box.style.display !== 'none'; },
+    get size() { return rows.length; },
     key(e) {
       if (!this.open) return false;
       const k = e.key;

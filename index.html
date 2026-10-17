@@ -209,10 +209,12 @@
     .curve-presets { display: flex; flex-wrap: wrap; gap: 2px; margin: .25rem 0; max-width: 200px; }
     .curve-presets button { font: inherit; font-size: 11px; padding: 0 .35rem; }
     #patch-wrap { position: relative; }
-    #patch-params { position: absolute; top: 1px; right: 1px; width: 210px; max-height: 298px; display: flex; background: color-mix(in srgb, Canvas 94%, transparent); border: 1px solid; font: 11px/16px ui-monospace, Consolas, monospace; z-index: 5; user-select: none; container-type: inline-size; }
-    #patch-scroll { flex: 1; min-width: 0; overflow-y: auto; }
+    #patch-params, #patch-exposed { position: absolute; top: 1px; right: 1px; width: 210px; max-height: 298px; display: flex; background: color-mix(in srgb, Canvas 94%, transparent); border: 1px solid; font: 11px/16px ui-monospace, Consolas, monospace; z-index: 5; user-select: none; container-type: inline-size; }
+    #patch-exposed { right: auto; left: 1px; }
+    #patch-scroll, #exposed-scroll { flex: 1; min-width: 0; overflow-y: auto; }
     .pv-grip { width: 5px; flex: none; cursor: ew-resize; background: color-mix(in srgb, currentColor 18%, transparent); touch-action: none; }
     .pv-grip:hover, .pv-grip:focus { background: Highlight; outline: none; }
+    .pv-empty { padding: 4px 6px; opacity: .7; white-space: normal; line-height: 14px; }
     .pv-head { background: CanvasText; color: Canvas; padding: 0 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; position: sticky; top: 0; z-index: 1; }
     .pv-row { display: grid; grid-template-columns: 9ch 1fr; height: 16px; align-items: center; }
     .pv-name { padding-left: 5px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; cursor: help; }
@@ -425,11 +427,10 @@
           <div id="patch-wrap">
             <canvas id="patch" width="900" height="300" tabindex="0"></canvas>
             <div id="patch-params" style="display:none"><div class="pv-grip" tabindex="0" role="separator" aria-orientation="vertical" aria-label="Parameter panel width: drag, or use Left and Right" title="Drag to change the width of the parameter panel"></div><div id="patch-scroll"></div></div>
+            <div id="patch-exposed" class="dock" style="display:none"><div id="exposed-scroll"></div><div class="pv-grip" tabindex="0" role="separator" aria-orientation="vertical" aria-label="Exposed panel width: drag, or use Left and Right" title="Drag to change the width of the exposed panel"></div></div>
             <div id="patch-grip" class="grip" tabindex="0" role="separator" aria-orientation="horizontal" aria-label="Graph height: drag, or use Up and Down" title="Drag to change the height of the graph"></div>
           </div>
           <p id="patch-status"></p>
-          <h2>Exposed <span class="help">(pattern columns)</span></h2>
-          <div id="exposed-panel"></div>
           <div id="patch-panel"></div>
           <details id="inst-more">
             <summary>Lanes, preset library, files</summary>
