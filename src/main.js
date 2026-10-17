@@ -677,7 +677,7 @@ $('start').addEventListener('click', async () => {
   try {
     await engine.start();
     {
-      const el = $('load');
+      const el = $('loadmeter');
       let peak = 0, late = 0, avg = 0, lateAt = -1e9;
       const show = () => {
         const h = engine.health();

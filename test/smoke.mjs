@@ -4392,3 +4392,34 @@ console.log('smoke test passed');
   assert.ok(x.some((v, i) => v !== y[i]), 'each voice drifts differently');
   assert.ok(x.every((v, i) => Number.isFinite(v)), 'drift stays finite');
 }
+
+// 122. Note trigger: every note fires an envfx on the finished sound, with and without voices.
+{
+  const registry0 = () => new ParamRegistry();
+  const build = (voices, legato = 0) => {
+    const registry = registry0(), rt = new GraphRuntime({ sampleRate: sr, params: registry.values });
+    const nodes = [{ id: 'osc', type: 'osc', params: { freq: 220 } }, ...(voices ? [{ id: 'poly', type: 'voices' }] : []), { id: 'nt', type: 'notetrig', params: { legato } }, { id: 'fx', type: 'envfx', ports: ['trig'], params: { attack: 1, decay: 20, sustain: 0, release: 20, range: -80 } }, { id: 'out', type: 'out' }];
+    const connections = voices ? [['osc.out', 'poly.in'], ['poly.out', 'fx.in']] : [['osc.out', 'fx.in']];
+    connections.push(['nt.trig', 'fx.@trig'], ['fx.out', 'out.in']);
+    rt.load(compile({ nodes, connections, ...(voices ? { voices } : {}) }, { instrument: 'a', nodeTypes: NODE_TYPES, registry }));
+    return rt;
+  };
+  const run = (rt, blocks) => { const l = new Float32Array(block), r = new Float32Array(block); let peak = 0; for (let i = 0; i < blocks; i++) { rt.process(l, r, block); for (const v of l) peak = Math.max(peak, Math.abs(v)); } return peak; };
+  for (const voices of [0, 4]) {
+    const rt = build(voices);
+    assert.ok(run(rt, 20) < 1e-4, `silent before any note (voices ${voices})`);
+    rt.note('a', { type: 'noteOn', note: 60, vel: 1 });
+    assert.ok(run(rt, 10) > 0.05, `a note fires the envelope (voices ${voices})`);
+    assert.ok(run(rt, 200) < 0.01, 'the envelope decays to sustain 0 while the note is still held');
+    rt.note('a', { type: 'noteOn', note: 64, vel: 1 });   // a second note while the first is held
+    assert.ok(run(rt, 10) > 0.05, `an overlapping note fires it again (voices ${voices})`);
+    rt.note('a', { type: 'noteOff', note: 60 }); rt.note('a', { type: 'noteOff', note: 64 });
+    run(rt, 50);
+    rt.note('a', { type: 'noteOn', note: 67, vel: 1 });
+    assert.ok(run(rt, 10) > 0.05, `a note after release fires it (voices ${voices})`);
+  }
+  const legato = build(4, 1);
+  legato.note('a', { type: 'noteOn', note: 60, vel: 1 }); run(legato, 200);
+  legato.note('a', { type: 'noteOn', note: 64, vel: 1 });
+  assert.ok(run(legato, 10) < 0.02, 'with legato an overlapping note does not fire it again');
+}

@@ -136,6 +136,11 @@ export const GLYPHS = {
     line(ctx, [[x(0), y(0.35)], [x(0.12), y(0.35)], [x(0.12), y(0.8)], [x(0.3), y(0.8)], [x(0.3), y(0.35)], [x(0.42), y(0.35)], [x(0.42), y(0.8)], [x(0.6), y(0.8)], [x(0.6), y(0.35)], [x(1), y(0.35)]]);
     curve(ctx, cx, cy + h * 0.3, w, h * 0.3, t => 0.8 - 1.6 * Math.exp(-Math.pow((t - 0.5) / 0.14, 2)) , 40);
   },
+  notetrig: (ctx, cx, cy, w, h) => {   // a note's block, and the spike it fires
+    const x = f => cx - w / 2 + f * w, y = f => cy + h / 2 - f * h;
+    line(ctx, [[x(0), y(0.08)], [x(0.15), y(0.08)], [x(0.15), y(0.45)], [x(0.7), y(0.45)], [x(0.7), y(0.08)], [x(1), y(0.08)]]);
+    line(ctx, [[x(0.15), y(0.55)], [x(0.15), y(0.95)]]); line(ctx, [[x(0.1), y(0.85)], [x(0.15), y(0.95)], [x(0.2), y(0.85)]]);
+  },
   subsynth: (ctx, cx, cy, w, h) => {   // a saw, the raw material the filter carves
     const x = f => cx - w / 2 + f * w, y = f => cy + h / 2 - f * h;
     line(ctx, [[x(0), y(0.1)], [x(0.3), y(0.95)], [x(0.3), y(0.1)], [x(0.6), y(0.95)], [x(0.6), y(0.1)], [x(1), y(0.95)]]);
