@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="themes.css">
-  <title>webtracker m153</title>
+  <title>webtracker m154</title>
   <style>
     :root { color-scheme: light dark; font-family: system-ui, sans-serif; }   /* colours: see themes.css */
     body { background: var(--bg); color: var(--fg); }
@@ -186,8 +186,11 @@
     #inst-main { --form-w: 42rem; }
     #patch-panel, #preset-list, #preset-section { max-width: var(--form-w); }
     #patch-panel .help { opacity: .7; }
-    .grip { height: 9px; cursor: ns-resize; margin-top: 2px; border-top: 1px solid color-mix(in srgb, currentColor 35%, transparent); background: repeating-linear-gradient(to right, transparent 0 6px, color-mix(in srgb, currentColor 22%, transparent) 6px 7px); outline: none; touch-action: none; }
-    .grip:hover, .grip:focus, .grip.dragging { border-top-color: var(--hi); background-color: color-mix(in srgb, var(--hi) 30%, transparent); }
+    .grip { position: relative; height: 14px; margin-top: 2px; cursor: ns-resize; outline: none; touch-action: none; }   /* a hairline with a small pill of three dots in the middle; the whole bar drags */
+    .grip::before { content: ""; position: absolute; left: 0; right: 0; top: 50%; border-top: 1px solid color-mix(in srgb, currentColor 35%, transparent); }
+    .grip::after { content: ""; position: absolute; left: 50%; top: 50%; width: 26px; height: 11px; box-sizing: border-box; transform: translate(-50%, -50%); border: 1px solid color-mix(in srgb, currentColor 55%, transparent); border-radius: 6px; background: radial-gradient(circle at 6px 50%, currentColor 1.2px, transparent 1.5px), radial-gradient(circle at 12px 50%, currentColor 1.2px, transparent 1.5px), radial-gradient(circle at 18px 50%, currentColor 1.2px, transparent 1.5px), var(--bg); }
+    .grip:hover::before, .grip:focus::before, .grip.dragging::before { border-top-color: var(--hi); }
+    .grip:hover::after, .grip:focus::after, .grip.dragging::after { border-color: var(--hi); }
     #preset-list button, #lib-list button, #lane-list button { display: block; width: 100%; font: inherit; text-align: left; padding: .1rem .5rem; border: 1px solid transparent; background: transparent; color: inherit; cursor: pointer; }
     #lib-list button.active, #preset-list button.active, #lane-list button.active { background: var(--hi); color: var(--hi-fg); }
     #inst-list button { font: inherit; text-align: left; padding: 0 .5rem; border: 0; background: transparent; color: inherit; cursor: pointer; white-space: pre; }
