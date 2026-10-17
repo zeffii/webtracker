@@ -15,7 +15,7 @@ const GROUPS = {
     ['Filter & EQ', ['filter', 'eq', 'exciter']],
     ['Dynamics', ['compressor', 'gate', 'transient', 'envfx']],
     ['Modulation', ['chorus', 'phaser', 'flanger']],
-    ['Delay', ['delay', 'multitap']],
+    ['Delay', ['delay', 'multitap', 'shiva']],
     ['Reverb', ['hall', 'plate', 'shimmer']],
     ['Distortion', ['distortion', 'waveshaper', 'crusher']],
     ['Routing', ['split']],

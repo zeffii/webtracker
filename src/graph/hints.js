@@ -123,6 +123,12 @@ const HINTS = {
     feedback: 'How much of the last tap goes back in, for repeating patterns.',
     mix: 'Amount of the echoes added to the dry sound.',
   },
+  shiva: {
+    length: 'Time in ms at the right edge of the tap view. All taps stretch with it, so it also works as a master delay time.',
+    feedback: 'How much of the latest tap goes back in. The whole pattern then repeats each time it ends.',
+    damp: 'Lowpass in the feedback path: higher makes each repeat darker.',
+    mix: 'Amount of the echoes added to the dry sound.',
+  },
   waveshaper: {
     drive: 'Scales the signal before it meets the curve you drew: more drive uses more of the curve\'s ends.',
     mix: 'Dry/wet balance. 1 is all shaped.',

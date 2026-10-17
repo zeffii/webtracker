@@ -13,6 +13,7 @@ const TYPE_UNIT = {
   phaser: { depth: 'oct' },
   delay: { time: 'ms' },
   multitap: { time: 'ms' },
+  shiva: { length: 'ms', damp: '%' },
   hall: { decay: 's' }, plate: { decay: 's' }, shimmer: { decay: 's', pitch: 'st' }, string: { decay: 's', release: 'ms' },
   env: {}, lfo: {},
   distortion: { tone: 'Hz' },

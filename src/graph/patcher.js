@@ -14,6 +14,7 @@ import { factsFor, hintFor } from './hints.js';
 import { choices, display, unitOf } from './units.js';
 import { createParamView } from './paramview.js';
 import { createCurveEditor } from './curveeditor.js';
+import { createTapEditor } from './tapeditor.js';
 import { createSpectrumEditor } from './spectrumeditor.js';
 import { createWaveEditor } from './waveeditor.js';
 import { createWavetableEditor } from './wavetableeditor.js';
@@ -125,7 +126,8 @@ const toValue = (spec, pos) => {
 const toPos = (spec, v) => (isLog(spec) ? Math.log(v / spec.min) / Math.log(spec.max / spec.min) : (v - spec.min) / (spec.max - spec.min));
 const fmt = v => String(Number(v.toPrecision(4)));
 
-export function createPatcher({ canvas, panel, paramPanel = null, exposedDock = null, onScope = () => {}, onEscape = () => {}, statusEl, doc = document, nodeTypes, onStructure, onParam, onData = () => {}, onContext = () => {}, onNote = () => {}, getSampleIds = () => [], getSample = () => null }) {
+export function createPatcher({ canvas, panel, paramPanel = null, exposedDock = null, onScope = () => {}, onEscape = () => {}, statusEl, doc = document, nodeTypes, onStructure, onParam, onData = () => {}, onContext = () => {}, onNote = () => {}, getSampleIds = () => [], getSample = () => null, readLive = () => undefined }) {
+  let tapEditor = null;     // the tap view of a Shiva delay, redrawn when its parameters move
   let tableEditor = null;   // the wavetable panel of the selected node, redrawn when position or mix move
   let instruments = {}, instId = null, selected = null, drag = null, dirty = true;
   // The scopes: an eye on a node shows what it puts out (a scope beside it: wave, spectrum or xy, 200 or 400 pixels).
@@ -203,7 +205,7 @@ export function createPatcher({ canvas, panel, paramPanel = null, exposedDock = 
   // The panel rows of one node: each reads and writes the node's parameter, and carries the row's menu actions.
   function rowsFor(node, type) {
     return type.params.map(spec => {
-      const get = () => node.params?.[spec.name] ?? spec.def;
+      const get = () => readLive(instId, node.id, spec.name) ?? node.params?.[spec.name] ?? spec.def;
       const entry = () => def().exposed.find(e => e.node === node.id && e.param === spec.name);
       const span = spec.max - spec.min;
       const apply = v => {
@@ -211,6 +213,7 @@ export function createPatcher({ canvas, panel, paramPanel = null, exposedDock = 
         onParam(instId, node.id, spec.name, v);
         dirty = true;   // the envelope drawn beside the node follows
         if (spec.name === 'position' || spec.name === 'mix' || spec.name === 'source') tableEditor?.refresh();
+        if (type.editor === 'taps') tapEditor?.refresh();
         if (entry()) renderExposed();
       };
       const names = choices(node.type, spec.name);
@@ -349,6 +352,18 @@ export function createPatcher({ canvas, panel, paramPanel = null, exposedDock = 
         },
       });
       items.splice(1, 0, editor.el);
+    }
+    tapEditor = null;
+    if (type.editor === 'taps') {   // the taps of a Shiva delay, kept on the node and sent live
+      tapEditor = createTapEditor({
+        doc, points: node.data?.taps,
+        getParam: name => readLive(instId, node.id, name) ?? node.params?.[name] ?? type.params.find(p => p.name === name)?.def ?? 0,
+        onChange: points => {
+          node.data = { ...node.data, taps: points };
+          onData(instId, node.id, { type: 'taps', points });
+        },
+      });
+      items.splice(1, 0, tapEditor.el);
     }
     tableEditor = null;
     if (type.editor === 'wavetable') {   // the table and the A / B waves, kept on the node and sent live
@@ -693,7 +708,22 @@ export function createPatcher({ canvas, panel, paramPanel = null, exposedDock = 
     ctx.restore();
   }
 
+  // Values written by the pattern editor live in the shared block, not the graph description: repaint the panels when they move.
+  let liveSig = '';
+  function followLive() {
+    if (!instId) return;
+    const parts = [];
+    const sel = selected?.kind === 'node' ? desc().nodes.find(n => n.id === selected.id) : null;
+    if (sel && paramView?.open) for (const sp of nodeTypes[sel.type]?.params ?? []) parts.push(readLive(instId, sel.id, sp.name));
+    if (exposedView?.open) for (const e of def().exposed) parts.push(readLive(instId, e.node, e.param));
+    const sig = parts.join(',');
+    if (sig === liveSig) return;
+    liveSig = sig;
+    paramView?.refresh(); exposedView?.refresh(); tapEditor?.refresh();
+  }
+
   function draw() {
+    followLive();
     if (!dirty) return;
     dirty = false;
     ctx.clearRect(0, 0, W, H);

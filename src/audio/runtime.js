@@ -158,7 +158,7 @@ export class GraphRuntime {
 
   // Message for one node (every copy of it), for example the sample data for a sampler.
   message(instrument, nodeId, msg) {
-    if (msg.type === 'sample' || msg.type === 'curve' || msg.type === 'spectrum' || msg.type === 'waves' || msg.type === 'table' || msg.type === 'pair') this.samples.set(`${instrument}\u0000${nodeId}\u0000${msg.type}${msg.slot ?? ''}`, msg);   // replayed if the instrument is rebuilt
+    if (msg.type === 'sample' || msg.type === 'curve' || msg.type === 'spectrum' || msg.type === 'waves' || msg.type === 'table' || msg.type === 'pair' || msg.type === 'taps') this.samples.set(`${instrument}\u0000${nodeId}\u0000${msg.type}${msg.slot ?? ''}`, msg);   // replayed if the instrument is rebuilt
     for (const node of this.instruments.get(instrument)?.byId.get(nodeId) ?? []) node.instance.message?.(msg);
   }
 

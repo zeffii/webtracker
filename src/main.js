@@ -76,6 +76,7 @@ const patcher = createPatcher({
   onContext: ({ x, y }) => menu.open(x, y),
   onData: (id, node, msg) => engine.sendToNode(id, node, msg),
   onScope: (id, node, on) => engine.scope(id, node, on),
+  readLive: (id, node, name) => { const a = `${id}.${node}.${name}`; return engine.registry.slots.has(a) ? engine.registry.get(a) : undefined; },
   getSampleIds: () => Object.keys(project.samples),
   getSample: id => { const s = project.samples[id]; return s ? { data: s.right ? Float32Array.from(s.data, (v, i) => (v + s.right[i]) * 0.5) : s.data, rate: s.rate } : null; },
   onParam: (id, node, name, value) => {

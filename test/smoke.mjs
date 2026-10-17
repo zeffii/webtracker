@@ -793,7 +793,8 @@ const hit = 'C-2 .. .. ..';
   const panel = makeEl('div'), statusEl = { textContent: '' };
   const defs = structuredClone(instruments);
   const structures = [], params = [], contexts = [];
-  const patcher = createPatcher({ canvas, panel, statusEl, doc, nodeTypes: NODE_TYPES, onStructure: id => structures.push(id), onContext: p => contexts.push(p), onParam: (...a) => params.push(a), getSampleIds: () => ['pluck'] });
+  const live = {};
+  const patcher = createPatcher({ canvas, panel, statusEl, doc, nodeTypes: NODE_TYPES, onStructure: id => structures.push(id), onContext: p => contexts.push(p), onParam: (...a) => params.push(a), getSampleIds: () => ['pluck'], readLive: (i, n, name) => (live[`${n}.${name}`]) });
   patcher.load({ instruments: defs });
   patcher.show('kick');
   patcher.draw();                                        // draws without throwing
@@ -810,6 +811,9 @@ const hit = 'C-2 .. .. ..';
   // select a node: the panel lists its parameters
   fire('mousedown', mid('osc')); fire('mouseup', mid('osc'));
   assert.equal(patcher.paramRows().length, NODE_TYPES.osc.params.length);
+  live['osc.tune'] = 7;   // a pattern wrote it: the row follows
+  assert.equal(patcher.paramRows().find(r => r.name === 'tune').text(), '7');
+  delete live['osc.tune'];
 
   // drag a node
   const from = mid('vca'), x0 = node('vca').x;
@@ -1547,6 +1551,30 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   assert.ok(wide[1][960] > 1.3 && Math.abs(wide[0][960]) < 1e-3, 'the last tap should be hard right');
   const ring = stage('multitap', { time: 10, taps: 1, decay: 1, feedback: 0.5, mix: 1 })(impulse, impulse);
   assert.ok(ring[0][960] > 0.2 && ring[0].every(Number.isFinite), 'feedback should repeat the tap');
+
+  // shiva delay: taps at their own times, levels and pans; the latest tap feeds back
+  {
+    const run = (taps, values, len = 4000) => {
+      const def = NODE_TYPES.shiva;
+      const params = Float32Array.from(def.params.map(p => values[p.name] ?? p.def)), slots = Int32Array.from(def.params.map((_, i) => i));
+      const node = def.create({ sampleRate: sr, connected: [true], data: { taps } });
+      const inp = new Float32Array(len); inp[0] = 1;
+      const out = [new Float32Array(len), new Float32Array(len)];
+      for (let at = 0; at < len; at += 128) {
+        const n = Math.min(128, len - at);
+        node.process([[inp.subarray(at, at + n), inp.subarray(at, at + n)]], [[out[0].subarray(at, at + n), out[1].subarray(at, at + n)]], n, params, slots);
+      }
+      return out;
+    };
+    const ms10 = Math.round(sr * 0.01);
+    const a = run([0.5, 1, -1, 1, 0.5, 1], { length: 20, feedback: 0, mix: 1 });   // 10 ms hard left at 1, 20 ms hard right at 0.5
+    assert.ok(a[0][ms10] > 1.3 && Math.abs(a[1][ms10]) < 1e-3, 'first tap hard left');
+    assert.ok(a[1][ms10 * 2] > 0.65 && Math.abs(a[0][ms10 * 2]) < 1e-3, 'second tap hard right, half level');
+    assert.ok(Math.abs(a[0][ms10 + 200]) < 1e-3, 'nothing between the taps');
+    const b = run([1, 1, 0], { length: 10, feedback: 0.5, damp: 0, mix: 1 });   // one tap: feeds back
+    assert.ok(b[0][ms10] > 0.9 && b[0][ms10 * 2] > 0.4 && b[0].every(Number.isFinite), 'the repeat of a single tap');
+    assert.ok(run(undefined, { mix: 1 })[0].every(Number.isFinite), 'default taps run');
+  }
 
   // phaser: mix 0 is dry, silence stays silent, a wet signal differs, stays finite even at high feedback
   const ph0 = stage('phaser', { mix: 0 })(noise, noise);

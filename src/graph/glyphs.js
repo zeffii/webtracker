@@ -71,6 +71,16 @@ export const GLYPHS = {
   phaser: (ctx, cx, cy, w, h) => curve(ctx, cx, cy, w, h, t => 0.8 - 1.8 * Math.abs(Math.sin(t * Math.PI * 2.5)) * (0.4 + t * 0.6)),   // a response with moving notches
   flanger: (ctx, cx, cy, w, h) => curve(ctx, cx, cy, w, h, t => Math.sin(Math.PI * 2 * (1.5 * t + 3 * t * t)) * 0.85, 40),   // a wave sweeping upwards
   distortion: (ctx, cx, cy, w, h) => curve(ctx, cx, cy, w, h, t => Math.max(-0.55, Math.min(0.55, 1.7 * Math.sin(t * Math.PI * 2))) / 0.55 * 0.8),   // a sine with its peaks cut off
+  shiva: (ctx, cx, cy, w, h) => {   // stems of different heights, a dot on each for its pan
+    line(ctx, [[cx - w / 2, cy + h * 0.35], [cx + w / 2, cy + h * 0.35]]);
+    ctx.beginPath();
+    [0.5, 0.9, 0.35, 0.7, 0.25, 0.5].forEach((a, i) => {
+      const x = cx - w / 2 + ((i + 0.5) / 6) * w;
+      ctx.moveTo(x, cy + h * 0.35);
+      ctx.lineTo(x, cy + h * 0.35 - a * h * 0.85);
+    });
+    ctx.stroke();
+  },
   multitap: (ctx, cx, cy, w, h) => {   // taps fanning left and right of a centre line
     line(ctx, [[cx - w / 2, cy], [cx + w / 2, cy]]);
     ctx.beginPath();
