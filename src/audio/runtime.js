@@ -5,12 +5,16 @@ const MAX_VOICES = 16;
 
 // Runs compiled graphs block by block. Independent of AudioWorklet so it can
 // also be driven offline (see test/smoke.mjs).
+export const SCOPE_N = 2048, SCOPE_HOP = 1024;
+
 export class GraphRuntime {
   instruments = new Map();
   graphs = new Map();      // compiled graphs, to rebuild an instrument that went bad
   samples = new Map();     // the last sample message per instrument and node, replayed on a rebuild
   stamp = 0;               // counts note events, to find the oldest voice
   onFault = null;          // called with an instrument id when it is rebuilt
+  onScope = null;          // called with (instrument id, left, right): the last SCOPE_N samples of a watched instrument
+  scopes = new Map();      // watched instruments: id -> { l, r, at, since }
 
   constructor({ sampleRate, params, maxBlock = 512, wasm = null }) {
     this.wasm = wasm;           // compiled WebAssembly.Module for the DSP kernels, or null for the JS reference
@@ -20,6 +24,12 @@ export class GraphRuntime {
     // the sequencer keeps tickSamples in step with the song's tempo, and counts in `stamps` every time a pattern writes a
     // parameter (even to the value it already has), which is how a node can tell a new event from an unchanged value
     this.clock = { tickSamples: (sampleRate * 60) / (120 * 4), stamps: new Uint32Array(PARAM_CAPACITY) };
+  }
+
+  // Starts or stops watching an instrument's output (the scope in the graph view).
+  setScope(id, on) {
+    if (!on) this.scopes.delete(id);
+    else if (!this.scopes.has(id)) this.scopes.set(id, { l: new Float32Array(SCOPE_N), r: new Float32Array(SCOPE_N), at: 0, since: 0 });
   }
 
   // Drops every instrument and switches to a new parameter block.
@@ -250,11 +260,25 @@ export class GraphRuntime {
         continue;
       }
       inst.block = this.blockNo;
+      const scope = this.scopes.get(id);
+      if (scope) this.watch(id, scope, inst, n);
       for (let i = 0; i < n; i++) {
         left[i] += inst.left[i];
         right[i] += inst.right[i];
       }
     }
+  }
+
+  // Keeps the last SCOPE_N samples of the output in a ring and hands them over, oldest first, every SCOPE_HOP samples.
+  watch(id, s, inst, n) {
+    for (let i = 0; i < n; i++) { s.l[s.at] = inst.left[i]; s.r[s.at] = inst.right[i]; s.at = (s.at + 1) % SCOPE_N; }
+    s.since += n;
+    if (s.since < SCOPE_HOP) return;
+    s.since = 0;
+    const l = new Float32Array(SCOPE_N), r = new Float32Array(SCOPE_N), tail = SCOPE_N - s.at;
+    l.set(s.l.subarray(s.at), 0); l.set(s.l.subarray(0, s.at), tail);
+    r.set(s.r.subarray(s.at), 0); r.set(s.r.subarray(0, s.at), tail);
+    this.onScope?.(id, l, r);
   }
 
   // Fresh node state for an instrument, with its samples put back.

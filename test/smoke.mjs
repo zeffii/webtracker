@@ -4422,3 +4422,26 @@ console.log('smoke test passed');
   const e5 = energy(build(5)), e0 = energy(build(0));
   assert.ok(e5 > 1.3 * e0, 'an envelope after the voices opens the filter');
 }
+
+// 124. The scope hands over the last 2048 samples of a watched instrument, oldest first, every 1024 samples.
+{
+  const registry = new ParamRegistry(), rt = new GraphRuntime({ sampleRate: sr, params: registry.values });
+  rt.load(compile({ nodes: [{ id: 'osc', type: 'osc', params: { freq: 441, wave: 0 } }, { id: 'out', type: 'out' }], connections: [['osc.out', 'out.in']] }, { instrument: 'a', nodeTypes: NODE_TYPES, registry }));
+  const got = [];
+  rt.onScope = (id, l, r) => got.push({ id, l, r });
+  const l = new Float32Array(block), r = new Float32Array(block);
+  rt.note('a', { type: 'noteOn', note: 60, vel: 1 });
+  for (let i = 0; i < 40; i++) rt.process(l, r, block);
+  assert.equal(got.length, 0, 'nothing is sent until an instrument is watched');
+  rt.setScope('a', true);
+  const blocks = 1024 * 4 / block;
+  for (let i = 0; i < blocks; i++) rt.process(l, r, block);
+  assert.equal(got.length, 4, 'one frame per 1024 samples');
+  assert.equal(got[0].l.length, 2048);
+  assert.ok(got.at(-1).l.some(v => Math.abs(v) > 0.05), 'the frame holds the sound');
+  // the last frame ends where the last block ended
+  assert.equal(got.at(-1).l[2047], l[block - 1]);
+  rt.setScope('a', false);
+  for (let i = 0; i < 40; i++) rt.process(l, r, block);
+  assert.equal(got.length, 4, 'stopping the watch stops the frames');
+}

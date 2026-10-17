@@ -7,6 +7,7 @@ export class Engine {
   ctx = null;
   wasmModule = null;
   node = null;
+  watching = new Set();   // instruments whose output is being watched (replayed when the audio thread starts)
   onFault = null;   // called with an instrument id when the audio thread had to rebuild it
   registry = new ParamRegistry();
   transport = new Int32Array(new SharedArrayBuffer(8));   // [tick, playing], written by the worklet
@@ -26,7 +27,9 @@ export class Engine {
     this.node.port.onmessage = ({ data }) => {
       if (data.type === 'fault') this.onFault?.(data.instrument);
       else if (data.type === 'load') this.onLoad?.(data);
+      else if (data.type === 'scope') this.onScope?.(data);
     };
+    for (const id of this.watching) this.node.port.postMessage({ type: 'scope', instrument: id, on: true });
     this.node.connect(this.ctx.destination);
     await this.ctx.resume();
   }
@@ -66,6 +69,12 @@ export class Engine {
 
   noteOff(instrument, note) {
     this.node.port.postMessage({ type: 'note', instrument, msg: { type: 'noteOff', note } });
+  }
+
+  // watch an instrument's output: its last samples come back through onScope({ instrument, l, r })
+  scope(instrument, on) {
+    if (on) this.watching.add(instrument); else this.watching.delete(instrument);
+    this.node?.port.postMessage({ type: 'scope', instrument, on });
   }
 
   // all notes off, everywhere

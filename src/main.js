@@ -93,6 +93,7 @@ const patcher = createPatcher({
   onStructure: id => reloadInstrument(id),
   onContext: ({ x, y }) => menu.open(x, y),
   onData: (id, node, msg) => engine.sendToNode(id, node, msg),
+  onScope: (id, on) => engine.scope(id, on),
   getSampleIds: () => Object.keys(project.samples),
   getSample: id => { const s = project.samples[id]; return s ? { data: s.right ? Float32Array.from(s.data, (v, i) => (v + s.right[i]) * 0.5) : s.data, rate: s.rate } : null; },
   onParam: (id, node, name, value) => {
@@ -700,6 +701,7 @@ $('start').addEventListener('click', async () => {
       engine.onLoad = d => { avg = avg ? avg * 0.7 + d.avg * 0.3 : d.avg; peak = Math.max(peak, d.peak); if (d.late) lateAt = performance.now(); late += d.late; show(); };
       el.addEventListener('click', () => { peak = 0; late = 0; show(); });
     }
+    engine.onScope = d => patcher.feedScope(d.instrument, d.l, d.r);
     engine.onFault = id => projStatus(`Instrument "${id}" produced invalid audio and was reset. If you can repeat it, note what you changed.`);
     started = true;
     // the demo song is a saved project shipped beside the code; the generated one is the fallback

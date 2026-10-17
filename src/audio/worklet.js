@@ -14,10 +14,12 @@ class TrackerEngine extends AudioWorkletProcessor {
     this.blocks = 0; this.sumMs = 0; this.peakMs = 0; this.late = 0;
     this.tick = Infinity; this.seen = 0;   // the clock's step, found as the smallest non-zero reading (it is 1 ms on some systems, coarser on others)
     this.rt.onFault = instrument => this.port.postMessage({ type: 'fault', instrument });
+    this.rt.onScope = (instrument, l, r) => this.port.postMessage({ type: 'scope', instrument, l, r }, [l.buffer, r.buffer]);
     this.port.onmessage = ({ data }) => {
       if (data.type === 'load') this.rt.load(data.graph);
       else if (data.type === 'node') this.rt.message(data.instrument, data.node, data.msg);
       else if (data.type === 'note') { if (!this.halted) this.rt.note(data.instrument, data.msg); }
+      else if (data.type === 'scope') this.rt.setScope(data.instrument, data.on);
       else if (data.type === 'cut') { this.rt.panic(); this.seq.stop(); this.halted = true; }
       else if (data.type === 'panic') this.rt.panic();
       else if (data.type === 'reset') {

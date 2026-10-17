@@ -124,9 +124,22 @@ const toValue = (spec, pos) => {
 const toPos = (spec, v) => (isLog(spec) ? Math.log(v / spec.min) / Math.log(spec.max / spec.min) : (v - spec.min) / (spec.max - spec.min));
 const fmt = v => String(Number(v.toPrecision(4)));
 
-export function createPatcher({ canvas, panel, paramPanel = null, exposedDock = null, onEscape = () => {}, statusEl, doc = document, nodeTypes, onStructure, onParam, onData = () => {}, onContext = () => {}, onNote = () => {}, getSampleIds = () => [], getSample = () => null }) {
+export function createPatcher({ canvas, panel, paramPanel = null, exposedDock = null, onScope = () => {}, onEscape = () => {}, statusEl, doc = document, nodeTypes, onStructure, onParam, onData = () => {}, onContext = () => {}, onNote = () => {}, getSampleIds = () => [], getSample = () => null }) {
   let tableEditor = null;   // the wavetable panel of the selected node, redrawn when position or mix move
   let instruments = {}, instId = null, selected = null, drag = null, dirty = true;
+  // The scope: an eye on the out node shows a 400 x 400 oscilloscope of the instrument's output beside it.
+  const SCOPE = 400, SHOWN = 1024;
+  let scopeL = null, scopeR = null;
+  const outNode = () => desc()?.nodes.find(n => nodeTypes[n.type]?.master);
+  const eyeRect = node => { const { w } = nodeBox(nodeTypes[node.type], node); return { x: node.x + w - 20, y: node.y - 17, w: 20, h: 14 }; };
+  function setScope(on) {
+    const node = outNode();
+    if (!node) return;
+    if (on) node.scope = true; else delete node.scope;
+    scopeL = scopeR = null;
+    onScope(instId, on);
+    dirty = true;
+  }
   const group = new Set();   // nodes picked together with the lasso (or Shift+click): they move as one
   const ctx = canvas.getContext('2d');
   let W = canvas.width;
@@ -376,6 +389,11 @@ export function createPatcher({ canvas, panel, paramPanel = null, exposedDock = 
       e.preventDefault?.();
       drag = { kind: 'pan', x, y };
       return;
+    }
+    const master = outNode();
+    if (master && e.button === 0) {
+      const r = eyeRect(master);
+      if (x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h) { setScope(!master.scope); return; }
     }
     const hit = hitTest(desc(), nodeTypes, x, y);
     say('');
@@ -663,6 +681,38 @@ export function createPatcher({ canvas, panel, paramPanel = null, exposedDock = 
     ctx.restore();
   }
 
+  function drawScope(node, ink) {
+    const { w, h } = nodeBox(nodeTypes[node.type], node);
+    const x0 = node.x + w + 16, y0 = Math.max(2, node.y + h / 2 - SCOPE / 2), mid = y0 + SCOPE / 2, amp = SCOPE / 2 * 0.9;
+    ctx.save();
+    ctx.fillStyle = '#10161b'; ctx.fillRect(x0, y0, SCOPE, SCOPE);
+    ctx.strokeStyle = '#2b3a46'; ctx.lineWidth = 1; ctx.beginPath();
+    for (const f of [-1, -0.5, 0, 0.5, 1]) { const y = Math.round(mid - f * amp) + 0.5; ctx.moveTo(x0, y); ctx.lineTo(x0 + SCOPE, y); }
+    for (let i = 1; i < 8; i++) { const x = Math.round(x0 + i * SCOPE / 8) + 0.5; ctx.moveTo(x, y0); ctx.lineTo(x, y0 + SCOPE); }
+    ctx.stroke();
+    if (scopeL) {
+      let start = 0;   // trigger on a rising zero crossing of the mix, so a steady tone stands still
+      for (let i = 1; i < scopeL.length - SHOWN; i++) { const a = scopeL[i - 1] + scopeR[i - 1], b = scopeL[i] + scopeR[i]; if (a < 0 && b >= 0) { start = i; break; } }
+      let peak = 0;
+      for (const [buf, color] of [[scopeL, '#4fd1c5'], [scopeR, '#f6ad55']]) {
+        ctx.beginPath(); ctx.strokeStyle = color; ctx.lineWidth = 1.25;
+        for (let i = 0; i < SCOPE; i++) {
+          const v = buf[start + Math.floor(i * SHOWN / SCOPE)];
+          if (Math.abs(v) > peak) peak = Math.abs(v);
+          const y = mid - Math.max(-1.1, Math.min(1.1, v)) * amp;
+          if (i === 0) ctx.moveTo(x0, y); else ctx.lineTo(x0 + i, y);
+        }
+        ctx.stroke();
+      }
+      ctx.fillStyle = '#8aa'; ctx.font = '10px ui-monospace, Consolas, monospace'; ctx.textAlign = 'right'; ctx.textBaseline = 'top';
+      ctx.fillText(`peak ${peak > 1e-4 ? (20 * Math.log10(peak)).toFixed(1) : '-inf'} dB`, x0 + SCOPE - 6, y0 + 4);
+    }
+    ctx.fillStyle = '#4fd1c5'; ctx.font = '10px ui-monospace, Consolas, monospace'; ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.fillText('L', x0 + 6, y0 + 4);
+    ctx.fillStyle = '#f6ad55'; ctx.fillText('R', x0 + 18, y0 + 4);
+    ctx.strokeStyle = ink; ctx.globalAlpha = 0.5; ctx.strokeRect(x0 + 0.5, y0 + 0.5, SCOPE - 1, SCOPE - 1);
+    ctx.restore();
+  }
+
   function draw() {
     if (!dirty) return;
     dirty = false;
@@ -754,6 +804,16 @@ export function createPatcher({ canvas, panel, paramPanel = null, exposedDock = 
         });
       }
     }
+    const master = outNode();
+    if (master) {
+      const r = eyeRect(master), on = !!master.scope, cx = r.x + r.w / 2, cy = r.y + r.h / 2;
+      ctx.save();
+      ctx.strokeStyle = on ? accent : ink; ctx.fillStyle = on ? accent : ink; ctx.globalAlpha = on ? 1 : 0.55; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.moveTo(cx - 8, cy); ctx.quadraticCurveTo(cx, cy - 9, cx + 8, cy); ctx.quadraticCurveTo(cx, cy + 9, cx - 8, cy); ctx.stroke();
+      ctx.beginPath(); ctx.arc(cx, cy, 2.8, 0, 2 * Math.PI); ctx.fill();
+      ctx.restore();
+      if (on) drawScope(master, ink);
+    }
     if (drag?.kind === 'lasso') {
       ctx.save();
       ctx.setLineDash([4, 3]); ctx.lineWidth = 1; ctx.strokeStyle = accent; ctx.fillStyle = 'hsl(210 70% 55% / 0.12)';
@@ -773,8 +833,13 @@ export function createPatcher({ canvas, panel, paramPanel = null, exposedDock = 
       instruments = next;
       this.show(instId in instruments ? instId : Object.keys(instruments)[0] ?? null);
     },
+    // the audio side's latest samples for the watched instrument
+    feedScope(id, l, r) { if (id === instId) { scopeL = l; scopeR = r; dirty = true; } },
     show(id) {
+      if (instId && instId !== id && outNode()?.scope) onScope(instId, false);
       instId = id;
+      scopeL = scopeR = null;
+      if (id && outNode()?.scope) onScope(id, true);
       selected = null;
       group.clear();
       drag = null;
