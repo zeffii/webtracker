@@ -53,6 +53,52 @@ export function connect(desc, nodeTypes, from, to) {
   desc.connections = [...desc.connections, [from, to]];
 }
 
+// Copies nodes with all their settings (parameters, data, ports) a little down and to the right, and the wires between
+// the copied nodes with them. The out node is never copied. Returns the new ids.
+export function duplicateNodes(desc, nodeTypes, ids, offset = { x: 30, y: 30 }) {
+  const map = new Map();
+  for (const id of ids) {
+    const src = desc.nodes.find(n => n.id === id);
+    if (!src || nodeTypes[src.type].master) continue;
+    const copy = structuredClone(src);
+    delete copy.scope;
+    const nid = addNode(desc, nodeTypes, src.type, { x: (src.x ?? 20) + offset.x, y: (src.y ?? 20) + offset.y });
+    Object.assign(desc.nodes.find(n => n.id === nid), copy, { id: nid, x: (src.x ?? 20) + offset.x, y: (src.y ?? 20) + offset.y });
+    map.set(id, nid);
+  }
+  const wires = [];
+  for (const [from, to] of desc.connections) {
+    const [fa, fp] = splitPort(from), [ta, tp] = splitPort(to);
+    if (map.has(fa) && map.has(ta)) wires.push([`${map.get(fa)}.${fp}`, `${map.get(ta)}.${tp}`]);
+  }
+  desc.connections = [...desc.connections, ...wires];
+  return [...map.values()];
+}
+
+// Puts a node into the middle of a wire: from -> node -> to. The old wire goes. Throws (and changes nothing) if that
+// would make a loop.
+export function insertOnWire(desc, nodeTypes, id, link) {
+  const node = desc.nodes.find(n => n.id === id), def = nodeTypes[node.type];
+  const before = desc.connections;
+  try {
+    disconnect(desc, link[0], link[1]);
+    connect(desc, nodeTypes, link[0], `${id}.${inputsOf(node, def)[0]}`);
+    connect(desc, nodeTypes, `${id}.${def.outputs[0]}`, link[1]);
+  } catch (err) { desc.connections = before; throw err; }
+}
+
+// Takes a node out of a chain: whatever fed its first input now feeds whatever its first output fed.
+export function pullOut(desc, nodeTypes, id) {
+  const node = desc.nodes.find(n => n.id === id), def = nodeTypes[node.type];
+  const inn = `${id}.${inputsOf(node, def)[0]}`, out = `${id}.${def.outputs[0]}`;
+  const feeds = desc.connections.filter(([, t]) => t === inn).map(([f]) => f), sinks = desc.connections.filter(([f]) => f === out).map(([, t]) => t);
+  const before = desc.connections;
+  try {
+    desc.connections = desc.connections.filter(([f, t]) => t !== inn && f !== out);
+    for (const f of feeds) for (const t of sinks) connect(desc, nodeTypes, f, t);
+  } catch (err) { desc.connections = before; throw err; }
+}
+
 export function disconnect(desc, from, to) {
   const before = desc.connections.length;
   desc.connections = desc.connections.filter(([f, t]) => !(f === from && t === to));

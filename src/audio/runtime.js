@@ -83,6 +83,21 @@ export class GraphRuntime {
           note: msg => inner.note?.(msg),
         };
       }
+      const bypassAt = NODE_TYPES[n.type].params.findIndex(p => p.name === 'bypass');
+      if (bypassAt >= 0 && NODE_TYPES[n.type].category === 'Effects') {   // hard bypass: the input goes straight to the output
+        const inner = node.instance, slot = node.slots[bypassAt];
+        const pair = r => (Array.isArray(r) ? r : [r]);
+        node.instance = {
+          ...inner,
+          process: (ins, outs, len, params, slots) => {
+            if (params[slot] < 0.5) { inner.process(ins, outs, len, params, slots); return; }
+            const a = pair(ins[0]), b = pair(outs[0]);
+            for (let c = 0; c < b.length; c++) b[c].set((a[c] ?? a[0]).subarray(0, len), 0);
+          },
+          message: msg => inner.message?.(msg),
+          note: msg => inner.note?.(msg),
+        };
+      }
       return node;
     };
     const buffers0 = fresh(), resolve0 = resolver(buffers0);

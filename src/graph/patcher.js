@@ -1,5 +1,5 @@
 import { MODES, SIZES, scopeBox, headerHit, drawScope } from './scope.js';
-import { addNode, autoLayout, connect, disconnect, pruneDef, removeNode, setBits, setExposed, setParam, setPort } from './edit.js';
+import { addNode, autoLayout, connect, disconnect, duplicateNodes, insertOnWire, pruneDef, pullOut, removeNode, setBits, setExposed, setParam, setPort } from './edit.js';
 
 // The modular view: a canvas of nodes and wires for one instrument's graph, plus a panel
 // for the selected node's parameters. Drag a node to move it, drag from an output dot to
@@ -255,6 +255,46 @@ export function createPatcher({ canvas, panel, paramPanel = null, exposedDock = 
     });
   }
 
+  function duplicateSelected() {
+    if (!instId) return;
+    const ids = group.size ? [...group] : selected?.kind === 'node' ? [selected.id] : [];
+    if (!ids.length) return;
+    try {
+      const made = duplicateNodes(desc(), nodeTypes, ids);
+      if (!made.length) return;
+      group.clear();
+      if (made.length > 1) { for (const m of made) group.add(m); selected = null; } else selected = { kind: 'node', id: made[0] };
+      say(made.length > 1 ? `Duplicated ${made.length} nodes` : `Duplicated as ${made[0]}`);
+      renderPanel(); structure();
+    } catch (err) { say(err.message); }
+  }
+
+  // While one node is dragged: the wire it is over (it would be put into that wire on release), and whether it has
+  // been dragged out of its own chain (its neighbours would then be joined up).
+  function updateDrop() {
+    const id = drag.ids[0], node = desc().nodes.find(n => n.id === id), type = nodeTypes[node.type];
+    drag.hover = null; drag.pull = false;
+    const ins = inputsOf(node, type);
+    const kindIn = ins.length && !ins[0].startsWith('@') ? portKind(type, ins[0], node) : null, kindOut = type.outputs.length ? portKind(type, type.outputs[0], node) : null;
+    if (type.master || !kindIn || !kindOut || kindIn === 'control' || kindOut === 'control') return;
+    const { w, h } = nodeBox(type, node), cx = node.x + w / 2, cy = node.y + h / 2;
+    const { kindOf } = resolveKinds(desc(), nodeTypes);
+    let best = 16;
+    desc().connections.forEach((link, i) => {
+      if (link[0].split('.')[0] === id || link[1].split('.')[0] === id) return;
+      const { a, b, kind } = linkEnds(desc(), nodeTypes, link, kindOf);
+      if (kind !== 'audio' && kind !== 'stereo') return;
+      for (let s = 0; s <= 24; s++) { const p = bezier(a, b, s / 24), d = Math.hypot(p.x - cx, p.y - cy); if (d < best) { best = d; drag.hover = i; } }
+    });
+    if (drag.inline) {   // far from the line between its neighbours: pulled out of the chain
+      const { a, b } = drag.inline;
+      const dx = b.x - a.x, dy = b.y - a.y, t = Math.min(1, Math.max(0, ((cx - a.x) * dx + (cy - a.y) * dy) / (dx * dx + dy * dy || 1)));
+      drag.pull = Math.hypot(a.x + t * dx - cx, a.y + t * dy - cy) > 70;
+    }
+    const msg = drag.hover !== null ? `Release to put ${id} into this wire` : drag.pull ? `Release to take ${id} out of its chain` : '';
+    if (msg !== drag.msg) { drag.msg = msg; say(msg); }
+  }
+
   function removeSelected() {
     if (!instId) return;
     if (group.size) {
@@ -435,6 +475,9 @@ export function createPatcher({ canvas, panel, paramPanel = null, exposedDock = 
       items.splice(1, 0, ...rows, add);
     }
     if (!type.master) {
+      const dup = el('button', { textContent: 'Duplicate node', title: 'Copy this node with its settings (Ctrl+D)' });
+      dup.addEventListener('click', duplicateSelected);
+      items.push(dup);
       const del = el('button', { textContent: 'Delete node' });
       del.addEventListener('click', removeSelected);
       items.push(del);
@@ -443,6 +486,17 @@ export function createPatcher({ canvas, panel, paramPanel = null, exposedDock = 
   }
 
   // ---- mouse and keyboard ----
+  // For a node that sits in a chain (something into its first input, something out of its first output): where its
+  // neighbours' ports are, so that dragging it away from the line between them can be told.
+  function inlineOf(node) {
+    const type = nodeTypes[node.type], ins = inputsOf(node, type);
+    if (type.master || !ins.length || !type.outputs.length) return null;
+    const inn = `${node.id}.${ins[0]}`, out = `${node.id}.${type.outputs[0]}`;
+    const f = desc().connections.find(([, t]) => t === inn), t = desc().connections.find(([from]) => from === out);
+    if (!f || !t) return null;
+    return { a: linkEnds(desc(), nodeTypes, [f[0], inn]).a, b: linkEnds(desc(), nodeTypes, [out, t[1]]).b };
+  }
+
   canvas.addEventListener('mousedown', e => {
     if (!instId) return;
     canvas.focus?.();
@@ -474,7 +528,7 @@ export function createPatcher({ canvas, panel, paramPanel = null, exposedDock = 
       const id = hit.kind === 'node' ? hit.id : hit.node;
       const node = desc().nodes.find(n => n.id === id);
       selected = { kind: 'node', id };
-      drag = { kind: 'move', ids: [id], x, y, from: new Map([[id, { x: node.x, y: node.y }]]) };
+      drag = { kind: 'move', ids: [id], x, y, from: new Map([[id, { x: node.x, y: node.y }]]), inline: inlineOf(node) };
     } else if (hit?.kind === 'link') {
       selected = { kind: 'link', index: hit.index };
     } else {
@@ -491,6 +545,7 @@ export function createPatcher({ canvas, panel, paramPanel = null, exposedDock = 
       let dx = e.offsetX - drag.x, dy = e.offsetY - drag.y;
       for (const { x, y } of drag.from.values()) { dx = Math.max(dx, -x); dy = Math.max(dy, 14 - y); }   // none leaves the top or left edge (room above for the name)
       for (const [id, p] of drag.from) { const node = desc().nodes.find(n => n.id === id); node.x = p.x + dx; node.y = p.y + dy; }
+      if (drag.ids.length === 1) updateDrop();
     } else if (drag.kind === 'pan') {
       const dx = e.offsetX - drag.x, dy = e.offsetY - drag.y;
       drag.x = e.offsetX; drag.y = e.offsetY;
@@ -509,6 +564,16 @@ export function createPatcher({ canvas, panel, paramPanel = null, exposedDock = 
     const d = drag;
     drag = null;
     dirty = true;
+    if (d.kind === 'move' && (d.hover != null || d.pull)) {
+      const id = d.ids[0], link = d.hover != null ? [...desc().connections[d.hover]] : null;
+      try {
+        if (d.pull) pullOut(desc(), nodeTypes, id);
+        if (link) insertOnWire(desc(), nodeTypes, id, link);
+        say(link ? `${id} is now in that wire` : `${id} taken out of its chain`);
+        structure();
+      } catch (err) { say(err.message); }
+      return;
+    }
     if (d.kind === 'lasso') {
       const [x0, x1] = [Math.min(d.x0, d.x), Math.max(d.x0, d.x)], [y0, y1] = [Math.min(d.y0, d.y), Math.max(d.y0, d.y)];
       if (x1 - x0 < 4 && y1 - y0 < 4) return;   // a plain click
@@ -577,6 +642,7 @@ export function createPatcher({ canvas, panel, paramPanel = null, exposedDock = 
     // With a node selected, its parameter panel takes the arrows, Home/End, PageUp/PageDown and Enter (Alt+arrows move between nodes)
     if (paramView && selected?.kind === 'node' && !e.altKey && !e.metaKey && paramView.key(e)) { e.preventDefault?.(); return; }
     if (e.key === 'Escape') { onEscape(); e.preventDefault?.(); return; }
+    if (e.ctrlKey && !e.altKey && !e.metaKey && (e.key === 'd' || e.key === 'D')) { duplicateSelected(); e.preventDefault(); return; }
     if (e.key === 'Delete' || e.key === 'Backspace') {
       removeSelected();
       e.preventDefault();
@@ -767,14 +833,26 @@ export function createPatcher({ canvas, panel, paramPanel = null, exposedDock = 
     const { kindOf } = resolveKinds(desc(), nodeTypes);
     desc().connections.forEach((link, i) => {
       const { a, b, kind } = linkEnds(desc(), nodeTypes, link, kindOf);
-      const chosen = selected?.kind === 'link' && selected.index === i;
+      const hot = drag?.kind === 'move' && drag.hover === i;
+      const chosen = hot || (selected?.kind === 'link' && selected.index === i);
       ctx.beginPath();
       ctx.strokeStyle = chosen ? accent : KIND_COLOR[kind];
-      ctx.lineWidth = chosen ? 3.5 : kind === 'stereo' ? 3 : 1.75;   // a stereo pair is drawn heavier
+      ctx.lineWidth = hot ? 5 : chosen ? 3.5 : kind === 'stereo' ? 3 : 1.75;   // a stereo pair is drawn heavier
       ctx.moveTo(a.x, a.y);
       ctx.bezierCurveTo(a.x + 50, a.y, b.x - 50, b.y, b.x, b.y);
       ctx.stroke();
     });
+    if (drag?.kind === 'move' && drag.pull && drag.inline) {   // where the neighbours would be joined
+      ctx.save();
+      ctx.setLineDash([6, 5]);
+      ctx.strokeStyle = accent;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(drag.inline.a.x, drag.inline.a.y);
+      ctx.bezierCurveTo(drag.inline.a.x + 50, drag.inline.a.y, drag.inline.b.x - 50, drag.inline.b.y, drag.inline.b.x, drag.inline.b.y);
+      ctx.stroke();
+      ctx.restore();
+    }
     if (drag?.kind === 'connect') {
       const [id, port] = drag.from.split('.');
       const node = desc().nodes.find(n => n.id === id), type = nodeTypes[node.type];
@@ -855,6 +933,19 @@ export function createPatcher({ canvas, panel, paramPanel = null, exposedDock = 
       ctx.restore();
     }
     for (const node of desc().nodes) if (node.scope) drawScope(ctx, scopeRectOf(node), node.scope, scopeData.get(node.id), ink);
+    if (drag?.kind === 'move' && drag.hover != null) {   // the wire the node would go into, over the nodes so it shows
+      const { a, b } = linkEnds(desc(), nodeTypes, desc().connections[drag.hover]);
+      ctx.save();
+      ctx.shadowColor = accent;
+      ctx.shadowBlur = 10;
+      ctx.strokeStyle = accent;
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.moveTo(a.x, a.y);
+      ctx.bezierCurveTo(a.x + 50, a.y, b.x - 50, b.y, b.x, b.y);
+      ctx.stroke();
+      ctx.restore();
+    }
     if (drag?.kind === 'lasso') {
       ctx.save();
       ctx.setLineDash([4, 3]); ctx.lineWidth = 1; ctx.strokeStyle = accent; ctx.fillStyle = 'hsl(210 70% 55% / 0.12)';

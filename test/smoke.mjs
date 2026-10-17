@@ -4251,6 +4251,35 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   assert.ok(grab() < 18000, 'a rewrite of the column starts a glide');
 }
 
+// Bypass, duplicate, insert on a wire, pull out of a chain.
+{
+  const registry = new ParamRegistry();
+  const osc = { id: 'osc', type: 'osc', params: { wave: 1 } };
+  const graph = { nodes: [osc, { id: 'fx', type: 'crusher', params: { bits: 3 } }, { id: 'out', type: 'out' }], connections: [['osc.out', 'fx.in'], ['fx.out', 'out.in']] };
+  const run = (g, id, bypass) => {
+    const rt = new GraphRuntime({ sampleRate: sr, params: registry.values });
+    rt.load(compile(g, { instrument: id, nodeTypes: NODE_TYPES, registry }));
+    if (bypass !== undefined) registry.set(`${id}.fx.bypass`, bypass);
+    rt.note(id, { type: 'noteOn', note: 48, vel: 1 });
+    return render(rt, 0.2).left;
+  };
+  const direct = run({ nodes: [osc, { id: 'out', type: 'out' }], connections: [['osc.out', 'out.in']] }, 'by0');
+  const on = run(graph, 'by1', 1), off = run(graph, 'by2', 0);
+  assert.ok(on.every((v, i) => Math.abs(v - direct[i]) < 1e-6), 'a bypassed effect passes the signal');
+  assert.ok(off.some((v, i) => Math.abs(v - direct[i]) > 1e-3), 'an active effect changes it');
+  const d = { nodes: [{ id: 'osc', type: 'osc', x: 0, y: 0 }, { id: 'g', type: 'gain', x: 100, y: 0, params: { gain: 0.5 } }, { id: 'out', type: 'out', x: 300, y: 0 }], connections: [['osc.out', 'out.in']] };
+  gedit.insertOnWire(d, NODE_TYPES, 'g', ['osc.out', 'out.in']);
+  assert.deepEqual(d.connections, [['osc.out', 'g.in'], ['g.out', 'out.in']]);
+  gedit.pullOut(d, NODE_TYPES, 'g');
+  assert.deepEqual(d.connections, [['osc.out', 'out.in']]);
+  gedit.insertOnWire(d, NODE_TYPES, 'g', ['osc.out', 'out.in']);
+  const [copy] = gedit.duplicateNodes(d, NODE_TYPES, ['g']);
+  assert.equal(d.nodes.find(n => n.id === copy).params.gain, 0.5);
+  assert.notEqual(d.nodes.find(n => n.id === copy).params, d.nodes.find(n => n.id === 'g').params);
+  const both = gedit.duplicateNodes(d, NODE_TYPES, ['osc', 'g']);
+  assert.ok(d.connections.some(([f, t]) => f === `${both[0]}.out` && t === `${both[1]}.in`), 'wires between copies are copied');
+}
+
 console.log('smoke test passed');
 
 // 115. Plucked string: pitch, decay time, damping, pluck position, release.

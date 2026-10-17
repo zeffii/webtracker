@@ -49,4 +49,8 @@ import ctrl from './ctrl.js';
 import voices from './voices.js';
 
 // Node type registry. Adding a node type means adding a module and listing it here.
-export const NODE_TYPES = { sampler, osc, env, lfo, gain, mix, pan, filter, delay, chorus, phaser, flanger, distortion, multitap, shiva, blur, gater, freqshift, waveshaper, exciter, transient, split, compressor, gate, envfx, eq, crusher, ctrl, notetrig, follower, sidechain, hall, plate, shimmer, subsynth, oberheim, piano, addsynth, fmsynth, dvii, wavetable, granular, specsynth, string, voices, out, sum, sumst, fold };
+const TYPES = { sampler, osc, env, lfo, gain, mix, pan, filter, delay, chorus, phaser, flanger, distortion, multitap, shiva, blur, gater, freqshift, waveshaper, exciter, transient, split, compressor, gate, envfx, eq, crusher, ctrl, notetrig, follower, sidechain, hall, plate, shimmer, subsynth, oberheim, piano, addsynth, fmsynth, dvii, wavetable, granular, specsynth, string, voices, out, sum, sumst, fold };
+
+// Every effect gets a hard bypass switch as its last parameter (the runtime passes the input straight through while it is on).
+export const NODE_TYPES = TYPES;
+for (const t of Object.values(TYPES)) if (t.category === 'Effects' && t.type !== 'split') t.params = [...(t.params ?? []), { name: 'bypass', min: 0, max: 1, def: 0, int: true }];
