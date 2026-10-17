@@ -127,13 +127,13 @@
     #seq .mk.mu { background: hsl(150 60% 45% / .4); }
     #seq .muted { opacity: .45; }
     #seq .silenced { opacity: .2; }
-    #view { overflow-x: auto; color: #f0707a; }   /* the strongest text of the pattern grid: the accent red of the shortcut keys; the quieter rows fade it */
+    #view { overflow-x: auto; --ink: 76%; color: color-mix(in srgb, CanvasText var(--ink), var(--panel)); }   /* the plain rows: a little softer than full black */
     #view .g { position: sticky; left: 0; display: inline-block; background: var(--panel); }   /* the tick numbers stay put when scrolled sideways */
     #view .cell { background: color-mix(in srgb, Highlight 25%, transparent); }
     #view .cc { color: light-dark(#2a5db0, #7fb0ff); }
     #view .off { opacity: .3; }
     #view .r4 { opacity: .7; }   /* every 4th tick, and every 16th a little more, to help the eye keep its place */
-    #view .r16 { opacity: .4; }
+    #view .r16 { color: #f0707a; }   /* every 16th tick, the bar line, in the accent red */
     #view .d { opacity: .5; }   /* the dots of empty cells */
     #view .cur .d { opacity: 1; }
     #view .sel { background: color-mix(in srgb, Highlight 40%, transparent); }
