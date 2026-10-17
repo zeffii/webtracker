@@ -809,8 +809,7 @@ const hit = 'C-2 .. .. ..';
 
   // select a node: the panel lists its parameters
   fire('mousedown', mid('osc')); fire('mouseup', mid('osc'));
-  let sliders = []; walk(panel, e => { if (e.tag === 'input' && e.type === 'range') sliders.push(e); });
-  assert.equal(sliders.length, NODE_TYPES.osc.params.length);
+  assert.equal(patcher.paramRows().length, NODE_TYPES.osc.params.length);
 
   // drag a node
   const from = mid('vca'), x0 = node('vca').x;
@@ -831,15 +830,13 @@ const hit = 'C-2 .. .. ..';
 
   // a slider changes a parameter live and in the saved graph; expose adds a column
   fire('mousedown', mid('osc')); fire('mouseup', mid('osc'));
-  sliders = []; const boxes = [];
-  walk(panel, e => { if (e.tag === 'input' && e.type === 'range') sliders.push(e); if (e.tag === 'input' && e.type === 'checkbox') boxes.push(e); });
-  const tune = NODE_TYPES.osc.params.findIndex(p => p.name === 'tune');
-  sliders[tune].value = 750;                             // three quarters of -48..48 is +24 semitones
-  sliders[tune].listeners.input();
+  const tuneRow = () => patcher.paramRows().find(r => r.name === 'tune');
+  tuneRow().setPos(0.75);                                // three quarters of -48..48 is +24 semitones
   assert.equal(params.at(-1)[2], 'tune');
   assert.ok(Math.abs(params.at(-1)[3] - 24) < 1e-6);
   assert.equal(node('osc').params.tune, 24);
-  boxes[tune * 2].checked = true; boxes[tune * 2].listeners.change();
+  assert.equal(tuneRow().display(), '+24 st', 'the row writes the value in its own units');
+  tuneRow().expose(true);
   assert.ok(defs.kick.exposed.some(e => e.node === 'osc' && e.param === 'tune'));
   assert.equal(structures.length, 3);
 
@@ -1020,22 +1017,18 @@ const hit = 'C-2 .. .. ..';
   const point = { x: osc.x + 70, y: osc.y + 10 };
   canvas.listeners.mousedown({ offsetX: point.x, offsetY: point.y, preventDefault() {} });
   canvas.listeners.mouseup({ offsetX: point.x, offsetY: point.y });
-  const rows = [];
-  walk(panel, e => { if (e.className === 'prow nrow') rows.push(e); });
-  const rowFor = name => rows[NODE_TYPES.osc.params.findIndex(p => p.name === name)];
-  const parts = row => { const f = { boxes: [], selects: [] }; walk(row, e => { if (e.tag === 'input' && e.type === 'checkbox') f.boxes.push(e); if (e.tag === 'select') f.selects.push(e); }); return f; };
+  const rowFor = name => patcher.paramRows().find(r => r.name === name);
 
-  const reset = parts(rowFor('reset'));
-  assert.equal(reset.selects[0].disabled, true, 'the dropdown is off until the parameter is exposed');
-  reset.boxes[0].checked = true; reset.boxes[0].listeners.change();
-  assert.equal(reset.selects[0].disabled, false);
-  assert.equal(reset.selects[0].value, '4', 'a whole-number parameter defaults to 1hex');
-  reset.selects[0].value = '16'; reset.selects[0].listeners.change();
+  const reset = rowFor('reset');
+  assert.equal(reset.exposed, false, 'nothing is exposed until asked');
+  reset.expose(true);
+  assert.equal(rowFor('reset').exposed, true);
+  assert.equal(rowFor('reset').bits, 4, 'a whole-number parameter defaults to 1hex');
+  rowFor('reset').setBits(16);
   assert.equal(defs.kick.exposed.find(e => e.param === 'reset').bits, 16);
   {
-    const hexSpan = row => { let h; walk(row, e => { if (e.className === 'hexv') h = e; }); return h; };
-    assert.equal(hexSpan(rowFor('reset')).textContent, '0001', 'an exposed parameter shows its pattern value in hex, at the column width (reset is 1, 4hex)');
-    assert.equal(hexSpan(rowFor('freq')).textContent, '', 'a parameter that is not exposed shows none');
+    assert.equal(rowFor('reset').hex(), '0001', 'an exposed parameter shows its pattern value in hex, at the column width (reset is 1, 4hex)');
+    assert.equal(rowFor('freq').hex(), '', 'a parameter that is not exposed shows none');
     const spec = { min: 20, max: 18000 };
     assert.equal(hexOf(spec, { bits: 8 }, 20), '00');
     assert.equal(hexOf(spec, { bits: 8 }, 18000), 'FF');
@@ -1043,13 +1036,12 @@ const hit = 'C-2 .. .. ..';
     assert.equal(hexOf({ min: 0, max: 255, int: true }, { bits: 4 }, 300), 'F', 'whole numbers are the number itself, clamped to the column');
     assert.equal(hexOf({ min: -1, max: 1 }, { bits: 16 }, 0), '8000');
   }
-  reset.selects[0].value = '8'; reset.selects[0].listeners.change();
+  rowFor('reset').setBits(8);
   assert.equal(defs.kick.exposed.find(e => e.param === 'reset').bits, undefined, '2hex is the default and is stored as no bits');
   assert.equal(structures.length, 3);
 
-  const tune = parts(rowFor('tune'));
-  tune.boxes[0].checked = true; tune.boxes[0].listeners.change();
-  assert.equal(tune.selects[0].value, '8', 'a continuous parameter defaults to 2hex');
+  rowFor('tune').expose(true);
+  assert.equal(rowFor('tune').bits, 8, 'a continuous parameter defaults to 2hex');
 }
 
 // ---- milestone 6: samples, instruments, lanes ----
@@ -3191,35 +3183,29 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   const doc = { createElement: makeEl, createTextNode: text => ({ text }) };
   const ctx = new Proxy({}, { get: (t, k) => (k in t ? t[k] : () => {}), set: (t, k, v) => { t[k] = v; return true; } });
   const canvas = { width: 900, height: 360, style: {}, listeners: {}, getContext: () => ctx, addEventListener(type, f) { this.listeners[type] = f; }, focus() {} };
-  const panel = makeEl('div'), exposedPanel = makeEl('div'), defs = structuredClone(instruments);
+  const panel = makeEl('div'), defs = structuredClone(instruments);
   const params = [];
   let escaped = 0;
-  const patcher = createPatcher({ canvas, panel, exposedPanel, onEscape: () => { escaped++; }, statusEl: {}, doc, nodeTypes: NODE_TYPES, onStructure() {}, onParam: (...a) => params.push(a) });
+  const patcher = createPatcher({ canvas, panel, onEscape: () => { escaped++; }, statusEl: {}, doc, nodeTypes: NODE_TYPES, onStructure() {}, onParam: (...a) => params.push(a) });
   patcher.load({ instruments: defs });
   patcher.show('lead');
-  const rows = []; walk(exposedPanel, e => { if (e.className === 'prow xrow') rows.push(e); });
-  assert.equal(rows.length, defs.lead.exposed.length, 'one slider per exposed parameter');
+  const rows = patcher.exposedRows();
+  assert.equal(rows.length, defs.lead.exposed.length, 'one row per exposed parameter');
   assert.ok(rows.length >= 2);
-  const sliderOf = row => row.children.find(c => c.type === 'range');
-  const x = defs.lead.exposed.find(e => e.param === 'cutoff'), first = sliderOf(rows[defs.lead.exposed.indexOf(x)]);
-  const before = Number(first.value);
-  first.listeners.keydown({ key: 'ArrowRight', preventDefault() {} });
-  assert.equal(Number(first.value), before + 5, 'Right moves a slider a little');
-  first.listeners.keydown({ key: 'ArrowRight', shiftKey: true, preventDefault() {} });
-  assert.equal(Number(first.value), before + 55, 'Shift moves it further');
-  first.listeners.keydown({ key: 'ArrowLeft', shiftKey: true, preventDefault() {} });
-  assert.equal(Number(first.value), before + 5);
+  const x = defs.lead.exposed.find(e => e.param === 'cutoff'), first = rows[defs.lead.exposed.indexOf(x)];
+  assert.equal(first.name, x.label, 'a row carries the pattern column label');
+  const before = first.pos();
+  first.setPos(Math.min(1, before + 0.05));
+  assert.ok(Math.abs(patcher.exposedRows()[defs.lead.exposed.indexOf(x)].pos() - Math.min(1, before + 0.05)) < 1e-6, 'moving a row moves the parameter');
   assert.deepEqual(params.at(-1).slice(0, 3), ['lead', x.node, x.param], 'moving it changes the parameter');
-  first.value = '1000'; first.listeners.keydown({ key: 'ArrowRight', preventDefault() {} });
-  assert.equal(Number(first.value), 1000, 'a slider stops at its end');
-  // the node's own slider follows when the node is selected, and the other way round
+  first.setPos(1);
+  assert.equal(patcher.exposedRows()[defs.lead.exposed.indexOf(x)].pos(), 1, 'a row stops at its end');
+  // the node's own row follows when the node is selected
   const node = defs.lead.graph.nodes.find(n => n.id === x.node);
   const { w, h } = nodeBox(NODE_TYPES[node.type]);
   canvas.listeners.mousedown({ offsetX: node.x + w / 2, offsetY: node.y + h / 2, preventDefault() {} });
   canvas.listeners.mouseup({ offsetX: node.x + w / 2, offsetY: node.y + h / 2 });
-  const nodeRows = []; walk(panel, e => { if (e.className === 'prow nrow') nodeRows.push(e); });
-  const own = sliderOf(nodeRows[NODE_TYPES[node.type].params.findIndex(p => p.name === x.param)]);
-  assert.equal(Number(own.value), 1000);
+  assert.equal(patcher.paramRows().find(r => r.name === x.param).pos(), 1);
   // keyboard moves between nodes
   const key = k => canvas.listeners.keydown({ key: k, preventDefault() {} });
   patcher.show('lead');
@@ -3314,7 +3300,7 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   const ctx = new Proxy({}, { get: (t, k) => (k in t ? t[k] : () => {}), set: (t, k, v) => { t[k] = v; return true; } });
   const canvas = { width: 900, height: 360, style: {}, listeners: {}, getContext: () => ctx, addEventListener(type, f) { this.listeners[type] = f; }, focus() {} };
   const defs = structuredClone(instruments), notes = [], status = { textContent: '' };
-  const patcher = createPatcher({ canvas, panel: makeEl('div'), exposedPanel: makeEl('div'), statusEl: status, doc, nodeTypes: NODE_TYPES, onStructure() {}, onParam() {}, onNote: (...a) => notes.push(a) });
+  const patcher = createPatcher({ canvas, panel: makeEl('div'), statusEl: status, doc, nodeTypes: NODE_TYPES, onStructure() {}, onParam() {}, onNote: (...a) => notes.push(a) });
   patcher.load({ instruments: defs });
   patcher.show('lead');
   const down = (key, extra) => canvas.listeners.keydown({ key, preventDefault() {}, ...extra });

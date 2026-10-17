@@ -124,7 +124,7 @@ const toValue = (spec, pos) => {
 const toPos = (spec, v) => (isLog(spec) ? Math.log(v / spec.min) / Math.log(spec.max / spec.min) : (v - spec.min) / (spec.max - spec.min));
 const fmt = v => String(Number(v.toPrecision(4)));
 
-export function createPatcher({ canvas, panel, paramPanel = null, exposedPanel = null, exposedDock = null, onEscape = () => {}, statusEl, doc = document, nodeTypes, onStructure, onParam, onData = () => {}, onContext = () => {}, onNote = () => {}, getSampleIds = () => [], getSample = () => null }) {
+export function createPatcher({ canvas, panel, paramPanel = null, exposedDock = null, onEscape = () => {}, statusEl, doc = document, nodeTypes, onStructure, onParam, onData = () => {}, onContext = () => {}, onNote = () => {}, getSampleIds = () => [], getSample = () => null }) {
   let tableEditor = null;   // the wavetable panel of the selected node, redrawn when position or mix move
   let instruments = {}, instId = null, selected = null, drag = null, dirty = true;
   const ctx = canvas.getContext('2d');
@@ -235,58 +235,21 @@ export function createPatcher({ canvas, panel, paramPanel = null, exposedPanel =
     }
   }
 
-  // A slider that reads as a small rect: filled to its value (--p), and moved by Left/Right (Shift for more),
-  // - and = as well. onMove runs after every change, by mouse or key.
-  function rectSlider(slider, onMove) {
-    const paint = () => slider.style.setProperty?.('--p', `${Number(slider.value) / 10}%`);
-    slider.className = 'rect';
-    slider.addEventListener('input', () => { paint(); onMove(); });
-    slider.addEventListener('keydown', e => {
-      const dir = { ArrowRight: 1, ArrowLeft: -1, '=': 1, '+': 1, '-': -1, _: -1 }[e.key];
-      if (!dir) return;
-      const step = e.shiftKey ? 50 : 5;
-      slider.value = Math.min(1000, Math.max(0, Number(slider.value) + dir * step));
-      paint();
-      onMove();
-      e.preventDefault();
+  // The exposed parameters: the rows of the left dock, each named by its pattern-column label.
+  function exposedRows() {
+    if (!instId) return [];
+    return def().exposed.flatMap(x => {
+      const node = desc().nodes.find(n => n.id === x.node);
+      const type = node && nodeTypes[node.type];
+      const row = type && rowsFor(node, type).find(r => r.name === x.param);
+      return row ? [Object.create(row, { name: { value: x.label } })] : [];
     });
-    paint();
-    return slider;
   }
 
-  // The exposed parameters as sliders of their own, so a sound can be played with without finding the node.
   function renderExposed() {
-    if (exposedView) {
-      if (!instId) { exposedView.hide(); return; }
-      const rows = def().exposed.flatMap(x => {
-        const node = desc().nodes.find(n => n.id === x.node);
-        const type = node && nodeTypes[node.type];
-        const row = type && rowsFor(node, type).find(r => r.name === x.param);
-        return row ? [Object.create(row, { name: { value: x.label } })] : [];
-      });
-      exposedView.show('exposed', rows, exposedView.cursor, 'Nothing exposed yet. Select a node, press Enter on a row and choose "Expose".');
-      return;
-    }
-    if (!exposedPanel) return;
-    if (!instId) { exposedPanel.replaceChildren(); return; }
-    const rows = def().exposed.flatMap(x => {
-      const node = desc().nodes.find(n => n.id === x.node);
-      const spec = node && nodeTypes[node.type]?.params.find(p => p.name === x.param);
-      if (!spec) return [];
-      const value = node.params?.[spec.name] ?? spec.def;
-      const out = el('output', { textContent: fmt(value) });
-      const slider = el('input', { type: 'range', min: 0, max: 1000, step: 1, value: Math.round(toPos(spec, value) * 1000), ariaLabel: `${x.label} (${x.node}.${x.param})` });
-      rectSlider(slider, () => {
-        const v = toValue(spec, Number(slider.value) / 1000);
-        setParam(desc(), node.id, spec.name, v);
-        out.textContent = fmt(v);
-        onParam(instId, node.id, spec.name, v);
-        dirty = true;
-        if (selected?.kind === 'node' && selected.id === node.id) { renderNodePanel(); tableEditor?.refresh(); }   // the node's own slider follows
-      });
-      return [el('div', { className: 'prow xrow' }, el('span', { textContent: x.label, title: `${x.node}.${x.param}` }), slider, out, el('span', { className: 'help', textContent: `${x.node}.${x.param}` }))];
-    });
-    exposedPanel.replaceChildren(...(rows.length ? rows : [el('p', { className: 'help' }, 'Nothing exposed yet: tick "expose" on a node parameter to make it a pattern column.')]));
+    if (!exposedView) return;
+    if (!instId) { exposedView.hide(); return; }
+    exposedView.show('exposed', exposedRows(), exposedView.cursor, 'Nothing exposed yet. Select a node, press Enter on a row and choose "Expose".');
   }
 
   const renderPanel = () => { renderNodePanel(); renderExposed(); };
@@ -304,67 +267,7 @@ export function createPatcher({ canvas, panel, paramPanel = null, exposedPanel =
       paramView.show(`${node.id} · ${node.type}`, rowsFor(node, type), shownNode === node.id ? paramView.cursor : cursorMemo.get(node.id) ?? 0);
       shownNode = node.id;
     }
-    const rows = paramView ? [] : type.params.map(spec => {
-      const value = node.params?.[spec.name] ?? spec.def;
-      const out = el('output', { textContent: fmt(value) });
-      // the hex a pattern cell would hold for the slider's value, shown only while the parameter is exposed
-      const entry = () => def().exposed.find(e => e.node === node.id && e.param === spec.name);
-      const hex = el('span', { className: 'hexv', title: 'The pattern cell value for this setting' });
-      let shown = value;
-      const showHex = () => { const e = entry(); hex.textContent = e ? hexOf(spec, e, shown) : ''; };
-      showHex();
-      const slider = el('input', { type: 'range', min: 0, max: 1000, step: spec.int ? 1000 / (spec.max - spec.min) : 1, value: Math.round(toPos(spec, value) * 1000) });
-      rectSlider(slider, () => {
-        const v = toValue(spec, Number(slider.value) / 1000);
-        setParam(desc(), node.id, spec.name, v);
-        out.textContent = fmt(v);
-        shown = v; showHex();
-        onParam(instId, node.id, spec.name, v);
-        dirty = true;   // the envelope drawn beside the node follows
-        if (spec.name === 'position' || spec.name === 'mix' || spec.name === 'source') tableEditor?.refresh();
-        if (def().exposed.some(x => x.node === node.id && x.param === spec.name)) renderExposed();   // the exposed copy follows
-      });
-      const current = def().exposed.find(e => e.node === node.id && e.param === spec.name);
-      const exposed = el('input', { type: 'checkbox', checked: !!current });
-      // The column width of an exposed parameter: 1hex (16 steps), 2hex (256) or 4hex (65536).
-      const width = el('select', { disabled: !current, value: String(current?.bits ?? 8) },
-        ...[['4', '1hex'], ['8', '2hex'], ['16', '4hex']].map(([bits, label]) => el('option', { value: bits, textContent: label })));
-      width.value = String(current?.bits ?? 8);
-      exposed.addEventListener('change', () => {
-        setExposed(def(), nodeTypes, node.id, spec.name, exposed.checked);
-        width.disabled = !exposed.checked;
-        width.value = String(def().exposed.find(e => e.node === node.id && e.param === spec.name)?.bits ?? 8);
-        showHex();
-        structure();
-      });
-      width.addEventListener('change', () => {
-        setBits(def(), node.id, spec.name, Number(width.value));
-        showHex();
-        structure();
-      });
-      // a port of its own: a wire from a ctrl node into the node then drives this parameter
-      const port = el('input', { type: 'checkbox', checked: (node.ports ?? []).includes(spec.name) });
-      port.addEventListener('change', () => {
-        setPort(desc(), nodeTypes, node.id, spec.name, port.checked);
-        structure();
-        dirty = true;
-      });
-      exposed.title = `Make ${spec.name} a pattern column`; exposed.ariaLabel = `expose ${spec.name}`;
-      port.title = `Give ${spec.name} an input on the node, to wire a control node into`; port.ariaLabel = `port ${spec.name}`;
-      const hint = el('span', { className: 'hbox', textContent: '?', tabIndex: 0, ariaLabel: `About ${spec.name}` });
-      const tip = () => ({ title: spec.name, text: hintFor(node.type, spec), facts: factsFor(spec) });
-      hint.addEventListener('mouseenter', () => showTip(hint, tip()));
-      hint.addEventListener('focus', () => showTip(hint, tip()));
-      hint.addEventListener('mouseleave', hideTip);
-      hint.addEventListener('blur', hideTip);
-      return el('div', { className: 'prow nrow' }, el('span', { textContent: spec.name }), hint, hex, slider, out, exposed, width, port);
-    });
-    // one set of column labels above the rows, instead of a label on every row
-    const head = paramView ? null : el('div', { className: 'prow nrow phead' }, el('span'), el('span'), el('span'), el('span'), el('span'),
-      el('span', { textContent: 'expose', title: 'Make the parameter a column in the pattern' }),
-      el('span', { textContent: 'width', title: 'How many hex digits the pattern column takes' }),
-      el('span', { textContent: 'port', title: 'Give the parameter an input on the node, to wire a control node into' }));
-    const items = paramView ? [] : [el('h3', {}, `${node.id} (${node.type})`), head, ...rows];
+    const items = [];
     if (type.instrumentSource) {   // which instrument this node listens to; the ones that would make a loop are not offered
       const options = eligibleSources(instruments, instId).filter(id => id !== instId);
       const pick = el('select', { ariaLabel: 'Instrument to listen to' }, el('option', { value: '', textContent: '(none)' }), ...options.map(id => el('option', { value: id, textContent: id })));
@@ -842,6 +745,9 @@ export function createPatcher({ canvas, panel, paramPanel = null, exposedPanel =
     },
     // Draws the panel again, for when parameters were changed from outside (a preset).
     refreshPanel() { renderPanel(); dirty = true; },
+    // The rows behind the two parameter panels (what they draw), for the tests and for anything that wants the values.
+    paramRows() { const node = selected?.kind === 'node' ? desc().nodes.find(n => n.id === selected.id) : null; return node ? rowsFor(node, nodeTypes[node.type]) : []; },
+    exposedRows,
     // Changes the width of the graph area in CSS pixels; the graph is drawn again at once.
     fit(width) {
       const w = Math.round(Math.max(400, width));
