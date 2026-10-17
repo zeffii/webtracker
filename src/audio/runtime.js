@@ -13,8 +13,8 @@ export class GraphRuntime {
   samples = new Map();     // the last sample message per instrument and node, replayed on a rebuild
   stamp = 0;               // counts note events, to find the oldest voice
   onFault = null;          // called with an instrument id when it is rebuilt
-  onScope = null;          // called with (instrument id, left, right): the last SCOPE_N samples of a watched instrument
-  scopes = new Map();      // watched instruments: id -> { l, r, at, since }
+  onScope = null;          // called with (instrument id, node id, left, right): the last SCOPE_N samples a watched node put out
+  scopes = new Map();      // watched nodes: key -> { instrument, node, l, r, at, since }
 
   constructor({ sampleRate, params, maxBlock = 512, wasm = null }) {
     this.wasm = wasm;           // compiled WebAssembly.Module for the DSP kernels, or null for the JS reference
@@ -26,10 +26,11 @@ export class GraphRuntime {
     this.clock = { tickSamples: (sampleRate * 60) / (120 * 4), stamps: new Uint32Array(PARAM_CAPACITY) };
   }
 
-  // Starts or stops watching an instrument's output (the scope in the graph view).
-  setScope(id, on) {
-    if (!on) this.scopes.delete(id);
-    else if (!this.scopes.has(id)) this.scopes.set(id, { l: new Float32Array(SCOPE_N), r: new Float32Array(SCOPE_N), at: 0, since: 0 });
+  // Starts or stops watching the output of one node (the scope beside it in the graph view).
+  setScope(instrument, node, on) {
+    const key = `${instrument}\u0000${node}`;
+    if (!on) this.scopes.delete(key);
+    else if (!this.scopes.has(key)) this.scopes.set(key, { instrument, node, l: new Float32Array(SCOPE_N), r: new Float32Array(SCOPE_N), at: 0, since: 0, type: null });
   }
 
   // Drops every instrument and switches to a new parameter block.
@@ -260,8 +261,7 @@ export class GraphRuntime {
         continue;
       }
       inst.block = this.blockNo;
-      const scope = this.scopes.get(id);
-      if (scope) this.watch(id, scope, inst, n);
+      if (this.scopes.size) for (const scope of this.scopes.values()) if (scope.instrument === id) this.watch(scope, inst, n);
       for (let i = 0; i < n; i++) {
         left[i] += inst.left[i];
         right[i] += inst.right[i];
@@ -269,16 +269,33 @@ export class GraphRuntime {
     }
   }
 
-  // Keeps the last SCOPE_N samples of the output in a ring and hands them over, oldest first, every SCOPE_HOP samples.
-  watch(id, s, inst, n) {
-    for (let i = 0; i < n; i++) { s.l[s.at] = inst.left[i]; s.r[s.at] = inst.right[i]; s.at = (s.at + 1) % SCOPE_N; }
+  // Keeps the last SCOPE_N samples of a node's first output in a ring (the voices' copies added together when it is a
+  // per-voice node) and hands them over, oldest first, every SCOPE_HOP samples. A mono output is shown on both sides.
+  watch(s, inst, n) {
+    const list = inst.byId.get(s.node);
+    if (!list) return;
+    s.type ??= this.graphs.get(s.instrument)?.nodes.find(k => k.id === s.node)?.type;
+    const tl = (this.scopeTemp ??= [new Float32Array(this.maxBlock), new Float32Array(this.maxBlock)])[0], tr = this.scopeTemp[1];
+    const pair = node => { const o = node.outputs; return Array.isArray(o[0]) ? o[0] : s.type === 'out' ? [o[0], o[1]] : [o[0], o[0]]; };
+    let l, r;
+    if (list.length === 1) [l, r] = pair(list[0]);
+    else {
+      tl.fill(0, 0, n); tr.fill(0, 0, n);
+      list.forEach((node, v) => {
+        if (!node || !inst.sets[v]?.active) return;
+        const [a, b] = pair(node);
+        for (let i = 0; i < n; i++) { tl[i] += a[i]; tr[i] += b[i]; }
+      });
+      l = tl; r = tr;
+    }
+    for (let i = 0; i < n; i++) { s.l[s.at] = l[i]; s.r[s.at] = r[i]; s.at = (s.at + 1) % SCOPE_N; }
     s.since += n;
     if (s.since < SCOPE_HOP) return;
     s.since = 0;
-    const l = new Float32Array(SCOPE_N), r = new Float32Array(SCOPE_N), tail = SCOPE_N - s.at;
-    l.set(s.l.subarray(s.at), 0); l.set(s.l.subarray(0, s.at), tail);
-    r.set(s.r.subarray(s.at), 0); r.set(s.r.subarray(0, s.at), tail);
-    this.onScope?.(id, l, r);
+    const outL = new Float32Array(SCOPE_N), outR = new Float32Array(SCOPE_N), tail = SCOPE_N - s.at;
+    outL.set(s.l.subarray(s.at), 0); outL.set(s.l.subarray(0, s.at), tail);
+    outR.set(s.r.subarray(s.at), 0); outR.set(s.r.subarray(0, s.at), tail);
+    this.onScope?.(s.instrument, s.node, outL, outR);
   }
 
   // Fresh node state for an instrument, with its samples put back.

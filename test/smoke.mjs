@@ -4423,25 +4423,44 @@ console.log('smoke test passed');
   assert.ok(e5 > 1.3 * e0, 'an envelope after the voices opens the filter');
 }
 
-// 124. The scope hands over the last 2048 samples of a watched instrument, oldest first, every 1024 samples.
+// 124. A scope hands over the last 2048 samples of one node's output, oldest first, every 1024 samples.
 {
-  const registry = new ParamRegistry(), rt = new GraphRuntime({ sampleRate: sr, params: registry.values });
-  rt.load(compile({ nodes: [{ id: 'osc', type: 'osc', params: { freq: 441, wave: 0 } }, { id: 'out', type: 'out' }], connections: [['osc.out', 'out.in']] }, { instrument: 'a', nodeTypes: NODE_TYPES, registry }));
-  const got = [];
-  rt.onScope = (id, l, r) => got.push({ id, l, r });
+  const build = voices => {
+    const registry = new ParamRegistry(), rt = new GraphRuntime({ sampleRate: sr, params: registry.values });
+    const nodes = [{ id: 'osc', type: 'osc', params: { freq: 441, wave: 0 } }, ...(voices > 1 ? [{ id: 'poly', type: 'voices' }] : []), { id: 'out', type: 'out' }];
+    rt.load(compile({ nodes, voices, connections: voices > 1 ? [['osc.out', 'poly.in'], ['poly.out', 'out.in']] : [['osc.out', 'out.in']] }, { instrument: 'a', nodeTypes: NODE_TYPES, registry }));
+    return rt;
+  };
   const l = new Float32Array(block), r = new Float32Array(block);
-  rt.note('a', { type: 'noteOn', note: 60, vel: 1 });
-  for (let i = 0; i < 40; i++) rt.process(l, r, block);
-  assert.equal(got.length, 0, 'nothing is sent until an instrument is watched');
-  rt.setScope('a', true);
-  const blocks = 1024 * 4 / block;
-  for (let i = 0; i < blocks; i++) rt.process(l, r, block);
-  assert.equal(got.length, 4, 'one frame per 1024 samples');
-  assert.equal(got[0].l.length, 2048);
-  assert.ok(got.at(-1).l.some(v => Math.abs(v) > 0.05), 'the frame holds the sound');
-  // the last frame ends where the last block ended
-  assert.equal(got.at(-1).l[2047], l[block - 1]);
-  rt.setScope('a', false);
-  for (let i = 0; i < 40; i++) rt.process(l, r, block);
-  assert.equal(got.length, 4, 'stopping the watch stops the frames');
+  {
+    const rt = build(1), got = [];
+    rt.onScope = (id, node, a, b) => got.push({ id, node, l: a, r: b });
+    rt.note('a', { type: 'noteOn', note: 60, vel: 1 });
+    for (let i = 0; i < 40; i++) rt.process(l, r, block);
+    assert.equal(got.length, 0, 'nothing is sent until a node is watched');
+    rt.setScope('a', 'out', true); rt.setScope('a', 'osc', true);
+    for (let i = 0; i < 1024 * 4 / block; i++) rt.process(l, r, block);
+    const outs = got.filter(g => g.node === 'out'), oscs = got.filter(g => g.node === 'osc');
+    assert.equal(outs.length, 4, 'one frame per 1024 samples');
+    assert.equal(oscs.length, 4, 'each watched node has its own');
+    assert.equal(outs[0].l.length, 2048);
+    assert.ok(outs.at(-1).l.some(v => Math.abs(v) > 0.05), 'the frame holds the sound');
+    assert.equal(outs.at(-1).l[2047], l[block - 1], 'the last frame ends where the last block ended');
+    assert.ok(oscs.at(-1).l.every((v, i) => v === oscs.at(-1).r[i]), 'a mono output is shown on both sides');
+    rt.setScope('a', 'out', false); rt.setScope('a', 'osc', false);
+    for (let i = 0; i < 40; i++) rt.process(l, r, block);
+    assert.equal(got.length, 8, 'stopping the watch stops the frames');
+  }
+  {
+    const rt = build(4), got = [];
+    rt.onScope = (id, node, a) => got.push({ node, l: a });
+    rt.setScope('a', 'osc', true);   // a per-voice node: the active voices added together
+    rt.note('a', { type: 'noteOn', note: 60, vel: 1 });
+    for (let i = 0; i < 1024 * 3 / block; i++) rt.process(l, r, block);
+    const energy = f => f.reduce((e, v) => e + v * v, 0), one = energy(got.at(-1).l);
+    rt.note('a', { type: 'noteOn', note: 67, vel: 1 });
+    got.length = 0;
+    for (let i = 0; i < 1024 * 3 / block; i++) rt.process(l, r, block);
+    assert.ok(got.length && energy(got.at(-1).l) > one * 1.4, 'two voices on one node are heard together');
+  }
 }
