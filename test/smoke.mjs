@@ -4280,6 +4280,34 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   assert.ok(d.connections.some(([f, t]) => f === `${both[0]}.out` && t === `${both[1]}.in`), 'wires between copies are copied');
 }
 
+// MIDI import: a hand-made two-track file, a chord and a melody.
+{
+  const { parseMidi, importMidi } = await import('../src/project/midi.js');
+  const vlq = n => { const o = [n & 0x7f]; while ((n >>= 7)) o.unshift((n & 0x7f) | 0x80); return o; };
+  const track = ev => { const body = [...ev.flat(), 0, 0xff, 0x2f, 0]; return [0x4d, 0x54, 0x72, 0x6b, 0, 0, 0, body.length, ...body]; };
+  const tempo = [0, 0xff, 0x51, 3, 0x07, 0xa1, 0x20];   // 500000 us per quarter = 120 bpm
+  const t1 = track([tempo, [0, 0x90, 60, 100], [0, 0x90, 64, 100], [0, 0x90, 67, 100], vlq(480), [0x80, 60, 0], [0, 0x80, 64, 0], [0, 0x80, 67, 0]]);
+  const t2 = track([[0, 0xff, 3, 4, 0x6c, 0x65, 0x61, 0x64], [0, 0x91, 72, 64], vlq(120), [0x81, 72, 0], vlq(120), [0x91, 74, 127], vlq(120), [0x81, 74, 0]]);
+  const file = Uint8Array.from([0x4d, 0x54, 0x68, 0x64, 0, 0, 0, 6, 0, 1, 0, 2, 0x01, 0xe0, ...t1, ...t2]).buffer;
+  const midi = parseMidi(file);
+  assert.equal(midi.bpm, 120);
+  assert.equal(midi.tracks.length, 2);
+  assert.equal(midi.tracks[0].notes.length, 3);
+  assert.equal(midi.tracks[1].name, 'lead');
+  const data = { song: { bpm: 100, ticksPerBeat: 4, length: 16, lanes: [] }, instruments: {}, samples: {} };
+  const done = importMidi(data, midi);
+  assert.equal(done.lanes, 2);
+  assert.equal(data.song.bpm, 120);
+  const chord = data.song.lanes[0].patterns[Object.keys(data.song.lanes[0].patterns)[0]].text.split('\n');
+  assert.ok(chord[0].startsWith('C-4 ') && chord[0].includes('E-4') && chord[0].includes('G-4'), 'the chord sits on one row, over three note columns');
+  assert.ok(chord[4].startsWith('==='), 'its note offs one beat on');
+  const lead = data.song.lanes[1].patterns[Object.keys(data.song.lanes[1].patterns)[0]].text.split('\n');
+  assert.ok(lead[0].startsWith('C-5 '), 'melody starts on tick 0');
+  assert.ok(lead[1].startsWith('==='), 'and stops a tick on (120 of 480 ppq)');
+  assert.ok(lead[2].startsWith('D-5 FF'), 'the next note at full velocity');
+  assert.ok(Object.keys(data.instruments).includes('lead'), 'the track name names the synth');
+}
+
 console.log('smoke test passed');
 
 // 115. Plucked string: pitch, decay time, damping, pluck position, release.

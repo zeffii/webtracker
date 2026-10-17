@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>webtracker m130</title>
+  <title>webtracker m131</title>
   <style>
     :root { color-scheme: light dark; font-family: system-ui, sans-serif; --panel: light-dark(#d9dae0, Canvas); }   /* the dimmer ground of every window rect */
     body { margin: 0; }
@@ -296,7 +296,7 @@
         </span></span>
       <button id="save" disabled>Save</button>
       <button id="load" disabled>Load</button>
-      <input id="file" type="file" accept=".wax,.wtrk,.json" hidden>
+      <input id="file" type="file" accept=".wax,.wtrk,.json,.mid,.midi" hidden>
       <label title="Song length in ticks; 16 ticks is one row of the arrangement">length <input id="length" type="number" min="16" max="4096" step="16" style="width:4.5em" disabled></label>
       <label>bpm <input id="bpm" type="number" min="20" max="400" step="1" style="width:4em" disabled></label>
       <label title="How much of each pair of rows the first one lasts: 50 is straight, 67 is a triplet shuffle">swing <span class="field"><input id="swing" type="number" min="50" max="75" step="1" style="width:2.6em" disabled><span class="unit">%</span></span></label>

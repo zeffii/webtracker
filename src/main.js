@@ -5,6 +5,7 @@ import { createPatcher } from './graph/patcher.js';
 import { createInsertMenu } from './graph/menu.js';
 import { createSynthwaveProject } from './project/synthwave.js';
 import * as ops from './project/ops.js';
+import { importMidi, parseMidi } from './project/midi.js';
 import * as presets from './project/presets.js';
 import { LIBRARY_EXT, addToLibrary, importFromLibrary, newLibrary, parseLibrary, serializeLibrary } from './project/library.js';
 import { addLane, addSample, addSamplerInstrument, addSynthInstrument, channelsOf, sampleMessage, slotsOf, syncSamplerStereo } from './project/ops.js';
@@ -604,6 +605,13 @@ $('file').addEventListener('change', async e => {
   e.target.value = '';
   if (!file) return;
   try {
+    if (/\.midi?$/i.test(file.name)) {   // a MIDI file adds a lane on a new synth for each of its tracks
+      const data = ops.projectData(project), done = importMidi(data, parseMidi(await file.arrayBuffer()));
+      if (!done.lanes) throw new Error('That MIDI file has no notes.');
+      openProject(data, { stay: true, lane: data.song.lanes[data.song.lanes.length - done.lanes].id });
+      $('status').textContent = `Added ${done.lanes} lane${done.lanes > 1 ? 's' : ''} from ${file.name} (${data.song.bpm} bpm${done.cut ? ', the end was cut off at the longest song' : ''}).`;
+      return;
+    }
     openProject(parseProject(await file.text()));
     $('status').textContent = `Loaded ${file.name}.`;
   } catch (err) {
