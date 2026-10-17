@@ -431,7 +431,7 @@
               <input id="lane-name" aria-label="Rename the selected lane" disabled>
               <button id="lane-rename" disabled>Rename</button>
               <button id="lane-left" disabled title="Move earlier">◀</button><button id="lane-right" disabled title="Move later">▶</button>
-              <button id="lane-dup" disabled>Duplicate</button><button id="lane-remove" disabled>Remove</button>
+              <button id="lane-dup" disabled>Duplicate</button><button id="lane-remove" disabled>Remove</button><button id="lane-remove-all" disabled title="Remove the lane and the instrument it plays (if no other lane plays it)">Remove with machine</button>
             </div>
             <h2>Preset library</h2>
             <div id="lib-list"></div>
@@ -462,7 +462,9 @@
           <dt>Enter</dt><dd>menu for the parameter: type a value, reset, expose as a pattern column and its width, add a port (right-click a row does the same)</dd>
           <dt>Piano keys</dt><dd>with a generator node (oscillator, sampler, synth) selected: play the instrument; [ ] change the octave</dd>
           <dt>Delete</dt><dd>remove the node or wire</dd>
-          <dt>Drag node</dt><dd>move it</dd>
+          <dt>Drag node</dt><dd>move it (a lassoed group moves together)</dd>
+          <dt>Drag empty space</dt><dd>lasso nodes; Shift+click adds one; Delete removes the group</dd>
+          <dt>Middle button drag</dt><dd>pan the whole graph</dd>
           <dt>Drag dot</dt><dd>from an output dot (right) to an input dot (left) to wire them</dd>
           <dt>Right-click, double-click</dt><dd>empty space in the graph: insert a node</dd>
           <dt>Left/Right</dt><dd>on a slider: change the parameter (Shift for more)</dd>

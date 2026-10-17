@@ -127,6 +127,7 @@ const fmt = v => String(Number(v.toPrecision(4)));
 export function createPatcher({ canvas, panel, paramPanel = null, exposedDock = null, onEscape = () => {}, statusEl, doc = document, nodeTypes, onStructure, onParam, onData = () => {}, onContext = () => {}, onNote = () => {}, getSampleIds = () => [], getSample = () => null }) {
   let tableEditor = null;   // the wavetable panel of the selected node, redrawn when position or mix move
   let instruments = {}, instId = null, selected = null, drag = null, dirty = true;
+  const group = new Set();   // nodes picked together with the lasso (or Shift+click): they move as one
   const ctx = canvas.getContext('2d');
   let W = canvas.width;
   let H = canvas.height;
@@ -217,7 +218,17 @@ export function createPatcher({ canvas, panel, paramPanel = null, exposedDock = 
   }
 
   function removeSelected() {
-    if (!selected || !instId) return;
+    if (!instId) return;
+    if (group.size) {
+      try {
+        for (const id of group) if (!nodeTypes[desc().nodes.find(n => n.id === id)?.type]?.master) removeNode(desc(), nodeTypes, id);
+        pruneDef(def(), nodeTypes);
+        group.clear(); selected = null;
+        say(''); renderPanel(); structure();
+      } catch (err) { say(err.message); }
+      return;
+    }
+    if (!selected) return;
     try {
       if (selected.kind === 'node') {
         removeNode(desc(), nodeTypes, selected.id);
@@ -360,19 +371,39 @@ export function createPatcher({ canvas, panel, paramPanel = null, exposedDock = 
   canvas.addEventListener('mousedown', e => {
     if (!instId) return;
     canvas.focus?.();
-    const x = e.offsetX, y = e.offsetY, hit = hitTest(desc(), nodeTypes, x, y);
+    const x = e.offsetX, y = e.offsetY;
+    if (e.button === 1) {   // middle button: pan the whole graph
+      e.preventDefault?.();
+      drag = { kind: 'pan', x, y };
+      return;
+    }
+    const hit = hitTest(desc(), nodeTypes, x, y);
     say('');
+    if (hit?.kind === 'node' && e.shiftKey) {   // Shift+click adds a node to the group
+      if (selected?.kind === 'node') group.add(selected.id);
+      group.add(hit.id);
+      selected = null;
+      renderPanel(); dirty = true;
+      return;
+    }
+    if (hit?.kind === 'node' && group.has(hit.id)) {   // a node of the group: drag them all
+      drag = { kind: 'move', ids: [...group], x, y, from: new Map([...group].map(id => { const n = desc().nodes.find(k => k.id === id); return [id, { x: n.x, y: n.y }]; })) };
+      dirty = true;
+      return;
+    }
+    group.clear();
     if (hit?.kind === 'port' && hit.side === 'out') {
       drag = { kind: 'connect', from: `${hit.node}.${hit.port}`, x, y };
     } else if (hit?.kind === 'port' || hit?.kind === 'node') {
       const id = hit.kind === 'node' ? hit.id : hit.node;
       const node = desc().nodes.find(n => n.id === id);
       selected = { kind: 'node', id };
-      drag = { kind: 'move', id, dx: x - node.x, dy: y - node.y };
+      drag = { kind: 'move', ids: [id], x, y, from: new Map([[id, { x: node.x, y: node.y }]]) };
     } else if (hit?.kind === 'link') {
       selected = { kind: 'link', index: hit.index };
     } else {
       selected = null;
+      if (e.button === 0) drag = { kind: 'lasso', x0: x, y0: y, x, y };   // drag on empty space: lasso
     }
     renderPanel();
     dirty = true;
@@ -381,9 +412,15 @@ export function createPatcher({ canvas, panel, paramPanel = null, exposedDock = 
   canvas.addEventListener('mousemove', e => {
     if (!drag) return;
     if (drag.kind === 'move') {
-      const node = desc().nodes.find(n => n.id === drag.id);
-      node.x = Math.max(0, e.offsetX - drag.dx);
-      node.y = Math.max(14, e.offsetY - drag.dy);   // room above for the name
+      let dx = e.offsetX - drag.x, dy = e.offsetY - drag.y;
+      for (const { x, y } of drag.from.values()) { dx = Math.max(dx, -x); dy = Math.max(dy, 14 - y); }   // none leaves the top or left edge (room above for the name)
+      for (const [id, p] of drag.from) { const node = desc().nodes.find(n => n.id === id); node.x = p.x + dx; node.y = p.y + dy; }
+    } else if (drag.kind === 'pan') {
+      const dx = e.offsetX - drag.x, dy = e.offsetY - drag.y;
+      drag.x = e.offsetX; drag.y = e.offsetY;
+      for (const node of desc().nodes) { node.x += dx; node.y += dy; }
+    } else if (drag.kind === 'lasso') {
+      drag.x = e.offsetX; drag.y = e.offsetY;
     } else {
       drag.x = e.offsetX;
       drag.y = e.offsetY;
@@ -396,6 +433,15 @@ export function createPatcher({ canvas, panel, paramPanel = null, exposedDock = 
     const d = drag;
     drag = null;
     dirty = true;
+    if (d.kind === 'lasso') {
+      const [x0, x1] = [Math.min(d.x0, d.x), Math.max(d.x0, d.x)], [y0, y1] = [Math.min(d.y0, d.y), Math.max(d.y0, d.y)];
+      if (x1 - x0 < 4 && y1 - y0 < 4) return;   // a plain click
+      for (const node of desc().nodes) {
+        const { w, h } = nodeBox(nodeTypes[node.type], node);
+        if (node.x < x1 && node.x + w > x0 && node.y < y1 && node.y + h > y0) group.add(node.id);
+      }
+      return;
+    }
     if (d.kind !== 'connect') return;
     const hit = hitTest(desc(), nodeTypes, e.offsetX, e.offsetY);
     if (hit?.kind !== 'port' || hit.side !== 'in') return;
@@ -652,7 +698,7 @@ export function createPatcher({ canvas, panel, paramPanel = null, exposedDock = 
 
     for (const node of desc().nodes) {
       const type = nodeTypes[node.type], { w, h } = nodeBox(type, node);
-      const chosen = selected?.kind === 'node' && selected.id === node.id;
+      const chosen = (selected?.kind === 'node' && selected.id === node.id) || group.has(node.id);
       ctx.beginPath();
       if (type.shape === 'circle') ctx.arc(node.x + w / 2, node.y + h / 2, w / 2, 0, 2 * Math.PI);
       else if (type.shape === 'rounded') ctx.roundRect(node.x, node.y, w, h, 10);
@@ -708,6 +754,13 @@ export function createPatcher({ canvas, panel, paramPanel = null, exposedDock = 
         });
       }
     }
+    if (drag?.kind === 'lasso') {
+      ctx.save();
+      ctx.setLineDash([4, 3]); ctx.lineWidth = 1; ctx.strokeStyle = accent; ctx.fillStyle = 'hsl(210 70% 55% / 0.12)';
+      ctx.fillRect(drag.x0, drag.y0, drag.x - drag.x0, drag.y - drag.y0);
+      ctx.strokeRect(drag.x0, drag.y0, drag.x - drag.x0, drag.y - drag.y0);
+      ctx.restore();
+    }
     const chosenNode = selected?.kind === 'node' ? desc().nodes.find(n => n.id === selected.id) : null;
     const chosenType = chosenNode && nodeTypes[chosenNode.type];
     if (chosenType?.curves) drawResponse(chosenNode, chosenType, { x: chosenNode.x, y: chosenNode.y, ...nodeBox(chosenType, chosenNode) }, ink);
@@ -723,6 +776,7 @@ export function createPatcher({ canvas, panel, paramPanel = null, exposedDock = 
     show(id) {
       instId = id;
       selected = null;
+      group.clear();
       drag = null;
       if (id) autoLayout(desc(), nodeTypes);
       renderPanel();
