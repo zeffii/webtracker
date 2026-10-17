@@ -16,6 +16,7 @@ import { createParamView } from './paramview.js';
 import { createCurveEditor } from './curveeditor.js';
 import { createTapEditor } from './tapeditor.js';
 import { createDxView } from './dxview.js';
+import { createGateEditor } from './gateeditor.js';
 import { createSpectrumEditor } from './spectrumeditor.js';
 import { createWaveEditor } from './waveeditor.js';
 import { createWavetableEditor } from './wavetableeditor.js';
@@ -128,6 +129,7 @@ const toPos = (spec, v) => (isLog(spec) ? Math.log(v / spec.min) / Math.log(spec
 const fmt = v => String(Number(v.toPrecision(4)));
 
 export function createPatcher({ canvas, panel, paramPanel = null, exposedDock = null, onScope = () => {}, onEscape = () => {}, statusEl, doc = document, nodeTypes, onStructure, onParam, onData = () => {}, onContext = () => {}, onNote = () => {}, getSampleIds = () => [], getSample = () => null, readLive = () => undefined }) {
+  let gateEditor = null;    // the step pattern of a trance gate, redrawn when its length moves
   let dxView = null;        // the bank loader and algorithm view of a DVIIloader
   let tapEditor = null;     // the tap view of a Shiva delay, redrawn when its parameters move
   let tableEditor = null;   // the wavetable panel of the selected node, redrawn when position or mix move
@@ -216,6 +218,7 @@ export function createPatcher({ canvas, panel, paramPanel = null, exposedDock = 
         dirty = true;   // the envelope drawn beside the node follows
         if (spec.name === 'position' || spec.name === 'mix' || spec.name === 'source') tableEditor?.refresh();
         if (type.editor === 'taps') tapEditor?.refresh();
+        if (type.editor === 'gate') gateEditor?.refresh();
         if (type.editor === 'dx' && spec.name === 'voice') dxView?.refresh();
         if (entry()) renderExposed();
       };
@@ -355,6 +358,18 @@ export function createPatcher({ canvas, panel, paramPanel = null, exposedDock = 
         },
       });
       items.splice(1, 0, editor.el);
+    }
+    gateEditor = null;
+    if (type.editor === 'gate') {   // the step levels, kept on the node and sent live
+      gateEditor = createGateEditor({
+        doc, points: node.data?.gate,
+        getParam: name => readLive(instId, node.id, name) ?? node.params?.[name] ?? type.params.find(p => p.name === name)?.def ?? 0,
+        onChange: points => {
+          node.data = { ...node.data, gate: points };
+          onData(instId, node.id, { type: 'gate', points });
+        },
+      });
+      items.splice(1, 0, gateEditor.el);
     }
     dxView = null;
     if (type.editor === 'dx') {   // a DX7 bank on the node, sent live; the voice parameter picks from it
@@ -735,7 +750,7 @@ export function createPatcher({ canvas, panel, paramPanel = null, exposedDock = 
     const sig = parts.join(',');
     if (sig === liveSig) return;
     liveSig = sig;
-    paramView?.refresh(); exposedView?.refresh(); tapEditor?.refresh(); dxView?.refresh();
+    paramView?.refresh(); exposedView?.refresh(); tapEditor?.refresh(); gateEditor?.refresh(); dxView?.refresh();
   }
 
   function draw() {

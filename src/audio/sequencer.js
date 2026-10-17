@@ -24,6 +24,7 @@ export class Sequencer {
   lanes = new Map();
   song = { bpm: 120, ticksPerBeat: 4, length: 16, swing: 0.5 };
   tick = 0;
+  songPos = 0;   // where the song is, in ticks and fractions of one, for nodes that follow the grid
   countdown = 0;
   playing = false;
 
@@ -74,6 +75,7 @@ export class Sequencer {
 
   play() {
     this.tick = this.song.loop ? loopRange(this.song).start : 0;   // a loop is played from its start
+    this.songPos = this.tick;
     this.countdown = 0;
     this.playing = true;
     this.transport[1] = 1;
@@ -183,6 +185,7 @@ export class Sequencer {
   fireTick() {
     for (const lane of this.lanes.values()) this.playRow(lane);
     Atomics.store(this.transport, 0, this.tick);   // the tick now sounding
+    if (Math.abs(this.songPos - this.tick) > 1.5) this.songPos = this.tick;   // a loop or the end of the song: back on the grid
     if (this.song.loop) {   // the loop: back to its start when its end is reached
       const { start, end } = loopRange(this.song);
       if (++this.tick >= end || this.tick < start) this.tick = start;
@@ -205,7 +208,10 @@ export class Sequencer {
         }
         span = Math.min(span, Math.max(1, Math.ceil(this.countdown)));
       }
+      const clock = this.runtime.clock;
+      if (clock) { clock.playing = this.playing; clock.songPos = this.songPos; }
       this.runtime.process(this.scratchL, this.scratchR, span);
+      if (this.playing) this.songPos += span / samplesPerTick;
       for (let i = 0; i < span; i++) {
         left[done + i] = this.scratchL[i];
         right[done + i] = this.scratchR[i];

@@ -1675,6 +1675,44 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     for (let i = 3000; i < 18000; i++) assert.ok(Math.abs(dry[i + 2047] - tone(i)) < 1e-6 || i + 2047 >= 20000, 'mix 0 is the dry sound, delayed');
   }
 
+  // trance gate and frequency shifter
+  {
+    const gdef = NODE_TYPES.gater;
+    const runGate = (values, data, clock, len = 9600) => {
+      const params = Float32Array.from(gdef.params.map(p => values[p.name] ?? p.def)), slots = Int32Array.from(gdef.params.map((_, i) => i));
+      const node = gdef.create({ sampleRate: sr, data, clock });
+      const out = new Float32Array(len), one = new Float32Array(128).fill(1);
+      for (let at = 0; at < len; at += 128) { const o = new Float32Array(128); node.process([[one, one]], [[o, new Float32Array(128)]], 128, params, slots); out.set(o.subarray(0, Math.min(128, len - at)), at); if (clock.playing) clock.songPos += 128 / clock.tickSamples; }   // (the sequencer keeps songPos moving)
+      return out;
+    };
+    const ts = 1200;   // samples per tick
+    const clock = { tickSamples: ts, playing: true, songPos: 0 };
+    const pattern = [1, 0, 1, 0, 1, 1, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0];
+    const g = runGate({ smooth: 0.1 }, { gate: pattern }, clock, 128 * 75);
+    for (let step = 0; step < 8; step++) assert.ok(Math.abs(g[step * ts + ts / 2] - pattern[step]) < 0.01, `gate step ${step}`);
+    const half = runGate({ smooth: 0.1, depth: 0.5 }, { gate: pattern }, { tickSamples: ts, playing: true, songPos: 0 }, 128 * 16);
+    assert.ok(Math.abs(half[ts + 200] - 0.5) < 0.02, 'half depth leaves half the sound through');
+    const moved = runGate({ smooth: 0.1, shift: 1 }, { gate: pattern }, { tickSamples: ts, playing: true, songPos: 0 }, 128 * 16);
+    assert.ok(moved[ts / 2] === moved[ts / 2] && Math.abs(moved[ts / 2] - pattern[1]) < 0.01 && Math.abs(moved[ts + ts / 2] - pattern[2]) < 0.01, 'shift rotates the pattern');
+    const idle = runGate({ smooth: 0.1 }, { gate: pattern }, { tickSamples: ts, playing: false }, 128 * 16);
+    assert.ok(idle.every(Number.isFinite) && idle.some(v => v < 0.1) && idle.some(v => v > 0.9), 'the gate runs on its own when the song is stopped');
+
+    const fdef = NODE_TYPES.freqshift;
+    const shifted = (shift, f) => {
+      const params = Float32Array.from(fdef.params.map(p => (p.name === 'shift' ? shift : p.name === 'mix' ? 1 : p.def))), slots = Int32Array.from(fdef.params.map((_, i) => i));
+      const node = fdef.create({ sampleRate: sr });
+      const out = new Float32Array(sr);
+      for (let at = 0; at < sr; at += 128) { const x = Float32Array.from({ length: 128 }, (_, i) => Math.sin(2 * Math.PI * f * (at + i) / sr)), o = new Float32Array(128); node.process([[x, x]], [[o, new Float32Array(128)]], 128, params, slots); out.set(o.subarray(0, Math.min(128, sr - at)), at); }
+      return out;
+    };
+    const level = (x, f) => { let re = 0, im = 0; for (let i = 20000; i < 40000; i++) { re += x[i] * Math.cos(2 * Math.PI * f * i / sr); im += x[i] * Math.sin(2 * Math.PI * f * i / sr); } return Math.hypot(re, im) / 10000; };
+    const up = shifted(100, 1000);
+    assert.ok(level(up, 1100) > 0.95 && level(up, 900) < 0.02, 'a 1000 Hz tone moves to 1100 Hz, without a mirror image');
+    const down = shifted(-250, 2000);
+    assert.ok(level(down, 1750) > 0.95 && level(down, 2250) < 0.02, 'negative shift moves down');
+    assert.ok(shifted(0, 440).every(Number.isFinite));
+  }
+
   // phaser: mix 0 is dry, silence stays silent, a wet signal differs, stays finite even at high feedback
   const ph0 = stage('phaser', { mix: 0 })(noise, noise);
   assert.ok(ph0[0].every((v, i) => v === noise[i]), 'phaser mix 0 is dry');

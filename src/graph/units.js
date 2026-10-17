@@ -35,6 +35,8 @@ const TYPE_UNIT = {
   fmsynth: {},
   dvii: { tune: 'st', speed: 'x' },
   blur: { time: 'ms' },
+  gater: { smooth: 'ms', depth: '%' },
+  freqshift: { shift: 'Hz' },
 };
 for (const k of [1, 2, 3, 4]) {
   Object.assign(TYPE_UNIT.fmsynth, { [`ratio${k}`]: 'x', [`fine${k}`]: 'ct', [`atk${k}`]: 'ms', [`dec${k}`]: 'ms', [`rel${k}`]: 'ms' });

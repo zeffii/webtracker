@@ -123,6 +123,18 @@ const HINTS = {
     feedback: 'How much of the last tap goes back in, for repeating patterns.',
     mix: 'Amount of the echoes added to the dry sound.',
   },
+  gater: {
+    div: 'Ticks per step. With 4 ticks to the beat, 1 gives sixteenths, 2 eighths, 4 quarters.',
+    steps: 'How many of the 16 steps are used before the pattern starts again.',
+    shift: 'Rotates the pattern by this many steps, so a command can slide the rhythm along.',
+    depth: 'How far the gate closes. 1 is silence on the closed steps; less lets some sound through.',
+    smooth: 'Time in ms the gate takes to open and close: short is choppy, long is a soft swell.',
+  },
+  freqshift: {
+    shift: 'Moves every frequency by this many Hz, up or down. Small values give a slow shimmering detune, large ones bells and robot voices.',
+    feedback: 'Sends the shifted sound back in, so each pass climbs another step: rising or falling spirals.',
+    mix: 'Dry/wet balance.',
+  },
   blur: {
     freq: 'Blurs the spectrum across frequency: the fine detail of the harmonics melts into a breathy wash. 0 leaves it sharp.',
     time: 'Blurs across time, in ms: each frequency follows a slow average, so attacks smear and sounds bloom. 0 is off.',

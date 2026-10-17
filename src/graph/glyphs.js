@@ -81,6 +81,24 @@ export const GLYPHS = {
     });
     ctx.stroke();
   },
+  gater: (ctx, cx, cy, w, h) => {   // a square pulse train: open, closed, open, open
+    const x0 = cx - w / 2, base = cy + h * 0.3, top = cy - h * 0.3, u = w / 8;
+    ctx.beginPath();
+    ctx.moveTo(x0, base);
+    [[0, 1], [1, 0], [2, 1], [3, 1], [4, 0], [5, 1]].forEach(([i, on], k, a) => {
+      const y = on ? top : base;
+      ctx.lineTo(x0 + i * u * 1.33, y); ctx.lineTo(x0 + (i + 1) * u * 1.33, y);
+    });
+    ctx.stroke();
+  },
+  freqshift: (ctx, cx, cy, w, h) => {   // a row of harmonics, all moved along by the same step
+    for (const [dy, dx] of [[-0.25, 0], [0.2, 0.18]]) {
+      ctx.beginPath();
+      for (let i = 0; i < 4; i++) { const x = cx - w * 0.42 + i * w * 0.2 + dx * w; ctx.moveTo(x, cy + h * (dy + 0.25)); ctx.lineTo(x, cy + h * (dy - 0.15 - i * 0.04)); }
+      ctx.stroke();
+    }
+    ctx.beginPath(); ctx.moveTo(cx - w * 0.1, cy); ctx.lineTo(cx + w * 0.3, cy); ctx.stroke();
+  },
   blur: (ctx, cx, cy, w, h) => {   // sharp spectral bars on the left, melting into a smooth hill on the right
     const base = cy + h * 0.4;
     ctx.beginPath();
