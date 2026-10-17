@@ -1603,12 +1603,21 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   assert.ok(menu.isOpen && menu.box.style.left === '120px');
   const input = menu.box.children[0];
   const key = k => input.listeners.keydown({ key: k, preventDefault() {} });
-  key('ArrowDown');
-  key('Enter');                                   // the second entry, at the opening point
+  // the tree: categories, groups, nodes; every placeable node is in it exactly once
+  const leaves = rows => rows.flatMap(r => (r.children ? leaves(r.children) : [r.type]));
+  assert.deepEqual(menu.tree().map(c => c.label).slice(0, 4), ['Sources', 'Effects', 'Control', 'Mix & level']);
+  assert.deepEqual(leaves(menu.tree()).sort(), all.slice().sort(), 'the tree holds every node once');
+  assert.ok(menu.tree().find(c => c.label === 'Effects').children.find(g => g.label === 'Reverb').children.some(n => n.type === 'plate'));
+  // keys: Down to Effects, Right into its groups, Down to Dynamics, Right into it, Enter on the first node
+  key('ArrowDown'); key('ArrowRight'); key('ArrowDown'); key('ArrowRight');
+  key('Enter');
   assert.equal(picks.length, 1);
-  assert.equal(picks[0][0], menu.entries('')[1].type);
+  assert.equal(picks[0][0], 'compressor');
   assert.deepEqual(picks[0][1], { x: 120, y: 80 });
   assert.ok(!menu.isOpen);
+  menu.open(10, 10);
+  key('ArrowRight'); key('ArrowLeft'); key('ArrowLeft');   // in and out again: nothing is picked
+  assert.ok(menu.isOpen && picks.length === 1);
 
   menu.open(10, 10);
   input.value = 'pan'; input.listeners.input();
