@@ -137,6 +137,29 @@ export const synthKinds = {
       ],
     }),
   },
+  piano: {
+    label: 'Piano (physical model)',
+    make: () => ({
+      graph: { nodes: [{ id: 'synth', type: 'piano' }, { id: 'poly', type: 'voices' }, { id: 'out', type: 'out', params: { gain: 0.5 } }], connections: [['synth.out', 'poly.in'], ['poly.out', 'out.in']], voices: 12 },
+      noteColumns: 6,   // six note and velocity lanes, with the voices to let them ring
+      exposed: [
+        { node: 'synth', param: 'pedal', label: 'Ped' },
+        { node: 'synth', param: 'hard', label: 'Hrd' },
+        { node: 'synth', param: 'decay', label: 'Dec' },
+        { node: 'synth', param: 'body', label: 'Bod' },
+      ],
+      commands: [
+        { id: 0x01, node: 'synth', param: 'pedal' },
+        { id: 0x02, node: 'synth', param: 'hard' },
+        { id: 0x03, node: 'synth', param: 'decay' },
+        { id: 0x04, node: 'synth', param: 'body' },
+        { id: 0x05, node: 'synth', param: 'bright' },
+        { id: 0x06, node: 'synth', param: 'pos' },
+        { id: 0x07, node: 'synth', param: 'inharm' },
+        { id: 0x08, node: 'synth', param: 'prompt' },
+      ],
+    }),
+  },
   fm: {
     label: 'FM synth',
     make: () => ({

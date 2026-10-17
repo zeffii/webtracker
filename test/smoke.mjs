@@ -4473,3 +4473,57 @@ console.log('smoke test passed');
     assert.ok(got.length && energy(got.at(-1).l) > one * 1.4, 'two voices on one node are heard together');
   }
 }
+
+// 125. Piano: in tune, stiff strings, loudness by velocity, damper and pedal, six voices ringing, nothing blows up.
+{
+  const render = (note, vel, seconds, params = {}, off = null, voices = 1) => {
+    const registry = new ParamRegistry(), rt = new GraphRuntime({ sampleRate: sr, params: registry.values });
+    const nodes = [{ id: 'p', type: 'piano', params }, ...(voices > 1 ? [{ id: 'poly', type: 'voices' }] : []), { id: 'out', type: 'out' }];
+    rt.load(compile({ nodes, voices, connections: voices > 1 ? [['p.out', 'poly.in'], ['poly.out', 'out.in']] : [['p.out', 'out.in']] }, { instrument: 'a', nodeTypes: NODE_TYPES, registry }));
+    const l = new Float32Array(block), r = new Float32Array(block), out = [], outR = [];
+    const notes = Array.isArray(note) ? note : [note];
+    notes.forEach(n => rt.note('a', { type: 'noteOn', note: n, vel }));
+    for (let i = 0; i < seconds * sr / block; i++) {
+      if (off !== null && i === Math.round(off * sr / block)) notes.forEach(n => rt.note('a', { type: 'noteOff', note: n }));
+      rt.process(l, r, block); out.push(...l); outR.push(...r);
+    }
+    return { l: Float32Array.from(out), r: Float32Array.from(outR) };
+  };
+  const rms = (a, i, j) => Math.sqrt(a.slice(i, j).reduce((s, v) => s + v * v, 0) / (j - i));
+  const f0Of = (a, note) => {   // pitch from the autocorrelation, in cents off the equal-tempered note
+    const seg = a.slice(Math.round(0.2 * sr), Math.round(0.5 * sr)), T = sr / (440 * 2 ** ((note - 69) / 12));
+    const ac = lag => { let c = 0; for (let i = 0; i + lag < seg.length; i++) c += seg[i] * seg[i + lag]; return c; };
+    let best = 0, bl = 0; for (let lag = Math.floor(T * 0.9); lag < T * 1.1; lag++) { const c = ac(lag); if (c > best) { best = c; bl = lag; } }
+    const y0 = ac(bl - 1), y1 = ac(bl), y2 = ac(bl + 1), d = 0.5 * (y0 - y2) / (y0 - 2 * y1 + y2);
+    return 1200 * Math.log2(T / (bl + d));
+  };
+  for (const note of [36, 48, 60, 72, 84]) assert.ok(Math.abs(f0Of(render(note, 1, 0.6).l, note)) < 12, `note ${note} is in tune`);
+  // loudness: a harder key is louder, and the level is about the same up the keyboard
+  const soft = render(60, 0.3, 0.4).l, loud = render(60, 1, 0.4).l;
+  assert.ok(rms(loud, 2205, 6615) > 2.5 * rms(soft, 2205, 6615), 'a harder key is louder');
+  const levels = [24, 48, 72, 96].map(n => rms(render(n, 1, 0.3).l, 2205, 6615));
+  assert.ok(Math.max(...levels) < 3 * Math.min(...levels), 'the level is even across the keyboard');
+  // stiffness: the strings' partials run sharp of exact multiples (the 8th partial of C3 by 10 cents or more)
+  {
+    const { l } = render(48, 1, 1.5, { inharm: 1 }), flat = render(48, 1, 1.5, { inharm: 0 }).l;
+    const N = 1 << 15, peakAt = (a, hz) => { // strongest Fourier bin near hz, by direct summation over a window of frequencies
+      let best = 0, bf = hz; for (let f = hz * 0.985; f < hz * 1.04; f += hz * 0.0003) { let re = 0, im = 0; for (let i = 0; i < 8192; i++) { const x = a[4410 + i] * (0.5 - 0.5 * Math.cos(2 * Math.PI * i / 8192)); re += x * Math.cos(2 * Math.PI * f * i / sr); im += x * Math.sin(2 * Math.PI * f * i / sr); } const m = Math.hypot(re, im); if (m > best) { best = m; bf = f; } } return bf; };
+    const f0 = 440 * 2 ** ((48 - 69) / 12), sharp = a => 1200 * Math.log2(peakAt(a, 8 * f0) / peakAt(a, f0) / 8);
+    assert.ok(sharp(l) > 10, 'with stiffness the 8th partial runs sharp');
+    assert.ok(sharp(flat) < 6, 'without it the partials are close to harmonic');
+  }
+  // damper and pedal
+  const damped = render(60, 1, 2, {}, 0.5).l, pedal = render(60, 1, 2, { pedal: 1 }, 0.5).l;
+  assert.ok(rms(damped, 66150, 70560) < 1e-4, 'a released note is damped');
+  assert.ok(rms(pedal, 66150, 70560) > 20 * rms(damped, 66150, 70560) + 1e-3, 'with the pedal down it keeps ringing');
+  // stereo by pitch: bass to the left, treble to the right
+  const bass = render(30, 1, 0.3), treble = render(90, 1, 0.3);
+  assert.ok(rms(bass.l, 2205, 6615) > rms(bass.r, 2205, 6615) && rms(treble.r, 2205, 6615) > rms(treble.l, 2205, 6615), 'pitch pans the notes');
+  // a chord on six voices, and extreme settings stay finite
+  const chord = render([48, 52, 55, 60, 64, 67], 0.8, 1, {}, null, 8).l;
+  assert.ok(chord.every(Number.isFinite) && rms(chord, 2205, 6615) > 0.1, 'six notes sound together');
+  for (const note of [0, 21, 108, 127]) for (const p of [{ inharm: 1, bright: 0, decay: 40 }, { inharm: 0, bright: 1, decay: 0.5, hard: 1, pos: 0.5 }, { detune: 15, body: 1, thump: 1, width: 1 }]) {
+    const a = render(note, 1, 1, p).l;
+    assert.ok(a.every(v => Number.isFinite(v) && Math.abs(v) < 4), `note ${note} stays finite with ${JSON.stringify(p)}`);
+  }
+}

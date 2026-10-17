@@ -150,6 +150,14 @@ export const GLYPHS = {
   follower: (ctx, cx, cy, w, h) => { const env = t => (t < 0.3 ? t / 0.3 : Math.exp(-(t - 0.3) * 3)); for (let i = 0; i < 12; i++) { const t = i / 11, x = cx - w / 2 + t * w, a = env(t) * h * 0.45 * (i % 2 ? 0.55 : 1); line(ctx, [[x, cy - a], [x, cy + a]]); } curve(ctx, cx, cy - h * 0.45, w, h * 0.9, env, 40); },   // a burst under its outline
   specsynth: (ctx, cx, cy, w, h) => { for (let i = 0; i < 9; i++) { const x = cx - w / 2 + (i + 0.5) / 9 * w, a = h * (0.12 + 0.75 * Math.abs(Math.sin(i * 1.7 + 0.6)) * Math.exp(-i * 0.18)); line(ctx, [[x, cy + h / 2], [x, cy + h / 2 - a]]); } },   // bars of a spectrum
   sidechain: (ctx, cx, cy, w, h) => { line(ctx, [[cx - w / 2, cy - h * 0.25], [cx + w * 0.1, cy - h * 0.25], [cx + w * 0.1, cy + h * 0.25], [cx + w / 2, cy + h * 0.25]]); line(ctx, [[cx + w * 0.3, cy + h * 0.12], [cx + w / 2, cy + h * 0.25], [cx + w * 0.3, cy + h * 0.38]]); },   // a signal from outside, coming in
+  piano: (ctx, cx, cy, w, h) => {   // a few white keys with the black ones between them
+    const x = f => cx - w / 2 + f * w, y = f => cy + h / 2 - f * h;
+    line(ctx, [[x(0), y(0)], [x(0), y(1)]]); line(ctx, [[x(1), y(0)], [x(1), y(1)]]);
+    for (let i = 1; i < 5; i++) line(ctx, [[x(i / 5), y(0)], [x(i / 5), y(1)]]);
+    const lw = ctx.lineWidth; ctx.lineWidth = 3.5;
+    for (const i of [1, 2, 4]) line(ctx, [[x(i / 5), y(1)], [x(i / 5), y(0.45)]]);   // the black keys
+    ctx.lineWidth = lw;
+  },
   string: (ctx, cx, cy, w, h) => curve(ctx, cx, cy, w, h, t => Math.sin(t * Math.PI * 7) * Math.pow(1 - t, 1.3) * 0.9, 56),   // a ringing, fading string
   fmsynth: (ctx, cx, cy, w, h) => curve(ctx, cx, cy, w, h, t => Math.sin(t * Math.PI * 4 + 2.2 * Math.sin(t * Math.PI * 10)) * 0.85, 48),   // a sine bent by another
   addsynth: (ctx, cx, cy, w, h) => {   // a row of harmonics falling away

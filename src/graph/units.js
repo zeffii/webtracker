@@ -27,6 +27,7 @@ const TYPE_UNIT = {
   granular: { size: 'ms', pitchRand: 'ct', spread: '%', attack: 'ms', decay: 'ms', release: 'ms' },
   subsynth: { slide: 'ticks', spread: 'ct', width: '%' },
   oberheim: { vib: 'ct', sweep: 'st' },
+  piano: { decay: 's', detune: 'ct', release: 'ms', pos: '%', thump: '%', body: '%', width: '%' },
   addsynth: { tilt: 'dB/oct', hdecay: '' },
   specsynth: { tilt: 'dB/oct' },
   wavetable: {},
