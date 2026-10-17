@@ -2769,7 +2769,7 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
 // 68. Swing, instrument presets, preset recall from a pattern, and instrument files.
 {
   // swing: the second of each pair of rows comes late; 0.5 is straight
-  const timings = swing => {
+  const timings = (swing, tpb = 4) => {
     let now = 0;
     const log = [];
     const stub = { process: (l, r, n) => { now += n; }, note: (instrument, msg) => { if (msg.type === 'noteOn') log.push(now); } };
@@ -2777,7 +2777,7 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     const def = { ...structuredClone(instruments.kick) };
     compile(def.graph, { instrument: 'kick', nodeTypes: NODE_TYPES, registry });
     const seq = new Sequencer({ sampleRate: sr, runtime: stub, params: registry.values, transport: new Int32Array(new SharedArrayBuffer(8)) });
-    const song = { ...song120([oneLane('kick', 'kick', Array.from({ length: 8 }, () => 'C-2 ..').join('\n'), 8)]), swing };
+    const song = { ...song120([oneLane('kick', 'kick', Array.from({ length: 8 }, () => 'C-2 ..').join('\n'), 8)]), swing, ticksPerBeat: tpb };
     seq.setSong(song);
     for (const lane of prepareSong(song, { kick: def }, registry)) seq.setLane(lane);
     seq.play();
@@ -2792,6 +2792,7 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   assert.ok(Math.abs(triplet[1] - 8000) <= 1 && Math.abs(triplet[2] - 12000) <= 1, `triplet swing ${triplet}`);
   assert.deepEqual(timings(0.9).slice(0, 3), timings(0.75).slice(0, 3), 'swing is limited to 75 percent');
   assert.deepEqual(timings(0.2).slice(0, 3), [0, 6000, 12000], 'and never goes the other way');
+  assert.deepEqual(timings(0.75, 8), [0, 4500, 9000, 10500, 12000, 16500], 'at 8 ticks per beat the swing is slow slow fast fast');
 
   // the preset list: stable numbers, capture, apply
   const def = structuredClone(instruments.lead);
@@ -4306,6 +4307,18 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   assert.ok(lead[1].startsWith('==='), 'and stops a tick on (120 of 480 ppq)');
   assert.ok(lead[2].startsWith('D-5 FF'), 'the next note at full velocity');
   assert.ok(Object.keys(data.instruments).includes('lead'), 'the track name names the synth');
+  assert.equal(data.song.ticksPerBeat, 4, 'a file on the 16th grid keeps the song at 4 ticks per beat');
+  // triplets need 12 ticks per beat, and what is already in the song is spread out to play the same
+  const trip = { ppq: 480, bpm: 120, tracks: [{ name: 'trip', channel: 0, notes: [0, 1 / 3, 2 / 3, 1].map(time => ({ time, length: 0.25, note: 60, vel: 100 })) }] };
+  const d2 = { song: { bpm: 100, ticksPerBeat: 4, length: 16, loop: { start: 0, end: 8 }, lanes: [{ id: 'a', instrument: 'x', patterns: { p: { text: 'C-4 20\n... ..' } }, placements: [{ puid: 'p', start: 4, length: 2 }] }] }, instruments: {}, samples: {} };
+  importMidi(d2, trip);
+  assert.equal(d2.song.ticksPerBeat, 12);
+  assert.equal(d2.song.length, 48);
+  assert.deepEqual(d2.song.lanes[0].placements, [{ puid: 'p', start: 12, length: 6 }]);
+  assert.equal(d2.song.lanes[0].patterns.p.text, 'C-4 20\n... ..\n... ..\n... ..\n... ..\n... ..');
+  assert.deepEqual(d2.song.loop, { start: 0, end: 24 });
+  const rows = d2.song.lanes[1].patterns[Object.keys(d2.song.lanes[1].patterns)[0]].text.split('\n');
+  assert.deepEqual([0, 4, 8, 12].map(r => rows[r].startsWith('C-4')), [true, true, true, true], 'the triplet falls on ticks 0, 4, 8 and 12');
 }
 
 console.log('smoke test passed');

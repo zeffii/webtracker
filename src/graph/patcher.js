@@ -826,7 +826,7 @@ export function createPatcher({ canvas, panel, paramPanel = null, exposedDock = 
     ctx.clearRect(0, 0, W, H);
     if (!instId) return;
     const ink = typeof getComputedStyle === 'function' ? getComputedStyle(canvas).color : '#888';
-    const accent = 'hsl(210 70% 55%)';
+    const accent = (typeof getComputedStyle === 'function' && getComputedStyle(canvas).getPropertyValue('--accent').trim()) || 'hsl(210 70% 55%)';
     ctx.font = '12px ui-monospace, Consolas, monospace';
     ctx.lineWidth = 1.5;
 
@@ -966,6 +966,7 @@ export function createPatcher({ canvas, panel, paramPanel = null, exposedDock = 
       this.show(instId in instruments ? instId : Object.keys(instruments)[0] ?? null);
     },
     // the audio side's latest samples for the watched instrument
+    repaint() { dirty = true; },   // the colours changed
     feedScope(id, node, l, r, sr) { if (id === instId) { scopeData.set(node, { l, r, sr }); dirty = true; } },
     show(id) {
       if (instId && instId !== id && def()) for (const n of desc().nodes) if (n.scope) onScope(instId, n.id, false);   // (the old instrument may be gone from a newly loaded project)

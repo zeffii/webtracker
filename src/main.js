@@ -362,6 +362,20 @@ $('inst-file').addEventListener('change', async e => {
   }
 });
 
+// ---- colour theme (the themes themselves are in themes.css) ----
+const THEMES = ['system', 'dark', 'black', 'bright', 'neon', 'amber', 'phosphor', 'ice', 'synthwave'];
+const setTheme = (name, save = true) => {
+  const theme = THEMES.includes(name) ? name : 'system';
+  document.documentElement.dataset.theme = theme;
+  $('theme').value = theme;
+  if (save) try { localStorage.setItem('webtracker.theme', theme); } catch {}
+  patcher.repaint();
+  window.dispatchEvent(new Event('resize'));
+};
+$('theme').addEventListener('change', () => { setTheme($('theme').value); $('theme').blur(); });
+$('theme').addEventListener('keydown', e => e.stopPropagation());
+try { setTheme(localStorage.getItem('webtracker.theme') ?? 'system', false); } catch { setTheme('system', false); }
+
 // ---- tempo and swing ----
 const songChanged = () => { engine.setSong(project.song); songInfo(); };
 $('bpm').addEventListener('change', () => {
@@ -609,7 +623,7 @@ $('file').addEventListener('change', async e => {
       const data = ops.projectData(project), done = importMidi(data, parseMidi(await file.arrayBuffer()));
       if (!done.lanes) throw new Error('That MIDI file has no notes.');
       openProject(data, { stay: true, lane: data.song.lanes[data.song.lanes.length - done.lanes].id });
-      $('status').textContent = `Added ${done.lanes} lane${done.lanes > 1 ? 's' : ''} from ${file.name} (${data.song.bpm} bpm${done.cut ? ', the end was cut off at the longest song' : ''}).`;
+      $('status').textContent = `Added ${done.lanes} lane${done.lanes > 1 ? 's' : ''} from ${file.name} (${data.song.bpm} bpm, ${done.ticksPerBeat} ticks per beat${done.cut ? ', the end was cut off at the longest song' : ''}).`;
       return;
     }
     openProject(parseProject(await file.text()));

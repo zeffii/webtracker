@@ -195,14 +195,17 @@ export class Sequencer {
   process(left, right, n) {
     const samplesPerTick = this.sampleRate * 60 / (this.song.bpm * this.song.ticksPerBeat);
     const swing = Math.min(0.75, Math.max(0.5, this.song.swing ?? 0.5));
+    const group = Math.max(1, Math.round(this.song.ticksPerBeat / 4));
     let done = 0;
     while (done < n) {
       let span = n - done;
       if (this.playing) {
         if (this.countdown <= 0) {
           // Swing: ticks come in pairs, and the first of a pair lasts `swing` of the pair, so the
-          // second (the off-beat) lands late. 0.5 is straight; 2/3 is a triplet shuffle.
-          const first = (this.tick & 1) === 0;
+          // second (the off-beat) lands late. 0.5 is straight; 2/3 is a triplet shuffle. At finer ticks the swing
+          // stays on the 16ths: with 8 ticks to a beat the groups are two ticks long (slow slow fast fast), with 12
+          // three, so changing the resolution does not change the groove.
+          const first = (Math.floor(this.tick / group) & 1) === 0;
           this.fireTick();
           this.countdown += 2 * samplesPerTick * (first ? swing : 1 - swing);
         }
