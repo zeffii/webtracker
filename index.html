@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>webtracker m125</title>
+  <title>webtracker m126</title>
   <style>
     :root { color-scheme: light dark; font-family: system-ui, sans-serif; --panel: light-dark(#d9dae0, Canvas); }   /* the dimmer ground of every window rect */
     body { margin: 0; }
@@ -199,6 +199,10 @@
     input[type=range].rect:focus { border-color: Highlight; background: linear-gradient(to right, Highlight var(--p, 0%), transparent var(--p, 0%)); }
     #inst-main { min-width: 0; overflow-x: auto; }
     .curve-editor { margin: .25rem 0 .5rem; }
+    .field { display: inline-flex; align-items: center; border: 2px inset ButtonBorder; border: 1px solid #767676; background: Field; padding-right: 3px; }
+    .field:focus-within { outline: 2px solid Highlight; outline-offset: 0; }
+    .field input { border: 0; outline: 0; background: transparent; }
+    .field .unit { opacity: .6; font-size: 11px; user-select: none; }
     .dx-view canvas { display: block; width: 100%; max-width: 420px; height: auto; border: 0; cursor: default; }
     .dx-view .prow { display: flex; gap: .4rem; align-items: center; flex-wrap: wrap; }
     .dx-tabs button.on, .dx-grid button.on { background: hsl(35 80% 55%); }
@@ -295,7 +299,7 @@
       <input id="file" type="file" accept=".wax,.wtrk,.json" hidden>
       <label title="Song length in ticks; 16 ticks is one row of the arrangement">length <input id="length" type="number" min="16" max="4096" step="16" style="width:4.5em" disabled></label>
       <label>bpm <input id="bpm" type="number" min="20" max="400" step="1" style="width:4em" disabled></label>
-      <label title="How much of each pair of rows the first one lasts: 50 is straight, 67 is a triplet shuffle">swing <input id="swing" type="number" min="50" max="75" step="1" style="width:3.5em" disabled>%</label>
+      <label title="How much of each pair of rows the first one lasts: 50 is straight, 67 is a triplet shuffle">swing <span class="field"><input id="swing" type="number" min="50" max="75" step="1" style="width:2.6em" disabled><span class="unit">%</span></span></label>
       <button id="cut" disabled title="Halt all audio computation (silence, zero CPU) until Play is pressed" style="margin-left:auto">Cut</button>
       <button id="panic" disabled title="Stop every sounding note (all notes off)">Panic</button>
     </div>
