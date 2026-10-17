@@ -40,6 +40,7 @@ import * as lib from '../src/project/library.js';
 import { compileDsp } from '../src/audio/wasm/load.js';
 
 const sr = 48000, block = 128;
+let onWheel;   // the wheel handler of whichever view a test last made
 
 function setup(tweak = () => {}) {
   const registry = new ParamRegistry();
@@ -311,7 +312,7 @@ const firstSound = x => x.findIndex(v => Math.abs(v) > 1e-9);
   for (const [id, def] of Object.entries(instruments)) compile(def.graph, { instrument: id, nodeTypes: NODE_TYPES, registry });
   const lanes = prepareSong(demoSong, instruments, registry);
   let onKey;
-  const el = { addEventListener: (_, f) => { onKey = f; }, innerHTML: '' };
+  const el = { addEventListener: (type, f) => { if (type === 'keydown') onKey = f; else if (type === 'wheel') onWheel = f; }, innerHTML: '' };
   const statusEl = { textContent: '' };
   let toggled = 0;
   const view = createTrackerView({ el, statusEl, transport: new Int32Array(new SharedArrayBuffer(8)), onToggle: () => toggled++, onBack() {} });
@@ -370,7 +371,7 @@ const firstSound = x => x.findIndex(v => Math.abs(v) > 1e-9);
   for (const [id, def] of Object.entries(instruments)) compile(def.graph, { instrument: id, nodeTypes: NODE_TYPES, registry });
   const lanes = prepareSong(demoSong, instruments, registry);
   let onKey;
-  const view = createTrackerView({ el: { addEventListener: (_, f) => { onKey = f; } }, statusEl: {}, transport: new Int32Array(new SharedArrayBuffer(8)), onToggle() {}, onBack() {} });
+  const view = createTrackerView({ el: { addEventListener: (type, f) => { if (type === 'keydown') onKey = f; else if (type === 'wheel') onWheel = f; } }, statusEl: {}, transport: new Int32Array(new SharedArrayBuffer(8)), onToggle() {}, onBack() {} });
   view.load({ lanes, song: demoSong, editor: createEditor(lanes, demoSong.length) });
   const press = (key, times = 1) => { for (let i = 0; i < times; i++) onKey({ key, preventDefault() {} }); };
   const lead = lanes[0];
@@ -510,7 +511,7 @@ const firstSound = x => x.findIndex(v => Math.abs(v) > 1e-9);
   lanes[0].patterns[Object.keys(lanes[0].patterns)[0]].name = '<script>';
   const editor = createEditor(lanes, 32);
   let onKey, opened = null;
-  const el = { addEventListener: (_, f) => { onKey = f; }, innerHTML: '' };
+  const el = { addEventListener: (type, f) => { if (type === 'keydown') onKey = f; else if (type === 'wheel') onWheel = f; }, innerHTML: '' };
   const statusEl = { textContent: '' };
   const moves = [];
   const view = createSequenceView({ el, statusEl, transport: new Int32Array(new SharedArrayBuffer(8)), onToggle() {}, onOpen: (l, t) => { opened = [l, t]; }, onMove: (l, t) => moves.push([l, t]) });
@@ -563,7 +564,7 @@ const firstSound = x => x.findIndex(v => Math.abs(v) > 1e-9);
   let onKey;
   const moves = [];
   const view = createTrackerView({
-    el: { addEventListener: (_, f) => { onKey = f; }, innerHTML: '' }, statusEl: {}, transport: new Int32Array(new SharedArrayBuffer(8)),
+    el: { addEventListener: (type, f) => { if (type === 'keydown') onKey = f; else if (type === 'wheel') onWheel = f; }, innerHTML: '' }, statusEl: {}, transport: new Int32Array(new SharedArrayBuffer(8)),
     onToggle() {}, onBack() {}, onMove: (l, t) => moves.push([l, t]),
   });
   view.load({ lanes, song: demoSong, editor });
@@ -935,7 +936,7 @@ const hit = 'C-2 .. .. ..';
   const lanes = prepareSong(demoSong, defs, registry);
   const editor = createEditor(lanes, 32);
   let onKey;
-  const view = createTrackerView({ el: { addEventListener: (_, f) => { onKey = f; }, innerHTML: '' }, statusEl: {}, transport: new Int32Array(new SharedArrayBuffer(8)), onToggle() {}, onBack() {} });
+  const view = createTrackerView({ el: { addEventListener: (type, f) => { if (type === 'keydown') onKey = f; else if (type === 'wheel') onWheel = f; }, innerHTML: '' }, statusEl: {}, transport: new Int32Array(new SharedArrayBuffer(8)), onToggle() {}, onBack() {} });
   view.load({ lanes, song: demoSong, editor });
   const press = (key, times = 1) => { for (let i = 0; i < times; i++) onKey({ key, preventDefault() {} }); };
   const kick = lanes.find(l => l.id === 'kick');
@@ -3047,7 +3048,7 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     const lanes = prepareSong(demoSong, instruments, registry);
     const editor = createEditor(lanes, 32);
     let onKey;
-    const el = { addEventListener: (_, f) => { onKey = f; }, innerHTML: '' }, statusEl = { textContent: '' };
+    const el = { addEventListener: (type, f) => { if (type === 'keydown') onKey = f; else if (type === 'wheel') onWheel = f; }, innerHTML: '' }, statusEl = { textContent: '' };
     const view = createSequenceView({ el, statusEl, transport: new Int32Array(new SharedArrayBuffer(8)), onToggle() {}, onOpen() {} });
     view.load({ lanes, song: demoSong, editor });
     const press = key => onKey({ key, preventDefault() {} });
@@ -3114,7 +3115,7 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     const lanes = prepareSong(demoSong, instruments, registry);
     const editor = createEditor(lanes, 32);
     let onKey;
-    const el = { addEventListener: (_, f) => { onKey = f; }, innerHTML: '' }, statusEl = { textContent: '' };
+    const el = { addEventListener: (type, f) => { if (type === 'keydown') onKey = f; else if (type === 'wheel') onWheel = f; }, innerHTML: '' }, statusEl = { textContent: '' };
     const view = createSequenceView({ el, statusEl, transport: new Int32Array(new SharedArrayBuffer(8)), onToggle() {}, onOpen() {} });
     view.load({ lanes, song: demoSong, editor });
     const key = (k, extra = {}) => onKey({ key: k, preventDefault() {}, ...extra });
@@ -3707,7 +3708,7 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   const lanes = prepareSong(demoSong, instruments, registry);
   const editor = createEditor(lanes, 32);
   let onKey;
-  const view = createTrackerView({ el: { addEventListener: (_, f) => { onKey = f; }, innerHTML: '' }, statusEl: {}, transport: new Int32Array(new SharedArrayBuffer(8)), onToggle() {}, onBack() {} });
+  const view = createTrackerView({ el: { addEventListener: (type, f) => { if (type === 'keydown') onKey = f; else if (type === 'wheel') onWheel = f; }, innerHTML: '' }, statusEl: {}, transport: new Int32Array(new SharedArrayBuffer(8)), onToggle() {}, onBack() {} });
   view.load({ lanes, song: demoSong, editor });
   const press = (key, extra = {}) => onKey({ key, preventDefault() {}, ...extra });
   const ctrl = (key, extra = {}) => press(key, { ctrlKey: true, ...extra });
@@ -3749,7 +3750,7 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   const lanes = prepareSong(demoSong, instruments, registry);
   const editor = createEditor(lanes, 32);
   let onKey;
-  const view = createTrackerView({ el: { addEventListener: (_, f) => { onKey = f; }, innerHTML: '' }, statusEl: {}, transport: new Int32Array(new SharedArrayBuffer(8)), onToggle() {}, onBack() {}, readParam: slot => registry.values[slot] });
+  const view = createTrackerView({ el: { addEventListener: (type, f) => { if (type === 'keydown') onKey = f; else if (type === 'wheel') onWheel = f; }, innerHTML: '' }, statusEl: {}, transport: new Int32Array(new SharedArrayBuffer(8)), onToggle() {}, onBack() {}, readParam: slot => registry.values[slot] });
   view.load({ lanes, song: demoSong, editor });
   const press = (key, extra = {}) => onKey({ key, preventDefault() {}, ...extra });
   const lane = lanes[0], cols = lane.columns;
@@ -3791,7 +3792,7 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   const lanes = prepareSong(demoSong, instruments, registry);
   const editor = createEditor(lanes, 32);
   let onKey;
-  const el = { addEventListener: (_, f) => { onKey = f; }, innerHTML: '' }, statusEl = { textContent: '' };
+  const el = { addEventListener: (type, f) => { if (type === 'keydown') onKey = f; else if (type === 'wheel') onWheel = f; }, innerHTML: '' }, statusEl = { textContent: '' };
   const view = createTrackerView({ el, statusEl, transport: new Int32Array(new SharedArrayBuffer(8)), onToggle() {}, onBack() {} });
   view.load({ lanes, song: demoSong, editor });
   const press = (key, extra = {}) => onKey({ key, preventDefault() {}, ...extra });
@@ -4368,6 +4369,32 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   const both = render(130, { 0: [on(1), on(0)] });
   assert.ok(both[20] < both[0] * 0.05, 'closed and open on one row leave only the closed hit');
   assert.ok(Math.abs(render(4, { 0: [on(0, 0.5)] })[0] / render(4, { 0: [on(0, 1)] })[0] - 0.5) < 0.05, 'velocity scales the hit');
+}
+
+// The arrangement scrolls with the mouse wheel, without moving the cursor, and follows the cursor again once it moves.
+{
+  const registry = new ParamRegistry();
+  for (const [id, def] of Object.entries(instruments)) compile(def.graph, { instrument: id, nodeTypes: NODE_TYPES, registry });
+  const lanes = prepareSong(demoSong, instruments, registry);
+  const song = { ...demoSong, length: 4096 };
+  let onKey;
+  const el = { addEventListener: (type, f) => { if (type === 'keydown') onKey = f; else if (type === 'wheel') onWheel = f; }, innerHTML: '' };
+  const statusEl = { textContent: '' };
+  const view = createSequenceView({ el, statusEl, transport: new Int32Array(new SharedArrayBuffer(8)), onToggle() {}, onOpen() {} });
+  view.load({ lanes, song, editor: createEditor(lanes, 4096) });
+  view.draw();
+  const firstTick = () => Number(el.innerHTML.split('<div class="r">').map(x => x.replace(/<[^>]+>/g, '')).find(x => /^[> ]?\d{4} /.test(x)).match(/\d{4}/)[0]);
+  assert.equal(firstTick(), 0);
+  onWheel({ preventDefault() {}, deltaY: 100, deltaMode: 0 });
+  assert.equal(firstTick(), 64, 'a notch (100) is four rows of 16 ticks');
+  assert.ok(statusEl.textContent.includes('tick 0'), 'the cursor stays where it was');
+  onWheel({ preventDefault() {}, deltaY: -1000, deltaMode: 0 });
+  assert.equal(firstTick(), 0, 'it stops at the top');
+  onWheel({ preventDefault() {}, deltaY: 100000, deltaMode: 0 });
+  assert.ok(firstTick() <= 4096 - 16, 'and at the bottom');
+  onKey({ key: 'ArrowDown', preventDefault() {} });
+  view.draw();
+  assert.ok(firstTick() < 64, 'moving the cursor brings the view back to it');
 }
 
 // Column names: headers fit the cells, and the status bar describes the column under the caret.

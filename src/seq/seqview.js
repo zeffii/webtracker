@@ -142,13 +142,27 @@ export function createSequenceView({ el, statusEl, listEl, transport, onToggle, 
   };
 
   let top = 0;                  // the first row on screen
+  // The wheel scrolls the rows without moving the cursor; the view follows the cursor again as soon as it moves.
+  let wheelAcc = 0, scrolledFor = null;
+  el.addEventListener('wheel', e => {
+    e.preventDefault();
+    if (!lanes || e.deltaY === 0) return;
+    wheelAcc += e.deltaY * (e.deltaMode === 1 ? 16 : 1);
+    const step = Math.trunc(wheelAcc / 25);   // a notch of a mouse wheel is about four rows
+    if (!step) return;
+    wheelAcc -= step * 25;
+    top = Math.max(0, Math.min(top + step, Math.ceil(len / CELL) - rowCount));
+    scrolledFor = `${cur.lane},${cur.tick}`;
+    draw();
+  }, { passive: false });
   let lastList = '';
   let rowCount = ROWS.normal;   // how many rows are shown; the drag bar under the view changes it
   const draw = () => {
     if (!lanes) return;
     const playing = Atomics.load(transport, 1) === 1, playTick = Atomics.load(transport, 0);
     const rows = Math.ceil(len / CELL), curRow = Math.floor(cur.tick / CELL);
-    if (curRow < top || curRow >= top + rowCount) top = curRow - Math.min(8, rowCount >> 2);   // only scroll when the cursor leaves the window
+    if (scrolledFor !== `${cur.lane},${cur.tick}`) scrolledFor = null;
+    if (!scrolledFor && (curRow < top || curRow >= top + rowCount)) top = curRow - Math.min(8, rowCount >> 2);   // only scroll when the cursor leaves the window
     top = Math.max(0, Math.min(top, rows - rowCount));
     const blocks = lanes.map(layout);
     const row = text => `<div class="r">${text}</div>`;
