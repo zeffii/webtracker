@@ -238,7 +238,6 @@ export function moveLane(project, id, delta) {
 export function removeLane(project, id) {
   notMaster(id, 'lane');
   const lane = laneOf(project, id);
-  if (project.lanes.filter(l => l.id !== MASTER).length <= 1) throw new Error('A song needs at least one lane.');
   project.lanes.splice(project.lanes.indexOf(lane), 1);
 }
 

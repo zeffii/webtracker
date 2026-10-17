@@ -600,12 +600,12 @@ newMenu.addEventListener('click', e => {
   const kind = e.target.dataset?.clear;
   if (!kind) return;
   closeNew();
-  const what = { arrangement: 'the arrangement', patterns: 'every pattern and the arrangement', everything: 'everything (instruments, samples, patterns and arrangement; one empty synth is left to start from)' }[kind];
+  const what = { arrangement: 'the arrangement', patterns: 'every pattern and the arrangement', everything: 'everything (instruments, samples, patterns and arrangement; only the master lane is left)' }[kind];
   if (!confirm(`Clear ${what}? This cannot be undone; save first if you want to keep it.`)) return;
   const { song } = project;
   if (kind === 'everything') {
-    // the views need at least one lane, so the empty project holds a single plain synth with nothing written for it
-    openProject({ song: { name: 'untitled', bpm: song.bpm, ticksPerBeat: song.ticksPerBeat, length: song.length, lanes: [{ id: 'synth', instrument: 'synth', patterns: {}, placements: [] }] }, instruments: { synth: synthKinds.subtractive.make() }, samples: {} });
+    // nothing left but the master lane (it is always there); instruments and lanes are added from the instrument screen
+    openProject({ song: { name: 'untitled', bpm: song.bpm, ticksPerBeat: song.ticksPerBeat, length: song.length, lanes: [] }, instruments: {}, samples: {} });
   } else {
     const saved = parseProject(serializeProject(project));
     for (const lane of saved.song.lanes) { lane.placements = []; if (kind === 'patterns') lane.patterns = {}; }

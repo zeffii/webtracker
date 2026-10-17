@@ -2715,7 +2715,8 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     assert.notEqual(Object.values(original.patterns)[0].rows[0][0], 'G-9', 'a copy is independent of the original');
     for (const id of ['Lead_line2', 'kick', 'bass']) pops.removeLane(p, id);
     assert.deepEqual(ids(p), ['Lead_line']);
-    assert.throws(() => pops.removeLane(p, 'Lead_line'), /at least one lane/);
+    pops.removeLane(p, 'Lead_line');
+    assert.deepEqual(ids(p), [], 'the last lane can go too: a project can be empty (the master lane is added when it is opened)');
   }
 
   // instruments
