@@ -256,7 +256,6 @@
     input[type=range]::-moz-range-thumb { width: 8px; height: 12px; background: #e9a24a; border: 0; border-radius: 0; }
     input[type=range]:focus-visible { outline: 1px solid Highlight; outline-offset: 1px; }
     #proj-status, #patch-status { min-height: 1.5em; }
-    #live { max-width: 30rem; }
   </style>
 </head>
 <body>
@@ -297,16 +296,6 @@
       <pre id="view" tabindex="0"></pre>
       <div id="cursor" class="statusbar"></div>
       <div id="view-grip" class="grip" tabindex="0" role="separator" aria-orientation="horizontal" aria-label="Rows shown: drag, or use Up and Down" title="Drag to change how many rows are shown"></div>
-      <div id="live">
-        <h2>Live sliders (lead lane)</h2>
-        <p class="help">Where the pattern writes a value, it wins.</p>
-        <div class="prow"><span>Cutoff</span>
-          <input id="cutoff" type="range" min="0" max="1" step="0.001" value="0.67" aria-label="Filter cutoff"><output id="cutoff-out"></output></div>
-        <div class="prow"><span>Resonance</span>
-          <input id="res" type="range" min="0" max="0.95" step="0.001" value="0.3" aria-label="Filter resonance"><output id="res-out"></output></div>
-        <div class="prow"><span>Delay mix</span>
-          <input id="mix" type="range" min="0" max="1" step="0.001" value="0.25" aria-label="Delay mix"><output id="mix-out"></output></div>
-      </div>
     </div>
       <aside class="keys" aria-label="Pattern editor shortcuts"><h3>Shortcuts</h3>
         <dl>
@@ -326,7 +315,7 @@
           <dt>Ctrl+Up/Down</dt><dd>transpose the notes in the selection by a semitone (Shift: an octave)</dd>
           <dt>Ctrl+Left/Right</dt><dd>lower / raise every other value in the selection by one (Shift: a bigger step); commands keep their id</dd>
           <dt>Ctrl+Shift+H</dt><dd>hide or show the empty columns of the lane the cursor is in (a column with no value at any row; the one under the cursor stays)</dd>
-          <dt>Ctrl+Enter</dt><dd>write the live value of the parameter under the cursor (a slider, or what the song last set) into this cell, then move down a row</dd>
+          <dt>Ctrl+Enter</dt><dd>write the live value of the parameter under the cursor (the node setting, or what the song last set) into this cell, then move down a row</dd>
           <dt>Ctrl+Shift+Enter</dt><dd>the same for every parameter column of this row (not notes, velocities or commands)</dd>
           <dt>Ctrl+I</dt><dd>interpolate: fill the rows between the first and last row of the selection with a straight line, per column (command and 1hex columns are skipped)</dd>
           <dt>Ctrl + − 0, wheel</dt><dd>pattern text size</dd>

@@ -24,24 +24,6 @@ const engine = new Engine();
 const $ = id => document.getElementById(id);
 let started = false, playing = false, project = null;
 
-// Live sliders write the lead's exposed parameters. Where the pattern has a value
-// on a tick it wins; empty pattern cells leave the slider's value alone.
-const bindings = [
-  ['cutoff', 'cutoff-out', 'lead.filter.cutoff', v => 80 * 2 ** (v * 7.8), x => `${Math.round(x)} Hz`],
-  ['res', 'res-out', 'lead.filter.resonance', v => v, x => x.toFixed(2)],
-  ['mix', 'mix-out', 'lead.delay.mix', v => v, x => x.toFixed(2)],
-];
-
-const apply = ([input, output, address, map, format]) => {
-  const value = map($(input).valueAsNumber);
-  $(output).textContent = format(value);
-  if (started && engine.registry.slots.has(address)) engine.set(address, value);   // a loaded project may not have it
-};
-for (const b of bindings) {
-  $(b[0]).addEventListener('input', () => apply(b));
-  apply(b);
-}
-
 const setPlaying = value => {
   playing = value;
   if (playing) engine.play(); else engine.stop();
@@ -539,7 +521,6 @@ function reloadInstrument(id) {
     loadInst(id);
     sendSamples(id);
     refreshLanes(id);
-    bindings.forEach(apply);
   } catch (err) {
     $('patch-status').textContent = err.message;
   }
@@ -572,7 +553,6 @@ function openProject({ song, instruments, samples }, { stay = false, instrument 
   $('length').value = song.length;
   $('bpm').value = song.bpm;
   $('swing').value = Math.round((song.swing ?? 0.5) * 100);
-  bindings.forEach(apply);
   if (!stay) tabs.show('patterns');
 }
 
