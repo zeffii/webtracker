@@ -9,10 +9,28 @@ import { GLYPHS } from './glyphs.js';
 import { LOWER, UPPER } from '../seq/piano.js';
 import { inputsOf, portKind, resolveKinds } from './kinds.js';
 import { eligibleSources } from './sidechain.js';
+import { factsFor, hintFor } from './hints.js';
 import { createCurveEditor } from './curveeditor.js';
 import { createSpectrumEditor } from './spectrumeditor.js';
 import { createWaveEditor } from './waveeditor.js';
 import { createWavetableEditor } from './wavetableeditor.js';
+
+// The help box beside a parameter: one floating note, shown beside the "?" while the mouse (or keyboard focus) is on it.
+let tipEl = null;
+const hideTip = () => { if (tipEl) tipEl.style.display = 'none'; };
+const showTip = (anchor, { title, text, facts }) => {
+  if (!tipEl) { tipEl = document.createElement('div'); tipEl.id = 'hint-pop'; document.body.append(tipEl); }
+  tipEl.replaceChildren();
+  const h = document.createElement('b'); h.textContent = title;
+  const p = document.createElement('p'); p.textContent = text || 'No description yet.';
+  const f = document.createElement('small'); f.textContent = facts;
+  tipEl.append(h, p, f);
+  tipEl.style.display = 'block';
+  const box = anchor.getBoundingClientRect(), pop = tipEl.getBoundingClientRect();
+  const left = Math.max(8, Math.min(box.right + 8, innerWidth - pop.width - 8));
+  const top = Math.max(8, Math.min(box.top - 4, innerHeight - pop.height - 8));
+  tipEl.style.left = `${left}px`; tipEl.style.top = `${top}px`;
+};
 
 // Geometry. A node's shape comes from its type: 'box' for processors, 'rounded' for
 // sources and 'circle' for mixing and gain. Ports sit on the left (inputs) and right (outputs).
@@ -260,10 +278,16 @@ export function createPatcher({ canvas, panel, exposedPanel = null, onEscape = (
       });
       exposed.title = `Make ${spec.name} a pattern column`; exposed.ariaLabel = `expose ${spec.name}`;
       port.title = `Give ${spec.name} an input on the node, to wire a control node into`; port.ariaLabel = `port ${spec.name}`;
-      return el('div', { className: 'prow nrow' }, el('span', { textContent: spec.name }), hex, slider, out, exposed, width, port);
+      const hint = el('span', { className: 'hbox', textContent: '?', tabIndex: 0, ariaLabel: `About ${spec.name}` });
+      const tip = () => ({ title: spec.name, text: hintFor(node.type, spec), facts: factsFor(spec) });
+      hint.addEventListener('mouseenter', () => showTip(hint, tip()));
+      hint.addEventListener('focus', () => showTip(hint, tip()));
+      hint.addEventListener('mouseleave', hideTip);
+      hint.addEventListener('blur', hideTip);
+      return el('div', { className: 'prow nrow' }, el('span', { textContent: spec.name }), hint, hex, slider, out, exposed, width, port);
     });
     // one set of column labels above the rows, instead of a label on every row
-    const head = el('div', { className: 'prow nrow phead' }, el('span'), el('span'), el('span'), el('span'),
+    const head = el('div', { className: 'prow nrow phead' }, el('span'), el('span'), el('span'), el('span'), el('span'),
       el('span', { textContent: 'expose', title: 'Make the parameter a column in the pattern' }),
       el('span', { textContent: 'width', title: 'How many hex digits the pattern column takes' }),
       el('span', { textContent: 'port', title: 'Give the parameter an input on the node, to wire a control node into' }));

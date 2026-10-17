@@ -157,7 +157,10 @@ export class GraphRuntime {
   note(instrument, msg) {
     const inst = this.instruments.get(instrument);
     if (!inst) return;
-    if (inst.sets.length > 0) for (const node of inst.pre) node.instance.note?.(msg);   // shared nodes (the note trigger) hear every note once, not per voice
+    if (inst.sets.length > 0) {   // nodes outside the voices (the note trigger, and an envelope that works on the mixed sound) hear every note once, not per voice
+      for (const node of inst.pre) node.instance.note?.(msg);
+      for (const node of inst.nodes) node.instance.note?.(msg);
+    }
     if (inst.sets.length === 0) {
       for (const node of inst.nodes) node.instance.note?.(msg);
       return;

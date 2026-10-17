@@ -4423,3 +4423,16 @@ console.log('smoke test passed');
   legato.note('a', { type: 'noteOn', note: 64, vel: 1 });
   assert.ok(run(legato, 10) < 0.02, 'with legato an overlapping note does not fire it again');
 }
+
+// 123. An envelope after the voices node still hears the notes.
+{
+  const build = amount => {
+    const registry = new ParamRegistry(), rt = new GraphRuntime({ sampleRate: sr, params: registry.values });
+    const nodes = [{ id: 'osc', type: 'osc', params: { freq: 220, wave: 0 } }, { id: 'poly', type: 'voices' }, { id: 'filt', type: 'filter', params: { cutoff: 300, resonance: 0.3 } }, { id: 'env', type: 'env', params: { attack: 1, decay: 400, sustain: 0.6, amount } }, { id: 'out', type: 'out' }];
+    rt.load(compile({ nodes, voices: 4, connections: [['osc.out', 'poly.in'], ['poly.out', 'filt.in'], ['env.out', 'filt.mod'], ['filt.out', 'out.in']] }, { instrument: 'a', nodeTypes: NODE_TYPES, registry }));
+    return rt;
+  };
+  const energy = rt => { const l = new Float32Array(block), r = new Float32Array(block); rt.note('a', { type: 'noteOn', note: 60, vel: 1 }); let e = 0; for (let i = 0; i < 40; i++) { rt.process(l, r, block); for (const v of l) e += v * v; } return e; };
+  const e5 = energy(build(5)), e0 = energy(build(0));
+  assert.ok(e5 > 1.3 * e0, 'an envelope after the voices opens the filter');
+}

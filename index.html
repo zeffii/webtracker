@@ -220,7 +220,12 @@
     .prow { display: grid; grid-template-columns: 8rem 12rem 5rem auto; gap: .5rem; align-items: center; font: 13px/1.2 ui-monospace, Consolas, monospace; margin: 2px 0; }
     .prow output { text-align: right; }
     /* node parameter rows: name, slider, value, then the expose tick, its column width and the port tick, each under one label at the top */
-    .nrow { grid-template-columns: 8rem 3rem 12rem 5rem 3.6rem 4.4rem 3rem; }
+    .nrow { grid-template-columns: 8rem 1.3rem 3rem 12rem 5rem 3.6rem 4.4rem 3rem; }
+    .hbox { width: 1rem; height: 1rem; line-height: 1rem; text-align: center; font-size: 11px; border: 1px solid; border-radius: 3px; opacity: .55; cursor: help; user-select: none; }
+    .hbox:hover, .hbox:focus { opacity: 1; outline: none; background: Highlight; color: HighlightText; border-color: Highlight; }
+    #hint-pop { position: fixed; display: none; z-index: 50; max-width: 22rem; padding: .4rem .6rem; background: Canvas; color: CanvasText; border: 1px solid; box-shadow: 0 2px 10px #0006; pointer-events: none; font-size: 12px; line-height: 1.4; }
+    #hint-pop p { margin: .25rem 0; }
+    #hint-pop small { opacity: .65; }
     .hexv { color: #f0707a; font-size: 11px; text-align: right; }
     .nrow > input[type=checkbox] { justify-self: center; margin: 0; }
     .nrow select { min-width: 0; width: 100%; }
