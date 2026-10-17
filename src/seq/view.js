@@ -72,10 +72,18 @@ export function createTrackerView({ el, statusEl, transport, onToggle, onBack, o
   };
   el.addEventListener('keyup', e => stopSound(e.key.length === 1 ? e.key.toLowerCase() : e.key));
   el.addEventListener('blur', () => { for (const k of [...sounding.keys()]) stopSound(k); });
+  // The wheel scrolls the rows without moving the cursor; the view follows the cursor again as soon as it moves.
+  let wheelAcc = 0, scrolledFor = null;
   el.addEventListener('wheel', e => {
-    if (!e.ctrlKey) return;
     e.preventDefault();
-    setSize(fontPx + (e.deltaY < 0 ? 1 : -1));
+    if (e.ctrlKey) { setSize(fontPx + (e.deltaY < 0 ? 1 : -1)); return; }
+    if (!lanes || e.deltaY === 0) return;
+    wheelAcc += e.deltaY * (e.deltaMode === 1 ? 16 : 1);
+    const rows = Math.trunc(wheelAcc / 25);   // a notch of a mouse wheel is about four rows
+    if (!rows) return;
+    wheelAcc -= rows * 25;
+    top = Math.max(0, Math.min(top + rows, len - rowCount));
+    scrolledFor = `${cur.lane},${cur.tick}`;
   }, { passive: false });
 
   const load = ({ lanes: l, song: s, editor: e }) => {
@@ -470,7 +478,8 @@ export function createTrackerView({ el, statusEl, transport, onToggle, onBack, o
     const playing = Atomics.load(transport, 1) === 1, playTick = Atomics.load(transport, 0);
     // The window stays where it is while the cursor is inside it (so clicking does not move the grid); when the
     // cursor leaves it, the window jumps to put the cursor a few rows in from the top.
-    if (cur.tick < top || cur.tick >= top + rowCount) top = cur.tick - Math.min(8, rowCount >> 2);
+    if (scrolledFor !== `${cur.lane},${cur.tick}`) scrolledFor = null;
+    if (!scrolledFor && (cur.tick < top || cur.tick >= top + rowCount)) top = cur.tick - Math.min(8, rowCount >> 2);
     top = Math.max(0, Math.min(top, len - rowCount));
     const r = sel ? rect() : null;
     vis = lanes.map((_, li) => visibleCols(li));
