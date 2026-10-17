@@ -727,7 +727,7 @@ export function createPatcher({ canvas, panel, paramPanel = null, exposedDock = 
   // Values written by the pattern editor live in the shared block, not the graph description: repaint the panels when they move.
   let liveSig = '';
   function followLive() {
-    if (!instId) return;
+    if (!instId || !def()) return;
     const parts = [];
     const sel = selected?.kind === 'node' ? desc().nodes.find(n => n.id === selected.id) : null;
     if (sel && paramView?.open) for (const sp of nodeTypes[sel.type]?.params ?? []) parts.push(readLive(instId, sel.id, sp.name));
@@ -862,7 +862,7 @@ export function createPatcher({ canvas, panel, paramPanel = null, exposedDock = 
     // the audio side's latest samples for the watched instrument
     feedScope(id, node, l, r, sr) { if (id === instId) { scopeData.set(node, { l, r, sr }); dirty = true; } },
     show(id) {
-      if (instId && instId !== id) for (const n of desc().nodes) if (n.scope) onScope(instId, n.id, false);
+      if (instId && instId !== id && def()) for (const n of desc().nodes) if (n.scope) onScope(instId, n.id, false);   // (the old instrument may be gone from a newly loaded project)
       instId = id;
       scopeData.clear();
       if (id) for (const n of desc().nodes) if (n.scope) onScope(id, n.id, true);
