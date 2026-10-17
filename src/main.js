@@ -181,29 +181,30 @@ function renderInstList() {
   });
   $('inst-list').replaceChildren(...buttons);
   $('inst-name').value = patcher.instrument ?? '';
-  renderLaneList();
+  renderLaneInstruments();
   renderPresetList();
   syncPoly();
 }
 
-// The lanes of the song, beside the instruments; one is selected for the buttons under it.
-let selectedLane = null;
-function renderLaneList() {
-  if (!project.lanes.some(l => l.id === selectedLane)) selectedLane = project.lanes[0]?.id ?? null;
-  const buttons = project.lanes.map((lane, i) => {
-    const b = document.createElement('button');
-    b.textContent = `${lane.id} · ${lane.instrument}`;
-    b.classList.toggle('active', lane.id === selectedLane);
-    b.addEventListener('click', () => { selectedLane = lane.id; renderLaneList(); view.goto(i, 0); seqView.goto(i, 0); });
-    return b;
-  });
-  $('lane-list').replaceChildren(...buttons);
-  $('lane-name').value = selectedLane ?? '';
+// The lane the buttons under the arrangement act on: the one the arrangement cursor is in.
+const cursorLane = () => project.lanes[seqView.lane]?.id ?? null;
+let shownLane;   // the lane whose name the rename field shows
+function syncLaneName() {
+  const id = cursorLane();
+  if (id === shownLane || document.activeElement === $('lane-name')) return;
+  shownLane = id;
+  $('lane-name').value = id ?? '';
+}
+// The instruments a new lane can play.
+function renderLaneInstruments() {
+  const select = $('add-lane-inst'), keep = select.value || patcher.instrument;
+  select.replaceChildren(...listedInstruments().map(id => Object.assign(document.createElement('option'), { value: id, textContent: id })));
+  if ([...select.options].some(o => o.value === keep)) select.value = keep;
 }
 
 // Changing the shape of the project (names, order, copies, removals): stop, change it, and load the
 // whole project again so the engine, the columns and the lists agree. Pattern undo history is lost.
-function reshape(change, { instrument = patcher.instrument, lane = selectedLane } = {}) {
+function reshape(change, { instrument = patcher.instrument, lane = cursorLane() } = {}) {
   try {
     if (playing) setPlaying(false);
     const result = change();
@@ -415,14 +416,14 @@ $('inst-dup').addEventListener('click', () => {
 confirmed($('inst-remove'), 'Remove', () => { const id = patcher.instrument; if (id) reshape(() => { ops.removeInstrument(project, id); return { message: `Removed ${id}.` }; }); });
 
 $('lane-rename').addEventListener('click', () => {
-  const id = selectedLane;
+  const id = cursorLane();
   if (id) reshape(() => { const next = ops.renameLane(project, id, $('lane-name').value); return { lane: next, message: `Renamed to ${next}.` }; });
 });
 $('lane-name').addEventListener('keydown', e => { if (e.key === 'Enter') $('lane-rename').click(); e.stopPropagation(); });
-$('lane-left').addEventListener('click', () => { const id = selectedLane; if (id) reshape(() => { ops.moveLane(project, id, -1); }); });
-$('lane-right').addEventListener('click', () => { const id = selectedLane; if (id) reshape(() => { ops.moveLane(project, id, 1); }); });
+$('lane-left').addEventListener('click', () => { const id = cursorLane(); if (id) reshape(() => { ops.moveLane(project, id, -1); }); });
+$('lane-right').addEventListener('click', () => { const id = cursorLane(); if (id) reshape(() => { ops.moveLane(project, id, 1); }); });
 $('lane-dup').addEventListener('click', () => {
-  const id = selectedLane;
+  const id = cursorLane();
   if (id) reshape(() => { const copy = ops.duplicateLane(project, id); return { lane: copy.id, message: `Copied to ${copy.id}.` }; });
 });
 const removeLane = (id, withMachine) => {
@@ -436,11 +437,8 @@ const removeLane = (id, withMachine) => {
     return { message: shared ? `Removed (${id}) lane; (${inst}) instrument is still played by another lane.` : `Removed (${id}) lane, and (${inst}) instrument.` };
   });
 };
-confirmed($('lane-remove-all'), 'Remove with machine', () => removeLane(selectedLane, true));
-confirmed($('lane-remove'), 'Remove', () => removeLane(selectedLane, false));
-// the same two buttons in the arrangement, for the lane the cursor is in
-confirmed($('arr-lane-remove-all'), 'Remove lane and machine', () => removeLane(project.lanes[seqView.lane]?.id, true));
-confirmed($('arr-lane-remove'), 'Remove lane', () => removeLane(project.lanes[seqView.lane]?.id, false));
+confirmed($('lane-remove-all'), 'Remove with machine', () => removeLane(cursorLane(), true));
+confirmed($('lane-remove'), 'Remove', () => removeLane(cursorLane(), false));
 
 // The polyphony fields show the selected instrument's settings.
 function syncPoly() {
@@ -566,7 +564,6 @@ function openProject({ song, instruments, samples }, { stay = false, instrument 
   project = { song, instruments, samples, lanes, editor };
   patcher.load({ instruments });
   if (instrument in instruments) patcher.show(instrument);
-  selectedLane = lane;
   refreshProjectUi();
   seqView.load({ lanes, song, editor });
   view.load({ lanes, song, editor });
@@ -610,7 +607,7 @@ newMenu.addEventListener('click', e => {
   } else {
     const saved = parseProject(serializeProject(project));
     for (const lane of saved.song.lanes) { lane.placements = []; if (kind === 'patterns') lane.patterns = {}; }
-    openProject(saved, { stay: true, instrument: patcher.instrument, lane: selectedLane });
+    openProject(saved, { stay: true, instrument: patcher.instrument, lane: cursorLane() });
   }
   projStatus(kind === 'everything' ? 'Cleared everything.' : `Cleared ${what}.`);
 });
@@ -698,7 +695,7 @@ $('add-synth').addEventListener('click', () => {
 
 $('add-lane').addEventListener('click', () => {
   try {
-    const lane = addLaneFor(patcher.instrument);
+    const lane = addLaneFor($('add-lane-inst').value || patcher.instrument);
     projStatus(`Added lane ${lane.id}.`);
   } catch (err) {
     projStatus(err.message);
@@ -739,10 +736,10 @@ $('start').addEventListener('click', async () => {
       openProject(createSynthwaveProject());
     }
     for (const id of ['start']) $(id).disabled = true;
-    for (const id of ['play', 'panic', 'cut', 'new', 'save', 'load', 'patch-add', 'load-samples', 'add-sampler', 'add-synth', 'add-lane', 'inst-voices', 'inst-notecols', 'inst-name', 'inst-rename', 'inst-up', 'inst-down', 'inst-dup', 'inst-remove', 'lane-name', 'lane-rename', 'lane-left', 'lane-right', 'lane-dup', 'lane-remove', 'lane-remove-all', 'arr-lane-remove', 'arr-lane-remove-all', 'length', 'bpm', 'swing', 'preset-name', 'preset-save', 'preset-over', 'preset-rename', 'preset-remove', 'inst-export', 'inst-import', 'lib-load', 'lib-add', 'lib-save']) $(id).disabled = false;
+    for (const id of ['play', 'panic', 'cut', 'new', 'save', 'load', 'patch-add', 'load-samples', 'add-sampler', 'add-synth', 'add-lane', 'add-lane-inst', 'inst-voices', 'inst-notecols', 'inst-name', 'inst-rename', 'inst-up', 'inst-down', 'inst-dup', 'inst-remove', 'lane-name', 'lane-rename', 'lane-left', 'lane-right', 'lane-dup', 'lane-remove', 'lane-remove-all', 'length', 'bpm', 'swing', 'preset-name', 'preset-save', 'preset-over', 'preset-rename', 'preset-remove', 'inst-export', 'inst-import', 'lib-load', 'lib-add', 'lib-save']) $(id).disabled = false;
     $('status').textContent =
       `Running at ${engine.ctx.sampleRate} Hz, base latency ${(engine.ctx.baseLatency * 1000).toFixed(1)} ms`;
-    const frame = () => { songInfo(); seqView.draw(); view.draw(); patcher.draw(); sampleScreen.draw(); waveform.draw(); region.draw(); requestAnimationFrame(frame); };
+    const frame = () => { songInfo(); seqView.draw(); syncLaneName(); view.draw(); patcher.draw(); sampleScreen.draw(); waveform.draw(); region.draw(); requestAnimationFrame(frame); };
     frame();
   } catch (err) {
     $('status').textContent = err.message;

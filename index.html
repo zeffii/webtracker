@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="themes.css">
-  <title>webtracker m154</title>
+  <title>webtracker m156</title>
   <style>
     :root { color-scheme: light dark; font-family: system-ui, sans-serif; }   /* colours: see themes.css */
     body { background: var(--bg); color: var(--fg); }
@@ -53,6 +53,7 @@
     #seq-below { display: flex; gap: 1.25rem; align-items: flex-start; margin-top: .6rem; }
         #seq-side { flex: none; box-sizing: content-box; width: 24ch; max-height: 361px; overflow-x: hidden; overflow-y: auto; scrollbar-width: thin; font: 12px/17px ui-monospace, Consolas, monospace; padding: 2px 0; white-space: pre; }
     /* its own height: room for the header and 20 patterns, then (only then) it scrolls */
+    #lane-name { width: 14ch; flex: none; }
     #seq-side .ph, #seq-side .pi { height: 17px; overflow: hidden; }
     #seq-side .ph { padding: 0 6px; opacity: .6; }
     #seq-side .pi { padding: 0 6px; }
@@ -191,13 +192,12 @@
     .grip::after { content: ""; position: absolute; left: 50%; top: 50%; width: 26px; height: 11px; box-sizing: border-box; transform: translate(-50%, -50%); border: 1px solid color-mix(in srgb, currentColor 55%, transparent); border-radius: 6px; background: radial-gradient(circle at 6px 50%, currentColor 1.2px, transparent 1.5px), radial-gradient(circle at 12px 50%, currentColor 1.2px, transparent 1.5px), radial-gradient(circle at 18px 50%, currentColor 1.2px, transparent 1.5px), var(--bg); }
     .grip:hover::before, .grip:focus::before, .grip.dragging::before { border-top-color: var(--hi); }
     .grip:hover::after, .grip:focus::after, .grip.dragging::after { border-color: var(--hi); }
-    #preset-list button, #lib-list button, #lane-list button { display: block; width: 100%; font: inherit; text-align: left; padding: .1rem .5rem; border: 1px solid transparent; background: transparent; color: inherit; cursor: pointer; }
-    #lib-list button.active, #preset-list button.active, #lane-list button.active { background: var(--hi); color: var(--hi-fg); }
+    #preset-list button, #lib-list button { display: block; width: 100%; font: inherit; text-align: left; padding: .1rem .5rem; border: 1px solid transparent; background: transparent; color: inherit; cursor: pointer; }
+    #lib-list button.active, #preset-list button.active { background: var(--hi); color: var(--hi-fg); }
     #inst-list button { font: inherit; text-align: left; padding: 0 .5rem; border: 0; background: transparent; color: inherit; cursor: pointer; white-space: pre; }
     #inst-list button.active { background: color-mix(in srgb, currentColor 22%, transparent); }
     #inst-list:focus button.active { background: var(--hi); color: var(--hi-fg); }
     #inst-main h2, #inst-side h2 { font-size: 13px; font-weight: normal; opacity: .65; margin: .9rem 0 .25rem; }
-    #inst-more summary { cursor: pointer; opacity: .75; margin-top: .75rem; }
     /* sliders as small rects, filled to their value; the focused one is brighter */
     input[type=range].rect { appearance: none; -webkit-appearance: none; height: 13px; box-sizing: border-box; border: 1px solid color-mix(in srgb, currentColor 55%, transparent); border-radius: 0; background: linear-gradient(to right, color-mix(in srgb, currentColor 45%, transparent) var(--p, 0%), transparent var(--p, 0%)); padding: 0; margin: 0; outline: none; }
     input[type=range].rect::-webkit-slider-thumb { appearance: none; width: 0; height: 0; }
@@ -415,7 +415,6 @@
             <button id="inst-up" disabled title="Move earlier">▲</button><button id="inst-down" disabled title="Move later">▼</button>
             <button id="inst-dup" disabled>Duplicate</button><button id="inst-remove" disabled>Remove</button>
           </div>
-          <button id="add-lane" disabled>Add lane for selected</button>
       <h2>Presets</h2>
         <div id="preset-list"></div>
         <div id="preset-section" class="manage row new">
@@ -426,6 +425,20 @@
           <button id="preset-remove" disabled>Remove</button>
         </div>
         <p class="help">A preset is recalled in a pattern with command 00: in the Cmd column, 00 and the preset's number, as 00 0003.</p>
+        <h2>Preset library</h2>
+        <div id="lib-list"></div>
+        <div class="manage row">
+          <button id="lib-load" disabled title="Open a .wxpr library">Open…</button>
+          <button id="lib-add" disabled title="Copy the selected library preset into this instrument">Add to instrument</button>
+          <button id="lib-save" disabled title="Put the selected preset (or all of them) in the library and save it">Save to library…</button>
+          <input id="lib-file" type="file" accept=".wxpr,.json" hidden>
+        </div>
+        <h2>Instrument file</h2>
+        <div class="manage row">
+          <button id="inst-export" disabled>Export…</button>
+          <button id="inst-import" disabled>Import…</button>
+          <input id="inst-file" type="file" accept=".waxi,.json" hidden>
+        </div>
         </div>
         <div id="inst-main">
           <div id="inst-head">
@@ -443,31 +456,6 @@
           </div>
           <p id="patch-status"></p>
           <div id="patch-panel"></div>
-          <details id="inst-more">
-            <summary>Lanes, preset library, files</summary>
-            <h2>Lanes</h2>
-            <div id="lane-list"></div>
-            <div class="manage row">
-              <input id="lane-name" aria-label="Rename the selected lane" disabled>
-              <button id="lane-rename" disabled>Rename</button>
-              <button id="lane-left" disabled title="Move earlier">◀</button><button id="lane-right" disabled title="Move later">▶</button>
-              <button id="lane-dup" disabled>Duplicate</button><button id="lane-remove" disabled>Remove</button><button id="lane-remove-all" disabled title="Remove the lane and the instrument it plays (if no other lane plays it)">Remove with machine</button>
-            </div>
-            <h2>Preset library</h2>
-            <div id="lib-list"></div>
-            <div class="manage row">
-              <button id="lib-load" disabled title="Open a .wxpr library">Open…</button>
-              <button id="lib-add" disabled title="Copy the selected library preset into this instrument">Add to instrument</button>
-              <button id="lib-save" disabled title="Put the selected preset (or all of them) in the library and save it">Save to library…</button>
-              <input id="lib-file" type="file" accept=".wxpr,.json" hidden>
-            </div>
-            <h2>Instrument file</h2>
-            <div class="manage row">
-              <button id="inst-export" disabled>Export…</button>
-              <button id="inst-import" disabled>Import…</button>
-              <input id="inst-file" type="file" accept=".waxi,.json" hidden>
-            </div>
-          </details>
         </div>
       </div>
     </div>
@@ -498,7 +486,16 @@
     <div class="pane-main">
       <pre id="seq" tabindex="0"></pre>
       <div id="seq-status" class="statusbar"></div>
-      <div class="manage row" style="margin:.3rem 0"><span class="help">Lane under the cursor:</span> <button id="arr-lane-remove" disabled title="Remove the lane (its instrument stays)">Remove lane</button><button id="arr-lane-remove-all" disabled title="Remove the lane and the instrument it plays (if no other lane plays it)">Remove lane and machine</button></div>
+      <div class="manage row" style="margin:.3rem 0">
+        <span class="help">Lane under the cursor:</span>
+        <input id="lane-name" aria-label="Rename the lane under the cursor" disabled>
+        <button id="lane-rename" disabled>Rename</button>
+        <button id="lane-left" disabled title="Move earlier">◀</button><button id="lane-right" disabled title="Move later">▶</button>
+        <button id="lane-dup" disabled>Duplicate</button><button id="lane-remove" disabled title="Remove the lane (its instrument stays)">Remove</button><button id="lane-remove-all" disabled title="Remove the lane and the instrument it plays (if no other lane plays it)">Remove with machine</button>
+      </div>
+      <div class="manage row" style="margin:.3rem 0">
+        <button id="add-lane" disabled title="Add a lane that plays this instrument">Add lane for</button><select id="add-lane-inst" aria-label="Instrument for the new lane" disabled></select>
+      </div>
       <div id="seq-grip" class="grip" tabindex="0" role="separator" aria-orientation="horizontal" aria-label="Rows shown: drag, or use Up and Down" title="Drag to change how many rows are shown"></div>
       <div id="seq-below">
         <div id="seq-side"><div id="seq-list"></div></div>
