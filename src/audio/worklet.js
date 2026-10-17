@@ -17,7 +17,8 @@ class TrackerEngine extends AudioWorkletProcessor {
     this.port.onmessage = ({ data }) => {
       if (data.type === 'load') this.rt.load(data.graph);
       else if (data.type === 'node') this.rt.message(data.instrument, data.node, data.msg);
-      else if (data.type === 'note') this.rt.note(data.instrument, data.msg);
+      else if (data.type === 'note') { if (!this.halted) this.rt.note(data.instrument, data.msg); }
+      else if (data.type === 'cut') { this.rt.panic(); this.seq.stop(); this.halted = true; }
       else if (data.type === 'panic') this.rt.panic();
       else if (data.type === 'reset') {
         const fresh = new Float32Array(data.sab);
@@ -26,12 +27,13 @@ class TrackerEngine extends AudioWorkletProcessor {
       }
       else if (data.type === 'song') this.seq.setSong(data.song);
       else if (data.type === 'lane') this.seq.setLane(data.lane);
-      else if (data.type === 'transport') (data.play ? this.seq.play() : this.seq.stop());
+      else if (data.type === 'transport') { if (data.play) this.halted = false; (data.play ? this.seq.play() : this.seq.stop()); }
     };
   }
 
   process(_inputs, outputs) {
     const out = outputs[0];
+    if (this.halted) return true;   // cut: no computation at all until Play
     const t0 = Date.now();
     this.seq.process(out[0], out[1], out[0].length);
     const ms = Date.now() - t0;

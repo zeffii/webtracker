@@ -73,6 +73,11 @@ export class Engine {
     this.node.port.postMessage({ type: 'panic' });
   }
 
+  // stops all computation (silence, no DSP) until play() is called
+  cut() {
+    this.node.port.postMessage({ type: 'cut' });
+  }
+
   setSong({ bpm, ticksPerBeat, length, swing = 0.5, loop }) {
     this.node.port.postMessage({ type: 'song', song: { bpm, ticksPerBeat, length, swing, ...(loop ? { loop: { start: loop.start, end: loop.end } } : {}) } });
   }
