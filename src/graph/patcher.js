@@ -10,6 +10,8 @@ import { LOWER, UPPER } from '../seq/piano.js';
 import { inputsOf, portKind, resolveKinds } from './kinds.js';
 import { eligibleSources } from './sidechain.js';
 import { factsFor, hintFor } from './hints.js';
+import { choices, display, unitOf } from './units.js';
+import { createParamView } from './paramview.js';
 import { createCurveEditor } from './curveeditor.js';
 import { createSpectrumEditor } from './spectrumeditor.js';
 import { createWaveEditor } from './waveeditor.js';
@@ -122,7 +124,7 @@ const toValue = (spec, pos) => {
 const toPos = (spec, v) => (isLog(spec) ? Math.log(v / spec.min) / Math.log(spec.max / spec.min) : (v - spec.min) / (spec.max - spec.min));
 const fmt = v => String(Number(v.toPrecision(4)));
 
-export function createPatcher({ canvas, panel, exposedPanel = null, onEscape = () => {}, statusEl, doc = document, nodeTypes, onStructure, onParam, onData = () => {}, onContext = () => {}, onNote = () => {}, getSampleIds = () => [], getSample = () => null }) {
+export function createPatcher({ canvas, panel, paramPanel = null, exposedPanel = null, onEscape = () => {}, statusEl, doc = document, nodeTypes, onStructure, onParam, onData = () => {}, onContext = () => {}, onNote = () => {}, getSampleIds = () => [], getSample = () => null }) {
   let tableEditor = null;   // the wavetable panel of the selected node, redrawn when position or mix move
   let instruments = {}, instId = null, selected = null, drag = null, dirty = true;
   const ctx = canvas.getContext('2d');
@@ -159,6 +161,58 @@ export function createPatcher({ canvas, panel, exposedPanel = null, onEscape = (
     for (const k of kids) e.appendChild(typeof k === 'string' ? doc.createTextNode(k) : k);
     return e;
   };
+
+  // The docked parameter panel (when the page has one): rows for the selected node, driven by the keys of the graph.
+  const paramView = paramPanel ? createParamView({ doc, el: paramPanel, showTip, hideTip, onFocusBack: () => canvas.focus?.() }) : null;
+  const cursorMemo = new Map();   // the row last selected in each node's panel
+  let shownNode = null;
+  const clamp01 = x => Math.min(1, Math.max(0, x));
+
+  // The panel rows of one node: each reads and writes the node's parameter, and carries the row's menu actions.
+  function rowsFor(node, type) {
+    return type.params.map(spec => {
+      const get = () => node.params?.[spec.name] ?? spec.def;
+      const entry = () => def().exposed.find(e => e.node === node.id && e.param === spec.name);
+      const span = spec.max - spec.min;
+      const apply = v => {
+        setParam(desc(), node.id, spec.name, v);
+        onParam(instId, node.id, spec.name, v);
+        dirty = true;   // the envelope drawn beside the node follows
+        if (spec.name === 'position' || spec.name === 'mix' || spec.name === 'source') tableEditor?.refresh();
+        if (entry()) renderExposed();
+      };
+      const names = choices(node.type, spec.name);
+      return {
+        name: spec.name,
+        pos: () => clamp01(toPos(spec, get())),
+        setPos: p => apply(toValue(spec, p)),
+        display: () => display(node.type, spec, get()),
+        text: () => (unitOf(node.type, spec.name) === '%' ? String(Math.round(get() * 100)) : names ? names[Math.round(get() - spec.min)] ?? fmt(get()) : fmt(get())),
+        type: text => {
+          const t = String(text).trim().toLowerCase();
+          const named = names?.findIndex(n => n.toLowerCase() === t);
+          let v = named >= 0 ? spec.min + named : Number.parseFloat(t);
+          if (!Number.isFinite(v)) return false;
+          if (unitOf(node.type, spec.name) === '%' && named === undefined) v /= 100;
+          apply(Math.min(spec.max, Math.max(spec.min, spec.int ? Math.round(v) : v)));
+          return true;
+        },
+        hex: () => { const e = entry(); return e ? hexOf(spec, e, get()) : ''; },
+        step: spec.int ? 1 / span : 0.005,
+        big: spec.int ? Math.max(1, Math.round(span / 10)) / span : 0.05,
+        fine: spec.int ? 1 / span : 0.001,
+        wired: desc().connections.some(([, to]) => to === `${node.id}.@${spec.name}`),
+        get exposed() { return !!entry(); },
+        get bits() { return entry()?.bits ?? 8; },
+        get ported() { return (node.ports ?? []).includes(spec.name); },
+        hint: () => ({ title: spec.name, text: hintFor(node.type, spec), facts: factsFor(spec) }),
+        reset: () => apply(spec.def),
+        expose: on => { setExposed(def(), nodeTypes, node.id, spec.name, on); structure(); renderPanel(); },
+        setBits: bits => { setBits(def(), node.id, spec.name, bits); structure(); renderPanel(); },
+        port: on => { setPort(desc(), nodeTypes, node.id, spec.name, on); structure(); dirty = true; renderPanel(); },
+      };
+    });
+  }
 
   function removeSelected() {
     if (!selected || !instId) return;
@@ -227,11 +281,17 @@ export function createPatcher({ canvas, panel, exposedPanel = null, onEscape = (
   function renderNodePanel() {
     const node = selected?.kind === 'node' ? desc().nodes.find(n => n.id === selected.id) : null;
     if (!node) {
+      if (paramView) { if (shownNode) cursorMemo.set(shownNode, paramView.cursor); shownNode = null; paramView.hide(); }
       panel.replaceChildren(el('p', {}, instId ? 'Click a node to edit its parameters.' : 'No instrument.'));
       return;
     }
     const type = nodeTypes[node.type];
-    const rows = type.params.map(spec => {
+    if (paramView) {
+      if (shownNode && shownNode !== node.id) cursorMemo.set(shownNode, paramView.cursor);
+      paramView.show(`${node.id} · ${node.type}`, rowsFor(node, type), shownNode === node.id ? paramView.cursor : cursorMemo.get(node.id) ?? 0);
+      shownNode = node.id;
+    }
+    const rows = paramView ? [] : type.params.map(spec => {
       const value = node.params?.[spec.name] ?? spec.def;
       const out = el('output', { textContent: fmt(value) });
       // the hex a pattern cell would hold for the slider's value, shown only while the parameter is exposed
@@ -287,11 +347,11 @@ export function createPatcher({ canvas, panel, exposedPanel = null, onEscape = (
       return el('div', { className: 'prow nrow' }, el('span', { textContent: spec.name }), hint, hex, slider, out, exposed, width, port);
     });
     // one set of column labels above the rows, instead of a label on every row
-    const head = el('div', { className: 'prow nrow phead' }, el('span'), el('span'), el('span'), el('span'), el('span'),
+    const head = paramView ? null : el('div', { className: 'prow nrow phead' }, el('span'), el('span'), el('span'), el('span'), el('span'),
       el('span', { textContent: 'expose', title: 'Make the parameter a column in the pattern' }),
       el('span', { textContent: 'width', title: 'How many hex digits the pattern column takes' }),
       el('span', { textContent: 'port', title: 'Give the parameter an input on the node, to wire a control node into' }));
-    const items = [el('h3', {}, `${node.id} (${node.type})`), head, ...rows];
+    const items = paramView ? [] : [el('h3', {}, `${node.id} (${node.type})`), head, ...rows];
     if (type.instrumentSource) {   // which instrument this node listens to; the ones that would make a loop are not offered
       const options = eligibleSources(instruments, instId).filter(id => id !== instId);
       const pick = el('select', { ariaLabel: 'Instrument to listen to' }, el('option', { value: '', textContent: '(none)' }), ...options.map(id => el('option', { value: id, textContent: id })));
@@ -476,6 +536,8 @@ export function createPatcher({ canvas, panel, exposedPanel = null, onEscape = (
   }
 
   canvas.addEventListener('keydown', e => {
+    // With a node selected, its parameter panel takes the arrows, Home/End, PageUp/PageDown and Enter (Alt+arrows move between nodes)
+    if (paramView && selected?.kind === 'node' && !e.altKey && !e.metaKey && paramView.key(e)) { e.preventDefault?.(); return; }
     if (e.key === 'Escape') { onEscape(); e.preventDefault?.(); return; }
     if (e.key === 'Delete' || e.key === 'Backspace') {
       removeSelected();
@@ -492,7 +554,7 @@ export function createPatcher({ canvas, panel, exposedPanel = null, onEscape = (
       }
     }
     const way = { ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'up', ArrowDown: 'down' }[e.key] ?? (e.key === 'Tab' ? (e.shiftKey ? 'prev' : 'next') : null);
-    if (way && !e.ctrlKey && !e.altKey && !e.metaKey && selectNear(way)) e.preventDefault();
+    if (way && !e.ctrlKey && !e.metaKey && selectNear(way)) e.preventDefault();
   });
 
   canvas.addEventListener('keyup', e => {
@@ -783,6 +845,7 @@ export function createPatcher({ canvas, panel, exposedPanel = null, onEscape = (
     resize(height) {
       H = Math.round(Math.min(MAX_HEIGHT, Math.max(MIN_HEIGHT, height)));
       canvas.style.height = `${H}px`;
+      if (paramPanel) paramPanel.style.maxHeight = `${H - 2}px`;
       canvas.height = H * dpr;   // a new size clears the canvas and its transform
       if (dpr !== 1) ctx.setTransform?.(dpr, 0, 0, dpr, 0, 0);
       dirty = true;

@@ -209,6 +209,22 @@
     .curve-presets { display: flex; flex-wrap: wrap; gap: 2px; margin: .25rem 0; max-width: 200px; }
     .curve-presets button { font: inherit; font-size: 11px; padding: 0 .35rem; }
     #patch-wrap { position: relative; }
+    #patch-params { position: absolute; top: 1px; right: 1px; width: 210px; max-height: 298px; overflow-y: auto; background: color-mix(in srgb, Canvas 94%, transparent); border: 1px solid; font: 11px/16px ui-monospace, Consolas, monospace; z-index: 5; user-select: none; }
+    .pv-head { background: CanvasText; color: Canvas; padding: 0 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; position: sticky; top: 0; z-index: 1; }
+    .pv-row { display: grid; grid-template-columns: 9ch 1fr; height: 16px; align-items: center; }
+    .pv-name { padding-left: 5px; overflow: hidden; white-space: nowrap; cursor: help; }
+    .pv-row.ex .pv-name::before { content: ''; display: inline-block; width: 4px; height: 4px; border-radius: 2px; background: #f0707a; margin: 0 2px 1px -4px; }
+    .pv-bar { position: relative; height: 12px; margin: 0 4px 0 2px; border: 1px solid color-mix(in srgb, currentColor 40%, transparent); background: linear-gradient(to right, color-mix(in srgb, currentColor 22%, transparent) var(--p, 0%), transparent var(--p, 0%)); cursor: ew-resize; touch-action: none; }
+    .pv-bar::after { content: ''; position: absolute; top: -1px; bottom: -1px; left: var(--p, 0%); width: 3px; margin-left: -2px; background: currentColor; opacity: .75; }
+    .pv-val { position: absolute; left: 4px; top: -2px; line-height: 14px; white-space: nowrap; pointer-events: none; }
+    .pv-hex { position: absolute; right: 4px; top: -2px; line-height: 14px; color: #f0707a; pointer-events: none; }
+    .pv-row.sel .pv-name { background: Highlight; color: HighlightText; }
+    .pv-row.sel .pv-bar { border-color: Highlight; }
+    .pv-row.wired { opacity: .45; }
+    .pv-type { position: absolute; inset: -1px; width: calc(100% + 2px); box-sizing: border-box; font: inherit; height: 14px; padding: 0 3px; border: 1px solid Highlight; background: Canvas; color: CanvasText; z-index: 2; }
+    .pv-menu { position: absolute; left: 4px; right: 4px; z-index: 4; background: Canvas; border: 1px solid; box-shadow: 0 2px 8px #0006; }
+    .pv-mi { padding: 0 6px; white-space: nowrap; cursor: default; }
+    .pv-mi.sel { background: Highlight; color: HighlightText; }
     .insert-menu { position: absolute; z-index: 2; width: 12rem; max-height: 20rem; overflow-y: auto; background: Canvas; color: CanvasText; border: 1px solid; box-shadow: 0 4px 14px rgb(0 0 0 / .3); font: 13px/1.3 ui-monospace, Consolas, monospace; }
     .insert-menu input { width: 100%; box-sizing: border-box; border: 0; border-bottom: 1px solid; padding: .3rem .5rem; font: inherit; background: transparent; color: inherit; }
     .insert-head { padding: .3rem .5rem 0; opacity: .6; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; }
@@ -398,6 +414,7 @@
           </div>
           <div id="patch-wrap">
             <canvas id="patch" width="900" height="300" tabindex="0"></canvas>
+            <div id="patch-params" style="display:none"></div>
             <div id="patch-grip" class="grip" tabindex="0" role="separator" aria-orientation="horizontal" aria-label="Graph height: drag, or use Up and Down" title="Drag to change the height of the graph"></div>
           </div>
           <p id="patch-status"></p>
@@ -437,7 +454,10 @@
           <dt>Up/Down</dt><dd>in the list: choose an instrument</dd>
           <dt>Enter</dt><dd>go to the graph</dd>
           <dt>Esc</dt><dd>back to the list</dd>
-          <dt>Arrows, Tab</dt><dd>in the graph: move between nodes</dd>
+          <dt>Tab, Alt+arrows</dt><dd>in the graph: move between nodes</dd>
+          <dt>Up/Down</dt><dd>with a node selected: choose a parameter in its panel (PageUp/PageDown 8 rows)</dd>
+          <dt>Left/Right</dt><dd>change the parameter (Shift bigger, Ctrl smaller); Home/End go to the ends</dd>
+          <dt>Enter</dt><dd>menu for the parameter: type a value, reset, expose as a pattern column and its width, add a port (right-click a row does the same)</dd>
           <dt>Piano keys</dt><dd>with a generator node (oscillator, sampler, synth) selected: play the instrument; [ ] change the octave</dd>
           <dt>Delete</dt><dd>remove the node or wire</dd>
           <dt>Drag node</dt><dd>move it</dd>
