@@ -138,7 +138,7 @@ export function createPatcher({ canvas, panel, paramPanel = null, exposedDock = 
   // The choice lives on the node as node.scope = { mode, size }; the samples arrive from the audio side.
   const scopeData = new Map();   // node id -> { l, r, sr }
   const eyeRect = node => { const { w } = nodeBox(nodeTypes[node.type], node); return { x: node.x + w - 20, y: node.y - 17, w: 20, h: 14 }; };
-  const scopeRectOf = node => { const { w, h } = nodeBox(nodeTypes[node.type], node); return scopeBox(node, w, h, node.scope.size); };
+  const scopeRectOf = node => { const { w, h } = nodeBox(nodeTypes[node.type], node); return scopeBox(node, w, h, node.scope.size, node.scope.mode); };
   const inside = (r, x, y, w = r.w, h = r.h) => x >= r.x && x <= r.x + w && y >= r.y && y <= r.y + h;
   function setScope(node, on) {
     if (on) node.scope = { mode: node.type === 'gain' ? 'vu' : 'wave', size: SIZES[0] };   // a gain node opens as a level meter else delete node.scope;
@@ -152,11 +152,11 @@ export function createPatcher({ canvas, panel, paramPanel = null, exposedDock = 
       if (!nodeTypes[node.type].outputs.length) continue;
       if (inside(eyeRect(node), x, y)) { setScope(node, !node.scope); return true; }
       if (!node.scope) continue;
-      const box = scopeRectOf(node), part = headerHit(box, x, y);
+      const box = scopeRectOf(node), part = headerHit(box, x, y, node.scope.mode);
       if (part === 'eye') { setScope(node, false); return true; }
       if (part === 'size') node.scope.size = SIZES[(SIZES.indexOf(node.scope.size) + 1) % SIZES.length];
       else if (part) node.scope.mode = part;
-      else if (!inside(box, x, y, box.size, box.size)) continue;
+      else if (!inside(box, x, y, box.w ?? box.size, box.size)) continue;
       dirty = true;
       return true;
     }
@@ -274,6 +274,7 @@ export function createPatcher({ canvas, panel, paramPanel = null, exposedDock = 
   function updateDrop() {
     const id = drag.ids[0], node = desc().nodes.find(n => n.id === id), type = nodeTypes[node.type];
     drag.hover = null; drag.pull = false;
+    if (drag.free) { if (drag.msg !== 'free') { drag.msg = 'free'; say(`Moving ${id} only: its wires stay as they are`); } return; }   // Esc was pressed
     const ins = inputsOf(node, type);
     const kindIn = ins.length && !ins[0].startsWith('@') ? portKind(type, ins[0], node) : null, kindOut = type.outputs.length ? portKind(type, type.outputs[0], node) : null;
     if (type.master || !kindIn || !kindOut || kindIn === 'control' || kindOut === 'control') return;
@@ -641,6 +642,11 @@ export function createPatcher({ canvas, panel, paramPanel = null, exposedDock = 
   canvas.addEventListener('keydown', e => {
     // With a node selected, its parameter panel takes the arrows, Home/End, PageUp/PageDown and Enter (Alt+arrows move between nodes)
     if (paramView && selected?.kind === 'node' && !e.altKey && !e.metaKey && paramView.key(e)) { e.preventDefault?.(); return; }
+    if (e.key === 'Escape' && drag?.kind === 'move') {   // Esc while dragging a node: just move it, leave the wires alone
+      drag.free = true;
+      if (drag.ids.length === 1) updateDrop();
+      dirty = true; e.preventDefault?.(); return;
+    }
     if (e.key === 'Escape') { onEscape(); e.preventDefault?.(); return; }
     if (e.ctrlKey && !e.altKey && !e.metaKey && (e.key === 'd' || e.key === 'D')) { duplicateSelected(); e.preventDefault(); return; }
     if (e.key === 'Delete' || e.key === 'Backspace') {

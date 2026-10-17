@@ -1052,6 +1052,45 @@ const hit = 'C-2 .. .. ..';
   assert.equal(rowFor('tune').bits, 8, 'a continuous parameter defaults to 2hex');
 }
 
+// Dragging a node out of its chain takes it out; Esc during the drag keeps the wires and only moves the node.
+{
+  const makeEl = tag => ({ tag, children: [], listeners: {}, style: {}, textContent: '', value: '', appendChild(c) { this.children.push(c); return c; }, replaceChildren(...c) { this.children = c; }, addEventListener(type, f) { this.listeners[type] = f; }, focus() {} });
+  const doc = { createElement: makeEl, createTextNode: text => ({ text }) };
+  const ctx = new Proxy({}, { get: (t, k) => (k in t ? t[k] : () => {}), set: (t, k, v) => { t[k] = v; return true; } });
+  const run = esc => {
+    const canvas = { width: 900, height: 360, style: {}, listeners: {}, getContext: () => ctx, addEventListener(type, f) { this.listeners[type] = f; }, focus() {} };
+    const status = { textContent: '' }, structures = [];
+    const defs = structuredClone(instruments);
+    const patcher = createPatcher({ canvas, panel: makeEl('div'), statusEl: status, doc, nodeTypes: NODE_TYPES, onStructure: id => structures.push(id), onParam() {} });
+    patcher.load({ instruments: defs });
+    // a mid-chain audio node: wired from one node and to another
+    let found = null;
+    for (const [id, def] of Object.entries(defs)) {
+      for (const n of def.graph.nodes) {
+        const to = def.graph.connections.filter(c => c[1].split('.')[0] === n.id), from = def.graph.connections.filter(c => c[0].split('.')[0] === n.id);
+        if (to.length === 1 && from.length === 1 && NODE_TYPES[n.type].inputs.length && !NODE_TYPES[n.type].master && ['filter', 'distortion', 'chorus', 'delay', 'gain'].includes(n.type)) { found ??= { id, n }; }
+      }
+    }
+    assert.ok(found, 'the demo has a node in the middle of a chain');
+    patcher.show(found.id);
+    const def = defs[found.id], node = found.n, { w, h } = nodeBox(NODE_TYPES[node.type], node), before = JSON.stringify(def.graph.connections);
+    const at = { x: node.x + w / 2, y: node.y + h / 2 };
+    canvas.listeners.mousedown({ offsetX: at.x, offsetY: at.y, button: 0, preventDefault() {} });
+    canvas.listeners.mousemove({ offsetX: at.x, offsetY: at.y + 300 });
+    const said = status.textContent;
+    if (esc) canvas.listeners.keydown({ key: 'Escape', preventDefault() {} });
+    const saidAfter = status.textContent;
+    canvas.listeners.mouseup({ offsetX: at.x, offsetY: at.y + 300 });
+    return { said, saidAfter, moved: node.y > at.y - h / 2 + 100, kept: JSON.stringify(def.graph.connections) === before, structures: structures.length };
+  };
+  const plain = run(false), freed = run(true);
+  assert.match(plain.said, /out of its chain/, 'dragging far out of a chain says it will be taken out');
+  assert.equal(plain.kept, false, 'and releasing takes it out');
+  assert.equal(freed.kept, true, 'Esc during the drag keeps the wires');
+  assert.equal(freed.moved, true, 'and the node still moves');
+  assert.doesNotMatch(freed.saidAfter, /Release to/, 'the status no longer offers to change the wires');
+}
+
 // ---- milestone 6: samples, instruments, lanes ----
 
 // A project as the page holds it: the demo's instruments compiled, lanes prepared.
