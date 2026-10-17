@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="themes.css">
-  <title>webtracker m152</title>
+  <title>webtracker m153</title>
   <style>
     :root { color-scheme: light dark; font-family: system-ui, sans-serif; }   /* colours: see themes.css */
     body { background: var(--bg); color: var(--fg); }
@@ -354,6 +354,7 @@
   <section id="pane-samples" class="pane keyed" hidden>
     <div class="pane-main">
       <div id="wave-row"><canvas id="wave" width="900" height="160"></canvas><canvas id="region" width="60" height="160" title="marker region"></canvas></div>
+      <div id="wave-grip" class="grip" tabindex="0" role="separator" aria-orientation="horizontal" aria-label="Waveform height: drag, or use Up and Down" title="Drag to change the height of the waveform"></div>
       <pre id="smp" tabindex="0"></pre>
       <p><button id="load-samples" disabled>Load samples…</button>
         <input id="sample-file" type="file" accept="audio/*" multiple hidden>

@@ -479,6 +479,7 @@ const waveform = createWaveformView({
   onActiveSlice: i => sampleScreen.setActiveSlice(i),   // the screen redraws itself, so its numbers follow the markers
   onSelect: ({ from, to }) => sampleScreen.setSelection(from, to),
 });
+attachGrip({ grip: $('wave-grip'), key: 'webtracker.waveformHeight', get: () => waveform.height, set: h => region.resize(waveform.resize(h)), step: 20, bigStep: 100, normal: 160 });
 
 // Keyjazz in the sample screen: the sample on its own, through a hidden instrument that is just a sampler
 // into the output, so only the sample's own volume, global volume and pan apply. The instrument lives in the
@@ -721,7 +722,7 @@ $('start').addEventListener('click', async () => {
       el.addEventListener('click', () => { peak = 0; late = 0; show(); });
       const copy = $('loadcopy');
       copy.addEventListener('click', async () => {
-        try { await navigator.clipboard.writeText(el.textContent); copy.textContent = 'copied'; } catch { copy.textContent = 'failed'; }
+        try { await navigator.clipboard.writeText(`${document.title} · ${project?.song?.name ?? ''} · ${el.textContent}`); copy.textContent = 'copied'; } catch { copy.textContent = 'failed'; }
         setTimeout(() => { copy.textContent = 'copy'; }, 1200);
       });
     }

@@ -4,7 +4,7 @@ const SPAN = 800;   // frames shown, centred on the current slice marker
 export function createMarkerRegionView({ canvas, getSample, getActive }) {
   const ctx = canvas.getContext('2d');
   let W = canvas.width;
-  const H = canvas.height;
+  let H = canvas.height;
   const dpr = globalThis.devicePixelRatio || 1;
   let lastKey = null, lastData = null;
   const resize = () => {
@@ -14,6 +14,8 @@ export function createMarkerRegionView({ canvas, getSample, getActive }) {
     lastKey = null;
   };
   if (dpr !== 1) resize();
+  // follows the main waveform's height
+  const setHeight = h => { if (h !== H) { H = h; resize(); } return H; };
 
   function draw() {
     const s = getSample(), at = s ? getActive() : -1;
@@ -51,6 +53,7 @@ export function createMarkerRegionView({ canvas, getSample, getActive }) {
 
   return {
     draw,
+    resize: setHeight,
     // The width of the view in CSS pixels.
     fit(width) { const w = Math.max(24, Math.round(width)); if (w !== W) { W = w; resize(); } return W; },
   };

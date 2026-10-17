@@ -28,7 +28,7 @@ const GRAB = 6;   // pixels either side of a marker that grab it
 export function createWaveformView({ canvas, statusEl, getProject, onLoop, onSelect = () => {}, onSlices = () => {}, onActiveSlice = () => {} }) {
   const ctx = canvas.getContext('2d');
   let W = canvas.width;
-  const H = canvas.height;
+  let H = canvas.height;
   const dpr = globalThis.devicePixelRatio || 1;
   if (dpr !== 1) {
     canvas.style.width = `${W}px`;
@@ -39,6 +39,8 @@ export function createWaveformView({ canvas, statusEl, getProject, onLoop, onSel
   }
 
   let active = -1;   // the slice marker the keys nudge, drawn brighter
+  let settled = true, settleTimer = null;   // while the size is being dragged the spectrogram is the old picture stretched; it is computed afresh once the size has rested
+  const SETTLE_MS = 250;
   let id = null, drag = null, cache = null, lastKey = null, mode = 'wave', selection = { from: 0, to: 0 };
   const say = text => { if (statusEl) statusEl.textContent = text; };
   const sample = () => (id ? getProject().samples[id] : undefined);
@@ -124,7 +126,7 @@ export function createWaveformView({ canvas, statusEl, getProject, onLoop, onSel
     const s = sample();
     const { start, end } = s ? (drag?.kind === 'select' ? { start: s.loopStart ?? 0, end: s.loopEnd ?? 0 } : loopOf(s)) : { start: 0, end: 0 };
     const pick = drag?.kind === 'select' && drag.preview ? { from: drag.preview.start, to: drag.preview.end } : selection;
-    const key = s ? `${id}:${mode}:${s.data.length}:${start}:${end}:${LOOPS.slice(1).map(l => `${s[l.start]}.${s[l.end]}.${s[l.on]}`).join()}:${s.loopOn}:${s.loopXfade}:${s.susXfade}:${pick.from}-${pick.to}:${slicesOf(s).join(',')}:${active}:${W}:${typeof getComputedStyle === 'function' ? getComputedStyle(canvas).color : ''}` : 'none';
+    const key = s ? `${id}:${mode}:${s.data.length}:${start}:${end}:${LOOPS.slice(1).map(l => `${s[l.start]}.${s[l.end]}.${s[l.on]}`).join()}:${s.loopOn}:${s.loopXfade}:${s.susXfade}:${pick.from}-${pick.to}:${slicesOf(s).join(',')}:${active}:${W}:${H}:${settled}:${typeof getComputedStyle === 'function' ? getComputedStyle(canvas).color : ''}` : 'none';
     if (key === lastKey) return;
     lastKey = key;
     ctx.clearRect(0, 0, W, H);
@@ -132,13 +134,23 @@ export function createWaveformView({ canvas, statusEl, getProject, onLoop, onSel
     const ink = typeof getComputedStyle === 'function' ? getComputedStyle(canvas).color : '#888';
     if (mode === 'spec') {
       const pw = canvas.width, ph = canvas.height;
-      if (!cache || cache.data !== s.data || cache.spec?.pw !== pw) cache = { ...(cache?.data === s.data ? cache : { data: s.data }), spec: { pw, ph, cells: computeSpectrogram(s.data, s.right, pw, ph) } };
-      const image = ctx.createImageData(pw, ph);
-      for (let i = 0; i < pw * ph; i++) image.data.set(heat(cache.spec.cells[i]), i * 4);
-      ctx.save();
-      ctx.setTransform(1, 0, 0, 1, 0, 0);
-      ctx.putImageData(image, 0, 0);
-      ctx.restore();
+      const fresh = cache?.data === s.data && cache.spec?.pw === pw && cache.spec?.ph === ph;
+      if (!fresh && cache?.data === s.data && cache.spec?.img && !settled) {   // the size is still changing: show the last picture, stretched
+        ctx.drawImage(cache.spec.img, 0, 0, W, H);
+      } else {
+        if (!fresh) cache = { ...(cache?.data === s.data ? cache : { data: s.data }), spec: { pw, ph, cells: computeSpectrogram(s.data, s.right, pw, ph) } };
+        const image = ctx.createImageData(pw, ph);
+        for (let i = 0; i < pw * ph; i++) image.data.set(heat(cache.spec.cells[i]), i * 4);
+        if (!cache.spec.img && typeof document !== 'undefined' && document.createElement) {   // kept to stretch while the size is dragged
+          const img = document.createElement('canvas'); img.width = pw; img.height = ph;
+          img.getContext?.('2d')?.putImageData(image, 0, 0);
+          if (img.getContext) cache.spec.img = img;
+        }
+        ctx.save();
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.putImageData(image, 0, 0);
+        ctx.restore();
+      }
     } else {
       if (!cache || cache.data !== s.data || !cache.peaks || cache.w !== W) cache = { data: s.data, w: W, peaks: computePeaks(s.data, W), rightPeaks: s.right ? computePeaks(s.right, W) : null };
       // a stereo sample is drawn as two lanes, left above right
@@ -213,6 +225,21 @@ export function createWaveformView({ canvas, statusEl, getProject, onLoop, onSel
       cache = null; lastKey = null;
       return W;
     },
+    // The height (CSS pixels), from the grip under the view. The waveform follows at once; the spectrogram is computed
+    // again once the size has stopped changing for a quarter of a second.
+    resize(height) {
+      const h = Math.round(Math.min(600, Math.max(80, height)));
+      if (h === H) return H;
+      H = h;
+      canvas.style.height = `${H}px`;
+      canvas.height = H * dpr;
+      if (dpr !== 1) ctx.setTransform?.(dpr, 0, 0, dpr, 0, 0);
+      settled = false; lastKey = null;
+      clearTimeout(settleTimer);
+      settleTimer = setTimeout(() => { settled = true; lastKey = null; }, SETTLE_MS);
+      return H;
+    },
+    get height() { return H; },
     setActiveSlice(i) { active = i; lastKey = null; },
     activeFrame() { const s = sample(); return s && active >= 0 ? slicesOf(s)[active] ?? -1 : -1; },
     sample,
