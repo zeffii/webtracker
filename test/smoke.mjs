@@ -4372,6 +4372,25 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   assert.ok(Math.abs(render(4, { 0: [on(0, 0.5)] })[0] / render(4, { 0: [on(0, 1)] })[0] - 0.5) < 0.05, 'velocity scales the hit');
 }
 
+// Multitap: the time between taps goes up to a second, so the taps of an impulse land one and two seconds on.
+{
+  const type = NODE_TYPES.multitap;
+  assert.equal(type.params.find(p => p.name === 'time').max, 1000);
+  const node = type.create({ sampleRate: sr });
+  const slots = type.params.map((_, i) => i), values = type.params.map(p => p.def);
+  const set = (name, v) => { values[type.params.findIndex(p => p.name === name)] = v; };
+  set('time', 1000); set('taps', 2); set('decay', 1); set('spread', 0); set('feedback', 0); set('mix', 1);
+  const total = sr * 3, out = new Float32Array(total), peaks = [];
+  for (let at = 0; at < total; at += block) {
+    const L = new Float32Array(block), R = new Float32Array(block), oL = new Float32Array(block), oR = new Float32Array(block);
+    if (at === 0) { L[0] = 1; R[0] = 1; }
+    node.process([[L, R]], [[oL, oR]], block, values, slots);
+    out.set(oL, at);
+  }
+  for (let i = 1; i < total; i++) if (Math.abs(out[i]) > 0.1) peaks.push(i);
+  assert.ok(peaks.some(i => Math.abs(i - sr) < 4) && peaks.some(i => Math.abs(i - 2 * sr) < 4), 'taps at one and two seconds');
+}
+
 // The arrangement scrolls with the mouse wheel, without moving the cursor, and follows the cursor again once it moves.
 {
   const registry = new ParamRegistry();

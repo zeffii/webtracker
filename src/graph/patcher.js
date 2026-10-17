@@ -141,7 +141,7 @@ export function createPatcher({ canvas, panel, paramPanel = null, exposedDock = 
   const scopeRectOf = node => { const { w, h } = nodeBox(nodeTypes[node.type], node); return scopeBox(node, w, h, node.scope.size); };
   const inside = (r, x, y, w = r.w, h = r.h) => x >= r.x && x <= r.x + w && y >= r.y && y <= r.y + h;
   function setScope(node, on) {
-    if (on) node.scope = { mode: 'wave', size: SIZES[0] }; else delete node.scope;
+    if (on) node.scope = { mode: node.type === 'gain' ? 'vu' : 'wave', size: SIZES[0] };   // a gain node opens as a level meter else delete node.scope;
     scopeData.delete(node.id);
     onScope(instId, node.id, on);
     dirty = true;
@@ -932,7 +932,9 @@ export function createPatcher({ canvas, panel, paramPanel = null, exposedDock = 
       ctx.beginPath(); ctx.arc(cx, cy, 2.4, 0, 2 * Math.PI); ctx.fill();
       ctx.restore();
     }
-    for (const node of desc().nodes) if (node.scope) drawScope(ctx, scopeRectOf(node), node.scope, scopeData.get(node.id), ink);
+    let moving = false;
+    for (const node of desc().nodes) if (node.scope) moving = drawScope(ctx, scopeRectOf(node), node.scope, scopeData.get(node.id), ink) || moving;
+    if (moving) dirty = true;   // a level meter still falling
     if (drag?.kind === 'move' && drag.hover != null) {   // the wire the node would go into, over the nodes so it shows
       const { a, b } = linkEnds(desc(), nodeTypes, desc().connections[drag.hover]);
       ctx.save();

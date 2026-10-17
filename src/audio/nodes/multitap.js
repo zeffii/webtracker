@@ -2,7 +2,7 @@
 // k * time, scaled by decay^(k-1), and panned (equal power) along a sweep from left to
 // right across the taps, narrowed by `spread`. The last tap feeds back. Dry stays stereo.
 const TIME = 0, TAPS = 1, DECAY = 2, SPREAD = 3, FEEDBACK = 4, MIX = 5;
-const MAX_TAPS = 8, MAX_TIME_MS = 500;
+const MAX_TAPS = 8, MAX_TIME_MS = 1000;
 
 export default {
   type: 'multitap',
