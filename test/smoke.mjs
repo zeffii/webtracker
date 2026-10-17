@@ -4281,6 +4281,40 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   assert.ok(d.connections.some(([f, t]) => f === `${both[0]}.out` && t === `${both[1]}.in`), 'wires between copies are copied');
 }
 
+// The master lane: a cell in its BPM column changes the tempo from that tick on, play resets it, volume scales the mix.
+{
+  const { masterInstrument, ensureMaster, MASTER } = await import('../src/instruments.js');
+  const make = () => {
+    const song = { bpm: 120, ticksPerBeat: 4, length: 16, swing: 0.5, lanes: [oneLane('kick', 'kick', Array.from({ length: 16 }, () => 'C-2 ..').join('\n'), 16)] };
+    const defs = { kick: structuredClone(instruments.kick) };
+    ensureMaster({ song, instruments: defs });
+    assert.equal(song.lanes[0].id, MASTER, 'the master lane comes first');
+    assert.equal(Object.keys(defs)[0], MASTER, 'and so does its instrument');
+    song.lanes[0].patterns = { m: { text: '.... .. .. ..\n.... .. .. ..\n.... .. .. ..\n.... .. .. ..\n00F0 .. .. ..' } };   // 0xF0 = 240 bpm at tick 4
+    song.lanes[0].placements = [{ puid: 'm', start: 0, length: 16 }];
+    const registry = new ParamRegistry();
+    for (const [id, d] of Object.entries(defs)) compile(d.graph, { instrument: id, nodeTypes: NODE_TYPES, registry });
+    let now = 0;
+    const log = [];
+    const stub = { process: (l, r, n) => { l.fill(0, 0, n); r.fill(0, 0, n); now += n; }, note: (instrument, msg) => { if (msg.type === 'noteOn') log.push(now); } };
+    const seq = new Sequencer({ sampleRate: sr, runtime: stub, params: registry.values, transport: new Int32Array(new SharedArrayBuffer(8)) });
+    const slot = k => registry.slots.get(`master.m.${k}`);
+    song.master = { bpm: slot('bpm'), swing: slot('swing'), tpb: slot('tpb'), volume: slot('volume') };
+    seq.setSong(song);
+    for (const lane of prepareSong(song, defs, registry)) seq.setLane(lane);
+    return { seq, log, registry, song };
+  };
+  const { seq, log, registry } = make();
+  assert.equal(registry.get('master.m.bpm'), 120, 'the song header sets the starting tempo');
+  seq.play();
+  const o = [new Float32Array(512), new Float32Array(512)];
+  for (let i = 0; i < 60; i++) seq.process(o[0], o[1], 512);
+  assert.deepEqual(log.slice(0, 7), [0, 6000, 12000, 18000, 24000, 27000, 30000], 'the tempo doubles at tick 4');
+  assert.equal(registry.get('master.m.bpm'), 240);
+  seq.stop(); seq.play();
+  assert.equal(registry.get('master.m.bpm'), 120, 'playing from the top starts at the header tempo again');
+}
+
 // MIDI import: a hand-made two-track file, a chord and a melody.
 {
   const { parseMidi, importMidi } = await import('../src/project/midi.js');

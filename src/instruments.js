@@ -324,3 +324,38 @@ export const synthKinds = {
     }),
   },
 };
+
+// The master lane: always the first lane, with the tempo, swing, ticks per beat and volume as pattern columns. Its
+// instrument holds one `tempo` node whose parameters the sequencer reads (see Sequencer.tempo).
+export const MASTER = 'master';
+export const masterInstrument = song => ({
+  graph: {
+    nodes: [
+      { id: 'm', type: 'tempo', x: 40, y: 40, params: { bpm: song.bpm, swing: Math.round((song.swing ?? 0.5) * 100), tpb: song.ticksPerBeat, volume: 1 } },
+      { id: 'out', type: 'out', x: 240, y: 40 },
+    ],
+    connections: [],
+  },
+  noteColumns: 0,
+  exposed: [
+    { node: 'm', param: 'bpm', label: 'BPM', bits: 16 },
+    { node: 'm', param: 'swing', label: 'Swg' },
+    { node: 'm', param: 'tpb', label: 'TPB' },
+    { node: 'm', param: 'volume', label: 'Vol' },
+  ],
+  commands: [],
+});
+
+// Makes sure a project ({ song, instruments }) has the master instrument and its lane, first in the lists, and that the
+// instrument starts at the song's tempo and swing.
+export function ensureMaster({ song, instruments }) {
+  const fresh = masterInstrument(song), keep = instruments[MASTER];
+  const rest = Object.entries(instruments).filter(([k]) => k !== MASTER);
+  const master = keep ?? fresh;
+  if (keep) Object.assign(keep.graph.nodes.find(n => n.id === 'm').params, fresh.graph.nodes[0].params);
+  for (const k of Object.keys(instruments)) delete instruments[k];
+  Object.assign(instruments, { [MASTER]: master }, Object.fromEntries(rest));
+  const at = song.lanes.findIndex(l => l.id === MASTER);
+  const lane = at >= 0 ? song.lanes.splice(at, 1)[0] : { id: MASTER, instrument: MASTER, patterns: {}, placements: [] };
+  song.lanes.unshift(lane);
+}

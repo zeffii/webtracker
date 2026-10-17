@@ -89,7 +89,9 @@ export class Engine {
   }
 
   setSong({ bpm, ticksPerBeat, length, swing = 0.5, loop }) {
-    this.node.port.postMessage({ type: 'song', song: { bpm, ticksPerBeat, length, swing, ...(loop ? { loop: { start: loop.start, end: loop.end } } : {}) } });
+    const slot = name => this.registry.slots.get(`master.m.${name}`);   // the master lane's parameters, once its instrument is loaded
+    const master = slot('bpm') !== undefined ? { bpm: slot('bpm'), swing: slot('swing'), tpb: slot('tpb'), volume: slot('volume') } : undefined;
+    this.node.port.postMessage({ type: 'song', song: { bpm, ticksPerBeat, length, swing, ...(master ? { master } : {}), ...(loop ? { loop: { start: loop.start, end: loop.end } } : {}) } });
   }
 
   // lane = { id, instrument, columns, pages }. The pages are shared memory.

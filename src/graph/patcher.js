@@ -963,7 +963,7 @@ export function createPatcher({ canvas, panel, paramPanel = null, exposedDock = 
     // instruments: { id: { graph, exposed, commands?, samples? } }.
     load({ instruments: next }) {
       instruments = next;
-      this.show(instId in instruments ? instId : Object.keys(instruments)[0] ?? null);
+      this.show(instId in instruments && instId !== 'master' ? instId : Object.keys(instruments).find(k => k !== 'master') ?? null);   // (the master lane's instrument has no graph to edit)
     },
     // the audio side's latest samples for the watched instrument
     repaint() { dirty = true; if (instId && def()) renderPanel(); },   // the colours changed: the editors in the panel draw themselves again

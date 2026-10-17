@@ -9,7 +9,7 @@ import { importMidi, parseMidi } from './project/midi.js';
 import * as presets from './project/presets.js';
 import { LIBRARY_EXT, addToLibrary, importFromLibrary, newLibrary, parseLibrary, serializeLibrary } from './project/library.js';
 import { addLane, addSample, addSamplerInstrument, addSynthInstrument, channelsOf, sampleMessage, slotsOf, syncSamplerStereo } from './project/ops.js';
-import { synthKinds } from './instruments.js';
+import { MASTER, ensureMaster, synthKinds } from './instruments.js';
 import { createSampleScreen } from './project/samplescreen.js';
 import { createWaveformView } from './project/waveform.js';
 import { createMarkerRegionView } from './project/markerregion.js';
@@ -153,10 +153,13 @@ function refreshProjectUi() {
 // Alt+Left and Alt+Right are the browser's back and forward; they must not leave the page.
 document.addEventListener('keydown', e => { if (e.altKey && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) e.preventDefault(); }, true);
 
+// The instruments the list shows: all but the master lane's.
+const listedInstruments = () => Object.keys(project.instruments).filter(id => id !== MASTER);
+
 // Keys in the instrument list: Up/Down choose, Home/End jump, Enter goes to the graph.
 $('inst-list').addEventListener('keydown', e => {
   if (!project || e.ctrlKey || e.altKey || e.metaKey) return;
-  const ids = Object.keys(project.instruments), at = ids.indexOf(patcher.instrument);
+  const ids = listedInstruments(), at = ids.indexOf(patcher.instrument);
   const go = to => { patcher.show(ids[Math.min(ids.length - 1, Math.max(0, to))]); renderInstList(); e.preventDefault(); };
   if (e.key === 'ArrowUp') go(at - 1);
   else if (e.key === 'ArrowDown') go(at + 1);
@@ -167,7 +170,7 @@ $('inst-list').addEventListener('keydown', e => {
 
 // The narrow instrument list beside the patcher.
 function renderInstList() {
-  const buttons = Object.keys(project.instruments).map((id, i) => {
+  const buttons = listedInstruments().map((id, i) => {
     const b = document.createElement('button');
     b.textContent = `${id === patcher.instrument ? '>' : ' '} ${String(i + 1).padStart(2, '0')} ${id}`;
     b.tabIndex = -1;
@@ -544,6 +547,7 @@ function reloadInstrument(id) {
 
 // Loads a project into the running engine: { song, instruments, samples }.
 function openProject({ song, instruments, samples }, { stay = false, instrument = null, lane = null } = {}) {
+  ensureMaster({ song, instruments });
   if (playing) setPlaying(false);
   engine.reset();
   audition = null;
@@ -564,7 +568,7 @@ function openProject({ song, instruments, samples }, { stay = false, instrument 
   refreshProjectUi();
   seqView.load({ lanes, song, editor });
   view.load({ lanes, song, editor });
-  const at = Math.max(0, lanes.findIndex(l => l.id === lane));
+  const at = Math.max(lanes.length > 1 ? 1 : 0, lanes.findIndex(l => l.id === lane));   // not the master lane, to start with
   view.goto(at, 0); seqView.goto(at, 0);
   $('length').value = song.length;
   $('bpm').value = song.bpm;

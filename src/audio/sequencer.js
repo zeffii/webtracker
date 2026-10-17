@@ -37,9 +37,35 @@ export class Sequencer {
     this.scratchR = new Float32Array(maxBlock);
   }
 
+  // song.master, when there is one, holds the parameter slots of the master lane ({ bpm, swing, tpb, volume }). The song's
+  // own bpm, swing and ticks per beat are where the tempo starts (and what a change in the header sets again); after
+  // that the lane's cells move the parameters, and Sequencer.tempo() reads them every tick.
   setSong(song) {
+    const old = this.song;
     this.song = song;
+    const changed = !old.master || old.bpm !== song.bpm || old.ticksPerBeat !== song.ticksPerBeat || (old.swing ?? 0.5) !== (song.swing ?? 0.5);
+    if (song.master && changed) this.resetTempo();
     if (this.runtime.clock) this.runtime.clock.tickSamples = (this.sampleRate * 60) / (song.bpm * song.ticksPerBeat);
+  }
+
+  resetTempo() {
+    const m = this.song.master;
+    if (!m) return;
+    this.params[m.bpm] = this.song.bpm;
+    this.params[m.swing] = Math.round((this.song.swing ?? 0.5) * 100);
+    this.params[m.tpb] = this.song.ticksPerBeat;
+    this.params[m.volume] = 1;
+  }
+
+  // The tempo now: the master lane's values when there is one, else the song's.
+  tempo() {
+    const m = this.song.master, s = this.song;
+    if (!m) return { bpm: s.bpm, swing: Math.min(0.75, Math.max(0.5, s.swing ?? 0.5)), tpb: s.ticksPerBeat };
+    return {
+      bpm: Math.min(999, Math.max(20, this.params[m.bpm])),
+      swing: Math.min(0.75, Math.max(0.5, this.params[m.swing] / 100)),
+      tpb: Math.min(48, Math.max(1, Math.round(this.params[m.tpb]))),
+    };
   }
 
   // lane = { id, instrument, columns, pages }. Messages are preallocated per lane
@@ -74,6 +100,7 @@ export class Sequencer {
   }
 
   play() {
+    this.resetTempo();
     this.tick = this.song.loop ? loopRange(this.song).start : 0;   // a loop is played from its start
     this.songPos = this.tick;
     this.countdown = 0;
@@ -193,9 +220,9 @@ export class Sequencer {
   }
 
   process(left, right, n) {
-    const samplesPerTick = this.sampleRate * 60 / (this.song.bpm * this.song.ticksPerBeat);
-    const swing = Math.min(0.75, Math.max(0.5, this.song.swing ?? 0.5));
-    const group = Math.max(1, Math.round(this.song.ticksPerBeat / 4));
+    let { bpm, swing, tpb } = this.tempo();
+    let samplesPerTick = this.sampleRate * 60 / (bpm * tpb);
+    let group = Math.max(1, Math.round(tpb / 4));
     let done = 0;
     while (done < n) {
       let span = n - done;
@@ -207,13 +234,22 @@ export class Sequencer {
           // three, so changing the resolution does not change the groove.
           const first = (Math.floor(this.tick / group) & 1) === 0;
           this.fireTick();
+          ({ bpm, swing, tpb } = this.tempo());   // the row may have changed the tempo
+          samplesPerTick = this.sampleRate * 60 / (bpm * tpb);
+          group = Math.max(1, Math.round(tpb / 4));
           this.countdown += 2 * samplesPerTick * (first ? swing : 1 - swing);
         }
         span = Math.min(span, Math.max(1, Math.ceil(this.countdown)));
       }
       const clock = this.runtime.clock;
-      if (clock) { clock.playing = this.playing; clock.songPos = this.songPos; }
+      if (clock) { clock.playing = this.playing; clock.songPos = this.songPos; clock.tickSamples = samplesPerTick; }
       this.runtime.process(this.scratchL, this.scratchR, span);
+      const m = this.song.master;
+      if (m) {   // the master volume, eased across the span
+        const to = this.params[m.volume], from = this.gain ?? to;
+        if (from !== 1 || to !== 1) for (let i = 0; i < span; i++) { const g = from + (to - from) * (i + 1) / span; this.scratchL[i] *= g; this.scratchR[i] *= g; }
+        this.gain = to;
+      }
       if (this.playing) this.songPos += span / samplesPerTick;
       for (let i = 0; i < span; i++) {
         left[done + i] = this.scratchL[i];

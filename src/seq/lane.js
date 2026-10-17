@@ -16,7 +16,7 @@ export function buildColumns(instrument, def, registry) {
   // several notes on one row. They are headed N1 V1 N2 V2 ... so that the columns are evenly wide
   // (a single pair keeps the plain Note and Vel). The first pair keeps the plain keys, so a pattern written before
   // the extra columns existed (or before the instrument was polyphonic) still loads.
-  const pairs = Math.max(1, Math.min(8, def.noteColumns ?? 1));
+  const pairs = def.noteColumns === 0 ? 0 : Math.max(1, Math.min(8, def.noteColumns ?? 1));   // none for the master lane
   const columns = [];
   for (let k = 0; k < pairs; k++) {
     columns.push({ kind: 'note', token: 'note', label: pairs > 1 ? `N${k + 1}` : 'Note', key: k ? `note:${k}` : 'note', nc: k });

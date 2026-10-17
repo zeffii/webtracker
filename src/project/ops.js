@@ -1,4 +1,4 @@
-import { newSamplerInstrument, synthKinds } from '../instruments.js';
+import { MASTER, newSamplerInstrument, synthKinds } from '../instruments.js';
 import { clampLoop } from '../seq/loop.js';
 import { dropSource, renameSource } from '../graph/sidechain.js';
 import { buildPages, createLane, flattenLane, writeMask } from '../seq/lane.js';
@@ -179,6 +179,8 @@ const defOf = (project, id) => {
   if (!project.instruments[id]) throw new Error(`No instrument called "${id}".`);
   return project.instruments[id];
 };
+// The master lane and its instrument are part of every song: always first, never renamed, copied or removed.
+const notMaster = (id, what) => { if (id === MASTER) throw new Error(`The master ${what} stays as it is.`); };
 const newName = (name, taken, what, current) => {
   const next = cleanName(name ?? '');
   if (!next) throw new Error('A name needs letters or digits.');
@@ -216,6 +218,7 @@ export function renameSample(project, id, name) {
 }
 
 export function renameLane(project, id, name) {
+  notMaster(id, 'lane');
   const lane = laneOf(project, id);
   lane.id = newName(name, new Set(project.lanes.map(l => l.id)), 'a lane', id);
   return lane.id;
@@ -223,20 +226,23 @@ export function renameLane(project, id, name) {
 
 // Moves a lane earlier (delta -1) or later (+1) in the song. Returns its new place.
 export function moveLane(project, id, delta) {
+  notMaster(id, 'lane');
   const from = project.lanes.indexOf(laneOf(project, id));
-  const to = Math.max(0, Math.min(project.lanes.length - 1, from + delta));
+  const to = Math.max(project.lanes[0]?.id === MASTER ? 1 : 0, Math.min(project.lanes.length - 1, from + delta));   // never above the master lane
   project.lanes.splice(to, 0, ...project.lanes.splice(from, 1));
   return to;
 }
 
 export function removeLane(project, id) {
+  notMaster(id, 'lane');
   const lane = laneOf(project, id);
-  if (project.lanes.length <= 1) throw new Error('A song needs at least one lane.');
+  if (project.lanes.filter(l => l.id !== MASTER).length <= 1) throw new Error('A song needs at least one lane.');
   project.lanes.splice(project.lanes.indexOf(lane), 1);
 }
 
 // A copy of the lane with its patterns, placed right after it. Returns the copy.
 export function duplicateLane(project, id, length = project.song.length) {
+  notMaster(id, 'lane');
   const lane = laneOf(project, id);
   const copy = {
     id: uniqueId(new Set(project.lanes.map(l => l.id)), id),
@@ -256,6 +262,7 @@ export function duplicateLane(project, id, length = project.song.length) {
 
 // Lanes keep playing the instrument under its new name.
 export function renameInstrument(project, id, name) {
+  notMaster(id, 'instrument');
   defOf(project, id);
   const next = newName(name, new Set(Object.keys(project.instruments)), 'an instrument', id);
   if (next === id) return id;
@@ -267,6 +274,7 @@ export function renameInstrument(project, id, name) {
 
 // An instrument that a lane still plays cannot go: that would leave the lane with no sound to make.
 export function removeInstrument(project, id) {
+  notMaster(id, 'instrument');
   defOf(project, id);
   const users = project.lanes.filter(l => l.instrument === id).map(l => l.id);
   if (users.length) throw new Error(`"${id}" is played by ${users.length > 1 ? 'lanes' : 'lane'} ${users.join(', ')}; remove ${users.length > 1 ? 'those lanes' : 'that lane'} first.`);
@@ -276,6 +284,7 @@ export function removeInstrument(project, id) {
 
 // A copy of the instrument (graph, exposed parameters, samples), listed right after it.
 export function duplicateInstrument(project, id, name) {
+  notMaster(id, 'instrument');
   const def = defOf(project, id);
   const taken = new Set(Object.keys(project.instruments));
   const next = name ? newName(name, taken, 'an instrument', null) : uniqueId(taken, id);
@@ -285,9 +294,10 @@ export function duplicateInstrument(project, id, name) {
 
 // Moves an instrument earlier (-1) or later (+1) in the list. Returns its new place.
 export function moveInstrument(project, id, delta) {
+  notMaster(id, 'instrument');
   defOf(project, id);
   const entries = Object.entries(project.instruments), from = entries.findIndex(([k]) => k === id);
-  const to = Math.max(0, Math.min(entries.length - 1, from + delta));
+  const to = Math.max(entries[0]?.[0] === MASTER ? 1 : 0, Math.min(entries.length - 1, from + delta));
   entries.splice(to, 0, ...entries.splice(from, 1));
   project.instruments = Object.fromEntries(entries);
   return to;
