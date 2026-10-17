@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="themes.css">
-  <title>webtracker m135</title>
+  <title>webtracker m137</title>
   <style>
     :root { color-scheme: light dark; font-family: system-ui, sans-serif; }   /* colours: see themes.css */
     body { background: var(--bg); color: var(--fg); }
@@ -38,9 +38,9 @@
     #song-info { font-variant-numeric: tabular-nums; }
     #status { opacity: .7; }
     #tabs { display: flex; gap: .25rem; }
-    #loadmeter { margin-left: auto; margin-right: .75rem; cursor: pointer; white-space: pre; font-variant-numeric: tabular-nums; padding: .1rem .5rem; border: 1px solid; }
-    #loadmeter.warn { background: hsl(40 90% 55%); border-color: hsl(40 90% 55%); color: #000; }
-    #loadmeter.bad { background: hsl(5 80% 52%); border-color: hsl(5 80% 52%); color: #fff; }
+    #loadmeter { margin-left: auto; cursor: pointer; white-space: pre; font-variant-numeric: tabular-nums; padding: 0 .5rem; }
+    #loadmeter.warn { background: hsl(40 90% 55%); color: #000; }
+    #loadmeter.bad { background: hsl(5 80% 52%); color: #fff; }
     #tabs button { font: inherit; padding: .1rem .6rem; border: 1px solid; background: transparent; color: inherit; cursor: pointer; }
     #tabs button.active { background: var(--hi); color: var(--hi-fg); border-color: var(--hi); }
     .pane { padding: .5rem .75rem 2rem; }
@@ -312,8 +312,7 @@
         <button id="tab-instruments">F4 Instruments</button>
         <button id="tab-arrange">F5 Arrangement</button>
       </nav>
-      <span id="loadmeter" title="Audio load: average, worst block (as a share of the time each block is allowed), blocks that ran late, output latency. Click to reset.">cpu --</span>
-      <select id="theme" title="Colour theme"><option value="system">system</option><option value="dark">dark</option><option value="black">black</option><option value="bright">bright</option><option value="neon">neon</option><option value="amber">amber</option><option value="phosphor">phosphor</option><option value="ice">ice</option><option value="synthwave">synthwave</option></select>
+      <select id="theme" style="margin-left:auto" title="Colour theme"><option value="system">system</option><option value="dark">dark</option><option value="black">black</option><option value="bright">bright</option><option value="neon">neon</option><option value="amber">amber</option><option value="phosphor">phosphor</option><option value="ice">ice</option><option value="synthwave">synthwave</option></select>
       <button id="keys-toggle" title="Show or hide the keyboard shortcut panels">Shortcuts</button>
     </div>
   </div>
@@ -524,7 +523,7 @@
       </aside>
   </section>
 
-  <div id="footer" class="statusbar"><span id="song-info"></span><span id="status">Press Start to create the audio engine.</span></div>
+  <div id="footer" class="statusbar"><span id="song-info"></span><span id="status">Press Start to create the audio engine.</span><span id="loadmeter" title="Audio load: average, worst block (as a share of the time each block is allowed), blocks that ran late, output latency. Click to reset.">cpu --</span></div>
 
   <script type="module" src="src/main.js"></script>
 </body>

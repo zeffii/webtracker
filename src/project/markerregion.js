@@ -17,7 +17,7 @@ export function createMarkerRegionView({ canvas, getSample, getActive }) {
 
   function draw() {
     const s = getSample(), at = s ? getActive() : -1;
-    const key = s && at >= 0 ? `${at}:${W}` : 'none';
+    const key = s && at >= 0 ? `${at}:${W}:${typeof getComputedStyle === 'function' ? getComputedStyle(canvas).color : ''}` : 'none';
     if (s?.data !== lastData) { lastData = s?.data; lastKey = null; }
     if (key === lastKey) return;
     lastKey = key;

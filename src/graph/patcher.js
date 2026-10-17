@@ -966,7 +966,7 @@ export function createPatcher({ canvas, panel, paramPanel = null, exposedDock = 
       this.show(instId in instruments ? instId : Object.keys(instruments)[0] ?? null);
     },
     // the audio side's latest samples for the watched instrument
-    repaint() { dirty = true; },   // the colours changed
+    repaint() { dirty = true; if (instId && def()) renderPanel(); },   // the colours changed: the editors in the panel draw themselves again
     feedScope(id, node, l, r, sr) { if (id === instId) { scopeData.set(node, { l, r, sr }); dirty = true; } },
     show(id) {
       if (instId && instId !== id && def()) for (const n of desc().nodes) if (n.scope) onScope(instId, n.id, false);   // (the old instrument may be gone from a newly loaded project)
