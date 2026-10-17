@@ -1638,6 +1638,40 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     for (const item of [...dvKind.exposed, ...dvKind.commands]) assert.ok(NODE_TYPES.dvii.params.some(q => q.name === item.param), `dvii.${item.param}`);
   }
 
+  // blur: with no blur it is the sound, one frame late; time blur lets a sound ring on; freeze holds it; random phase stays finite
+  {
+    const def = NODE_TYPES.blur;
+    const make = values => {
+      const params = Float32Array.from(def.params.map(p => values[p.name] ?? p.def)), slots = Int32Array.from(def.params.map((_, i) => i));
+      const node = def.create({ sampleRate: sr });
+      return { params, slots, run(len, input, each) {
+        const out = new Float32Array(len);
+        for (let at = 0; at < len; at += 128) {
+          each?.(at, params, slots);
+          const L = Float32Array.from({ length: 128 }, (_, i) => input(at + i)), oL = new Float32Array(128), oR = new Float32Array(128);
+          node.process([[L, L]], [[oL, oR]], 128, params, slots);
+          out.set(oL, at);
+        }
+        return out;
+      } };
+    };
+    const tone = i => 0.5 * Math.sin(2 * Math.PI * 440 * i / sr);
+    const clear = make({ freq: 0, time: 0, mix: 1, phase: 0 }).run(sr, tone);
+    let worst = 0; for (let i = 3000; i < 30000; i++) worst = Math.max(worst, Math.abs(clear[i + 2047] - tone(i)));
+    assert.ok(worst < 1e-4, `no blur reconstructs the sound (${worst})`);
+    const burst = i => (i < 24000 ? tone(i) : 0);
+    const ring = make({ freq: 0, time: 2000, mix: 1 }).run(sr * 2, burst);
+    const none = make({ freq: 0, time: 0, mix: 1 }).run(sr * 2, burst);
+    const windowPeak = (x, a, b) => { let m = 0; for (let i = a; i < b; i++) m = Math.max(m, Math.abs(x[i])); return m; };
+    assert.ok(windowPeak(ring, 38400, 48000) > 4 * windowPeak(none, 38400, 48000) + 0.01, 'time blur rings on after the input stops');
+    const held = make({ freq: 0, time: 100, freeze: 0, mix: 1 }).run(sr * 2, burst, (at, params, slots) => { params[slots[2]] = at >= 20000 ? 1 : 0; });
+    assert.ok(windowPeak(held, 70000, 96000) > 0.1, 'freeze holds the sound');
+    const noisy = make({ freq: 0.6, time: 500, phase: 1, mix: 1 }).run(sr, tone);
+    assert.ok(noisy.every(Number.isFinite) && windowPeak(noisy, 5000, 40000) > 0.02, 'random phase makes a smear, not silence');
+    const dry = make({ mix: 0 }).run(20096, tone);
+    for (let i = 3000; i < 18000; i++) assert.ok(Math.abs(dry[i + 2047] - tone(i)) < 1e-6 || i + 2047 >= 20000, 'mix 0 is the dry sound, delayed');
+  }
+
   // phaser: mix 0 is dry, silence stays silent, a wet signal differs, stays finite even at high feedback
   const ph0 = stage('phaser', { mix: 0 })(noise, noise);
   assert.ok(ph0[0].every((v, i) => v === noise[i]), 'phaser mix 0 is dry');

@@ -81,6 +81,13 @@ export const GLYPHS = {
     });
     ctx.stroke();
   },
+  blur: (ctx, cx, cy, w, h) => {   // sharp spectral bars on the left, melting into a smooth hill on the right
+    const base = cy + h * 0.4;
+    ctx.beginPath();
+    [0.8, 0.25, 0.65, 0.2].forEach((a, i) => { const x = cx - w / 2 + (i + 0.5) * (w * 0.5 / 4); ctx.moveTo(x, base); ctx.lineTo(x, base - a * h * 0.8); });
+    ctx.stroke();
+    curve(ctx, cx + w * 0.25, base - h * 0.28, w * 0.5, h * 0.56, t => Math.exp(-Math.pow((t - 0.5) / 0.28, 2)) * 0.9 - 0.45, 32);
+  },
   multitap: (ctx, cx, cy, w, h) => {   // taps fanning left and right of a centre line
     line(ctx, [[cx - w / 2, cy], [cx + w / 2, cy]]);
     ctx.beginPath();

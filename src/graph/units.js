@@ -34,6 +34,7 @@ const TYPE_UNIT = {
   wavetable: {},
   fmsynth: {},
   dvii: { tune: 'st', speed: 'x' },
+  blur: { time: 'ms' },
 };
 for (const k of [1, 2, 3, 4]) {
   Object.assign(TYPE_UNIT.fmsynth, { [`ratio${k}`]: 'x', [`fine${k}`]: 'ct', [`atk${k}`]: 'ms', [`dec${k}`]: 'ms', [`rel${k}`]: 'ms' });
@@ -57,6 +58,7 @@ const NAMES = {
   granular: { keytrack: ONOFF },
   fmsynth: { algo: ALGORITHMS.map(a => a.name) },
   dvii: { gritty: ONOFF },
+  blur: { freeze: ONOFF, size: ['1024', '2048', '4096'] },
 };
 
 const trim = (v, digits = 4) => String(Number(Number(v).toPrecision(digits)));

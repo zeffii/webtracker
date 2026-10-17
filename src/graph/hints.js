@@ -123,6 +123,14 @@ const HINTS = {
     feedback: 'How much of the last tap goes back in, for repeating patterns.',
     mix: 'Amount of the echoes added to the dry sound.',
   },
+  blur: {
+    freq: 'Blurs the spectrum across frequency: the fine detail of the harmonics melts into a breathy wash. 0 leaves it sharp.',
+    time: 'Blurs across time, in ms: each frequency follows a slow average, so attacks smear and sounds bloom. 0 is off.',
+    freeze: 'Holds the blur where it is, so the sound hangs in the air until you let go.',
+    phase: '0 keeps the sound\'s own phases (pitch and articulation survive); 1 uses random phases for a smooth, pad-like smear.',
+    size: 'Frame length: 1024, 2048 or 4096 samples. Longer is smoother and adds more delay.',
+    mix: 'Dry/wet balance. The dry sound is delayed to match, so mixing stays in time.',
+  },
   shiva: {
     length: 'Time in ms at the right edge of the tap view. All taps stretch with it, so it also works as a master delay time.',
     feedback: 'How much of the latest tap goes back in. The whole pattern then repeats each time it ends.',

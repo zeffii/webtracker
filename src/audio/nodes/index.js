@@ -17,6 +17,7 @@ import flanger from './flanger.js';
 import distortion from './distortion.js';
 import multitap from './multitap.js';
 import shiva from './shiva.js';
+import blur from './blur.js';
 import waveshaper from './waveshaper.js';
 import exciter from './exciter.js';
 import transient from './transient.js';
@@ -46,4 +47,4 @@ import ctrl from './ctrl.js';
 import voices from './voices.js';
 
 // Node type registry. Adding a node type means adding a module and listing it here.
-export const NODE_TYPES = { sampler, osc, env, lfo, gain, mix, pan, filter, delay, chorus, phaser, flanger, distortion, multitap, shiva, waveshaper, exciter, transient, split, compressor, gate, envfx, eq, crusher, ctrl, notetrig, follower, sidechain, hall, plate, shimmer, subsynth, oberheim, piano, addsynth, fmsynth, dvii, wavetable, granular, specsynth, string, voices, out, sum, sumst, fold };
+export const NODE_TYPES = { sampler, osc, env, lfo, gain, mix, pan, filter, delay, chorus, phaser, flanger, distortion, multitap, shiva, blur, waveshaper, exciter, transient, split, compressor, gate, envfx, eq, crusher, ctrl, notetrig, follower, sidechain, hall, plate, shimmer, subsynth, oberheim, piano, addsynth, fmsynth, dvii, wavetable, granular, specsynth, string, voices, out, sum, sumst, fold };
