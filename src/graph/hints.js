@@ -205,6 +205,9 @@ const HINTS = {
     f4: 'Band 4 (peak) centre frequency in Hz.', g4: 'Band 4 gain in dB. 0 turns the band off.', q4: 'Band 4 width. Higher is narrower.',
     f5: 'Band 5 (high shelf) frequency in Hz.', g5: 'Band 5 gain in dB. 0 turns the band off.', q5: 'Band 5 slope. Lower is gentler.',
   },
+  dcblock: {
+    freq: 'Cutoff of the high pass that removes the offset, in Hz. Lower keeps more bass but settles more slowly.',
+  },
   crusher: {
     bits: 'Bit depth. Lower is rougher; it may be fractional (4.5 is between 4 and 5 bits).',
     rate: 'Sample rate in Hz the sound is held at. Lower is more aliased and gritty. At or above the engine\'s rate there is no reduction.',

@@ -12,7 +12,7 @@ const GROUPS = {
     ['Routing', ['sidechain']],
   ],
   Effects: [
-    ['Filter & EQ', ['filter', 'eq', 'exciter']],
+    ['Filter & EQ', ['filter', 'eq', 'exciter', 'dcblock']],
     ['Dynamics', ['compressor', 'gate', 'transient', 'envfx']],
     ['Modulation', ['chorus', 'phaser', 'flanger', 'gater', 'freqshift']],
     ['Delay', ['delay', 'multitap', 'shiva']],

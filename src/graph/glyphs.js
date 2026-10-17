@@ -143,6 +143,13 @@ export const GLYPHS = {
   },
   eq: (ctx, cx, cy, w, h) => curve(ctx, cx, cy, w, h, t => 0.55 * Math.exp(-Math.pow((t - 0.3) / 0.1, 2)) - 0.45 * Math.exp(-Math.pow((t - 0.72) / 0.12, 2)), 40),   // a boost and a cut
   crusher: (ctx, cx, cy, w, h) => { const pts = []; for (let i = 0; i < 8; i++) { const y = Math.round(Math.sin(i / 7 * Math.PI * 1.5 + 0.2) * 2.4) / 2.4 * 0.4; const x0 = cx - w / 2 + i / 8 * w, x1 = cx - w / 2 + (i + 1) / 8 * w; pts.push([x0, cy - y * h], [x1, cy - y * h]); } line(ctx, pts); },   // a stepped wave
+  dcblock: (ctx, cx, cy, w, h) => {   // a wave riding above the centre line, then settling onto it
+    ctx.save();
+    ctx.setLineDash([2, 3]);
+    line(ctx, [[cx - w / 2, cy], [cx + w / 2, cy]]);
+    ctx.restore();
+    curve(ctx, cx, cy, w, h, t => 0.2 * Math.sin(t * Math.PI * 5) + (t < 0.35 ? 0.28 : t < 0.65 ? 0.28 * (0.65 - t) / 0.3 : 0) - 0.04, 40);
+  },
   ctrl: (ctx, cx, cy, w, h) => line(ctx, [[cx - w / 2, cy + h * 0.3], [cx - w * 0.1, cy + h * 0.3], [cx + w * 0.1, cy - h * 0.3], [cx + w / 2, cy - h * 0.3]]),   // a glide from one level to another
   gate: (ctx, cx, cy, w, h) => {   // a signal chopped into blocks
     const x = f => cx - w / 2 + f * w, y = f => cy + h / 2 - f * h;

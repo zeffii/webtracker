@@ -23,6 +23,7 @@ const TYPE_UNIT = {
   compressor: { ratio: ':1' },
   follower: { gain: 'dB' },
   crusher: { rate: 'Hz', bits: 'bit' },
+  dcblock: { freq: 'Hz' },
   sampler: { release: 'ms', nnaFade: 'ms', retrig: 'ticks', root: '' },
   ctrl: { time: 'subticks' },
   granular: { size: 'ms', pitchRand: 'ct', spread: '%', attack: 'ms', decay: 'ms', release: 'ms' },
