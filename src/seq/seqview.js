@@ -229,5 +229,5 @@ export function createSequenceView({ el, statusEl, listEl, transport, onToggle, 
 
   const goto = (laneIdx, tick) => { cur.lane = laneIdx; cur.tick = rowStart(tick); typed = ''; };
   const setRows = n => { rowCount = Math.max(ROWS.min, Math.min(ROWS.max, Math.round(n))); draw(); return rowCount; };
-  return { draw, load, goto, setRows, get rows() { return rowCount; } };
+  return { draw, load, goto, setRows, get rows() { return rowCount; }, get lane() { return cur.lane; } };
 }

@@ -423,18 +423,22 @@ $('lane-dup').addEventListener('click', () => {
   const id = selectedLane;
   if (id) reshape(() => { const copy = ops.duplicateLane(project, id); return { lane: copy.id, message: `Copied to ${copy.id}.` }; });
 });
-confirmed($('lane-remove-all'), 'Remove with machine', () => {
-  const id = selectedLane;
+const removeLane = (id, withMachine) => {
   if (!id) return;
   reshape(() => {
     const inst = project.lanes.find(l => l.id === id)?.instrument;
     ops.removeLane(project, id);
+    if (!withMachine) return { message: `Removed ${id}.` };
     const shared = project.lanes.some(l => l.instrument === inst);
     if (inst && !shared) ops.removeInstrument(project, inst);
     return { message: shared ? `Removed (${id}) lane; (${inst}) instrument is still played by another lane.` : `Removed (${id}) lane, and (${inst}) instrument.` };
   });
-});
-confirmed($('lane-remove'), 'Remove', () => { const id = selectedLane; if (id) reshape(() => { ops.removeLane(project, id); return { message: `Removed ${id}.` }; }); });
+};
+confirmed($('lane-remove-all'), 'Remove with machine', () => removeLane(selectedLane, true));
+confirmed($('lane-remove'), 'Remove', () => removeLane(selectedLane, false));
+// the same two buttons in the arrangement, for the lane the cursor is in
+confirmed($('arr-lane-remove-all'), 'Remove lane and machine', () => removeLane(project.lanes[seqView.lane]?.id, true));
+confirmed($('arr-lane-remove'), 'Remove lane', () => removeLane(project.lanes[seqView.lane]?.id, false));
 
 // The polyphony fields show the selected instrument's settings.
 function syncPoly() {
@@ -714,7 +718,7 @@ $('start').addEventListener('click', async () => {
       openProject(createSynthwaveProject());
     }
     for (const id of ['start']) $(id).disabled = true;
-    for (const id of ['play', 'panic', 'cut', 'new', 'save', 'load', 'patch-add', 'load-samples', 'add-sampler', 'add-synth', 'add-lane', 'inst-voices', 'inst-notecols', 'inst-name', 'inst-rename', 'inst-up', 'inst-down', 'inst-dup', 'inst-remove', 'lane-name', 'lane-rename', 'lane-left', 'lane-right', 'lane-dup', 'lane-remove', 'lane-remove-all', 'length', 'bpm', 'swing', 'preset-name', 'preset-save', 'preset-over', 'preset-rename', 'preset-remove', 'inst-export', 'inst-import', 'lib-load', 'lib-add', 'lib-save']) $(id).disabled = false;
+    for (const id of ['play', 'panic', 'cut', 'new', 'save', 'load', 'patch-add', 'load-samples', 'add-sampler', 'add-synth', 'add-lane', 'inst-voices', 'inst-notecols', 'inst-name', 'inst-rename', 'inst-up', 'inst-down', 'inst-dup', 'inst-remove', 'lane-name', 'lane-rename', 'lane-left', 'lane-right', 'lane-dup', 'lane-remove', 'lane-remove-all', 'arr-lane-remove', 'arr-lane-remove-all', 'length', 'bpm', 'swing', 'preset-name', 'preset-save', 'preset-over', 'preset-rename', 'preset-remove', 'inst-export', 'inst-import', 'lib-load', 'lib-add', 'lib-save']) $(id).disabled = false;
     $('status').textContent =
       `Running at ${engine.ctx.sampleRate} Hz, base latency ${(engine.ctx.baseLatency * 1000).toFixed(1)} ms`;
     const frame = () => { songInfo(); seqView.draw(); view.draw(); patcher.draw(); sampleScreen.draw(); waveform.draw(); region.draw(); requestAnimationFrame(frame); };

@@ -147,6 +147,7 @@ export function createPatcher({ canvas, panel, paramPanel = null, exposedDock = 
       if (inside(eyeRect(node), x, y)) { setScope(node, !node.scope); return true; }
       if (!node.scope) continue;
       const box = scopeRectOf(node), part = headerHit(box, x, y);
+      if (part === 'eye') { setScope(node, false); return true; }
       if (part === 'size') node.scope.size = SIZES[(SIZES.indexOf(node.scope.size) + 1) % SIZES.length];
       else if (part) node.scope.mode = part;
       else if (!inside(box, x, y, box.size, box.size)) continue;
