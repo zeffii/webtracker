@@ -32,7 +32,7 @@ export default {
     const core = hall.create({ sampleRate });
     const inner = new Float32Array(8), innerSlots = Int32Array.from({ length: 8 }, (_, i) => i);
     const W = Math.round(WINDOW_MS * 0.001 * sampleRate), buf = new Float32Array(W + 2);
-    let w = 0, ph = 0, lp = 0;
+    let w = 0, ph = 0, lp = 0, hx = 0, hy = 0, xl = 0, yl = 0, xr = 0, yr = 0;   // the last four: DC blockers (see below)
     let fb = new Float32Array(maxBlock), mixL = new Float32Array(maxBlock), mixR = new Float32Array(maxBlock);
     let wetL = new Float32Array(maxBlock), wetR = new Float32Array(maxBlock);
     const read = d => {   // d samples back, linear
@@ -54,9 +54,16 @@ export default {
         // pitch shift the wet mono sound for the next block: four read points sliding through the buffer, crossfaded
         const ratio = Math.pow(2, g(PITCH) / 12), amount = g(SHIMMER);
         const dph = (1 - ratio) / W;
+        const R = Math.exp(-2 * Math.PI * 20 / sampleRate), Ro = Math.exp(-2 * Math.PI * 5 / sampleRate);
         const c = 1 - Math.exp(-2 * Math.PI * (500 + 14000 * g(TONE) ** 2) / sampleRate);
         for (let i = 0; i < n; i++) {
-          buf[w] = (wetL[i] + wetR[i]) * 0.5;
+          // the reverb leaks a little DC on one side, and a shifter passes DC straight round the loop until it saturates
+          // (one-sided fuzz that builds up), so the wet sound loses it on the way out and the feedback again on the way in
+          yl = wetL[i] - xl + Ro * yl; xl = wetL[i]; wetL[i] = yl;
+          yr = wetR[i] - xr + Ro * yr; xr = wetR[i]; wetR[i] = yr;
+          const m = (wetL[i] + wetR[i]) * 0.5;
+          hy = m - hx + R * hy; hx = m;
+          buf[w] = hy;
           if (++w === buf.length) w = 0;
           ph += dph; if (ph >= 1) ph -= 1; else if (ph < 0) ph += 1;
           let s = 0;   // four read points a quarter of a window apart, so no one fade ever leaves a hole
