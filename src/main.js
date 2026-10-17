@@ -88,7 +88,7 @@ const seqView = createSequenceView({
 
 const patcher = createPatcher({
   onNote: (id, note, on) => { if (!started) return; if (on) engine.noteOn(id, note, 1); else engine.noteOff(id, note); },
-  canvas: $('patch'), panel: $('patch-panel'), paramPanel: $('patch-params'), exposedPanel: $('exposed-panel'), onEscape: () => $('inst-list').focus(), statusEl: $('patch-status'), nodeTypes: NODE_TYPES,
+  canvas: $('patch'), panel: $('patch-panel'), paramPanel: $('patch-scroll'), exposedPanel: $('exposed-panel'), onEscape: () => $('inst-list').focus(), statusEl: $('patch-status'), nodeTypes: NODE_TYPES,
   onStructure: id => reloadInstrument(id),
   onContext: ({ x, y }) => menu.open(x, y),
   onData: (id, node, msg) => engine.sendToNode(id, node, msg),

@@ -845,7 +845,7 @@ export function createPatcher({ canvas, panel, paramPanel = null, exposedPanel =
     resize(height) {
       H = Math.round(Math.min(MAX_HEIGHT, Math.max(MIN_HEIGHT, height)));
       canvas.style.height = `${H}px`;
-      if (paramPanel) paramPanel.style.maxHeight = `${H - 2}px`;
+      if (paramPanel) (paramPanel.parentElement ?? paramPanel).style.maxHeight = `${H - 2}px`;
       canvas.height = H * dpr;   // a new size clears the canvas and its transform
       if (dpr !== 1) ctx.setTransform?.(dpr, 0, 0, dpr, 0, 0);
       dirty = true;
