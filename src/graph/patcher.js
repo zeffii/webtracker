@@ -15,6 +15,7 @@ import { choices, display, unitOf } from './units.js';
 import { createParamView } from './paramview.js';
 import { createCurveEditor } from './curveeditor.js';
 import { createTapEditor } from './tapeditor.js';
+import { createDxView } from './dxview.js';
 import { createSpectrumEditor } from './spectrumeditor.js';
 import { createWaveEditor } from './waveeditor.js';
 import { createWavetableEditor } from './wavetableeditor.js';
@@ -127,6 +128,7 @@ const toPos = (spec, v) => (isLog(spec) ? Math.log(v / spec.min) / Math.log(spec
 const fmt = v => String(Number(v.toPrecision(4)));
 
 export function createPatcher({ canvas, panel, paramPanel = null, exposedDock = null, onScope = () => {}, onEscape = () => {}, statusEl, doc = document, nodeTypes, onStructure, onParam, onData = () => {}, onContext = () => {}, onNote = () => {}, getSampleIds = () => [], getSample = () => null, readLive = () => undefined }) {
+  let dxView = null;        // the bank loader and algorithm view of a DVIIloader
   let tapEditor = null;     // the tap view of a Shiva delay, redrawn when its parameters move
   let tableEditor = null;   // the wavetable panel of the selected node, redrawn when position or mix move
   let instruments = {}, instId = null, selected = null, drag = null, dirty = true;
@@ -214,6 +216,7 @@ export function createPatcher({ canvas, panel, paramPanel = null, exposedDock = 
         dirty = true;   // the envelope drawn beside the node follows
         if (spec.name === 'position' || spec.name === 'mix' || spec.name === 'source') tableEditor?.refresh();
         if (type.editor === 'taps') tapEditor?.refresh();
+        if (type.editor === 'dx' && spec.name === 'voice') dxView?.refresh();
         if (entry()) renderExposed();
       };
       const names = choices(node.type, spec.name);
@@ -352,6 +355,19 @@ export function createPatcher({ canvas, panel, paramPanel = null, exposedDock = 
         },
       });
       items.splice(1, 0, editor.el);
+    }
+    dxView = null;
+    if (type.editor === 'dx') {   // a DX7 bank on the node, sent live; the voice parameter picks from it
+      const voiceParam = () => Math.round(readLive(instId, node.id, 'voice') ?? node.params?.voice ?? 0);
+      dxView = createDxView({
+        doc, bank: node.data?.bank, say,
+        getVoice: voiceParam,
+        setVoice: i => { setParam(desc(), node.id, 'voice', i); onParam(instId, node.id, 'voice', i); paramView?.refresh(); dxView?.refresh(); },
+        getParam: name => Math.round(readLive(instId, node.id, name) ?? node.params?.[name] ?? 0),
+        setParamValue: (name, value) => { setParam(desc(), node.id, name, value); onParam(instId, node.id, name, value); paramView?.refresh(); },
+        onBank: points => { node.data = { ...node.data, bank: points }; onData(instId, node.id, { type: 'bank', points }); },
+      });
+      items.splice(1, 0, dxView.el);
     }
     tapEditor = null;
     if (type.editor === 'taps') {   // the taps of a Shiva delay, kept on the node and sent live
@@ -719,7 +735,7 @@ export function createPatcher({ canvas, panel, paramPanel = null, exposedDock = 
     const sig = parts.join(',');
     if (sig === liveSig) return;
     liveSig = sig;
-    paramView?.refresh(); exposedView?.refresh(); tapEditor?.refresh();
+    paramView?.refresh(); exposedView?.refresh(); tapEditor?.refresh(); dxView?.refresh();
   }
 
   function draw() {

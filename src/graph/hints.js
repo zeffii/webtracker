@@ -294,6 +294,17 @@ const HINTS = {
     hdecay: 'Makes higher partials die faster, per second per octave above the fundamental.',
     width: 'Odd partials lean left and even ones right, for stereo width.',
   },
+  dvii: {
+    voice: 'Which of the 32 voices in the bank to play (0 is the first). A pattern command can change it, so the sound changes on a row.',
+    tune: 'Transposes the voice, in semitones (fractions detune).',
+    vel: 'How much velocity counts. 0 ignores it, 1 is the voice\'s own velocity sensitivity.',
+    level: 'Output level.',
+    lfo: 'Scales the voice\'s LFO depth, for pitch and amplitude together. 0 turns the vibrato and tremolo off.',
+    speed: 'Scales every envelope rate: above 1 is faster, below 1 slower.',
+    mute: 'Silences operators: bit 1 is operator 1, bit 2 operator 2, and so on (the M buttons in the panel set it).',
+    solo: 'When any bit is set, only those operators sound (the S buttons in the panel set it).',
+    gritty: 'On: operator outputs are rounded to a coarse step, a little of the noise of the old converters.',
+  },
   fmsynth: {
     algo: 'Which operators modulate which, and which you hear (the carriers). The names show the routing: 4>3>2>1 is a chain into operator 1.',
     index: 'Modulation depth: how strongly the modulators bend the operators they feed. More is brighter and more metallic.',

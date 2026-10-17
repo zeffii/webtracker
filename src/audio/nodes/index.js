@@ -39,10 +39,11 @@ import shimmer from './shimmer.js';
 import subsynth from './subsynth.js';
 import addsynth from './addsynth.js';
 import fmsynth from './fmsynth.js';
+import dvii from './dvii.js';
 import wavetable from './wavetable.js';
 import granular from './granular.js';
 import ctrl from './ctrl.js';
 import voices from './voices.js';
 
 // Node type registry. Adding a node type means adding a module and listing it here.
-export const NODE_TYPES = { sampler, osc, env, lfo, gain, mix, pan, filter, delay, chorus, phaser, flanger, distortion, multitap, shiva, waveshaper, exciter, transient, split, compressor, gate, envfx, eq, crusher, ctrl, notetrig, follower, sidechain, hall, plate, shimmer, subsynth, oberheim, piano, addsynth, fmsynth, wavetable, granular, specsynth, string, voices, out, sum, sumst, fold };
+export const NODE_TYPES = { sampler, osc, env, lfo, gain, mix, pan, filter, delay, chorus, phaser, flanger, distortion, multitap, shiva, waveshaper, exciter, transient, split, compressor, gate, envfx, eq, crusher, ctrl, notetrig, follower, sidechain, hall, plate, shimmer, subsynth, oberheim, piano, addsynth, fmsynth, dvii, wavetable, granular, specsynth, string, voices, out, sum, sumst, fold };

@@ -169,6 +169,13 @@ export const GLYPHS = {
     ctx.lineWidth = lw;
   },
   string: (ctx, cx, cy, w, h) => curve(ctx, cx, cy, w, h, t => Math.sin(t * Math.PI * 7) * Math.pow(1 - t, 1.3) * 0.9, 56),   // a ringing, fading string
+  dvii: (ctx, cx, cy, w, h) => {   // a stack of six small boxes joined by lines: operators in an algorithm
+    const bw = w * 0.22, bh = h * 0.2, xs = [-0.3, 0.3];
+    ctx.beginPath();
+    for (const dx of xs) for (let r = 0; r < 3; r++) ctx.rect(cx + dx * w - bw / 2, cy - h * 0.45 + r * h * 0.32, bw, bh);
+    for (const dx of xs) for (let r = 0; r < 2; r++) { ctx.moveTo(cx + dx * w, cy - h * 0.45 + r * h * 0.32 + bh); ctx.lineTo(cx + dx * w, cy - h * 0.45 + (r + 1) * h * 0.32); }
+    ctx.stroke();
+  },
   fmsynth: (ctx, cx, cy, w, h) => curve(ctx, cx, cy, w, h, t => Math.sin(t * Math.PI * 4 + 2.2 * Math.sin(t * Math.PI * 10)) * 0.85, 48),   // a sine bent by another
   addsynth: (ctx, cx, cy, w, h) => {   // a row of harmonics falling away
     ctx.beginPath();

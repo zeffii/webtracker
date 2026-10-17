@@ -1576,6 +1576,68 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     assert.ok(run(undefined, { mix: 1 })[0].every(Number.isFinite), 'default taps run');
   }
 
+  // DVIIloader: DX7 data and the six-operator engine
+  {
+    const dx = await import('../src/audio/nodes/dx7.js');
+    assert.equal(dx.ALGORITHMS.length, 32);
+    for (const a of dx.ALGORITHMS) {
+      assert.ok(a.carriers.length >= 1 && a.mods.every(([to, from]) => from > to), 'senders have higher numbers than receivers');
+      const reach = new Set(a.carriers); let grew = true;   // every operator ends up at a carrier
+      while (grew) { grew = false; for (const [to, from] of a.mods) if (reach.has(to) && !reach.has(from)) { reach.add(from); grew = true; } }
+      assert.equal(reach.size, 6, 'every operator reaches the output');
+    }
+    // a voice survives packing, and a bank is read back from a .syx dump
+    const v = dx.initVoice({ name: 'ROUNDTRIP', alg: 21, fb: 5, lfw: 4, pms: 6, ops: dx.initVoice().ops.map((o, i) => ({ ...o, ol: 90 - i, fc: i + 1, ff: i * 3, det: 5 + i, kvs: i % 8, lc: i % 4, rc: (i + 1) % 4 })) });
+    const back = dx.unpackVoice(dx.packVoice(v));
+    assert.deepEqual(back, { ...v, name: 'ROUNDTRIP' });
+    const syx = new Uint8Array(4104); syx.set([0xf0, 0x43, 0x00, 0x09, 0x20, 0x00]); syx.set(dx.DEFAULT_BANK, 6); syx[4103] = 0xf7;
+    assert.deepEqual(Array.from(dx.parseSyx(syx)), Array.from(dx.DEFAULT_BANK));
+    assert.equal(dx.parseSyx(new Uint8Array([1, 2, 3])), null);
+    const saved = dx.bankToSyx(dx.DEFAULT_BANK);
+    assert.equal(saved.length, 4104);
+    assert.equal(((saved.subarray(6, 4102).reduce((a, b) => a + b, 0) + saved[4102]) & 127), 0, 'the checksum makes the sum zero');
+    assert.deepEqual(Array.from(dx.parseSyx(saved)), Array.from(dx.DEFAULT_BANK));
+    const single = dx.parseSyx(dx.voiceToSyx(v));   // a single voice dump lands in the first slot of a bank
+    assert.deepEqual(dx.unpackVoice(single, 0), { ...v, name: 'ROUNDTRIP' });
+    assert.equal(dx.voiceNames()[1], 'E.PIANO');
+    // the engine: the init voice is a sine at the note's pitch, a held note sounds and a released one falls silent
+    const def = NODE_TYPES.dvii;
+    const play = (values, { note = 69, secs = 1, off = 0.5, bank } = {}) => {
+      const params = Float32Array.from(def.params.map(p => values[p.name] ?? p.def)), slots = Int32Array.from(def.params.map((_, i) => i));
+      const node = def.create({ sampleRate: sr, connected: [false], data: bank ? { bank } : undefined });
+      node.note({ type: 'noteOn', note, vel: 1 });
+      const total = Math.floor(secs * sr), o = new Float32Array(total), z = new Float32Array(128);
+      for (let at = 0; at < total; at += 128) {
+        if (off !== null && at >= off * sr && at - 128 < off * sr) node.note({ type: 'noteOff' });
+        const L = new Float32Array(128), R = new Float32Array(128);
+        node.process([[z]], [[L, R]], 128, params, slots);
+        o.set(L.subarray(0, Math.min(128, total - at)), at);
+      }
+      return o;
+    };
+    const win = (a, t0, t1) => a.subarray(Math.floor(t0 * sr), Math.floor(t1 * sr));
+    const init = play({ voice: 0 });
+    let crossings = 0; const w = win(init, 0.1, 0.4);
+    for (let i = 1; i < w.length; i++) if (w[i - 1] < 0 && w[i] >= 0) crossings++;
+    assert.ok(Math.abs(crossings / 0.3 - 440) < 4, `init voice pitch ${crossings / 0.3}`);
+    assert.ok(peak(win(init, 0.1, 0.4)) > 0.1 && peak(win(init, 0.9, 1)) < 1e-4, 'released: silent');
+    assert.ok(init.every(Number.isFinite));
+    for (let i = 1; i <= 4; i++) { const a = play({ voice: i }, { note: 60, secs: 1.5, off: 0.8 }); assert.ok(peak(win(a, 0, 0.3)) > 0.05 && a.every(Number.isFinite), `built-in voice ${i} sounds`); }
+    // velocity: a softer note of a velocity-sensitive voice is quieter
+    const quiet = play({ voice: 1 }, { off: null, secs: 0.3 }), loud = quiet;   // (the same call, to have the shape)
+    assert.ok(peak(loud) > 0);
+    const node2 = def.create({ sampleRate: sr, connected: [false] });
+    const run2 = vel => { node2.note({ type: 'noteCut' }); node2.note({ type: 'noteOn', note: 60, vel }); const L = new Float32Array(128), R = new Float32Array(128), z = new Float32Array(128); const params = Float32Array.from(def.params.map(p => (p.name === 'voice' ? 1 : p.def))); let m = 0; for (let b = 0; b < 40; b++) { node2.process([[z]], [[L, R]], 128, params, Int32Array.from(def.params.map((_, i) => i))); m = Math.max(m, peak(L)); } return m; };
+    assert.ok(run2(0.2) < run2(1) * 0.8, 'soft notes are quieter');
+    // a bank sent to the node replaces the voices: a bank of all init voices makes the E.PIANO slot a plain sine
+    const plain = new Uint8Array(4096); for (let i = 0; i < 32; i++) dx.packVoice(dx.initVoice(), plain, i * 128);
+    const swapped = play({ voice: 1 }, { bank: Array.from(plain) });
+    assert.ok(Math.abs(peak(win(swapped, 0.1, 0.4)) - peak(win(init, 0.1, 0.4))) < 0.02, 'the loaded bank is the one that plays');
+    // the instrument kind: every named parameter exists
+    const dvKind = synthKinds.dvii.make();
+    for (const item of [...dvKind.exposed, ...dvKind.commands]) assert.ok(NODE_TYPES.dvii.params.some(q => q.name === item.param), `dvii.${item.param}`);
+  }
+
   // phaser: mix 0 is dry, silence stays silent, a wet signal differs, stays finite even at high feedback
   const ph0 = stage('phaser', { mix: 0 })(noise, noise);
   assert.ok(ph0[0].every((v, i) => v === noise[i]), 'phaser mix 0 is dry');

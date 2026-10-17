@@ -185,6 +185,27 @@ export const synthKinds = {
       ],
     }),
   },
+  dvii: {
+    label: 'DVIIloader (DX7 banks)',
+    make: () => ({
+      graph: { nodes: [{ id: 'synth', type: 'dvii' }, { id: 'poly', type: 'voices' }, { id: 'out', type: 'out', params: { gain: 0.5 } }], connections: [['synth.out', 'poly.in'], ['poly.out', 'out.in']], voices: 12 },
+      noteColumns: 4,
+      exposed: [
+        { node: 'synth', param: 'voice', label: 'Voi' },
+        { node: 'synth', param: 'lfo', label: 'Lfo' },
+        { node: 'synth', param: 'speed', label: 'Spd' },
+        { node: 'synth', param: 'tune', label: 'Tun' },
+      ],
+      commands: [
+        { id: 0x01, node: 'synth', param: 'voice' },
+        { id: 0x02, node: 'synth', param: 'lfo' },
+        { id: 0x03, node: 'synth', param: 'speed' },
+        { id: 0x04, node: 'synth', param: 'tune' },
+        { id: 0x05, node: 'synth', param: 'vel' },
+        { id: 0x06, node: 'synth', param: 'level' },
+      ],
+    }),
+  },
   wavetable: {
     label: 'Wavetable synth',
     make: () => ({

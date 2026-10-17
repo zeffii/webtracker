@@ -199,6 +199,19 @@
     input[type=range].rect:focus { border-color: Highlight; background: linear-gradient(to right, Highlight var(--p, 0%), transparent var(--p, 0%)); }
     #inst-main { min-width: 0; overflow-x: auto; }
     .curve-editor { margin: .25rem 0 .5rem; }
+    .dx-view canvas { display: block; width: 100%; max-width: 420px; height: auto; border: 0; cursor: default; }
+    .dx-view .prow { display: flex; gap: .4rem; align-items: center; flex-wrap: wrap; }
+    .dx-tabs button.on, .dx-grid button.on { background: hsl(35 80% 55%); }
+    .dx-slider { display: flex; align-items: center; gap: .4rem; margin: 2px 0; }
+    .dx-lab { width: 6.5rem; font-size: 11px; }
+    .dx-slider input[type=range] { flex: 1; max-width: 220px; }
+    .dx-val { width: 3rem; font-size: 11px; }
+    .dx-name { font: inherit; width: 8.5em; text-transform: uppercase; }
+    .dx-search { font: inherit; width: 7em; }
+    .dx-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(8.5em, 1fr)); gap: 2px; margin-top: .3rem; max-width: 520px; }
+    .dx-grid button { text-align: left; white-space: nowrap; overflow: hidden; font-size: 11px; }
+    .dx-view .tag { font-size: 10px; opacity: .65; }
+    .dx-info { font-size: 11px; opacity: .7; }
     .tap-editor canvas { width: 100%; max-width: 420px; height: auto; cursor: crosshair; }
     .curve-editor canvas { display: block; border: 1px solid; cursor: crosshair; background: var(--panel); }
     .wt-editor { display: flex; flex-wrap: wrap; gap: .5rem 1rem; align-items: flex-start; max-width: none; }
