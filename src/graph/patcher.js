@@ -1,5 +1,5 @@
 import { MODES, SIZES, scopeBox, headerHit, drawScope } from './scope.js';
-import { addNode, autoLayout, connect, disconnect, duplicateNodes, insertOnWire, pruneDef, pullOut, removeNode, setBits, setExposed, setParam, setPort } from './edit.js';
+import { addNode, autoLayout, connect, disconnect, duplicateNodes, insertOnWire, pruneDef, pullOut, removeNode, setBits, setExposed, setParam, setPort, nudgeClear } from './edit.js';
 
 // The modular view: a canvas of nodes and wires for one instrument's graph, plus a panel
 // for the selected node's parameters. Drag a node to move it, drag from an output dot to
@@ -137,11 +137,12 @@ export function createPatcher({ canvas, panel, paramPanel = null, exposedDock = 
   // The scopes: an eye on a node shows what it puts out (a scope beside it: wave, spectrum or xy, 200 or 400 pixels).
   // The choice lives on the node as node.scope = { mode, size }; the samples arrive from the audio side.
   const scopeData = new Map();   // node id -> { l, r, sr }
-  const eyeRect = node => { const { w } = nodeBox(nodeTypes[node.type], node); return { x: node.x + w - 20, y: node.y - 17, w: 20, h: 14 }; };
+  const eyeRect = node => { const { w, h } = nodeBox(nodeTypes[node.type], node); return { x: node.x + w - 20, y: node.y + h + 3, w: 20, h: 14 }; };   // under the node, clear of its name
   const scopeRectOf = node => { const { w, h } = nodeBox(nodeTypes[node.type], node); return scopeBox(node, w, h, node.scope.size, node.scope.mode); };
   const inside = (r, x, y, w = r.w, h = r.h) => x >= r.x && x <= r.x + w && y >= r.y && y <= r.y + h;
   function setScope(node, on) {
-    if (on) node.scope = { mode: node.type === 'gain' ? 'vu' : 'wave', size: SIZES[0] };   // a gain node opens as a level meter else delete node.scope;
+    // a gain node opens as a level meter
+    if (on) node.scope = { mode: node.type === 'gain' ? 'vu' : 'wave', size: SIZES[0] }; else delete node.scope;
     scopeData.delete(node.id);
     onScope(instId, node.id, on);
     dirty = true;
@@ -825,7 +826,32 @@ export function createPatcher({ canvas, panel, paramPanel = null, exposedDock = 
     paramView?.refresh(); exposedView?.refresh(); tapEditor?.refresh(); gateEditor?.refresh(); dxView?.refresh();
   }
 
+  // A graph is moved clear of the exposed-parameters dock once when its instrument is first shown after a load (the file
+  // loaded, a new project, a new instrument): the nodes, their names and eyes and any scopes must not sit under it.
+  // It waits for the first frame in which the canvas and the dock can be measured; after that the graph is the user's.
+  const tidied = new WeakSet();   // by graph: a reloaded file makes new graphs, adding an instrument leaves the others alone
+  let tidyPending = false;
+  function tidy() {
+    if (!tidyPending || !instId || !def()) return;
+    const cv = canvas.getBoundingClientRect?.(), dk = exposedDock?.getBoundingClientRect?.();
+    if (!cv || !cv.width) return;   // not on screen yet: try again next frame
+    tidyPending = false;
+    tidied.add(desc());
+    if (!dk || !dk.width || exposedDock.style?.display === 'none') return;   // nothing exposed: no dock
+    const boxes = [];
+    for (const node of desc().nodes) {
+      const { w, h } = nodeBox(nodeTypes[node.type], node);
+      boxes.push({ x: node.x, y: node.y - 14, w, h: h + 14 + (nodeTypes[node.type].outputs.length ? 20 : 0) });   // the name above, the eye below
+      if (node.scope) { const b = scopeBox(node, w, h, node.scope.size, node.scope.mode); boxes.push({ x: b.x, y: b.y, w: b.w ?? b.size, h: b.size }); }
+    }
+    const { dx, dy } = nudgeClear(boxes, { x: dk.left - cv.left, y: dk.top - cv.top, w: dk.width, h: dk.height }, { w: canvas.width, h: canvas.height });
+    if (!dx && !dy) return;
+    for (const node of desc().nodes) { node.x += dx; node.y += dy; }
+    dirty = true;
+  }
+
   function draw() {
+    tidy();
     followLive();
     if (!dirty) return;
     dirty = false;
@@ -985,6 +1011,7 @@ export function createPatcher({ canvas, panel, paramPanel = null, exposedDock = 
       group.clear();
       drag = null;
       if (id) autoLayout(desc(), nodeTypes);
+      tidyPending = !!id && !tidied.has(desc());
       renderPanel();
       dirty = true;
     },

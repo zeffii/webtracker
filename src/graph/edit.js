@@ -179,3 +179,15 @@ export function autoLayout(desc, nodeTypes) {
     if (n.x === undefined || n.y === undefined) { n.x = 20 + d * 150; n.y = 30 + (rows[d] - 1) * 80; }
   }
 }
+
+// How far to move a whole graph so that none of its boxes ({ x, y, w, h }) is under a dock (a box over part of the view),
+// with `margin` to spare: { dx, dy }, one of them 0. It goes down when that fits in the view (view = { w, h }) and is
+// shorter than going right, else right. Boxes that are clear already give { dx: 0, dy: 0 }.
+export function nudgeClear(boxes, dock, view, margin = 12) {
+  const under = boxes.filter(b => b.x < dock.x + dock.w + margin && b.x + b.w > dock.x - margin && b.y < dock.y + dock.h + margin && b.y + b.h > dock.y - margin);
+  if (!under.length) return { dx: 0, dy: 0 };
+  const dx = Math.max(...under.map(b => dock.x + dock.w + margin - b.x));
+  const dy = Math.max(...under.map(b => dock.y + dock.h + margin - b.y));
+  const bottom = Math.max(...boxes.map(b => b.y + b.h));
+  return dy <= dx && bottom + dy <= view.h ? { dx: 0, dy } : { dx, dy: 0 };
+}

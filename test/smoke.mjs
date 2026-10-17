@@ -16,6 +16,7 @@ import { createSequenceView } from '../src/seq/seqview.js';
 import { createEditor } from '../src/seq/editor.js';
 import * as ops from '../src/seq/edit.js';
 import * as gedit from '../src/graph/edit.js';
+import { scopeBox } from '../src/graph/scope.js';
 import { createPatcher, hitTest, nodeBox, portPos, portKind, hexOf } from '../src/graph/patcher.js';
 import { rebuildInstrumentLanes } from '../src/seq/lane.js';
 import * as pops from '../src/project/ops.js';
@@ -1089,6 +1090,40 @@ const hit = 'C-2 .. .. ..';
   assert.equal(freed.kept, true, 'Esc during the drag keeps the wires');
   assert.equal(freed.moved, true, 'and the node still moves');
   assert.doesNotMatch(freed.saidAfter, /Release to/, 'the status no longer offers to change the wires');
+}
+
+// The eye under a node shows its scope and hides it again; so does the eye in the scope's header.
+{
+  const makeEl = tag => ({ tag, children: [], listeners: {}, style: {}, textContent: '', value: '', appendChild(c) { this.children.push(c); return c; }, replaceChildren(...c) { this.children = c; }, addEventListener(type, f) { this.listeners[type] = f; }, focus() {} });
+  const doc = { createElement: makeEl, createTextNode: text => ({ text }) };
+  const ctx = new Proxy({}, { get: (t, k) => (k in t ? t[k] : () => {}), set: (t, k, v) => { t[k] = v; return true; } });
+  const canvas = { width: 900, height: 360, style: {}, listeners: {}, getContext: () => ctx, addEventListener(type, f) { this.listeners[type] = f; }, focus() {} };
+  const defs = structuredClone(instruments), scopes = [];
+  const patcher = createPatcher({ canvas, panel: makeEl('div'), statusEl: {}, doc, nodeTypes: NODE_TYPES, onStructure() {}, onParam() {}, onScope: (...a) => scopes.push(a) });
+  patcher.load({ instruments: defs });
+  patcher.show('kick');
+  const node = defs.kick.graph.nodes.find(n => n.id === 'osc'), { w, h } = nodeBox(NODE_TYPES[node.type], node);
+  const click = (x, y) => canvas.listeners.mousedown({ offsetX: x, offsetY: y, button: 0, preventDefault() {} }) ?? canvas.listeners.mouseup({ offsetX: x, offsetY: y });
+  const eye = [node.x + w - 10, node.y + h + 10];
+  click(...eye);
+  assert.ok(node.scope, 'the eye under the node shows the scope');
+  click(...eye);
+  assert.equal(node.scope, undefined, 'and clicking it again hides it');
+  click(...eye);
+  const box = scopeBox(node, w, h, node.scope.size, node.scope.mode);
+  click(box.x + box.size - 47, box.y + 7);
+  assert.equal(node.scope, undefined, 'the eye in the scope header hides it too');
+  assert.deepEqual(scopes.map(a => a[2]), [true, false, true, false]);
+}
+
+// A graph is moved clear of the exposed-parameters dock, as one block.
+{
+  const { nudgeClear } = await import('../src/graph/edit.js');
+  const dock = { x: 1, y: 1, w: 210, h: 80 }, view = { w: 650, h: 460 };
+  assert.deepEqual(nudgeClear([{ x: 300, y: 20, w: 100, h: 40 }], dock, view), { dx: 0, dy: 0 }, 'a graph clear of the dock stays');
+  assert.deepEqual(nudgeClear([{ x: 300, y: 20, w: 100, h: 40 }, { x: 20, y: 200, w: 100, h: 40 }], dock, view), { dx: 0, dy: 0 }, 'a box below the dock is clear');
+  assert.deepEqual(nudgeClear([{ x: 20, y: 30, w: 100, h: 40 }, { x: 300, y: 30, w: 100, h: 40 }], dock, view), { dx: 0, dy: 63 }, 'it goes down when that is shorter than going right');
+  assert.deepEqual(nudgeClear([{ x: 20, y: 30, w: 100, h: 40 }], dock, { w: 650, h: 120 }), { dx: 203, dy: 0 }, 'and right when there is no room below');
 }
 
 // ---- milestone 6: samples, instruments, lanes ----
