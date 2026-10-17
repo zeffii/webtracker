@@ -1,5 +1,6 @@
 import { PAGE_TICKS } from '../audio/sequencer.js';
 import { EMPTY, KINDS, encodeCell } from './cells.js';
+import { longName, shortName } from './names.js';
 
 // An instrument's pattern columns: note and velocity (repeated for each note column), then one column per exposed
 // parameter (2hex, 4hex with bits: 16, or 1hex with bits: 4), then one CCXXYY column if the instrument
@@ -19,19 +20,23 @@ export function buildColumns(instrument, def, registry) {
   const pairs = def.noteColumns === 0 ? 0 : Math.max(1, Math.min(8, def.noteColumns ?? 1));   // none for the master lane
   const columns = [];
   for (let k = 0; k < pairs; k++) {
-    columns.push({ kind: 'note', token: 'note', label: pairs > 1 ? `N${k + 1}` : 'Note', key: k ? `note:${k}` : 'note', nc: k });
-    columns.push({ kind: 'vel', token: '2hex', label: pairs > 1 ? `V${k + 1}` : 'Vel', key: k ? `vel:${k}` : 'vel', nc: k });
+    columns.push({ kind: 'note', token: 'note', label: pairs > 1 ? `N${k + 1}` : 'Note', key: k ? `note:${k}` : 'note', nc: k, long: 'Note' });
+    if (!def.noVel) columns.push({ kind: 'vel', token: '2hex', label: pairs > 1 ? `V${k + 1}` : 'Vel', key: k ? `vel:${k}` : 'vel', nc: k, long: 'Velocity' });   // a MOD channel has no velocity
   }
   // Trigger columns (the hi-hat's Cl and Op): one hex digit each, 1 to F the loudness of a hit. Every filled cell is a
   // note event on its own, so F F plays twice (a parameter column holding the same value would not).
-  (def.triggers ?? []).forEach((t, i) => columns.push({ kind: 'trig', token: '1hex', label: t.label, key: `trig:${i}`, note: t.note ?? i, tc: i }));
+  (def.triggers ?? []).forEach((t, i) => columns.push({ kind: 'trig', token: '1hex', label: t.label, key: `trig:${i}`, note: t.note ?? i, tc: i, long: t.long ?? t.label }));
+  const context = new Set(def.exposed.map(e => e.node)).size > 1;   // the node's name too, when parameters of several nodes are exposed
   for (const e of def.exposed) {
     // bits: 16 is a 4hex column, 4 is a 1hex column (a toggle or an enum), otherwise 2hex.
     const token = e.bits === 16 ? '4hex' : e.bits === 4 ? '1hex' : '2hex';
     const base = `p:${e.node}.${e.param}`;
+    const node = def.graph.nodes.find(n => n.id === e.node), t = target(e.node, e.param);
     columns.push({
       kind: 'param', token, label: e.label, base, key: `${base}:${token}`,
-      denom: { '4hex': 65535, '1hex': 15, '2hex': 255 }[token], log: e.scale === 'log', ...target(e.node, e.param),
+      denom: { '4hex': 65535, '1hex': 15, '2hex': 255 }[token], log: e.scale === 'log', ...t,
+      long: e.long ?? `${longName(e.param)}${context ? ` · ${e.node}` : ''}`,
+      node: e.node, param: e.param, type: node?.type, dflt: node?.params?.[e.param] ?? registry.values[t.slot],   // what it is without any data
     });
   }
   // Presets are recalled by command 00 (CC00XXYY, the preset's number in XXYY): each becomes the
@@ -48,10 +53,21 @@ export function buildColumns(instrument, def, registry) {
   });
   if (def.commands?.length || presets.length) {
     columns.push({
-      kind: 'cmd', token: 'cmd', label: 'Cmd', key: 'cmd',
-      commands: (def.commands ?? []).map(c => ({ id: c.id, log: c.scale === 'log', ...target(c.node, c.param) })),
+      kind: 'cmd', token: 'cmd', label: 'Cmd', key: 'cmd', long: 'Command',
+      commands: (def.commands ?? []).map(c => ({
+        id: c.id, log: c.scale === 'log', ...target(c.node, c.param),
+        name: `${longName(c.param)}${context ? ` · ${c.node}` : ''}`, type: def.graph.nodes.find(n => n.id === c.node)?.type, param: c.param,
+      })),
       presets,
     });
+  }
+  // The header text: the label squeezed to the cell's width, and different from the others in the lane.
+  const taken = new Set();
+  for (const c of columns) {
+    const width = KINDS[c.token].width;
+    let short = shortName(c.label, width);
+    if (taken.has(short)) short = c.label.slice(0, width).toLowerCase();
+    taken.add(c.short = short);
   }
   let ch = 0;
   for (const c of columns) { c.ch = ch; ch += KINDS[c.token].channels; }

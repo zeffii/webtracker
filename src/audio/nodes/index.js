@@ -32,6 +32,7 @@ import dcblock from './dcblock.js';
 import tempo from './tempo.js';
 import string from './string.js';
 import hat808 from './hat808.js';
+import modchan from './modchan.js';
 import follower from './follower.js';
 import sidechain from './sidechain.js';
 import specsynth from './specsynth.js';
@@ -52,7 +53,7 @@ import ctrl from './ctrl.js';
 import voices from './voices.js';
 
 // Node type registry. Adding a node type means adding a module and listing it here.
-const TYPES = { sampler, osc, env, lfo, gain, mix, pan, filter, delay, chorus, phaser, flanger, distortion, multitap, shiva, blur, gater, freqshift, waveshaper, dcblock, exciter, transient, split, compressor, gate, envfx, eq, crusher, ctrl, notetrig, follower, sidechain, hall, plate, shimmer, subsynth, oberheim, piano, addsynth, fmsynth, dvii, wavetable, granular, specsynth, string, hat808, voices, tempo, out, sum, sumst, fold };
+const TYPES = { sampler, osc, env, lfo, gain, mix, pan, filter, delay, chorus, phaser, flanger, distortion, multitap, shiva, blur, gater, freqshift, waveshaper, dcblock, exciter, transient, split, compressor, gate, envfx, eq, crusher, ctrl, notetrig, follower, sidechain, hall, plate, shimmer, subsynth, oberheim, piano, addsynth, fmsynth, dvii, wavetable, granular, specsynth, string, hat808, modchan, voices, tempo, out, sum, sumst, fold };
 
 // Every effect gets a hard bypass switch as its last parameter (the runtime passes the input straight through while it is on).
 export const NODE_TYPES = TYPES;

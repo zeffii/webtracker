@@ -200,6 +200,15 @@ export const GLYPHS = {
     for (const i of [1, 2, 4]) line(ctx, [[x(i / 5), y(1)], [x(i / 5), y(0.45)]]);   // the black keys
     ctx.lineWidth = lw;
   },
+  modchan: (ctx, cx, cy, w, h) => {   // an 8-bit sample: a stepped wave
+    const pts = [];
+    for (let i = 0; i < 10; i++) {
+      const y = Math.round(Math.sin(i / 9 * Math.PI * 2) * 3) / 3 * 0.42;
+      const x0 = cx - w / 2 + i / 10 * w, x1 = cx - w / 2 + (i + 1) / 10 * w;
+      pts.push([x0, cy - y * h], [x1, cy - y * h]);
+    }
+    line(ctx, pts);
+  },
   hat808: (ctx, cx, cy, w, h) => {   // two bursts of noise: a short one and a longer, ringing one
     const x = f => cx - w / 2 + f * w, y = f => cy + h / 2 - f * h;
     const burst = (from, len, amp) => { const pts = []; for (let i = 0; i <= 14; i++) { const t = i / 14; pts.push([x(from + t * len), y(0.5 + (i % 2 ? 1 : -1) * amp * Math.exp(-t * (len > 0.3 ? 3 : 6)) * 0.5)]); } return pts; };

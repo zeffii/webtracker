@@ -1,6 +1,7 @@
 import { setLoopPoint } from './loop.js';
 import { KINDS, encodeCell, noteSemitones, noteToken } from './cells.js';
 import { esc } from './html.js';
+import { describeColumn } from './describe.js';
 
 import { LOWER, UPPER } from './piano.js';
 const ROWS = { min: 6, max: 128, normal: 24 };   // rows shown at once
@@ -91,7 +92,7 @@ export function createTrackerView({ el, statusEl, transport, onToggle, onBack, o
     len = s.length;
     song = s;
     editor = e;
-    widths = lanes.map(lane => lane.columns.map(c => Math.max(c.label.length, KINDS[c.token].width)));
+    widths = lanes.map(lane => lane.columns.map(c => Math.max((c.short ?? c.label).length, KINDS[c.token].width)));
     Object.assign(cur, { lane: 0, tick: 0, col: 0, ch: 0 });
     message = '';
     sel = null;
@@ -99,7 +100,7 @@ export function createTrackerView({ el, statusEl, transport, onToggle, onBack, o
 
   // After a lane's columns change.
   const relayout = () => {
-    widths = lanes.map(lane => lane.columns.map(c => Math.max(c.label.length, KINDS[c.token].width)));
+    widths = lanes.map(lane => lane.columns.map(c => Math.max((c.short ?? c.label).length, KINDS[c.token].width)));
     cur.col = Math.min(cur.col, lanes[cur.lane].columns.length - 1);
     cur.ch = Math.min(cur.ch, KINDS[lanes[cur.lane].columns[cur.col].token].width - 1);
   };
@@ -485,7 +486,7 @@ export function createTrackerView({ el, statusEl, transport, onToggle, onBack, o
     vis = lanes.map((_, li) => visibleCols(li));
     const lines = [
       `<span class="g">${' '.repeat(GUTTER)}</span>${lanes.map((l, li) => ` ${esc(l.id.padEnd(block(li)))}`).join('  ')}`,
-      `<span class="g">${' '.repeat(GUTTER)}</span>${lanes.map((l, li) => ` ${vis[li].map(ci => esc(l.columns[ci].label.padEnd(widths[li][ci]))).join(' ')}`).join('  ')}`,
+      `<span class="g">${' '.repeat(GUTTER)}</span>${lanes.map((l, li) => ` ${vis[li].map(ci => esc((l.columns[ci].short ?? l.columns[ci].label).padEnd(widths[li][ci]))).join(' ')}`).join('  ')}`,
     ];
     for (let t = top; t < Math.min(len, top + rowCount); t++) {
       const chunks = lanes.map((lane, li) => {
@@ -528,7 +529,7 @@ export function createTrackerView({ el, statusEl, transport, onToggle, onBack, o
       }
     }
     statusEl.textContent = [
-      lanes[cur.lane].id, compact.has(cur.lane) ? 'empty columns hidden' : '', `row ${cur.tick}`, patternName(), column().label, `char ${cur.ch + 1}/${cellWidth()}`, preview ? 'preview on' : '',
+      lanes[cur.lane].id, compact.has(cur.lane) ? 'empty columns hidden' : '', `row ${cur.tick}`, patternName(), describeColumn(lanes[cur.lane], cur.tick, cur.col), `char ${cur.ch + 1}/${cellWidth()}`, preview ? 'preview on' : '',
       sel ? `selected ${size(rect())}` : '', `octave ${octave}`, message,
     ].filter(Boolean).join(' · ');
   };

@@ -223,6 +223,8 @@ export class Sequencer {
   }
 
   fireTick() {
+    const clock = this.runtime.clock;
+    if (clock) clock.tickId = (clock.tickId | 0) + 1;   // nodes that count song ticks (the MOD channel) watch this
     for (const lane of this.lanes.values()) this.playRow(lane);
     Atomics.store(this.transport, 0, this.tick);   // the tick now sounding
     if (Math.abs(this.songPos - this.tick) > 1.5) this.songPos = this.tick;   // a loop or the end of the song: back on the grid

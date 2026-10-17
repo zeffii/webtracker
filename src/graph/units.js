@@ -24,6 +24,7 @@ const TYPE_UNIT = {
   follower: { gain: 'dB' },
   crusher: { rate: 'Hz', bits: 'bit' },
   dcblock: { freq: 'Hz' },
+  modchan: {},
   hat808: { tune: 'st', tone: 'Hz', cdec: 'ms', odec: 'ms' },
   sampler: { release: 'ms', nnaFade: 'ms', retrig: 'ticks', root: '' },
   ctrl: { time: 'subticks' },

@@ -9,7 +9,7 @@ import { makePluck } from '../src/audio/sample.js';
 import { Sequencer, PAGE_TICKS } from '../src/audio/sequencer.js';
 import { instruments, synthKinds } from '../src/instruments.js';
 import { buildColumns, buildPages, channelCount, flattenLane, prepareSong, uniqueStarts } from '../src/seq/lane.js';
-import { decodeNote, encodeCell, noteToken, EMPTY } from '../src/seq/cells.js';
+import { decodeNote, encodeCell, noteToken, EMPTY, KINDS } from '../src/seq/cells.js';
 import { insertPattern, placementAt, setCell } from '../src/seq/edit.js';
 import { createTrackerView, cellAt } from '../src/seq/view.js';
 import { createSequenceView } from '../src/seq/seqview.js';
@@ -3002,8 +3002,8 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     assert.equal(project.lanes[0].placements.length, 3);
     pops.setSongLength(project, 48);
     assert.deepEqual(project.lanes[0].placements.map(p => [p.start, p.length]), [[0, 16], [40, 8]], 'one dropped, one trimmed');
-    assert.throws(() => pops.setSongLength(project, 0), /16 to 4096/);
-    assert.throws(() => pops.setSongLength(project, 'x'), /16 to 4096/);
+    assert.throws(() => pops.setSongLength(project, 0), /16 to 65536/);
+    assert.throws(() => pops.setSongLength(project, 'x'), /16 to 65536/);
   }
 
   // patterns start on multiples of 16, wherever in the row the request lands
@@ -3806,10 +3806,11 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   assert.equal(after.length, before - empty.length, 'the empty columns are gone from the header');
   assert.ok(statusEl.textContent.includes('empty columns hidden'));
   // the cursor steps over them: walk to the end of the lane's visible cells and see only labels that were kept
-  const kept = new Set(lane.columns.filter((_, i) => !empty.includes(i)).map(c => c.label));
+  const first = c => c.long.split(' · ')[0];
+  const kept = new Set(lane.columns.filter((_, i) => !empty.includes(i)).map(first));
   for (let i = 0; i < 40; i++) {
     view.draw();
-    const label = statusEl.textContent.split(' · ').find(x => lane.columns.some(c => c.label === x));
+    const label = statusEl.textContent.split(' · ').find(x => lane.columns.some(c => first(c) === x));
     if (label && statusEl.textContent.startsWith(lane.id)) assert.ok(kept.has(label), `the cursor never rests on the hidden column ${label}`);
     press('ArrowRight');
   }
@@ -3820,7 +3821,7 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   press('h', { ctrlKey: true, shiftKey: true });
   press('Tab');
   const other = lanes[1], hdr = () => { view.draw(); return el.innerHTML.split('\n')[1].replace(/<[^>]+>/g, ''); };
-  assert.ok(other.columns.every(c => hdr().includes(c.label)), 'the next lane still shows every column');
+  assert.ok(other.columns.every(c => hdr().includes(c.short)), 'the next lane still shows every column');
   assert.ok(!statusEl.textContent.includes('empty columns hidden'));
 }
 
@@ -4367,6 +4368,123 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   const both = render(130, { 0: [on(1), on(0)] });
   assert.ok(both[20] < both[0] * 0.05, 'closed and open on one row leave only the closed hit');
   assert.ok(Math.abs(render(4, { 0: [on(0, 0.5)] })[0] / render(4, { 0: [on(0, 1)] })[0] - 0.5) < 0.05, 'velocity scales the hit');
+}
+
+// Column names: headers fit the cells, and the status bar describes the column under the caret.
+{
+  const { shortName } = await import('../src/seq/names.js');
+  const { describeColumn } = await import('../src/seq/describe.js');
+  assert.equal(shortName('Note', 3), 'nöt'); assert.equal(shortName('Smp', 2), 'id');
+  assert.deepEqual(['Cut', 'Res', 'Dec', 'Det', 'Mix', 'Off', 'Rt2'].map(l => shortName(l, 2)), ['ct', 'rs', 'dc', 'dt', 'mx', 'of', 'r2']);
+  assert.equal(shortName('Cl', 1), 'c'); assert.equal(shortName('Time', 4), 'Time'); assert.equal(shortName('Cmd', 6), 'Cmd');
+  const registry = new ParamRegistry();
+  const def = { ...structuredClone(instruments.lead) };
+  compile(def.graph, { instrument: 'lead', nodeTypes: NODE_TYPES, registry });
+  const cols = buildColumns('lead', def, registry);
+  assert.deepEqual(cols.map(c => c.short), ['nöt', 'vl', 'id', 'Off', 'Rtg', 'ct', 'rs', 'mx', 'Time', 'Cmd']);
+  assert.ok(cols.every(c => c.short.length <= KINDS[c.token].width), 'no header is wider than its cell');
+  const hat = buildColumns('hat', (() => { const d = synthKinds.hat808.make(); compile(d.graph, { instrument: 'hat', nodeTypes: NODE_TYPES, registry }); return d; })(), registry);
+  assert.deepEqual(hat.map(c => c.short), ['c', 'o', 'cd', 'od', 'tn', 'tu', 'Cmd'], 'one character for a 1hex column, and no two the same');
+  const lane = { columns: cols, rows: Array.from({ length: 6 }, () => cols.map(c => (c.token === 'note' ? '...' : '.'.repeat({ '2hex': 2, '4hex': 4, cmd: 6 }[c.token])))) };
+  const cut = cols.findIndex(c => c.label === 'Cut');
+  assert.match(describeColumn(lane, 3, cut), /^Cutoff · .*Hz.* to .*kHz \(log\) · default [0-9A-F]{2} = /, 'a column nobody wrote to shows its default');
+  lane.rows[1][cut] = 'FF';
+  assert.match(describeColumn(lane, 3, cut), /held FF = 18 kHz$/, 'a blank cell shows the last value above it');
+  assert.match(describeColumn(lane, 1, cut), /FF = 18 kHz$/, 'a filled cell shows its own');
+  assert.match(describeColumn(lane, 0, 1), /^Velocity · 00 to FF$/);
+  lane.rows[2][5] = '.';
+  const cmd = cols.length - 1;
+  lane.rows[2][cmd] = '010000';
+  assert.match(describeColumn(lane, 2, cmd), /^Command · 01: Cutoff.*· 0000 = /, 'a command names its target and value');
+}
+
+// MOD files: parse, play the arrangement out, build the project, and play it through the modchan machine.
+{
+  const { makeMod } = await import('./modfixture.mjs');
+  const { parseMod, playOut, modToProject } = await import('../src/project/mod.js');
+  const sq = n => Array.from({ length: n }, (_, i) => (i < n / 2 ? 100 : -100));
+  // parsing: cells, samples, loops, finetune
+  const mod = parseMod(makeMod({ title: 'tune', samples: [{ name: 'one', data: sq(64), volume: 40, finetune: 3, loopStart: 16, loopLength: 32 }], patterns: [[[[428, 1, 0xC, 0x20], null, [214, 0x1f, 0xE, 0x93]]]] }));
+  assert.equal(mod.title, 'tune'); assert.equal(mod.channels, 4);
+  assert.deepEqual(mod.patterns[0][0][0], { period: 428, sample: 1, effect: 0xC, param: 0x20 });
+  assert.deepEqual(mod.patterns[0][0][2], { period: 214, sample: 0x1f, effect: 0xE, param: 0x93 }, 'sample numbers above 15 use the high nibble');
+  assert.equal(mod.samples[0].length, 64); assert.equal(mod.samples[0].finetune, 3); assert.equal(mod.samples[0].loopStart, 16);
+  assert.equal(mod.samples[0].data[0], 100 / 128);
+  assert.throws(() => parseMod(new ArrayBuffer(2000)), /Not a/);
+  // playing out: speed, tempo, break, jump (the song stops where it comes round again), pattern loop, delay
+  const row = (...cells) => cells;
+  const play = patterns => playOut(parseMod(makeMod({ patterns, orders: patterns.map((_, i) => i) }))).steps;
+  let steps = play([[row([0, 0, 0xF, 3]), row([0, 0, 0xF, 0x8C])], []]);
+  assert.equal(steps[0].speed, 3, 'F03 sets the speed on its own row'); assert.equal(steps[1].tempo, 140, 'F8C is tempo 140');
+  assert.equal(steps.length, 128, 'two patterns of 64 rows');
+  steps = play([[row([0, 0, 0xD, 0x03]), [], [], []], [row(), row()]]);
+  assert.deepEqual(steps.slice(0, 3).map(s => [s.pattern, s.row]), [[0, 0], [1, 3], [1, 4]], 'D03 goes to row 3 of the next pattern');
+  const jumps = Array.from({ length: 64 }, () => []); jumps[1] = [[0, 0, 0xB, 0]];
+  steps = play([jumps]);
+  assert.equal(steps.length, 2, 'B00 back to the start ends the song at the second visit');
+  const loops = Array.from({ length: 64 }, () => []); loops[0] = [[0, 0, 0xE, 0x60]]; loops[2] = [[0, 0, 0xE, 0x62]];
+  steps = play([loops]);
+  assert.deepEqual(steps.slice(0, 8).map(s => s.row), [0, 1, 2, 0, 1, 2, 0, 1], 'E62 plays rows 0 to 2 twice more');
+  const delays = Array.from({ length: 64 }, () => []); delays[0] = [[0, 0, 0xE, 0xE2]];
+  steps = play([delays]);
+  assert.equal(steps[0].delay, 2, 'EE2 holds the row for two more');
+  // the project
+  const proj = modToProject(parseMod(makeMod({ samples: [{ name: 'lead', data: sq(64), volume: 32, finetune: -2, loopStart: 0, loopLength: 64 }], patterns: [[row([428, 1, 0xF, 4], [339, 1, 0xC, 0x20]), row(), row([0, 0, 0xF, 0x8C])]] })));
+  assert.deepEqual(proj.song.lanes.map(l => l.id), ['master', 'ch1', 'ch2', 'ch3', 'ch4'], 'the master lane, then a lane for each channel');
+  assert.equal(proj.song.ticksPerBeat, 24); assert.equal(proj.song.bpm, 125);
+  assert.equal(proj.song.length, 64 * 4, 'F04 on the first row sets the speed for the whole pattern: 64 rows of 4 ticks');
+  const lane1 = proj.song.lanes[1], pat = Object.values(lane1.patterns)[0].text.split('\n');
+  assert.equal(pat[0], 'C-2 00 01' + '0F04'.padStart(4, '0'), 'row 0: the note, the sample number minus one, the effect word');
+  assert.equal(pat[1], '... .. ......', 'the other ticks of the row are blank');
+  assert.equal(lane1.placements[0].length, pat.length, 'a placement is as long as its pattern');
+  const sample = Object.values(proj.samples).find(x => x.loopOn);
+  assert.equal(sample.rate, Math.round(8363 * Math.pow(2, -2 / 96)), 'finetune is part of the rate'); assert.equal(sample.volume, 0.5);
+  assert.ok(proj.samples['mod-empty'], 'an empty slot has a silent sample, so the numbers line up');
+  assert.equal(proj.instruments.ch1.samples.ch.length, 31);
+  assert.equal(proj.instruments.ch1.noVel, true);
+  assert.ok(Object.values(proj.song.lanes[0].patterns)[0].text.split('\n').some(l => l.startsWith('008C')), 'a tempo change lands in the master lane');
+  // sound: run it through the sequencer
+  const rig = buffer => {
+    const data = modToProject(parseMod(buffer));
+    const registry = new ParamRegistry();
+    const rt = new GraphRuntime({ sampleRate: sr, params: registry.values });
+    for (const [id, d] of Object.entries(data.instruments)) rt.load(compile(d.graph, { instrument: id, nodeTypes: NODE_TYPES, registry }));
+    for (const [id, d] of Object.entries(data.instruments)) for (const [node, v] of Object.entries(d.samples ?? {})) pops.slotsOf(v).forEach((sid, slot) => rt.message(id, node, pops.sampleMessage(data.samples[sid], slot)));
+    const slot = k => registry.slots.get(`master.m.${k}`);
+    data.song.master = { bpm: slot('bpm'), swing: slot('swing'), tpb: slot('tpb'), volume: slot('volume') };
+    const seq = new Sequencer({ sampleRate: sr, runtime: rt, params: registry.values, transport: new Int32Array(new SharedArrayBuffer(8)) });
+    seq.setSong(data.song);
+    for (const lane of prepareSong(data.song, data.instruments, registry)) seq.setLane(lane);
+    seq.play();
+    return { registry, seq, render(seconds) {
+      const total = Math.floor(sr * seconds / 128) * 128, L = new Float32Array(total), l = new Float32Array(128), r = new Float32Array(128);
+      for (let at = 0; at < total; at += 128) { seq.process(l, r, 128); L.set(l, at); }
+      return L;
+    } };
+  };
+  const wave = sq(16);
+  const run = (rows, seconds = 0.4) => rig(makeMod({ samples: [{ data: wave, loopStart: 0, loopLength: 16 }], patterns: [rows] })).render(seconds);
+  const rms = (x, a, b) => { let t = 0; for (let i = Math.floor(a * sr); i < Math.floor(b * sr); i++) t += x[i] ** 2; return Math.sqrt(t / ((b - a) * sr)); };
+  const hz = (x, a, b) => { const t = []; for (let i = Math.floor(a * sr) + 1; i < Math.floor(b * sr); i++) if (x[i] >= 0 && x[i - 1] < 0) t.push(i - x[i] / (x[i] - x[i - 1])); return t.length > 1 ? sr * (t.length - 1) / (t[t.length - 1] - t[0]) : 0; };
+  const plain = rms(run([[[428, 1, 0, 0]]]), 0.02, 0.1);
+  assert.ok(plain > 0.05, 'a note sounds');
+  assert.ok(Math.abs(hz(run([[[428, 1, 0, 0]]]), 0.02, 0.1) - 8363 / 16) < 8, 'C-2 plays the sample at its own rate: 8363 Hz');
+  assert.ok(Math.abs(rms(run([[[428, 1, 0xC, 0x20]]]), 0.02, 0.1) / plain - 0.5) < 0.03, 'C20 is half volume');
+  assert.ok(rms(run([[[428, 1, 0xE, 0xC3]]]), 0.1, 0.2) < 1e-4, 'EC3 cuts the note after 3 ticks');
+  const up = run([[[428, 1, 1, 0x10]]]);
+  assert.ok(hz(up, 0.09, 0.12) > hz(up, 0.01, 0.04) * 1.05, 'a slide up raises the pitch');
+  const arp = run([[[428, 1, 0, 0x47]]]);
+  assert.ok(Math.abs(hz(arp, 0.021, 0.039) / hz(arp, 0.001, 0.019) - Math.pow(2, 4 / 12)) < 0.06, 'arpeggio: the second tick is 4 semitones up');
+  const porta = run([[[428, 1, 0, 0]], [[339, 0, 3, 0x20]]], 0.6);
+  assert.ok(Math.abs(hz(porta, 0.45, 0.55) / hz(porta, 0.02, 0.1) - 428 / 339) < 0.03, '3 slides to the note without playing it again');
+  assert.ok(rms(run([[[428, 1, 0, 0]], [[0, 0, 0xC, 0x10]]], 0.3), 0.15, 0.25) < plain * 0.35, 'C10 on a later row lowers the volume');
+  const tempo = rig(makeMod({ samples: [{ data: wave }], patterns: [[[[428, 1, 0xF, 0x8C]]]] }));
+  tempo.render(0.1);
+  assert.equal(tempo.registry.get('master.m.bpm'), 140, 'F8C sets the tempo through the master lane');
+  // a long song: more than 4096 ticks is fine
+  const long = modToProject(parseMod(makeMod({ patterns: [[]], orders: Array.from({ length: 20 }, () => 0) })));
+  assert.ok(long.song.length > 4096, 'a MOD of twenty patterns is 7680 ticks');
+  pops.setSongLength({ song: { length: 16 }, lanes: [] }, 20000);
 }
 
 // MIDI import: a hand-made two-track file, a chord and a melody.

@@ -185,6 +185,21 @@ export const synthKinds = {
       ],
     }),
   },
+  modchan: {
+    label: 'MOD channel (ProTracker)',
+    sampleNode: 'ch',   // gets the project's samples as its slots, in order: MOD sample 1 is the first
+    make: () => ({
+      graph: { nodes: [{ id: 'ch', type: 'modchan' }, { id: 'out', type: 'out', params: { gain: 0.5 } }], connections: [['ch.out', 'out.in']] },
+      noteColumns: 1,
+      noVel: true,   // volume is the sample's own, then the C and A effects
+      exposed: [{ node: 'ch', param: 'smp', label: 'Smp' }],
+      commands: [   // 01 writes the effect word of a MOD cell: 010C40 is effect C40
+        { id: 0x01, node: 'ch', param: 'fx' },
+        { id: 0x02, node: 'ch', param: 'level' },
+        { id: 0x03, node: 'ch', param: 'pan' },
+      ],
+    }),
+  },
   fm: {
     label: 'FM synth',
     make: () => ({

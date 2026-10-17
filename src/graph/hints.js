@@ -394,6 +394,13 @@ const HINTS = {
     pedal: 'The sustain pedal: 0.5 or more is down. Released notes keep ringing while it is down, and are damped when it comes up. Expose it as a pattern column to play it.',
     release: 'How fast the damper stills a string after the key is let go (when the pedal is up), in ms.',
   },
+  modchan: {
+    smp: 'The sample slot a note plays: 00 is MOD sample 1. A Smp cell without a note sets the volume to the sample\'s own volume.',
+    fx: 'The effect word of the row, as in a MOD cell: effect nibble then parameter (0C40 is C40, set volume 40). Written by Cmd 01.',
+    level: 'Level of the channel.',
+    pan: 'Stereo position: -1 left, 1 right. The Amiga is hard panned, left right right left.',
+    interp: '1: smooth interpolation between samples. 0: nearest sample, the rough sound of the real hardware.',
+  },
   hat808: {
     tune: 'Moves the whole metal bank up or down, in semitones.',
     tone: 'High-pass frequency in Hz. Higher is thinner and more sizzly.',

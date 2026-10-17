@@ -154,6 +154,7 @@ export function addSynthInstrument(project, name, kind) {
   project.instruments[id] = structuredClone(synthKinds[kind].make());
   const first = Object.keys(project.samples)[0];
   if (synthKinds[kind].needsSample && first) project.instruments[id].samples = { synth: first };
+  if (synthKinds[kind].sampleNode && first) project.instruments[id].samples = { [synthKinds[kind].sampleNode]: Object.keys(project.samples) };
   return id;
 }
 
@@ -188,12 +189,13 @@ const newName = (name, taken, what, current) => {
   return next;
 };
 
-// Sets the song's length in ticks, a whole number of 16-tick rows from 16 to 4096. Shortening
+// Sets the song's length in ticks, a whole number of 16-tick rows from 16 to 65536. Shortening
 // drops the placements that start past the end and trims one that runs over it; the patterns
 // themselves stay in each lane's list. Returns the new length.
+export const MAX_SONG = 65536;
 export function setSongLength(project, ticks) {
   const length = Math.round(Number(ticks) / 16) * 16;
-  if (!Number.isFinite(length) || length < 16 || length > 4096) throw new Error('A song is 16 to 4096 ticks long.');
+  if (!Number.isFinite(length) || length < 16 || length > MAX_SONG) throw new Error(`A song is 16 to ${MAX_SONG} ticks long.`);
   for (const lane of project.lanes) {
     lane.mutes = (lane.mutes ?? []).filter(t => t < length);
     lane.placements = lane.placements

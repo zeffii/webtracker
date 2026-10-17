@@ -6,6 +6,7 @@ import { createInsertMenu } from './graph/menu.js';
 import { createSynthwaveProject } from './project/synthwave.js';
 import * as ops from './project/ops.js';
 import { importMidi, parseMidi } from './project/midi.js';
+import { modToProject, parseMod } from './project/mod.js';
 import * as presets from './project/presets.js';
 import { LIBRARY_EXT, addToLibrary, importFromLibrary, newLibrary, parseLibrary, serializeLibrary } from './project/library.js';
 import { addLane, addSample, addSamplerInstrument, addSynthInstrument, channelsOf, sampleMessage, slotsOf, syncSamplerStereo } from './project/ops.js';
@@ -628,6 +629,13 @@ $('file').addEventListener('change', async e => {
       if (!done.lanes) throw new Error('That MIDI file has no notes.');
       openProject(data, { stay: true, lane: data.song.lanes[data.song.lanes.length - done.lanes].id });
       $('status').textContent = `Added ${done.lanes} lane${done.lanes > 1 ? 's' : ''} from ${file.name} (${data.song.bpm} bpm, ${done.ticksPerBeat} ticks per beat${done.cut ? ', the end was cut off at the longest song' : ''}).`;
+      return;
+    }
+    if (/\.mod$/i.test(file.name)) {   // a MOD file is a whole song: it replaces the project, one lane per channel
+      if (!confirm('Replace the current project with this MOD file? Save first if you want to keep it.')) return;
+      const mod = parseMod(await file.arrayBuffer()), data = modToProject(mod, file.name.replace(/\.mod$/i, ''));
+      openProject(data);
+      $('status').textContent = `Loaded ${file.name}: ${mod.channels} channels, ${data.song.length} ticks at ${data.song.bpm} bpm.`;
       return;
     }
     openProject(parseProject(await file.text()));
