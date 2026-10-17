@@ -51,7 +51,7 @@ export default {
         inner[4] = 0.8; inner[5] = 0.4; inner[6] = g(WIDTH); inner[7] = 1;
         for (let i = 0; i < n; i++) { mixL[i] = inL[i] + fb[i]; mixR[i] = inR[i] + fb[i]; }
         core.process([[mixL, mixR]], [[wetL, wetR]], n, inner, innerSlots);
-        // pitch shift the wet mono sound for the next block: two read points sliding through the buffer, crossfaded
+        // pitch shift the wet mono sound for the next block: four read points sliding through the buffer, crossfaded
         const ratio = Math.pow(2, g(PITCH) / 12), amount = g(SHIMMER);
         const dph = (1 - ratio) / W;
         const c = 1 - Math.exp(-2 * Math.PI * (500 + 14000 * g(TONE) ** 2) / sampleRate);
@@ -59,8 +59,9 @@ export default {
           buf[w] = (wetL[i] + wetR[i]) * 0.5;
           if (++w === buf.length) w = 0;
           ph += dph; if (ph >= 1) ph -= 1; else if (ph < 0) ph += 1;
-          const ph2 = ph + 0.5 >= 1 ? ph - 0.5 : ph + 0.5;
-          const s = read(1 + ph * W) * (0.5 - 0.5 * Math.cos(2 * Math.PI * ph)) + read(1 + ph2 * W) * (0.5 - 0.5 * Math.cos(2 * Math.PI * ph2));
+          let s = 0;   // four read points a quarter of a window apart, so no one fade ever leaves a hole
+          for (let k = 0; k < 4; k++) { const q = ph + 0.25 * k - (ph + 0.25 * k >= 1 ? 1 : 0); s += read(1 + q * W) * (0.5 - 0.5 * Math.cos(2 * Math.PI * q)); }
+          s *= 0.5;
           lp += c * (s - lp);
           const z = lp * 1.5, z2 = z * z;
           fb[i] = (z > 3 ? 1 : z < -3 ? -1 : z * (27 + z2) / (27 + 9 * z2)) * amount * 0.9;   // soft clip: the loop can never run away
