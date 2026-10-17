@@ -1,4 +1,4 @@
-import { EMPTY, CUT, OFF, decodeNote, decodeHex2, decodeHex4 } from '../seq/cells.js';
+import { EMPTY, CUT, OFF, decodeNote, decodeHex1, decodeHex2, decodeHex4 } from '../seq/cells.js';
 import { loopRange } from '../seq/loop.js';
 
 // The sequence lives in fixed-size pages of ticks. Each lane has one buffer per
@@ -82,6 +82,8 @@ export class Sequencer {
       prev: new Int16Array(cols.reduce((n, c) => (c.kind === 'note' ? n + 1 : n), 0)).fill(-1),   // the note each note column last started
       notes: new Float32Array(cols.reduce((n, c) => (c.kind === 'note' ? n + 1 : n), 0)),
       vels: new Float32Array(cols.reduce((n, c) => (c.kind === 'note' ? n + 1 : n), 0)),
+      trigCols: cols.filter(c => c.kind === 'trig'),
+      trigs: new Float32Array(cols.reduce((n, c) => (c.kind === 'trig' ? n + 1 : n), 0)),
       on: { type: 'noteOn', note: 0, vel: 1, from: -1 },   // from: the note this column was playing, for a slide
       off: { type: 'noteOff', note: 0, implied: false },
       cut: { type: 'noteCut' },
@@ -152,6 +154,7 @@ export class Sequencer {
     const base = (this.tick % PAGE_TICKS) * lane.channels;
     lane.notes.fill(EMPTY);
     lane.vels.fill(1);
+    lane.trigs.fill(EMPTY);
     for (let c = 0; c < lane.columns.length; c++) {
       const col = lane.columns[c];
       const v = page[base + col.ch];
@@ -173,6 +176,8 @@ export class Sequencer {
           const preset = t.presets.get(decodeHex4(value));
           if (preset) this.recall(lane, preset);
         }
+      } else if (col.kind === 'trig') {
+        lane.trigs[col.tc] = v;
       } else if (col.kind === 'vel') {
         lane.vels[col.nc] = decodeHex2(v) / 255;
       } else {
@@ -186,6 +191,14 @@ export class Sequencer {
       if (muted) { this.runtime.note(lane.instrument, lane.all); lane.prev.fill(-1); }
     }
     if (muted) return;
+    for (let k = 0; k < lane.trigs.length; k++) {   // a trigger cell is a hit of its own: velocity is the digit, 0 is nothing
+      const vel = decodeHex1(lane.trigs[k]) / 15;
+      if (lane.trigs[k] === EMPTY || vel <= 0) continue;
+      lane.on.from = -1;
+      lane.on.note = lane.trigCols[k].note;
+      lane.on.vel = vel;
+      this.runtime.note(lane.instrument, lane.on);
+    }
     for (let k = 0; k < lane.noteCols; k++) {
       const note = lane.notes[k];
       if (note === EMPTY) continue;

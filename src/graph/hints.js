@@ -394,6 +394,17 @@ const HINTS = {
     pedal: 'The sustain pedal: 0.5 or more is down. Released notes keep ringing while it is down, and are damped when it comes up. Expose it as a pattern column to play it.',
     release: 'How fast the damper stills a string after the key is let go (when the pedal is up), in ms.',
   },
+  hat808: {
+    tune: 'Moves the whole metal bank up or down, in semitones.',
+    tone: 'High-pass frequency in Hz. Higher is thinner and more sizzly.',
+    snap: 'A short bright click at the start of each hit, like the stick.',
+    level: 'Overall level of the hat.',
+    cdec: 'How long the closed hat takes to fall by 40 dB, in ms.',
+    odec: 'How long the open hat takes to fall by 40 dB, in ms.',
+    clvl: 'Level of the closed hat against the open one.',
+    olvl: 'Level of the open hat against the closed one.',
+    choke: '1: a closed hit cuts the open hat with a quick 8 ms fade. 0: the open hat rings on.',
+  },
   string: {
     decay: 'Time in seconds for the string to fall by 60 dB. It holds for every pitch.',
     damp: 'How fast the highs die away compared to the lows, as on a real string. Higher is duller sooner.',

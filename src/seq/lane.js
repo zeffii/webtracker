@@ -22,6 +22,9 @@ export function buildColumns(instrument, def, registry) {
     columns.push({ kind: 'note', token: 'note', label: pairs > 1 ? `N${k + 1}` : 'Note', key: k ? `note:${k}` : 'note', nc: k });
     columns.push({ kind: 'vel', token: '2hex', label: pairs > 1 ? `V${k + 1}` : 'Vel', key: k ? `vel:${k}` : 'vel', nc: k });
   }
+  // Trigger columns (the hi-hat's Cl and Op): one hex digit each, 1 to F the loudness of a hit. Every filled cell is a
+  // note event on its own, so F F plays twice (a parameter column holding the same value would not).
+  (def.triggers ?? []).forEach((t, i) => columns.push({ kind: 'trig', token: '1hex', label: t.label, key: `trig:${i}`, note: t.note ?? i, tc: i }));
   for (const e of def.exposed) {
     // bits: 16 is a 4hex column, 4 is a 1hex column (a toggle or an enum), otherwise 2hex.
     const token = e.bits === 16 ? '4hex' : e.bits === 4 ? '1hex' : '2hex';

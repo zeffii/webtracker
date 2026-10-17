@@ -200,6 +200,12 @@ export const GLYPHS = {
     for (const i of [1, 2, 4]) line(ctx, [[x(i / 5), y(1)], [x(i / 5), y(0.45)]]);   // the black keys
     ctx.lineWidth = lw;
   },
+  hat808: (ctx, cx, cy, w, h) => {   // two bursts of noise: a short one and a longer, ringing one
+    const x = f => cx - w / 2 + f * w, y = f => cy + h / 2 - f * h;
+    const burst = (from, len, amp) => { const pts = []; for (let i = 0; i <= 14; i++) { const t = i / 14; pts.push([x(from + t * len), y(0.5 + (i % 2 ? 1 : -1) * amp * Math.exp(-t * (len > 0.3 ? 3 : 6)) * 0.5)]); } return pts; };
+    line(ctx, burst(0.02, 0.2, 0.7));
+    line(ctx, burst(0.32, 0.64, 0.9));
+  },
   string: (ctx, cx, cy, w, h) => curve(ctx, cx, cy, w, h, t => Math.sin(t * Math.PI * 7) * Math.pow(1 - t, 1.3) * 0.9, 56),   // a ringing, fading string
   dvii: (ctx, cx, cy, w, h) => {   // a stack of six small boxes joined by lines: operators in an algorithm
     const bw = w * 0.22, bh = h * 0.2, xs = [-0.3, 0.3];

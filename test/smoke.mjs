@@ -4315,6 +4315,60 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   assert.equal(registry.get('master.m.bpm'), 120, 'playing from the top starts at the header tempo again');
 }
 
+// The 808 hi-hat: Cl and Op trigger columns, the closed hat chokes the open one, and a repeated hit fires twice.
+{
+  const def = synthKinds.hat808.make();
+  const registry = new ParamRegistry();
+  compile(def.graph, { instrument: 'hat', nodeTypes: NODE_TYPES, registry });
+  const cols = buildColumns('hat', def, registry);
+  assert.deepEqual(cols.slice(0, 2).map(c => [c.kind, c.token, c.label]), [['trig', '1hex', 'Cl'], ['trig', '1hex', 'Op']], 'two trigger columns come first, and no note columns');
+  assert.ok(!cols.some(c => c.kind === 'note'));
+  const rows = (text, length) => oneLane('hat', 'hat', text, length);
+  // the sequencer sends one note event per filled cell, with the digit as velocity
+  const song = { bpm: 120, ticksPerBeat: 4, length: 4, swing: 0.5, lanes: [rows(['F .', 'F .', '. 8', '0 .'].map(r => `${r}`).join('\n'), 4)] };
+  const log = [];
+  const stub = { process: (l, r, n) => { l.fill(0, 0, n); r.fill(0, 0, n); }, note: (instrument, msg) => { if (msg.type === 'noteOn') log.push([msg.note, Math.round(msg.vel * 15)]); } };
+  const seq = new Sequencer({ sampleRate: sr, runtime: stub, params: registry.values, transport: new Int32Array(new SharedArrayBuffer(8)) });
+  seq.setSong(song);
+  for (const lane of prepareSong(song, { hat: def }, registry)) seq.setLane(lane);
+  seq.play();
+  const o = [new Float32Array(512), new Float32Array(512)];
+  for (let i = 0; i < 30; i++) seq.process(o[0], o[1], 512);
+  assert.deepEqual(log.slice(0, 3), [[0, 15], [0, 15], [1, 8]], 'F F in Cl fires twice, 8 in Op is an open hit, and 0 is nothing');
+  // the sound: closed dies fast, open rings, a closed hit cuts the open tail in about 8 ms
+  const type = NODE_TYPES.hat808;
+  const slots = type.params.map((_, i) => i);
+  const render = (blocks, hits = {}, set = {}) => {
+    const node = type.create({ sampleRate: sr });
+    const values = type.params.map(p => set[p.name] ?? p.def);
+    const out = [];
+    for (let b = 0; b < blocks; b++) {
+      for (const msg of hits[b] ?? []) node.note(msg);
+      const L = new Float32Array(128), R = new Float32Array(128);
+      node.process([], [[L, R]], 128, values, slots);
+      assert.ok(L.every(Number.isFinite), 'the hat stays finite');
+      out.push(Math.sqrt(L.reduce((a, x) => a + x * x, 0) / 128));
+    }
+    return out;
+  };
+  const on = (note, vel = 1) => ({ type: 'noteOn', note, vel });
+  const closedOnly = render(200, { 0: [on(0)] });
+  assert.ok(closedOnly[0] > 0.01, 'a closed hit sounds');
+  assert.ok(closedOnly[100] < closedOnly[0] * 0.02, 'and is gone by about 270 ms');
+  const openOnly = render(200, { 0: [on(1)] });
+  assert.ok(openOnly[100] > openOnly[0] * 0.02, 'an open hit still rings at 270 ms');
+  // the open hat is choked by a closed hit 100 blocks in, and not when choke is off
+  const choked = render(160, { 0: [on(1)], 100: [on(0)] });
+  const free = render(160, { 0: [on(1)], 100: [on(0)] }, { choke: 0 });
+  assert.ok(choked[150] < choked[99] * 0.05, 'a closed hit cuts the open tail');
+  assert.ok(free[150] > free[99] * 0.1, 'with choke off the open hat rings on');
+  assert.ok(choked[100] > choked[150], 'the cut is a short fade (8 ms is 3 blocks), not an instant click');
+  // both on one row: the closed hit wins, the open hat is gone a few blocks later
+  const both = render(130, { 0: [on(1), on(0)] });
+  assert.ok(both[20] < both[0] * 0.05, 'closed and open on one row leave only the closed hit');
+  assert.ok(Math.abs(render(4, { 0: [on(0, 0.5)] })[0] / render(4, { 0: [on(0, 1)] })[0] - 0.5) < 0.05, 'velocity scales the hit');
+}
+
 // MIDI import: a hand-made two-track file, a chord and a melody.
 {
   const { parseMidi, importMidi } = await import('../src/project/midi.js');

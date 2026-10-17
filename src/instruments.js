@@ -160,6 +160,31 @@ export const synthKinds = {
       ],
     }),
   },
+  hat808: {
+    label: '808 hi-hat (closed + open)',
+    make: () => ({
+      graph: { nodes: [{ id: 'hat', type: 'hat808' }, { id: 'out', type: 'out', params: { gain: 0.4 } }], connections: [['hat.out', 'out.in']] },
+      noteColumns: 0,   // no notes: the Cl and Op columns trigger the closed and open hat
+      triggers: [{ label: 'Cl', note: 0 }, { label: 'Op', note: 1 }],
+      exposed: [
+        { node: 'hat', param: 'cdec', label: 'CDc', scale: 'log' },
+        { node: 'hat', param: 'odec', label: 'ODc', scale: 'log' },
+        { node: 'hat', param: 'tone', label: 'Ton' },
+        { node: 'hat', param: 'tune', label: 'Tun' },
+      ],
+      commands: [
+        { id: 0x01, node: 'hat', param: 'tune' },
+        { id: 0x02, node: 'hat', param: 'tone' },
+        { id: 0x03, node: 'hat', param: 'snap' },
+        { id: 0x04, node: 'hat', param: 'level' },
+        { id: 0x05, node: 'hat', param: 'cdec', scale: 'log' },
+        { id: 0x06, node: 'hat', param: 'odec', scale: 'log' },
+        { id: 0x07, node: 'hat', param: 'clvl' },
+        { id: 0x08, node: 'hat', param: 'olvl' },
+        { id: 0x09, node: 'hat', param: 'choke' },
+      ],
+    }),
+  },
   fm: {
     label: 'FM synth',
     make: () => ({

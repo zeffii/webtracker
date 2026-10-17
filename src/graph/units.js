@@ -24,6 +24,7 @@ const TYPE_UNIT = {
   follower: { gain: 'dB' },
   crusher: { rate: 'Hz', bits: 'bit' },
   dcblock: { freq: 'Hz' },
+  hat808: { tune: 'st', tone: 'Hz', cdec: 'ms', odec: 'ms' },
   sampler: { release: 'ms', nnaFade: 'ms', retrig: 'ticks', root: '' },
   ctrl: { time: 'subticks' },
   granular: { size: 'ms', pitchRand: 'ct', spread: '%', attack: 'ms', decay: 'ms', release: 'ms' },
