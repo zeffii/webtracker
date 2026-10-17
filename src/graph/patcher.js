@@ -137,7 +137,7 @@ export function createPatcher({ canvas, panel, paramPanel = null, exposedDock = 
   // The scopes: an eye on a node shows what it puts out (a scope beside it: wave, spectrum or xy, 200 or 400 pixels).
   // The choice lives on the node as node.scope = { mode, size }; the samples arrive from the audio side.
   const scopeData = new Map();   // node id -> { l, r, sr }
-  const eyeRect = node => { const { w, h } = nodeBox(nodeTypes[node.type], node); return { x: node.x + w - 20, y: node.y + h + 3, w: 20, h: 14 }; };   // under the node, clear of its name
+  const eyeRect = node => { const { w, h } = nodeBox(nodeTypes[node.type], node); return { x: node.x + w / 2 - 10, y: node.y + h + 3, w: 20, h: 14 }; };   // under the node, clear of its name
   const scopeRectOf = node => { const { w, h } = nodeBox(nodeTypes[node.type], node); return scopeBox(node, w, h, node.scope.size, node.scope.mode); };
   const inside = (r, x, y, w = r.w, h = r.h) => x >= r.x && x <= r.x + w && y >= r.y && y <= r.y + h;
   function setScope(node, on) {

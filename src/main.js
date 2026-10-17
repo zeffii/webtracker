@@ -719,6 +719,11 @@ $('start').addEventListener('click', async () => {
       };
       engine.onLoad = d => { avg = avg ? avg * 0.7 + d.avg * 0.3 : d.avg; peak = Math.max(peak, d.peak); if (d.late) lateAt = performance.now(); late += d.late; show(); };
       el.addEventListener('click', () => { peak = 0; late = 0; show(); });
+      const copy = $('loadcopy');
+      copy.addEventListener('click', async () => {
+        try { await navigator.clipboard.writeText(el.textContent); copy.textContent = 'copied'; } catch { copy.textContent = 'failed'; }
+        setTimeout(() => { copy.textContent = 'copy'; }, 1200);
+      });
     }
     engine.onScope = d => patcher.feedScope(d.instrument, d.node, d.l, d.r, engine.ctx.sampleRate);
     engine.onFault = id => projStatus(`Instrument "${id}" produced invalid audio and was reset. If you can repeat it, note what you changed.`);

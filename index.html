@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="themes.css">
-  <title>webtracker m149</title>
+  <title>webtracker m152</title>
   <style>
     :root { color-scheme: light dark; font-family: system-ui, sans-serif; }   /* colours: see themes.css */
     body { background: var(--bg); color: var(--fg); }
@@ -38,7 +38,8 @@
     #song-info { font-variant-numeric: tabular-nums; }
     #status { opacity: .7; }
     #tabs { display: flex; gap: .25rem; }
-    #loadmeter { margin-left: auto; cursor: pointer; white-space: pre; font-variant-numeric: tabular-nums; padding: 0 .5rem; }
+    #loadcopy { margin-left: auto; font: inherit; padding: 0 .4rem; line-height: 1.2; }
+    #loadmeter { cursor: pointer; white-space: pre; font-variant-numeric: tabular-nums; padding: 0 .5rem; }
     #loadmeter.warn { background: hsl(40 90% 55%); color: #000; }
     #loadmeter.bad { background: hsl(5 80% 52%); color: #fff; }
     #tabs button { font: inherit; padding: .1rem .6rem; border: 1px solid; background: transparent; color: inherit; cursor: pointer; }
@@ -523,7 +524,7 @@
       </aside>
   </section>
 
-  <div id="footer" class="statusbar"><span id="song-info"></span><span id="status">Press Start to create the audio engine.</span><span id="loadmeter" title="Audio load: average, worst block (as a share of the time each block is allowed), blocks that ran late, output latency. Click to reset.">cpu --</span></div>
+  <div id="footer" class="statusbar"><span id="song-info"></span><span id="status">Press Start to create the audio engine.</span><button id="loadcopy" type="button" title="Copy the load line to the clipboard">copy</button><span id="loadmeter" title="Audio load: average, worst block (as a share of the time each block is allowed), blocks that ran late, output latency. Click to reset.">cpu --</span></div>
 
   <script type="module" src="src/main.js"></script>
 </body>
