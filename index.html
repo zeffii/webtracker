@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="themes.css">
-  <title>webtracker m176</title>
+  <title>webtracker m177</title>
   <style>
     :root { color-scheme: light dark; font-family: system-ui, sans-serif; }   /* colours: see themes.css */
     body { background: var(--bg); color: var(--fg); }
@@ -131,6 +131,8 @@
     #seq .mk.mu { background: hsl(150 60% 45% / .4); }
     #seq .muted { opacity: .45; }
     #seq .silenced { opacity: .2; }
+    #view, #seq { position: relative; }
+    .playline { position: absolute; left: 0; height: 0; border-top: 1px solid rgba(255, 70, 70, .8); box-shadow: 0 0 4px rgba(255, 70, 70, .5); pointer-events: none; z-index: 3; }
     #view { overflow-x: auto; --ink: 76%; color: color-mix(in srgb, var(--fg) var(--ink), var(--panel)); }   /* the plain rows: a little softer than full black */
     #view .g { position: sticky; left: 0; display: inline-block; background: var(--panel); }   /* the tick numbers stay put when scrolled sideways */
     #view .cell { background: color-mix(in srgb, var(--hi) 25%, transparent); }
@@ -196,6 +198,9 @@
     .manage { margin: .3rem 0; display: flex; flex-wrap: wrap; gap: 2px; }
     .manage input { box-sizing: border-box; font: inherit; }
     .manage.row input { flex: 1 1 10rem; }
+    .manage.row input#ins-n { flex: 0 0 5em; }
+    .manage.row label { display: inline-flex; align-items: center; gap: .3rem; font-size: 12px; margin-left: .5rem; }
+    .manage.row label input { flex: none; }
     .manage button { font: inherit; font-size: 12px; padding: 0 .35rem; }
     #inst-head { display: flex; flex-wrap: wrap; gap: .75rem; align-items: center; margin-bottom: .5rem; }
     #inst-head input[type=number] { width: 3.5em; }

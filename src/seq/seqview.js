@@ -1,4 +1,6 @@
 import { esc } from './html.js';
+import * as config from '../ui/config.js';
+import { createPlayline } from '../ui/playline.js';
 import { placementAt, puidByIndex, startsAt } from './edit.js';
 import { setLoopPoint } from './loop.js';
 
@@ -298,6 +300,9 @@ export function createSequenceView({ el, statusEl, listEl, transport, onToggle, 
     return { cls: `p${pat.index % 6}`, style: '' };
   };
 
+  const playline = createPlayline(el);
+  let lineMode = config.get('playhead') === 'line';
+  config.onChange(k => { if (k === 'playhead') { lineMode = config.get('playhead') === 'line'; draw(); } });
   let top = 0;                  // the first row on screen
   // The wheel scrolls the rows without moving the cursor; the view follows the cursor again as soon as it moves.
   let wheelAcc = 0, scrolledFor = null;
@@ -376,7 +381,7 @@ export function createSequenceView({ el, statusEl, listEl, transport, onToggle, 
         return `<span class="${classes}">${layers}${isCur ? '<i class="cb"></i>' : ''}<span class="t">${inner}</span></span>`;
       });
       const lp = song.loop && t + CELL > song.loop.start && t < song.loop.end ? ` lp${t <= song.loop.start ? ' ls' : ''}${t + CELL >= song.loop.end ? ' le' : ''}` : '';
-      lines.push(row(`${lp ? `<span class="${lp.trim()}">` : ''}${playing && playTick >= t && playTick < t + CELL ? '>' : ' '}${num(t)}${lp ? '</span>' : ''}${cells.join('')}`, r === nowRow ? ' now' : ''));
+      lines.push(row(`${lp ? `<span class="${lp.trim()}">` : ''}${playing && playTick >= t && playTick < t + CELL && !lineMode ? '>' : ' '}${num(t)}${lp ? '</span>' : ''}${cells.join('')}`, r === nowRow ? ' now' : ''));
     }
 
     // the rect is always rowCount rows tall, so the drag bar works even when the song has fewer rows
@@ -385,6 +390,10 @@ export function createSequenceView({ el, statusEl, listEl, transport, onToggle, 
     const log = editor.log().slice(0, 5).map(esc).join(' < ');
     lines.push(row(`undo: ${log || 'nothing yet'}${editor.hasWaypoint() ? '   [waypoint set]' : ''}`));
     el.innerHTML = lines.join('');
+    const head = el.firstElementChild;
+    if (lineMode && playing && head && playTick / CELL >= top && playTick / CELL < Math.min(rows, top + rowCount)) {
+      playline.show(head.offsetTop + head.offsetHeight * (1 + playTick / CELL - top));
+    } else playline.show(null);
 
     const owner = here();
     const ownerPat = owner ? lane().patterns[owner.puid] : null;

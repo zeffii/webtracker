@@ -134,3 +134,5 @@ falls back to the JavaScript nodes.
 - **Insert silence** (Arrangement tab, under the grid): type a tick count or press 16/32/48/64/128/256/512 to push everything from the cursor row down by that much; the song grows, the loop follows, a pattern across the point is left whole by default, while only patterns starting at or after the cursor row move (tick "cut patterns across the cursor" to cut it in two there instead).
 
 - **Config** (F11): a panel of settings (theme, shortcut panels, pattern font size, follow, note preview, solo-edit style, insert-silence defaults), kept in this browser; Export… / Import… move them as a JSON file, Reset puts the defaults back. Settings live in `src/ui/config.js` (one schema list: add a row there and it appears in the panel).
+
+- **Playhead** (Config tab): the playing row can be shown as a ">" in the tick column (default) or as a thin red line across the grid; in the arrangement the line moves smoothly through each 16-tick row.

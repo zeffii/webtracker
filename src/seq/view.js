@@ -1,5 +1,6 @@
 import { setLoopPoint } from './loop.js';
 import * as config from '../ui/config.js';
+import { createPlayline } from '../ui/playline.js';
 import { KINDS, encodeCell, noteSemitones, noteToken } from './cells.js';
 import { esc } from './html.js';
 import { describeColumn } from './describe.js';
@@ -79,6 +80,11 @@ export function createTrackerView({ el, statusEl, transport, onToggle, onBack, o
     else if (k === 'soloStyle' && v !== soloStyle) { soloStyle = v; scrolledFor = null; if (solo) top = soloStyle === 'window' ? lo : Math.max(0, lo - 4); }
     else if (k === 'fontSize' && v !== fontPx) { fontPx = v; if (el.style) el.style.fontSize = `${fontPx}px`; draw(); }
   });
+  const playline = createPlayline(el);
+  let lineMode = config.get('playhead') === 'line';
+  config.onChange(k => { if (k === 'playhead') { lineMode = config.get('playhead') === 'line'; if (lanes) draw(); } });
+  let measured = null;   // the line height and top padding, measured again only when the font size changes
+  const lineMetrics = () => { if (!measured || measured.px !== fontPx) { const m = metrics(); measured = { px: fontPx, lh: m.lh, up: m.up }; } return measured; };
   const sounding = new Map();   // key -> { instrument, note }, so the release stops what the press started
   const stopSound = k => { const s = sounding.get(k); if (s) { onNote(s.instrument, s.note, false); sounding.delete(k); } };
   const startSound = (k, note) => {
@@ -585,13 +591,17 @@ export function createTrackerView({ el, statusEl, transport, onToggle, onBack, o
       });
       const inLoop = song.loop && t >= song.loop.start && t < song.loop.end;
       const edge = inLoop ? `${t === song.loop.start ? ' ls' : ''}${t === song.loop.end - 1 ? ' le' : ''}` : '';
-      const row = `<span class="g${inLoop ? ` lp${edge}` : ''}">${playing && t === playTick ? '>' : ' '}${String(t - base).padStart(4, '0')} </span>${chunks.join('  ')}`;
+      const row = `<span class="g${inLoop ? ` lp${edge}` : ''}">${playing && t === playTick && !lineMode ? '>' : ' '}${String(t - base).padStart(4, '0')} </span>${chunks.join('  ')}`;
       const shade = (t - base) % 16 === 0 ? 'r16' : (t - base) % 4 === 0 ? 'r4' : '';
       const line = playing && t === playTick ? `<b>${following ? `<span class="now">${row}</span>` : row}</b>` : row;
       lines.push(shade ? `<span class="${shade}">${line}</span>` : line);
     }
     while (lines.length < 2 + rowCount) lines.push('');   // always rowCount rows tall, so the drag bar works on a short song
     el.innerHTML = lines.join('\n');
+    if (lineMode && playing && playTick >= top && playTick < Math.min(showHi(), top + rowCount) && playTick >= showLo()) {
+      const m = lineMetrics();
+      playline.show(m.up - el.clientTop + m.lh * (2 + playTick - top));
+    } else playline.show(null);
     // When the cursor has moved, scroll sideways just far enough to keep it in view, clear of the sticky tick numbers.
     const where = `${cur.lane}:${cur.col}:${cur.ch}`;
     if (where !== shownAt && el.querySelector) {
