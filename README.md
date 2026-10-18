@@ -145,6 +145,7 @@ falls back to the JavaScript nodes.
   (With several lanes selected and some of them empty, G asks "Create patterns in the empty lanes?": Y/Enter yes, N no (only lanes with patterns are merged), Esc cancels. A single selected lane is never asked.)
 
 - **Alt+Enter** in the pattern editor solo-edits the pattern under the cursor (the same view as Ctrl+Enter in the arrangement); Alt+Enter or Esc leaves it.
+- **Sample display menu**: right-click the waveform for the edits (trim to selection, cut, silence, reverse, normalise, fades, remove DC, bake crossfades), select all / clear, mark a slice at the mouse, undo and redo. Clicking the display now also gives the sample screen the keyboard focus, so Shift+C and the other edit keys work straight after a drag.
 - **Alt+T** in the pattern editor tints each pattern faintly in its own colour (the arrangement's palette), a patchwork to orient by; again switches it off. Also a row in the Config panel (Tint patterns by colour).
 - **LFO range**: the LFO node has Range, Min and Max. Range 0 (default, as before) swings either side of zero by Amount; Range 1 runs the wave between Min and Max, so it can sit on any parameter within the range you want.
 - **LFO steps**: how many times per tick the LFO is worked out (0, the default, is every sample); it holds its value between updates. A wire into a parameter only reads the end of each block, so 8 to 24 sounds the same and is much cheaper.

@@ -13,6 +13,7 @@ import { addLane, addSample, addSamplerInstrument, addSynthInstrument, channelsO
 import { MASTER, ensureMaster, synthKinds } from './instruments.js';
 import { createSampleScreen } from './project/samplescreen.js';
 import { createWaveformView } from './project/waveform.js';
+import { showContextMenu } from './ui/ctxmenu.js';
 import { createMarkerRegionView } from './project/markerregion.js';
 import { FILE_EXT, INSTRUMENT_EXT, parseInstrument, parseProject, serializeInstrument, serializeProject } from './project/file.js';
 import { createEditor } from './seq/editor.js';
@@ -617,6 +618,31 @@ const waveform = createWaveformView({
   onSlices: users => { sendLoop(users); auditionDirty = true; },
   onActiveSlice: i => sampleScreen.setActiveSlice(i),   // the screen redraws itself, so its numbers follow the markers
   onSelect: ({ from, to }) => sampleScreen.setSelection(from, to),
+  onFocus: () => $('smp').focus(),
+  onMenu: (e, frame) => {   // right click on the display: the edits, acting on the selection (else the whole sample)
+    const [from, to] = sampleScreen.selection, has = to > from, s = waveform.sample();
+    const scope = has ? 'selection' : 'whole sample';
+    const edit = tool => () => { sampleScreen.runEdit(tool); $('smp').focus(); };
+    showContextMenu(e, [
+      { label: 'Trim to selection', hint: has ? 'Shift+C' : 'no selection: loop region', run: edit('crop') },
+      { label: 'Cut selection', hint: 'Shift+X', disabled: !has, run: edit('cut') },
+      { label: 'Silence', hint: `Shift+S · ${scope}`, run: edit('silence') },
+      { separator: true },
+      { label: 'Reverse', hint: `Shift+R · ${scope}`, run: edit('reverse') },
+      { label: 'Normalise', hint: `Shift+N · ${scope}`, run: edit('normalise') },
+      { label: 'Fade in', hint: `Shift+I · ${scope}`, run: edit('fadeIn') },
+      { label: 'Fade out', hint: `Shift+O · ${scope}`, run: edit('fadeOut') },
+      { label: 'Remove DC offset', hint: `Shift+D · ${scope}`, run: edit('removeDc') },
+      { label: 'Bake loop crossfades', hint: 'Shift+B', run: edit('bakeCrossfade') },
+      { separator: true },
+      { label: 'Select all', run: () => sampleScreen.setSelection(0, s?.data.length ?? 0) },
+      { label: 'Clear selection', disabled: !has, run: () => sampleScreen.setSelection(0, 0) },
+      { label: `Mark a slice here`, hint: `frame ${frame}`, run: () => sampleScreen.markSlice(frame) },
+      { separator: true },
+      { label: 'Undo', hint: 'Ctrl+Z', run: () => sampleScreen.undoRedo(false) },
+      { label: 'Redo', hint: 'Ctrl+Y', run: () => sampleScreen.undoRedo(true) },
+    ]);
+  },
 });
 attachGrip({ grip: $('wave-grip'), key: 'webtracker.waveformHeight', get: () => waveform.height, set: h => region.resize(waveform.resize(h)), step: 20, bigStep: 100, normal: 160 });
 

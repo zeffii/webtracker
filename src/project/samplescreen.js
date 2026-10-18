@@ -111,6 +111,17 @@ export function createSampleScreen({ el, statusEl, getProject, onChange = () => 
     }
   }
 
+  // The edit menu on the waveform (right click) calls these.
+  const undoRedo = redo => {
+    if (sel && attempt(() => (redo ? redoEdit : undoEdit)(getProject(), sel, history)) && selTo > sample().data.length) setSelection(0, 0);
+  };
+  const markSlice = at => {
+    const s = sample();
+    if (!s) return;
+    const f = Math.max(0, Math.min(at, s.data.length - 1));
+    if (attempt(() => setSlices(getProject(), sel, [...(s.slices ?? []), f]))) setActive(sample().slices.indexOf(f));
+  };
+
   function toggle(field) {
     const s = sample(), project = getProject();
     if (field === 'view') {
@@ -352,5 +363,5 @@ export function createSampleScreen({ el, statusEl, getProject, onChange = () => 
     if (html !== last) { last = html; el.innerHTML = html; }
   }
 
-  return { draw, key, select, setActiveSlice(i) { activeSlice = i; }, setSelection(from, to) { if (sel) setSelection(Math.max(0, from), Math.max(0, to)); }, history, get octave() { return octave; }, get selection() { return [selFrom, selTo]; }, get selected() { return sel; }, get focus() { return focus; }, get mode() { return mode; } };
+  return { draw, key, select, runEdit, undoRedo, markSlice, setSelection(from, to) { if (sel) setSelection(Math.max(0, from), Math.max(0, to)); }, setActiveSlice(i) { activeSlice = i; }, history, get octave() { return octave; }, get selection() { return [selFrom, selTo]; }, get selected() { return sel; }, get focus() { return focus; }, get mode() { return mode; } };
 }

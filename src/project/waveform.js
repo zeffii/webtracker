@@ -25,7 +25,7 @@ const GRAB = 6;   // pixels either side of a marker that grab it
 // it; drag across empty waveform to make a new loop; double-click to clear the loop. The
 // loop is applied when the mouse is released. Slice markers (red, labelled with their number and the hex value
 // an Off cell would need): Alt+click adds one, Alt+drag moves one, Alt+double-click removes the nearest.
-export function createWaveformView({ canvas, statusEl, getProject, onLoop, onSelect = () => {}, onSlices = () => {}, onActiveSlice = () => {} }) {
+export function createWaveformView({ canvas, statusEl, getProject, onLoop, onSelect = () => {}, onSlices = () => {}, onActiveSlice = () => {}, onMenu = () => {}, onFocus = () => {} }) {
   const ctx = canvas.getContext('2d');
   let W = canvas.width;
   let H = canvas.height;
@@ -74,7 +74,15 @@ export function createWaveformView({ canvas, statusEl, getProject, onLoop, onSel
     } catch (err) { say(err.message); }
   };
 
+  canvas.addEventListener('contextmenu', e => {   // a right click: the edit menu, with the frame under the mouse
+    if (!sample() || !frames()) return;
+    e.preventDefault();
+    drag = null;
+    onMenu(e, Math.min(xToFrame(e.offsetX), frames() - 1));
+  });
   canvas.addEventListener('mousedown', e => {
+    onFocus();   // the keys of the sample screen (Shift+C and the rest) go to it, so a click on the display hands it the focus
+    if ((e.button ?? 0) !== 0) return;
     const s = sample();
     if (!s || !frames()) return;
     if (e.altKey) {   // slice markers: grab the one under the mouse, or make a new one there
