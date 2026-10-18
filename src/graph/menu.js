@@ -142,7 +142,7 @@ export function createInsertMenu({ parent, nodeTypes, onPick, doc = document }) 
         const item = el('div', { className: `mi${row.children ? ' has-sub' : ''}${here ? (k === depth ? ' active' : ' trail') : ''}` });
         labelled(item, row.label, keys[i]);
         item.addEventListener('mouseenter', () => {
-          if (sel[k] === i && depth === k) return;
+          if (sel[k] === i) return;   // the row is already the chosen one (a redraw puts the pointer on it again): keep the keys where they are
           sel = [...sel.slice(0, k), i]; depth = k; render();
         });
         item.addEventListener('mousedown', e => {

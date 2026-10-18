@@ -1885,6 +1885,17 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   key('Enter');
   assert.equal(picks.at(-1)[0], found.at(-1), 'cursor keys choose among the matches');
   menu.open(10, 10); key('/'); key('Escape'); assert.ok(menu.isOpen, 'Esc in the search goes back to the tree');
+  // a redraw puts the pointer on the row it clicked again: that must not take the keys back to the first level
+  menu.open(10, 10);
+  const items = () => menu.box.children[1].children[0].children;   // the first level's rows
+  const text = row => row.children.filter(c => c.tag !== 'div').map(c => c.textContent).join('');
+  key('ArrowDown'); key('ArrowRight');   // Effects is open, the keys are in its groups
+  items().find(r => text(r) === 'Effects').listeners.mouseenter();
+  key('ArrowDown');
+  const flyout = items().find(r => text(r) === 'Effects').children.find(c => c.tag === 'div');
+  assert.ok(flyout.children[1].className.includes('active'), 'the keys stay in the flyout after the pointer lands on its parent row');
+  key('Escape'); key('Escape');
+
 }
 
 // 59. Waveshaper, exciter and transient designer.
