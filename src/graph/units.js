@@ -25,6 +25,7 @@ const TYPE_UNIT = {
   crusher: { rate: 'Hz', bits: 'bit' },
   dcblock: { freq: 'Hz' },
   modchan: {},
+  squelch: { tune: 'st', cutoff: 'Hz', decay: 'ms', slide: 'ms', rel: 'ms' },
   combperc: { decay: 'ms', click: 'ms', tune: 'st', sweep: 'oct', sdec: 'ms' },
   hat808: { tune: 'st', tone: 'Hz', cdec: 'ms', odec: 'ms' },
   sampler: { release: 'ms', nnaFade: 'ms', retrig: 'ticks', root: '' },
@@ -52,6 +53,7 @@ const WAVES = { osc: ['sine', 'saw', 'square', 'triangle'] };
 const NAMES = {
   osc: { wave: WAVES.osc, track: ONOFF, reset: ONOFF },
   noise: { restart: ONOFF },
+  squelch: { wave: ['saw', 'square'], sld: ONOFF },
   lfo: { shape: ['sine', 'triangle', 'saw', 'square'], reset: ONOFF, range: ['swing by amount', 'between min and max'] },
   filter: { mode: ['lowpass', 'bandpass', 'highpass'] },
   distortion: { mode: ['soft', 'hard', 'tube', 'fuzz'], oversample: ['1x', '2x', '4x'] },

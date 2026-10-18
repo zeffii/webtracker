@@ -1088,6 +1088,11 @@ const hit = 'C-2 .. .. ..';
     canvas.listeners.mouseup({ offsetX: at.x, offsetY: at.y + 300 });
     return { said, saidAfter, moved: node.y > at.y - h / 2 + 100, kept: JSON.stringify(def.graph.connections) === before, structures: structures.length };
   };
+  uiConfig.set('graphPullOut', false);
+  const off = run(false);
+  assert.equal(off.kept, true, 'with the setting off, dragging a node far away keeps its wires');
+  assert.doesNotMatch(off.said, /out of its chain/, 'and no dashed line offers to take it out');
+  uiConfig.set('graphPullOut', true);
   const plain = run(false), freed = run(true);
   assert.match(plain.said, /out of its chain/, 'dragging far out of a chain says it will be taken out');
   assert.equal(plain.kept, false, 'and releasing takes it out');
@@ -5632,4 +5637,69 @@ console.log('smoke test passed');
   assert.equal(view.tick, 21, 'the cursor moved down a row');
   uiConfig.set('arrowStyle', 'char');
   console.log('ok: arrows move by whole cells');
+}
+
+// Squelch: the 303-style bassline voice, driven by real pattern rows (Acc and Sld count for their note only)
+{
+  const def = synthKinds.squelch.make();
+  const rows = (cells, length = 16) => {
+    const registry = new ParamRegistry();
+    compile(def.graph, { instrument: 'sq', nodeTypes: NODE_TYPES, registry });
+    const cols = buildColumns('sq', def, registry);
+    const text = Array.from({ length }, (_, t) => cols.map(c => cells[t]?.[c.label] ?? KINDS[c.token].blank).join(' ')).join('\n');
+    const rt = new GraphRuntime({ sampleRate: sr, params: registry.values });
+    rt.load(compile(def.graph, { instrument: 'sq', nodeTypes: NODE_TYPES, registry }));
+    const seq = new Sequencer({ sampleRate: sr, runtime: rt, params: registry.values, transport: new Int32Array(new SharedArrayBuffer(16)) });
+    const song = song120([oneLane('sq', 'sq', text, length)]);
+    seq.setSong(song);
+    for (const lane of prepareSong(song, { sq: def }, registry)) seq.setLane(lane);
+    seq.play();
+    return { seq, registry, cols };
+  };
+  const tick = 6000;
+  const rms = (a, from, to) => Math.sqrt(a.slice(from, to).reduce((s, v) => s + v * v, 0) / (to - from));
+  const pitchOf = (a, from, len = 2400) => {   // autocorrelation over 40..400 Hz: the first peak that is nearly the strongest
+    const lo = Math.floor(sr / 400), hi = Math.floor(sr / 40), c = [];
+    for (let l = lo; l <= hi; l++) { let v = 0; for (let i = 0; i < len; i++) v += a[from + i] * a[from + i + l]; c[l] = v; }
+    const top = Math.max(...c.filter(Number.isFinite));
+    for (let l = lo + 1; l < hi; l++) if (c[l] > 0.85 * top && c[l] >= c[l - 1] && c[l] >= c[l + 1]) return sr / l;
+    return 0;
+  };
+  // a plain note: sounds, finite, not too hot; a note off ends it
+  {
+    const { seq } = rows({ 0: { Note: 'C-2' }, 8: { Note: '===' } });
+    const out = render(seq, 2.2).left;
+    assert.ok(out.every(Number.isFinite) && peak(out) < 1.5, 'the voice stays finite and in range');
+    assert.ok(rms(out, 2000, 4000) > 0.01, 'a note sounds');
+    assert.ok(rms(out, 8 * tick + 3000, 8 * tick + 4500) < 0.05 * rms(out, 2000, 4000), 'a note off lets it go');
+    assert.equal(Math.round(pitchOf(out, 3000) / 5) * 5, 65, 'C-2 is about 65 Hz');
+  }
+  // accent: louder and punchier than the same note without it, and only for the note it is written on
+  {
+    const plain = render(rows({ 0: { Note: 'C-2' }, 4: { Note: 'C-2' } }).seq, 1.2).left;
+    const acc = render(rows({ 0: { Note: 'C-2', Acc: '1' }, 4: { Note: 'C-2' } }).seq, 1.2).left;
+    assert.ok(peak(acc.slice(0, 3000)) > 1.15 * peak(plain.slice(0, 3000)), 'an accented note is stronger');
+    assert.ok(Math.abs(peak(acc.slice(4 * tick, 4 * tick + 3000)) - peak(plain.slice(4 * tick, 4 * tick + 3000))) < 0.05 * peak(plain.slice(0, 3000)), 'the next note, with a blank Acc cell, is not accented');
+  }
+  // slide: the pitch glides into the note instead of jumping, and the envelope is not restarted
+  {
+    const jump = render(rows({ 0: { Note: 'C-2' }, 4: { Note: 'C-3' } }).seq, 1.4).left;
+    const glide = render(rows({ 0: { Note: 'C-2' }, 4: { Note: 'C-3', Sld: '1' } }).seq, 1.4).left;
+    const at = 4 * tick;
+    assert.ok(pitchOf(jump, at + 800, 1500) > 120, 'without a slide the pitch jumps at once');
+    const early = pitchOf(glide, at + 150, 1500), late = pitchOf(glide, at + 9000, 2400);
+    assert.ok(early < 118 && early > 60, `with a slide the pitch is still on its way a little after (${early.toFixed(0)} Hz)`);
+    assert.ok(Math.abs(late - 131) < 4, `and arrives (${late.toFixed(0)} Hz)`);
+  }
+  // a slide with nothing sounding is just a note
+  {
+    const out = render(rows({ 2: { Note: 'C-3', Sld: '1' } }).seq, 0.8).left;
+    assert.ok(rms(out, 2 * tick + 2000, 2 * tick + 5000) > 0.01, 'a slide with no note before it still plays the note');
+  }
+  // the flags are columns of the instrument, the other parameters too
+  {
+    const { cols } = rows({});
+    assert.deepEqual(cols.map(c => c.label), ['Note', 'Vel', 'Acc', 'Sld', 'Cut', 'Res', 'Env', 'Dec', 'Acl', 'SlT', 'Wav', 'Drv', 'Cmd']);
+  }
+  console.log('ok: squelch');
 }

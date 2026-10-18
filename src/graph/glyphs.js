@@ -215,6 +215,13 @@ export const GLYPHS = {
     line(ctx, burst(0.02, 0.2, 0.7));
     line(ctx, burst(0.32, 0.64, 0.9));
   },
+  squelch: (ctx, cx, cy, w, h) => {   // a saw tooth rising through a resonant filter peak
+    const x = f => cx - w / 2 + f * w, y = f => cy + h / 2 - f * h;
+    const saw = []; for (let i = 0; i <= 3; i++) { saw.push([x(0.05 + i * 0.12), y(0.15)], [x(0.05 + i * 0.12 + 0.11), y(0.55)]); }
+    line(ctx, saw);
+    const curve = []; for (let i = 0; i <= 24; i++) { const t = i / 24; curve.push([x(0.5 + t * 0.45), y(0.78 - 0.45 * t * t + 0.28 * Math.exp(-Math.pow((t - 0.55) / 0.08, 2)))]); }
+    line(ctx, curve);
+  },
   noise: (ctx, cx, cy, w, h) => {   // a jagged random line
     const pts = []; let s = 7;
     for (let i = 0; i <= 28; i++) { s = (s * 9301 + 49297) % 233280; pts.push([cx - w / 2 + (i / 28) * w, cy + (s / 233280 - 0.5) * h * 0.85]); }

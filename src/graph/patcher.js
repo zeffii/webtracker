@@ -1,3 +1,4 @@
+import * as config from '../ui/config.js';
 import { MODES, SIZES, scopeBox, headerHit, drawScope } from './scope.js';
 import { addNode, autoLayout, connect, disconnect, duplicateNodes, insertOnWire, pruneDef, pullOut, removeNode, setBits, setExposed, setParam, setPort, nudgeClear } from './edit.js';
 
@@ -291,7 +292,7 @@ export function createPatcher({ canvas, panel, paramPanel = null, exposedDock = 
       if (kind !== 'audio' && kind !== 'stereo') return;
       for (let s = 0; s <= 24; s++) { const p = bezier(a, b, s / 24), d = Math.hypot(p.x - cx, p.y - cy); if (d < best) { best = d; drag.hover = i; } }
     });
-    if (drag.inline) {   // far from the line between its neighbours: pulled out of the chain
+    if (drag.inline && config.get('graphPullOut')) {   // far from the line between its neighbours: pulled out of the chain
       const { a, b } = drag.inline;
       const dx = b.x - a.x, dy = b.y - a.y, t = Math.min(1, Math.max(0, ((cx - a.x) * dx + (cy - a.y) * dy) / (dx * dx + dy * dy || 1)));
       drag.pull = Math.hypot(a.x + t * dx - cx, a.y + t * dy - cy) > 70;

@@ -176,3 +176,10 @@ MIDI step entry writes a chord from the lowest note to the highest, rewriting th
 
 ### Drawing
 Only the screen that is showing is drawn each frame (the others have nothing to paint, and the instrument graph's layout check was forcing a re-measure of the page every frame while it was hidden). The pattern grid and the arrangement are rewritten into the page only when their markup actually changes.
+
+
+## Squelch (m207)
+A monophonic 303-style bassline instrument (New instrument > Squelch). Columns: Note, Vel, Acc, Sld, plus Cut, Res, Env, Dec, Acl, SlT, Wav, Drv. Acc and Sld count for the note on their row only (blank = off). Sld 1 glides from the previous pitch to this note without retriggering the envelope, only while a note is sounding. Acc 1..F adds strength on top of normal level: louder, sharper, wider filter sweep; accents in a row build up. Commands 01-0D set cutoff, res, envmod, decay, accent, slide, wave, drive, tune, release, vel, level, out gain.
+
+## Graph pull-out setting (m207)
+Config > Editing: "Graph: dragging a node far out of its chain takes it out" (on by default). Turn it off to move nodes without the dashed detach line.
