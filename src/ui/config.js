@@ -10,6 +10,7 @@ export const GROUPS = {
   Look: 'Colours and sizes. Applied at once.',
   Playing: 'How the grids behave while the song runs.',
   Editing: 'Defaults for solo-edit, lanes and inserting silence.',
+  Sample: 'Post-transient resynthesis (right click in the sample display): the attack stays a real sample and the rest is rebuilt from synth branches.',
   MIDI: 'A MIDI keyboard plays the machine under the cursor, enters notes in the pattern editor and records into patterns while the song plays (Rec, Alt+R). Chrome and Edge only.',
 };
 
@@ -34,6 +35,9 @@ export const SCHEMA = [
   { key: 'midiAdvance', label: 'After entering notes', type: 'choice', options: ['stay', 'row'], labels: { stay: 'the cursor stays', row: 'the cursor moves down one row (when the keys are let go)' }, def: 'stay' },
   { key: 'midiOffs', label: 'Recording: release writes a note off', hint: 'the key release; off for pads and drums', type: 'bool', def: true },
   { key: 'midiShared', label: 'Shared patterns', hint: 'a pattern placed more than once, written by MIDI', type: 'choice', options: ['ask', 'write'], labels: { ask: 'refuse: clone it first (G)', write: 'write into it, so every placement changes' }, def: 'ask' },
+  { group: 'Sample', key: 'ptrMax', label: 'Resynthesis: most branches', hint: 'it uses fewer when more would not help', type: 'int', min: 1, max: 16, def: 8 },
+  { key: 'ptrTolerance', label: 'Resynthesis: tolerance (%)', hint: 'a new branch must explain at least this much of the tail; lower is closer and uses more branches', type: 'int', min: 1, max: 30, def: 5 },
+  { key: 'ptrTransient', label: 'Resynthesis: attack kept (ms)', hint: '0 finds it from the sound', type: 'int', min: 0, max: 80, def: 0 },
   { key: 'midiLatency', label: 'Recording: latency offset', hint: 'in ms, added to what the browser reports; raise it if recorded notes land late', type: 'int', min: -200, max: 400, def: 0 },
 ];
 const byKey = Object.fromEntries(SCHEMA.map(s => [s.key, s]));

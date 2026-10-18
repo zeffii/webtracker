@@ -5539,3 +5539,48 @@ console.log('smoke test passed');
   assert.deepEqual(posts, ['load', 'load', 'load']);
   console.log('ok: unconnected node adds do not interrupt playback');
 }
+
+// Post-transient resynthesis: the attack stays a sample, the tail becomes branches, and the instrument sounds like the source
+{
+  const { fitTail, buildInstrument } = await import('../src/project/ptr.js');
+  let seed = 3; const rnd = () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 2147483648 - 1; };
+  let ph = 0;
+  const kick = Float32Array.from({ length: Math.round(sr * 0.6) }, (_, i) => {
+    const t = i / sr; ph += 2 * Math.PI * (50 + 110 * Math.exp(-t / 0.035)) / sr;
+    return 0.9 * Math.exp(-t / 0.18) * Math.sin(ph) + (t < 0.003 ? rnd() * 0.5 : 0);
+  });
+  const fit = fitTail(kick, sr);
+  assert.ok(fit.cutMs >= 4 && fit.cutMs <= 30, `the attack is cut short: ${fit.cutMs} ms`);
+  assert.equal(fit.transient.length, Math.round(fit.cutMs * sr / 1000), 'the transient is the first cutMs of the sample');
+  assert.ok(fit.branches.length >= 1 && fit.branches.length <= 3, `a plain kick needs few branches, got ${fit.branches.length}`);
+  assert.equal(fit.branches[0].type, 'tonal');
+  assert.ok(Math.abs(fit.branches[0].fe - 50) < 4, `the body is found at 50 Hz: ${fit.branches[0].fe}`);
+  assert.ok(fit.branches[0].sweep && fit.branches[0].sweep.oct > 1, 'the pitch sweep is found');
+  assert.equal(fitTail(kick, sr, { max: 1 }).branches.length, 1, 'the most branches is respected');
+  // three bell partials use three branches
+  const bell = Float32Array.from({ length: Math.round(sr * 1.2) }, (_, i) => { const t = i / sr; return [[440, 0.4, 0.5], [1130, 0.3, 0.3], [1870, 0.2, 0.2]].reduce((s, [f, a, d]) => s + a * Math.exp(-t / d) * Math.sin(2 * Math.PI * f * t), 0) + (t < 0.002 ? rnd() * 0.4 : 0); });
+  const bellFit = fitTail(bell, sr);
+  assert.deepEqual(bellFit.branches.map(b => Math.round(b.fe / 10) * 10).sort((a, b) => a - b), [440, 1130, 1870], 'each partial gets a branch');
+  // noise only: one noise branch
+  let prev = 0;
+  const hat = Float32Array.from({ length: Math.round(sr * 0.25) }, (_, i) => { const n = rnd(), v = n - prev; prev = n; return 0.5 * v * Math.exp(-i / sr / 0.04); });
+  const hatFit = fitTail(hat, sr);
+  assert.ok(hatFit.branches.length >= 1 && hatFit.branches.every(b => b.type === 'noise'), 'noise is fitted as noise');
+  // the instrument compiles with the real nodes and plays: the first block is the attack, the tail rings on
+  const attackId = 'kick_attack', inst = buildInstrument(fit, attackId);
+  const registry = new ParamRegistry();
+  const rt = new GraphRuntime({ sampleRate: sr, params: registry.values });
+  rt.load(compile(inst.graph, { instrument: 'k', nodeTypes: NODE_TYPES, registry }));
+  rt.message('k', 'attack', { type: 'sample', data: fit.transient.slice(), rate: sr });
+  rt.note('k', { type: 'noteOn', note: 60, vel: 1 });
+  const out = render(rt, 0.5).left;
+  const rmsOf = (a, from, to) => Math.sqrt(a.slice(from, to).reduce((s, v) => s + v * v, 0) / (to - from));
+  const srcRms = (a, from, to) => rmsOf(a, from, to);
+  const at = s => Math.round(s * sr);
+  assert.ok(out.every(Number.isFinite), 'the rebuilt kick stays finite');
+  for (const [from, to] of [[0.02, 0.06], [0.1, 0.2], [0.25, 0.35]]) {
+    const ratio = rmsOf(out, at(from), at(to)) / (0.45 * srcRms(kick, at(from), at(to)));
+    assert.ok(ratio > 0.5 && ratio < 2, `the rebuilt kick is about as loud as the source at ${from}-${to} s (ratio ${ratio.toFixed(2)})`);
+  }
+  console.log('ok: post-transient resynthesis');
+}

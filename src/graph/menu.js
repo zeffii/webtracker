@@ -8,7 +8,7 @@
 const GROUPS = {
   Sources: [
     ['Synths', ['subsynth', 'oberheim', 'piano', 'addsynth', 'fmsynth', 'dvii', 'wavetable', 'granular', 'specsynth', 'string', 'hat808', 'combperc', 'modchan']],
-    ['Basic', ['osc', 'sampler']],
+    ['Basic', ['osc', 'noise', 'sampler']],
     ['Modulators', ['env', 'lfo']],
     ['Routing', ['sidechain']],
   ],

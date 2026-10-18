@@ -215,6 +215,11 @@ export const GLYPHS = {
     line(ctx, burst(0.02, 0.2, 0.7));
     line(ctx, burst(0.32, 0.64, 0.9));
   },
+  noise: (ctx, cx, cy, w, h) => {   // a jagged random line
+    const pts = []; let s = 7;
+    for (let i = 0; i <= 28; i++) { s = (s * 9301 + 49297) % 233280; pts.push([cx - w / 2 + (i / 28) * w, cy + (s / 233280 - 0.5) * h * 0.85]); }
+    line(ctx, pts);
+  },
   combperc: (ctx, cx, cy, w, h) => {   // a comb of teeth over a falling ring
     const x = f => cx - w / 2 + f * w, y = f => cy + h / 2 - f * h;
     ctx.beginPath();

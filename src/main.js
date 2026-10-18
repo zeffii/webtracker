@@ -9,11 +9,12 @@ import { importMidi, parseMidi } from './project/midi.js';
 import { modToProject, parseMod } from './project/mod.js';
 import * as presets from './project/presets.js';
 import { LIBRARY_EXT, addToLibrary, importFromLibrary, newLibrary, parseLibrary, serializeLibrary } from './project/library.js';
-import { addLane, addSample, addSamplerInstrument, addSynthInstrument, channelsOf, sampleMessage, slotsOf, syncSamplerStereo } from './project/ops.js';
+import { idFromName, uniqueId, addLane, addSample, addSamplerInstrument, addSynthInstrument, channelsOf, sampleMessage, slotsOf, syncSamplerStereo } from './project/ops.js';
 import { MASTER, ensureMaster, synthKinds } from './instruments.js';
 import { createSampleScreen } from './project/samplescreen.js';
 import { createWaveformView } from './project/waveform.js';
 import { showContextMenu } from './ui/ctxmenu.js';
+import { buildInstrument, fitTail } from './project/ptr.js';
 import { createMidiInput } from './ui/midiin.js';
 import { createMidiWriter } from './seq/midiwrite.js';
 import { createMarkerRegionView } from './project/markerregion.js';
@@ -711,6 +712,7 @@ const waveform = createWaveformView({
       { separator: true },
       { label: 'Select all', run: () => sampleScreen.setSelection(0, s?.data.length ?? 0) },
       { label: 'Clear selection', disabled: !has, run: () => sampleScreen.setSelection(0, 0) },
+      { label: 'Post-transient resynthesis', hint: `${scope} → new instrument`, run: resynthesize },
       { label: `Mark a slice here`, hint: `frame ${frame}`, run: () => sampleScreen.markSlice(frame) },
       { separator: true },
       { label: 'Undo', hint: 'Ctrl+Z', run: () => sampleScreen.undoRedo(false) },
@@ -754,6 +756,35 @@ const sampleScreen = createSampleScreen({
 });
 
 // A new empty lane for an instrument that is already loaded in the engine.
+// Post-transient resynthesis of the sample on the Samples screen (its selection, else the whole sample): the attack is kept
+// as a new small sample and the rest becomes a tree of synth branches in a new instrument with its own lane.
+function resynthesize() {
+  const id = sampleScreen.selected, s = project.samples[id];
+  if (!s) return projStatus('Pick a sample first.');
+  let [from, to] = sampleScreen.selection;
+  if (!(to > from)) { from = 0; to = s.data.length; }
+  const mono = new Float32Array(to - from);
+  for (let i = 0; i < mono.length; i++) mono[i] = s.right ? (s.data[from + i] + s.right[from + i]) / 2 : s.data[from + i];
+  projStatus('Fitting the tail…');
+  setTimeout(() => {   // let the message paint first: the fit takes a moment
+    try {
+      const fit = fitTail(mono, s.rate, { max: config.get('ptrMax'), tolerance: config.get('ptrTolerance') / 100, transientMs: config.get('ptrTransient') });
+      const sampleId = addSample(project, `${id}_attack`, s.rate, fit.transient);
+      const name = uniqueId(new Set(Object.keys(project.instruments)), idFromName(`${id}_ptr`));
+      project.instruments[name] = buildInstrument(fit, sampleId);
+      loadInst(name);
+      sendSamples(name);
+      addLaneFor(name);
+      patcher.load({ instruments: project.instruments });
+      refreshProjectUi();
+      const tonal = fit.branches.filter(b => b.type === 'tonal').length, noise = fit.branches.length - tonal;
+      projStatus(`Added ${name}: the first ${fit.cutMs.toFixed(0)} ms kept as ${sampleId}, the tail as ${fit.branches.length} of at most ${fit.max} branches (${tonal} tonal, ${noise} noise), ${(fit.match * 100).toFixed(0)}% of the tail matched.`);
+    } catch (err) {
+      projStatus(err.message);
+    }
+  }, 30);
+}
+
 function addLaneFor(instrumentId) {
   const lane = addLane(project, engine.registry, instrumentId);
   engine.setLane({ id: lane.id, instrument: lane.instrument, columns: lane.columns, pages: lane.pages, mask: lane.mask });

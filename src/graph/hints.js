@@ -405,6 +405,11 @@ const HINTS = {
     pan: 'Stereo position: -1 left, 1 right. The Amiga is hard panned, left right right left.',
     interp: '1: smooth interpolation between samples. 0: nearest sample, the rough sound of the real hardware.',
   },
+  noise: {
+    level: 'Peak level of the noise.',
+    seed: 'Which noise it is. Another number is another texture, the same every hit.',
+    restart: '1: every note starts the noise over from the seed, so every hit is identical. 0: the noise runs on and each hit differs.',
+  },
   combperc: {
     decay: 'How long the combs ring, in ms to fall by 60 dB. Short is a tick or knock, long is a bell or a pipe.',
     damp: 'How fast the highs die inside the ring compared to the lows. Higher is duller and more wooden.',
