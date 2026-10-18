@@ -408,6 +408,13 @@ export function createTrackerView({ el, statusEl, transport, onToggle, onBack, o
   el.addEventListener('mouseleave', stopDrag);
 
   el.addEventListener('keydown', e => {
+    if (lanes && e.altKey && !e.ctrlKey && !e.metaKey && e.key === 'Enter') {   // Alt+Enter: solo-edit the pattern under the cursor, or leave it
+      if (solo) { solo = null; lo = 0; hi = len; scrolledFor = null; message = 'Solo-edit off.'; }
+      else if (!enterSolo(cur.lane, cur.tick)) message = 'No pattern here to solo-edit.';
+      e.preventDefault();
+      draw();
+      return;
+    }
     if (!lanes || e.altKey) return;
     if (e.ctrlKey || e.metaKey) {
       const key = e.key.toLowerCase();

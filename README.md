@@ -143,3 +143,5 @@ falls back to the JavaScript nodes.
 
   (Merge block: a lane with no pattern in the block gets an empty pattern spanning it.)
   (With several lanes selected and some of them empty, G asks "Create patterns in the empty lanes?": Y/Enter yes, N no (only lanes with patterns are merged), Esc cancels. A single selected lane is never asked.)
+
+- **Alt+Enter** in the pattern editor solo-edits the pattern under the cursor (the same view as Ctrl+Enter in the arrangement); Alt+Enter or Esc leaves it.
