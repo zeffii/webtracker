@@ -1844,7 +1844,7 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   const all = menu.entries('').map(e => e.type);
   assert.ok(all.includes('chorus') && all.includes('mix') && all.includes('sampler'));
   assert.ok(!all.includes('out') && !all.includes('sum') && !all.includes('fold') && !all.includes('sumst'), 'master and hidden nodes are not listed');
-  assert.deepEqual(menu.entries('filt').map(e => e.type), ['filter']);
+  assert.deepEqual(menu.entries('filt').map(e => e.type), ['filter', 'filterpro']);
   assert.ok(menu.entries('effects').some(e => e.type === 'multitap'), 'a category name matches too');
   assert.deepEqual(menu.entries('zzz'), []);
 
@@ -5702,4 +5702,33 @@ console.log('smoke test passed');
     assert.deepEqual(cols.map(c => c.label), ['Note', 'Vel', 'Acc', 'Sld', 'Cut', 'Res', 'Env', 'Dec', 'Acl', 'SlT', 'Wav', 'Drv', 'Cmd']);
   }
   console.log('ok: squelch');
+}
+
+// filterPro: every voicing is finite and shaped right, resonance 1 sings, mod and mix work
+{
+  const fp = NODE_TYPES.filterpro, sr = 48000, N = 24064;
+  const run = (over, gen, modv) => {
+    const inst = fp.create({ sampleRate: sr, connected: [true, !!modv] });
+    const vals = Object.fromEntries(fp.params.map(q => [q.name, q.def])); Object.assign(vals, over);
+    const params = fp.params.map(q => vals[q.name]), slots = fp.params.map((_, i) => i), y = new Float32Array(N);
+    for (let i = 0; i < N; i += 128) {
+      const o = [new Float32Array(128)], x = Float32Array.from({ length: 128 }, (_, j) => gen(i + j));
+      inst.process([x, modv ? modv.subarray(i, i + 128) : null], o, 128, params, slots);
+      y.set(o[0], i);
+    }
+    return y;
+  };
+  const level = (a, f = 6000) => { let s = 0; for (let i = f; i < a.length; i++) s += a[i] * a[i]; return Math.sqrt(s / (a.length - f)); };
+  const sine = hz => i => 0.5 * Math.sin(2 * Math.PI * hz * i / sr);
+  let seed = 7; const noise = () => { seed = (seed * 1664525 + 1013904223) >>> 0; return 0.3 * (seed / 2147483648 - 1); };
+  for (let m = 0; m < 12; m++) assert.ok(run({ mode: m, resonance: 0.95 }, noise).every(Number.isFinite), `filterpro mode ${m} stays finite`);
+  assert.ok(level(run({ mode: 0, cutoff: 1000 }, sine(200))) > 10 * level(run({ mode: 0, cutoff: 1000 }, sine(6000))), 'lowpass');
+  assert.ok(level(run({ mode: 2, cutoff: 1000 }, sine(6000))) > 10 * level(run({ mode: 2, cutoff: 1000 }, sine(200))), 'highpass');
+  assert.ok(level(run({ mode: 7, cutoff: 1000 }, sine(4000))) < 0.2 * level(run({ mode: 0, cutoff: 1000 }, sine(4000))), '24 dB slope is steeper');
+  assert.ok(level(run({ mode: 3, cutoff: 1000, resonance: 0.5 }, sine(1000))) < 0.2 * level(run({ mode: 3, cutoff: 1000, resonance: 0.5 }, sine(200))), 'notch removes its centre');
+  for (const m of [0, 7, 8]) assert.ok(level(run({ mode: m, resonance: 1, cutoff: 800 }, () => 0), 16000) > 0.05, `mode ${m} sings at resonance 1`);
+  assert.ok(level(run({ cutoff: 500 }, sine(1000), new Float32Array(N).fill(1))) > 2 * level(run({ cutoff: 500 }, sine(1000))), 'mod opens the cutoff');
+  assert.ok(Math.abs(level(run({ mix: 0 }, sine(300))) - 0.5 / Math.SQRT2) < 1e-3, 'mix 0 is the dry signal');
+  assert.ok(level(run({ mode: 9, vowel: 0, cutoff: 1000 }, sine(800))) > 3 * level(run({ mode: 9, vowel: 0, cutoff: 1000 }, sine(5000))), 'vowel a favours its formant');
+  console.log('ok: filterpro');
 }

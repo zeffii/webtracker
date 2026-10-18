@@ -81,6 +81,18 @@ const HINTS = {
     resonance: 'Emphasis at the cutoff. Low is smooth; high rings and whistles around the cutoff.',
     mode: '0 lowpass (keeps lows, cuts highs), 1 bandpass (keeps a band around the cutoff), 2 highpass (keeps highs, cuts lows).',
   },
+  filterpro: {
+    cutoff: 'Cutoff in Hz. For the vowel mode it slides all formants (1000 Hz is neutral); for the comb modes it is the pitch the comb rings at. Wire an envelope or LFO into `mod` (octaves, sample by sample).',
+    resonance: 'Emphasis at the cutoff. Near 1 the filter sings by itself. In the comb modes it is the feedback; in vowel it narrows the formants.',
+    mode: 'The voicing: lowpass, bandpass, highpass, notch, peak, allpass, morph, 24 dB lowpass, Moog-style ladder, vowel (a e i o u formants), comb + and comb - (a tuned ringing delay).',
+    morph: 'Only for the morph mode: sweeps from lowpass (0) through notch (0.5) to highpass (1).',
+    vowel: 'Only for the vowel mode: 0 a, 1 e, 2 i, 3 o, 4 u, and the values between blend neighbours.',
+    damp: 'Only for the comb modes: darkens the ringing so highs die faster.',
+    drive: 'Saturation before the filter. More bites and thickens; the level is evened out for you.',
+    bias: 'Pushes the signal off centre before the saturation for lopsided, even-harmonic grit (needs some drive to show).',
+    mix: 'Dry/wet balance: 0 is the untouched input, 1 is all filtered.',
+    level: 'Output level.',
+  },
   delay: {
     time: 'Delay time in ms (up to one second).',
     feedback: 'How much of the delayed sound is fed back, for repeats. Higher gives more echoes.',

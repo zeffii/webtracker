@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['m208', ['filterPro: a filter with twelve voicings (lowpass, bandpass, highpass, notch, peak, allpass, morph, 24 dB lowpass, Moog-style ladder, vowel formants, two tuned combs), per-sample cutoff modulation, drive with bias, self-oscillation at full resonance and a dry/wet mix.']],
   ['m207', ['Squelch: a monophonic 303-style bassline instrument. One note column, plus Acc and Sld columns (1 on a row = accent / slide into that note), and every knob can be written from the pattern.', 'Config: the graph can be told not to take a node out of its chain when you drag it away.']],
   ['m206', ['Faster pattern editing: the grid is only redrawn when it changes, and only the screen you are looking at is drawn. Idle frames dropped from about 36 ms to 16 ms in a test, and holding an arrow key no longer queues behind needless work.']],
   ['m205', ['MIDI step entry writes a chord from the lowest note to the highest, whatever order the keys were struck in (Config: or in the order played).', 'Shift+1 writes a note off in every note column of the row, then moves down.']],

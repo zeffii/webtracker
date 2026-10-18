@@ -183,3 +183,6 @@ A monophonic 303-style bassline instrument (New instrument > Squelch). Columns: 
 
 ## Graph pull-out setting (m207)
 Config > Editing: "Graph: dragging a node far out of its chain takes it out" (on by default). Turn it off to move nodes without the dashed detach line.
+
+## filterPro (m208)
+Filter & EQ > filterpro. Modes: lowpass, bandpass, highpass, notch, peak, allpass, morph (lowpass > notch > highpass by `morph`), lowpass 24, ladder, vowel (a e i o u by `vowel`, cutoff slides the formants), comb + and comb - (cutoff is the pitch, resonance the feedback, `damp` darkens). `drive` and `bias` saturate before the filter, `mix` blends dry and wet, the `mod` input is in octaves and applied sample by sample. Resonance 1 self-oscillates.
