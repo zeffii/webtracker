@@ -4664,6 +4664,13 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   assert.deepEqual(offsAt([16]), [16], 'the marker lets go once, at its row');
 }
 
+// Song info text is saved with the project
+{
+  const out = serializeProject({ song: { name: 's', bpm: 100, ticksPerBeat: 4, length: 32, info: 'hello\nhttps://example.com' }, instruments: {}, samples: {}, lanes: [] });
+  assert.equal(parseProject(out).song.info, 'hello\nhttps://example.com');
+  assert.ok(!serializeProject({ song: { name: 's', bpm: 100, ticksPerBeat: 4, length: 32 }, instruments: {}, samples: {}, lanes: [] }).includes('"info"'), 'no info, no field');
+}
+
 // Solo-edit: one placement on its own, rows from 0, nothing else reachable
 {
   const registry = new ParamRegistry();
@@ -4688,6 +4695,10 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   assert.match(rowsShown[0], /^ 0000/, 'numbered from 0');
   assert.ok(!text[0].includes('master') || li === 0, 'other lanes are not shown');
   press('End'); view.draw(); assert.match(statusEl.textContent, /SOLO/);
+  const sameBefore = lanes[li].placements.filter(p => p.puid === pl.puid).length;
+  const was = pl.puid; press('g', { ctrlKey: true });
+  assert.notEqual(lanes[li].placements.find(p => p.start === 16).puid, was, 'Ctrl+G gives the placement its own copy of the pattern');
+  assert.equal(lanes[li].placements.filter(p => p.puid === was).length, sameBefore - 1, 'the others keep the old one');
   press('Tab'); assert.equal(view.tick, 16 + rowsShown.length - 1, 'Tab does not leave');
   for (let i = 0; i < 100; i++) press('ArrowDown');
   assert.ok(view.tick >= 16 && view.tick < 16 + rowsShown.length, 'the cursor stays inside the pattern');

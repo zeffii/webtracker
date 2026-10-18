@@ -44,6 +44,7 @@ const tabs = createTabs({
     { id: 'samples', key: 'F2', el: $('pane-samples'), button: $('tab-samples'), focus: $('smp') },
     { id: 'instruments', key: 'F3', el: $('pane-instruments'), button: $('tab-instruments'), focus: $('inst-list') },
     { id: 'arrange', key: 'F4', el: $('pane-arrange'), button: $('tab-arrange'), focus: $('seq') },
+    { id: 'info', key: 'F10', el: $('pane-info'), button: $('tab-info'), focus: { focus: () => (!$('info').hidden ? $('info') : $('info-view')).focus() } },
   ],
 });
 document.addEventListener('keydown', e => {
@@ -55,6 +56,33 @@ document.addEventListener('keydown', e => {
     if (started || e.key === 'F9') fKeys[e.key]();
     return;
   }
+});
+
+// Song info: a plain text page of notes and greetings, kept in the project.
+const infoStatus = () => { const t = $('info').value; $('info-status').textContent = `${t ? t.split('\n').length : 0} lines · ${t.length} characters`; };
+// Not editing, the text is shown with its web addresses as links; editing is a plain text box.
+const renderInfo = () => {
+  const box = $('info-view');
+  box.replaceChildren();
+  for (const [i, part] of $('info').value.split(/(https?:\/\/[^\s<>"']+)/g).entries()) {
+    if (i % 2 === 0) { box.append(part); continue; }
+    const url = part.replace(/[.,;:!?)\]]+$/, ''), a = document.createElement('a');
+    a.href = url; a.textContent = url; a.target = '_blank'; a.rel = 'noopener noreferrer';
+    box.append(a, part.slice(url.length));
+  }
+};
+const editInfo = on => {
+  if (!on) renderInfo();
+  $('info').hidden = !on; $('info-view').hidden = on;
+  $('info-edit').textContent = on ? 'Done' : 'Edit';
+  (on ? $('info') : $('info-view')).focus();
+};
+$('info-edit').addEventListener('click', () => editInfo(!$('info').hidden === false));
+$('info-view').addEventListener('dblclick', () => editInfo(true));
+$('info').addEventListener('keydown', e => { if (e.key === 'Escape') { editInfo(false); e.preventDefault(); } });
+$('info').addEventListener('input', () => {
+  if (project) { if ($('info').value) project.song.info = $('info').value; else delete project.song.info; }
+  infoStatus();
 });
 
 // Follow mode: the grids move with the playing row instead of the row marker moving. F9 or the button; remembered here.
@@ -581,6 +609,10 @@ function openProject({ song, instruments, samples }, { stay = false, instrument 
   view.load({ lanes, song, editor });
   const at = Math.max(lanes.length > 1 ? 1 : 0, lanes.findIndex(l => l.id === lane));   // not the master lane, to start with
   view.goto(at, 0); seqView.goto(at, 0);
+  $('info').value = song.info ?? '';
+  infoStatus();
+  if (song.info) { renderInfo(); $('info').hidden = true; $('info-view').hidden = false; $('info-edit').textContent = 'Edit'; }
+  else { $('info').hidden = false; $('info-view').hidden = true; $('info-edit').textContent = 'Done'; }
   $('length').value = song.length;
   $('bpm').value = song.bpm;
   $('swing').value = Math.round((song.swing ?? 0.5) * 100);

@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="themes.css">
-  <title>webtracker m163</title>
+  <title>webtracker m167</title>
   <style>
     :root { color-scheme: light dark; font-family: system-ui, sans-serif; }   /* colours: see themes.css */
     body { background: var(--bg); color: var(--fg); }
@@ -155,9 +155,12 @@
     #view .ps { color: #f0707a; }   /* a pattern starts here */
 
     /* every view: the shortcuts in a panel of their own on the right, keys in the accent colour of the pattern start marks */
+    #info-view { box-sizing: border-box; width: 100%; max-width: 100ch; min-height: 60vh; margin: .3rem 0; padding: .5rem .6rem; font: 13px/1.4 ui-monospace, Consolas, monospace; white-space: pre-wrap; overflow-wrap: anywhere; background: var(--panel); border: 1px solid color-mix(in srgb, var(--fg) 30%, transparent); }
+    #info-view a { color: inherit; text-decoration: underline; }
+    #info { display: block; box-sizing: border-box; width: 100%; max-width: 100ch; min-height: 60vh; margin: .3rem 0; padding: .5rem .6rem; font: 13px/1.4 ui-monospace, Consolas, monospace; background: var(--panel); color: var(--fg); border: 1px solid color-mix(in srgb, var(--fg) 30%, transparent); resize: vertical; tab-size: 4; }
     .pane.keyed:not([hidden]) { display: grid; grid-template-columns: minmax(0, 1fr) 20rem; gap: 1rem; align-items: start; }
     .pane-main { min-width: 0; overflow-x: auto; }
-    .keys { background: var(--panel); font: 11px/1.45 ui-monospace, Consolas, monospace; padding: .5rem .7rem; position: sticky; top: .5rem; max-height: calc(100vh - 1rem); overflow-y: auto; box-sizing: border-box; }
+    .keys { background: var(--panel); font: 11px/1.45 ui-monospace, Consolas, monospace; padding: .5rem .7rem; align-self: stretch; height: 0; min-height: 100%; overflow-y: auto; box-sizing: border-box; }   /* never taller than the main part beside it: it scrolls instead */
     .keys h3 { margin: 0 0 .4rem; font: inherit; opacity: .6; display: flex; justify-content: space-between; align-items: center; }
     .keys h3 button { font: inherit; font-size: 10px; padding: 0 .35rem; }
     /* hidden: the main part of each screen takes the whole width */
@@ -167,7 +170,7 @@
     .keys dt { color: #f0707a; }
     .keys dd { margin: 0; opacity: .7; }
     .keys p { margin: .6rem 0 0; opacity: .7; }
-    @media (max-width: 1000px) { .pane.keyed:not([hidden]) { grid-template-columns: 1fr; } }
+    @media (max-width: 1000px) { .pane.keyed:not([hidden]) { grid-template-columns: 1fr; } .keys { height: auto; min-height: 0; max-height: 60vh; } }
 
     /* samples */
     .srow { display: flex; flex-wrap: wrap; gap: .5rem 1rem; align-items: center; margin: .25rem 0; }
@@ -323,6 +326,7 @@
         <button id="tab-samples">F2 Samples</button>
         <button id="tab-instruments">F3 Instruments</button>
         <button id="tab-arrange">F4 Arrangement</button>
+        <button id="tab-info">F10 Info</button>
       </nav>
       <select id="theme" style="margin-left:auto" title="Colour theme"><option value="system">system</option><option value="dark">dark</option><option value="black">black</option><option value="bright">bright</option><option value="neon">neon</option><option value="amber">amber</option><option value="phosphor">phosphor</option><option value="ice">ice</option><option value="synthwave">synthwave</option></select>
       <button id="keys-toggle" title="Show or hide the keyboard shortcut panels">Shortcuts</button>
@@ -351,6 +355,7 @@
           <dt>Delete</dt><dd>clear the cell</dd>
           <dt>\ or Insert</dt><dd>note preview on / off: with it on, typed notes sound while the key is held</dd>
           <dt>Ctrl+D</dt><dd>copy the selection (or the cell) to the rows right below it, wherever the cursor is; again to copy it once more below that</dd>
+          <dt>Ctrl+G</dt><dd>give this placement its own copy of the pattern (clone and replace), so edits stop reaching the other places it is used; works in solo-edit too</dd>
           <dt>F5 F6 F7 F8</dt><dd>play from the start (or the loop); play from the cursor; play just this row once; stop</dd>
           <dt>F9</dt><dd>follow the song: the grid scrolls with the playing row (highlighted)</dd>
           <dt>Ctrl+Up/Down</dt><dd>transpose the notes in the selection by a semitone (Shift: an octave)</dd>
@@ -540,6 +545,15 @@
           <dt>K, Shift+K</dt><dd>step the colour of the pattern under the cursor through 16 pastels and back to automatic (Shift goes backwards)</dd>
         </dl>
       </aside>
+  </section>
+
+  <section id="pane-info" class="pane" hidden>
+    <div class="pane-main">
+      <div class="help">Song info: notes, credits, greetings. Plain text, saved with the project; web addresses become links when you are not editing. <button id="info-edit" type="button">Edit</button></div>
+      <div id="info-view" tabindex="0" aria-label="Song info" hidden></div>
+      <textarea id="info" spellcheck="false" aria-label="Song info" placeholder="Title, author, notes, greetings..."></textarea>
+      <div id="info-status" class="statusbar"></div>
+    </div>
   </section>
 
   <div id="footer" class="statusbar"><span id="song-info"></span><span id="status">Press Start to create the audio engine.</span><button id="loadcopy" type="button" title="Copy the load line to the clipboard">copy</button><span id="loadmeter" title="Audio load: average, worst block (as a share of the time each block is allowed), blocks that ran late, output latency. Click to reset.">cpu --</span></div>

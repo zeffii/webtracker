@@ -418,6 +418,11 @@ export function createTrackerView({ el, statusEl, transport, onToggle, onBack, o
       }
       if (key === 'enter') { if (solo) message = 'Not in solo-edit: Esc first.'; else insertLive(e.shiftKey); e.preventDefault(); return; }
       if (key === 'i') { interpolate(); e.preventDefault(); return; }
+      if (key === 'g' && !e.shiftKey) {   // this placement gets its own copy of its pattern, so editing it no longer changes the others
+        message = editor.clone(cur.lane, solo ? solo.start : cur.tick) ? `${patternName()} is now this placement's own copy.` : 'No pattern here.';
+        sel = null;
+        e.preventDefault(); return;
+      }
       if (key === 'z' || key === 'y') {
         const redo = key === 'y' || e.shiftKey;
         const label = redo ? editor.redo() : editor.undo();
