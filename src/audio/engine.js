@@ -10,7 +10,7 @@ export class Engine {
   watching = new Set();   // nodes whose output is being watched (replayed when the audio thread starts)
   onFault = null;   // called with an instrument id when the audio thread had to rebuild it
   registry = new ParamRegistry();
-  transport = new Int32Array(new SharedArrayBuffer(8));   // [tick, playing], written by the worklet
+  transport = new Int32Array(new SharedArrayBuffer(16));   // [tick, playing, fraction of the tick in 1/65536], written by the worklet
 
   async start() {
     if (!crossOriginIsolated) {
@@ -115,6 +115,11 @@ export class Engine {
 
   get tick() {
     return Atomics.load(this.transport, 0);
+  }
+
+  // The song position in ticks and fractions of one, as of the last audio block.
+  get position() {
+    return Atomics.load(this.transport, 0) + Atomics.load(this.transport, 2) / 65536;
   }
 
   // Latest-value mailbox: the worklet reads this slot once per block.

@@ -10,6 +10,7 @@ export const GROUPS = {
   Look: 'Colours and sizes. Applied at once.',
   Playing: 'How the grids behave while the song runs.',
   Editing: 'Defaults for solo-edit, lanes and inserting silence.',
+  MIDI: 'A MIDI keyboard plays the machine under the cursor, enters notes in the pattern editor and records into patterns while the song plays (Rec, Alt+R). Chrome and Edge only.',
 };
 
 // type: bool | int | choice. `legacy` is the older single-purpose localStorage key, read once to carry settings over.
@@ -25,6 +26,15 @@ export const SCHEMA = [
   { key: 'followLane', label: 'Instrument editor follows the cursor', hint: 'moving into another lane shows that lane\'s machine', type: 'bool', def: true },
   { key: 'insertLength', label: 'Insert silence: default length', hint: 'in ticks', type: 'int', min: 1, max: 65536, def: 128 },
   { key: 'insertCut', label: 'Insert silence: cut patterns across the cursor', hint: 'off: a pattern crossing the cursor row stays whole', type: 'bool', def: false },
+  { group: 'MIDI', key: 'midiOn', label: 'Use MIDI input', hint: 'the browser asks for permission when this is switched on', type: 'bool', def: false },
+  { key: 'midiChannel', label: 'MIDI channel', hint: '0 listens to every channel', type: 'int', min: 0, max: 16, def: 0 },
+  { key: 'midiVelocity', label: 'Velocity sensitive', hint: 'on: the key velocity is played and written to the vl column (Alt+V). off: every note at the default volume, nothing written', type: 'bool', def: false },
+  { key: 'midiChord', label: 'A chord is', type: 'choice', options: ['window', 'held'], labels: { window: 'notes struck within the chord window', held: 'notes struck while another is still held' }, def: 'window' },
+  { key: 'midiWindow', label: 'Chord window', hint: 'in ms', type: 'int', min: 5, max: 500, def: 60 },
+  { key: 'midiAdvance', label: 'After entering notes', type: 'choice', options: ['stay', 'row'], labels: { stay: 'the cursor stays', row: 'the cursor moves down one row (when the keys are let go)' }, def: 'stay' },
+  { key: 'midiOffs', label: 'Recording: release writes a note off', hint: 'the key release; off for pads and drums', type: 'bool', def: true },
+  { key: 'midiShared', label: 'Shared patterns', hint: 'a pattern placed more than once, written by MIDI', type: 'choice', options: ['ask', 'write'], labels: { ask: 'refuse: clone it first (G)', write: 'write into it, so every placement changes' }, def: 'ask' },
+  { key: 'midiLatency', label: 'Recording: latency offset', hint: 'in ms, added to what the browser reports; raise it if recorded notes land late', type: 'int', min: -200, max: 400, def: 0 },
 ];
 const byKey = Object.fromEntries(SCHEMA.map(s => [s.key, s]));
 

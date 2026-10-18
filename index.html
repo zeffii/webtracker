@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="themes.css">
-  <title>webtracker m196</title>
+  <title>webtracker m197</title>
   <style>
     :root { color-scheme: light dark; font-family: system-ui, sans-serif; }   /* colours: see themes.css */
     body { background: var(--bg); color: var(--fg); }
@@ -28,6 +28,7 @@
     #header { position: sticky; top: 0; z-index: 1; background: var(--bg); border-bottom: 1px solid; padding: .35rem .75rem; }
     #header .line { display: flex; flex-wrap: wrap; gap: .25rem .75rem; align-items: center; }
     #new-wrap { position: relative; }
+    #rec[aria-pressed=true] { background: #c0303a; border-color: #c0303a; color: #fff; }
     .ctx-menu { position: fixed; z-index: 30; min-width: 15rem; background: var(--bg); color: var(--fg); border: 1px solid; box-shadow: 0 4px 14px rgb(0 0 0 / .35); padding: 2px; font: 12px/18px system-ui, sans-serif; user-select: none; }
     .ctx-item { display: flex; justify-content: space-between; gap: 1.5rem; padding: 1px 8px; cursor: pointer; white-space: nowrap; }
     .ctx-item.on { background: var(--hi); color: var(--hi-fg); }
@@ -351,6 +352,7 @@
       <strong>webtracker</strong>
       <button id="start">Start</button>
       <button id="play" disabled>Play</button>
+      <button id="rec" aria-pressed="false" title="Record MIDI notes into the pattern under the playhead while the song plays (Alt+R)">Rec</button>
       <button id="follow" aria-pressed="false" title="Follow the song (F9): the grids scroll with the playing row instead of the row marker moving">Follow</button>
       <span id="new-wrap"><button id="new" disabled aria-haspopup="menu" aria-expanded="false">New ▾</button>
         <span id="new-menu" role="menu" hidden>
@@ -404,6 +406,8 @@
           <dt>\ or Insert</dt><dd>note preview on / off: with it on, typed notes sound while the key is held</dd>
           <dt>Ctrl+D</dt><dd>copy the selection (or the cell) to the rows right below it, wherever the cursor is; again to copy it once more below that</dd>
           <dt>Alt+S</dt><dd>solo the lane under the cursor (the others ring out and go quiet); again brings everyone back</dd>
+          <dt>Alt+R</dt><dd>arm recording: a MIDI keyboard writes into the pattern under the playhead of the cursor lane, on the nearest tick, while the song plays</dd>
+          <dt>Alt+V</dt><dd>MIDI velocity sensitive or not</dd>
           <dt>Alt+T</dt><dd>tint each pattern faintly in its own colour, to see where they begin and end; again to switch it off</dd>
           <dt>Alt+Enter</dt><dd>solo-edit the pattern under the cursor (only it is shown, rows numbered from 0); again, or Esc, goes back to the whole song</dd>
           <dt>Ctrl+G</dt><dd>give this placement its own copy of the pattern (clone and replace), so edits stop reaching the other places it is used; works in solo-edit too</dd>

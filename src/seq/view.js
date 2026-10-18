@@ -664,5 +664,5 @@ export function createTrackerView({ el, statusEl, transport, onToggle, onBack, o
 
   const setRows = n => { rowCount = Math.max(ROWS.min, Math.min(ROWS.max, Math.round(n))); draw(); return rowCount; };
   const lineHeight = () => (lanes ? metrics().lh : 18);
-  return { draw, load, goto, enterSolo, relayout, say: m => { message = m; }, setSize, setRows, lineHeight, get rows() { return rowCount; }, get fontPx() { return fontPx; }, get tick() { return cur.tick; }, get preview() { return preview; } };
+  return { draw, load, goto, enterSolo, relayout, say: m => { message = m; }, setSize, setRows, lineHeight, get rows() { return rowCount; }, get fontPx() { return fontPx; }, get tick() { return cur.tick; }, get lane() { return cur.lane; }, get col() { return cur.col; }, stepRows: n => { moveRow(n); }, get preview() { return preview; } };
 }

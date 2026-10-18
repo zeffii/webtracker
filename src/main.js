@@ -14,6 +14,8 @@ import { MASTER, ensureMaster, synthKinds } from './instruments.js';
 import { createSampleScreen } from './project/samplescreen.js';
 import { createWaveformView } from './project/waveform.js';
 import { showContextMenu } from './ui/ctxmenu.js';
+import { createMidiInput } from './ui/midiin.js';
+import { createMidiWriter } from './seq/midiwrite.js';
 import { createMarkerRegionView } from './project/markerregion.js';
 import { FILE_EXT, INSTRUMENT_EXT, parseInstrument, parseProject, serializeInstrument, serializeProject } from './project/file.js';
 import { createEditor } from './seq/editor.js';
@@ -26,12 +28,13 @@ import { createTabs } from './ui/tabs.js';
 
 const engine = new Engine();
 const $ = id => document.getElementById(id);
-let started = false, playing = false, project = null;
+let started = false, playing = false, project = null, recording = false;
 
 const setPlaying = (value, from = null) => {
   playing = value;
   if (playing) engine.play(from); else engine.stop();
   $('play').textContent = playing ? 'Stop' : 'Play';
+  if (recording) { if (playing) writer.beginPass(); else writer.endPass(); }   // each run of the song is its own undo step
 };
 const togglePlay = () => setPlaying(!playing);
 // Panic: every sounding note stops, and held keyjazz keys are let go.
@@ -53,6 +56,13 @@ const tabs = createTabs({
 document.addEventListener('keydown', e => {
   if (tabs.handleKey(e)) return;
   const here = () => (tabs.active === 'arrange' ? seqView : view).tick;   // the row the cursor is on
+  // Alt+R arms and disarms MIDI recording; Alt+V switches MIDI velocity on and off.
+  if (e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey && (e.code === 'KeyR' || e.code === 'KeyV') && project) {
+    e.preventDefault();
+    if (e.code === 'KeyR') setRecording(!recording);
+    else { const on = !config.get('midiVelocity'); config.set('midiVelocity', on); midiSay(on ? 'MIDI velocity on: key velocity is played and written.' : 'MIDI velocity off: the default volume, nothing written.'); }
+    return;
+  }
   // Alt+S: solo the lane under the cursor (the other lanes let go and play nothing); again to bring everyone back.
   if (e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey && e.code === 'KeyS' && project && (tabs.active === 'arrange' || tabs.active === 'patterns')) {
     e.preventDefault();
@@ -132,6 +142,70 @@ const seqView = createSequenceView({
   onMove: (lane, tick) => { view.goto(lane, tick); followLane(lane); },
   onSong: () => songChanged(),
 });
+
+// ---- MIDI keyboard ----
+// Plays the machine under the cursor (the selected instrument in the graph view, the sample on the sample screen), enters
+// notes at the cursor in the pattern editor, and with Rec armed writes them into the playing song on the nearest tick.
+const midiVoices = new Map();   // MIDI note -> what its press started, so the release stops that and nothing else
+const midiSay = text => { (tabs.active === 'arrange' ? seqView : view).say(text); };
+const writer = createMidiWriter({
+  lanes: () => project?.lanes ?? [], editor: () => project.editor, length: () => project.song.length, loop: () => project.song.loop ?? null,
+  settings: () => ({ chord: config.get('midiChord'), window: config.get('midiWindow'), velocity: config.get('midiVelocity'), offs: config.get('midiOffs'), shared: config.get('midiShared') }),
+});
+const setRecording = on => {
+  recording = on;
+  $('rec').setAttribute('aria-pressed', String(on));
+  if (on) writer.beginPass(); else writer.endPass();
+  midiSay(on ? (playing ? 'Recording: play on the MIDI keyboard.' : 'Rec armed: it records while the song plays.') : 'Recording off.');
+};
+$('rec').addEventListener('click', e => { setRecording(!recording); e.currentTarget.blur(); });
+const latencyTicks = () => {
+  const ms = engine.health().latency + config.get('midiLatency');
+  return ms / (60000 / (project.song.bpm * project.song.ticksPerBeat));
+};
+const midiIn = createMidiInput({
+  channel: () => config.get('midiChannel'),
+  onState: ({ on, names, error }) => { if (error) midiSay(error); else if (on) midiSay(names.length ? `MIDI: ${names.join(', ')}` : 'MIDI on, no input found.'); },
+  onNote: ({ on, note, vel, time }) => {
+    if (!started || !project) return;
+    const v = config.get('midiVelocity') ? Math.max(1, vel) / 127 : 1;
+    const tab = tabs.active;
+    if (!on) {   // a release: stop what the press started, then the writers see it
+      const s = midiVoices.get(note);
+      midiVoices.delete(note);
+      if (s?.id !== undefined) engine.noteOff(s.id, note);
+      else if (s?.sample !== undefined) playSample(s.sample, note, false);
+      if (recording && playing && (tab === 'arrange' || tab === 'patterns')) writer.recOff({ midi: note, pos: engine.position - latencyTicks() });
+      if (tab === 'patterns') {
+        const end = writer.stepOff({ midi: note });
+        if (end.ended && config.get('midiAdvance') === 'row' && view.lane === end.li && view.tick === end.tick) view.stepRows(1);
+      }
+      return;
+    }
+    if (tab === 'patterns' || tab === 'arrange') {
+      const li = tab === 'arrange' ? seqView.lane : view.lane, lane = project.lanes[li], id = lane?.instrument;
+      if (!id || id === 'master') return;
+      const prev = midiVoices.get(note);
+      if (prev?.id !== undefined) engine.noteOff(prev.id, note);
+      midiVoices.set(note, { id });
+      engine.noteOn(id, note, v);
+      let result = null;
+      if (recording && playing) result = writer.recOn({ li, midi: note, vel, pos: engine.position - latencyTicks() });
+      else if (tab === 'patterns') result = writer.stepOn({ li, tick: view.tick, col: view.col, midi: note, vel, time });
+      if (result?.message) midiSay(result.message);
+    } else if (tab === 'instruments') {
+      const id = patcher.instrument;
+      if (!id) return;
+      midiVoices.set(note, { id });
+      engine.noteOn(id, note, v);
+    } else if (tab === 'samples' && sampleScreen.selected) {
+      midiVoices.set(note, { sample: sampleScreen.selected });
+      playSample(sampleScreen.selected, note, true);
+    }
+  },
+});
+config.onChange(k => { if (k === 'midiOn') midiIn.enable(config.get('midiOn')); });
+if (config.get('midiOn')) midiIn.enable(true);
 
 const patcher = createPatcher({
   onNote: (id, note, on) => { if (!started) return; if (on) engine.noteOn(id, note, 1); else engine.noteOff(id, note); },

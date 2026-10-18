@@ -14,6 +14,7 @@ import { insertPattern, placementAt, setCell } from '../src/seq/edit.js';
 import { createTrackerView, cellAt } from '../src/seq/view.js';
 import { createSequenceView } from '../src/seq/seqview.js';
 import { createEditor } from '../src/seq/editor.js';
+import { createMidiWriter, noteColumnsOf, quantize } from '../src/seq/midiwrite.js';
 import * as ops from '../src/seq/edit.js';
 import * as gedit from '../src/graph/edit.js';
 import { scopeBox } from '../src/graph/scope.js';
@@ -4528,6 +4529,105 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   assert.equal(registry.get('master.m.bpm'), 240);
   seq.stop(); seq.play();
   assert.equal(registry.get('master.m.bpm'), 120, 'playing from the top starts at the header tempo again');
+}
+
+// MIDI entry and recording: chords fill the note columns, velocity goes to vl, a pass is one undo step.
+{
+  const registry = new ParamRegistry();
+  const padDef = synthKinds.subtractive.make();
+  compile(padDef.graph, { instrument: 'pad', nodeTypes: NODE_TYPES, registry });
+  const padSet = { pad: padDef };
+  const padRow = buildColumns('pad', padDef, registry).map(c => KINDS[c.token].blank).join(' ');
+  const setupMidi = (over = {}, lanePlacements = null) => {
+    const song = { bpm: 120, ticksPerBeat: 4, length: 32, swing: 0.5, lanes: [oneLane('pad', 'pad', Array(32).fill(padRow).join('\n'), 32)] };
+    if (lanePlacements) song.lanes[0].placements = lanePlacements;
+    const lanes = prepareSong(song, padSet, registry), editor = createEditor(lanes, 32);
+    const cfg = { chord: 'window', window: 60, velocity: false, offs: true, shared: 'ask', ...over };
+    const loop = { value: null };
+    const w = createMidiWriter({ lanes: () => lanes, editor: () => editor, length: () => 32, loop: () => loop.value, settings: () => cfg });
+    return { lanes, editor, w, cfg, loop, lane: lanes[0], cell: (t, c) => lanes[0].patterns.a.rows[t][c] };
+  };
+  const notes = noteColumnsOf(prepareSong({ bpm: 120, ticksPerBeat: 4, length: 32, swing: 0.5, lanes: [oneLane('pad', 'pad', Array(32).fill(padRow).join('\n'), 32)] }, padSet, registry)[0]);
+  assert.equal(notes.length, 3, 'the pad has three note columns');
+  {   // a chord of four keys within the window: three columns, the fourth refused, the cursor is the caller's business
+    const { w, cell, cfg } = setupMidi();
+    const keys = [60, 64, 67, 71];
+    const res = keys.map((midi, i) => w.stepOn({ li: 0, tick: 4, col: notes[0], midi, vel: 90, time: 1000 + i * 10 }));
+    assert.deepEqual(res.map(r => r.wrote), [true, true, true, false], 'a fourth note has no column');
+    assert.deepEqual(notes.map(c => cell(4, c)), ['C-4', 'E-4', 'G-4'], 'in the order pressed, C-4 being MIDI 60');
+    assert.equal(w.stepOff({ midi: 60 }).ended, false);
+    assert.deepEqual([64, 67, 71].map(m => w.stepOff({ midi: m }).ended), [false, false, true], 'the chord ends with its last key');
+    // a later key starts a new chord, back at the cursor
+    const next = w.stepOn({ li: 0, tick: 5, col: notes[1], midi: 62, time: 5000 });
+    assert.equal(next.wrote, true); assert.equal(cell(5, notes[1]), 'D-4', 'a new chord starts at the cursor column');
+    assert.equal(cell(5, notes[2]), '...');
+    cfg.velocity = false;
+  }
+  {   // velocity: vl is written only when the setting is on
+    const { w, cell, lane } = setupMidi({ velocity: true });
+    const vl = notes[0] + 1;
+    assert.equal(lane.columns[vl].kind, 'vel');
+    w.stepOn({ li: 0, tick: 2, col: notes[0], midi: 60, vel: 127, time: 0 });
+    assert.equal(cell(2, vl), 'FF', 'full velocity is FF');
+    w.stepOn({ li: 0, tick: 3, col: notes[0], midi: 60, vel: 64, time: 1000 });
+    assert.equal(cell(3, vl), '81', 'velocity 64 of 127 is 0x81');
+    const off = setupMidi({ velocity: false });
+    off.w.stepOn({ li: 0, tick: 2, col: notes[0], midi: 60, vel: 127, time: 0 });
+    assert.equal(off.cell(2, vl), '..', 'with velocity off the vl cell is left alone');
+  }
+  {   // held mode: a slow chord is still a chord while a key is down
+    const { w, cell } = setupMidi({ chord: 'held' });
+    w.stepOn({ li: 0, tick: 0, col: notes[0], midi: 60, time: 0 });
+    w.stepOn({ li: 0, tick: 0, col: notes[0], midi: 64, time: 5000 });
+    assert.deepEqual([cell(0, notes[0]), cell(0, notes[1])], ['C-4', 'E-4']);
+    w.stepOff({ midi: 60 }); w.stepOff({ midi: 64 });
+    w.stepOn({ li: 0, tick: 1, col: notes[0], midi: 67, time: 5100 });
+    assert.equal(cell(1, notes[0]), 'G-4', 'after everything is let go the next key is a new chord');
+  }
+  {   // shared patterns: refused unless allowed
+    const shared = [{ puid: 'a', start: 0, length: 16 }, { puid: 'a', start: 16, length: 16 }];
+    const a = setupMidi({}, shared);
+    const r = a.w.stepOn({ li: 0, tick: 0, col: notes[0], midi: 60, time: 0 });
+    assert.equal(r.wrote, false); assert.match(r.message, /used 2 times/);
+    const b = setupMidi({ shared: 'write' }, shared);
+    assert.equal(b.w.stepOn({ li: 0, tick: 0, col: notes[0], midi: 60, time: 0 }).wrote, true);
+  }
+  {   // quantizing: nearest tick, wrapped into the loop
+    assert.equal(quantize(4.4, null, 32), 4); assert.equal(quantize(4.6, null, 32), 5);
+    assert.equal(quantize(31.7, null, 32), 0, 'past the end wraps to the start');
+    assert.equal(quantize(15.6, { start: 8, end: 16 }, 32), 8, 'and into the loop');
+    assert.equal(quantize(7.8, { start: 8, end: 16 }, 32), 8);
+  }
+  {   // recording: chords on one tick, a note off on release, one undo step for the pass, a taken cell is left
+    const { w, cell, editor, lanes } = setupMidi();
+    w.beginPass();
+    w.recOn({ li: 0, midi: 60, vel: 100, pos: 4.2 });
+    w.recOn({ li: 0, midi: 64, vel: 100, pos: 4.3 });
+    assert.deepEqual([cell(4, notes[0]), cell(4, notes[1])], ['C-4', 'E-4'], 'two notes on one tick take two columns');
+    w.recOn({ li: 0, midi: 72, vel: 100, pos: 6.1 });
+    w.recOff({ midi: 60, pos: 8.2 });
+    assert.equal(cell(8, notes[0]), '===', 'release writes a note off on its tick');
+    w.recOff({ midi: 64, pos: 4.4 });
+    assert.equal(cell(4, notes[1]), 'E-4', 'a release on the same tick writes nothing');
+    w.recOn({ li: 0, midi: 65, vel: 100, pos: 10.0 });
+    w.recOff({ midi: 72, pos: 10.2 });
+    assert.deepEqual([cell(10, notes[0]), cell(10, notes[2])], ['F-4', '==='], 'a new note takes the first free column; the release of the other one is written in its own');
+    w.recOn({ li: 0, midi: 50, pos: 12 }); w.recOff({ midi: 50, pos: 14 });
+    w.recOn({ li: 0, midi: 52, pos: 14 });
+    assert.equal(cell(14, notes[1]), 'E-3', 'a new note replaces the note off written on its tick (it ends the old note anyway)');
+    assert.equal(editor.undo(), 'midi recording');
+    assert.ok(lanes[0].patterns.a.rows.every(r => notes.every(c => r[c] === '...')), 'the whole pass is one undo step');
+  }
+  {   // a note-off option, and a monophonic lane steals its column
+    const { w, cell, cfg } = setupMidi({ offs: false });
+    w.beginPass();
+    w.recOn({ li: 0, midi: 60, pos: 2 }); w.recOff({ midi: 60, pos: 4 });
+    assert.equal(cell(4, notes[0]), '...', 'offs off: nothing is written on release');
+    const mono = setupMidi();
+    mono.w.beginPass();
+    for (let i = 0; i < 4; i++) mono.w.recOn({ li: 0, midi: 60 + i, pos: i });   // four held notes, three columns
+    assert.equal(mono.cell(3, notes[0]), 'D#4', 'with every column holding a key the oldest column is stolen');
+  }
 }
 
 // LFO range: legacy swing by amount, or between min and max.

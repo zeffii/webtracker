@@ -26,6 +26,7 @@ export class Sequencer {
   tick = 0;
   songPos = 0;   // where the song is, in ticks and fractions of one, for nodes that follow the grid
   countdown = 0;
+  tickLen = 0;     // samples in the tick now sounding (swing makes them differ)
   playing = false;
   preview = 0;     // samples left of a single played row, after which what it started is let go
 
@@ -33,7 +34,7 @@ export class Sequencer {
     this.sampleRate = sampleRate;
     this.runtime = runtime;
     this.params = params;         // Float32Array over the shared parameter block
-    this.transport = transport;   // Int32Array: [tick, playing]
+    this.transport = transport;   // Int32Array: [tick, playing, how far through the tick, in 1/65536]
     this.scratchL = new Float32Array(maxBlock);
     this.scratchR = new Float32Array(maxBlock);
   }
@@ -276,7 +277,8 @@ export class Sequencer {
           ({ bpm, swing, tpb } = this.tempo());   // the row may have changed the tempo
           samplesPerTick = this.sampleRate * 60 / (bpm * tpb);
           group = Math.max(1, Math.round(tpb / 4));
-          this.countdown += 2 * samplesPerTick * (first ? swing : 1 - swing);
+          this.tickLen = 2 * samplesPerTick * (first ? swing : 1 - swing);
+          this.countdown += this.tickLen;
         }
         span = Math.min(span, Math.max(1, Math.ceil(this.countdown)));
       }
@@ -298,5 +300,7 @@ export class Sequencer {
       if (this.preview > 0 && (this.preview -= span) <= 0) this.releaseAll();
       done += span;
     }
+    // how far through the sounding tick the song is, for whatever on the page wants a position finer than a tick (MIDI recording)
+    this.transport[2] = this.playing && this.tickLen > 0 ? Math.max(0, Math.min(65535, Math.floor((1 - this.countdown / this.tickLen) * 65536))) : 0;
   }
 }
