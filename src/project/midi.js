@@ -100,6 +100,7 @@ export function retime(data, k) {
     for (const p of Object.values(lane.patterns)) p.text = gap(p.text);
     lane.placements = lane.placements.map(pl => ({ ...pl, start: pl.start * k, length: pl.length * k }));
     if (lane.mutes) lane.mutes = lane.mutes.map(t => t * k);
+    if (lane.offs) lane.offs = lane.offs.map(t => t * k);
   }
   if (song.loop) song.loop = { start: song.loop.start * k, end: song.loop.end * k };
   song.length *= k;

@@ -137,13 +137,17 @@ export function buildPages(rows, columns) {
 // A lane's mutes are the ticks where it flips between playing and muted: the first flip mutes it,
 // the next unmutes it, and so on. A lane can also be silenced as a whole, which wins over the flips.
 // The mask says, for each tick, whether the lane is muted: 0 plays, 1 muted by the flips, 2 silenced.
+// Bit 4 marks a tick where the lane's notes are let go (a note-off marker, for the end of a pattern that has none of its own).
 // It is shared memory, so the sequencer reads what an edit writes.
 export function writeMask(lane, length) {
   lane.mask ??= new Uint8Array(new SharedArrayBuffer(Math.max(1, length)));
-  if (lane.silenced) { lane.mask.fill(2); return; }
   lane.mask.fill(0);
-  const flips = [...(lane.mutes ?? [])].sort((a, b) => a - b);
-  for (let i = 0; i < flips.length; i += 2) lane.mask.fill(1, Math.max(0, flips[i]), Math.min(length, flips[i + 1] ?? length));
+  if (lane.silenced) lane.mask.fill(2);
+  else {
+    const flips = [...(lane.mutes ?? [])].sort((a, b) => a - b);
+    for (let i = 0; i < flips.length; i += 2) lane.mask.fill(1, Math.max(0, flips[i]), Math.min(length, flips[i + 1] ?? length));
+  }
+  for (const t of lane.offs ?? []) if (t >= 0 && t < length) lane.mask[t] |= 4;
 }
 
 // A lane never has two patterns starting on the same tick: when loaded data has them, the first one
@@ -174,6 +178,7 @@ export function prepareSong(song, instruments, registry) {
       })),
       placements: uniqueStarts(src.placements.map(p => ({ ...p }))),
       mutes: [...(src.mutes ?? [])].filter(t => t < song.length).sort((a, b) => a - b),
+      offs: [...(src.offs ?? [])].filter(t => t < song.length).sort((a, b) => a - b),
       silenced: src.silenced === true,
     };
     lane.rows = flattenLane(lane, columns, song.length);
@@ -225,7 +230,7 @@ export function rebuildInstrumentLanes(lanes, song, instruments, registry, instr
 // A new empty lane for an instrument (which must already be compiled).
 export function createLane(id, instrumentId, instruments, registry, length) {
   const columns = buildColumns(instrumentId, instruments[instrumentId], registry);
-  const lane = { id, instrument: instrumentId, columns, patterns: {}, placements: [], mutes: [] };
+  const lane = { id, instrument: instrumentId, columns, patterns: {}, placements: [], mutes: [], offs: [] };
   lane.rows = flattenLane(lane, columns, length);
   lane.pages = buildPages(lane.rows, columns);
   writeMask(lane, length);

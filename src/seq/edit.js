@@ -57,6 +57,15 @@ export function toggleMute(lane, length, tick) {
   return true;
 }
 
+// Puts a note-off marker at a tick, or takes the one that is there away: the lane lets go of what is sounding there.
+export function toggleOff(lane, length, tick) {
+  if (tick < 0 || tick >= length) return false;
+  const marks = lane.offs ?? [];
+  lane.offs = marks.includes(tick) ? marks.filter(t => t !== tick) : [...marks, tick].sort((a, b) => a - b);
+  writeMask(lane, length);
+  return true;
+}
+
 // Edits the pattern under the tick, so every placement of that pattern changes.
 export function setCell(lane, length, tick, col, token) {
   const pl = placementAt(lane, tick);

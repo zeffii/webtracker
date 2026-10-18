@@ -4648,6 +4648,22 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   assert.deepEqual([0, 4, 8, 12].map(r => rows[r].startsWith('C-4')), [true, true, true, true], 'the triplet falls on ticks 0, 4, 8 and 12');
 }
 
+// A note-off marker lets go of the lane's notes at its row
+{
+  const text = patternText(16, { 0: 'C-4 .. .. .... .... .. .. ..' });
+  const offsAt = marks => {
+    const song = { ...song120([oneLane('lead', 'lead', text, 16)]), length: 32 };
+    if (marks) song.lanes[0].offs = marks;
+    const { seq, rt } = songSetup(song), seen = [];
+    const note = rt.note.bind(rt);
+    rt.note = (instrument, msg) => { if (msg.type === 'allOff') seen.push(seq.tick); note(instrument, msg); };
+    seq.play(); render(seq, 2.2);
+    return seen;
+  };
+  assert.deepEqual(offsAt(null), [], 'nothing lets go without a marker');
+  assert.deepEqual(offsAt([16]), [16], 'the marker lets go once, at its row');
+}
+
 // Playing from a tick, and one row at a time
 {
   const text = patternText(16, { 2: 'C-4 .. .. .... .... .. .. ..' });

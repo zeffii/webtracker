@@ -13,11 +13,12 @@ export function createEditor(lanes, length, { limit = 20 } = {}) {
   const undoStack = [], redoStack = [];
   let waypoint = null, lastKey = null;
 
-  const snapshot = () => lanes.map(l => structuredClone({ patterns: l.patterns, placements: l.placements, mutes: l.mutes ?? [] }));
+  const snapshot = () => lanes.map(l => structuredClone({ patterns: l.patterns, placements: l.placements, mutes: l.mutes ?? [], offs: l.offs ?? [] }));
   const restore = state => state.forEach((s, i) => {
     lanes[i].patterns = structuredClone(s.patterns);
     lanes[i].placements = structuredClone(s.placements);
     lanes[i].mutes = [...s.mutes];
+    lanes[i].offs = [...(s.offs ?? [])];
     ops.refresh(lanes[i], length);
   });
 
@@ -79,6 +80,7 @@ export function createEditor(lanes, length, { limit = 20 } = {}) {
       }
       return n;
     }),
+    toggleOff: (li, tick) => change('toggle note off', null, () => ops.toggleOff(at(li), length, tick)),
     toggleMute: (li, tick) => change('toggle mute', null, () => ops.toggleMute(at(li), length, tick)),
     remove: (li, tick) => change('remove pattern', null, () => ops.removePlacement(at(li), length, tick)),
 

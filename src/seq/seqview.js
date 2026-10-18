@@ -165,6 +165,12 @@ export function createSequenceView({ el, statusEl, listEl, transport, onToggle, 
   el.addEventListener('mouseup', stopDrag);
   el.addEventListener('mouseleave', stopDrag);
 
+  // A note-off marker on this row: the lane lets go of what is sounding there.
+  const noteOffMark = () => {
+    const row = rowStart(cur.tick);
+    message = editor.toggleOff(cur.lane, row) ? (lane().offs.includes(row) ? 'Note off from this row.' : 'Note-off marker removed.') : "Can't put one here.";
+  };
+
   // Each edit reports through the message line.
   const act = (label, result, ok) => { message = result ? ok : `Can't ${label} here.`; return result; };
 
@@ -185,6 +191,7 @@ export function createSequenceView({ el, statusEl, listEl, transport, onToggle, 
         message = label ? `${redo ? 'Redid' : 'Undid'} ${label}.` : `Nothing to ${redo ? 'redo' : 'undo'}.`;
         sel = null;
         e.preventDefault();
+      } else if (key === '1') { noteOffMark(); e.preventDefault();
       } else if (key === 'c' || key === 'x') {
         const b = copy();
         if (b && key === 'x') { clearBlock(b, 'cut'); message = `Cut ${count(clipboard.items.length)}.`; }
@@ -258,6 +265,7 @@ export function createSequenceView({ el, statusEl, listEl, transport, onToggle, 
         message = !l.mutes.includes(row) ? 'Mute marker removed.' : l.mask[row] ? `${l.id} muted from here.` : `${l.id} plays again from here.`;
         break;
       }
+      case 'o': noteOffMark(); break;   // the same as Ctrl+1, which some browsers keep for switching tabs
       case 'k': act('colour', editor.color(li, t, e.shiftKey ? -1 : 1), 'Pattern colour changed.'); break;   // Shift+K steps back
       case 'w':
         if (e.shiftKey) message = editor.restoreWaypoint() ? 'Restored the waypoint.' : 'No waypoint set.';
@@ -332,7 +340,7 @@ export function createSequenceView({ el, statusEl, listEl, transport, onToggle, 
       const t = r * CELL;
       const cells = lanes.map((l, li) => {
         const pl = inRow(l, t);
-        const level = l.mask?.[t] ?? 0, muted = level > 0, flip = (l.mutes ?? []).includes(t);
+        const level = (l.mask?.[t] ?? 0) & 3, muted = level > 0, flip = (l.mutes ?? []).includes(t), off = (l.offs ?? []).includes(t);
         const isCur = li === cur.lane && r === curRow;
         // the patterns that touch this row, lowest first; each is a rect, inset by the patterns under it
         const layers = blocks[li].filter(e => e.start < t + CELL && e.end > t).map(e => {
@@ -351,14 +359,14 @@ export function createSequenceView({ el, statusEl, listEl, transport, onToggle, 
         }
         // a mute marker is a labelled cell: <mute> from here down, <play> where the lane comes back. The label sits at
         // the right when a pattern starts in the row, so the pattern's name still shows.
-        const label = flip ? (muted ? '<mute>' : '<play>') : '';
+        const label = `${off ? '<off>' : ''}${flip ? (muted ? '<mute>' : '<play>') : ''}`;
         const room = COLW - label.length - 1;   // the cell's last character is hidden by the text's left padding
-        if (flip) text = `${(pl && pl.start >= t ? text.slice(0, room - 1).trimEnd() : '').padEnd(room)}${label} `;
+        if (label) text = `${(pl && pl.start >= t ? text.slice(0, room - 1).trimEnd() : '').padEnd(room)}${label} `;
         const classes = ['cell', level === 2 ? 'silenced' : muted && 'muted', isCur && 'cur', picked && li >= picked.l0 && li <= picked.l1 && t >= picked.t0 && t <= picked.t1 && 'sel'].filter(Boolean).join(' ');
         // The cell under the cursor is drawn in the selection colour, which hides the pattern's own;
         // a small swatch of it is drawn on top so a colour change can be seen.
         let inner = esc(text);
-        if (flip) {
+        if (label) {
           inner = `${esc(text.slice(0, room))}<span class="mk ${muted ? 'mm' : 'mu'}">${esc(label)}</span> `;
         } else if (isCur && swatch) {
           const at = COLW - 2, style = swatch.style ? ` style="background:${swatch.style}"` : '';
@@ -382,7 +390,7 @@ export function createSequenceView({ el, statusEl, listEl, transport, onToggle, 
     statusEl.textContent = [
       `lane ${cur.lane + 1}/${lanes.length} ${lane().id}`, `row ${curRow}/${rows - 1}`, `tick ${editTick()}`,
       ownerPat ? `${hex2(ownerPat.index)} ${ownerPat.name}` : 'no pattern',
-      lane().silenced ? 'silenced' : lane().mask?.[rowStart(cur.tick)] && 'muted',
+      lane().silenced ? 'silenced' : (lane().mask?.[rowStart(cur.tick)] & 3) && 'muted',
       picked && `selected ${picked.l1 - picked.l0 + 1}x${(picked.t1 - picked.t0) / CELL + 1}`, typed && `typing ${typed}`, message,
     ].filter(Boolean).join(' · ');
     if (listEl) {

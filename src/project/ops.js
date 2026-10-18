@@ -198,6 +198,7 @@ export function setSongLength(project, ticks) {
   if (!Number.isFinite(length) || length < 16 || length > MAX_SONG) throw new Error(`A song is 16 to ${MAX_SONG} ticks long.`);
   for (const lane of project.lanes) {
     lane.mutes = (lane.mutes ?? []).filter(t => t < length);
+    lane.offs = (lane.offs ?? []).filter(t => t < length);
     lane.placements = lane.placements
       .filter(p => p.start < length)
       .map(p => (p.start + p.length > length ? { ...p, length: length - p.start } : p));
@@ -252,6 +253,7 @@ export function duplicateLane(project, id, length = project.song.length) {
     patterns: structuredClone(lane.patterns),
     placements: structuredClone(lane.placements),
     mutes: [...(lane.mutes ?? [])],
+    offs: [...(lane.offs ?? [])],
     silenced: lane.silenced === true,
   };
   copy.rows = flattenLane(copy, copy.columns, length);
@@ -312,6 +314,7 @@ export function projectData(project) {
     patterns: Object.fromEntries(Object.entries(l.patterns).map(([puid, p]) => [puid, { name: p.name, index: p.index, ...(p.color !== undefined ? { color: p.color } : {}), text: p.rows.map(r => r.join(' ')).join('\n') }])),
     placements: l.placements.map(p => ({ ...p })),
     ...(l.mutes?.length ? { mutes: [...l.mutes] } : {}),
+    ...(l.offs?.length ? { offs: [...l.offs] } : {}),
     ...(l.silenced ? { silenced: true } : {}),
   }));
   return { song: { ...project.song, lanes }, instruments: project.instruments, samples: project.samples };
