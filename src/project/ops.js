@@ -1,6 +1,7 @@
 import { MASTER, newSamplerInstrument, synthKinds } from '../instruments.js';
 import { clampLoop } from '../seq/loop.js';
 import { dropSource, renameSource } from '../graph/sidechain.js';
+import { slicePlacement } from '../seq/edit.js';
 import { buildPages, createLane, flattenLane, writeMask } from '../seq/lane.js';
 
 // Changes to the shape of a project: samples, instruments, lanes. Plain functions on the
@@ -206,6 +207,29 @@ export function setSongLength(project, ticks) {
   project.song.length = length;
   clampLoop(project.song);
   return length;
+}
+
+// Inserts `n` ticks of silence at the row holding `tick`: every lane's placements, mutes and note-off markers from
+// there on move later by n, a placement that runs across the point is cut in two there (unless `cut` is false: then it stays whole, and only placements starting at or after the row move), the loop follows, and the song
+// grows by n (up to the longest song). Returns the number of ticks inserted.
+export function insertTicks(project, tick, n, { cut = true } = {}) {
+  n = Math.round(Number(n));
+  if (!Number.isFinite(n) || n < 1) throw new Error('Insert at least one tick.');
+  const at = Math.floor(tick / 16) * 16, old = project.song.length;
+  if (old + n > MAX_SONG) throw new Error(`The song would pass ${MAX_SONG} ticks.`);
+  for (const lane of project.lanes) {
+    if (cut) for (const pl of [...lane.placements]) if (pl.start < at && pl.start + pl.length > at) slicePlacement(lane, old, at);
+  }
+  project.song.length = old + n;
+  const move = t => (t >= at ? t + n : t);
+  for (const lane of project.lanes) {
+    lane.placements = lane.placements.map(p => ({ ...p, start: move(p.start) }));
+    lane.mutes = (lane.mutes ?? []).map(move);
+    lane.offs = (lane.offs ?? []).map(move);
+  }
+  const loop = project.song.loop;
+  if (loop) project.song.loop = { start: move(loop.start), end: loop.end > at ? loop.end + n : loop.end };
+  return n;
 }
 
 // Renames a sample (keeping its place in the list) and every instrument node that plays it.

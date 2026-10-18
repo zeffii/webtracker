@@ -3112,6 +3112,47 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     assert.throws(() => pops.setSongLength(project, 'x'), /16 to 65536/);
   }
 
+  // insert silence: later placements, marks and the loop move; a placement across the point is cut
+  {
+    const registry = new ParamRegistry();
+    for (const [id, def] of Object.entries(instruments)) compile(def.graph, { instrument: id, nodeTypes: NODE_TYPES, registry });
+    const [l] = prepareSong({ ...demoSong, lanes: [{ id: 'g', instrument: 'lead', patterns: { a: { text: patternText(48, {}) }, b: { text: patternText(16, {}) } }, placements: [{ puid: 'a', start: 0, length: 48 }, { puid: 'b', start: 64, length: 16 }], mutes: [64], offs: [80] }] }, instruments, registry);
+    l.mutes = [64]; l.offs = [80];
+    const project = { song: { length: 128, loop: { start: 64, end: 96 } }, lanes: [l] };
+    assert.equal(pops.insertTicks(project, 20, 32), 32);
+    assert.equal(project.song.length, 160);
+    assert.deepEqual(l.placements.map(p => p.start).sort((a, b) => a - b), [0, 48, 96], 'cut at the row, the tail and the rest moved');
+    assert.deepEqual([l.mutes, l.offs], [[96], [112]]);
+    assert.deepEqual(project.song.loop, { start: 96, end: 128 });
+    assert.throws(() => pops.insertTicks(project, 0, 70000), /would pass/);
+    const keep = { song: { length: 128 }, lanes: [{ ...l, placements: [{ puid: 'a', start: 0, length: 48 }, { puid: 'b', start: 64, length: 16 }], mutes: [], offs: [] }] };
+    pops.insertTicks(keep, 20, 32, { cut: false });
+    assert.deepEqual(keep.lanes[0].placements.map(p => [p.start, p.length]), [[0, 48], [96, 16]], 'uncut: the crossing pattern stays whole');
+  }
+
+  // config: values are checked, listeners hear changes, export and import round-trip
+  {
+    const cfg = await import('../src/ui/config.js');
+    const heard = [];
+    const off = cfg.onChange((k, v) => heard.push([k, v]));
+    cfg.reset(); heard.length = 0;
+    assert.equal(cfg.get('insertCut'), false, 'inserting does not cut by default');
+    assert.equal(cfg.set('insertLength', 99999), 65536, 'clamped');
+    assert.equal(cfg.set('insertLength', 'x'), 128, 'junk gives the default');
+    assert.equal(cfg.set('theme', 'nope'), 'system');
+    cfg.set('theme', 'neon'); cfg.set('theme', 'neon');
+    assert.deepEqual(heard.filter(([k]) => k === 'theme'), [['theme', 'neon']], 'a listener hears a change once');
+    const file = cfg.exportJson();
+    cfg.reset();
+    assert.equal(cfg.get('theme'), 'system');
+    assert.ok(cfg.importJson(file) >= 8);
+    assert.equal(cfg.get('theme'), 'neon');
+    assert.throws(() => cfg.importJson('nope'), /invalid JSON/);
+    assert.throws(() => cfg.importJson('{"a":1}'), /not a webtracker config/);
+    assert.throws(() => cfg.set('zzz', 1), /No setting/);
+    cfg.reset(); off();
+  }
+
   // patterns start on multiples of 16, wherever in the row the request lands
   {
     const registry = new ParamRegistry();

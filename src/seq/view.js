@@ -1,4 +1,5 @@
 import { setLoopPoint } from './loop.js';
+import * as config from '../ui/config.js';
 import { KINDS, encodeCell, noteSemitones, noteToken } from './cells.js';
 import { esc } from './html.js';
 import { describeColumn } from './describe.js';
@@ -38,7 +39,7 @@ export function createTrackerView({ el, statusEl, transport, onToggle, onBack, o
   // Two ways to show it: 'window' (only the pattern, rows from 0) or 'hatch' (the whole song, everything but the pattern greyed
   // and hatched and locked). Tab flips between them while in solo-edit; it is remembered.
   let soloStyle = 'window';
-  try { soloStyle = localStorage.getItem('patternSoloStyle') === 'hatch' ? 'hatch' : 'window'; } catch {}
+  soloStyle = config.get('soloStyle');
   const windowed = () => solo !== null && soloStyle === 'window';   // only the pattern is on screen
   const showLo = () => (windowed() ? lo : 0), showHi = () => (windowed() ? hi : len);
   const cur = { lane: 0, tick: 0, col: 0, ch: 0 };
@@ -58,11 +59,11 @@ export function createTrackerView({ el, statusEl, transport, onToggle, onBack, o
   // Ctrl + and Ctrl - (or Ctrl + wheel) change it, Ctrl 0 puts it back; it is remembered.
   const SIZES = { min: 8, max: 40, normal: 13 };
   let fontPx = SIZES.normal;
-  try { fontPx = Number(localStorage.getItem('patternFontSize')) || SIZES.normal; } catch {}
+  fontPx = config.get('fontSize');
   const setSize = px => {
     fontPx = Math.max(SIZES.min, Math.min(SIZES.max, px));
     if (el.style) el.style.fontSize = `${fontPx}px`;
-    try { localStorage.setItem('patternFontSize', String(fontPx)); } catch {}
+    config.set('fontSize', fontPx);
     message = `Font ${fontPx}px.`;
     draw();
     return fontPx;
@@ -71,7 +72,13 @@ export function createTrackerView({ el, statusEl, transport, onToggle, onBack, o
   // Note preview: with it on, a note typed into the grid also sounds on that lane's instrument, for as long
   // as the key is held. Backslash or Insert switches it on and off; it is remembered.
   let preview = false;
-  try { preview = localStorage.getItem('patternPreview') === '1'; } catch {}
+  preview = config.get('notePreview');
+  // Settings changed on the Config tab take effect here at once.
+  config.onChange((k, v) => {
+    if (k === 'notePreview') preview = v;
+    else if (k === 'soloStyle' && v !== soloStyle) { soloStyle = v; scrolledFor = null; if (solo) top = soloStyle === 'window' ? lo : Math.max(0, lo - 4); }
+    else if (k === 'fontSize' && v !== fontPx) { fontPx = v; if (el.style) el.style.fontSize = `${fontPx}px`; draw(); }
+  });
   const sounding = new Map();   // key -> { instrument, note }, so the release stops what the press started
   const stopSound = k => { const s = sounding.get(k); if (s) { onNote(s.instrument, s.note, false); sounding.delete(k); } };
   const startSound = (k, note) => {
@@ -484,7 +491,7 @@ export function createTrackerView({ el, statusEl, transport, onToggle, onBack, o
       case 'Tab':
         if (solo) {
           soloStyle = soloStyle === 'window' ? 'hatch' : 'window';
-          try { localStorage.setItem('patternSoloStyle', soloStyle); } catch {}
+          config.set('soloStyle', soloStyle);
           scrolledFor = null; top = soloStyle === 'window' ? lo : Math.max(0, lo - 4);
           message = soloStyle === 'window' ? 'Solo-edit: the pattern on its own.' : 'Solo-edit: the song, with the rest locked.';
         } else moveLane(e.shiftKey ? -1 : 1);
@@ -498,7 +505,7 @@ export function createTrackerView({ el, statusEl, transport, onToggle, onBack, o
       case ']': octave = Math.min(9, octave + 1); message = `Octave ${octave}`; break;
       case '\\': case 'Insert':   // note preview on or off
         preview = !preview;
-        try { localStorage.setItem('patternPreview', preview ? '1' : '0'); } catch {}
+        config.set('notePreview', preview);
         message = `Note preview ${preview ? 'on: typed notes sound' : 'off'}.`;
         break;
       case 'Escape':

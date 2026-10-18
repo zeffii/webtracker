@@ -17,6 +17,7 @@ import { createMarkerRegionView } from './project/markerregion.js';
 import { FILE_EXT, INSTRUMENT_EXT, parseInstrument, parseProject, serializeInstrument, serializeProject } from './project/file.js';
 import { createEditor } from './seq/editor.js';
 import { prepareSong, rebuildInstrumentLanes } from './seq/lane.js';
+import * as config from './ui/config.js';
 import { createSequenceView } from './seq/seqview.js';
 import { attachGrip } from './ui/grip.js';
 import { createTrackerView } from './seq/view.js';
@@ -44,6 +45,7 @@ const tabs = createTabs({
     { id: 'samples', key: 'F2', el: $('pane-samples'), button: $('tab-samples'), focus: $('smp') },
     { id: 'instruments', key: 'F3', el: $('pane-instruments'), button: $('tab-instruments'), focus: $('inst-list') },
     { id: 'arrange', key: 'F4', el: $('pane-arrange'), button: $('tab-arrange'), focus: $('seq') },
+    { id: 'config', key: 'F11', el: $('pane-config'), button: $('tab-config'), focus: $('cfg') },
     { id: 'info', key: 'F10', el: $('pane-info'), button: $('tab-info'), focus: { focus: () => (!$('info').hidden ? $('info') : $('info-view')).focus() } },
   ],
 });
@@ -86,10 +88,10 @@ $('info').addEventListener('input', () => {
 });
 
 // Follow mode: the grids move with the playing row instead of the row marker moving. F9 or the button; remembered here.
-let following = false;
-try { following = localStorage.getItem('webtracker.follow') === '1'; } catch { /* no storage */ }
+let following = config.get('follow');
 const syncFollow = () => $('follow').setAttribute('aria-pressed', String(following));
-const toggleFollow = () => { following = !following; syncFollow(); try { localStorage.setItem('webtracker.follow', following ? '1' : '0'); } catch { /* fine */ } };
+const toggleFollow = () => config.set('follow', !following);
+config.onChange((k, v) => { if (k === 'follow') { following = v; syncFollow(); } });
 $('follow').addEventListener('click', () => { toggleFollow(); $('follow').blur(); });
 syncFollow();
 
@@ -142,12 +144,10 @@ attachGrip({ grip: $('seq-grip'), key: 'webtracker.arrangementRows', get: () => 
   const apply = hidden => {
     document.body.classList.toggle('nokeys', hidden);
     toggle.setAttribute('aria-pressed', String(!hidden));
-    try { localStorage.setItem('webtracker.hideKeys', hidden ? '1' : '0'); } catch { /* not remembered */ }
   };
-  let saved = false;
-  try { saved = localStorage.getItem('webtracker.hideKeys') === '1'; } catch { /* none saved */ }
-  apply(saved);
-  toggle.addEventListener('click', () => apply(!document.body.classList.contains('nokeys')));
+  apply(config.get('hideKeys'));
+  config.onChange((k, v) => { if (k === 'hideKeys') apply(v); });
+  toggle.addEventListener('click', () => config.set('hideKeys', !document.body.classList.contains('nokeys')));
   for (const h of document.querySelectorAll('.keys h3')) {
     const hide = Object.assign(document.createElement('button'), { textContent: 'hide', title: 'Hide the shortcut panels' });
     hide.addEventListener('click', () => apply(true));
@@ -407,19 +407,64 @@ $('inst-file').addEventListener('change', async e => {
   }
 });
 
+// ---- Config tab: one row per setting in config.SCHEMA ----
+{
+  const status = text => { $('cfg-status').textContent = text; };
+  const render = () => {
+    const rows = [];
+    for (const s of config.SCHEMA) {
+      if (s.group) rows.push(Object.assign(document.createElement('h3'), { textContent: s.group }));
+      const label = document.createElement('label'), text = document.createElement('span');
+      text.textContent = s.label;
+      let input;
+      if (s.type === 'choice') {
+        input = document.createElement('select');
+        for (const o of s.options) input.append(Object.assign(document.createElement('option'), { value: o, textContent: s.labels?.[o] ?? o }));
+        input.value = config.get(s.key);
+        input.addEventListener('change', () => config.set(s.key, input.value));
+      } else {
+        input = Object.assign(document.createElement('input'), { type: s.type === 'bool' ? 'checkbox' : 'number' });
+        if (s.type === 'int') Object.assign(input, { min: s.min, max: s.max });
+        if (s.type === 'bool') { input.checked = config.get(s.key); input.addEventListener('change', () => config.set(s.key, input.checked)); }
+        else { input.value = config.get(s.key); input.addEventListener('change', () => { input.value = config.set(s.key, input.value); }); }
+      }
+      input.classList.add('v');
+      input.addEventListener('keydown', e => { if (e.key !== 'Tab' && !/^F\d+$/.test(e.key)) e.stopPropagation(); });
+      label.append(text, input);
+      rows.push(label);
+    }
+    $('cfg').replaceChildren(...rows);
+  };
+  render();
+  config.onChange(() => { if (!$('cfg').contains(document.activeElement)) render(); });
+  $('cfg-export').addEventListener('click', () => {
+    const url = URL.createObjectURL(new Blob([config.exportJson()], { type: 'application/json' }));
+    const a = Object.assign(document.createElement('a'), { href: url, download: 'webtracker-config.json' });
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    status('Exported webtracker-config.json.');
+  });
+  $('cfg-import').addEventListener('click', () => $('cfg-file').click());
+  $('cfg-file').addEventListener('change', async () => {
+    const file = $('cfg-file').files[0];
+    $('cfg-file').value = '';
+    if (!file) return;
+    try { const n = config.importJson(await file.text()); render(); status(`Imported ${n} settings from ${file.name}.`); } catch (err) { status(err.message); }
+  });
+  $('cfg-reset').addEventListener('click', () => { config.reset(); render(); status('All settings are back to their defaults.'); });
+}
+
 // ---- colour theme (the themes themselves are in themes.css) ----
-const THEMES = ['system', 'dark', 'black', 'bright', 'neon', 'amber', 'phosphor', 'ice', 'synthwave'];
-const setTheme = (name, save = true) => {
-  const theme = THEMES.includes(name) ? name : 'system';
+const showTheme = theme => {
   document.documentElement.dataset.theme = theme;
   $('theme').value = theme;
-  if (save) try { localStorage.setItem('webtracker.theme', theme); } catch {}
   patcher.repaint();
   window.dispatchEvent(new Event('resize'));
 };
-$('theme').addEventListener('change', () => { setTheme($('theme').value); $('theme').blur(); });
+$('theme').addEventListener('change', () => { config.set('theme', $('theme').value); $('theme').blur(); });
 $('theme').addEventListener('keydown', e => e.stopPropagation());
-try { setTheme(localStorage.getItem('webtracker.theme') ?? 'system', false); } catch { setTheme('system', false); }
+config.onChange((k, v) => { if (k === 'theme') showTheme(v); });
+showTheme(config.get('theme'));
 
 // ---- tempo and swing ----
 const songChanged = () => { engine.setSong(project.song); songInfo(); };
@@ -440,7 +485,20 @@ $('length').addEventListener('change', () => {
     try { const n = ops.setSongLength(project, $('length').value); return { message: `Song length ${n} ticks.` }; } catch (err) { $('length').value = before; throw err; }
   });
 });
-for (const id of ['length', 'bpm', 'swing']) $(id).addEventListener('keydown', e => e.stopPropagation());
+const insertSilence = n => {
+  const tick = seqView.tick, lane = seqView.lane;
+  reshape(() => { const k = ops.insertTicks(project, tick, n, { cut: config.get('insertCut') }); return { message: `Inserted ${k} ticks at ${Math.floor(tick / 16) * 16}.` }; }, { lane });
+  seqView.goto(lane, tick);
+  $('seq-status').textContent = $('patch-status').textContent;
+};
+$('ins-n').value = config.get('insertLength');
+$('ins-cut').checked = config.get('insertCut');
+$('ins-cut').addEventListener('change', () => config.set('insertCut', $('ins-cut').checked));
+config.onChange((k, v) => { if (k === 'insertCut') $('ins-cut').checked = v; else if (k === 'insertLength') $('ins-n').value = v; });
+$('ins-go').addEventListener('click', () => insertSilence($('ins-n').value));
+$('ins-n').addEventListener('keydown', e => { if (e.key === 'Enter') insertSilence($('ins-n').value); });
+for (const b of document.querySelectorAll('.ins-pre')) { b.disabled = false; b.addEventListener('click', () => { $('ins-n').value = b.dataset.n; insertSilence(b.dataset.n); }); }
+for (const id of ['length', 'ins-n', 'bpm', 'swing']) $(id).addEventListener('keydown', e => e.stopPropagation());
 
 $('inst-rename').addEventListener('click', () => {
   const id = patcher.instrument;
@@ -780,7 +838,7 @@ $('start').addEventListener('click', async () => {
       openProject(createSynthwaveProject());
     }
     for (const id of ['start']) $(id).disabled = true;
-    for (const id of ['play', 'panic', 'cut', 'new', 'save', 'load', 'patch-add', 'load-samples', 'add-sampler', 'add-synth', 'add-lane', 'add-lane-inst', 'inst-voices', 'inst-notecols', 'inst-name', 'inst-rename', 'inst-up', 'inst-down', 'inst-dup', 'inst-remove', 'lane-name', 'lane-rename', 'lane-left', 'lane-right', 'lane-dup', 'lane-remove', 'lane-remove-all', 'length', 'bpm', 'swing', 'preset-name', 'preset-save', 'preset-over', 'preset-rename', 'preset-remove', 'inst-export', 'inst-import', 'lib-load', 'lib-add', 'lib-save']) $(id).disabled = false;
+    for (const id of ['play', 'panic', 'cut', 'new', 'save', 'load', 'patch-add', 'load-samples', 'add-sampler', 'add-synth', 'add-lane', 'add-lane-inst', 'inst-voices', 'inst-notecols', 'inst-name', 'inst-rename', 'inst-up', 'inst-down', 'inst-dup', 'inst-remove', 'lane-name', 'lane-rename', 'lane-left', 'lane-right', 'lane-dup', 'lane-remove', 'lane-remove-all', 'length', 'ins-n', 'ins-go', 'bpm', 'swing', 'preset-name', 'preset-save', 'preset-over', 'preset-rename', 'preset-remove', 'inst-export', 'inst-import', 'lib-load', 'lib-add', 'lib-save']) $(id).disabled = false;
     $('status').textContent =
       `Running at ${engine.ctx.sampleRate} Hz, base latency ${(engine.ctx.baseLatency * 1000).toFixed(1)} ms`;
     const frame = () => { songInfo(); seqView.draw(); syncLaneName(); view.draw(); patcher.draw(); sampleScreen.draw(); waveform.draw(); region.draw(); requestAnimationFrame(frame); };

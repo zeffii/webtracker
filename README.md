@@ -130,3 +130,7 @@ falls back to the JavaScript nodes.
   pattern, arrangement and waveform views is set by the dotted bar under each.
 - Project, view sizes and similar settings live in the file or in the browser's local storage; nothing is sent
   anywhere.
+
+- **Insert silence** (Arrangement tab, under the grid): type a tick count or press 16/32/48/64/128/256/512 to push everything from the cursor row down by that much; the song grows, the loop follows, a pattern across the point is left whole by default, while only patterns starting at or after the cursor row move (tick "cut patterns across the cursor" to cut it in two there instead).
+
+- **Config** (F11): a panel of settings (theme, shortcut panels, pattern font size, follow, note preview, solo-edit style, insert-silence defaults), kept in this browser; Export… / Import… move them as a JSON file, Reset puts the defaults back. Settings live in `src/ui/config.js` (one schema list: add a row there and it appears in the panel).

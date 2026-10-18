@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="themes.css">
-  <title>webtracker m172</title>
+  <title>webtracker m176</title>
   <style>
     :root { color-scheme: light dark; font-family: system-ui, sans-serif; }   /* colours: see themes.css */
     body { background: var(--bg); color: var(--fg); }
@@ -156,6 +156,12 @@
 
     /* every view: the shortcuts in a panel of their own on the right, keys in the accent colour of the pattern start marks */
     #info-view { box-sizing: border-box; width: 100%; max-width: 100ch; min-height: 60vh; margin: .3rem 0; padding: .5rem .6rem; font: 13px/1.4 ui-monospace, Consolas, monospace; white-space: pre-wrap; overflow-wrap: anywhere; background: var(--panel); border: 1px solid color-mix(in srgb, var(--fg) 30%, transparent); }
+    #cfg { max-width: 100ch; margin: .3rem 0; font: 13px/1.4 ui-monospace, Consolas, monospace; }
+    #cfg h3 { margin: .9rem 0 .2rem; font-size: 13px; text-transform: uppercase; letter-spacing: .08em; opacity: .7; }
+    #cfg label { display: flex; align-items: center; gap: .6rem; padding: .25rem .3rem; }
+    #cfg label:focus-within, #cfg label:hover { background: color-mix(in srgb, var(--fg) 10%, transparent); }
+    #cfg input[type=number] { width: 5em; }
+    #cfg .v { margin-left: auto; }
     #info-view a { color: inherit; text-decoration: underline; }
     #info { display: block; box-sizing: border-box; width: 100%; max-width: 100ch; min-height: 60vh; margin: .3rem 0; padding: .5rem .6rem; font: 13px/1.4 ui-monospace, Consolas, monospace; background: var(--panel); color: var(--fg); border: 1px solid color-mix(in srgb, var(--fg) 30%, transparent); resize: vertical; tab-size: 4; }
     .pane.keyed:not([hidden]) { display: grid; grid-template-columns: minmax(0, 1fr) 20rem; gap: 1rem; align-items: start; }
@@ -337,6 +343,7 @@
         <button id="tab-instruments">F3 Instruments</button>
         <button id="tab-arrange">F4 Arrangement</button>
         <button id="tab-info">F10 Info</button>
+        <button id="tab-config">F11 Config</button>
       </nav>
       <select id="theme" style="margin-left:auto" title="Colour theme"><option value="system">system</option><option value="dark">dark</option><option value="black">black</option><option value="bright">bright</option><option value="neon">neon</option><option value="amber">amber</option><option value="phosphor">phosphor</option><option value="ice">ice</option><option value="synthwave">synthwave</option></select>
       <button id="keys-toggle" title="Show or hide the keyboard shortcut panels">Shortcuts</button>
@@ -520,6 +527,13 @@
         <button id="lane-dup" disabled>Duplicate</button><button id="lane-remove" disabled title="Remove the lane (its instrument stays)">Remove</button><button id="lane-remove-all" disabled title="Remove the lane and the instrument it plays (if no other lane plays it)">Remove with machine</button>
       </div>
       <div class="manage row" style="margin:.3rem 0">
+        <span class="help">Insert silence at the cursor row:</span>
+        <input id="ins-n" type="number" min="1" max="65536" value="128" style="width:4.5em" aria-label="Ticks of silence to insert" disabled>
+        <button id="ins-go" disabled title="Push everything from the cursor row down by this many ticks">Insert</button>
+        <button class="ins-pre" data-n="16" disabled>16</button><button class="ins-pre" data-n="32" disabled>32</button><button class="ins-pre" data-n="48" disabled>48</button><button class="ins-pre" data-n="64" disabled>64</button><button class="ins-pre" data-n="128" disabled>128</button><button class="ins-pre" data-n="256" disabled>256</button><button class="ins-pre" data-n="512" disabled>512</button>
+        <label title="On: a pattern running across the cursor row is cut in two there and its second half moves down. Off: it stays whole and only patterns starting at or after the cursor row move."><input type="checkbox" id="ins-cut"> cut patterns across the cursor</label>
+      </div>
+      <div class="manage row" style="margin:.3rem 0">
         <button id="add-lane" disabled title="Add a lane that plays this instrument">Add lane for</button><select id="add-lane-inst" aria-label="Instrument for the new lane" disabled></select>
       </div>
       <div id="seq-grip" class="grip" tabindex="0" role="separator" aria-orientation="horizontal" aria-label="Rows shown: drag, or use Up and Down" title="Drag to change how many rows are shown"></div>
@@ -563,6 +577,20 @@
       <div id="info-view" tabindex="0" aria-label="Song info" hidden></div>
       <textarea id="info" spellcheck="false" aria-label="Song info" placeholder="Title, author, notes, greetings..."></textarea>
       <div id="info-status" class="statusbar"></div>
+    </div>
+  </section>
+
+  <section id="pane-config" class="pane" hidden>
+    <div class="pane-main">
+      <div class="help">Settings are kept in this browser. Export them to a file to keep a copy or send them to someone, and import a file to use one.</div>
+      <div id="cfg" tabindex="0" aria-label="Settings"></div>
+      <div class="manage row" style="margin:.5rem 0">
+        <button id="cfg-export" type="button">Export…</button>
+        <button id="cfg-import" type="button">Import…</button>
+        <button id="cfg-reset" type="button" title="Put every setting back to its default">Reset to defaults</button>
+        <input id="cfg-file" type="file" accept=".json,application/json" hidden>
+      </div>
+      <div id="cfg-status" class="statusbar"></div>
     </div>
   </section>
 
