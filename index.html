@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="themes.css">
-  <title>webtracker m208</title>
+  <title>webtracker m209</title>
   <style>
     :root { color-scheme: light dark; font-family: system-ui, sans-serif; }   /* colours: see themes.css */
     body { background: var(--bg); color: var(--fg); }
@@ -415,7 +415,7 @@
           <dt>1</dt><dd>note off</dd>
           <dt>`</dt><dd>note cut</dd>
           <dt>0–9, A–F</dt><dd>overwrite the character under the cursor (an empty cell fills with zeros)</dd>
-          <dt>Delete</dt><dd>clear the cell</dd>
+          <dt>Delete, &gt;</dt><dd>clear the cell</dd>
           <dt>\ or Insert</dt><dd>note preview on / off: with it on, typed notes sound while the key is held</dd>
           <dt>Ctrl+D</dt><dd>copy the selection (or the cell) to the rows right below it, wherever the cursor is; again to copy it once more below that</dd>
           <dt>Alt+S</dt><dd>solo the lane under the cursor (the others ring out and go quiet); again brings everyone back</dd>
@@ -552,7 +552,9 @@
           <dt>Left/Right</dt><dd>change the parameter (Shift bigger, Ctrl smaller); Home/End go to the ends</dd>
           <dt>Enter</dt><dd>menu for the parameter: type a value, reset, expose as a pattern column and its width, add a port (right-click a row does the same)</dd>
           <dt>Piano keys</dt><dd>with a generator node (oscillator, sampler, synth) selected: play the instrument; [ ] change the octave</dd>
-          <dt>Delete</dt><dd>remove the node or wire</dd>
+          <dt>Delete, Ctrl+X</dt><dd>remove the node or wire</dd>
+          <dt>Shift+drag a node</dt><dd>take it out of its chain (its neighbours are joined) and move it</dd>
+          <dt>Alt+drag a node</dt><dd>make a copy and move the copy</dd>
           <dt>Drag node</dt><dd>move it (a lassoed group moves together)</dd>
           <dt>Drag empty space</dt><dd>lasso nodes; Shift+click adds one; Delete removes the group</dd>
           <dt>Eye above a node</dt><dd>show a scope of what it puts out, beside it: click wave / spec / xy in its header to change the view, and 200 / 400 for the size</dd>

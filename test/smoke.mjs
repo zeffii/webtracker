@@ -949,6 +949,9 @@ const hit = 'C-2 .. .. ..';
   press('ArrowRight', 3 + 2 + 2 + 2);                                   // Note (3), Vel (2), Pit (2), Dec (2) -> Rst
   press('1');
   assert.equal(kick.rows[0][4], '1');
+  press('ArrowUp');                                                     // typing a whole cell moved down a row: back up
+  press('>');
+  assert.equal(kick.rows[0][4], '.', '> clears the cell under the cursor, like Delete');
   view.draw();
 }
 
@@ -1062,7 +1065,7 @@ const hit = 'C-2 .. .. ..';
   const makeEl = tag => ({ tag, children: [], listeners: {}, style: {}, textContent: '', value: '', appendChild(c) { this.children.push(c); return c; }, replaceChildren(...c) { this.children = c; }, addEventListener(type, f) { this.listeners[type] = f; }, focus() {} });
   const doc = { createElement: makeEl, createTextNode: text => ({ text }) };
   const ctx = new Proxy({}, { get: (t, k) => (k in t ? t[k] : () => {}), set: (t, k, v) => { t[k] = v; return true; } });
-  const run = esc => {
+  const run = (esc, mods = {}, keys = []) => {
     const canvas = { width: 900, height: 360, style: {}, listeners: {}, getContext: () => ctx, addEventListener(type, f) { this.listeners[type] = f; }, focus() {} };
     const status = { textContent: '' }, structures = [];
     const defs = structuredClone(instruments);
@@ -1080,13 +1083,15 @@ const hit = 'C-2 .. .. ..';
     patcher.show(found.id);
     const def = defs[found.id], node = found.n, { w, h } = nodeBox(NODE_TYPES[node.type], node), before = JSON.stringify(def.graph.connections);
     const at = { x: node.x + w / 2, y: node.y + h / 2 };
-    canvas.listeners.mousedown({ offsetX: at.x, offsetY: at.y, button: 0, preventDefault() {} });
+    const count = def.graph.nodes.length;
+    canvas.listeners.mousedown({ offsetX: at.x, offsetY: at.y, button: 0, preventDefault() {}, ...mods });
     canvas.listeners.mousemove({ offsetX: at.x, offsetY: at.y + 300 });
     const said = status.textContent;
     if (esc) canvas.listeners.keydown({ key: 'Escape', preventDefault() {} });
     const saidAfter = status.textContent;
     canvas.listeners.mouseup({ offsetX: at.x, offsetY: at.y + 300 });
-    return { said, saidAfter, moved: node.y > at.y - h / 2 + 100, kept: JSON.stringify(def.graph.connections) === before, structures: structures.length };
+    for (const k of keys) canvas.listeners.keydown({ ...k, preventDefault() {} });
+    return { said, saidAfter, grew: def.graph.nodes.length - count, gone: !def.graph.nodes.some(n => n.id === node.id), moved: node.y > at.y - h / 2 + 100, kept: JSON.stringify(def.graph.connections) === before, structures: structures.length };
   };
   uiConfig.set('graphPullOut', false);
   const off = run(false);
@@ -1099,6 +1104,17 @@ const hit = 'C-2 .. .. ..';
   assert.equal(freed.kept, true, 'Esc during the drag keeps the wires');
   assert.equal(freed.moved, true, 'and the node still moves');
   assert.doesNotMatch(freed.saidAfter, /Release to/, 'the status no longer offers to change the wires');
+  // Shift+drag takes it out even with the setting off; Alt+drag moves a copy; Ctrl+X removes the selected node
+  uiConfig.set('graphPullOut', false);
+  const shifted = run(false, { shiftKey: true });
+  assert.match(shifted.said, /out of its chain/, 'Shift+drag offers to take the node out');
+  assert.equal(shifted.kept, false, 'and releasing does');
+  const cloned = run(false, { altKey: true });
+  assert.equal(cloned.grew, 1, 'Alt+drag makes a copy');
+  assert.equal(cloned.kept, true, 'and the original stays where it was wired');
+  assert.equal(cloned.moved, false, 'the original did not move');
+  assert.equal(run(false, {}, [{ key: 'x', ctrlKey: true }]).gone, true, 'Ctrl+X removes the node');
+  uiConfig.set('graphPullOut', true);
 }
 
 // The eye under a node shows its scope and hides it again; so does the eye in the scope's header.

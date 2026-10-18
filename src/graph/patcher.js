@@ -297,6 +297,7 @@ export function createPatcher({ canvas, panel, paramPanel = null, exposedDock = 
       const dx = b.x - a.x, dy = b.y - a.y, t = Math.min(1, Math.max(0, ((cx - a.x) * dx + (cy - a.y) * dy) / (dx * dx + dy * dy || 1)));
       drag.pull = Math.hypot(a.x + t * dx - cx, a.y + t * dy - cy) > 70;
     }
+    if (drag.force) drag.pull = !!drag.inline && drag.moved;
     const msg = drag.hover !== null ? `Release to put ${id} into this wire` : drag.pull ? `Release to take ${id} out of its chain` : '';
     if (msg !== drag.msg) { drag.msg = msg; say(msg); }
   }
@@ -524,11 +525,22 @@ export function createPatcher({ canvas, panel, paramPanel = null, exposedDock = 
     if (e.button === 0 && scopeClick(x, y)) return;
     const hit = hitTest(desc(), nodeTypes, x, y);
     say('');
-    if (hit?.kind === 'node' && e.shiftKey) {   // Shift+click adds a node to the group
-      if (selected?.kind === 'node') group.add(selected.id);
-      group.add(hit.id);
-      selected = null;
-      renderPanel(); dirty = true;
+    if (hit?.kind === 'node' && e.altKey && e.button === 0) {   // Alt+drag: a copy of the node (or the group) is made and moved
+      try {
+        const made = duplicateNodes(desc(), nodeTypes, group.has(hit.id) ? [...group] : [hit.id]);
+        if (made.length) {
+          group.clear();
+          if (made.length > 1) { for (const m of made) group.add(m); selected = null; } else selected = { kind: 'node', id: made[0] };
+          drag = { kind: 'move', ids: made, x, y, from: new Map(made.map(id => { const n = desc().nodes.find(k => k.id === id); return [id, { x: n.x, y: n.y }]; })) };
+          say(made.length > 1 ? `Moving ${made.length} copies` : `Moving a copy of ${hit.id}`);
+          renderPanel(); structure(); dirty = true;
+          return;
+        }
+      } catch (err) { say(err.message); }
+    }
+    if (hit?.kind === 'node' && e.shiftKey) {   // Shift+click adds a node to the group; Shift+drag moves it out of its chain
+      const node = desc().nodes.find(n => n.id === hit.id);
+      drag = { kind: 'move', ids: [hit.id], x, y, from: new Map([[hit.id, { x: node.x, y: node.y }]]), inline: inlineOf(node), force: true, moved: false, shiftId: hit.id };
       return;
     }
     if (hit?.kind === 'node' && group.has(hit.id)) {   // a node of the group: drag them all
@@ -560,6 +572,7 @@ export function createPatcher({ canvas, panel, paramPanel = null, exposedDock = 
       let dx = e.offsetX - drag.x, dy = e.offsetY - drag.y;
       for (const { x, y } of drag.from.values()) { dx = Math.max(dx, -x); dy = Math.max(dy, 14 - y); }   // none leaves the top or left edge (room above for the name)
       for (const [id, p] of drag.from) { const node = desc().nodes.find(n => n.id === id); node.x = p.x + dx; node.y = p.y + dy; }
+      if (drag.force && !drag.moved && Math.hypot(dx, dy) > 5) drag.moved = true;
       if (drag.ids.length === 1) updateDrop();
     } else if (drag.kind === 'pan') {
       const dx = e.offsetX - drag.x, dy = e.offsetY - drag.y;
@@ -579,6 +592,14 @@ export function createPatcher({ canvas, panel, paramPanel = null, exposedDock = 
     const d = drag;
     drag = null;
     dirty = true;
+    if (d.force && !d.moved) {   // a Shift+click: the node joins the group
+      for (const [id, p] of d.from) { const n = desc().nodes.find(k => k.id === id); n.x = p.x; n.y = p.y; }
+      if (selected?.kind === 'node') group.add(selected.id);
+      group.add(d.shiftId);
+      selected = null;
+      renderPanel();
+      return;
+    }
     if (d.kind === 'move' && (d.hover != null || d.pull)) {
       const id = d.ids[0], link = d.hover != null ? [...desc().connections[d.hover]] : null;
       try {
@@ -663,7 +684,7 @@ export function createPatcher({ canvas, panel, paramPanel = null, exposedDock = 
     }
     if (e.key === 'Escape') { onEscape(); e.preventDefault?.(); return; }
     if (e.ctrlKey && !e.altKey && !e.metaKey && (e.key === 'd' || e.key === 'D')) { duplicateSelected(); e.preventDefault(); return; }
-    if (e.key === 'Delete' || e.key === 'Backspace') {
+    if (e.key === 'Delete' || e.key === 'Backspace' || (e.ctrlKey && !e.altKey && !e.metaKey && (e.key === 'x' || e.key === 'X'))) {   // Ctrl+X removes too
       removeSelected();
       e.preventDefault();
       return;

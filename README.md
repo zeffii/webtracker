@@ -186,3 +186,6 @@ Config > Editing: "Graph: dragging a node far out of its chain takes it out" (on
 
 ## filterPro (m208)
 Filter & EQ > filterpro. Modes: lowpass, bandpass, highpass, notch, peak, allpass, morph (lowpass > notch > highpass by `morph`), lowpass 24, ladder, vowel (a e i o u by `vowel`, cutoff slides the formants), comb + and comb - (cutoff is the pitch, resonance the feedback, `damp` darkens). `drive` and `bias` saturate before the filter, `mix` blends dry and wet, the `mod` input is in octaves and applied sample by sample. Resonance 1 self-oscillates.
+
+## Graph and pattern shortcuts (m209)
+Graph: Shift+drag a node takes it out of its chain (its neighbours are wired together) and moves it, whatever the pull-out setting says; a Shift+click without moving still adds to the group. Alt+drag makes a copy and moves the copy. Ctrl+X removes the selected node. Pattern editor: `>` clears the cell under the cursor, like Delete.

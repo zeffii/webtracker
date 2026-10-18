@@ -559,6 +559,7 @@ export function createTrackerView({ el, statusEl, transport, onToggle, onBack, o
         break;
       case 'Delete':
       case 'Backspace':
+      case '>':   // Shift+. clears the cell under the cursor, like Delete
         write(KINDS[column().token].blank);   // clearing does not advance
         break;
       default: used = typeKey(k);
