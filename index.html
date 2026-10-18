@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="themes.css">
-  <title>webtracker m197</title>
+  <title>webtracker m198</title>
   <style>
     :root { color-scheme: light dark; font-family: system-ui, sans-serif; }   /* colours: see themes.css */
     body { background: var(--bg); color: var(--fg); }
@@ -360,12 +360,12 @@
           <button role="menuitem" data-clear="patterns" title="Remove every pattern and the arrangement; instruments and samples stay">Clear patterns and arrangement</button>
           <button role="menuitem" data-clear="everything" title="Start over: no instruments, samples, patterns or arrangement (only the master lane stays)">Clear everything</button>
         </span></span>
-      <button id="save" disabled>Save</button>
       <button id="load" disabled>Load</button>
       <input id="file" type="file" accept=".wax,.wtrk,.json,.mid,.midi,.mod" hidden>
       <label title="Song length in ticks; 16 ticks is one row of the arrangement">length <input id="length" type="number" min="16" max="65536" step="16" style="width:4.5em" disabled></label>
       <label>bpm <input id="bpm" type="number" min="20" max="400" step="1" style="width:4em" disabled></label>
       <label title="How much of each pair of rows the first one lasts: 50 is straight, 67 is a triplet shuffle">swing <span class="field"><input id="swing" type="number" min="50" max="75" step="1" style="width:2.6em" disabled><span class="unit">%</span></span></label>
+      <button id="save" disabled>Save</button>
       <button id="cut" disabled title="Halt all audio computation (silence, zero CPU) until Play is pressed" style="margin-left:auto">Cut</button>
       <button id="panic" disabled title="Stop every sounding note (all notes off)">Panic</button>
     </div>
