@@ -58,6 +58,27 @@ export function createEditor(lanes, length, { limit = 20 } = {}) {
     // Silences or restores the whole lane. A performance switch, not an edit: it is not undone.
     silence: li => { const l = at(li); l.silenced = !l.silenced; ops.refreshMask(l, length); return l.silenced; },
     color: (li, tick, delta = 1) => change('color pattern', null, () => ops.colorPattern(at(li), tick, delta)),
+    // Pastes blocks of placements into lanes as one undoable edit. Each job is { li, from, to, placements }: the span of
+    // time it takes over, and what goes there ({ start, length } with either a `puid` of that lane's own, or a `pattern` and
+    // a `key` naming it, which is copied into the lane once however many placements use it).
+    placeBlocks: (jobs, label = 'paste') => change(label, null, () => {
+      let n = 0;
+      for (const job of jobs) {
+        const lane = at(job.li), made = new Map();
+        const placements = [];
+        for (const p of job.placements) {
+          let puid = p.puid;
+          if (puid === undefined) {
+            if (!made.has(p.key)) made.set(p.key, ops.adoptPattern(lane, p.pattern));
+            puid = made.get(p.key);
+            if (puid === null) continue;
+          }
+          placements.push({ puid, start: p.start, length: p.length });
+        }
+        n += ops.placeBlock(lane, length, { from: job.from, to: job.to, placements });
+      }
+      return n;
+    }),
     toggleMute: (li, tick) => change('toggle mute', null, () => ops.toggleMute(at(li), length, tick)),
     remove: (li, tick) => change('remove pattern', null, () => ops.removePlacement(at(li), length, tick)),
 

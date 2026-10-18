@@ -186,3 +186,19 @@ export function removePlacement(lane, length, tick) {
   refresh(lane, length);
   return true;
 }
+
+// Copies a pattern (a { name, rows, color } as saved with a copied block) into this lane's pool. Returns its puid, or
+// null if all 256 indices are taken.
+export const adoptPattern = (lane, pattern) => addPattern(lane, copyRows(pattern.rows), pattern.name, pattern.color);
+
+// Puts a block of placements into a lane over a span of its time: the placements that start in [from, to) go first, then
+// each of `placements` ({ puid, start, length }) is placed, clipped to the song; one that starts past the end is dropped.
+// Returns how many placements were removed and added.
+export function placeBlock(lane, length, { from, to, placements }) {
+  const incoming = placements.filter(p => p.start >= 0 && p.start < length);
+  const keep = lane.placements.filter(p => (p.start < from || p.start >= to) && !incoming.some(i => i.start === p.start));
+  const changed = lane.placements.length - keep.length + incoming.length;
+  lane.placements = [...keep, ...incoming.map(p => ({ puid: p.puid, start: p.start, length: Math.min(p.length, length - p.start) }))];
+  if (changed) refresh(lane, length);
+  return changed;
+}

@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="themes.css">
-  <title>webtracker m157</title>
+  <title>webtracker m158</title>
   <style>
     :root { color-scheme: light dark; font-family: system-ui, sans-serif; }   /* colours: see themes.css */
     body { background: var(--bg); color: var(--fg); }
@@ -140,6 +140,11 @@
     #view .r16 { color: #f0707a; }   /* every 16th tick, the bar line, in the accent red */
     #view .d { opacity: .5; }   /* the dots of empty cells */
     #view .cur .d { opacity: 1; }
+    #view .now { background: rgba(90, 150, 255, .22); }
+    #seq .r.now { position: relative; }
+    #seq .r.now::after { content: ""; position: absolute; inset: 0; background: rgba(90, 150, 255, .22); pointer-events: none; }
+    #follow[aria-pressed="true"] { background: var(--hi); color: var(--hi-fg); }
+    #seq .cell.sel::after { content: ""; position: absolute; inset: 0; background: color-mix(in srgb, var(--hi) 40%, transparent); pointer-events: none; }
     #view .sel { background: color-mix(in srgb, var(--hi) 40%, transparent); }
     #view .cur { background: var(--hi); color: var(--hi-fg); }
     /* every list of keyboard shortcuts: one small monospace style in all views */
@@ -294,6 +299,7 @@
       <strong>webtracker</strong>
       <button id="start">Start</button>
       <button id="play" disabled>Play</button>
+      <button id="follow" aria-pressed="false" title="Follow the song (F6): the grids scroll with the playing row instead of the row marker moving">Follow</button>
       <span id="new-wrap"><button id="new" disabled aria-haspopup="menu" aria-expanded="false">New ▾</button>
         <span id="new-menu" role="menu" hidden>
           <button role="menuitem" data-clear="arrangement" title="Remove every pattern placement; the patterns stay">Clear arrangement only</button>
@@ -342,6 +348,8 @@
           <dt>0–9, A–F</dt><dd>overwrite the character under the cursor (an empty cell fills with zeros)</dd>
           <dt>Delete</dt><dd>clear the cell</dd>
           <dt>\ or Insert</dt><dd>note preview on / off: with it on, typed notes sound while the key is held</dd>
+          <dt>Ctrl+D</dt><dd>copy the selection (or the cell) to the rows right below it, wherever the cursor is; again to copy it once more below that</dd>
+          <dt>F6</dt><dd>follow the song: the grid scrolls with the playing row (highlighted)</dd>
           <dt>Ctrl+Up/Down</dt><dd>transpose the notes in the selection by a semitone (Shift: an octave)</dd>
           <dt>Ctrl+Left/Right</dt><dd>lower / raise every other value in the selection by one (Shift: a bigger step); commands keep their id</dd>
           <dt>Ctrl+Shift+H</dt><dd>hide or show the empty columns of the lane the cursor is in (a column with no value at any row; the one under the cursor stays)</dd>
@@ -514,6 +522,10 @@
           <dt>+ −</dt><dd>change length by 16</dd>
           <dt>, .</dt><dd>move up or down a tick (&lt; &gt; sixteen)</dd>
           <dt>Delete</dt><dd>remove the pattern</dd>
+          <dt>Shift+arrows, drag</dt><dd>select a block of lanes and rows</dd>
+          <dt>Ctrl+C, X, V</dt><dd>copy or cut the selected patterns (or the one under the cursor); paste with their top left at the cursor, over what is there</dd>
+          <dt>Ctrl+D</dt><dd>copy the selection to the rows right below it, wherever the cursor is; again to copy it once more below that</dd>
+          <dt>F6</dt><dd>follow the song: the rows scroll with the playing row (highlighted)</dd>
           <dt>Ctrl+Z, Ctrl+Y</dt><dd>undo, redo</dd>
           <dt>Ctrl+B, Ctrl+E</dt><dd>start the loop at this row, end it with this row (again on the same row to take it away); play starts at the loop and repeats it</dd>
           <dt>W, Shift+W</dt><dd>set a waypoint, restore it</dd>

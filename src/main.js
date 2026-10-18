@@ -48,6 +48,7 @@ const tabs = createTabs({
 });
 document.addEventListener('keydown', e => {
   if (tabs.handleKey(e)) return;
+  if (e.key === 'F6') { e.preventDefault(); toggleFollow(); return; }
   // Space plays from anywhere except controls that use it themselves, and keys a view already handled.
   const tag = e.target.tagName;
   if (e.key === ' ' && !e.defaultPrevented && !['INPUT', 'SELECT', 'TEXTAREA', 'BUTTON'].includes(tag) && started) {
@@ -56,7 +57,16 @@ document.addEventListener('keydown', e => {
   }
 });
 
+// Follow mode: the grids move with the playing row instead of the row marker moving. F6 or the button; remembered here.
+let following = false;
+try { following = localStorage.getItem('webtracker.follow') === '1'; } catch { /* no storage */ }
+const syncFollow = () => $('follow').setAttribute('aria-pressed', String(following));
+const toggleFollow = () => { following = !following; syncFollow(); try { localStorage.setItem('webtracker.follow', following ? '1' : '0'); } catch { /* fine */ } };
+$('follow').addEventListener('click', () => { toggleFollow(); $('follow').blur(); });
+syncFollow();
+
 const view = createTrackerView({
+  follow: () => following,
   el: $('view'), statusEl: $('cursor'), transport: engine.transport, onToggle: togglePlay,
   onBack: () => tabs.show('arrange'),
   onMove: (lane, tick) => seqView.goto(lane, tick),
@@ -65,6 +75,7 @@ const view = createTrackerView({
   onNote: (instrument, note, on, vel = 1) => { if (!started) return; if (on) engine.noteOn(instrument, note, vel); else engine.noteOff(instrument, note); },
 });
 const seqView = createSequenceView({
+  follow: () => following,
   el: $('seq'), statusEl: $('seq-status'), listEl: $('seq-list'), transport: engine.transport, onToggle: togglePlay,
   onOpen: (lane, tick) => { view.goto(lane, tick); tabs.show('patterns'); },
   onMove: (lane, tick) => view.goto(lane, tick),

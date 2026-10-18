@@ -29,7 +29,7 @@ export function cellAt({ widths, x, line, top, len }) {
 // Keyboard-driven view of every lane side by side. The cursor sits on one character
 // of one cell. Edits go straight into the shared pages, so they are heard on the next
 // tick while the song plays. Call load() with the prepared lanes before drawing.
-export function createTrackerView({ el, statusEl, transport, onToggle, onBack, onMove, onNote = () => {}, onSong = () => {}, readParam = () => undefined }) {
+export function createTrackerView({ el, statusEl, transport, onToggle, onBack, onMove, onNote = () => {}, onSong = () => {}, readParam = () => undefined, follow = () => false }) {
   let lanes = null, len = 0, widths = [], editor = null, song = null;
   const cur = { lane: 0, tick: 0, col: 0, ch: 0 };
   let octave = 3, message = '';
@@ -197,6 +197,23 @@ export function createTrackerView({ el, statusEl, transport, onToggle, onBack, o
     message = changed ? `Pasted ${size({ t0: 0, t1: clipboard.length - 1, c0: 0, c1: clipboard[0].length - 1 })}${skipped ? `, ${skipped} cells did not fit` : ''}.`
       : skipped ? 'Nothing fits here.' : 'Nothing changed (is there a pattern here?).';
     sel = null;
+  };
+
+  // Ctrl+D: the selected cells (or the cell under the cursor) are copied to the rows right below, whatever the cursor
+  // is, and the selection moves down with the copy, so pressing it again copies it once more by the same number of rows.
+  const duplicate = () => {
+    const r = rect(), lane = lanes[r.lane], h = r.t1 - r.t0 + 1, items = [];
+    let skipped = 0;
+    for (let t = r.t0; t <= r.t1; t++) for (let c = r.c0; c <= r.c1; c++) {
+      if (t + h >= len) { skipped++; continue; }
+      items.push({ tick: t + h, col: c, token: lane.rows[t][c] });
+    }
+    if (r.t1 + 1 >= len) { message = 'No room below.'; return; }
+    const changed = editor.setCells(r.lane, items, 'copy down');
+    message = changed ? `Copied ${size(r)} cells down${skipped ? `, ${skipped} did not fit` : ''}.` : 'Nothing changed (is there a pattern below?).';
+    const to = t => Math.min(len - 1, t + h);
+    if (sel) sel = { ...sel, tick: to(sel.tick) };
+    cur.tick = to(cur.tick);
   };
 
   // Transposing the selection (or the cell under the cursor). Notes move by semitones (Shift: octaves); every other
@@ -402,6 +419,9 @@ export function createTrackerView({ el, statusEl, transport, onToggle, onBack, o
       } else if (key === 'v') {
         paste();
         e.preventDefault();
+      } else if (key === 'd' && !e.shiftKey) {   // copy the selection to the rows right below it; again for the next copy
+        duplicate();
+        e.preventDefault();
       } else if (key === 'a') {   // the whole lane
         sel = { lane: cur.lane, tick: 0, col: 0 };
         cur.tick = len - 1; cur.col = lanes[cur.lane].columns.length - 1; cur.ch = 0;
@@ -479,8 +499,13 @@ export function createTrackerView({ el, statusEl, transport, onToggle, onBack, o
     const playing = Atomics.load(transport, 1) === 1, playTick = Atomics.load(transport, 0);
     // The window stays where it is while the cursor is inside it (so clicking does not move the grid); when the
     // cursor leaves it, the window jumps to put the cursor a few rows in from the top.
-    if (scrolledFor !== `${cur.lane},${cur.tick}`) scrolledFor = null;
-    if (!scrolledFor && (cur.tick < top || cur.tick >= top + rowCount)) top = cur.tick - Math.min(8, rowCount >> 2);
+    // Following the song: the cursor goes with the playing row, which stays in the middle of the window.
+    const following = follow() && playing;
+    if (following) { cur.tick = Math.min(len - 1, playTick); sel = null; top = cur.tick - (rowCount >> 1); }
+    else {
+      if (scrolledFor !== `${cur.lane},${cur.tick}`) scrolledFor = null;
+      if (!scrolledFor && (cur.tick < top || cur.tick >= top + rowCount)) top = cur.tick - Math.min(8, rowCount >> 2);
+    }
     top = Math.max(0, Math.min(top, len - rowCount));
     const r = sel ? rect() : null;
     vis = lanes.map((_, li) => visibleCols(li));
@@ -511,7 +536,7 @@ export function createTrackerView({ el, statusEl, transport, onToggle, onBack, o
       const edge = inLoop ? `${t === song.loop.start ? ' ls' : ''}${t === song.loop.end - 1 ? ' le' : ''}` : '';
       const row = `<span class="g${inLoop ? ` lp${edge}` : ''}">${playing && t === playTick ? '>' : ' '}${String(t).padStart(4, '0')} </span>${chunks.join('  ')}`;
       const shade = t % 16 === 0 ? 'r16' : t % 4 === 0 ? 'r4' : '';
-      const line = playing && t === playTick ? `<b>${row}</b>` : row;
+      const line = playing && t === playTick ? `<b>${following ? `<span class="now">${row}</span>` : row}</b>` : row;
       lines.push(shade ? `<span class="${shade}">${line}</span>` : line);
     }
     while (lines.length < 2 + rowCount) lines.push('');   // always rowCount rows tall, so the drag bar works on a short song

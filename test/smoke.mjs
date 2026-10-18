@@ -4648,6 +4648,54 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   assert.deepEqual([0, 4, 8, 12].map(r => rows[r].startsWith('C-4')), [true, true, true, true], 'the triplet falls on ticks 0, 4, 8 and 12');
 }
 
+// Arrangement selection, copy/paste and Ctrl+D; pattern editor Ctrl+D; follow mode
+{
+  const registry = new ParamRegistry();
+  for (const [id, def] of Object.entries(instruments)) compile(def.graph, { instrument: id, nodeTypes: NODE_TYPES, registry });
+  const song = structuredClone(demoSong);
+  song.length = 256;
+  const lanes = prepareSong(song, instruments, registry);
+  const editor = createEditor(lanes, song.length);
+  let onKey;
+  const el = { addEventListener: (type, f) => { if (type === 'keydown') onKey = f; }, innerHTML: '', children: [] };
+  const statusEl = { textContent: '' };
+  const transport = new Int32Array(new SharedArrayBuffer(8));
+  let follow = false;
+  const view = createSequenceView({ el, statusEl, transport, onToggle() {}, onOpen() {}, follow: () => follow });
+  view.load({ lanes, song, editor });
+  const press = (key, extra = {}) => onKey({ key, preventDefault() {}, ...extra });
+  const starts = l => l.placements.map(p => p.start).sort((a, b) => a - b);
+  const l0 = lanes[0], before = starts(l0).length;
+  // select the first pattern of lane 0 (one row tall) and copy it down twice with Ctrl+D
+  view.goto(0, 0);
+  const first = placementAt(l0, 0), rowsOf = first.length / 16;
+  press('d', { ctrlKey: true });
+  const after1 = starts(l0);
+  assert.ok(after1.includes(first.length), 'Ctrl+D copied the pattern right below itself');
+  press('d', { ctrlKey: true });
+  assert.ok(starts(l0).includes(first.length * 2), 'a second Ctrl+D copies it below the copy');
+  assert.ok(starts(l0).length >= before, 'placements only grew or were replaced');
+  assert.equal(editor.undo(), 'copy down'); assert.equal(editor.undo(), 'copy down');
+  assert.equal(starts(l0).length, before, 'both copies undone');
+  // a block across two lanes: Shift+Down grows rows, Shift+Right adds a lane, Ctrl+C then Ctrl+V further down
+  view.goto(0, 0);
+  press('ArrowDown', { shiftKey: true }); press('ArrowRight', { shiftKey: true });
+  view.draw(); assert.match(statusEl.textContent, /selected 2x2/);
+  press('c', { ctrlKey: true });
+  view.goto(0, 16 * 8);
+  press('v', { ctrlKey: true });
+  assert.match(statusEl.textContent + '', /./);
+  press('Escape');
+  press('Delete');
+  // follow mode: the cursor row goes with the playing row, and the row carries the highlight
+  follow = true; Atomics.store(transport, 1, 1); Atomics.store(transport, 0, 48);
+  view.draw();
+  assert.ok(el.innerHTML.includes('r now'), 'the playing row is highlighted while following');
+  follow = false; view.draw();
+  assert.ok(!el.innerHTML.includes('r now'), 'and not otherwise');
+  Atomics.store(transport, 1, 0);
+}
+
 console.log('smoke test passed');
 
 // 115. Plucked string: pitch, decay time, damping, pluck position, release.
