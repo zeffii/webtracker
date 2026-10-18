@@ -1,5 +1,6 @@
 import { setLoopPoint } from './loop.js';
 import * as config from '../ui/config.js';
+import { dimLevel, dimFilter } from '../ui/dim.js';
 import { createPlayline } from '../ui/playline.js';
 import { KINDS, encodeCell, noteSemitones, noteToken } from './cells.js';
 import { esc } from './html.js';
@@ -594,7 +595,8 @@ export function createTrackerView({ el, statusEl, transport, onToggle, onBack, o
           if (picked) return `<span class="sel">${html}</span>`;
           return covered ? html : `<span class="off">${html}</span>`;
         }).join(' ');
-        return !solo || soloStyle !== 'hatch' ? html : `<span class="${locked ? 'lock' : 'soloblk'}">${html}</span>`;
+        const dim = dimFilter(dimLevel(lane)), shaded = dim ? `<span style="${dim}">${html}</span>` : html;
+        return !solo || soloStyle !== 'hatch' ? shaded : `<span class="${locked ? 'lock' : 'soloblk'}">${shaded}</span>`;
       });
       const inLoop = song.loop && t >= song.loop.start && t < song.loop.end;
       const edge = inLoop ? `${t === song.loop.start ? ' ls' : ''}${t === song.loop.end - 1 ? ' le' : ''}` : '';
@@ -652,5 +654,5 @@ export function createTrackerView({ el, statusEl, transport, onToggle, onBack, o
 
   const setRows = n => { rowCount = Math.max(ROWS.min, Math.min(ROWS.max, Math.round(n))); draw(); return rowCount; };
   const lineHeight = () => (lanes ? metrics().lh : 18);
-  return { draw, load, goto, enterSolo, relayout, setSize, setRows, lineHeight, get rows() { return rowCount; }, get fontPx() { return fontPx; }, get tick() { return cur.tick; }, get preview() { return preview; } };
+  return { draw, load, goto, enterSolo, relayout, say: m => { message = m; }, setSize, setRows, lineHeight, get rows() { return rowCount; }, get fontPx() { return fontPx; }, get tick() { return cur.tick; }, get preview() { return preview; } };
 }

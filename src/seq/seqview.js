@@ -1,5 +1,6 @@
 import { esc } from './html.js';
 import * as config from '../ui/config.js';
+import { dimLevel, dimFilter } from '../ui/dim.js';
 import { createPlayline } from '../ui/playline.js';
 import { placementAt, puidByIndex, startsAt } from './edit.js';
 import { setLoopPoint } from './loop.js';
@@ -387,14 +388,15 @@ export function createSequenceView({ el, statusEl, listEl, transport, onToggle, 
     const num = t => { const s = String(t).padStart(4, '0'); return t % 64 ? `${s} ` : `<span class="gn ${t % 256 ? 'g2' : 'g1'}">${s} </span>`; };
     const lines = [row(`      ${lanes.map((l, li) => {
       const head = `${li === cur.lane ? '>' : ' '}${esc(l.id.slice(0, COLW - 1).padEnd(COLW - 1))}`;
-      return l.silenced ? `<span class="silenced">${head}</span>` : head;
+      const dim = dimFilter(dimLevel(l));
+      return l.silenced ? `<span class="silenced">${head}</span>` : dim ? `<span style="${dim}">${head}</span>` : head;
     }).join('')}`)];
 
     for (let r = top; r < Math.min(rows, top + rowCount); r++) {
       const t = r * CELL;
       const cells = lanes.map((l, li) => {
         const pl = inRow(l, t);
-        const level = (l.mask?.[t] ?? 0) & 3, muted = level > 0, flip = (l.mutes ?? []).includes(t), off = (l.offs ?? []).includes(t);
+        const raw = (l.mask?.[t] ?? 0) & 3, level = raw === 3 ? 0 : raw, dim = dimFilter(dimLevel(l)), muted = level > 0, flip = (l.mutes ?? []).includes(t), off = (l.offs ?? []).includes(t);
         const isCur = li === cur.lane && r === curRow;
         // the patterns that touch this row, lowest first; each is a rect, inset by the patterns under it
         const layers = blocks[li].filter(e => e.start < t + CELL && e.end > t).map(e => {
@@ -426,7 +428,7 @@ export function createSequenceView({ el, statusEl, listEl, transport, onToggle, 
           const at = COLW - 2, style = swatch.style ? ` style="background:${swatch.style}"` : '';
           inner = `${esc(text.slice(0, at))}<span class="sw ${swatch.cls}"${style}> </span>${esc(text.slice(at + 1))}`;
         }
-        return `<span class="${classes}">${layers}${isCur ? '<i class="cb"></i>' : ''}<span class="t">${inner}</span></span>`;
+        return `<span class="${classes}"${dim ? ` style="${dim}"` : ''}>${layers}${isCur ? '<i class="cb"></i>' : ''}<span class="t">${inner}</span></span>`;
       });
       const lp = song.loop && t + CELL > song.loop.start && t < song.loop.end ? ` lp${t <= song.loop.start ? ' ls' : ''}${t + CELL >= song.loop.end ? ' le' : ''}` : '';
       lines.push(row(`${lp ? `<span class="${lp.trim()}">` : ''}${playing && playTick >= t && playTick < t + CELL && !lineMode ? '>' : ' '}${num(t)}${lp ? '</span>' : ''}${cells.join('')}`, r === nowRow ? ' now' : ''));
@@ -448,7 +450,7 @@ export function createSequenceView({ el, statusEl, listEl, transport, onToggle, 
     statusEl.textContent = [
       `lane ${cur.lane + 1}/${lanes.length} ${lane().id}`, `row ${curRow}/${rows - 1}`, `tick ${editTick()}`,
       ownerPat ? `${hex2(ownerPat.index)} ${ownerPat.name}` : 'no pattern',
-      lane().silenced ? 'silenced' : (lane().mask?.[rowStart(cur.tick)] & 3) && 'muted',
+      lane().silenced ? 'silenced' : lane().soloMuted ? 'quiet: another lane is soloed' : lane().solo ? 'solo' : (lane().mask?.[rowStart(cur.tick)] & 3) && 'muted',
       picked && `selected ${picked.l1 - picked.l0 + 1}x${(picked.t1 - picked.t0) / CELL + 1}`, typed && `typing ${typed}`, message,
     ].filter(Boolean).join(' · ');
     if (listEl) {
@@ -464,5 +466,5 @@ export function createSequenceView({ el, statusEl, listEl, transport, onToggle, 
 
   const goto = (laneIdx, tick) => { cur.lane = laneIdx; cur.tick = rowStart(tick); typed = ''; sel = null; };
   const setRows = n => { rowCount = Math.max(ROWS.min, Math.min(ROWS.max, Math.round(n))); draw(); return rowCount; };
-  return { draw, load, goto, setRows, get rows() { return rowCount; }, get lane() { return cur.lane; }, get tick() { return cur.tick; } };
+  return { draw, load, goto, setRows, say: m => { message = m; }, get rows() { return rowCount; }, get lane() { return cur.lane; }, get tick() { return cur.tick; } };
 }

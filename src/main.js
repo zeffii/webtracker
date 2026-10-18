@@ -52,6 +52,14 @@ const tabs = createTabs({
 document.addEventListener('keydown', e => {
   if (tabs.handleKey(e)) return;
   const here = () => (tabs.active === 'arrange' ? seqView : view).tick;   // the row the cursor is on
+  // Alt+S: solo the lane under the cursor (the other lanes let go and play nothing); again to bring everyone back.
+  if (e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey && e.code === 'KeyS' && project && (tabs.active === 'arrange' || tabs.active === 'patterns')) {
+    e.preventDefault();
+    const li = seqView.lane, on = project.editor.solo(li), name = project.lanes[li]?.id;
+    const text = on === null ? 'The master lane cannot be soloed.' : on ? `${name} solo.` : project.lanes.some(l => l.solo) ? `${name} unsoloed.` : 'Solo off: every lane plays.';
+    seqView.say(text); view.say(text);
+    return;
+  }
   const fKeys = { F5: () => setPlaying(true), F6: () => setPlaying(true, here()), F7: () => engine.playRow(here()), F8: () => setPlaying(false), F9: toggleFollow };
   if (!e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey && fKeys[e.key]) {
     e.preventDefault();

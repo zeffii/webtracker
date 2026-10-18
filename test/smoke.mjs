@@ -3197,6 +3197,29 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     assert.deepEqual(project.instruments[blank].graph.nodes.map(n => n.type).sort(), ['out', 'voices']);
   }
 
+  // solo: the others are muted with mask 3 (not saved), master never is; the dim level eases in slowly and out fast
+  {
+    const registry = new ParamRegistry();
+    for (const [id, def] of Object.entries(instruments)) compile(def.graph, { instrument: id, nodeTypes: NODE_TYPES, registry });
+    const lanes = prepareSong({ ...demoSong, lanes: [{ id: 'a', instrument: 'lead', patterns: {}, placements: [] }, { id: 'b', instrument: 'bass', patterns: {}, placements: [] }] }, instruments, registry);
+    const editor = createEditor(lanes, 64);
+    assert.equal(editor.solo(0), true);
+    assert.deepEqual([lanes[0].mask[5], lanes[1].mask[5]], [0, 3], 'a plays, b is quiet');
+    assert.equal(lanes[1].soloMuted, true);
+    editor.solo(1);
+    assert.deepEqual([lanes[0].mask[5], lanes[1].mask[5]], [0, 0], 'both soloed: both play');
+    editor.solo(0); editor.solo(1);
+    assert.deepEqual([lanes[0].mask[5], lanes[1].mask[5]], [0, 0], 'no solo: everyone plays');
+    lanes[0].silenced = true; editor.solo(1); ops.refreshMask(lanes[0], 64);
+    assert.equal(lanes[0].mask[5], 2, 'a silenced lane stays silenced');
+    const { dimLevel, FADE_OUT, FADE_IN } = await import('../src/ui/dim.js');
+    const probe = {};
+    dimLevel(probe, 0, 0);
+    assert.ok(Math.abs(dimLevel(probe, 1, FADE_OUT * 500) - 0.5) < 1e-9, 'half-way after half the fade');
+    assert.equal(dimLevel(probe, 1, FADE_OUT * 1000 + 50), 1);
+    assert.equal(dimLevel(probe, 0, FADE_OUT * 1000 + 50 + FADE_IN * 1000), 0, 'and back out fast');
+  }
+
   // patterns start on multiples of 16, wherever in the row the request lands
   {
     const registry = new ParamRegistry();

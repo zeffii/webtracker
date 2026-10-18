@@ -48,6 +48,17 @@ export function refresh(lane, length) {
 
 export const refreshMask = (lane, length) => writeMask(lane, length);
 
+// Solo: the lanes with `solo` set play, every other lane (except the master) lets go of its notes and plays none until
+// the solo is taken away. Not undoable and not saved: a performance switch. Returns whether any lane is soloed.
+export function applySolo(lanes, length) {
+  const any = lanes.some(l => l.solo);
+  for (const l of lanes) {
+    const want = any && !l.solo && l.instrument !== 'master';
+    if (want !== !!l.soloMuted) { l.soloMuted = want; writeMask(l, length); }
+  }
+  return any;
+}
+
 // Flips the mute at a tick: puts a flip there, or takes the one that is there away.
 export function toggleMute(lane, length, tick) {
   if (tick < 0 || tick >= length) return false;

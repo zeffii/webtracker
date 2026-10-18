@@ -143,6 +143,7 @@ export function writeMask(lane, length) {
   lane.mask ??= new Uint8Array(new SharedArrayBuffer(Math.max(1, length)));
   lane.mask.fill(0);
   if (lane.silenced) lane.mask.fill(2);
+  else if (lane.soloMuted) lane.mask.fill(3);   // 3: let go because another lane is soloed (not saved, not drawn as muted)
   else {
     const flips = [...(lane.mutes ?? [])].sort((a, b) => a - b);
     for (let i = 0; i < flips.length; i += 2) lane.mask.fill(1, Math.max(0, flips[i]), Math.min(length, flips[i + 1] ?? length));

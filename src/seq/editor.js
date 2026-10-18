@@ -57,6 +57,8 @@ export function createEditor(lanes, length, { limit = 20 } = {}) {
     resize: (li, tick, delta) => change(delta > 0 ? 'extend pattern' : 'shrink pattern', null, () => ops.resizePlacement(at(li), length, tick, delta)),
     move: (li, tick, delta) => change('move pattern', null, () => ops.movePlacement(at(li), length, tick, delta)),
     // Silences or restores the whole lane. A performance switch, not an edit: it is not undone.
+    // Solo on or off for a lane; the others are silenced while any lane is soloed.
+    solo: li => { const l = at(li); if (l.instrument === 'master') return null; l.solo = !l.solo; ops.applySolo(lanes, length); return l.solo; },
     silence: li => { const l = at(li); l.silenced = !l.silenced; ops.refreshMask(l, length); return l.silenced; },
     color: (li, tick, delta = 1) => change('color pattern', null, () => ops.colorPattern(at(li), tick, delta)),
     // Pastes blocks of placements into lanes as one undoable edit. Each job is { li, from, to, placements }: the span of
