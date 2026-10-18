@@ -7,6 +7,7 @@ import { KINDS, encodeCell, noteSemitones, noteToken } from './cells.js';
 import { esc } from './html.js';
 import { describeColumn } from './describe.js';
 import { placementAt } from './edit.js';
+import { showContextMenu } from '../ui/ctxmenu.js';
 
 import { LOWER, UPPER } from './piano.js';
 const ROWS = { min: 6, max: 128, normal: 24 };   // rows shown at once
@@ -34,7 +35,7 @@ export function cellAt({ widths, x, line, top, len }) {
 // Keyboard-driven view of every lane side by side. The cursor sits on one character
 // of one cell. Edits go straight into the shared pages, so they are heard on the next
 // tick while the song plays. Call load() with the prepared lanes before drawing.
-export function createTrackerView({ el, statusEl, transport, onToggle, onBack, onMove, onRow = () => {}, onNote = () => {}, onSong = () => {}, readParam = () => undefined, follow = () => false }) {
+export function createTrackerView({ showMenu = (e, items) => showContextMenu(e, items), random = Math.random, el, statusEl, transport, onToggle, onBack, onMove, onRow = () => {}, onNote = () => {}, onSong = () => {}, readParam = () => undefined, follow = () => false }) {
   let lanes = null, len = 0, widths = [], editor = null, song = null;
   // Solo-edit: one placement of one pattern, shown on its own with its rows numbered from 0. Nothing else can be reached.
   // lo..hi is its span of song ticks; hi is the song's length when not in solo-edit and lo is 0.
@@ -258,6 +259,140 @@ export function createTrackerView({ el, statusEl, transport, onToggle, onBack, o
     cur.tick = to(cur.tick);
   };
 
+  // Rows are only ever moved inside the pattern they are in: a selection that crosses several patterns is handled one
+  // pattern at a time, and nothing is pulled in from, or pushed out into, the pattern next door.
+  const patternSpan = t => {
+    const lane = lanes[cur.lane], pl = placementAt(lane, t);
+    if (!pl) return null;
+    return { s: Math.max(pl.start, lo), e: Math.min(pl.start + Math.min(pl.length, lane.patterns[pl.puid].length), hi) };
+  };
+  // [{ a, b, s, e }]: the selected rows a..b that lie in the pattern spanning s..e (end excluded)
+  const pieces = r => {
+    const out = [];
+    for (let t = r.t0; t <= r.t1;) {
+      const p = patternSpan(t);
+      if (!p || t >= p.e) { t++; continue; }
+      const b = Math.min(r.t1, p.e - 1);
+      out.push({ a: t, b, s: p.s, e: p.e });
+      t = b + 1;
+    }
+    return out;
+  };
+  // Ctrl+Delete (gobble, up = true): the selected cells (the cell under the cursor) are removed and the cells below in
+  // the same columns move up to fill the gap. Ctrl+Insert (up = false) is the other way: the rows below move down and
+  // the ones that fall off the end of the pattern are lost, leaving empty cells where the selection starts.
+  const shiftRows = up => {
+    const r = rect(), lane = lanes[r.lane], items = [];
+    for (const { a, b, e } of pieces(r)) {
+      const h = b - a + 1;
+      for (let c = r.c0; c <= r.c1; c++) {
+        const blank = KINDS[lane.columns[c].token].blank;
+        for (let t = a; t < e; t++) {
+          const src = up ? t + h : t - h;
+          items.push({ tick: t, col: c, token: (up ? src < e : src >= a) ? lane.rows[src][c] : blank });
+        }
+      }
+    }
+    const changed = items.length && editor.setCells(r.lane, items, up ? 'delete and pull up' : 'insert and push down');
+    message = changed ? (up ? 'Pulled the rows below up.' : 'Pushed the rows below down.') : 'Nothing to move (is there a pattern here?).';
+  };
+
+  // Ctrl+Alt+Up/Down: the contents of the selected rows rotate by one row, column by column; what falls off one end comes
+  // in at the other.
+  const rotate = dir => {
+    if (!sel) { message = 'Select some rows to rotate.'; return; }
+    const r = rect(), lane = lanes[r.lane], items = [];
+    for (const { a, b } of pieces(r)) {
+      if (b <= a) continue;
+      for (let c = r.c0; c <= r.c1; c++) for (let t = a; t <= b; t++) {
+        const src = dir < 0 ? (t === b ? a : t + 1) : (t === a ? b : t - 1);
+        items.push({ tick: t, col: c, token: lane.rows[src][c] });
+      }
+    }
+    const changed = items.length && editor.setCells(r.lane, items, 'rotate');
+    message = changed ? `Rotated the selection ${dir < 0 ? 'up' : 'down'}.` : 'Nothing to rotate.';
+  };
+
+  // Randomizing the selection (Ctrl+K opens the menu). Every new value is one the column already holds in the selection,
+  // or a small step from one, so the cells stay valid and the spread is kept. Ctrl+Shift+K rolls again from the cells as
+  // they were before the first roll; any other key accepts the result.
+  let roll = null;
+  const MODES = {
+    values: 'Shuffled the values.', cells: 'Shuffled the cells.', redraw: 'Redrew the values from their spread.',
+    nudge: 'Nudged the values.', fill: 'Redrew the values, empty cells included.',
+  };
+  const spreadOf = (kind, tokens) => {   // the numbers behind a column's pitched or hex values: [{ token, n }]
+    const n = tokens.map(t => (kind === 'note' ? noteSemitones(t) : kind === 'cmd' ? null : parseInt(t, 16))).filter(v => v !== null && !Number.isNaN(v));
+    return n.length ? { lo: Math.min(...n), hi: Math.max(...n) } : null;
+  };
+  const rollOnce = () => {
+    const { r, mode, orig } = roll, lane = lanes[r.lane], items = [];
+    const rnd = n => Math.floor(random() * n);
+    for (let c = r.c0; c <= r.c1; c++) {
+      const kind = lane.columns[c].token, blank = KINDS[kind].blank;
+      const cells = orig.filter(o => o.col === c);   // only ticks that a pattern covers
+      const filled = cells.filter(o => !isBlank(o.token)), tokens = filled.map(o => o.token);
+      if (!filled.length) continue;
+      let out = null;
+      if (mode === 'values') {
+        const pool = tokens.slice();
+        for (let i = pool.length - 1; i > 0; i--) { const j = rnd(i + 1); [pool[i], pool[j]] = [pool[j], pool[i]]; }
+        out = new Map(filled.map((o, i) => [o.tick, pool[i]]));
+      } else if (mode === 'cells') {
+        const pool = cells.map(o => o.token);
+        for (let i = pool.length - 1; i > 0; i--) { const j = rnd(i + 1); [pool[i], pool[j]] = [pool[j], pool[i]]; }
+        out = new Map(cells.map((o, i) => [o.tick, pool[i]]));
+      } else if (mode === 'redraw') {
+        out = new Map(filled.map(o => [o.tick, tokens[rnd(tokens.length)]]));
+      } else if (mode === 'fill') {
+        const p = filled.length / cells.length;
+        out = new Map(cells.map(o => [o.tick, random() < p ? tokens[rnd(tokens.length)] : blank]));
+      } else if (mode === 'nudge') {
+        const sp = spreadOf(kind, tokens);
+        out = new Map();
+        if (!sp) continue;
+        for (const o of filled) {
+          const step = (rnd(2) ? 1 : -1) * (1 + rnd(kind === 'note' ? 2 : Math.max(1, Math.round((sp.hi - sp.lo) * 0.1))));
+          try {
+            if (kind === 'note') {
+              const v = noteSemitones(o.token);
+              if (v !== null) out.set(o.tick, noteToken(clamp(v + step, Math.max(0, sp.lo - 2), sp.hi + 2)));
+            } else if (kind !== 'cmd') {
+              const w = KINDS[kind].width, v = parseInt(o.token, 16);
+              out.set(o.tick, clamp(v + step, 0, 16 ** w - 1).toString(16).toUpperCase().padStart(w, '0'));
+            }
+          } catch { /* out of range: the cell stays */ }
+        }
+      }
+      for (const o of cells) { const t = out.get(o.tick); if (t !== undefined) items.push({ tick: o.tick, col: c, token: t }); }
+    }
+    if (roll.rolled) editor.undo();   // one undo step for all the rolls
+    const changed = editor.setCells(r.lane, items, 'randomize');
+    roll.rolled = !!changed;
+    message = changed ? MODES[mode] : 'Nothing changed: try again.';
+  };
+  const randomize = mode => {
+    const r = rect(), lane = lanes[r.lane], orig = [];
+    for (let t = r.t0; t <= r.t1; t++) {
+      if (!patternSpan(t)) continue;
+      for (let c = r.c0; c <= r.c1; c++) orig.push({ tick: t, col: c, token: lane.rows[t][c] });
+    }
+    if (!orig.some(o => !isBlank(o.token))) { message = 'Nothing in the selection to randomize.'; return; }
+    roll = { r, mode, orig, rolled: false };
+    rollOnce();
+  };
+  const randomMenu = () => {
+    const box = el.getBoundingClientRect?.() ?? { left: 80, top: 80 };
+    showMenu({ clientX: box.left + 80, clientY: box.top + 60 }, [
+      { label: 'Shuffle the values', hint: 'filled cells stay where they are', run: () => { randomize('values'); draw(); } },
+      { label: 'Shuffle the cells', hint: 'empty cells move too', run: () => { randomize('cells'); draw(); } },
+      { label: 'Redraw from the spread', hint: 'filled cells only', run: () => { randomize('redraw'); draw(); } },
+      { label: 'Nudge', hint: 'small steps from where they are', run: () => { randomize('nudge'); draw(); } },
+      { separator: true },
+      { label: 'Redraw, empty cells too', hint: 'keeps how full it is', run: () => { randomize('fill'); draw(); } },
+    ]);
+  };
+
   // Transposing the selection (or the cell under the cursor). Notes move by semitones (Shift: octaves); every other
   // value moves by one (Shift: a bigger step, one digit up), stopping at its ends. A command's id is left alone.
   // Blank cells stay blank.
@@ -436,7 +571,13 @@ export function createTrackerView({ el, statusEl, transport, onToggle, onBack, o
       const on = !tint; config.set('patternTint', on); message = on ? 'Pattern tint on.' : 'Pattern tint off.';
       e.preventDefault(); return;
     }
+    if (lanes && e.altKey && e.ctrlKey && !e.metaKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {   // Ctrl+Alt+Up/Down: rotate the selection
+      roll = null;
+      rotate(e.key === 'ArrowUp' ? -1 : 1);
+      e.preventDefault(); draw(); return;
+    }
     if (!lanes || e.altKey) return;
+    if (!(e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'k') && !['Control', 'Shift', 'Alt', 'Meta'].includes(e.key)) roll = null;
     if (e.ctrlKey || e.metaKey) {
       const key = e.key.toLowerCase();
       if (key === '+' || key === '=' || key === '-' || key === '_' || key === '0') {
@@ -460,6 +601,12 @@ export function createTrackerView({ el, statusEl, transport, onToggle, onBack, o
       }
       if (key === 'enter') { if (solo) message = 'Not in solo-edit: Esc first.'; else insertLive(e.shiftKey); e.preventDefault(); return; }
       if (key === 'i') { interpolate(); e.preventDefault(); return; }
+      if (key === 'delete') { shiftRows(true); e.preventDefault(); return; }
+      if (key === 'insert') { shiftRows(false); e.preventDefault(); return; }
+      if (key === 'k') {   // Ctrl+K: the randomize menu; Ctrl+Shift+K: roll again
+        if (e.shiftKey) { if (roll) rollOnce(); else message = 'Nothing to roll again: use Ctrl+K first.'; } else randomMenu();
+        e.preventDefault(); return;
+      }
       if (key === 'g' && !e.shiftKey) {   // this placement gets its own copy of its pattern, so editing it no longer changes the others
         message = editor.clone(cur.lane, solo ? solo.start : cur.tick) ? `${patternName()} is now this placement's own copy.` : 'No pattern here.';
         sel = null;

@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['m210', ['Pattern editor: Ctrl+Delete deletes and pulls the rows below up, Ctrl+Insert pushes them down; neither crosses into the next pattern.', 'Ctrl+Alt+Up/Down rotates the contents of the selected rows.', 'Ctrl+K randomizes the selection (shuffle values or cells, redraw from the column\'s own spread, nudge, or redraw with empties); Ctrl+Shift+K rolls again from the original, and all the rolls undo in one step.']],
   ['m209', ['Graph: Shift+drag a node takes it out of its chain, Alt+drag moves a copy, Ctrl+X removes the node.', 'Pattern editor: > clears the cell under the cursor, like Delete.']],
   ['m208', ['filterPro: a filter with twelve voicings (lowpass, bandpass, highpass, notch, peak, allpass, morph, 24 dB lowpass, Moog-style ladder, vowel formants, two tuned combs), per-sample cutoff modulation, drive with bias, self-oscillation at full resonance and a dry/wet mix.']],
   ['m207', ['Squelch: a monophonic 303-style bassline instrument. One note column, plus Acc and Sld columns (1 on a row = accent / slide into that note), and every knob can be written from the pattern.', 'Config: the graph can be told not to take a node out of its chain when you drag it away.']],

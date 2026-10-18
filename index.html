@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="themes.css">
-  <title>webtracker m209</title>
+  <title>webtracker m210</title>
   <style>
     :root { color-scheme: light dark; font-family: system-ui, sans-serif; }   /* colours: see themes.css */
     body { background: var(--bg); color: var(--fg); }
@@ -416,6 +416,10 @@
           <dt>`</dt><dd>note cut</dd>
           <dt>0–9, A–F</dt><dd>overwrite the character under the cursor (an empty cell fills with zeros)</dd>
           <dt>Delete, &gt;</dt><dd>clear the cell</dd>
+          <dt>Ctrl+Delete</dt><dd>delete the selected cells and pull the rows below up (inside the pattern only)</dd>
+          <dt>Ctrl+Insert</dt><dd>push the rows below down from the cursor (inside the pattern only)</dd>
+          <dt>Ctrl+Alt+Up / Down</dt><dd>rotate the contents of the selected rows, column by column</dd>
+          <dt>Ctrl+K</dt><dd>randomize menu for the selection; Ctrl+Shift+K rolls again from the original, any other key accepts</dd>
           <dt>\ or Insert</dt><dd>note preview on / off: with it on, typed notes sound while the key is held</dd>
           <dt>Ctrl+D</dt><dd>copy the selection (or the cell) to the rows right below it, wherever the cursor is; again to copy it once more below that</dd>
           <dt>Alt+S</dt><dd>solo the lane under the cursor (the others ring out and go quiet); again brings everyone back</dd>

@@ -9,7 +9,7 @@ import { makePluck } from '../src/audio/sample.js';
 import { Sequencer, PAGE_TICKS } from '../src/audio/sequencer.js';
 import { instruments, synthKinds } from '../src/instruments.js';
 import { buildColumns, buildPages, channelCount, flattenLane, prepareSong, uniqueStarts } from '../src/seq/lane.js';
-import { decodeNote, encodeCell, noteToken, EMPTY, KINDS } from '../src/seq/cells.js';
+import { decodeNote, encodeCell, noteToken, noteSemitones, EMPTY, KINDS } from '../src/seq/cells.js';
 import { insertPattern, placementAt, setCell } from '../src/seq/edit.js';
 import { createTrackerView, cellAt } from '../src/seq/view.js';
 import { createSequenceView } from '../src/seq/seqview.js';
@@ -5747,4 +5747,79 @@ console.log('smoke test passed');
   assert.ok(Math.abs(level(run({ mix: 0 }, sine(300))) - 0.5 / Math.SQRT2) < 1e-3, 'mix 0 is the dry signal');
   assert.ok(level(run({ mode: 9, vowel: 0, cutoff: 1000 }, sine(800))) > 3 * level(run({ mode: 9, vowel: 0, cutoff: 1000 }, sine(5000))), 'vowel a favours its formant');
   console.log('ok: filterpro');
+}
+
+// Pattern editing: gobble (Ctrl+Delete), insert (Ctrl+Insert), rotate (Ctrl+Alt+Up/Down), randomize (Ctrl+K): never across patterns
+{
+  const defs = structuredClone(instruments), registry = new ParamRegistry();
+  for (const [id, d] of Object.entries(defs)) compile(d.graph, { instrument: id, nodeTypes: NODE_TYPES, registry });
+  const names = ['C-3', 'D-3', 'E-3', 'F-3', 'G-3', 'A-3', 'B-3', 'C-4'];
+  const mk = off => Array.from({ length: 8 }, (_, i) => `${names[(i + off) % 8]} ..`).join('\n');
+  const song = { ...song120([{ id: 'kick', instrument: 'kick', patterns: { a: { text: mk(0) }, b: { text: mk(3) } }, placements: [{ puid: 'a', start: 0, length: 8 }, { puid: 'b', start: 8, length: 8 }] }]), length: 16 };
+  const lanes = prepareSong(song, defs, registry), editor = createEditor(lanes, 16);
+  let onKey, menu = null, seed = 5;
+  const view = createTrackerView({
+    showMenu: (e, items) => { menu = items; }, random: () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; },
+    el: { addEventListener: (type, f) => { if (type === 'keydown') onKey = f; }, innerHTML: '' }, statusEl: {}, transport: new Int32Array(new SharedArrayBuffer(8)), onToggle() {}, onBack() {},
+  });
+  view.load({ lanes, song, editor });
+  const press = (key, mods = {}, times = 1) => { for (let i = 0; i < times; i++) onKey({ key, preventDefault() {}, ...mods }); };
+  const notes = () => lanes[0].rows.map(r => r[0]);
+  const orig = notes();
+  press('ArrowDown', {}, 2);
+  press('Delete', { ctrlKey: true });
+  assert.deepEqual(notes().slice(0, 8), [...orig.slice(0, 2), ...orig.slice(3, 8), '...'], 'Ctrl+Delete pulls the rows below up, a blank at the end of the pattern');
+  assert.deepEqual(notes().slice(8), orig.slice(8), 'and the pattern next door is untouched');
+  press('z', { ctrlKey: true });
+  assert.deepEqual(notes(), orig, 'one undo');
+  press('Insert', { ctrlKey: true });
+  assert.deepEqual(notes().slice(0, 8), [...orig.slice(0, 2), '...', ...orig.slice(2, 7)], 'Ctrl+Insert pushes the rows down, the last one falls off');
+  assert.deepEqual(notes().slice(8), orig.slice(8), 'and nothing is pushed into the next pattern');
+  press('z', { ctrlKey: true });
+  press('Delete');   // plain Delete just clears
+  assert.equal(notes()[2], '...');
+  assert.equal(notes()[3], orig[3], 'and does not pull anything up');
+  press('z', { ctrlKey: true });
+
+  // rotate: rows 0..3 up; then a selection across the two patterns rotates each part on its own
+  press('Home');
+  press('ArrowDown', { shiftKey: true }, 3);
+  press('ArrowUp', { ctrlKey: true, altKey: true });
+  assert.deepEqual(notes().slice(0, 5), [orig[1], orig[2], orig[3], orig[0], orig[4]], 'rotate up');
+  press('ArrowDown', { ctrlKey: true, altKey: true });
+  assert.deepEqual(notes(), orig, 'and down is the way back');
+  press('Escape');
+  press('Home'); press('ArrowDown', {}, 6);
+  press('ArrowDown', { shiftKey: true }, 3);
+  press('ArrowUp', { ctrlKey: true, altKey: true });
+  assert.deepEqual(notes().slice(6, 10), [orig[7], orig[6], orig[9], orig[8]], 'across two patterns each part rotates on its own');
+  press('z', { ctrlKey: true });
+  assert.deepEqual(notes(), orig);
+
+  // randomize: pattern a only
+  press('Home');
+  press('ArrowDown', { shiftKey: true }, 7);
+  const sorted = a => a.slice().sort();
+  const pick = label => { menu = null; press('k', { ctrlKey: true }); const item = menu.find(m => m.label.startsWith(label)); item.run(); };
+  pick('Shuffle the values');
+  assert.deepEqual(sorted(notes().slice(0, 8)), sorted(orig.slice(0, 8)), 'a shuffle keeps the values');
+  assert.notDeepEqual(notes().slice(0, 8), orig.slice(0, 8), 'in a new order');
+  assert.deepEqual(notes().slice(8), orig.slice(8), 'and does not touch the next pattern');
+  const first = notes().slice(0, 8);
+  press('K', { ctrlKey: true, shiftKey: true });
+  assert.deepEqual(sorted(notes().slice(0, 8)), sorted(orig.slice(0, 8)), 'rolling again still keeps them');
+  assert.notDeepEqual(notes().slice(0, 8), first, 'but gives a different order');
+  press('z', { ctrlKey: true });
+  assert.deepEqual(notes(), orig, 'all the rolls are one undo step');
+  press('Home'); press('ArrowDown', { shiftKey: true }, 7);
+  pick('Redraw from');
+  assert.ok(notes().slice(0, 8).every(n => orig.includes(n)), 'a redraw only uses values the column had');
+  assert.deepEqual(notes().slice(8), orig.slice(8));
+  press('z', { ctrlKey: true });
+  press('Home'); press('ArrowDown', { shiftKey: true }, 7);   // an undo drops the selection
+  pick('Nudge');
+  assert.ok(notes().slice(0, 8).every((n, i) => Math.abs(noteSemitones(n) - noteSemitones(orig[i])) <= 2), 'a nudge is a small step');
+  press('z', { ctrlKey: true });
+  assert.deepEqual(notes(), orig);
+  console.log('ok: pattern gobble, rotate, randomize');
 }
