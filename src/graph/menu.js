@@ -1,5 +1,5 @@
 // The floating "insert node" menu, in two parts. The tree is an ordinary cascading menu (categories, groups, nodes), each level
-// opening beside the row that opened it: Up/Down move (and wrap), Right or Enter open a branch (or insert a node), Left or Esc
+// flying out beside the row that opened it: Up/Down move (and wrap), Right or Enter open a branch (or insert a node), Left or Esc
 // go back a level (Esc at the top closes), and the underlined letter of a row is its hotkey. The search is a flat list of the
 // nodes that match what is typed, with the same keys; press / (or Tab, or click the box) for it, Esc to get back to the tree.
 // It does not know about graphs; picking calls onPick(type, at) with the point the menu was opened at.
@@ -24,8 +24,6 @@ const GROUPS = {
   ],
 };
 const ORDER = ['Sources', 'Effects', 'Control', 'Mix & level'];
-
-const ROW = 21;   // px: the height of a row, so a submenu can start level with the row that opened it
 
 // The hotkey of each row of a menu level: the first letter or digit of its label that no earlier row has taken.
 export function hotkeys(labels) {
@@ -102,7 +100,7 @@ export function createInsertMenu({ parent, nodeTypes, onPick, doc = document }) 
   };
 
   // A label with the letter at `i` underlined.
-  const labelled = (b, label, i) => {
+  const labelled = (b, label, i) => {   // b is a row
     if (i < 0) { b.textContent = label; return; }
     b.appendChild(el('span', { textContent: label.slice(0, i) }));
     b.appendChild(el('u', { textContent: label[i] }));
@@ -110,13 +108,14 @@ export function createInsertMenu({ parent, nodeTypes, onPick, doc = document }) 
   };
 
   const render = () => {
-    hint.textContent = searching ? 'Up/Down, Enter inserts, Esc back to the menu' : 'Underlined letters, arrows and Enter · / searches';
+    box.className = `insert-menu ${searching ? 'searching' : 'tree'}`;
+    hint.textContent = searching ? 'Up/Down, Enter inserts, Esc back to the menu' : '';
     if (searching) {   // a flat list, best match first
       shown = search(input.value);
       active = Math.min(active, Math.max(0, shown.length - 1));
       const q = input.value.trim().toLowerCase();
       const kids = shown.map((entry, i) => {
-        const b = el('button', { className: i === active ? 'active' : '' });
+        const b = el('div', { className: `mi${i === active ? ' active' : ''}` });
         const at0 = q ? entry.type.indexOf(q) : -1;
         if (at0 >= 0) {
           b.appendChild(el('span', { textContent: entry.type.slice(0, at0) }));
@@ -134,32 +133,36 @@ export function createInsertMenu({ parent, nodeTypes, onPick, doc = document }) 
       kids[active]?.scrollIntoView?.({ block: 'nearest' });
       return;
     }
-    const cols = columns();
-    list.className = 'insert-list tiers';
-    let top = 0;   // each level starts level with the row that opened it
-    const built = cols.map((rows, k) => {
-      const col = el('div', { className: 'insert-col' });
-      col.style.marginTop = `${top}px`;
+    // The tree: a column of rows; the chosen row of each level carries the next level as a flyout beside it.
+    const level = (rows, k) => {
+      const col = el('div', { className: `insert-col${k ? ' fly' : ''}` });
       const keys = hotkeys(rows.map(r => r.label));
       rows.forEach((row, i) => {
         const here = sel[k] === i;
-        const b = el('button', { className: `${row.children ? 'has-sub ' : ''}${here ? (k === depth ? 'active' : 'trail') : ''}`.trim() });
-        labelled(b, row.label, keys[i]);
-        b.addEventListener('mouseenter', () => {
+        const item = el('div', { className: `mi${row.children ? ' has-sub' : ''}${here ? (k === depth ? ' active' : ' trail') : ''}` });
+        labelled(item, row.label, keys[i]);
+        item.addEventListener('mouseenter', () => {
           if (sel[k] === i && depth === k) return;
           sel = [...sel.slice(0, k), i]; depth = k; render();
         });
-        b.addEventListener('mousedown', e => {
-          e.preventDefault();
+        item.addEventListener('mousedown', e => {
+          e.preventDefault(); e.stopPropagation?.();
           if (row.children) { sel = [...sel.slice(0, k), i, 0]; depth = k + 1; render(); } else pick(row);
         });
-        col.appendChild(b);
+        if (here && row.children && sel.length > k + 1) item.appendChild(level(row.children, k + 1));
+        col.appendChild(item);
       });
-      top += (sel[k] ?? 0) * ROW;
       return col;
-    });
-    list.replaceChildren(...built);
-    built[depth]?.children?.[sel[depth] ?? 0]?.scrollIntoView?.({ block: 'nearest' });
+    };
+    list.className = 'insert-list tiers';
+    const top = level(tree(), 0);
+    list.replaceChildren(top);
+    // a flyout that would run off the right of the window opens to the left instead
+    for (const fly of top.querySelectorAll?.('.fly') ?? []) {
+      const r = fly.getBoundingClientRect?.();
+      if (r && globalThis.innerWidth && r.right > globalThis.innerWidth) fly.classList.add('left');
+    }
+    top.querySelector?.('.active')?.scrollIntoView?.({ block: 'nearest' });
   };
 
   const move = d => {
