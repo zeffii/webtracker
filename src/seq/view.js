@@ -573,6 +573,7 @@ export function createTrackerView({ el, statusEl, transport, onToggle, onBack, o
     const pl = l.placements.filter(p => cur.tick >= p.start && cur.tick < p.start + p.length).sort((a, b) => b.start - a.start)[0];
     return pl ? l.patterns[pl.puid]?.name : 'no pattern';
   };
+  let painted = '';   // the markup the grid last showed
   const draw = () => {
     if (!lanes) return;
     const playing = Atomics.load(transport, 1) === 1, playTick = Atomics.load(transport, 0);
@@ -636,7 +637,8 @@ export function createTrackerView({ el, statusEl, transport, onToggle, onBack, o
       lines.push(shade ? `<span class="${shade}">${line}</span>` : line);
     }
     while (lines.length < 2 + rowCount) lines.push('');   // always rowCount rows tall, so the drag bar works on a short song
-    el.innerHTML = lines.join('\n');
+    const html = lines.join('\n');
+    if (html !== painted) { el.innerHTML = html; painted = html; }   // the same picture as last frame costs nothing: no new elements, no layout
     if (lineMode && playing && playTick >= top && playTick < Math.min(showHi(), top + rowCount) && playTick >= showLo()) {
       const m = lineMetrics();
       playline.show(m.up - el.clientTop + m.lh * (2 + playTick - top));

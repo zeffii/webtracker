@@ -173,3 +173,6 @@ Left and Right move by whole cells: to the first character of the next or previo
 
 ### Chord order and note off for the row
 MIDI step entry writes a chord from the lowest note to the highest, rewriting the columns as each key joins so the order is right however the keys were struck (Config, MIDI: "A chord goes into the columns" can keep the order played). Shift+1 writes a note off (===) into every note column of the cursor's row of that lane and moves down a row.
+
+### Drawing
+Only the screen that is showing is drawn each frame (the others have nothing to paint, and the instrument graph's layout check was forcing a re-measure of the page every frame while it was hidden). The pattern grid and the arrangement are rewritten into the page only when their markup actually changes.

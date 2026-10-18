@@ -368,6 +368,7 @@ export function createSequenceView({ el, statusEl, listEl, transport, onToggle, 
   }, { passive: false });
   let lastList = '';
   let rowCount = ROWS.normal;   // how many rows are shown; the drag bar under the view changes it
+  let painted = '';   // the markup last shown
   const draw = () => {
     if (!lanes) return;
     const playing = Atomics.load(transport, 1) === 1, playTick = Atomics.load(transport, 0);
@@ -439,7 +440,8 @@ export function createSequenceView({ el, statusEl, listEl, transport, onToggle, 
     lines.push(row(''));
     const log = editor.log().slice(0, 5).map(esc).join(' < ');
     lines.push(row(`undo: ${log || 'nothing yet'}${editor.hasWaypoint() ? '   [waypoint set]' : ''}`));
-    el.innerHTML = lines.join('');
+    const html = lines.join('');
+    if (html !== painted) { el.innerHTML = html; painted = html; }   // unchanged: leave the page alone
     const head = el.firstElementChild;
     if (lineMode && playing && head && playTick / CELL >= top && playTick / CELL < Math.min(rows, top + rowCount)) {
       playline.show(head.offsetTop + head.offsetHeight * (1 + playTick / CELL - top));

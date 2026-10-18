@@ -1040,7 +1040,16 @@ $('start').addEventListener('click', async () => {
     for (const id of ['play', 'panic', 'cut', 'new', 'save', 'load', 'patch-add', 'load-samples', 'add-inst', 'add-lane', 'add-lane-inst', 'inst-voices', 'inst-notecols', 'inst-name', 'inst-rename', 'inst-up', 'inst-down', 'inst-dup', 'inst-remove', 'lane-name', 'lane-rename', 'lane-left', 'lane-right', 'lane-dup', 'lane-remove', 'lane-remove-all', 'length', 'ins-n', 'ins-go', 'bpm', 'swing', 'preset-name', 'preset-save', 'preset-over', 'preset-rename', 'preset-remove', 'inst-export', 'inst-import', 'lib-load', 'lib-add', 'lib-save']) $(id).disabled = false;
     $('status').textContent =
       `Running at ${engine.ctx.sampleRate} Hz, base latency ${(engine.ctx.baseLatency * 1000).toFixed(1)} ms`;
-    const frame = () => { songInfo(); seqView.draw(); syncLaneName(); view.draw(); patcher.draw(); sampleScreen.draw(); waveform.draw(); region.draw(); requestAnimationFrame(frame); };
+    // Only the screen that is showing is drawn: a hidden one has nothing to measure or paint, and its work would only delay the one you are using.
+    const frame = () => {
+      const tab = tabs.active;
+      songInfo(); syncLaneName();
+      if (tab === 'arrange' || !tab) seqView.draw();
+      if (tab === 'patterns' || !tab) view.draw();
+      if (tab === 'instruments' || !tab) patcher.draw();
+      if (tab === 'samples' || !tab) { sampleScreen.draw(); waveform.draw(); region.draw(); }
+      requestAnimationFrame(frame);
+    };
     frame();
   } catch (err) {
     $('status').textContent = err.message;
