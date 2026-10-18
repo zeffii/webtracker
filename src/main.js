@@ -95,12 +95,23 @@ config.onChange((k, v) => { if (k === 'follow') { following = v; syncFollow(); }
 $('follow').addEventListener('click', () => { toggleFollow(); $('follow').blur(); });
 syncFollow();
 
+// The instrument editor shows the machine of the lane the cursor is in (a setting on the Config tab).
+let lastLane = -1;
+function followLane(laneIdx) {
+  if (laneIdx === lastLane) return;
+  lastLane = laneIdx;
+  const id = project?.lanes[laneIdx]?.instrument;
+  if (!config.get('followLane') || !id || id === patcher.instrument || !(id in project.instruments)) return;
+  patcher.show(id);
+  renderInstList();
+}
+
 const view = createTrackerView({
   follow: () => following,
   el: $('view'), statusEl: $('cursor'), transport: engine.transport, onToggle: togglePlay,
   onBack: () => tabs.show('arrange'),
   onRow: tick => { if (started) engine.playRow(tick); },
-  onMove: (lane, tick) => seqView.goto(lane, tick),
+  onMove: (lane, tick) => { seqView.goto(lane, tick); followLane(lane); },
   onSong: () => songChanged(),
   readParam: slot => engine.registry.values[slot],
   onNote: (instrument, note, on, vel = 1) => { if (!started) return; if (on) engine.noteOn(instrument, note, vel); else engine.noteOff(instrument, note); },
@@ -109,7 +120,7 @@ const seqView = createSequenceView({
   follow: () => following,
   el: $('seq'), statusEl: $('seq-status'), listEl: $('seq-list'), transport: engine.transport, onToggle: togglePlay,
   onOpen: (lane, tick, { solo = false } = {}) => { if (!solo || !view.enterSolo(lane, tick)) view.goto(lane, tick); tabs.show('patterns'); },
-  onMove: (lane, tick) => view.goto(lane, tick),
+  onMove: (lane, tick) => { view.goto(lane, tick); followLane(lane); },
   onSong: () => songChanged(),
 });
 
@@ -411,11 +422,20 @@ $('inst-file').addEventListener('change', async e => {
 {
   const status = text => { $('cfg-status').textContent = text; };
   const render = () => {
-    const rows = [];
+    const sections = [];
+    let card = null;
     for (const s of config.SCHEMA) {
-      if (s.group) rows.push(Object.assign(document.createElement('h3'), { textContent: s.group }));
+      if (s.group) {
+        const sec = document.createElement('div'), head = document.createElement('div');
+        sec.className = 'cfg-sec';
+        head.append(Object.assign(document.createElement('h2'), { textContent: s.group }), Object.assign(document.createElement('p'), { textContent: config.GROUPS[s.group] ?? '' }));
+        card = Object.assign(document.createElement('div'), { className: 'cfg-card' });
+        sec.append(head, card);
+        sections.push(sec);
+      }
       const label = document.createElement('label'), text = document.createElement('span');
       text.textContent = s.label;
+      if (s.hint) text.append(document.createElement('br'), Object.assign(document.createElement('small'), { textContent: s.hint }));
       let input;
       if (s.type === 'choice') {
         input = document.createElement('select');
@@ -431,9 +451,24 @@ $('inst-file').addEventListener('change', async e => {
       input.classList.add('v');
       input.addEventListener('keydown', e => { if (e.key !== 'Tab' && !/^F\d+$/.test(e.key)) e.stopPropagation(); });
       label.append(text, input);
-      rows.push(label);
+      card.append(label);
     }
-    $('cfg').replaceChildren(...rows);
+    // the backup section holds the buttons
+    const backup = document.createElement('div');
+    backup.className = 'cfg-sec';
+    const bhead = document.createElement('div');
+    bhead.append(Object.assign(document.createElement('h2'), { textContent: 'Backup' }), Object.assign(document.createElement('p'), { textContent: 'Keep a copy of your settings or send them to someone.' }));
+    const bcard = Object.assign(document.createElement('div'), { className: 'cfg-card' });
+    const brow = Object.assign(document.createElement('div'), { className: 'cfg-row' });
+    const btext = document.createElement('span');
+    btext.append('Settings file', document.createElement('br'), Object.assign(document.createElement('small'), { textContent: 'webtracker-config.json' }));
+    brow.append(btext, $('cfg-export'), $('cfg-import'));
+    const foot = Object.assign(document.createElement('div'), { className: 'cfg-row cfg-foot' });
+    foot.append(Object.assign(document.createElement('span'), { innerHTML: '<small>Put every setting back to its default</small>' }), $('cfg-reset'));
+    bcard.append(brow, foot);
+    backup.append(bhead, bcard);
+    sections.push(backup);
+    $('cfg').replaceChildren(...sections);
   };
   render();
   config.onChange(() => { if (!$('cfg').contains(document.activeElement)) render(); });

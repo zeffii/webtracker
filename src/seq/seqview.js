@@ -176,8 +176,37 @@ export function createSequenceView({ el, statusEl, listEl, transport, onToggle, 
   // Each edit reports through the message line.
   const act = (label, result, ok) => { message = result ? ok : `Can't ${label} here.`; return result; };
 
+  // A small question over the grid: Y or Enter is yes, N is no, Esc cancels. `answer(true | false)` runs on yes or no.
+  let dialog = null;
+  const closeDialog = () => { dialog?.box.remove(); dialog = null; el.focus(); };
+  const askEmpty = (names, answer) => {
+    const box = document.createElement('div');
+    box.className = 'dlg';
+    box.setAttribute('role', 'alertdialog');
+    const text = document.createElement('p');
+    text.textContent = `Create patterns in the empty lanes (${names.join(', ')})?`;
+    const row = document.createElement('div');
+    const mk = (label, fn) => Object.assign(document.createElement('button'), { type: 'button', textContent: label, onclick: () => { closeDialog(); fn(); } });
+    row.append(mk('Yes (Y)', () => answer(true)), mk('No (N)', () => answer(false)), mk('Cancel (Esc)', () => {}));
+    box.append(text, row);
+    box.addEventListener('keydown', ev => {
+      const k = ev.key.toLowerCase(), buttons = [...row.children], at = buttons.indexOf(document.activeElement);
+      if (k === 'y') buttons[0].click();
+      else if (k === 'n') buttons[1].click();
+      else if (k === 'escape') buttons[2].click();
+      else if (k === 'arrowleft' || k === 'arrowright') buttons[(at + (k === 'arrowright' ? 1 : buttons.length - 1)) % buttons.length].focus();
+      else if (k !== 'enter' && k !== 'tab') return;
+      if (k !== 'tab') ev.preventDefault();
+      ev.stopPropagation();
+    });
+    el.parentNode.append(box);
+    dialog = { box, answer };
+    row.firstChild.focus();
+  };
+
   el.addEventListener('keydown', e => {
     if (!lanes || e.altKey) return;
+    if (dialog) { return; }
     if (e.ctrlKey || e.metaKey) {
       const key = e.key.toLowerCase(), li0 = cur.lane, tick0 = cur.tick;
       if ((key === 'b' || key === 'e') && !e.shiftKey) {   // the loop: Ctrl+B starts it at this row, Ctrl+E ends it with this row
@@ -229,6 +258,25 @@ export function createSequenceView({ el, statusEl, listEl, transport, onToggle, 
       clearBlock(b, 'clear');
       message = n ? `Removed ${count(n)}.` : 'Nothing there.';
       sel = null;
+      e.preventDefault();
+      return;
+    }
+    if (k === 'g' && !e.shiftKey) {   // glue the selected block into one new pattern per lane
+      const b = sel ? block() : null;
+      if (!b) message = 'Select a block first (Shift+arrows).';
+      else {
+        const from = b.t0, to = b.t1 + CELL;
+        const empty = [];
+        for (let li = b.l0; li <= b.l1; li++) if (!lanes[li].placements.some(p => p.start < to && p.start + Math.min(p.length, lanes[li].patterns[p.puid].length) > from)) empty.push(lanes[li].id);
+        const run = fillEmpty => {
+          const n = editor.mergeRange(b.l0, b.l1, from, to, { fillEmpty });
+          message = n ? `Merged into ${n === 1 ? 'one new pattern' : `${n} new patterns, one per lane`}.` : 'Nothing to merge there.';
+          draw();
+        };
+        // Several lanes and some of them empty: ask whether those get an empty pattern too. One lane: of course it does.
+        if (b.l1 > b.l0 && empty.length) { askEmpty(empty, run); e.preventDefault(); return; }
+        run(true);
+      }
       e.preventDefault();
       return;
     }

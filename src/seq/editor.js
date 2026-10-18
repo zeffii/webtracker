@@ -80,6 +80,12 @@ export function createEditor(lanes, length, { limit = 20 } = {}) {
       }
       return n;
     }),
+    // One new pattern per lane l0..l1 from everything between ticks from and to (see ops.mergeRange). Returns how many lanes changed.
+    mergeRange: (l0, l1, from, to, opts) => change('merge to pattern', null, () => {
+      let n = 0;
+      for (let li = l0; li <= l1; li++) if (ops.mergeRange(at(li), length, from, to, opts)) n++;
+      return n;
+    }),
     toggleOff: (li, tick) => change('toggle note off', null, () => ops.toggleOff(at(li), length, tick)),
     toggleMute: (li, tick) => change('toggle mute', null, () => ops.toggleMute(at(li), length, tick)),
     remove: (li, tick) => change('remove pattern', null, () => ops.removePlacement(at(li), length, tick)),

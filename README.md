@@ -136,3 +136,10 @@ falls back to the JavaScript nodes.
 - **Config** (F11): a panel of settings (theme, shortcut panels, pattern font size, follow, note preview, solo-edit style, insert-silence defaults), kept in this browser; Export… / Import… move them as a JSON file, Reset puts the defaults back. Settings live in `src/ui/config.js` (one schema list: add a row there and it appears in the panel).
 
 - **Playhead** (Config tab): the playing row can be shown as a ">" in the tick column (default) or as a thin red line across the grid; in the arrangement the line moves smoothly through each 16-tick row.
+
+- The instrument editor follows the cursor: moving into another lane (pattern editor or arrangement) shows that lane's machine; switch it off on the Config tab.
+
+- **Merge block** (Arrangement, G): with a block selected (Shift+arrows), every lane in it gets one new pattern made of what plays inside the block; patterns crossing the top or bottom edge are cut there (head and tail stay), so nothing overlaps. One undo step.
+
+  (Merge block: a lane with no pattern in the block gets an empty pattern spanning it.)
+  (With several lanes selected and some of them empty, G asks "Create patterns in the empty lanes?": Y/Enter yes, N no (only lanes with patterns are merged), Esc cancels. A single selected lane is never asked.)

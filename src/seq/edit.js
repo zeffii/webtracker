@@ -161,6 +161,41 @@ export function slicePlacement(lane, length, tick) {
   return true;
 }
 
+// Makes one new pattern of everything in this lane from tick `from` up to `to` (what the lane plays there: where patterns
+// overlap the top one wins, and ticks with no pattern are empty rows). Patterns that cross `from` or `to` are cut there so
+// nothing overlaps: the part outside stays (the head by shortening its placement, a tail as a new pattern), the part inside
+// goes into the new one, and the placements that started inside are removed. A lane with no pattern in the span gets an empty pattern of the span's length.
+// Returns true if the lane changed.
+export function mergeRange(lane, length, from, to, { fillEmpty = true } = {}) {
+  to = Math.min(to, length);
+  if (from < 0 || from >= to) return false;
+  const visible = pl => pl.start + Math.min(pl.length, lane.patterns[pl.puid].length);
+  const touching = lane.placements.filter(p => p.start < to && visible(p) > from);
+  if (!touching.length && !fillEmpty) return false;
+  if (Object.keys(lane.patterns).length + touching.length + 1 > 255) return false;
+  const rows = copyRows(lane.rows.slice(from, to));
+  const keep = [], tails = [];
+  for (const pl of lane.placements) {
+    if (!touching.includes(pl)) { keep.push(pl); continue; }
+    const end = visible(pl), pat = lane.patterns[pl.puid];
+    if (pl.start < from) { keep.push(pl); pl.length = from - pl.start; }
+    if (end > to) tails.push({ start: to, length: end - to, rows: copyRows(pat.rows.slice(to - pl.start, end - pl.start)), name: `${pat.name}.2`, color: pat.color });
+  }
+  const taken = new Set(keep.map(p => p.start));
+  lane.placements = keep;
+  for (const t of tails) {
+    if (taken.has(t.start)) continue;
+    const puid = addPattern(lane, t.rows, t.name, t.color);
+    if (puid === null) continue;
+    lane.placements.push({ puid, start: t.start, length: t.length });
+    taken.add(t.start);
+  }
+  const made = addPattern(lane, rows, undefined, undefined);
+  lane.placements.push({ puid: made, start: from, length: to - from });
+  refresh(lane, length);
+  return true;
+}
+
 // Changes the placement's length by delta ticks, clipped to the song. Growing past
 // the pattern's own length appends empty rows to the pattern. Returns the new length.
 export function resizePlacement(lane, length, tick, delta) {

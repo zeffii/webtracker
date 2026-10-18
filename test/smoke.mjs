@@ -3153,6 +3153,38 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     cfg.reset(); off();
   }
 
+  // merge a block into one pattern per lane: crossing patterns are cut at its edges, no overlaps
+  {
+    const registry = new ParamRegistry();
+    for (const [id, def] of Object.entries(instruments)) compile(def.graph, { instrument: id, nodeTypes: NODE_TYPES, registry });
+    const note = (t, n) => ({ [t]: `${n} .. .. .... .... .. .. ..` });
+    const mk = (id, patterns, placements) => ({ id, instrument: 'lead', patterns, placements });
+    const k = mk('k', { a: { text: patternText(64, note(48, 'C-4')) }, b: { text: patternText(64, note(0, 'D-4')) }, c: { text: patternText(64, {}) } },
+      [{ puid: 'a', start: 0, length: 64 }, { puid: 'b', start: 64, length: 64 }, { puid: 'c', start: 128, length: 64 }]);
+    const p = mk('p', { a: { text: patternText(144, note(112, 'E-4')) } }, [{ puid: 'a', start: 16, length: 144 }]);
+    const lanes = prepareSong({ ...demoSong, length: 256, lanes: [k, p] }, instruments, registry);
+    const editor = createEditor(lanes, 256);
+    const starts = l => l.placements.map(x => [x.start, x.length]).sort((x, y) => x[0] - y[0]);
+    assert.equal(editor.mergeRange(0, 1, 48, 128), 2);
+    assert.deepEqual(starts(lanes[0]), [[0, 48], [48, 80], [128, 64]], 'kick: head kept, one new pattern, tail untouched');
+    assert.deepEqual(starts(lanes[1]), [[16, 32], [48, 80], [128, 32]], 'lead: cut at both edges');
+    const made = placementAt(lanes[0], 48), pat = lanes[0].patterns[made.puid];
+    assert.equal(pat.length, 80);
+    assert.equal(pat.rows[0][0], 'C-4', 'A row 48 is the new first row');
+    assert.equal(pat.rows[16][0], 'D-4', 'then B');
+    const tail = placementAt(lanes[1], 128), tp = lanes[1].patterns[tail.puid];
+    assert.equal(tp.rows[0][0], 'E-4', 'the lead tail starts at the pattern row that was at tick 128');
+    assert.equal(lanes[0].rows[48][0], 'C-4', 'what plays is unchanged');
+    assert.equal(lanes[0].rows[64][0], 'D-4');
+    assert.equal(editor.mergeRange(0, 0, 200, 224), 1, 'no pattern in the span: an empty one is made');
+    const blank = placementAt(lanes[0], 200);
+    assert.deepEqual([blank.start, blank.length, lanes[0].patterns[blank.puid].length], [200, 24, 24]);
+    assert.ok(editor.undo());
+    assert.ok(editor.undo(), 'one undo step');
+    assert.deepEqual(starts(lanes[0]), [[0, 64], [64, 64], [128, 64]]);
+    assert.deepEqual(starts(lanes[1]), [[16, 144]]);
+  }
+
   // patterns start on multiples of 16, wherever in the row the request lands
   {
     const registry = new ParamRegistry();
