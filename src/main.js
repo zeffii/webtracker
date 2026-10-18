@@ -26,9 +26,9 @@ const engine = new Engine();
 const $ = id => document.getElementById(id);
 let started = false, playing = false, project = null;
 
-const setPlaying = value => {
+const setPlaying = (value, from = null) => {
   playing = value;
-  if (playing) engine.play(); else engine.stop();
+  if (playing) engine.play(from); else engine.stop();
   $('play').textContent = playing ? 'Stop' : 'Play';
 };
 const togglePlay = () => setPlaying(!playing);
@@ -40,24 +40,24 @@ $('play').addEventListener('click', e => { togglePlay(); e.currentTarget.blur();
 // Full-screen panes. Switching with an F-key or a click focuses the pane's main element.
 const tabs = createTabs({
   tabs: [
-    { id: 'patterns', key: 'F2', el: $('pane-patterns'), button: $('tab-patterns'), focus: $('view') },
-    { id: 'samples', key: 'F3', el: $('pane-samples'), button: $('tab-samples'), focus: $('smp') },
-    { id: 'instruments', key: 'F4', el: $('pane-instruments'), button: $('tab-instruments'), focus: $('inst-list') },
-    { id: 'arrange', key: 'F5', el: $('pane-arrange'), button: $('tab-arrange'), focus: $('seq') },
+    { id: 'patterns', key: 'F1', el: $('pane-patterns'), button: $('tab-patterns'), focus: $('view') },
+    { id: 'samples', key: 'F2', el: $('pane-samples'), button: $('tab-samples'), focus: $('smp') },
+    { id: 'instruments', key: 'F3', el: $('pane-instruments'), button: $('tab-instruments'), focus: $('inst-list') },
+    { id: 'arrange', key: 'F4', el: $('pane-arrange'), button: $('tab-arrange'), focus: $('seq') },
   ],
 });
 document.addEventListener('keydown', e => {
   if (tabs.handleKey(e)) return;
-  if (e.key === 'F6') { e.preventDefault(); toggleFollow(); return; }
-  // Space plays from anywhere except controls that use it themselves, and keys a view already handled.
-  const tag = e.target.tagName;
-  if (e.key === ' ' && !e.defaultPrevented && !['INPUT', 'SELECT', 'TEXTAREA', 'BUTTON'].includes(tag) && started) {
+  const here = () => (tabs.active === 'arrange' ? seqView : view).tick;   // the row the cursor is on
+  const fKeys = { F5: () => setPlaying(true), F6: () => setPlaying(true, here()), F7: () => engine.playRow(here()), F8: () => setPlaying(false), F9: toggleFollow };
+  if (!e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey && fKeys[e.key]) {
     e.preventDefault();
-    togglePlay();
+    if (started || e.key === 'F9') fKeys[e.key]();
+    return;
   }
 });
 
-// Follow mode: the grids move with the playing row instead of the row marker moving. F6 or the button; remembered here.
+// Follow mode: the grids move with the playing row instead of the row marker moving. F9 or the button; remembered here.
 let following = false;
 try { following = localStorage.getItem('webtracker.follow') === '1'; } catch { /* no storage */ }
 const syncFollow = () => $('follow').setAttribute('aria-pressed', String(following));
@@ -69,6 +69,7 @@ const view = createTrackerView({
   follow: () => following,
   el: $('view'), statusEl: $('cursor'), transport: engine.transport, onToggle: togglePlay,
   onBack: () => tabs.show('arrange'),
+  onRow: tick => { if (started) engine.playRow(tick); },
   onMove: (lane, tick) => seqView.goto(lane, tick),
   onSong: () => songChanged(),
   readParam: slot => engine.registry.values[slot],

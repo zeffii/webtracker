@@ -233,7 +233,6 @@ export function createSequenceView({ el, statusEl, listEl, transport, onToggle, 
       case 'PageDown': moveTick(16); break;
       case 'Home': cur.tick = 0; typed = ''; break;
       case 'End': cur.tick = rowStart(len - 1); typed = ''; break;
-      case ' ': onToggle(); break;
       case 'Escape': typed = ''; message = ''; break;
       case 'Enter':   // open the pattern under the cursor in the grid, or start a new one
         if (here()) onOpen(li, t);
@@ -399,5 +398,5 @@ export function createSequenceView({ el, statusEl, listEl, transport, onToggle, 
 
   const goto = (laneIdx, tick) => { cur.lane = laneIdx; cur.tick = rowStart(tick); typed = ''; sel = null; };
   const setRows = n => { rowCount = Math.max(ROWS.min, Math.min(ROWS.max, Math.round(n))); draw(); return rowCount; };
-  return { draw, load, goto, setRows, get rows() { return rowCount; }, get lane() { return cur.lane; } };
+  return { draw, load, goto, setRows, get rows() { return rowCount; }, get lane() { return cur.lane; }, get tick() { return cur.tick; } };
 }

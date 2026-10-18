@@ -99,8 +99,14 @@ export class Engine {
     this.node.port.postMessage({ type: 'lane', lane });
   }
 
-  play() {
-    this.node.port.postMessage({ type: 'transport', play: true });
+  // From a tick, or from the start of the loop or the song.
+  play(from = null) {
+    this.node.port.postMessage({ type: 'transport', play: true, from });
+  }
+
+  // One row, once.
+  playRow(tick) {
+    this.node.port.postMessage({ type: 'transport', row: tick });
   }
 
   stop() {

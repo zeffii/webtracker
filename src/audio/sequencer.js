@@ -27,6 +27,7 @@ export class Sequencer {
   songPos = 0;   // where the song is, in ticks and fractions of one, for nodes that follow the grid
   countdown = 0;
   playing = false;
+  preview = 0;     // samples left of a single played row, after which what it started is let go
 
   constructor({ sampleRate, runtime, params, transport, maxBlock = 512 }) {
     this.sampleRate = sampleRate;
@@ -101,9 +102,11 @@ export class Sequencer {
     this.transport[1] = 0;
   }
 
-  play() {
+  // From a tick when one is given; otherwise from the start of the loop, or of the song.
+  play(from = null) {
     this.resetTempo();
-    this.tick = this.song.loop ? loopRange(this.song).start : 0;   // a loop is played from its start
+    this.preview = 0;
+    this.tick = from !== null && from >= 0 && from < this.song.length ? from : this.song.loop ? loopRange(this.song).start : 0;
     this.songPos = this.tick;
     this.countdown = 0;
     this.playing = true;
@@ -112,12 +115,32 @@ export class Sequencer {
 
   // Stopping lets every voice fade out over its release time.
   stop() {
+    this.releaseAll();
+    this.preview = 0;
+    this.playing = false;
+    this.transport[1] = 0;
+  }
+
+  releaseAll() {
     for (const lane of this.lanes.values()) {
       this.runtime.note(lane.instrument, lane.all);
       lane.prev.fill(-1);
     }
-    this.playing = false;
-    this.transport[1] = 0;
+  }
+
+  // Plays one row once, without starting the song: every lane's events at that tick fire together, and what they started
+  // is let go a beat later. Does nothing while the song plays.
+  row(tick) {
+    if (this.playing || tick < 0 || tick >= this.song.length) return;
+    this.releaseAll();
+    this.tick = tick;
+    this.songPos = tick;
+    this.resetTempo();
+    const clock = this.runtime.clock;
+    if (clock) clock.tickId = (clock.tickId | 0) + 1;
+    for (const lane of this.lanes.values()) this.playRow(lane);
+    Atomics.store(this.transport, 0, tick);
+    this.preview = this.sampleRate * 60 / this.tempo().bpm;
   }
 
   // implied: the release comes from a new note in the same column, not from a note off in the pattern.
@@ -271,6 +294,7 @@ export class Sequencer {
         right[done + i] = this.scratchR[i];
       }
       if (this.playing) this.countdown -= span;
+      if (this.preview > 0 && (this.preview -= span) <= 0) this.releaseAll();
       done += span;
     }
   }

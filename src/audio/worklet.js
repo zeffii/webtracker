@@ -29,7 +29,12 @@ class TrackerEngine extends AudioWorkletProcessor {
       }
       else if (data.type === 'song') this.seq.setSong(data.song);
       else if (data.type === 'lane') this.seq.setLane(data.lane);
-      else if (data.type === 'transport') { if (data.play) this.halted = false; (data.play ? this.seq.play() : this.seq.stop()); }
+      else if (data.type === 'transport') {
+        if (data.play || data.row !== undefined) this.halted = false;
+        if (data.row !== undefined) this.seq.row(data.row);
+        else if (data.play) this.seq.play(data.from ?? null);
+        else this.seq.stop();
+      }
     };
   }
 

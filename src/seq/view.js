@@ -29,7 +29,7 @@ export function cellAt({ widths, x, line, top, len }) {
 // Keyboard-driven view of every lane side by side. The cursor sits on one character
 // of one cell. Edits go straight into the shared pages, so they are heard on the next
 // tick while the song plays. Call load() with the prepared lanes before drawing.
-export function createTrackerView({ el, statusEl, transport, onToggle, onBack, onMove, onNote = () => {}, onSong = () => {}, readParam = () => undefined, follow = () => false }) {
+export function createTrackerView({ el, statusEl, transport, onToggle, onBack, onMove, onRow = () => {}, onNote = () => {}, onSong = () => {}, readParam = () => undefined, follow = () => false }) {
   let lanes = null, len = 0, widths = [], editor = null, song = null;
   const cur = { lane: 0, tick: 0, col: 0, ch: 0 };
   let octave = 3, message = '';
@@ -466,7 +466,7 @@ export function createTrackerView({ el, statusEl, transport, onToggle, onBack, o
       case 'PageDown': moveRow(16); break;
       case 'Home': cur.tick = 0; break;
       case 'End': cur.tick = len - 1; break;
-      case ' ': onToggle(); break;
+      case ' ': onRow(cur.tick); moveRow(1); break;   // plays the row, then steps down: line by line
       case '[': octave = Math.max(0, octave - 1); message = `Octave ${octave}`; break;
       case ']': octave = Math.min(9, octave + 1); message = `Octave ${octave}`; break;
       case '\\': case 'Insert':   // note preview on or off
@@ -569,5 +569,5 @@ export function createTrackerView({ el, statusEl, transport, onToggle, onBack, o
 
   const setRows = n => { rowCount = Math.max(ROWS.min, Math.min(ROWS.max, Math.round(n))); draw(); return rowCount; };
   const lineHeight = () => (lanes ? metrics().lh : 18);
-  return { draw, load, goto, relayout, setSize, setRows, lineHeight, get rows() { return rowCount; }, get fontPx() { return fontPx; }, get preview() { return preview; } };
+  return { draw, load, goto, relayout, setSize, setRows, lineHeight, get rows() { return rowCount; }, get fontPx() { return fontPx; }, get tick() { return cur.tick; }, get preview() { return preview; } };
 }

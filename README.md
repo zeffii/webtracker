@@ -24,10 +24,12 @@ sends the two headers for it; any other static server must send
 
 | key | screen | what it is |
 |---|---|---|
-| F2 | **Patterns** | The grid. One column group per lane; notes, velocities, trigger columns, parameter columns and commands. |
-| F3 | **Samples** | Load audio, set loop and sustain-loop points and crossfades, mark slices, view the waveform or spectrogram. |
-| F4 | **Instruments** | The node graph of one instrument, its parameters, presets, and the preset library and instrument files. |
-| F5 | **Arrangement** | Patterns placed on a timeline, one column per lane; lane controls sit under the grid. |
+| F1 | **Patterns** | The grid. One column group per lane; notes, velocities, trigger columns, parameter columns and commands. |
+| F2 | **Samples** | Load audio, set loop and sustain-loop points and crossfades, mark slices, view the waveform or spectrogram. |
+| F3 | **Instruments** | The node graph of one instrument, its parameters, presets, and the preset library and instrument files. |
+| F4 | **Arrangement** | Patterns placed on a timeline, one column per lane; lane controls sit under the grid. |
+
+Playback: F5 plays from the start (or the loop), F6 from the cursor, F7 plays just the row under the cursor once (all lanes together), F8 stops. In the pattern editor Space plays the row once and steps down.
 
 Every screen has a shortcut panel on the right (hide it with the Shortcuts button).
 
@@ -55,7 +57,7 @@ project can be empty apart from it.
 
 Patterns are placed on a timeline in blocks of 16 ticks. Place, clone, slice, resize, move and remove them; undo and
 redo; set a loop (Ctrl+B / Ctrl+E) and waypoints; mute a lane from a row, or silence it whole; colour patterns.
-Select a block of lanes and rows (Shift+arrows or drag), copy, cut and paste it (Ctrl+C/X/V, pasted with its top left at the cursor), or press Ctrl+D to copy it straight below itself, again and again by the same number of rows; Ctrl+D does the same for cells in the pattern editor. **Follow** (F6) makes the grids scroll with the playing row, which is highlighted. The mouse wheel scrolls. Under the grid: rename, reorder, duplicate or remove the lane under the cursor (optionally
+Select a block of lanes and rows (Shift+arrows or drag), copy, cut and paste it (Ctrl+C/X/V, pasted with its top left at the cursor), or press Ctrl+D to copy it straight below itself, again and again by the same number of rows; Ctrl+D does the same for cells in the pattern editor. **Follow** (F9) makes the grids scroll with the playing row, which is highlighted. The mouse wheel scrolls. Under the grid: rename, reorder, duplicate or remove the lane under the cursor (optionally
 with the instrument it plays), and add a lane for any instrument.
 
 ## Instruments

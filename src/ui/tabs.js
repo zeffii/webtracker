@@ -1,6 +1,6 @@
 // Full-screen panes switched by F-keys or by clicking the tab buttons. Only one pane is
 // shown at a time. Panes are plain containers, so a later split layout can host the same ones.
-// tabs: [{ id, key: 'F2', el, button, focus }]; `focus` is the element that takes the keyboard.
+// tabs: [{ id, key: 'F1', el, button, focus }]; `focus` is the element that takes the keyboard.
 export function createTabs({ tabs, onChange = () => {}, initial = tabs[0].id }) {
   let active = null;
 

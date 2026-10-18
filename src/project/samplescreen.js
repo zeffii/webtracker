@@ -2,7 +2,7 @@ import { setLoop, setSampleProps, setSlices, sliceHex, SAMPLE_PROPS, removeSampl
 import { applyEdit, createHistory, redoEdit, undoEdit } from './sampleedit.js';
 import { LOWER, UPPER } from '../seq/piano.js';
 
-// The sample screen (F3): a list of the project's samples on the left and, for the one selected, its
+// The sample screen (F2): a list of the project's samples on the left and, for the one selected, its
 // information, loops, levels and display switch on the right, drawn as monospace text like the pattern
 // and arrangement views. The waveform / spectrogram below it is a separate canvas (waveform.js).
 //

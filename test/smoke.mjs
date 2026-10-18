@@ -316,7 +316,7 @@ const firstSound = x => x.findIndex(v => Math.abs(v) > 1e-9);
   const el = { addEventListener: (type, f) => { if (type === 'keydown') onKey = f; else if (type === 'wheel') onWheel = f; }, innerHTML: '' };
   const statusEl = { textContent: '' };
   let toggled = 0;
-  const view = createTrackerView({ el, statusEl, transport: new Int32Array(new SharedArrayBuffer(8)), onToggle: () => toggled++, onBack() {} });
+  const view = createTrackerView({ el, statusEl, transport: new Int32Array(new SharedArrayBuffer(8)), onToggle: () => {}, onRow: t => { toggled = t + 1; }, onBack() {} });
   view.load({ lanes, song: demoSong, editor: createEditor(lanes, demoSong.length) });
   const press = (key, times = 1, extra = {}) => { for (let i = 0; i < times; i++) onKey({ key, preventDefault() {}, ...extra }); };
   const [lead, bass] = lanes;
@@ -360,7 +360,7 @@ const firstSound = x => x.findIndex(v => Math.abs(v) > 1e-9);
   press('f'); assert.equal(row()[3][0], 'F', 'repeats keep going column by column');
   press('Tab');                                 // back to the bass lane, where the checks below expect the cursor
 
-  press(' '); assert.equal(toggled, 1);
+  toggled = 0; press(' '); assert.ok(toggled > 0, 'Space plays the row under the cursor (and steps down)');
   view.draw();
   assert.ok(el.innerHTML.includes('class="cur"') && el.innerHTML.includes('lead') && el.innerHTML.includes('bass'));
   assert.ok(statusEl.textContent.includes('bass'));
@@ -4646,6 +4646,22 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   assert.deepEqual(d2.song.loop, { start: 0, end: 24 });
   const rows = d2.song.lanes[1].patterns[Object.keys(d2.song.lanes[1].patterns)[0]].text.split('\n');
   assert.deepEqual([0, 4, 8, 12].map(r => rows[r].startsWith('C-4')), [true, true, true, true], 'the triplet falls on ticks 0, 4, 8 and 12');
+}
+
+// Playing from a tick, and one row at a time
+{
+  const text = patternText(16, { 2: 'C-4 .. .. .... .... .. .. ..' });
+  const { seq } = songSetup(song120([oneLane('lead', 'lead', text)]));
+  seq.play(2);
+  const at = firstSound(render(seq, 0.2).left);
+  assert.ok(at >= 0 && at <= 3, `playing from the row of the note starts it at once (sample ${at})`);
+  seq.stop();
+  const b = songSetup(song120([oneLane('lead', 'lead', text)])).seq;
+  b.row(0); assert.equal(firstSound(render(b, 0.1).left), -1, 'a row with no events is silent');
+  assert.equal(b.playing, false);
+  b.row(2); assert.ok(firstSound(render(b, 0.1).left) >= 0, 'a single row plays its note without starting the song');
+  assert.equal(b.playing, false, 'and the song is not running');
+  assert.equal(b.transport[1], 0);
 }
 
 // Arrangement selection, copy/paste and Ctrl+D; pattern editor Ctrl+D; follow mode

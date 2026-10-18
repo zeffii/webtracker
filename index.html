@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="themes.css">
-  <title>webtracker m158</title>
+  <title>webtracker m160</title>
   <style>
     :root { color-scheme: light dark; font-family: system-ui, sans-serif; }   /* colours: see themes.css */
     body { background: var(--bg); color: var(--fg); }
@@ -299,7 +299,7 @@
       <strong>webtracker</strong>
       <button id="start">Start</button>
       <button id="play" disabled>Play</button>
-      <button id="follow" aria-pressed="false" title="Follow the song (F6): the grids scroll with the playing row instead of the row marker moving">Follow</button>
+      <button id="follow" aria-pressed="false" title="Follow the song (F9): the grids scroll with the playing row instead of the row marker moving">Follow</button>
       <span id="new-wrap"><button id="new" disabled aria-haspopup="menu" aria-expanded="false">New ▾</button>
         <span id="new-menu" role="menu" hidden>
           <button role="menuitem" data-clear="arrangement" title="Remove every pattern placement; the patterns stay">Clear arrangement only</button>
@@ -317,10 +317,10 @@
     </div>
     <div class="line">
       <nav id="tabs">
-        <button id="tab-patterns">F2 Patterns</button>
-        <button id="tab-samples">F3 Samples</button>
-        <button id="tab-instruments">F4 Instruments</button>
-        <button id="tab-arrange">F5 Arrangement</button>
+        <button id="tab-patterns">F1 Patterns</button>
+        <button id="tab-samples">F2 Samples</button>
+        <button id="tab-instruments">F3 Instruments</button>
+        <button id="tab-arrange">F4 Arrangement</button>
       </nav>
       <select id="theme" style="margin-left:auto" title="Colour theme"><option value="system">system</option><option value="dark">dark</option><option value="black">black</option><option value="bright">bright</option><option value="neon">neon</option><option value="amber">amber</option><option value="phosphor">phosphor</option><option value="ice">ice</option><option value="synthwave">synthwave</option></select>
       <button id="keys-toggle" title="Show or hide the keyboard shortcut panels">Shortcuts</button>
@@ -339,7 +339,7 @@
           <dt>Arrows</dt><dd>move; Left/Right go one character, and hold them to jump a column at a time (to its start)</dd>
           <dt>Tab</dt><dd>next lane</dd>
           <dt>PgUp/PgDn</dt><dd>16 rows</dd>
-          <dt>Space</dt><dd>play / stop</dd>
+          <dt>Space</dt><dd>play this row once and step down a row, to go through a pattern line by line</dd>
           <dt>Enter</dt><dd>insert a pattern</dd>
           <dt>Z–M, Q–P</dt><dd>play notes</dd>
           <dt>[ ]</dt><dd>octave</dd>
@@ -349,7 +349,8 @@
           <dt>Delete</dt><dd>clear the cell</dd>
           <dt>\ or Insert</dt><dd>note preview on / off: with it on, typed notes sound while the key is held</dd>
           <dt>Ctrl+D</dt><dd>copy the selection (or the cell) to the rows right below it, wherever the cursor is; again to copy it once more below that</dd>
-          <dt>F6</dt><dd>follow the song: the grid scrolls with the playing row (highlighted)</dd>
+          <dt>F5 F6 F7 F8</dt><dd>play from the start (or the loop); play from the cursor; play just this row once; stop</dd>
+          <dt>F9</dt><dd>follow the song: the grid scrolls with the playing row (highlighted)</dd>
           <dt>Ctrl+Up/Down</dt><dd>transpose the notes in the selection by a semitone (Shift: an octave)</dd>
           <dt>Ctrl+Left/Right</dt><dd>lower / raise every other value in the selection by one (Shift: a bigger step); commands keep their id</dd>
           <dt>Ctrl+Shift+H</dt><dd>hide or show the empty columns of the lane the cursor is in (a column with no value at any row; the one under the cursor stays)</dd>
@@ -525,11 +526,11 @@
           <dt>Shift+arrows, drag</dt><dd>select a block of lanes and rows</dd>
           <dt>Ctrl+C, X, V</dt><dd>copy or cut the selected patterns (or the one under the cursor); paste with their top left at the cursor, over what is there</dd>
           <dt>Ctrl+D</dt><dd>copy the selection to the rows right below it, wherever the cursor is; again to copy it once more below that</dd>
-          <dt>F6</dt><dd>follow the song: the rows scroll with the playing row (highlighted)</dd>
+          <dt>F5 F6 F7 F8</dt><dd>play from the start (or the loop); play from the cursor; play just this row once; stop</dd>
+          <dt>F9</dt><dd>follow the song: the rows scroll with the playing row (highlighted)</dd>
           <dt>Ctrl+Z, Ctrl+Y</dt><dd>undo, redo</dd>
           <dt>Ctrl+B, Ctrl+E</dt><dd>start the loop at this row, end it with this row (again on the same row to take it away); play starts at the loop and repeats it</dd>
           <dt>W, Shift+W</dt><dd>set a waypoint, restore it</dd>
-          <dt>Space</dt><dd>play</dd>
           <dt>M</dt><dd>mute the lane from this row until the next M further down (shown dimmed, with &lt;mute&gt; and &lt;play&gt; cells marking the changes)</dd>
           <dt>Shift+M</dt><dd>silence the whole lane, whatever its marks say; again to bring it back</dd>
           <dt>K, Shift+K</dt><dd>step the colour of the pattern under the cursor through 16 pastels and back to automatic (Shift goes backwards)</dd>
