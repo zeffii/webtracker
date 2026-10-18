@@ -11,13 +11,16 @@
 //
 // Keys (the owner calls key(e) from whatever has the focus): Up/Down choose a row, Left/Right change it (Shift more,
 // Ctrl less), Home/End go to the ends, PageUp/PageDown jump rows, Enter opens the row's menu.
+const TACK = '<svg viewBox="0 0 12 12" width="13" height="13" aria-hidden="true"><path d="M7.6 1 11 4.4 9.9 5.5 8.9 5l-1.7 1.7.3 2-.8.8-2-2L1.6 10.4 1 10l2.4-2.9-2-2 .8-.8 2 .3L5.3 3 4.8 2z" fill="currentColor"/></svg>';
+
 export function createParamView({ doc = document, el: host, side = 'right', showTip = () => {}, hideTip = () => {}, onFocusBack = () => {} }) {
-  let rows = [], head = '', cursor = 0, menu = null, typing = null;
+  let rows = [], head = '', cursor = 0, menu = null, typing = null, pin = null, extra = [];
   const box = host.parentElement ?? host;   // the dock around the scrolling list: it is shown, hidden and resized as a whole
   const display = on => { box.style.display = on ? 'flex' : 'none'; };
   const make = (tag, className, text) => { const e = doc.createElement(tag); if (className) e.className = className; if (text !== undefined) e.textContent = text; return e; };
 
   const clamp01 = x => Math.min(1, Math.max(0, x));
+  const all = () => rows.concat(...extra.map(x => x.rows));   // the rows of the shown node, then those of the pinned ones
   const paint = (row, i) => {
     const bar = host.querySelectorAll?.('.pv-bar')[i];
     if (!bar) return;
@@ -27,7 +30,7 @@ export function createParamView({ doc = document, el: host, side = 'right', show
     const h = bar.querySelector('.pv-hex');
     h.textContent = hex;
   };
-  const paintAll = () => rows.forEach(paint);
+  const paintAll = () => all().forEach(paint);
   const mark = () => {
     host.querySelectorAll('.pv-row').forEach((r, i) => r.classList.toggle('sel', i === cursor));
     const r = host.querySelectorAll('.pv-row')[cursor];
@@ -96,8 +99,25 @@ export function createParamView({ doc = document, el: host, side = 'right', show
   const build = () => {
     host.replaceChildren();
     closeMenu(); typing = null;
-    host.append(make('div', 'pv-head', head));
-    rows.forEach((row, i) => {
+    // The title strip: a thumb-tack on it pins the node's rows, so they stay when another node is selected.
+    const strip = (title, tack, sub) => {
+      const h = make('div', `pv-head${sub ? ' pv-sub' : ''}`);
+      h.append(make('span', 'pv-title', title));
+      if (tack) {
+        const b = make('span', `pv-pin${tack.on ? ' on' : ''}`);
+        b.title = tack.on ? 'Unpin: stop keeping these parameters here' : 'Pin: keep these parameters here when another node is selected';
+        b.innerHTML = TACK;
+        b.addEventListener('mousedown', e => { e.preventDefault(); e.stopPropagation(); tack.toggle(); onFocusBack(); });
+        h.append(b);
+      }
+      return h;
+    };
+    const starts = new Map();   // flat row index -> the strip that opens a pinned node's rows
+    let at = rows.length;
+    for (const x of extra) { starts.set(at, strip(x.title, { on: true, toggle: x.unpin }, true)); at += x.rows.length; }
+    if (head) host.append(strip(head, pin));
+    all().forEach((row, i) => {
+      if (starts.has(i)) host.append(starts.get(i));
       const line = make('div', `pv-row${row.wired ? ' wired' : ''}${row.exposed ? ' ex' : ''}${row.ported ? ' pt' : ''}`);
       const name = make('span', 'pv-name', row.name);   // long names are cut short by the stylesheet, wider panels show more
       name.addEventListener('mouseenter', () => showTip(name, row.hint()));
@@ -162,17 +182,18 @@ export function createParamView({ doc = document, el: host, side = 'right', show
     setWidth,
     get width() { return box.offsetWidth; },
     // Shows a node's rows under a title strip. `at` is the row to select (kept between redraws).
-    show(title, list, at = cursor, empty = '') {
-      head = title; rows = list; cursor = Math.min(Math.max(0, at), Math.max(0, rows.length - 1));
-      display(rows.length > 0 || !!empty);
+    // `tack` is { on, toggle } for the pin on the title; `pinned` is [{ title, rows, unpin }] shown under the node's rows.
+    show(title, list, at = cursor, empty = '', tack = null, pinned = []) {
+      head = title; rows = list; pin = tack; extra = pinned; cursor = Math.min(Math.max(0, at), Math.max(0, all().length - 1));
+      display(all().length > 0 || !!empty);
       build();
       if (!rows.length && empty) host.append(make('div', 'pv-empty', empty));
     },
-    hide() { rows = []; closeMenu(); cancelType(); display(false); hideTip(); },
+    hide() { rows = []; extra = []; pin = null; closeMenu(); cancelType(); display(false); hideTip(); },
     refresh: paintAll,
     get cursor() { return cursor; },
-    get open() { return rows.length > 0 && box.style.display !== 'none'; },
-    get size() { return rows.length; },
+    get open() { return all().length > 0 && box.style.display !== 'none'; },
+    get size() { return all().length; },
     key(e) {
       if (!this.open) return false;
       const k = e.key;
@@ -184,10 +205,10 @@ export function createParamView({ doc = document, el: host, side = 'right', show
         else return false;
         return true;
       }
-      const row = rows[cursor];
-      if (k === 'ArrowDown') cursor = Math.min(rows.length - 1, cursor + 1);
+      const row = all()[cursor];
+      if (k === 'ArrowDown') cursor = Math.min(all().length - 1, cursor + 1);
       else if (k === 'ArrowUp') cursor = Math.max(0, cursor - 1);
-      else if (k === 'PageDown') cursor = Math.min(rows.length - 1, cursor + 8);
+      else if (k === 'PageDown') cursor = Math.min(all().length - 1, cursor + 8);
       else if (k === 'PageUp') cursor = Math.max(0, cursor - 8);
       else if (k === 'ArrowLeft' || k === 'ArrowRight' || k === '-' || k === '=' || k === '+') {
         const dir = k === 'ArrowLeft' || k === '-' ? -1 : 1;

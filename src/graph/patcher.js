@@ -203,6 +203,9 @@ export function createPatcher({ canvas, panel, paramPanel = null, exposedDock = 
   const paramView = paramPanel ? createParamView({ doc, el: paramPanel, showTip, hideTip, onFocusBack: () => canvas.focus?.() }) : null;
   // The exposed parameters, always shown in a dock of their own on the left of the graph.
   const exposedView = exposedDock ? createParamView({ doc, el: exposedDock, side: 'left', showTip, hideTip, onFocusBack: () => canvas.focus?.() }) : null;
+  const pins = new Map();   // instrument id -> the node ids whose parameters are pinned in the panel
+  const pinsOf = () => { const s = pins.get(instId) ?? new Set(); for (const id of [...s]) if (!desc().nodes.some(n => n.id === id)) s.delete(id); pins.set(instId, s); return s; };
+  const togglePin = id => { const s = pinsOf(); if (s.has(id)) s.delete(id); else s.add(id); renderNodePanel(); };
   const cursorMemo = new Map();   // the row last selected in each node's panel
   let shownNode = null;
   const clamp01 = x => Math.min(1, Math.max(0, x));
@@ -347,15 +350,24 @@ export function createPatcher({ canvas, panel, paramPanel = null, exposedDock = 
 
   function renderNodePanel() {
     const node = selected?.kind === 'node' ? desc().nodes.find(n => n.id === selected.id) : null;
+    const pinnedList = (skip = null) => (instId ? [...pinsOf()] : []).filter(id => id !== skip).flatMap(id => {
+      const n = desc().nodes.find(x => x.id === id), t = n && nodeTypes[n.type];
+      return t ? [{ title: `${n.id} · ${n.type}`, rows: rowsFor(n, t), unpin: () => togglePin(id) }] : [];
+    });
     if (!node) {
-      if (paramView) { if (shownNode) cursorMemo.set(shownNode, paramView.cursor); shownNode = null; paramView.hide(); }
+      if (paramView) {
+        if (shownNode) cursorMemo.set(shownNode, paramView.cursor);
+        shownNode = null;
+        const list = pinnedList();
+        if (list.length) paramView.show('', [], 0, '', null, list); else paramView.hide();
+      }
       panel.replaceChildren(el('p', {}, instId ? 'Click a node to edit its parameters.' : 'No instrument.'));
       return;
     }
     const type = nodeTypes[node.type];
     if (paramView) {
       if (shownNode && shownNode !== node.id) cursorMemo.set(shownNode, paramView.cursor);
-      paramView.show(`${node.id} · ${node.type}`, rowsFor(node, type), shownNode === node.id ? paramView.cursor : cursorMemo.get(node.id) ?? 0);
+      paramView.show(`${node.id} · ${node.type}`, rowsFor(node, type), shownNode === node.id ? paramView.cursor : cursorMemo.get(node.id) ?? 0, '', { on: pinsOf().has(node.id), toggle: () => togglePin(node.id) }, pinnedList(node.id));
       shownNode = node.id;
     }
     const items = [];

@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="themes.css">
-  <title>webtracker m192</title>
+  <title>webtracker m194</title>
   <style>
     :root { color-scheme: light dark; font-family: system-ui, sans-serif; }   /* colours: see themes.css */
     body { background: var(--bg); color: var(--fg); }
@@ -273,6 +273,14 @@
     .pv-grip:hover, .pv-grip:focus { background: var(--hi); outline: none; }
     .pv-empty { padding: 4px 6px; opacity: .7; white-space: normal; line-height: 14px; }
     .pv-head { background: var(--fg); color: var(--bg); padding: 0 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; position: sticky; top: 0; z-index: 1; }
+    .pv-head { display: flex; align-items: center; gap: 4px; }
+    .pv-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+    .pv-sub { position: static; margin-top: 3px; }
+    .pv-pin { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 14px; margin-right: -3px; cursor: pointer; opacity: .85; border: 1px solid color-mix(in srgb, currentColor 55%, transparent); border-radius: 3px; box-sizing: border-box; }
+    .pv-pin svg { transform: rotate(35deg); }
+    .pv-pin:hover { opacity: 1; background: color-mix(in srgb, currentColor 25%, transparent); }
+    .pv-pin.on { color: #f0707a; border-color: #f0707a; background: color-mix(in srgb, #f0707a 22%, transparent); }
+    .pv-pin.on svg { transform: none; }
     .pv-row { display: grid; grid-template-columns: 9ch 1fr; height: 16px; align-items: center; }
     .pv-name { padding-left: 5px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; cursor: help; }
     .pv-tg { display: none; gap: 2px; margin-right: 4px; }
