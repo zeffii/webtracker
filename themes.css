@@ -1,0 +1,66 @@
+/* Colour themes. Pick one from the box in the header (it is remembered). To tweak a theme, change its numbers here and
+   reload; to add one, copy a block, give it a new data-theme name, and add the name to the THEMES list in main.js.
+     --bg      windows, menus, fields          --fg      text
+     --panel   the dimmer ground of every grid --hi      selection / cursor colour, --hi-fg the text on it
+     --accent  wires, highlights in the graph  --cc      the command column's blue
+     --field   the inside of inputs, --btn the face of buttons           --line    borders on buttons and inputs
+     --glow    a soft halo on the active tab and focused things (a colour, or transparent)
+     --radius  corner rounding of buttons and inputs */
+:root {
+  --bg: Canvas; --fg: CanvasText; --hi: Highlight; --hi-fg: HighlightText; --field: Field;
+  --panel: light-dark(#d9dae0, Canvas);
+  --accent: hsl(210 70% 55%); --cc: light-dark(#2a5db0, #7fb0ff);
+  --btn: var(--field); --line: currentColor; --glow: transparent; --radius: 0;
+}
+html[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #1a1b1f; --fg: #d8dae0; --panel: #222328; --hi: #3b6ea8; --hi-fg: #ffffff; --field: #141518;
+  --accent: hsl(210 75% 62%); --cc: #7fb0ff; --line: #4a4c55;
+}
+html[data-theme="black"] {   /* the near-black system dark look: flat grey buttons, blue selection */
+  color-scheme: dark;
+  --bg: #111111; --fg: #e6e6e6; --panel: #131313; --hi: #1a63d6; --hi-fg: #ffffff; --field: #1c1c1c; --btn: #3a3a3a;
+  --accent: hsl(210 75% 62%); --cc: #7fb0ff; --line: #3a3a3a; --radius: 2px;
+}
+html[data-theme="bright"] {
+  color-scheme: light;
+  --bg: #f6f7fa; --fg: #1d1f27; --panel: #d9dae0; --hi: #2f6fd0; --hi-fg: #ffffff; --field: #ffffff;
+  --accent: hsl(210 70% 50%); --cc: #2a5db0; --line: #9a9ca8;
+}
+html[data-theme="neon"] {   /* cyan and magenta on near black */
+  color-scheme: dark;
+  --bg: #0a0b14; --fg: #cfe9f5; --panel: #0f1020; --hi: #00e5ff; --hi-fg: #00131a; --field: #070810;
+  --accent: #ff2bd6; --cc: #ff5ce1; --line: #2c3a66; --glow: #00e5ff88; --radius: 3px;
+}
+html[data-theme="amber"] {   /* an amber phosphor terminal */
+  color-scheme: dark;
+  --bg: #120c02; --fg: #ffb631; --panel: #1a1103; --hi: #ffb631; --hi-fg: #1a1103; --field: #0d0801;
+  --accent: #ffd37a; --cc: #ff8a1f; --line: #5c4010; --glow: #ffb63166; --radius: 0;
+}
+html[data-theme="phosphor"] {   /* green on black */
+  color-scheme: dark;
+  --bg: #020d06; --fg: #5dff8f; --panel: #04150a; --hi: #39ff7a; --hi-fg: #021407; --field: #010a04;
+  --accent: #b6ffcb; --cc: #3ad1a8; --line: #14502a; --glow: #39ff7a66; --radius: 0;
+}
+html[data-theme="ice"] {   /* a cool, light, clinical look */
+  color-scheme: light;
+  --bg: #eef6fb; --fg: #0e2230; --panel: #dbe9f2; --hi: #0aa6d8; --hi-fg: #ffffff; --field: #ffffff;
+  --accent: #0a7fb0; --cc: #0b6aa0; --line: #8fb2c6; --glow: #0aa6d855; --radius: 6px;
+}
+html[data-theme="synthwave"] {   /* purple dusk, hot pink and a little gold */
+  color-scheme: dark;
+  --bg: #1b0f33; --fg: #f1dcff; --panel: #24144a; --hi: #ff4fa3; --hi-fg: #1b0f33; --field: #140a26;
+  --accent: #ffd23f; --cc: #5ee7ff; --line: #5a3a96; --glow: #ff4fa388; --radius: 4px;
+}
+
+/* Everything that is not the plain system look gets styled controls (the system ones ignore these colours). */
+html[data-theme]:not([data-theme="system"]) :is(select, input:not([type=range]):not([type=checkbox]):not([type=radio]):not([type=file]), textarea) {
+  background: var(--field); color: var(--fg); border: 1px solid var(--line); border-radius: var(--radius); font-family: inherit;
+}
+html[data-theme]:not([data-theme="system"]) button { background: var(--btn); color: var(--fg); border: 1px solid var(--line); border-radius: var(--radius); font-family: inherit; }
+html[data-theme]:not([data-theme="system"]) button:hover:not(:disabled) { border-color: var(--hi); }
+html[data-theme]:not([data-theme="system"]) button:disabled { opacity: .45; }
+html[data-theme]:not([data-theme="system"]) :is(button.active, #tabs button.active) { box-shadow: 0 0 8px var(--glow); }
+html[data-theme]:not([data-theme="system"]) :is(input, select, button):focus-visible { outline: 1px solid var(--hi); box-shadow: 0 0 8px var(--glow); }
+html[data-theme]:not([data-theme="system"]) .field { border-color: var(--line); border-radius: var(--radius); }
+html[data-theme]:not([data-theme="system"]) .field input { border: 0; background: transparent; }
