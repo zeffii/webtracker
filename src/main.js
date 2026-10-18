@@ -798,37 +798,34 @@ $('sample-file').addEventListener('change', async e => {
   refreshProjectUi();
 });
 
-$('add-sampler').addEventListener('click', () => {
-  try {
-    const id = addSamplerInstrument(project, $('new-inst-name').value.trim(), $('new-inst-sample').value);
-    loadInst(id);
-    sendSamples(id);
-    addLaneFor(id);
-    patcher.load({ instruments: project.instruments });
-    patcher.show(id);
-    refreshProjectUi();
-    $('new-inst-name').value = '';
-    projStatus(`Added ${id} with its own lane.`);
-  } catch (err) {
-    projStatus(err.message);
-  }
-});
-
-for (const [kind, { label }] of Object.entries(synthKinds)) $('new-synth-kind').append(Object.assign(document.createElement('option'), { value: kind, textContent: label }));
-$('add-synth').addEventListener('click', () => {
-  try {
-    const id = addSynthInstrument(project, $('new-synth-name').value.trim(), $('new-synth-kind').value);
-    loadInst(id);
-    addLaneFor(id);
-    patcher.load({ instruments: project.instruments });
-    patcher.show(id);
-    refreshProjectUi();
-    $('new-synth-name').value = '';
-    projStatus(`Added ${id} with its own lane.`);
-  } catch (err) {
-    projStatus(err.message);
-  }
-});
+// One box makes any new instrument: a synth from the list, a sampler on a chosen sample, or an empty graph.
+{
+  const kinds = $('new-inst-kind'), sample = $('new-inst-sample');
+  const option = (value, text) => Object.assign(document.createElement('option'), { value, textContent: text });
+  const group = (label, entries) => { const g = document.createElement('optgroup'); g.label = label; g.append(...entries); return g; };
+  const synths = Object.entries(synthKinds).filter(([k]) => k !== 'empty').map(([k, { label }]) => option(`synth:${k}`, label));
+  kinds.replaceChildren(group('Synths', synths), group('Sampler', [option('sampler', 'Sampler (plays a sample)')]), group('Blank', [option('synth:empty', synthKinds.empty.label)]));
+  const showSample = () => { sample.hidden = kinds.value !== 'sampler'; };
+  kinds.addEventListener('change', showSample);
+  showSample();
+  $('add-inst').addEventListener('click', () => {
+    try {
+      const [type, kind] = kinds.value.split(':');
+      const name = $('new-inst-name').value.trim();
+      const id = type === 'sampler' ? addSamplerInstrument(project, name, sample.value) : addSynthInstrument(project, name, kind);
+      loadInst(id);
+      if (type === 'sampler') sendSamples(id);
+      addLaneFor(id);
+      patcher.load({ instruments: project.instruments });
+      patcher.show(id);
+      refreshProjectUi();
+      $('new-inst-name').value = '';
+      projStatus(`Added ${id} with its own lane.`);
+    } catch (err) {
+      projStatus(err.message);
+    }
+  });
+}
 
 $('add-lane').addEventListener('click', () => {
   try {
@@ -873,7 +870,7 @@ $('start').addEventListener('click', async () => {
       openProject(createSynthwaveProject());
     }
     for (const id of ['start']) $(id).disabled = true;
-    for (const id of ['play', 'panic', 'cut', 'new', 'save', 'load', 'patch-add', 'load-samples', 'add-sampler', 'add-synth', 'add-lane', 'add-lane-inst', 'inst-voices', 'inst-notecols', 'inst-name', 'inst-rename', 'inst-up', 'inst-down', 'inst-dup', 'inst-remove', 'lane-name', 'lane-rename', 'lane-left', 'lane-right', 'lane-dup', 'lane-remove', 'lane-remove-all', 'length', 'ins-n', 'ins-go', 'bpm', 'swing', 'preset-name', 'preset-save', 'preset-over', 'preset-rename', 'preset-remove', 'inst-export', 'inst-import', 'lib-load', 'lib-add', 'lib-save']) $(id).disabled = false;
+    for (const id of ['play', 'panic', 'cut', 'new', 'save', 'load', 'patch-add', 'load-samples', 'add-inst', 'add-lane', 'add-lane-inst', 'inst-voices', 'inst-notecols', 'inst-name', 'inst-rename', 'inst-up', 'inst-down', 'inst-dup', 'inst-remove', 'lane-name', 'lane-rename', 'lane-left', 'lane-right', 'lane-dup', 'lane-remove', 'lane-remove-all', 'length', 'ins-n', 'ins-go', 'bpm', 'swing', 'preset-name', 'preset-save', 'preset-over', 'preset-rename', 'preset-remove', 'inst-export', 'inst-import', 'lib-load', 'lib-add', 'lib-save']) $(id).disabled = false;
     $('status').textContent =
       `Running at ${engine.ctx.sampleRate} Hz, base latency ${(engine.ctx.baseLatency * 1000).toFixed(1)} ms`;
     const frame = () => { songInfo(); seqView.draw(); syncLaneName(); view.draw(); patcher.draw(); sampleScreen.draw(); waveform.draw(); region.draw(); requestAnimationFrame(frame); };

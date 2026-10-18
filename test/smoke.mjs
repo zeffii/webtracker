@@ -3185,6 +3185,18 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     assert.deepEqual(starts(lanes[1]), [[16, 144]]);
   }
 
+  // new instruments: the kick synth and the empty graph compile, expose what they say, and get lanes
+  {
+    const registry = new ParamRegistry();
+    const project = { song: { length: 64 }, instruments: {}, samples: {}, lanes: [] };
+    const kick = pops.addSynthInstrument(project, '', 'kick'), blank = pops.addSynthInstrument(project, 'blank', 'empty');
+    for (const id of [kick, blank]) compile(project.instruments[id].graph, { instrument: id, nodeTypes: NODE_TYPES, registry });
+    assert.deepEqual(project.instruments[kick].exposed.map(e => e.label), ['Pit', 'PDc', 'Dec', 'Tun']);
+    const lane = pops.addLane(project, registry, kick);
+    assert.ok(lane.columns.some(c => c.label === 'Tun'));
+    assert.deepEqual(project.instruments[blank].graph.nodes.map(n => n.type).sort(), ['out', 'voices']);
+  }
+
   // patterns start on multiples of 16, wherever in the row the request lands
   {
     const registry = new ParamRegistry();

@@ -145,3 +145,5 @@ falls back to the JavaScript nodes.
   (With several lanes selected and some of them empty, G asks "Create patterns in the empty lanes?": Y/Enter yes, N no (only lanes with patterns are merged), Esc cancels. A single selected lane is never asked.)
 
 - **Alt+Enter** in the pattern editor solo-edits the pattern under the cursor (the same view as Ctrl+Enter in the arrangement); Alt+Enter or Esc leaves it.
+
+- **New instrument** (Instruments tab): one box makes a Kick synth, any of the synths, a Sampler on a chosen sample, or an Empty graph (just out and voices, to build from the Add node menu).

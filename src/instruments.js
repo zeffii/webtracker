@@ -94,6 +94,34 @@ export const newSamplerInstrument = sampleId => structuredClone({
 
 // Synth instruments: one synth node into out, with a few parameters exposed as pattern columns.
 export const synthKinds = {
+  kick: {
+    label: 'Kick synth',
+    make: () => ({
+      graph: withParams(structuredClone(kickGraph), { out: { gain: 0.42 } }),
+      exposed: [
+        { node: 'pitchEnv', param: 'amount', label: 'Pit' },
+        { node: 'pitchEnv', param: 'decay', label: 'PDc', scale: 'log' },
+        { node: 'ampEnv', param: 'decay', label: 'Dec', scale: 'log' },
+        { node: 'osc', param: 'tune', label: 'Tun' },
+      ],
+      commands: [
+        { id: 0x01, node: 'pitchEnv', param: 'amount' },
+        { id: 0x02, node: 'pitchEnv', param: 'decay', scale: 'log' },
+        { id: 0x03, node: 'ampEnv', param: 'decay', scale: 'log' },
+        { id: 0x04, node: 'osc', param: 'tune' },
+        { id: 0x05, node: 'out', param: 'gain' },
+      ],
+    }),
+  },
+  empty: {
+    label: 'Empty graph (out and voices only)',
+    make: () => ({
+      graph: { nodes: [{ id: 'poly', type: 'voices', x: 200, y: 80 }, { id: 'out', type: 'out', x: 420, y: 80, params: { gain: 0.5 } }], connections: [] },
+      noteColumns: 1,
+      exposed: [],
+      commands: [],
+    }),
+  },
   subtractive: {
     label: 'Subtractive synth',
     make: () => ({

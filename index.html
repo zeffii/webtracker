@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="themes.css">
-  <title>webtracker m185</title>
+  <title>webtracker m186</title>
   <style>
     :root { color-scheme: light dark; font-family: system-ui, sans-serif; }   /* colours: see themes.css */
     body { background: var(--bg); color: var(--fg); }
@@ -450,17 +450,12 @@
         <div id="inst-side">
           <h2>Instruments</h2>
           <div id="inst-list" tabindex="0" aria-label="Instruments"></div>
-          <h2>New sampler</h2>
+          <h2>New instrument</h2>
           <div class="manage row new">
             <input id="new-inst-name" placeholder="instrument name" aria-label="Instrument name">
-            <select id="new-inst-sample" aria-label="Sample"></select>
-            <button id="add-sampler" disabled>Add instrument and lane</button>
-          </div>
-          <h2>New synth</h2>
-          <div class="manage row new">
-            <input id="new-synth-name" placeholder="instrument name" aria-label="Synth name">
-            <select id="new-synth-kind" aria-label="Synth kind"></select>
-            <button id="add-synth" disabled>Add synth and lane</button>
+            <select id="new-inst-kind" aria-label="What to make"></select>
+            <select id="new-inst-sample" aria-label="Sample" hidden></select>
+            <button id="add-inst" disabled>Add instrument and lane</button>
           </div>
           <div class="manage">
             <button id="inst-up" disabled title="Move earlier">▲</button><button id="inst-down" disabled title="Move later">▼</button>
