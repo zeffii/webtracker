@@ -69,7 +69,7 @@ them up, expose parameters to the pattern, and set the number of voices (polypho
 Ready-made synths can be added with a lane in one step. Sources, mixing, effects and control nodes:
 
 - **Sources:** sampler, oscillator, envelope, LFO, subtractive synth, Oberheim-style synth, piano (physical model),
-  FM, additive, wavetable, granular, spectral, plucked string, DX7 bank loader, 808 hi-hat, MOD channel.
+  FM, additive, wavetable, granular, spectral, plucked string, DX7 bank loader, 808 hi-hat, comb-resonator percussion (metal hits and zapping toms), MOD channel.
 - **Mix & level:** gain (with a VU meter), mix, pan, voices.
 - **Effects:** filter, delay, multitap, chorus, phaser, flanger, distortion, waveshaper, fold, crusher, frequency
   shifter, gater, exciter, transient, compressor, gate, EQ, three reverbs (hall, plate, shimmer), shiva, blur, and
@@ -145,6 +145,7 @@ falls back to the JavaScript nodes.
   (With several lanes selected and some of them empty, G asks "Create patterns in the empty lanes?": Y/Enter yes, N no (only lanes with patterns are merged), Esc cancels. A single selected lane is never asked.)
 
 - **Alt+Enter** in the pattern editor solo-edits the pattern under the cursor (the same view as Ctrl+Enter in the arrangement); Alt+Enter or Esc leaves it.
+- **Alt+T** in the pattern editor tints each pattern faintly in its own colour (the arrangement's palette), a patchwork to orient by; again switches it off. Also a row in the Config panel (Tint patterns by colour).
 
 - **New instrument** (Instruments tab): one box makes a Kick synth, any of the synths, a Sampler on a chosen sample, or an Empty graph (just out and voices, to build from the Add node menu).
 

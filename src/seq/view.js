@@ -2,6 +2,7 @@ import { setLoopPoint } from './loop.js';
 import * as config from '../ui/config.js';
 import { dimLevel, dimFilter } from '../ui/dim.js';
 import { createPlayline } from '../ui/playline.js';
+import { patternColour } from '../ui/patcolor.js';
 import { KINDS, encodeCell, noteSemitones, noteToken } from './cells.js';
 import { esc } from './html.js';
 import { describeColumn } from './describe.js';
@@ -81,6 +82,8 @@ export function createTrackerView({ el, statusEl, transport, onToggle, onBack, o
     else if (k === 'soloStyle' && v !== soloStyle) { soloStyle = v; scrolledFor = null; if (solo) top = soloStyle === 'window' ? lo : Math.max(0, lo - 4); }
     else if (k === 'fontSize' && v !== fontPx) { fontPx = v; if (el.style) el.style.fontSize = `${fontPx}px`; draw(); }
   });
+  let tint = config.get('patternTint');
+  config.onChange(k => { if (k === 'patternTint') { tint = config.get('patternTint'); if (lanes) draw(); } });
   const playline = createPlayline(el);
   let lineMode = config.get('playhead') === 'line';
   config.onChange(k => { if (k === 'playhead') { lineMode = config.get('playhead') === 'line'; if (lanes) draw(); } });
@@ -416,6 +419,10 @@ export function createTrackerView({ el, statusEl, transport, onToggle, onBack, o
       draw();
       return;
     }
+    if (e.altKey && !e.ctrlKey && !e.metaKey && e.code === 'KeyT') {   // Alt+T: tint the patterns by colour, or not
+      const on = !tint; config.set('patternTint', on); message = on ? 'Pattern tint on.' : 'Pattern tint off.';
+      e.preventDefault(); return;
+    }
     if (!lanes || e.altKey) return;
     if (e.ctrlKey || e.metaKey) {
       const key = e.key.toLowerCase();
@@ -595,7 +602,9 @@ export function createTrackerView({ el, statusEl, transport, onToggle, onBack, o
           if (picked) return `<span class="sel">${html}</span>`;
           return covered ? html : `<span class="off">${html}</span>`;
         }).join(' ');
-        const dim = dimFilter(dimLevel(lane)), shaded = dim ? `<span style="${dim}">${html}</span>` : html;
+        const under = tint && covered ? placementAt(lane, t) : null;
+        const tinted = under && lane.patterns[under.puid] ? `<span style="background:${patternColour(lane.patterns[under.puid], 0.13)}">${html}</span>` : html;
+        const dim = dimFilter(dimLevel(lane)), shaded = dim ? `<span style="${dim}">${tinted}</span>` : tinted;
         return !solo || soloStyle !== 'hatch' ? shaded : `<span class="${locked ? 'lock' : 'soloblk'}">${shaded}</span>`;
       });
       const inLoop = song.loop && t >= song.loop.start && t < song.loop.end;

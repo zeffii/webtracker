@@ -92,6 +92,31 @@ export const newSamplerInstrument = sampleId => structuredClone({
   samples: { sampler: sampleId },
 });
 
+// A comb-resonator percussion instrument: one note column, a few pattern columns for the sound.
+const combPercKind = params => ({
+  graph: { nodes: [{ id: 'perc', type: 'combperc', params }, { id: 'out', type: 'out', params: { gain: 0.5 } }], connections: [['perc.out', 'out.in']] },
+  noteColumns: 1,
+  exposed: [
+    { node: 'perc', param: 'decay', label: 'Dec', scale: 'log' },
+    { node: 'perc', param: 'sweep', label: 'Swp' },
+    { node: 'perc', param: 'spread', label: 'Spr' },
+    { node: 'perc', param: 'damp', label: 'Dmp' },
+  ],
+  commands: [
+    { id: 0x01, node: 'perc', param: 'decay', scale: 'log' },
+    { id: 0x02, node: 'perc', param: 'damp' },
+    { id: 0x03, node: 'perc', param: 'spread' },
+    { id: 0x04, node: 'perc', param: 'tune' },
+    { id: 0x05, node: 'perc', param: 'sweep' },
+    { id: 0x06, node: 'perc', param: 'sdec', scale: 'log' },
+    { id: 0x07, node: 'perc', param: 'drive' },
+    { id: 0x08, node: 'perc', param: 'click', scale: 'log' },
+    { id: 0x09, node: 'perc', param: 'bright' },
+    { id: 0x0a, node: 'perc', param: 'hollow' },
+    { id: 0x0b, node: 'out', param: 'gain' },
+  ],
+});
+
 // Synth instruments: one synth node into out, with a few parameters exposed as pattern columns.
 export const synthKinds = {
   kick: {
@@ -187,6 +212,14 @@ export const synthKinds = {
         { id: 0x08, node: 'synth', param: 'prompt' },
       ],
     }),
+  },
+  combperc: {
+    label: 'Comb resonator perc (metal hits)',
+    make: () => combPercKind({ spread: 0.7, decay: 220, sweep: 0.4, sdec: 30, click: 1.5, drive: 0.25 }),
+  },
+  combtom: {
+    label: 'Comb resonator tom (tuned, zapping)',
+    make: () => combPercKind({ spread: 0.1, decay: 380, sweep: 2, sdec: 45, damp: 0.5, click: 3, bright: 0.45, drive: 0.15 }),
   },
   hat808: {
     label: '808 hi-hat (closed + open)',

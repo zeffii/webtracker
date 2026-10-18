@@ -25,6 +25,7 @@ const TYPE_UNIT = {
   crusher: { rate: 'Hz', bits: 'bit' },
   dcblock: { freq: 'Hz' },
   modchan: {},
+  combperc: { decay: 'ms', click: 'ms', tune: 'st', sweep: 'oct', sdec: 'ms' },
   hat808: { tune: 'st', tone: 'Hz', cdec: 'ms', odec: 'ms' },
   sampler: { release: 'ms', nnaFade: 'ms', retrig: 'ticks', root: '' },
   ctrl: { time: 'subticks' },

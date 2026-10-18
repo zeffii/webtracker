@@ -215,6 +215,15 @@ export const GLYPHS = {
     line(ctx, burst(0.02, 0.2, 0.7));
     line(ctx, burst(0.32, 0.64, 0.9));
   },
+  combperc: (ctx, cx, cy, w, h) => {   // a comb of teeth over a falling ring
+    const x = f => cx - w / 2 + f * w, y = f => cy + h / 2 - f * h;
+    ctx.beginPath();
+    for (let i = 0; i < 5; i++) { ctx.moveTo(x(0.1 + i * 0.2), y(0.5)); ctx.lineTo(x(0.1 + i * 0.2), y(0.95 - i * 0.08)); }
+    ctx.moveTo(x(0.02), y(0.5)); ctx.lineTo(x(0.98), y(0.5));
+    ctx.stroke();
+    const pts = []; for (let i = 0; i <= 30; i++) { const t = i / 30; pts.push([x(0.02 + t * 0.96), y(0.22 + Math.sin(t * 30) * 0.2 * Math.pow(1 - t, 1.4))]); }
+    line(ctx, pts);
+  },
   string: (ctx, cx, cy, w, h) => curve(ctx, cx, cy, w, h, t => Math.sin(t * Math.PI * 7) * Math.pow(1 - t, 1.3) * 0.9, 56),   // a ringing, fading string
   dvii: (ctx, cx, cy, w, h) => {   // a stack of six small boxes joined by lines: operators in an algorithm
     const bw = w * 0.22, bh = h * 0.2, xs = [-0.3, 0.3];

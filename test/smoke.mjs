@@ -4530,6 +4530,48 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   assert.equal(registry.get('master.m.bpm'), 120, 'playing from the top starts at the header tempo again');
 }
 
+// Comb resonator percussion: rings at the note's pitch, decays, stays finite and bounded, and the kinds compile.
+{
+  const type = NODE_TYPES.combperc;
+  const slots = type.params.map((_, i) => i);
+  const run = (set, note, blocks = 400) => {
+    const node = type.create({ sampleRate: sr });
+    const values = type.params.map(p => set[p.name] ?? p.def);
+    node.note({ type: 'noteOn', note, vel: 1 });
+    const all = [];
+    for (let b = 0; b < blocks; b++) {
+      const L = new Float32Array(128), R = new Float32Array(128);
+      node.process([], [[L, R]], 128, values, slots);
+      assert.ok(L.every(Number.isFinite), 'the comb bank stays finite');
+      all.push(...L);
+    }
+    return all;
+  };
+  const rms = (a, from, to) => Math.sqrt(a.slice(from, to).reduce((s, x) => s + x * x, 0) / (to - from));
+  const out = run({ sweep: 0, spread: 0, decay: 400, drive: 0 }, 57);   // A3, 220 Hz
+  const peak = Math.max(...out.map(Math.abs));
+  assert.ok(peak > 0.05 && peak < 1.5, `the hit has a sensible level (${peak})`);
+  assert.ok(rms(out, 0, 6400) > rms(out, 25600, 32000) * 3, 'the ring dies away');
+  // pitch: the autocorrelation of the ring peaks at the note's period
+  const ring = out.slice(3000, 3000 + 4096);
+  let best = 0, bestLag = 0;
+  for (let lag = 100; lag < 600; lag++) { let c = 0; for (let i = 0; i < 3000; i++) c += ring[i] * ring[i + lag]; if (c > best) { best = c; bestLag = lag; } }
+  const hz = sr / bestLag;
+  assert.ok(Math.abs(hz - 220) < 6, `rings at the note's pitch (${hz} Hz)`);
+  const loud = run({ decay: 4000, damp: 0, drive: 1, level: 1, spread: 1, hollow: 1 }, 36, 800);
+  assert.ok(Math.max(...loud.map(Math.abs)) < 2, 'the longest, hardest settings stay bounded');
+  const quiet = run({ decay: 20 }, 60);
+  assert.ok(rms(quiet, 40000, 51200) < 1e-4, 'a short ring is silent afterwards');
+  for (const k of ['combperc', 'combtom']) {
+    const def = synthKinds[k].make();
+    const registry = new ParamRegistry();
+    compile(def.graph, { instrument: 'cp', nodeTypes: NODE_TYPES, registry });
+    const cols = buildColumns('cp', def, registry);
+    assert.ok(cols.some(c => c.kind === 'note'), `${k} has a note column`);
+    assert.equal(cols.filter(c => c.kind === 'param').length >= 4, true, `${k} exposes its parameters`);
+  }
+}
+
 // The 808 hi-hat: Cl and Op trigger columns, the closed hat chokes the open one, and a repeated hit fires twice.
 {
   const def = synthKinds.hat808.make();
