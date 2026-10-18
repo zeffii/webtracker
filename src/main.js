@@ -78,7 +78,7 @@ const view = createTrackerView({
 const seqView = createSequenceView({
   follow: () => following,
   el: $('seq'), statusEl: $('seq-status'), listEl: $('seq-list'), transport: engine.transport, onToggle: togglePlay,
-  onOpen: (lane, tick) => { view.goto(lane, tick); tabs.show('patterns'); },
+  onOpen: (lane, tick, { solo = false } = {}) => { if (!solo || !view.enterSolo(lane, tick)) view.goto(lane, tick); tabs.show('patterns'); },
   onMove: (lane, tick) => view.goto(lane, tick),
   onSong: () => songChanged(),
 });

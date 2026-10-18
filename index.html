@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="themes.css">
-  <title>webtracker m161</title>
+  <title>webtracker m163</title>
   <style>
     :root { color-scheme: light dark; font-family: system-ui, sans-serif; }   /* colours: see themes.css */
     body { background: var(--bg); color: var(--fg); }
@@ -140,6 +140,8 @@
     #view .r16 { color: #f0707a; }   /* every 16th tick, the bar line, in the accent red */
     #view .d { opacity: .5; }   /* the dots of empty cells */
     #view .cur .d { opacity: 1; }
+    #view .lock { opacity: .5; background: repeating-linear-gradient(135deg, transparent 0 5px, rgba(60, 70, 90, .10) 5px 10px); }
+    #view .soloblk { background: rgba(90, 150, 255, .14); }
     #view .now { background: rgba(90, 150, 255, .22); }
     #seq .r.now { position: relative; }
     #seq .r.now::after { content: ""; position: absolute; inset: 0; background: rgba(90, 150, 255, .22); pointer-events: none; }
@@ -335,7 +337,7 @@
     </div>
       <aside class="keys" aria-label="Pattern editor shortcuts"><h3>Shortcuts</h3>
         <dl>
-          <dt>Click, Esc</dt><dd>click the grid to start; Esc goes to the arrangement</dd>
+          <dt>Click, Esc</dt><dd>click the grid to start; Esc goes to the arrangement (in solo-edit, Esc first goes back to the whole song)</dd>
           <dt>Arrows</dt><dd>move; Left/Right go one character, and hold them to jump a column at a time (to its start)</dd>
           <dt>Tab</dt><dd>next lane</dd>
           <dt>PgUp/PgDn</dt><dd>16 rows</dd>
@@ -516,6 +518,7 @@
           <dt>Left/Right</dt><dd>change lane</dd>
           <dt>PgUp/PgDn</dt><dd>16 ticks</dd>
           <dt>Enter</dt><dd>open the pattern under the cursor in the grid, or insert a new one</dd>
+          <dt>Ctrl+Enter</dt><dd>open the pattern under the cursor on its own (solo-edit): nothing else can be edited or pasted into. In the grid, Tab switches between showing only the pattern (rows from 0) and showing the whole song with the rest greyed, hatched and locked; Esc leaves it</dd>
           <dt>I</dt><dd>insert a new pattern on top</dd>
           <dt>two hex digits</dt><dd>place that pattern (see the list) and jump to its end</dd>
           <dt>N</dt><dd>clone</dd>

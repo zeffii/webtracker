@@ -4664,6 +4664,42 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   assert.deepEqual(offsAt([16]), [16], 'the marker lets go once, at its row');
 }
 
+// Solo-edit: one placement on its own, rows from 0, nothing else reachable
+{
+  const registry = new ParamRegistry();
+  for (const [id, def] of Object.entries(instruments)) compile(def.graph, { instrument: id, nodeTypes: NODE_TYPES, registry });
+  const song = structuredClone(demoSong);
+  song.length = 64;
+  const lanes = prepareSong(song, instruments, registry);
+  let onKey, backs = 0;
+  const el = { addEventListener: (type, f) => { if (type === 'keydown') onKey = f; }, innerHTML: '' };
+  const statusEl = { textContent: '' };
+  const view = createTrackerView({ el, statusEl, transport: new Int32Array(new SharedArrayBuffer(8)), onToggle() {}, onBack: () => { backs++; } });
+  view.load({ lanes, song, editor: createEditor(lanes, song.length) });
+  const press = (key, extra = {}) => onKey({ key, preventDefault() {}, ...extra });
+  const li = lanes.findIndex(l => l.placements.some(p => p.start === 16));
+  assert.ok(li >= 0);
+  const pl = lanes[li].placements.find(p => p.start === 16);
+  assert.ok(view.enterSolo(li, 20));
+  view.draw();
+  const text = el.innerHTML.replace(/<[^>]+>/g, '').split('\n');
+  const rowsShown = text.slice(2).filter(l => /^\s*\d{4} /.test(l));
+  assert.equal(rowsShown.length, Math.min(pl.length, lanes[li].patterns[pl.puid].length), 'only the rows of that placement');
+  assert.match(rowsShown[0], /^ 0000/, 'numbered from 0');
+  assert.ok(!text[0].includes('master') || li === 0, 'other lanes are not shown');
+  press('End'); view.draw(); assert.match(statusEl.textContent, /SOLO/);
+  press('Tab'); assert.equal(view.tick, 16 + rowsShown.length - 1, 'Tab does not leave');
+  for (let i = 0; i < 100; i++) press('ArrowDown');
+  assert.ok(view.tick >= 16 && view.tick < 16 + rowsShown.length, 'the cursor stays inside the pattern');
+  view.draw();   // the earlier Tab switched to the other view: the whole song, the rest locked
+  assert.ok(el.innerHTML.includes('class="lock"') && el.innerHTML.includes('class="soloblk"'), 'hatch view marks the locked and the open parts');
+  press('ArrowDown'); assert.ok(view.tick >= 16 && view.tick < 16 + rowsShown.length, 'still confined in the hatch view');
+  press('Tab');
+  press('Escape'); assert.equal(backs, 0, 'Esc first leaves solo-edit');
+  view.draw(); assert.ok(el.innerHTML.includes('0016'), 'and the song ticks are back');
+  press('Escape'); assert.equal(backs, 1, 'Esc again goes back to the arrangement');
+}
+
 // Playing from a tick, and one row at a time
 {
   const text = patternText(16, { 2: 'C-4 .. .. .... .... .. .. ..' });

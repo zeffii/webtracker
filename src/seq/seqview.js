@@ -198,6 +198,7 @@ export function createSequenceView({ el, statusEl, listEl, transport, onToggle, 
         e.preventDefault();
       } else if (key === 'v') { paste(); e.preventDefault(); }
       else if (key === 'd' && !e.shiftKey) { duplicate(); e.preventDefault(); }
+      else if (key === 'enter') { if (here()) onOpen(cur.lane, editTick(), { solo: true }); else message = 'No pattern here.'; e.preventDefault(); }
       if (onMove && (cur.lane !== li0 || cur.tick !== tick0)) onMove(cur.lane, cur.tick);
       return;
     }

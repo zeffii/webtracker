@@ -2,6 +2,7 @@ import { setLoopPoint } from './loop.js';
 import { KINDS, encodeCell, noteSemitones, noteToken } from './cells.js';
 import { esc } from './html.js';
 import { describeColumn } from './describe.js';
+import { placementAt } from './edit.js';
 
 import { LOWER, UPPER } from './piano.js';
 const ROWS = { min: 6, max: 128, normal: 24 };   // rows shown at once
@@ -31,6 +32,15 @@ export function cellAt({ widths, x, line, top, len }) {
 // tick while the song plays. Call load() with the prepared lanes before drawing.
 export function createTrackerView({ el, statusEl, transport, onToggle, onBack, onMove, onRow = () => {}, onNote = () => {}, onSong = () => {}, readParam = () => undefined, follow = () => false }) {
   let lanes = null, len = 0, widths = [], editor = null, song = null;
+  // Solo-edit: one placement of one pattern, shown on its own with its rows numbered from 0. Nothing else can be reached.
+  // lo..hi is its span of song ticks; hi is the song's length when not in solo-edit and lo is 0.
+  let solo = null, lo = 0, hi = 0;
+  // Two ways to show it: 'window' (only the pattern, rows from 0) or 'hatch' (the whole song, everything but the pattern greyed
+  // and hatched and locked). Tab flips between them while in solo-edit; it is remembered.
+  let soloStyle = 'window';
+  try { soloStyle = localStorage.getItem('patternSoloStyle') === 'hatch' ? 'hatch' : 'window'; } catch {}
+  const windowed = () => solo !== null && soloStyle === 'window';   // only the pattern is on screen
+  const showLo = () => (windowed() ? lo : 0), showHi = () => (windowed() ? hi : len);
   const cur = { lane: 0, tick: 0, col: 0, ch: 0 };
   let octave = 3, message = '';
   let sel = null;          // { lane, tick, col }: the corner opposite the cursor, while a rectangle is selected
@@ -83,13 +93,14 @@ export function createTrackerView({ el, statusEl, transport, onToggle, onBack, o
     const rows = Math.trunc(wheelAcc / 25);   // a notch of a mouse wheel is about four rows
     if (!rows) return;
     wheelAcc -= rows * 25;
-    top = Math.max(0, Math.min(top + rows, len - rowCount));
+    top = Math.max(showLo(), Math.min(top + rows, showHi() - rowCount));
     scrolledFor = `${cur.lane},${cur.tick}`;
   }, { passive: false });
 
   const load = ({ lanes: l, song: s, editor: e }) => {
     lanes = l;
     len = s.length;
+    solo = null; lo = 0; hi = len;
     song = s;
     editor = e;
     widths = lanes.map(lane => lane.columns.map(c => Math.max((c.short ?? c.label).length, KINDS[c.token].width)));
@@ -120,9 +131,10 @@ export function createTrackerView({ el, statusEl, transport, onToggle, onBack, o
   const neighbour = (li, ci, dir) => { const v = visibleCols(li), i = v.indexOf(ci); return i < 0 ? nearest(v, ci) : v[i + dir] ?? -1; };
   const snapCol = () => { cur.col = nearest(visibleCols(cur.lane, -1), Math.min(cur.col, lanes[cur.lane].columns.length - 1)); };
 
-  const moveRow = d => { cur.tick = (cur.tick + d + len) % len; };
+  const moveRow = d => { const n = hi - lo; cur.tick = lo + ((cur.tick - lo + d) % n + n) % n; };
+  const hopLane = d => (solo ? solo.lane : (cur.lane + d + lanes.length) % lanes.length);   // the lane a step off the end of one lands in
   const moveLane = d => {
-    cur.lane = (cur.lane + d + lanes.length) % lanes.length;
+    cur.lane = hopLane(d);
     snapCol();
     cur.ch = Math.min(cur.ch, cellWidth() - 1);
   };
@@ -132,14 +144,14 @@ export function createTrackerView({ el, statusEl, transport, onToggle, onBack, o
     if (cur.ch < 0) {
       const prev = neighbour(cur.lane, cur.col, -1);
       if (prev < 0) {
-        cur.lane = (cur.lane + lanes.length - 1) % lanes.length;
+        cur.lane = hopLane(-1);
         cur.col = visibleCols(cur.lane, -1).at(-1);
       } else cur.col = prev;
       cur.ch = cellWidth() - 1;
     } else if (cur.ch >= cellWidth()) {
       const next = neighbour(cur.lane, cur.col, 1);
       if (next < 0) {
-        cur.lane = (cur.lane + 1) % lanes.length;
+        cur.lane = hopLane(1);
         cur.col = visibleCols(cur.lane, -1)[0];
       } else cur.col = next;
       cur.ch = 0;
@@ -153,7 +165,7 @@ export function createTrackerView({ el, statusEl, transport, onToggle, onBack, o
     const there = neighbour(cur.lane, cur.col, d);
     if (there >= 0) cur.col = there;
     else {
-      cur.lane = (cur.lane + d + lanes.length) % lanes.length;
+      cur.lane = hopLane(d);
       const cols = visibleCols(cur.lane, -1);
       cur.col = d > 0 ? cols[0] : cols.at(-1);
     }
@@ -190,7 +202,7 @@ export function createTrackerView({ el, statusEl, transport, onToggle, onBack, o
     let skipped = 0;
     clipboard.forEach((row, i) => row.forEach((c, j) => {
       const tick = r.t0 + i, col = r.c0 + j;
-      if (tick >= len || col >= lane.columns.length || lane.columns[col].token !== c.token) { skipped++; return; }
+      if (tick >= hi || col >= lane.columns.length || lane.columns[col].token !== c.token) { skipped++; return; }
       items.push({ tick, col, token: c.cell });
     }));
     const changed = editor.setCells(r.lane, items, 'paste');
@@ -205,13 +217,13 @@ export function createTrackerView({ el, statusEl, transport, onToggle, onBack, o
     const r = rect(), lane = lanes[r.lane], h = r.t1 - r.t0 + 1, items = [];
     let skipped = 0;
     for (let t = r.t0; t <= r.t1; t++) for (let c = r.c0; c <= r.c1; c++) {
-      if (t + h >= len) { skipped++; continue; }
+      if (t + h >= hi) { skipped++; continue; }
       items.push({ tick: t + h, col: c, token: lane.rows[t][c] });
     }
-    if (r.t1 + 1 >= len) { message = 'No room below.'; return; }
+    if (r.t1 + 1 >= hi) { message = 'No room below.'; return; }
     const changed = editor.setCells(r.lane, items, 'copy down');
     message = changed ? `Copied ${size(r)} cells down${skipped ? `, ${skipped} did not fit` : ''}.` : 'Nothing changed (is there a pattern below?).';
-    const to = t => Math.min(len - 1, t + h);
+    const to = t => Math.min(hi - 1, t + h);
     if (sel) sel = { ...sel, tick: to(sel.tick) };
     cur.tick = to(cur.tick);
   };
@@ -349,7 +361,10 @@ export function createTrackerView({ el, statusEl, transport, onToggle, onBack, o
     const m = metrics(), box = el.getBoundingClientRect();
     const x = (e.clientX - box.left - m.left + el.scrollLeft) / m.cw, y = (e.clientY - box.top - m.up + el.scrollTop) / m.lh;
     // measured on the columns that are shown, then translated back to the lane's own column numbers
-    const hit = cellAt({ widths: widths.map((w, li) => w.filter((_, ci) => (vis[li] ?? w.map((__, i) => i)).includes(ci))), x: Math.floor(x), line: Math.floor(y), top, len });
+    const shown = widths.map((w, li) => w.filter((_, ci) => (vis[li] ?? w.map((__, i) => i)).includes(ci)));
+    const hit = cellAt({ widths: windowed() ? [shown[solo.lane]] : shown, x: Math.floor(x), line: Math.floor(y), top, len: showHi() });
+    if (hit && windowed()) hit.lane = solo.lane;
+    if (hit && solo && (hit.lane !== solo.lane || hit.tick < lo || hit.tick >= hi)) return null;   // the locked part cannot be clicked
     return hit && { ...hit, col: (vis[hit.lane] ?? [])[hit.col] ?? hit.col };
   };
   el.addEventListener('mousedown', e => {
@@ -401,7 +416,7 @@ export function createTrackerView({ el, statusEl, transport, onToggle, onBack, o
         onSong();
         e.preventDefault(); return;
       }
-      if (key === 'enter') { insertLive(e.shiftKey); e.preventDefault(); return; }
+      if (key === 'enter') { if (solo) message = 'Not in solo-edit: Esc first.'; else insertLive(e.shiftKey); e.preventDefault(); return; }
       if (key === 'i') { interpolate(); e.preventDefault(); return; }
       if (key === 'z' || key === 'y') {
         const redo = key === 'y' || e.shiftKey;
@@ -423,8 +438,8 @@ export function createTrackerView({ el, statusEl, transport, onToggle, onBack, o
         duplicate();
         e.preventDefault();
       } else if (key === 'a') {   // the whole lane
-        sel = { lane: cur.lane, tick: 0, col: 0 };
-        cur.tick = len - 1; cur.col = lanes[cur.lane].columns.length - 1; cur.ch = 0;
+        sel = { lane: cur.lane, tick: lo, col: 0 };
+        cur.tick = hi - 1; cur.col = lanes[cur.lane].columns.length - 1; cur.ch = 0;
         message = 'Selected the lane.';
         e.preventDefault();
       }
@@ -435,10 +450,10 @@ export function createTrackerView({ el, statusEl, transport, onToggle, onBack, o
     let used = true;
     // Shift with a movement key grows a rectangle from where the cursor was, by whole cells and
     // within the lane; Delete clears it; any other key drops it.
-    const grow = { ArrowUp: () => { cur.tick = clamp(cur.tick - 1, 0, len - 1); }, ArrowDown: () => { cur.tick = clamp(cur.tick + 1, 0, len - 1); },
+    const grow = { ArrowUp: () => { cur.tick = clamp(cur.tick - 1, lo, hi - 1); }, ArrowDown: () => { cur.tick = clamp(cur.tick + 1, lo, hi - 1); },
       ArrowLeft: () => { const n = neighbour(cur.lane, cur.col, -1); if (n >= 0) cur.col = n; }, ArrowRight: () => { const n = neighbour(cur.lane, cur.col, 1); if (n >= 0) cur.col = n; },
-      PageUp: () => { cur.tick = clamp(cur.tick - 16, 0, len - 1); }, PageDown: () => { cur.tick = clamp(cur.tick + 16, 0, len - 1); },
-      Home: () => { cur.tick = 0; }, End: () => { cur.tick = len - 1; } };
+      PageUp: () => { cur.tick = clamp(cur.tick - 16, lo, hi - 1); }, PageDown: () => { cur.tick = clamp(cur.tick + 16, lo, hi - 1); },
+      Home: () => { cur.tick = lo; }, End: () => { cur.tick = hi - 1; } };
     if (e.shiftKey && Object.hasOwn(grow, k)) {
       sel ??= { lane: cur.lane, tick: cur.tick, col: cur.col };
       grow[k]();
@@ -461,11 +476,18 @@ export function createTrackerView({ el, statusEl, transport, onToggle, onBack, o
       case 'ArrowDown': moveRow(1); break;
       case 'ArrowLeft': if (e.repeat) moveColumn(-1); else moveChar(-1); break;
       case 'ArrowRight': if (e.repeat) moveColumn(1); else moveChar(1); break;
-      case 'Tab': moveLane(e.shiftKey ? -1 : 1); break;
+      case 'Tab':
+        if (solo) {
+          soloStyle = soloStyle === 'window' ? 'hatch' : 'window';
+          try { localStorage.setItem('patternSoloStyle', soloStyle); } catch {}
+          scrolledFor = null; top = soloStyle === 'window' ? lo : Math.max(0, lo - 4);
+          message = soloStyle === 'window' ? 'Solo-edit: the pattern on its own.' : 'Solo-edit: the song, with the rest locked.';
+        } else moveLane(e.shiftKey ? -1 : 1);
+        break;
       case 'PageUp': moveRow(-16); break;
       case 'PageDown': moveRow(16); break;
-      case 'Home': cur.tick = 0; break;
-      case 'End': cur.tick = len - 1; break;
+      case 'Home': cur.tick = lo; break;
+      case 'End': cur.tick = hi - 1; break;
       case ' ': onRow(cur.tick); moveRow(1); break;   // plays the row, then steps down: line by line
       case '[': octave = Math.max(0, octave - 1); message = `Octave ${octave}`; break;
       case ']': octave = Math.min(9, octave + 1); message = `Octave ${octave}`; break;
@@ -474,8 +496,11 @@ export function createTrackerView({ el, statusEl, transport, onToggle, onBack, o
         try { localStorage.setItem('patternPreview', preview ? '1' : '0'); } catch {}
         message = `Note preview ${preview ? 'on: typed notes sound' : 'off'}.`;
         break;
-      case 'Escape': message = ''; onBack(); break;
+      case 'Escape':
+        if (solo) { solo = null; lo = 0; hi = len; scrolledFor = null; message = 'Solo-edit off.'; } else { message = ''; onBack(); }
+        break;
       case 'Enter':
+        if (solo) { message = 'Not in solo-edit: Esc first.'; break; }
         message = editor.insertPattern(cur.lane, cur.tick) ? 'Pattern inserted.' : 'A pattern is already here.';
         break;
       case 'Delete':
@@ -497,27 +522,40 @@ export function createTrackerView({ el, statusEl, transport, onToggle, onBack, o
   const draw = () => {
     if (!lanes) return;
     const playing = Atomics.load(transport, 1) === 1, playTick = Atomics.load(transport, 0);
+    if (solo) {   // the placement can go (undo, or a change in the arrangement); then solo-edit is over
+      const pl = placementAt(lanes[solo.lane], solo.start);
+      if (!pl || pl.start !== solo.start) { solo = null; lo = 0; hi = len; message = 'That pattern is gone: solo-edit is off.'; }
+      else {
+        lo = solo.start; hi = Math.min(len, solo.start + Math.min(pl.length, lanes[solo.lane].patterns[pl.puid].length));
+        solo.end = hi; solo.puid = pl.puid;
+        cur.lane = solo.lane; cur.tick = Math.max(lo, Math.min(hi - 1, cur.tick));
+        if (sel) sel.lane = solo.lane;
+      }
+    }
     // The window stays where it is while the cursor is inside it (so clicking does not move the grid); when the
     // cursor leaves it, the window jumps to put the cursor a few rows in from the top.
     // Following the song: the cursor goes with the playing row, which stays in the middle of the window.
-    const following = follow() && playing;
+    const following = follow() && playing && !solo;
     if (following) { cur.tick = Math.min(len - 1, playTick); sel = null; top = cur.tick - (rowCount >> 1); }
     else {
       if (scrolledFor !== `${cur.lane},${cur.tick}`) scrolledFor = null;
       if (!scrolledFor && (cur.tick < top || cur.tick >= top + rowCount)) top = cur.tick - Math.min(8, rowCount >> 2);
     }
-    top = Math.max(0, Math.min(top, len - rowCount));
+    top = Math.max(showLo(), Math.min(top, showHi() - rowCount));
     const r = sel ? rect() : null;
     vis = lanes.map((_, li) => visibleCols(li));
+    const shown = lanes.map((l, li) => ({ l, li })).filter(({ li }) => !windowed() || li === solo.lane);   // the window shows its lane only
     const lines = [
-      `<span class="g">${' '.repeat(GUTTER)}</span>${lanes.map((l, li) => ` ${esc(l.id.padEnd(block(li)))}`).join('  ')}`,
-      `<span class="g">${' '.repeat(GUTTER)}</span>${lanes.map((l, li) => ` ${vis[li].map(ci => esc((l.columns[ci].short ?? l.columns[ci].label).padEnd(widths[li][ci]))).join(' ')}`).join('  ')}`,
+      `<span class="g">${' '.repeat(GUTTER)}</span>${shown.map(({ l, li }) => ` ${esc(l.id.padEnd(block(li)))}`).join('  ')}`,
+      `<span class="g">${' '.repeat(GUTTER)}</span>${shown.map(({ l, li }) => ` ${vis[li].map(ci => esc((l.columns[ci].short ?? l.columns[ci].label).padEnd(widths[li][ci]))).join(' ')}`).join('  ')}`,
     ];
-    for (let t = top; t < Math.min(len, top + rowCount); t++) {
-      const chunks = lanes.map((lane, li) => {
+    const base = showLo();
+    for (let t = top; t < Math.min(showHi(), top + rowCount); t++) {
+      const chunks = shown.map(({ l: lane, li }) => {
         const mark = lane.placements.some(p => p.start === t) ? '<span class="ps">▌</span>' : ' ';   // a pattern starts here
         const covered = lane.placements.some(p => t >= p.start && t < p.start + p.length);   // else no pattern here
-        return mark + vis[li].map(ci => {
+        const locked = solo && soloStyle === 'hatch' && (li !== solo.lane || t < lo || t >= hi);
+        const html = mark + vis[li].map(ci => {
           const c = lane.columns[ci];
           const text = lane.rows[t][ci].padEnd(widths[li][ci]);
           const isCur = li === cur.lane && ci === cur.col && t === cur.tick;
@@ -531,11 +569,12 @@ export function createTrackerView({ el, statusEl, transport, onToggle, onBack, o
           if (picked) return `<span class="sel">${html}</span>`;
           return covered ? html : `<span class="off">${html}</span>`;
         }).join(' ');
+        return !solo || soloStyle !== 'hatch' ? html : `<span class="${locked ? 'lock' : 'soloblk'}">${html}</span>`;
       });
       const inLoop = song.loop && t >= song.loop.start && t < song.loop.end;
       const edge = inLoop ? `${t === song.loop.start ? ' ls' : ''}${t === song.loop.end - 1 ? ' le' : ''}` : '';
-      const row = `<span class="g${inLoop ? ` lp${edge}` : ''}">${playing && t === playTick ? '>' : ' '}${String(t).padStart(4, '0')} </span>${chunks.join('  ')}`;
-      const shade = t % 16 === 0 ? 'r16' : t % 4 === 0 ? 'r4' : '';
+      const row = `<span class="g${inLoop ? ` lp${edge}` : ''}">${playing && t === playTick ? '>' : ' '}${String(t - base).padStart(4, '0')} </span>${chunks.join('  ')}`;
+      const shade = (t - base) % 16 === 0 ? 'r16' : (t - base) % 4 === 0 ? 'r4' : '';
       const line = playing && t === playTick ? `<b>${following ? `<span class="now">${row}</span>` : row}</b>` : row;
       lines.push(shade ? `<span class="${shade}">${line}</span>` : line);
     }
@@ -554,12 +593,14 @@ export function createTrackerView({ el, statusEl, transport, onToggle, onBack, o
       }
     }
     statusEl.textContent = [
-      lanes[cur.lane].id, compact.has(cur.lane) ? 'empty columns hidden' : '', `row ${cur.tick}`, patternName(), describeColumn(lanes[cur.lane], cur.tick, cur.col), `char ${cur.ch + 1}/${cellWidth()}`, preview ? 'preview on' : '',
+      solo && `SOLO${lanes[solo.lane].placements.filter(p => p.puid === solo.puid).length > 1 ? ` (shared by ${lanes[solo.lane].placements.filter(p => p.puid === solo.puid).length} placements)` : ''}`,
+      lanes[cur.lane].id, compact.has(cur.lane) ? 'empty columns hidden' : '', `row ${cur.tick - base}`, patternName(), describeColumn(lanes[cur.lane], cur.tick, cur.col), `char ${cur.ch + 1}/${cellWidth()}`, preview ? 'preview on' : '',
       sel ? `selected ${size(rect())}` : '', `octave ${octave}`, message,
     ].filter(Boolean).join(' · ');
   };
 
   const goto = (laneIdx, tick) => {
+    solo = null; lo = 0; hi = len;
     cur.lane = laneIdx;
     cur.tick = tick;
     snapCol();
@@ -567,7 +608,20 @@ export function createTrackerView({ el, statusEl, transport, onToggle, onBack, o
     message = '';
   };
 
+  // Solo-edit on the placement under the tick, if there is one: only its rows are shown, numbered from 0.
+  const enterSolo = (laneIdx, tick) => {
+    const pl = placementAt(lanes[laneIdx], tick);
+    if (!pl) return false;
+    goto(laneIdx, pl.start);
+    solo = { lane: laneIdx, start: pl.start };
+    lo = pl.start; hi = pl.start + Math.min(pl.length, lanes[laneIdx].patterns[pl.puid].length);
+    cur.tick = Math.max(lo, Math.min(hi - 1, tick));
+    sel = null; scrolledFor = null; top = lo;
+    message = 'Solo-edit: Esc leaves it, Tab changes the view.';
+    return true;
+  };
+
   const setRows = n => { rowCount = Math.max(ROWS.min, Math.min(ROWS.max, Math.round(n))); draw(); return rowCount; };
   const lineHeight = () => (lanes ? metrics().lh : 18);
-  return { draw, load, goto, relayout, setSize, setRows, lineHeight, get rows() { return rowCount; }, get fontPx() { return fontPx; }, get tick() { return cur.tick; }, get preview() { return preview; } };
+  return { draw, load, goto, enterSolo, relayout, setSize, setRows, lineHeight, get rows() { return rowCount; }, get fontPx() { return fontPx; }, get tick() { return cur.tick; }, get preview() { return preview; } };
 }

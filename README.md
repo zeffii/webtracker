@@ -57,7 +57,7 @@ project can be empty apart from it.
 
 Patterns are placed on a timeline in blocks of 16 ticks. Place, clone, slice, resize, move and remove them; undo and
 redo; set a loop (Ctrl+B / Ctrl+E) and waypoints; mute a lane from a row, or silence it whole; put a note-off marker on a row (Ctrl+1), so the lane lets go of its notes there; colour patterns.
-Select a block of lanes and rows (Shift+arrows or drag), copy, cut and paste it (Ctrl+C/X/V, pasted with its top left at the cursor), or press Ctrl+D to copy it straight below itself, again and again by the same number of rows; Ctrl+D does the same for cells in the pattern editor. **Follow** (F9) makes the grids scroll with the playing row, which is highlighted. The mouse wheel scrolls. Under the grid: rename, reorder, duplicate or remove the lane under the cursor (optionally
+Ctrl+Enter opens the pattern under the cursor on its own (solo-edit): edits and pastes cannot reach anything else. Tab flips the view between the pattern alone (rows counted from 0) and the whole song with the rest greyed, hatched and locked; Esc returns to the whole song. Select a block of lanes and rows (Shift+arrows or drag), copy, cut and paste it (Ctrl+C/X/V, pasted with its top left at the cursor), or press Ctrl+D to copy it straight below itself, again and again by the same number of rows; Ctrl+D does the same for cells in the pattern editor. **Follow** (F9) makes the grids scroll with the playing row, which is highlighted. The mouse wheel scrolls. Under the grid: rename, reorder, duplicate or remove the lane under the cursor (optionally
 with the instrument it plays), and add a lane for any instrument.
 
 ## Instruments
