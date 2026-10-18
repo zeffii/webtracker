@@ -1,7 +1,8 @@
-// The floating "insert node" menu: a search box over a tree of node types, opened as columns (category, group, node).
-// Up/Down move, Right or Enter open a branch (or insert a node), Left goes back, Esc closes. Typing in the box switches to
-// a flat list of the nodes that match. It does not know about graphs; picking calls onPick(type, at) with the point the
-// menu was opened at.
+// The floating "insert node" menu, in two parts. The tree is an ordinary cascading menu (categories, groups, nodes), each level
+// opening beside the row that opened it: Up/Down move (and wrap), Right or Enter open a branch (or insert a node), Left or Esc
+// go back a level (Esc at the top closes), and the underlined letter of a row is its hotkey. The search is a flat list of the
+// nodes that match what is typed, with the same keys; press / (or Tab, or click the box) for it, Esc to get back to the tree.
+// It does not know about graphs; picking calls onPick(type, at) with the point the menu was opened at.
 
 // How the nodes of a category are grouped. A node that is not listed here still shows up, at the end of its category.
 const GROUPS = {
@@ -24,18 +25,34 @@ const GROUPS = {
 };
 const ORDER = ['Sources', 'Effects', 'Control', 'Mix & level'];
 
+const ROW = 21;   // px: the height of a row, so a submenu can start level with the row that opened it
+
+// The hotkey of each row of a menu level: the first letter or digit of its label that no earlier row has taken.
+export function hotkeys(labels) {
+  const taken = new Set();
+  return labels.map(label => {
+    const i = [...label.toLowerCase()].findIndex(c => /[a-z0-9]/.test(c) && !taken.has(c));
+    if (i < 0) return -1;
+    taken.add(label.toLowerCase()[i]);
+    return i;   // the index of the letter in the label
+  });
+}
+
 export function createInsertMenu({ parent, nodeTypes, onPick, doc = document }) {
   const el = (tag, props = {}) => Object.assign(doc.createElement(tag), props);
   const box = el('div', { className: 'insert-menu', hidden: true });
-  const input = el('input', { type: 'search', placeholder: 'Add node…' });
+  const input = el('input', { type: 'search', placeholder: 'Add node: letters pick, / searches' });
   input.setAttribute?.('aria-label', 'Add node');
   const list = el('div', { className: 'insert-list' });
+  const hint = el('div', { className: 'insert-hint' });
   box.appendChild(input);
   box.appendChild(list);
+  box.appendChild(hint);
   parent.appendChild(box);
 
   let shown = [], active = 0, at = { x: 20, y: 30 };
-  let sel = [0], depth = 0;   // tree mode: the row chosen in each column, and the column that has the keys
+  let sel = [0], depth = 0;   // tree: the row chosen in each column, and the column that has the keys
+  let searching = false;      // search: a flat list of what the text matches
 
   // The node types that can be placed by hand, matching the text against name and category.
   const entries = text => {
@@ -45,6 +62,12 @@ export function createInsertMenu({ parent, nodeTypes, onPick, doc = document }) 
       .map(([type, d]) => ({ type, category: d.category ?? 'Other' }))
       .filter(e => !q || e.type.includes(q) || e.category.toLowerCase().includes(q))
       .sort((a, b) => a.category.localeCompare(b.category) || a.type.localeCompare(b.type));
+  };
+  // The same, best match first: names that start with the text, then names that contain it, then categories.
+  const search = text => {
+    const q = text.trim().toLowerCase();
+    const rank = e => (!q ? 0 : e.type.startsWith(q) ? 0 : e.type.includes(q) ? 1 : 2);
+    return entries(text).sort((a, b) => rank(a) - rank(b) || a.type.localeCompare(b.type));
   };
 
   // The tree: categories, then groups, then nodes. Rows are { label, children } or { label, type }.
@@ -78,33 +101,50 @@ export function createInsertMenu({ parent, nodeTypes, onPick, doc = document }) 
     return cols;
   };
 
+  // A label with the letter at `i` underlined.
+  const labelled = (b, label, i) => {
+    if (i < 0) { b.textContent = label; return; }
+    b.appendChild(el('span', { textContent: label.slice(0, i) }));
+    b.appendChild(el('u', { textContent: label[i] }));
+    b.appendChild(el('span', { textContent: label.slice(i + 1) }));
+  };
+
   const render = () => {
-    if (input.value.trim()) {   // searching: a flat list with the category headers
-      shown = entries(input.value);
+    hint.textContent = searching ? 'Up/Down, Enter inserts, Esc back to the menu' : 'Underlined letters, arrows and Enter · / searches';
+    if (searching) {   // a flat list, best match first
+      shown = search(input.value);
       active = Math.min(active, Math.max(0, shown.length - 1));
-      const kids = [];
-      let category = null;
-      shown.forEach((entry, i) => {
-        if (entry.category !== category) {
-          category = entry.category;
-          kids.push(el('div', { className: 'insert-head', textContent: category }));
-        }
-        const b = el('button', { textContent: entry.type, className: i === active ? 'active' : '' });
+      const q = input.value.trim().toLowerCase();
+      const kids = shown.map((entry, i) => {
+        const b = el('button', { className: i === active ? 'active' : '' });
+        const at0 = q ? entry.type.indexOf(q) : -1;
+        if (at0 >= 0) {
+          b.appendChild(el('span', { textContent: entry.type.slice(0, at0) }));
+          b.appendChild(el('u', { textContent: entry.type.slice(at0, at0 + q.length) }));
+          b.appendChild(el('span', { textContent: entry.type.slice(at0 + q.length) }));
+        } else b.appendChild(el('span', { textContent: entry.type }));
+        b.appendChild(el('i', { className: 'cat', textContent: entry.category }));
+        b.addEventListener('mouseenter', () => { if (active !== i) { active = i; render(); } });
         b.addEventListener('mousedown', e => { e.preventDefault(); pick(entry); });
-        kids.push(b);
+        return b;
       });
       if (!kids.length) kids.push(el('div', { className: 'insert-head', textContent: 'No match' }));
       list.className = 'insert-list';
       list.replaceChildren(...kids);
+      kids[active]?.scrollIntoView?.({ block: 'nearest' });
       return;
     }
     const cols = columns();
     list.className = 'insert-list tiers';
-    list.replaceChildren(...cols.map((rows, k) => {
+    let top = 0;   // each level starts level with the row that opened it
+    const built = cols.map((rows, k) => {
       const col = el('div', { className: 'insert-col' });
+      col.style.marginTop = `${top}px`;
+      const keys = hotkeys(rows.map(r => r.label));
       rows.forEach((row, i) => {
         const here = sel[k] === i;
-        const b = el('button', { textContent: row.label, className: `${row.children ? 'has-sub ' : ''}${here ? (k === depth ? 'active' : 'trail') : ''}`.trim() });
+        const b = el('button', { className: `${row.children ? 'has-sub ' : ''}${here ? (k === depth ? 'active' : 'trail') : ''}`.trim() });
+        labelled(b, row.label, keys[i]);
         b.addEventListener('mouseenter', () => {
           if (sel[k] === i && depth === k) return;
           sel = [...sel.slice(0, k), i]; depth = k; render();
@@ -115,35 +155,66 @@ export function createInsertMenu({ parent, nodeTypes, onPick, doc = document }) 
         });
         col.appendChild(b);
       });
+      top += (sel[k] ?? 0) * ROW;
       return col;
-    }));
+    });
+    list.replaceChildren(...built);
+    built[depth]?.children?.[sel[depth] ?? 0]?.scrollIntoView?.({ block: 'nearest' });
   };
 
   const move = d => {
-    const rows = columns()[depth];
-    sel = [...sel.slice(0, depth), Math.min(rows.length - 1, Math.max(0, (sel[depth] ?? 0) + d))];
+    const n = columns()[depth].length;
+    sel = [...sel.slice(0, depth), (((sel[depth] ?? 0) + d) % n + n) % n];   // wraps, like a menu
   };
+  const jump = to => { sel = [...sel.slice(0, depth), Math.max(0, Math.min(columns()[depth].length - 1, to))]; };
+  const enter = row => {   // into a branch, or insert
+    if (row?.children) { sel = [...sel.slice(0, depth + 1), 0]; depth++; return true; }
+    pick(row);
+    return false;
+  };
+  const toSearch = () => { searching = true; active = 0; };
+  const toTree = () => { searching = false; input.value = ''; };
 
-  input.addEventListener('input', () => { active = 0; render(); });
+  input.addEventListener('input', () => { if (input.value.trim()) searching = true; active = 0; render(); });
+  input.addEventListener('mousedown', () => { if (!searching) { toSearch(); render(); } });
   input.addEventListener('keydown', e => {
-    const searching = input.value.trim() !== '';
-    if (e.key === 'Escape') { close(); e.preventDefault(); return; }
-    if (searching) {
-      if (e.key === 'ArrowDown') active = Math.min(active + 1, shown.length - 1);
-      else if (e.key === 'ArrowUp') active = Math.max(active - 1, 0);
-      else if (e.key === 'Enter') { pick(shown[active]); e.preventDefault(); return; }
-      else return;
-    } else {
-      const row = columns()[depth]?.[sel[depth] ?? 0];
-      if (e.key === 'ArrowDown') move(1);
-      else if (e.key === 'ArrowUp') move(-1);
-      else if (e.key === 'ArrowRight' || e.key === 'Enter') {
-        if (row?.children) { sel = [...sel.slice(0, depth + 1), 0]; depth++; }
-        else if (e.key === 'Enter') { pick(row); e.preventDefault(); return; }
-      }
-      else if (e.key === 'ArrowLeft') { if (depth > 0) { depth--; sel = sel.slice(0, depth + 1); } }
-      else return;
+    const plain = !e.ctrlKey && !e.metaKey && !e.altKey;
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      if (searching) toTree();
+      else if (depth > 0) { depth--; sel = sel.slice(0, depth + 1); }
+      else { close(); return; }
+      render();
+      return;
     }
+    if (searching) {
+      if (e.key === 'ArrowDown') active = shown.length ? (active + 1) % shown.length : 0;
+      else if (e.key === 'ArrowUp') active = shown.length ? (active + shown.length - 1) % shown.length : 0;
+      else if (e.key === 'PageDown') active = Math.min(active + 8, shown.length - 1);
+      else if (e.key === 'PageUp') active = Math.max(active - 8, 0);
+      else if (e.key === 'Enter') { pick(shown[active]); e.preventDefault(); return; }
+      else if (e.key === 'Tab') toTree();
+      else return;
+      e.preventDefault();
+      render();
+      return;
+    }
+    const rows = columns()[depth], row = rows?.[sel[depth] ?? 0];
+    if (e.key === 'ArrowDown') move(1);
+    else if (e.key === 'ArrowUp') move(-1);
+    else if (e.key === 'Home') jump(0);
+    else if (e.key === 'End') jump(rows.length - 1);
+    else if (e.key === 'PageDown') jump((sel[depth] ?? 0) + 8);
+    else if (e.key === 'PageUp') jump((sel[depth] ?? 0) - 8);
+    else if (e.key === 'ArrowRight') { if (row?.children) enter(row); }
+    else if (e.key === 'Enter') { if (!enter(row)) { e.preventDefault(); return; } }
+    else if (e.key === 'ArrowLeft') { if (depth > 0) { depth--; sel = sel.slice(0, depth + 1); } }
+    else if (e.key === '/' || e.key === 'Tab') toSearch();
+    else if (plain && e.key.length === 1) {   // a hotkey: the underlined letter of a row in this level
+      const keys = hotkeys(rows.map(r => r.label)), c = e.key.toLowerCase();
+      const i = keys.findIndex((k, n) => k >= 0 && rows[n].label.toLowerCase()[k] === c);
+      if (i >= 0) { sel = [...sel.slice(0, depth), i]; if (!enter(rows[i])) { e.preventDefault(); return; } }
+    } else return;
     e.preventDefault();
     render();
   });
@@ -155,11 +226,11 @@ export function createInsertMenu({ parent, nodeTypes, onPick, doc = document }) 
     box.style.top = `${y}px`;
     box.hidden = false;
     input.value = '';
-    active = 0; sel = [0]; depth = 0;
+    active = 0; sel = [0]; depth = 0; searching = false;
     render();
     input.focus();
   }
   function close() { box.hidden = true; }
 
-  return { open, close, entries, tree, get isOpen() { return !box.hidden; }, box };
+  return { open, close, entries, search, tree, get isOpen() { return !box.hidden; }, box };
 }

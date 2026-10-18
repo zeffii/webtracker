@@ -64,7 +64,7 @@ with the instrument it plays), and add a lane for any instrument.
 
 ## Instruments
 
-An instrument is a graph of nodes, stored in the project as data. Add nodes with the menu (or double-click), wire
+An instrument is a graph of nodes, stored in the project as data. Add nodes with the menu (or double-click; it is a cascading menu with underlined hotkeys, and `/` searches), wire
 them up, expose parameters to the pattern, and set the number of voices (polyphony, up to 16 copies of the graph).
 Ready-made synths can be added with a lane in one step. Sources, mixing, effects and control nodes:
 

@@ -32,7 +32,7 @@ import { WAVE_POINTS, WAVES, normalizeWave } from '../src/audio/nodes/waves.js';
 import { CURVE_POINTS, PRESETS } from '../src/audio/nodes/curves.js';
 import { Oversampler } from '../src/audio/nodes/oversample.js';
 import { resolveKinds } from '../src/graph/kinds.js';
-import { createInsertMenu } from '../src/graph/menu.js';
+import { createInsertMenu, hotkeys } from '../src/graph/menu.js';
 import { createTabs } from '../src/ui/tabs.js';
 import * as presetOps from '../src/project/presets.js';
 import { parseInstrument, serializeInstrument } from '../src/project/file.js';
@@ -1866,6 +1866,25 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   menu.open(10, 10);
   key('Escape');
   assert.ok(!menu.isOpen && picks.length === 2);
+  // hotkeys: each row's first free letter, and typing one opens or inserts
+  assert.deepEqual(hotkeys(['Sources', 'Effects', 'Control', 'Mix & level', 'Synths', 'Sampler']), [0, 0, 0, 0, 1, 1], 'letters');
+  assert.deepEqual(hotkeys(['sine', 'saw', 'square']), [0, 1, 1], 'a taken letter moves on to the next free one');
+  menu.open(10, 10);
+  key('e'); key('r'); key('p');   // Effects, Reverb, plate
+  assert.equal(picks.at(-1)[0], 'plate', 'hotkeys walk the tree');
+  menu.open(10, 10);
+  key('ArrowUp'); key('Enter');   // wraps to the last category and opens it
+  assert.ok(menu.isOpen, 'Enter on a category only opens it');
+  key('Escape'); key('Escape'); assert.ok(!menu.isOpen, 'Esc goes up a level, then closes');
+  // search: / switches to it, the arrows walk the matches (wrapping), Enter inserts, Esc returns to the tree
+  menu.open(10, 10);
+  key('/'); input.value = 'ch'; input.listeners.input();
+  const found = menu.search('ch').map(e => e.type);
+  assert.ok(found.length > 1 && found[0].startsWith('ch'), 'names that start with the text come first');
+  key('ArrowDown'); key('ArrowUp'); key('ArrowUp');   // wraps to the last match
+  key('Enter');
+  assert.equal(picks.at(-1)[0], found.at(-1), 'cursor keys choose among the matches');
+  menu.open(10, 10); key('/'); key('Escape'); assert.ok(menu.isOpen, 'Esc in the search goes back to the tree');
 }
 
 // 59. Waveshaper, exciter and transient designer.

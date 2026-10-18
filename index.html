@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="themes.css">
-  <title>webtracker m167</title>
+  <title>webtracker m168</title>
   <style>
     :root { color-scheme: light dark; font-family: system-ui, sans-serif; }   /* colours: see themes.css */
     body { background: var(--bg); color: var(--fg); }
@@ -274,13 +274,16 @@
     .insert-menu input { width: 100%; box-sizing: border-box; border: 0; border-bottom: 1px solid; padding: .3rem .5rem; font: inherit; background: transparent; color: inherit; }
     .insert-list { max-height: 20rem; overflow-y: auto; }
     .insert-list.tiers { display: flex; align-items: flex-start; overflow: visible; max-height: none; }
-    .insert-col { width: 12rem; max-height: 20rem; overflow-y: auto; border-right: 1px solid color-mix(in srgb, currentColor 25%, transparent); }
+    .insert-col { width: 12rem; max-height: 20rem; overflow-y: auto; border-right: 1px solid color-mix(in srgb, currentColor 25%, transparent); background: var(--bg); }
     .insert-col:last-child { border-right: 0; }
     .insert-menu button.has-sub::after { content: '\25B8'; float: right; opacity: .7; }
     .insert-menu button.trail { background: color-mix(in srgb, currentColor 18%, transparent); }
     .insert-head { padding: .3rem .5rem 0; opacity: .6; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; }
-    .insert-menu button { display: block; width: 100%; text-align: left; font: inherit; padding: .15rem .5rem .15rem 1rem; border: 0; background: transparent; color: inherit; cursor: pointer; }
+    .insert-menu button { display: block; width: 100%; height: 21px; box-sizing: border-box; text-align: left; font: inherit; padding: 0 .5rem 0 1rem; border: 0; background: transparent; color: inherit; cursor: pointer; white-space: nowrap; }
     .insert-menu button.active, .insert-menu button:hover { background: var(--hi); color: var(--hi-fg); }
+    .insert-menu button .cat { float: right; opacity: .55; font-style: normal; font-size: 11px; margin-left: 1.5rem; }
+    .insert-menu u { text-decoration: underline; text-underline-offset: 2px; }
+    .insert-hint { padding: .15rem .5rem; border-top: 1px solid color-mix(in srgb, currentColor 25%, transparent); opacity: .6; font-size: 11px; }
     #patch { border: 1px solid; display: block; }   /* never squeezed: that would skew the mouse positions */
     #patch:focus { outline: 1px solid; }
     /* compact parameter rows: label, dark inset bar with a block handle, value */
@@ -491,7 +494,7 @@
           <dt>Eye above a node</dt><dd>show a scope of what it puts out, beside it: click wave / spec / xy in its header to change the view, and 200 / 400 for the size</dd>
           <dt>Middle button drag</dt><dd>pan the whole graph</dd>
           <dt>Drag dot</dt><dd>from an output dot (right) to an input dot (left) to wire them</dd>
-          <dt>Right-click, double-click</dt><dd>empty space in the graph: insert a node</dd>
+          <dt>Right-click, double-click</dt><dd>empty space in the graph: insert a node. In the menu: the underlined letter of a row opens or inserts it, arrows and Enter move and open, Left or Esc go up a level, / (or clicking the box) searches: type, then Up/Down and Enter</dd>
           <dt>Left/Right</dt><dd>on a slider: change the parameter (Shift for more)</dd>
         </dl>
         <p>An input can take several wires, which are added together; use a mix node when you want a ratio. Blue wires carry audio, amber wires control signals (envelopes, lfos, triggers), light red wires a ctrl node's glide into a parameter port (tick "port" beside a parameter to give it one), heavier purple wires a stereo pair (a mono wire into a stereo input feeds both channels; stereo into a mono input is averaged). "expose" adds a parameter to the instrument's pattern columns. Changing the wiring or the exposed list swaps the instrument in live and clears undo.</p>
