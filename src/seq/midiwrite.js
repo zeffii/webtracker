@@ -5,7 +5,8 @@ import { placementAt } from './edit.js';
 //
 // Step entry (stepOn / stepOff): a note, or a chord, goes in at the cursor. The first key starts a chord; keys that follow
 // it join it (within `window` ms of the first, or, in 'held' mode, while any key of the chord is still down) and go into the
-// next note columns, N1 N2 N3 in the order they were pressed. The cursor does not move: the caller moves it when stepOff
+// next note columns, N1 N2 N3 from the lowest note to the highest (the chord is rewritten in order as each key joins), or in
+// the order they were pressed when settings().order is 'played'. The cursor does not move: the caller moves it when stepOff
 // says the chord has ended and the 'advance' setting asks for it.
 //
 // Recording (recOn / recOff): while the song plays, a note goes into the pattern under the playhead on the nearest tick
@@ -55,16 +56,18 @@ export function createMidiWriter({ lanes, editor, length, loop, settings, say = 
       const joins = chord && chord.li === li && (s.chord === 'held' ? chord.keys.size > 0 : time - chord.t0 <= s.window);
       if (!joins) {
         if (start < 0) return { wrote: false };
-        chord = { id: ++chordId, li, tick, t0: time, start, count: 0, keys: new Set(), wrote: false };
+        chord = { id: ++chordId, li, tick, t0: time, start, notes: [], keys: new Set(), wrote: false };
       }
-      const idx = chord.start + chord.count++;
       chord.keys.add(midi);
-      if (idx >= cols.length) return { wrote: false, message: 'More notes than note columns in this lane.' };
+      if (chord.start + chord.notes.length >= cols.length) return { wrote: false, message: 'More notes than note columns in this lane.' };
+      chord.notes.push({ midi, vel });
+      if (s.order !== 'played') chord.notes.sort((x, y) => x.midi - y.midi);   // lowest first: N1 is the bottom of the chord
       const t = target(li, chord.tick);
-      if (t.error) return { wrote: false, message: t.error };
+      if (t.error) { chord.notes = chord.notes.filter(n => n.midi !== midi); return { wrote: false, message: t.error }; }
       try {
-        put(li, cellItems(lane, chord.tick, cols[idx], midi, vel), 'midi entry', `midi:${chord.id}`);
-      } catch { return { wrote: false, message: 'Note out of range.' }; }
+        const items = chord.notes.flatMap((n, k) => cellItems(lane, chord.tick, cols[chord.start + k], n.midi, n.vel));
+        put(li, items, 'midi entry', `midi:${chord.id}`);
+      } catch { chord.notes = chord.notes.filter(n => n.midi !== midi); return { wrote: false, message: 'Note out of range.' }; }
       chord.wrote = true;
       return { wrote: true };
     },

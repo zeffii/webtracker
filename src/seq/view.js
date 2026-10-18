@@ -190,6 +190,18 @@ export function createTrackerView({ el, statusEl, transport, onToggle, onBack, o
     cur.ch = 0;
   };
 
+  // Left and Right by whole cells: the first character of the next or the previous column, in this lane or the next.
+  const moveCell = d => {
+    const there = neighbour(cur.lane, cur.col, d);
+    if (there >= 0) cur.col = there;
+    else {
+      cur.lane = hopLane(d);
+      const cols = visibleCols(cur.lane, -1);
+      cur.col = d > 0 ? cols[0] : cols.at(-1);
+    }
+    cur.ch = 0;
+  };
+
   // The selected rectangle (or just the cursor's cell): ticks t0..t1 and columns c0..c1 of one lane.
   const rect = () => {
     const a = sel ?? { lane: cur.lane, tick: cur.tick, col: cur.col };
@@ -433,7 +445,8 @@ export function createTrackerView({ el, statusEl, transport, onToggle, onBack, o
         return;
       }
       if (key === 'arrowup' || key === 'arrowdown') { transpose(true, key === 'arrowup' ? 1 : -1, e.shiftKey); e.preventDefault(); return; }
-      if (key === 'arrowleft' || key === 'arrowright') { transpose(false, key === 'arrowright' ? 1 : -1, e.shiftKey); e.preventDefault(); return; }
+      if (key === 'arrowleft' || key === 'arrowright') { moveChar(key === 'arrowright' ? 1 : -1); e.preventDefault(); return; }   // one character inside the cell
+      if (key === ',' || key === '.' || key === '<' || key === '>') { transpose(false, key === '.' || key === '>' ? 1 : -1, key === '<' || key === '>'); e.preventDefault(); return; }
       if (key === 'h' && e.shiftKey) {   // hide or show the empty columns of the lane the cursor is in
         const li = cur.lane, on = !compact.has(li);
         if (on) compact.add(li); else compact.delete(li);
@@ -508,8 +521,8 @@ export function createTrackerView({ el, statusEl, transport, onToggle, onBack, o
     switch (k) {
       case 'ArrowUp': moveRow(-1); break;
       case 'ArrowDown': moveRow(1); break;
-      case 'ArrowLeft': if (e.repeat) moveColumn(-1); else moveChar(-1); break;
-      case 'ArrowRight': if (e.repeat) moveColumn(1); else moveChar(1); break;
+      case 'ArrowLeft': if (config.get('arrowStyle') === 'cell') moveCell(-1); else if (e.repeat) moveColumn(-1); else moveChar(-1); break;
+      case 'ArrowRight': if (config.get('arrowStyle') === 'cell') moveCell(1); else if (e.repeat) moveColumn(1); else moveChar(1); break;
       case 'Tab':
         if (solo) {
           soloStyle = soloStyle === 'window' ? 'hatch' : 'window';
@@ -518,6 +531,13 @@ export function createTrackerView({ el, statusEl, transport, onToggle, onBack, o
           message = soloStyle === 'window' ? 'Solo-edit: the pattern on its own.' : 'Solo-edit: the song, with the rest locked.';
         } else moveLane(e.shiftKey ? -1 : 1);
         break;
+      case '!': {   // Shift+1: a note off in every note column of this row of this lane
+        const items = lanes[cur.lane].columns.flatMap((c, i) => (c.token === 'note' ? [{ tick: cur.tick, col: i, token: '===' }] : []));
+        if (!items.length) message = 'This lane has no note columns.';
+        else if (editor.setCells(cur.lane, items, 'note off, every column')) { message = `Note off in ${items.length} note ${items.length === 1 ? 'column' : 'columns'}.`; cur.ch = 0; moveRow(1); }
+        else message = 'No pattern here. Press Enter to insert one.';
+        break;
+      }
       case 'PageUp': moveRow(-16); break;
       case 'PageDown': moveRow(16); break;
       case 'Home': cur.tick = lo; break;

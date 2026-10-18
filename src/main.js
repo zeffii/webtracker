@@ -164,7 +164,7 @@ const midiVoices = new Map();   // MIDI note -> what its press started, so the r
 const midiSay = text => { (tabs.active === 'arrange' ? seqView : view).say(text); };
 const writer = createMidiWriter({
   lanes: () => project?.lanes ?? [], editor: () => project.editor, length: () => project.song.length, loop: () => project.song.loop ?? null,
-  settings: () => ({ chord: config.get('midiChord'), window: config.get('midiWindow'), velocity: config.get('midiVelocity'), offs: config.get('midiOffs'), shared: config.get('midiShared') }),
+  settings: () => ({ chord: config.get('midiChord'), window: config.get('midiWindow'), velocity: config.get('midiVelocity'), offs: config.get('midiOffs'), shared: config.get('midiShared'), order: config.get('midiOrder') }),
 });
 const setRecording = on => {
   recording = on;

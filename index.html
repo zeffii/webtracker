@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="themes.css">
-  <title>webtracker m203</title>
+  <title>webtracker m205</title>
   <style>
     :root { color-scheme: light dark; font-family: system-ui, sans-serif; }   /* colours: see themes.css */
     body { background: var(--bg); color: var(--fg); }
@@ -421,6 +421,7 @@
           <dt>Alt+S</dt><dd>solo the lane under the cursor (the others ring out and go quiet); again brings everyone back</dd>
           <dt>Alt+Up / Down</dt><dd>song tempo up or down by 1 bpm; with Shift by 10</dd>
           <dt>Alt+R</dt><dd>arm recording: a MIDI keyboard writes into the pattern under the playhead of the cursor lane, on the nearest tick, while the song plays</dd>
+          <dt>Shift+1</dt><dd>a note off in every note column of this row of this lane, then down a row</dd>
           <dt>Alt+V</dt><dd>MIDI velocity sensitive or not</dd>
           <dt>Alt+T</dt><dd>tint each pattern faintly in its own colour, to see where they begin and end; again to switch it off</dd>
           <dt>Alt+Enter</dt><dd>solo-edit the pattern under the cursor (only it is shown, rows numbered from 0); again, or Esc, goes back to the whole song</dd>
@@ -428,7 +429,9 @@
           <dt>F5 F6 F7 F8</dt><dd>play from the start (or the loop); play from the cursor; play just this row once; stop</dd>
           <dt>F9</dt><dd>follow the song: the grid scrolls with the playing row (highlighted)</dd>
           <dt>Ctrl+Up/Down</dt><dd>transpose the notes in the selection by a semitone (Shift: an octave)</dd>
-          <dt>Ctrl+Left/Right</dt><dd>lower / raise every other value in the selection by one (Shift: a bigger step); commands keep their id</dd>
+          <dt>Ctrl+, / Ctrl+.</dt><dd>lower / raise every other value in the selection by one (Ctrl+&lt; / Ctrl+&gt;: a bigger step); commands keep their id</dd>
+          <dt>Left / Right</dt><dd>to the start of the previous / next column (Config: one character at a time instead)</dd>
+          <dt>Ctrl+Left/Right</dt><dd>one character left or right inside the cell, to type into just that digit</dd>
           <dt>Ctrl+Shift+H</dt><dd>hide or show the empty columns of the lane the cursor is in (a column with no value at any row; the one under the cursor stays)</dd>
           <dt>Ctrl+Enter</dt><dd>write the live value of the parameter under the cursor (the node setting, or what the song last set) into this cell, then move down a row</dd>
           <dt>Ctrl+Shift+Enter</dt><dd>the same for every parameter column of this row (not notes, velocities or commands)</dd>

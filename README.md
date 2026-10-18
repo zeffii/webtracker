@@ -167,3 +167,9 @@ Play is a right-pointing triangle (a square while playing, to stop) and Rec is a
 
 ### About box
 The About button in the header opens a short note on how the project is made and a changelog, newest build first. The text and the changelog live in `src/ui/about.js`: add a line there with each build.
+
+### Arrow keys in the pattern editor
+Left and Right move by whole cells: to the first character of the next or previous column. Typing still advances the caret through the cell. Ctrl+Left / Ctrl+Right move one character inside the cell, for editing a single digit. Config, Editing: "Left and Right move by" can be set back to one character at a time (a held key jumps by column). Lowering and raising the selected values moved from Ctrl+Left/Right to Ctrl+, and Ctrl+. (Ctrl+< and Ctrl+> for the bigger step).
+
+### Chord order and note off for the row
+MIDI step entry writes a chord from the lowest note to the highest, rewriting the columns as each key joins so the order is right however the keys were struck (Config, MIDI: "A chord goes into the columns" can keep the order played). Shift+1 writes a note off (===) into every note column of the cursor's row of that lane and moves down a row.

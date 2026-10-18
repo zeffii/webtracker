@@ -7,6 +7,8 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['m205', ['MIDI step entry writes a chord from the lowest note to the highest, whatever order the keys were struck in (Config: or in the order played).', 'Shift+1 writes a note off in every note column of the row, then moves down.']],
+  ['m204', ['Left and Right in the pattern editor move by whole cells, to the first character of the next or previous column; Ctrl+Left/Right move one character inside the cell. Config: Left and Right move by cells or characters.', 'Raising and lowering values moved to Ctrl+, and Ctrl+. (Ctrl+< and Ctrl+> for bigger steps), since Ctrl+Left/Right are now the character keys.']],
   ['m203', ['This About box.']],
   ['m202', ['Play, stop and record are icons: a triangle, a square and a red dot.', 'Alt+Up / Alt+Down change the tempo (Shift for 10).']],
   ['m201', ['Post-transient resynthesis: right click a sample and keep its attack as real sample data while the rest is rebuilt as a few synth branches (as few as the sound needs).', 'New noise node.']],

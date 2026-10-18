@@ -41,6 +41,9 @@ import { createSynthwaveProject } from '../src/project/synthwave.js';
 import * as lib from '../src/project/library.js';
 import { compileDsp } from '../src/audio/wasm/load.js';
 
+import * as uiConfig from '../src/ui/config.js';
+uiConfig.set('arrowStyle', 'char');   // most tests were written for one character per arrow press; the whole-cell mode has its own test
+
 const sr = 48000, block = 128;
 let onWheel;   // the wheel handler of whichever view a test last made
 
@@ -3151,7 +3154,7 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     assert.throws(() => cfg.importJson('nope'), /invalid JSON/);
     assert.throws(() => cfg.importJson('{"a":1}'), /not a webtracker config/);
     assert.throws(() => cfg.set('zzz', 1), /No setting/);
-    cfg.reset(); off();
+    cfg.reset(); off(); uiConfig.set('arrowStyle', 'char');
   }
 
   // merge a block into one pattern per lane: crossing patterns are cut at its edges, no overlaps
@@ -3942,12 +3945,12 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   assert.equal(lane.rows[0][nc], 'C#3', 'Shift moves a whole octave');
   ctrl('ArrowUp', { shiftKey: true });
   // transpose everything else
-  ctrl('ArrowRight');
+  ctrl('.');
   assert.equal(lane.rows[0][vc], '11'); assert.equal(lane.rows[2][vc], '51'); assert.equal(lane.rows[1][vc], '..');
   assert.equal(lane.rows[0][nc], 'C#4', 'notes are not touched by a value transpose');
-  ctrl('ArrowLeft', { shiftKey: true });
+  ctrl('<', { shiftKey: true });
   assert.equal(lane.rows[0][vc], '01'); assert.equal(lane.rows[2][vc], '41');
-  ctrl('ArrowLeft', { shiftKey: true });
+  ctrl('<', { shiftKey: true });
   assert.equal(lane.rows[0][vc], '00', 'values stop at their ends');
   // interpolate: the middle row of both columns gets the midpoint
   set(0, vc, '10'); set(2, vc, '50'); set(0, nc, 'C-4'); set(2, nc, 'E-4');
@@ -4561,6 +4564,19 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     const next = w.stepOn({ li: 0, tick: 5, col: notes[1], midi: 62, time: 5000 });
     assert.equal(next.wrote, true); assert.equal(cell(5, notes[1]), 'D-4', 'a new chord starts at the cursor column');
     assert.equal(cell(5, notes[2]), '...');
+    cfg.velocity = false;
+  }
+  {   // a chord goes in from the lowest note to the highest, however it was played
+    const { w, cell, cfg } = setupMidi();
+    [67, 60, 64].forEach((midi, i) => w.stepOn({ li: 0, tick: 8, col: notes[0], midi, vel: 90, time: 1000 + i * 10 }));
+    assert.deepEqual(notes.map(c => cell(8, c)), ['C-4', 'E-4', 'G-4'], 'sorted lowest first');
+    const { w: w2, cell: cell2 } = setupMidi({ order: 'played' });
+    [67, 60, 64].forEach((midi, i) => w2.stepOn({ li: 0, tick: 8, col: notes[0], midi, vel: 90, time: 1000 + i * 10 }));
+    assert.deepEqual(notes.map(c => cell2(8, c)), ['G-4', 'C-4', 'E-4'], 'the setting keeps the order played');
+    const { w: w3, cell: cell3, editor: ed3 } = setupMidi();
+    [72, 60, 64, 67].forEach((midi, i) => w3.stepOn({ li: 0, tick: 8, col: notes[0], midi, time: 1000 + i * 10 }));
+    assert.deepEqual(notes.map(c => cell3(8, c)), ['C-4', 'E-4', 'C-5'], 'a fourth key is refused and the three before it stay, in order');
+    assert.equal(ed3.undo(), 'midi entry'); assert.deepEqual(notes.map(c => cell3(8, c)), ['...', '...', '...'], 'the whole chord is one undo step');
     cfg.velocity = false;
   }
   {   // velocity: vl is written only when the setting is on
@@ -5583,4 +5599,37 @@ console.log('smoke test passed');
     assert.ok(ratio > 0.5 && ratio < 2, `the rebuilt kick is about as loud as the source at ${from}-${to} s (ratio ${ratio.toFixed(2)})`);
   }
   console.log('ok: post-transient resynthesis');
+}
+
+// Left and Right move by whole cells (the default); Ctrl+Left/Right move one character inside the cell
+{
+  uiConfig.set('arrowStyle', 'cell');
+  const registry = new ParamRegistry();
+  for (const [id, def] of Object.entries(instruments)) compile(def.graph, { instrument: id, nodeTypes: NODE_TYPES, registry });
+  const lanes = prepareSong(demoSong, instruments, registry);
+  let onKey;
+  const view = createTrackerView({ el: { addEventListener: (type, f) => { if (type === 'keydown') onKey = f; else if (type === 'wheel') onWheel = f; } }, statusEl: {}, transport: new Int32Array(new SharedArrayBuffer(8)), onToggle() {}, onBack() {} });
+  view.load({ lanes, song: demoSong, editor: createEditor(lanes, demoSong.length) });
+  const press = (key, times = 1, extra = {}) => { for (let i = 0; i < times; i++) onKey({ key, preventDefault() {}, ...extra }); };
+  const lead = lanes[0];
+  view.goto(0, 12);
+  press('ArrowRight');                                   // Note -> Vel, on its first character
+  assert.equal(view.col, 1, 'a tap moves a whole column');
+  press('1'); assert.equal(lead.rows[12][1][0], '1');
+  press('ArrowRight'); press('ArrowLeft');               // Smp and back: the start of Vel, not the end of the one before
+  assert.equal(view.col, 1);
+  press('2'); assert.equal(lead.rows[12][1][0], '2', 'Left lands on the first character, as Right does');
+  press('ArrowLeft', 1, { ctrlKey: true });              // inside Vel: one character back (it was left on character 1)
+  press('3'); assert.equal(lead.rows[12][1][0], '3', 'Ctrl+Left steps one character back inside the cell');
+  press('ArrowLeft', 1, { ctrlKey: true }); press('ArrowRight', 1, { ctrlKey: true }); press('4'); assert.equal(lead.rows[12][1][1], '4', 'Ctrl+Right steps one character forward');
+  // Shift+1: a note off in every note column of the row, then down a row
+  view.goto(0, 20);
+  lead.rows[20][0] = 'C-4';
+  press('!');
+  assert.equal(lead.rows[20][0], '===', 'the note column gets a note off');
+  const others = lead.columns.map((c, i) => [c, i]).filter(([c]) => c.token === 'note').map(([, i]) => lead.rows[20][i]);
+  assert.ok(others.every(t => t === '==='), 'every note column of the row');
+  assert.equal(view.tick, 21, 'the cursor moved down a row');
+  uiConfig.set('arrowStyle', 'char');
+  console.log('ok: arrows move by whole cells');
 }
