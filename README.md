@@ -146,6 +146,8 @@ falls back to the JavaScript nodes.
 
 - **Alt+Enter** in the pattern editor solo-edits the pattern under the cursor (the same view as Ctrl+Enter in the arrangement); Alt+Enter or Esc leaves it.
 - **Alt+T** in the pattern editor tints each pattern faintly in its own colour (the arrangement's palette), a patchwork to orient by; again switches it off. Also a row in the Config panel (Tint patterns by colour).
+- **LFO range**: the LFO node has Range, Min and Max. Range 0 (default, as before) swings either side of zero by Amount; Range 1 runs the wave between Min and Max, so it can sit on any parameter within the range you want.
+- **LFO steps**: how many times per tick the LFO is worked out (0, the default, is every sample); it holds its value between updates. A wire into a parameter only reads the end of each block, so 8 to 24 sounds the same and is much cheaper.
 
 - **New instrument** (Instruments tab): one box makes a Kick synth, any of the synths, a Sampler on a chosen sample, or an Empty graph (just out and voices, to build from the Add node menu).
 

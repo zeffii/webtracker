@@ -4530,6 +4530,30 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   assert.equal(registry.get('master.m.bpm'), 120, 'playing from the top starts at the header tempo again');
 }
 
+// LFO range: legacy swing by amount, or between min and max.
+{
+  const type = NODE_TYPES.lfo, slots = type.params.map((_, i) => i);
+  const run = set => {
+    const node = type.create({ sampleRate: sr }), values = type.params.map(p => set[p.name] ?? p.def), out = [new Float32Array(sr / 2)];
+    node.process([], out, out[0].length, values, slots);
+    return [Math.min(...out[0]), Math.max(...out[0])];
+  };
+  const [a, b] = run({ rate: 2, amount: 3 });
+  assert.ok(Math.abs(a + 3) < 0.01 && Math.abs(b - 3) < 0.01, 'range 0 swings by amount as before');
+  const [c, d] = run({ rate: 2, range: 1, min: 200, max: 800, amount: 5 });
+  assert.ok(Math.abs(c - 200) < 1 && Math.abs(d - 800) < 1, `range 1 runs between min and max (${c}, ${d})`);
+  {   // steps: held between updates, so far fewer distinct values than samples, over the same range
+    const node = type.create({ sampleRate: sr, clock: { tickSamples: 6000 } }), values = type.params.map(p => (p.name === 'steps' ? 8 : p.name === 'rate' ? 2 : p.def));
+    const out = [new Float32Array(sr / 2)];
+    node.process([], out, out[0].length, values, slots);
+    const distinct = new Set(out[0]).size;
+    assert.ok(distinct > 8 && distinct < 80, `8 updates per tick gives held steps (${distinct} values)`);
+    assert.ok(Math.max(...out[0]) > 0.95 && Math.min(...out[0]) < -0.95, 'the stepped wave still reaches its peaks');
+  }
+  const [e, f] = run({ rate: 2, range: 1, min: 0.2, max: -0.4 });
+  assert.ok(Math.abs(e + 0.4) < 0.01 && Math.abs(f - 0.2) < 0.01, 'min above max still spans the two');
+}
+
 // Comb resonator percussion: rings at the note's pitch, decays, stays finite and bounded, and the kinds compile.
 {
   const type = NODE_TYPES.combperc;
