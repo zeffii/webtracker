@@ -155,3 +155,6 @@ falls back to the JavaScript nodes.
 - **New instrument** (Instruments tab): one box makes a Kick synth, any of the synths, a Sampler on a chosen sample, or an Empty graph (just out and voices, to build from the Add node menu).
 
 - **Solo lane** (Alt+S, arrangement or pattern editor): the other lanes (not the master) let go of their notes, which ring out naturally, and play nothing; they are drawn darker, fading over half a second. Alt+S again, or soloing another lane, adjusts it; with no lane soloed everyone plays at once and the fade back is quick. Not saved with the song.
+
+### Playback is not interrupted by an unconnected node
+Adding a node to a graph (or removing one) that is not wired to anything no longer reloads the instrument, so a playing song keeps its notes and tails. Wiring it in, or changing a wired node or a parameter, still reloads as before.

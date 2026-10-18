@@ -2,13 +2,14 @@
  "format": "webtracker",
  "version": 1,
  "song": {
-  "name": "synthwave",
-  "bpm": 134,
+  "name": "untitled",
+  "bpm": 150,
   "ticksPerBeat": 4,
   "length": 512,
+  "swing": 0.55,
   "loop": {
    "start": 0,
-   "end": 400
+   "end": 128
   }
  },
  "instruments": {
@@ -19,10 +20,10 @@
       "id": "m",
       "type": "tempo",
       "x": 40,
-      "y": 40,
+      "y": 108,
       "params": {
-       "bpm": 134,
-       "swing": 50,
+       "bpm": 150,
+       "swing": 55,
        "tpb": 4,
        "volume": 1
       }
@@ -31,7 +32,7 @@
       "id": "out",
       "type": "out",
       "x": 240,
-      "y": 40
+      "y": 108
      }
     ],
     "connections": []
@@ -62,7 +63,7 @@
    ],
    "commands": []
   },
-  "kick": {
+  "kick1": {
    "graph": {
     "nodes": [
      {
@@ -75,8 +76,8 @@
        "release": 50,
        "amount": 2.5
       },
-      "x": 131,
-      "y": 118
+      "x": 20,
+      "y": 108
      },
      {
       "id": "osc",
@@ -86,8 +87,8 @@
        "reset": 1,
        "phase": 0.25
       },
-      "x": 281,
-      "y": 118
+      "x": 170,
+      "y": 108
      },
      {
       "id": "ampEnv",
@@ -98,14 +99,14 @@
        "sustain": 0,
        "release": 40
       },
-      "x": 131,
-      "y": 198
+      "x": 20,
+      "y": 188
      },
      {
       "id": "vca",
       "type": "gain",
-      "x": 431,
-      "y": 118
+      "x": 320,
+      "y": 108
      },
      {
       "id": "out",
@@ -113,8 +114,20 @@
       "params": {
        "gain": 0.42
       },
-      "x": 581,
-      "y": 118
+      "x": 647,
+      "y": 108
+     },
+     {
+      "id": "distortion1",
+      "type": "distortion",
+      "x": 455,
+      "y": 123,
+      "params": {
+       "tone": 1395.8384427470821,
+       "drive": 6.453471585014731,
+       "oversample": 1,
+       "level": 0.2130712837310872
+      }
      }
     ],
     "connections": [
@@ -132,6 +145,10 @@
      ],
      [
       "vca.out",
+      "distortion1.in"
+     ],
+     [
+      "distortion1.out",
       "out.in"
      ]
     ]
@@ -143,1291 +160,72 @@
      "label": "Pit"
     },
     {
+     "node": "pitchEnv",
+     "param": "decay",
+     "label": "PDc",
+     "scale": "log"
+    },
+    {
      "node": "ampEnv",
      "param": "decay",
      "label": "Dec",
      "scale": "log"
+    },
+    {
+     "node": "osc",
+     "param": "tune",
+     "label": "Tun"
+    }
+   ],
+   "commands": [
+    {
+     "id": 1,
+     "node": "pitchEnv",
+     "param": "amount"
+    },
+    {
+     "id": 2,
+     "node": "pitchEnv",
+     "param": "decay",
+     "scale": "log"
+    },
+    {
+     "id": 3,
+     "node": "ampEnv",
+     "param": "decay",
+     "scale": "log"
+    },
+    {
+     "id": 4,
+     "node": "osc",
+     "param": "tune"
+    },
+    {
+     "id": 5,
+     "node": "out",
+     "param": "gain"
     }
    ]
   },
-  "snare": {
+  "woopa": {
    "graph": {
     "nodes": [
      {
-      "id": "synth",
-      "type": "subsynth",
+      "id": "perc",
+      "type": "combperc",
       "params": {
-       "wave1": 2,
-       "osc2": 0,
-       "noise": 0.85,
-       "cutoff": 7500,
-       "res": 0.1,
-       "drive": 0.3,
-       "fenv": 0,
-       "keytrack": 0,
-       "atk": 0.5,
-       "dec": 150,
-       "sus": 0,
-       "rel": 70,
-       "fatk": 0.5,
-       "fdec": 60,
-       "fsus": 1,
-       "frel": 50,
-       "vel": 0.3,
-       "level": 0.9
+       "spread": 0.7,
+       "decay": 220,
+       "sweep": 0.4,
+       "sdec": 98.35386843459534,
+       "click": 1.6326767893189218,
+       "drive": 0.7604117922321011,
+       "hollow": 0,
+       "tune": -4.230229293401969,
+       "bright": 0.06161285290906255
       },
-      "x": 227,
-      "y": 181
-     },
-     {
-      "id": "poly",
-      "type": "voices",
-      "x": 421,
-      "y": 195
-     },
-     {
-      "id": "hall",
-      "type": "hall",
-      "params": {
-       "size": 0.7,
-       "decay": 1.1,
-       "damp": 0.5,
-       "predelay": 0,
-       "mix": 0.28
-      },
-      "x": 567,
-      "y": 223
-     },
-     {
-      "id": "out",
-      "type": "out",
-      "params": {
-       "gain": 1
-      },
-      "x": 846,
-      "y": 233
-     },
-     {
-      "id": "sampler1",
-      "type": "sampler",
-      "x": 227,
-      "y": 285,
-      "stereo": true,
-      "params": {
-       "level": 0.432
-      }
-     },
-     {
-      "id": "compressor1",
-      "type": "compressor",
-      "x": 714,
-      "y": 243,
-      "params": {
-       "mix": 0.6784160791960402,
-       "threshold": -36.86215689215539
-      }
-     }
-    ],
-    "connections": [
-     [
-      "synth.out",
-      "poly.in"
-     ],
-     [
-      "poly.out",
-      "hall.in"
-     ],
-     [
-      "sampler1.out",
-      "poly.in"
-     ],
-     [
-      "hall.out",
-      "compressor1.in"
-     ],
-     [
-      "compressor1.out",
-      "out.in"
-     ]
-    ],
-    "voices": 3
-   },
-   "noteColumns": 1,
-   "exposed": [
-    {
-     "node": "sampler1",
-     "param": "sample",
-     "label": "Smp"
-    },
-    {
-     "node": "sampler1",
-     "param": "offset",
-     "label": "Off",
-     "bits": 16
-    },
-    {
-     "node": "sampler1",
-     "param": "retrig",
-     "label": "Rtg",
-     "bits": 16
-    },
-    {
-     "node": "synth",
-     "param": "cutoff",
-     "label": "Cut",
-     "scale": "log"
-    },
-    {
-     "node": "synth",
-     "param": "res",
-     "label": "Res"
-    },
-    {
-     "node": "synth",
-     "param": "fenv",
-     "label": "Env"
-    },
-    {
-     "node": "synth",
-     "param": "detune",
-     "label": "Det"
-    }
-   ],
-   "commands": [
-    {
-     "id": 1,
-     "node": "synth",
-     "param": "cutoff",
-     "scale": "log"
-    },
-    {
-     "id": 2,
-     "node": "synth",
-     "param": "res"
-    },
-    {
-     "id": 3,
-     "node": "synth",
-     "param": "fenv"
-    },
-    {
-     "id": 4,
-     "node": "synth",
-     "param": "drive"
-    },
-    {
-     "id": 5,
-     "node": "synth",
-     "param": "glide"
-    },
-    {
-     "id": 7,
-     "node": "sampler1",
-     "param": "repeats"
-    },
-    {
-     "id": 8,
-     "node": "sampler1",
-     "param": "shift"
-    },
-    {
-     "id": 9,
-     "node": "sampler1",
-     "param": "ramp"
-    },
-    {
-     "id": 10,
-     "node": "sampler1",
-     "param": "reverse"
-    },
-    {
-     "id": 16,
-     "node": "sampler1",
-     "param": "slice"
-    }
-   ],
-   "samples": {
-    "sampler1": "9CABASAR"
-   },
-   "layout": 2
-  },
-  "bass": {
-   "graph": {
-    "nodes": [
-     {
-      "id": "synth",
-      "type": "subsynth",
-      "params": {
-       "wave1": 0,
-       "wave2": 0,
-       "osc2": 0.5,
-       "detune": 6,
-       "sub": 0.6,
-       "cutoff": 380,
-       "res": 0.25,
-       "drive": 0.35,
-       "fenv": 2.6,
-       "keytrack": 0.3,
-       "fatk": 0.5,
-       "fdec": 130,
-       "fsus": 0.2,
-       "frel": 60,
-       "atk": 1,
-       "dec": 130,
-       "sus": 0.4,
-       "rel": 50,
-       "vel": 0.5,
-       "level": 0.5
-      }
-     },
-     {
-      "id": "poly",
-      "type": "voices"
-     },
-     {
-      "id": "out",
-      "type": "out",
-      "params": {
-       "gain": 0.72
-      }
-     }
-    ],
-    "connections": [
-     [
-      "synth.out",
-      "poly.in"
-     ],
-     [
-      "poly.out",
-      "out.in"
-     ]
-    ],
-    "voices": 2
-   },
-   "noteColumns": 1,
-   "exposed": [
-    {
-     "node": "synth",
-     "param": "cutoff",
-     "label": "Cut",
-     "scale": "log"
-    },
-    {
-     "node": "synth",
-     "param": "res",
-     "label": "Res"
-    },
-    {
-     "node": "synth",
-     "param": "fenv",
-     "label": "Env"
-    },
-    {
-     "node": "synth",
-     "param": "detune",
-     "label": "Det"
-    }
-   ],
-   "commands": [
-    {
-     "id": 1,
-     "node": "synth",
-     "param": "cutoff",
-     "scale": "log"
-    },
-    {
-     "id": 2,
-     "node": "synth",
-     "param": "res"
-    },
-    {
-     "id": 3,
-     "node": "synth",
-     "param": "fenv"
-    },
-    {
-     "id": 4,
-     "node": "synth",
-     "param": "drive"
-    },
-    {
-     "id": 5,
-     "node": "synth",
-     "param": "glide"
-    }
-   ]
-  },
-  "pad": {
-   "graph": {
-    "nodes": [
-     {
-      "id": "synth",
-      "type": "subsynth",
-      "params": {
-       "wave1": 0,
-       "wave2": 0,
-       "osc2": 0.8,
-       "detune": 9,
-       "unison": 4,
-       "spread": 22,
-       "width": 0.9,
-       "cutoff": 1500,
-       "res": 0.15,
-       "drive": 0.1,
-       "fenv": 1.5,
-       "keytrack": 0.4,
-       "fatk": 400,
-       "fdec": 900,
-       "fsus": 0.5,
-       "frel": 600,
-       "atk": 350,
-       "dec": 800,
-       "sus": 0.8,
-       "rel": 700,
-       "vel": 0.2,
-       "level": 0.2
-      }
-     },
-     {
-      "id": "poly",
-      "type": "voices"
-     },
-     {
-      "id": "chorus",
-      "type": "chorus",
-      "params": {
-       "rate": 0.4,
-       "depth": 5,
-       "mix": 0.45
-      }
-     },
-     {
-      "id": "hall",
-      "type": "hall",
-      "params": {
-       "decay": 3.5,
-       "mix": 0.3
-      }
-     },
-     {
-      "id": "out",
-      "type": "out",
-      "params": {
-       "gain": 0.5
-      }
-     }
-    ],
-    "connections": [
-     [
-      "synth.out",
-      "poly.in"
-     ],
-     [
-      "poly.out",
-      "chorus.in"
-     ],
-     [
-      "chorus.out",
-      "hall.in"
-     ],
-     [
-      "hall.out",
-      "out.in"
-     ]
-    ],
-    "voices": 6
-   },
-   "noteColumns": 3,
-   "exposed": [
-    {
-     "node": "synth",
-     "param": "cutoff",
-     "label": "Cut",
-     "scale": "log"
-    },
-    {
-     "node": "synth",
-     "param": "res",
-     "label": "Res"
-    },
-    {
-     "node": "synth",
-     "param": "fenv",
-     "label": "Env"
-    },
-    {
-     "node": "synth",
-     "param": "detune",
-     "label": "Det"
-    }
-   ],
-   "commands": [
-    {
-     "id": 1,
-     "node": "synth",
-     "param": "cutoff",
-     "scale": "log"
-    },
-    {
-     "id": 2,
-     "node": "synth",
-     "param": "res"
-    },
-    {
-     "id": 3,
-     "node": "synth",
-     "param": "fenv"
-    },
-    {
-     "id": 4,
-     "node": "synth",
-     "param": "drive"
-    },
-    {
-     "id": 5,
-     "node": "synth",
-     "param": "glide"
-    }
-   ]
-  },
-  "arp": {
-   "graph": {
-    "nodes": [
-     {
-      "id": "synth",
-      "type": "subsynth",
-      "params": {
-       "wave1": 0,
-       "wave2": 1,
-       "pw": 0.4,
-       "osc2": 0.5,
-       "detune": 6,
-       "unison": 2,
-       "cutoff": 2200,
-       "res": 0.3,
-       "drive": 0.15,
-       "fenv": 3.5,
-       "keytrack": 0.5,
-       "fatk": 0.5,
-       "fdec": 160,
-       "fsus": 0.15,
-       "frel": 90,
-       "atk": 1,
-       "dec": 180,
-       "sus": 0.1,
-       "rel": 120,
-       "vel": 0.5,
-       "level": 0.3
-      }
-     },
-     {
-      "id": "poly",
-      "type": "voices"
-     },
-     {
-      "id": "delay",
-      "type": "delay",
-      "params": {
-       "time": 409,
-       "feedback": 0.4,
-       "mix": 0.3
-      }
-     },
-     {
-      "id": "hall",
-      "type": "hall",
-      "params": {
-       "decay": 2.5,
-       "mix": 0.2
-      }
-     },
-     {
-      "id": "out",
-      "type": "out",
-      "params": {
-       "gain": 1
-      }
-     }
-    ],
-    "connections": [
-     [
-      "synth.out",
-      "poly.in"
-     ],
-     [
-      "poly.out",
-      "delay.in"
-     ],
-     [
-      "delay.out",
-      "hall.in"
-     ],
-     [
-      "hall.out",
-      "out.in"
-     ]
-    ],
-    "voices": 4
-   },
-   "noteColumns": 1,
-   "exposed": [
-    {
-     "node": "synth",
-     "param": "cutoff",
-     "label": "Cut",
-     "scale": "log"
-    },
-    {
-     "node": "synth",
-     "param": "res",
-     "label": "Res"
-    },
-    {
-     "node": "synth",
-     "param": "fenv",
-     "label": "Env"
-    },
-    {
-     "node": "synth",
-     "param": "detune",
-     "label": "Det"
-    }
-   ],
-   "commands": [
-    {
-     "id": 1,
-     "node": "synth",
-     "param": "cutoff",
-     "scale": "log"
-    },
-    {
-     "id": 2,
-     "node": "synth",
-     "param": "res"
-    },
-    {
-     "id": 3,
-     "node": "synth",
-     "param": "fenv"
-    },
-    {
-     "id": 4,
-     "node": "synth",
-     "param": "drive"
-    },
-    {
-     "id": 5,
-     "node": "synth",
-     "param": "glide"
-    }
-   ]
-  },
-  "lead": {
-   "graph": {
-    "nodes": [
-     {
-      "id": "synth",
-      "type": "subsynth",
-      "params": {
-       "wave1": 0,
-       "wave2": 0,
-       "osc2": 0.7,
-       "detune": 8,
-       "unison": 3,
-       "spread": 14,
-       "cutoff": 3200,
-       "res": 0.2,
-       "drive": 0.2,
-       "fenv": 1,
-       "keytrack": 0.6,
-       "fatk": 5,
-       "fdec": 500,
-       "fsus": 0.6,
-       "frel": 300,
-       "atk": 8,
-       "dec": 400,
-       "sus": 0.7,
-       "rel": 300,
-       "glide": 60,
-       "vel": 0.3,
-       "level": 0.3
-      }
-     },
-     {
-      "id": "poly",
-      "type": "voices"
-     },
-     {
-      "id": "chorus",
-      "type": "chorus",
-      "params": {
-       "mix": 0.3
-      }
-     },
-     {
-      "id": "delay",
-      "type": "delay",
-      "params": {
-       "time": 409,
-       "feedback": 0.35,
-       "mix": 0.25
-      }
-     },
-     {
-      "id": "hall",
-      "type": "hall",
-      "params": {
-       "decay": 3,
-       "mix": 0.3
-      }
-     },
-     {
-      "id": "out",
-      "type": "out",
-      "params": {
-       "gain": 0.8
-      }
-     }
-    ],
-    "connections": [
-     [
-      "synth.out",
-      "poly.in"
-     ],
-     [
-      "poly.out",
-      "chorus.in"
-     ],
-     [
-      "chorus.out",
-      "delay.in"
-     ],
-     [
-      "delay.out",
-      "hall.in"
-     ],
-     [
-      "hall.out",
-      "out.in"
-     ]
-    ],
-    "voices": 2
-   },
-   "noteColumns": 1,
-   "exposed": [
-    {
-     "node": "synth",
-     "param": "cutoff",
-     "label": "Cut",
-     "scale": "log"
-    },
-    {
-     "node": "synth",
-     "param": "res",
-     "label": "Res"
-    },
-    {
-     "node": "synth",
-     "param": "fenv",
-     "label": "Env"
-    },
-    {
-     "node": "synth",
-     "param": "detune",
-     "label": "Det"
-    }
-   ],
-   "commands": [
-    {
-     "id": 1,
-     "node": "synth",
-     "param": "cutoff",
-     "scale": "log"
-    },
-    {
-     "id": 2,
-     "node": "synth",
-     "param": "res"
-    },
-    {
-     "id": 3,
-     "node": "synth",
-     "param": "fenv"
-    },
-    {
-     "id": 4,
-     "node": "synth",
-     "param": "drive"
-    },
-    {
-     "id": 5,
-     "node": "synth",
-     "param": "glide"
-    }
-   ]
-  },
-  "foop": {
-   "graph": {
-    "nodes": [
-     {
-      "id": "synth",
-      "type": "fmsynth",
-      "x": 85,
-      "y": 198,
-      "data": {
-       "waves": [
-        [
-         0,
-         0.0313,
-         0.0625,
-         0.0938,
-         0.125,
-         0.1563,
-         0.1875,
-         0.2188,
-         0.25,
-         0.2813,
-         0.3125,
-         0.3438,
-         0.375,
-         0.4063,
-         0.4375,
-         0.4688,
-         0.5,
-         0.5313,
-         0.5625,
-         0.5938,
-         0.625,
-         0.6563,
-         0.6875,
-         0.7188,
-         0.75,
-         0.7813,
-         0.8125,
-         0.8438,
-         0.875,
-         0.9063,
-         0.9375,
-         0.9688,
-         1,
-         0.9688,
-         0.9375,
-         0.9063,
-         0.875,
-         0.8438,
-         0.8125,
-         0.7813,
-         0.75,
-         0.7188,
-         0.6875,
-         0.6563,
-         0.625,
-         0.5938,
-         0.5625,
-         0.5313,
-         0.5,
-         0.4688,
-         0.4375,
-         0.4063,
-         0.375,
-         0.3438,
-         0.3125,
-         0.2813,
-         0.25,
-         0.2188,
-         0.1875,
-         0.1563,
-         0.125,
-         0.0938,
-         0.0625,
-         0.0313,
-         0,
-         -0.0312,
-         -0.0625,
-         -0.0937,
-         -0.125,
-         -0.1562,
-         -0.1875,
-         -0.2187,
-         -0.25,
-         -0.2812,
-         -0.3125,
-         -0.3437,
-         -0.375,
-         -0.4062,
-         -0.4375,
-         -0.4687,
-         -0.5,
-         -0.5312,
-         -0.5625,
-         -0.5937,
-         -0.625,
-         -0.6562,
-         -0.6875,
-         -0.7187,
-         -0.75,
-         -0.7812,
-         -0.8125,
-         -0.8437,
-         -0.875,
-         -0.9062,
-         -0.9375,
-         -0.9687,
-         -1,
-         -0.9687,
-         -0.9375,
-         -0.9062,
-         -0.875,
-         -0.8437,
-         -0.8125,
-         -0.7812,
-         -0.75,
-         -0.7187,
-         -0.6875,
-         -0.6562,
-         -0.625,
-         -0.5937,
-         -0.5625,
-         -0.5312,
-         -0.5,
-         -0.4687,
-         -0.4375,
-         -0.4062,
-         -0.375,
-         -0.3437,
-         -0.3125,
-         -0.2812,
-         -0.25,
-         -0.2187,
-         -0.1875,
-         -0.1562,
-         -0.125,
-         -0.0937,
-         -0.0625,
-         -0.0312
-        ],
-        [
-         0,
-         0.0313,
-         0.0625,
-         0.0938,
-         0.125,
-         0.1563,
-         0.1875,
-         0.2188,
-         0.25,
-         0.2813,
-         0.3125,
-         0.3438,
-         0.375,
-         0.4063,
-         0.4375,
-         0.4688,
-         0.5,
-         0.5313,
-         0.5625,
-         0.5938,
-         0.625,
-         0.6563,
-         0.6875,
-         0.7188,
-         0.75,
-         0.7813,
-         0.8125,
-         0.8438,
-         0.875,
-         0.9063,
-         0.9375,
-         0.9688,
-         1,
-         0.9688,
-         0.9375,
-         0.9063,
-         0.875,
-         0.8438,
-         0.8125,
-         0.7813,
-         0.75,
-         0.7188,
-         0.6875,
-         0.6563,
-         0.625,
-         0.5938,
-         0.5625,
-         0.5313,
-         0.5,
-         0.4688,
-         0.4375,
-         0.4063,
-         0.375,
-         0.3438,
-         0.3125,
-         0.2813,
-         0.25,
-         0.2188,
-         0.1875,
-         0.1563,
-         0.125,
-         0.0938,
-         0.0625,
-         0.0313,
-         0,
-         -0.0312,
-         -0.0625,
-         -0.0937,
-         -0.125,
-         -0.1562,
-         -0.1875,
-         -0.2187,
-         -0.25,
-         -0.2812,
-         -0.3125,
-         -0.3437,
-         -0.375,
-         -0.4062,
-         -0.4375,
-         -0.4687,
-         -0.5,
-         -0.5312,
-         -0.5625,
-         -0.5937,
-         -0.625,
-         -0.6562,
-         -0.6875,
-         -0.7187,
-         -0.75,
-         -0.7812,
-         -0.8125,
-         -0.8437,
-         -0.875,
-         -0.9062,
-         -0.9375,
-         -0.9687,
-         -1,
-         -0.9687,
-         -0.9375,
-         -0.9062,
-         -0.875,
-         -0.8437,
-         -0.8125,
-         -0.7812,
-         -0.75,
-         -0.7187,
-         -0.6875,
-         -0.6562,
-         -0.625,
-         -0.5937,
-         -0.5625,
-         -0.5312,
-         -0.5,
-         -0.4687,
-         -0.4375,
-         -0.4062,
-         -0.375,
-         -0.3437,
-         -0.3125,
-         -0.2812,
-         -0.25,
-         -0.2187,
-         -0.1875,
-         -0.1562,
-         -0.125,
-         -0.0937,
-         -0.0625,
-         -0.0312
-        ],
-        [
-         0,
-         0.0313,
-         0.0625,
-         0.0938,
-         0.125,
-         0.1563,
-         0.1875,
-         0.2188,
-         0.25,
-         0.2813,
-         0.3125,
-         0.3438,
-         0.375,
-         0.4063,
-         0.4375,
-         0.4688,
-         0.5,
-         0.5313,
-         0.5625,
-         0.5938,
-         0.625,
-         0.6563,
-         0.6875,
-         0.7188,
-         0.75,
-         0.7813,
-         0.8125,
-         0.8438,
-         0.875,
-         0.9063,
-         0.9375,
-         0.9688,
-         1,
-         0.9688,
-         0.9375,
-         0.9063,
-         0.875,
-         0.8438,
-         0.8125,
-         0.7813,
-         0.75,
-         0.7188,
-         0.6875,
-         0.6563,
-         0.625,
-         0.5938,
-         0.5625,
-         0.5313,
-         0.5,
-         0.4688,
-         0.4375,
-         0.4063,
-         0.375,
-         0.3438,
-         0.3125,
-         0.2813,
-         0.25,
-         0.2188,
-         0.1875,
-         0.1563,
-         0.125,
-         0.0938,
-         0.0625,
-         0.0313,
-         0,
-         -0.0312,
-         -0.0625,
-         -0.0937,
-         -0.125,
-         -0.1562,
-         -0.1875,
-         -0.2187,
-         -0.25,
-         -0.2812,
-         -0.3125,
-         -0.3437,
-         -0.375,
-         -0.4062,
-         -0.4375,
-         -0.4687,
-         -0.5,
-         -0.5312,
-         -0.5625,
-         -0.5937,
-         -0.625,
-         -0.6562,
-         -0.6875,
-         -0.7187,
-         -0.75,
-         -0.7812,
-         -0.8125,
-         -0.8437,
-         -0.875,
-         -0.9062,
-         -0.9375,
-         -0.9687,
-         -1,
-         -0.9687,
-         -0.9375,
-         -0.9062,
-         -0.875,
-         -0.8437,
-         -0.8125,
-         -0.7812,
-         -0.75,
-         -0.7187,
-         -0.6875,
-         -0.6562,
-         -0.625,
-         -0.5937,
-         -0.5625,
-         -0.5312,
-         -0.5,
-         -0.4687,
-         -0.4375,
-         -0.4062,
-         -0.375,
-         -0.3437,
-         -0.3125,
-         -0.2812,
-         -0.25,
-         -0.2187,
-         -0.1875,
-         -0.1562,
-         -0.125,
-         -0.0937,
-         -0.0625,
-         -0.0312
-        ],
-        [
-         0,
-         0.0491,
-         0.098,
-         0.1467,
-         0.1951,
-         0.243,
-         0.2903,
-         0.3369,
-         0.3827,
-         0.4276,
-         0.4714,
-         0.5141,
-         0.5556,
-         0.5957,
-         0.6344,
-         0.6716,
-         0.7071,
-         0.741,
-         0.773,
-         0.8032,
-         0.8315,
-         0.8577,
-         0.8819,
-         0.904,
-         0.9239,
-         0.9415,
-         0.9569,
-         0.97,
-         0.9808,
-         0.9892,
-         0.9952,
-         0.9988,
-         1,
-         0.9988,
-         0.9952,
-         0.9892,
-         0.9808,
-         0.97,
-         0.9569,
-         0.9415,
-         0.9239,
-         0.904,
-         0.8819,
-         0.8577,
-         0.8315,
-         0.8032,
-         0.773,
-         0.741,
-         0.7071,
-         0.6716,
-         0.6344,
-         0.5957,
-         0.5556,
-         0.5141,
-         0.4714,
-         0.4276,
-         0.3827,
-         0.3369,
-         0.2903,
-         0.243,
-         0.1951,
-         0.1467,
-         0.098,
-         0.0491,
-         0,
-         -0.0491,
-         -0.098,
-         -0.1467,
-         -0.1951,
-         -0.243,
-         -0.2903,
-         -0.3369,
-         -0.3827,
-         -0.4276,
-         -0.4714,
-         -0.5141,
-         -0.5556,
-         -0.5957,
-         -0.6344,
-         -0.6716,
-         -0.7071,
-         -0.741,
-         -0.773,
-         -0.8032,
-         -0.8315,
-         -0.8577,
-         -0.8819,
-         -0.904,
-         -0.9239,
-         -0.9415,
-         -0.9569,
-         -0.97,
-         -0.9808,
-         -0.9892,
-         -0.9952,
-         -0.9988,
-         -1,
-         -0.9988,
-         -0.9952,
-         -0.9892,
-         -0.9808,
-         -0.97,
-         -0.9569,
-         -0.9415,
-         -0.9239,
-         -0.904,
-         -0.8819,
-         -0.8577,
-         -0.8315,
-         -0.8032,
-         -0.773,
-         -0.741,
-         -0.7071,
-         -0.6716,
-         -0.6344,
-         -0.5957,
-         -0.5556,
-         -0.5141,
-         -0.4714,
-         -0.4276,
-         -0.3827,
-         -0.3369,
-         -0.2903,
-         -0.243,
-         -0.1951,
-         -0.1467,
-         -0.098,
-         -0.0491
-        ]
-       ]
-      },
-      "params": {
-       "index": 4.404376939408786,
-       "atk1": 0.39090409549047905,
-       "dec1": 324.78849211246757,
-       "sus1": 0.2,
-       "rel1": 3.6808016137645256,
-       "ratio2": 2,
-       "fine2": 3.200000000000003,
-       "level2": 0.589,
-       "atk2": 0.31145252093353654,
-       "dec2": 11.785637908937343,
-       "sus2": 0.105,
-       "rel2": 4.4182781648940095,
-       "ratio3": 0.4924332214477753,
-       "level3": 0.305,
-       "ratio4": 2.0420242514143867,
-       "atk3": 0.26194392478102885,
-       "dec3": 81.03423233158567,
-       "sus3": 0.242,
-       "rel3": 1247.4923573265828,
-       "algo": 3,
-       "fb": 0.716,
-       "tune": -8.064
-      }
-     },
-     {
-      "id": "poly",
-      "type": "voices",
-      "x": 235,
-      "y": 198
+      "x": 20,
+      "y": 108
      },
      {
       "id": "out",
@@ -1435,248 +233,58 @@
       "params": {
        "gain": 0.5
       },
-      "x": 1096,
-      "y": 365
+      "x": 691,
+      "y": 125
+     },
+     {
+      "id": "multitap1",
+      "type": "multitap",
+      "x": 515,
+      "y": 171,
+      "params": {
+       "time": 596.1918779056379,
+       "mix": 0.21634690375916393
+      }
      },
      {
       "id": "filter1",
       "type": "filter",
-      "x": 317,
-      "y": 254,
-      "params": {
-       "mode": 0,
-       "resonance": 0.8150999999999999,
-       "cutoff": 1144.9968418007957
-      }
+      "x": 174,
+      "y": 121
      },
      {
       "id": "env1",
       "type": "env",
-      "x": 87,
-      "y": 317,
+      "x": 56,
+      "y": 227,
       "params": {
-       "attack": 0.11294337713968194,
-       "decay": 8.157659600385214,
-       "release": 2.032000716127847,
-       "amount": 9.088045597720114,
-       "sustain": 0.025648717564121792,
-       "vel": 0.232038398080096
+       "decay": 1.0147211120798074,
+       "release": 1.3664335355173027,
+       "amount": 8.602402121353922,
+       "sustain": 0.341132428638278,
+       "attack": 0.1,
+       "vel": 0.29121821868663234
       }
      },
      {
-      "id": "shimmer1",
-      "type": "shimmer",
-      "x": 665,
-      "y": 253,
+      "id": "flanger1",
+      "type": "flanger",
+      "x": 353,
+      "y": 159,
       "params": {
-       "mix": 1,
-       "size": 1.5536223188840559,
-       "bypass": 1
-      }
-     },
-     {
-      "id": "shimmer2",
-      "type": "shimmer",
-      "x": 860,
-      "y": 274,
-      "params": {
-       "mix": 0.3712314384280786,
-       "size": 1.5536223188840559,
-       "decay": 0.3660301596935328,
-       "damp": 0.448027598620069,
-       "shimmer": 0.2705939703014849
-      }
-     },
-     {
-      "id": "shiva1",
-      "type": "shiva",
-      "x": 490,
-      "y": 254,
-      "data": {
-       "taps": [
-        0.125,
-        1,
-        -0.7,
-        0.25,
-        0.75,
-        0.7,
-        0.375,
-        0.563,
-        -0.7,
-        0.5,
-        0.422,
-        0.7,
-        0.625,
-        0.316,
-        -0.7,
-        0.75,
-        0.237,
-        0.7,
-        0.875,
-        0.178,
-        -0.7,
-        1,
-        0.133,
-        0.7
-       ]
-      },
-      "params": {
-       "length": 1790.7394265688538
-      }
-     },
-     {
-      "id": "waveshaper1",
-      "type": "waveshaper",
-      "x": 577,
-      "y": 316,
-      "params": {
-       "bypass": 0,
-       "drive": 1.9719194995614935,
-       "oversample": 2,
-       "mix": 0.6544172791360432
-      },
-      "data": {
-       "curve": [
-        -1,
-        -0.9976,
-        -0.9951,
-        -0.9925,
-        -0.9896,
-        -0.9866,
-        -0.9835,
-        -0.9801,
-        -0.9765,
-        -0.9727,
-        -0.9687,
-        -0.9644,
-        -0.9599,
-        -0.9551,
-        -0.95,
-        -0.9446,
-        -0.9389,
-        -0.9329,
-        -0.9265,
-        -0.9198,
-        -0.9127,
-        -0.9051,
-        -0.8972,
-        -0.8888,
-        -0.8799,
-        -0.8706,
-        -0.8608,
-        -0.8504,
-        -0.8395,
-        -0.828,
-        -0.816,
-        -0.8033,
-        -0.79,
-        -0.7761,
-        -0.7615,
-        -0.7462,
-        -0.7302,
-        -0.7135,
-        -0.696,
-        -0.6778,
-        -0.6588,
-        -0.6391,
-        -0.6186,
-        -0.5974,
-        -0.5753,
-        -0.5525,
-        -0.5289,
-        -0.5045,
-        -0.4794,
-        -0.4535,
-        -0.4269,
-        -0.3997,
-        -0.3717,
-        -0.3432,
-        -0.314,
-        -0.2843,
-        -0.2541,
-        -0.2234,
-        -0.1922,
-        -0.1608,
-        -0.129,
-        -0.097,
-        -0.0647,
-        -0.0324,
-        0,
-        0.0324,
-        0.0647,
-        0.097,
-        0.129,
-        0.1608,
-        0.1922,
-        0.2234,
-        0.2541,
-        0.2843,
-        0.314,
-        0.3432,
-        0.3717,
-        0.3997,
-        0.4269,
-        0.4535,
-        0.4794,
-        0.5045,
-        0.5289,
-        0.5525,
-        0.5753,
-        0.5974,
-        0.6186,
-        0.6391,
-        0.6588,
-        0.6778,
-        0.696,
-        0.7135,
-        0.7302,
-        0.7462,
-        0.7615,
-        0.7761,
-        0.79,
-        0.8033,
-        0.816,
-        0.828,
-        0.8395,
-        0.8504,
-        0.8608,
-        0.8706,
-        0.8799,
-        0.8888,
-        0.8972,
-        0.9051,
-        0.9127,
-        0.9198,
-        0.9265,
-        0.9329,
-        0.9389,
-        0.9446,
-        0.95,
-        0.9551,
-        0.9599,
-        0.9644,
-        0.9687,
-        0.9727,
-        0.9765,
-        0.9801,
-        0.9835,
-        0.9866,
-        0.9896,
-        0.9925,
-        0.9951,
-        0.9976,
-        1
-       ]
+       "rate": 0.029808375746450625,
+       "depth": 1.0120106067696146,
+       "delay": 0.3910879408441868
       }
      }
     ],
     "connections": [
      [
-      "synth.out",
-      "poly.in"
+      "multitap1.out",
+      "out.in"
      ],
      [
-      "poly.out",
+      "perc.out",
       "filter1.in"
      ],
      [
@@ -1684,145 +292,139 @@
       "filter1.mod"
      ],
      [
-      "shimmer1.out",
-      "shimmer2.in"
-     ],
-     [
-      "shimmer2.out",
-      "out.in"
-     ],
-     [
       "filter1.out",
-      "shiva1.in"
+      "flanger1.in"
      ],
      [
-      "shiva1.out",
-      "waveshaper1.in"
-     ],
-     [
-      "waveshaper1.out",
-      "shimmer1.in"
+      "flanger1.out",
+      "multitap1.in"
      ]
-    ],
-    "voices": 10
+    ]
    },
-   "noteColumns": 5,
+   "noteColumns": 1,
    "exposed": [
     {
-     "node": "synth",
-     "param": "algo",
-     "label": "Alg"
-    },
-    {
-     "node": "synth",
-     "param": "index",
-     "label": "Idx",
-     "bits": 16
-    },
-    {
-     "node": "synth",
-     "param": "fb",
-     "label": "Fb"
-    },
-    {
-     "node": "synth",
-     "param": "ratio2",
-     "label": "Rt2"
-    },
-    {
-     "node": "filter1",
-     "param": "cutoff",
-     "label": "Cut",
+     "node": "perc",
+     "param": "decay",
+     "label": "Dec",
      "scale": "log"
+    },
+    {
+     "node": "perc",
+     "param": "sweep",
+     "label": "Swp"
+    },
+    {
+     "node": "perc",
+     "param": "spread",
+     "label": "Spr"
+    },
+    {
+     "node": "perc",
+     "param": "damp",
+     "label": "Dmp"
     }
    ],
    "commands": [
     {
      "id": 1,
-     "node": "synth",
-     "param": "index"
+     "node": "perc",
+     "param": "decay",
+     "scale": "log"
     },
     {
      "id": 2,
-     "node": "synth",
-     "param": "fb"
+     "node": "perc",
+     "param": "damp"
     },
     {
      "id": 3,
-     "node": "synth",
-     "param": "algo"
+     "node": "perc",
+     "param": "spread"
     },
     {
      "id": 4,
-     "node": "synth",
-     "param": "glide"
+     "node": "perc",
+     "param": "tune"
     },
     {
      "id": 5,
-     "node": "synth",
-     "param": "level2"
+     "node": "perc",
+     "param": "sweep"
     },
     {
      "id": 6,
-     "node": "synth",
-     "param": "level3"
+     "node": "perc",
+     "param": "sdec",
+     "scale": "log"
     },
     {
      "id": 7,
-     "node": "synth",
-     "param": "level4"
+     "node": "perc",
+     "param": "drive"
     },
     {
      "id": 8,
-     "node": "synth",
-     "param": "ratio2"
+     "node": "perc",
+     "param": "click",
+     "scale": "log"
     },
     {
      "id": 9,
-     "node": "synth",
-     "param": "ratio3"
+     "node": "perc",
+     "param": "bright"
     },
     {
      "id": 10,
-     "node": "synth",
-     "param": "ratio4"
+     "node": "perc",
+     "param": "hollow"
+    },
+    {
+     "id": 11,
+     "node": "out",
+     "param": "gain"
     }
    ]
   },
-  "9CABASAR": {
+  "adore": {
    "graph": {
     "nodes": [
      {
       "id": "sampler",
       "type": "sampler",
       "stereo": true,
-      "x": 149,
-      "y": 262
+      "x": 20,
+      "y": 156
      },
      {
       "id": "filter",
       "type": "filter",
       "params": {
-       "cutoff": 3000,
+       "cutoff": 5301.774524643587,
        "resonance": 0.3
       },
-      "x": 349,
-      "y": 315
+      "x": 170,
+      "y": 156
      },
      {
       "id": "delay",
       "type": "delay",
-      "x": 499,
-      "y": 315
+      "x": 455,
+      "y": 171,
+      "params": {
+       "mix": 0.056621431913897985,
+       "feedback": 0.4995242551863984,
+       "time": 452.6063406008649
+      }
      },
      {
       "id": "out",
       "type": "out",
       "params": {
-       "gain": 0.45
+       "gain": 0.3020589611605054
       },
-      "x": 649,
-      "y": 315
+      "x": 679,
+      "y": 155
      }
     ],
     "connections": [
@@ -1941,254 +543,57 @@
     }
    ],
    "samples": {
-    "sampler": "9CABASAR"
+    "sampler": "23_03_02"
    }
   },
-  "hats": {
-   "graph": {
-    "nodes": [
-     {
-      "id": "hat",
-      "type": "hat808",
-      "x": -156,
-      "y": 325,
-      "params": {
-       "level": 0.9904004799760012,
-       "tone": 8544.172791360432,
-       "cdec": 80.53397330133494,
-       "odec": 230.80845957702115,
-       "choke": 1
-      }
-     },
-     {
-      "id": "out",
-      "type": "out",
-      "params": {
-       "gain": 0.4
-      },
-      "x": 943,
-      "y": 293
-     },
-     {
-      "id": "filter1",
-      "type": "filter",
-      "x": 26,
-      "y": 325,
-      "params": {
-       "cutoff": 7701.963807321508,
-       "mode": 1,
-       "resonance": 0.8268861556922154
-      }
-     },
-     {
-      "id": "chorus1",
-      "type": "chorus",
-      "x": 194,
-      "y": 336,
-      "params": {
-       "depth": 8.880305984700765,
-       "rate": 0.07265998850038656,
-       "voices": 2,
-       "mix": 0.8416079196040198,
-       "width": 0.6208189590520474,
-       "delay": 21.464676766161695
-      }
-     },
-     {
-      "id": "flanger1",
-      "type": "flanger",
-      "x": 381,
-      "y": 345
-     },
-     {
-      "id": "compressor1",
-      "type": "compressor",
-      "x": 598,
-      "y": 357,
-      "params": {
-       "threshold": -38.59007049647518,
-       "makeup": 10.867856607169642
-      }
-     },
-     {
-      "id": "gain1",
-      "type": "gain",
-      "x": 778,
-      "y": 457,
-      "scope": {
-       "mode": "wave",
-       "size": 200
-      }
-     }
-    ],
-    "connections": [
-     [
-      "hat.out",
-      "filter1.in"
-     ],
-     [
-      "filter1.out",
-      "chorus1.in"
-     ],
-     [
-      "chorus1.out",
-      "flanger1.in"
-     ],
-     [
-      "flanger1.out",
-      "compressor1.in"
-     ],
-     [
-      "compressor1.out",
-      "gain1.in"
-     ],
-     [
-      "gain1.out",
-      "out.in"
-     ]
-    ]
-   },
-   "noteColumns": 0,
-   "triggers": [
-    {
-     "label": "Cl",
-     "note": 0
-    },
-    {
-     "label": "Op",
-     "note": 1
-    }
-   ],
-   "exposed": [
-    {
-     "node": "hat",
-     "param": "cdec",
-     "label": "CDc",
-     "scale": "log"
-    },
-    {
-     "node": "hat",
-     "param": "odec",
-     "label": "ODc",
-     "scale": "log"
-    },
-    {
-     "node": "hat",
-     "param": "tone",
-     "label": "Ton"
-    },
-    {
-     "node": "hat",
-     "param": "tune",
-     "label": "Tun"
-    },
-    {
-     "node": "gain1",
-     "param": "gain",
-     "label": "Gai"
-    }
-   ],
-   "commands": [
-    {
-     "id": 1,
-     "node": "hat",
-     "param": "tune"
-    },
-    {
-     "id": 2,
-     "node": "hat",
-     "param": "tone"
-    },
-    {
-     "id": 3,
-     "node": "hat",
-     "param": "snap"
-    },
-    {
-     "id": 4,
-     "node": "hat",
-     "param": "level"
-    },
-    {
-     "id": 5,
-     "node": "hat",
-     "param": "cdec",
-     "scale": "log"
-    },
-    {
-     "id": 6,
-     "node": "hat",
-     "param": "odec",
-     "scale": "log"
-    },
-    {
-     "id": 7,
-     "node": "hat",
-     "param": "clvl"
-    },
-    {
-     "id": 8,
-     "node": "hat",
-     "param": "olvl"
-    },
-    {
-     "id": 9,
-     "node": "hat",
-     "param": "choke"
-    }
-   ]
-  },
-  "Loco": {
+  "braids": {
    "graph": {
     "nodes": [
      {
       "id": "synth",
-      "type": "oberheim",
-      "x": 20,
-      "y": 124,
+      "type": "wavetable",
+      "x": 296,
+      "y": 227,
       "params": {
-       "atk": 535.9830878439809,
-       "sus": 0.784010799460027,
-       "dec": 1591.6709560864404,
-       "wave1": 1,
-       "wave2": 2,
-       "pw": 0.3193115344232788,
-       "pwm": 0.2404904754762262,
-       "drive": 0.0784460776961152,
-       "noise": 0.24643767811609418,
-       "cutoff": 251.37670594365727,
-       "fatk": 2068.012801514498,
-       "fdec": 1147.677705137309,
-       "fenv": 1.2419379031048443,
-       "vib": 12.16439178041098,
-       "vrate": 2.5060746962651868,
-       "tune2": 0,
-       "osc2": 0.3472326383680816,
-       "scatter": 0.640017999100045,
-       "drift": 0.640017999100045,
-       "level": 0.2176391180440978
-      }
+       "position": 0.33114958664794886,
+       "mix": 0.26626111371080957,
+       "vel": 0.2762439557011387,
+       "level": 0.4459522695367337,
+       "attack": 17.228345124781452,
+       "decay": 503.45622047390805,
+       "sustain": 0.2962096396817969,
+       "pamt": 0.3012010606769615
+      },
+      "ports": [
+       "position"
+      ]
      },
      {
       "id": "poly",
       "type": "voices",
-      "x": 170,
-      "y": 124
+      "x": 445,
+      "y": 227
      },
      {
       "id": "out",
       "type": "out",
       "params": {
-       "gain": 0.3408579571021449
+       "gain": 0.5
       },
-      "x": 621,
-      "y": 178
+      "x": 563,
+      "y": 137
      },
      {
-      "id": "plate1",
-      "type": "plate",
-      "x": 362,
-      "y": 174
+      "id": "lfo1",
+      "type": "lfo",
+      "x": 79,
+      "y": 243,
+      "params": {
+       "rate": 0.025854447422547833,
+       "min": 0,
+       "max": 1,
+       "amount": 0.2667290594291062
+      }
      }
     ],
     "connections": [
@@ -2198,257 +603,283 @@
      ],
      [
       "poly.out",
-      "plate1.in"
+      "out.in"
      ],
      [
-      "plate1.out",
-      "out.in"
+      "lfo1.out",
+      "synth.@position"
      ]
     ],
-    "voices": 8
+    "voices": 6
    },
    "noteColumns": 4,
    "exposed": [
     {
      "node": "synth",
-     "param": "cutoff",
-     "label": "Cut",
-     "scale": "log"
+     "param": "position",
+     "label": "Pos"
     },
     {
      "node": "synth",
-     "param": "res",
-     "label": "Res"
+     "param": "mix",
+     "label": "Mix"
     },
     {
      "node": "synth",
-     "param": "mode",
-     "label": "Mod"
+     "param": "pamt",
+     "label": "PAm"
     },
     {
      "node": "synth",
-     "param": "pw",
-     "label": "PW"
-    },
-    {
-     "node": "out",
-     "param": "gain",
-     "label": "Gai"
+     "param": "source",
+     "label": "Src"
     }
    ],
    "commands": [
     {
      "id": 1,
      "node": "synth",
-     "param": "cutoff",
-     "scale": "log"
+     "param": "position"
     },
     {
      "id": 2,
      "node": "synth",
-     "param": "res"
+     "param": "mix"
     },
     {
      "id": 3,
      "node": "synth",
-     "param": "mode"
+     "param": "source"
     },
     {
      "id": 4,
      "node": "synth",
-     "param": "fenv"
+     "param": "pamt"
     },
     {
      "id": 5,
      "node": "synth",
-     "param": "pwm"
+     "param": "pdec"
     },
     {
      "id": 6,
      "node": "synth",
-     "param": "sweep"
+     "param": "lfoDepth"
     },
     {
      "id": 7,
      "node": "synth",
-     "param": "detune"
+     "param": "lfoRate"
     },
     {
      "id": 8,
+     "node": "synth",
+     "param": "snap"
+    },
+    {
+     "id": 9,
      "node": "synth",
      "param": "glide"
     }
    ]
   },
-  "harderkick": {
+  "pjano": {
    "graph": {
     "nodes": [
      {
-      "id": "pitchEnv",
-      "type": "env",
-      "params": {
-       "attack": 0.2,
-       "decay": 142.6781143953077,
-       "sustain": 0,
-       "release": 8.49805911026117,
-       "amount": 3.1843407829608523,
-       "vel": 0.6304184790760462
-      },
+      "id": "synth",
+      "type": "piano",
       "x": 20,
-      "y": 108
-     },
-     {
-      "id": "osc",
-      "type": "osc",
+      "y": 108,
       "params": {
-       "wave": 0,
-       "reset": 1,
-       "phase": 0.5104244787760612,
-       "freq": 149.52268321836362,
-       "tune": -19.27343632818359
-      },
-      "x": 212,
-      "y": 166
+       "width": 0.8602402121353923,
+       "pedal": 0.5258150054593668,
+       "release": 949.4651425188772,
+       "bright": 0.5707377944158477,
+       "pos": 0.061453751364841686,
+       "inharm": 0.4309780065512401,
+       "hard": 0.36608953361410074
+      }
      },
      {
-      "id": "ampEnv",
-      "type": "env",
-      "params": {
-       "attack": 0.5,
-       "decay": 336.6626175347776,
-       "sustain": 0,
-       "release": 77.27603605956662,
-       "amount": 7.600119994000299,
-       "vel": 0.0592470376481176
-      },
-      "x": 42,
-      "y": 303
-     },
-     {
-      "id": "vca",
-      "type": "gain",
-      "x": 388,
-      "y": 191
+      "id": "poly",
+      "type": "voices",
+      "x": 161,
+      "y": 124
      },
      {
       "id": "out",
       "type": "out",
       "params": {
-       "gain": 0.7512374381280935,
-       "pan": 0
+       "gain": 0.5
       },
-      "x": 783,
-      "y": 209
+      "x": 926,
+      "y": 259
      },
      {
-      "id": "distortion1",
-      "type": "distortion",
-      "x": 465,
-      "y": 215,
+      "id": "shimmer1",
+      "type": "shimmer",
+      "x": 434,
+      "y": 150,
       "params": {
-       "oversample": 1,
-       "level": 0.9536523173841308,
-       "drive": 11.95393595013743,
-       "tone": 553.0447588131566,
-       "mode": 2
+       "mix": 0.6206520043674933
       }
      },
      {
-      "id": "compressor1",
-      "type": "compressor",
-      "x": 622,
-      "y": 222
+      "id": "filter1",
+      "type": "filter",
+      "x": 275,
+      "y": 153,
+      "params": {
+       "resonance": 0.7318749025113086,
+       "cutoff": 583.364273386376
+      }
+     },
+     {
+      "id": "filter2",
+      "type": "filter",
+      "x": 270,
+      "y": 252,
+      "params": {
+       "mode": 2,
+       "cutoff": 1363.2846053189805,
+       "resonance": 0.7982608017469973
+      }
+     },
+     {
+      "id": "plate1",
+      "type": "plate",
+      "x": 446,
+      "y": 299,
+      "params": {
+       "decay": 5.520658005091781,
+       "predelay": 55.24879114022774,
+       "mix": 0.6006863203868351,
+       "damp": 0.21634690375916393
+      }
+     },
+     {
+      "id": "mix1",
+      "type": "mix",
+      "x": 654,
+      "y": 231,
+      "params": {
+       "mix": 0.1963812197785057
+      }
      }
     ],
     "connections": [
      [
-      "pitchEnv.out",
-      "osc.fm"
+      "synth.out",
+      "poly.in"
      ],
      [
-      "osc.out",
-      "vca.in"
+      "poly.out",
+      "filter1.in"
      ],
      [
-      "ampEnv.out",
-      "vca.cv"
+      "filter1.out",
+      "shimmer1.in"
      ],
      [
-      "vca.out",
-      "distortion1.in"
+      "poly.out",
+      "filter2.in"
      ],
      [
-      "distortion1.out",
-      "compressor1.in"
+      "filter2.out",
+      "plate1.in"
      ],
      [
-      "compressor1.out",
+      "shimmer1.out",
+      "mix1.a"
+     ],
+     [
+      "mix1.out",
       "out.in"
+     ],
+     [
+      "plate1.out",
+      "mix1.b"
      ]
-    ]
+    ],
+    "voices": 12
    },
+   "noteColumns": 6,
    "exposed": [
     {
-     "node": "pitchEnv",
-     "param": "amount",
-     "label": "Pit"
+     "node": "synth",
+     "param": "pedal",
+     "label": "Ped"
     },
     {
-     "node": "pitchEnv",
+     "node": "synth",
+     "param": "hard",
+     "label": "Hrd"
+    },
+    {
+     "node": "synth",
      "param": "decay",
-     "label": "PDc",
-     "scale": "log"
+     "label": "Dec"
     },
     {
-     "node": "ampEnv",
-     "param": "decay",
-     "label": "Dec",
-     "scale": "log"
-    },
-    {
-     "node": "osc",
-     "param": "tune",
-     "label": "Tun"
+     "node": "synth",
+     "param": "body",
+     "label": "Bod"
     }
    ],
    "commands": [
     {
      "id": 1,
-     "node": "pitchEnv",
-     "param": "amount"
+     "node": "synth",
+     "param": "pedal"
     },
     {
      "id": 2,
-     "node": "pitchEnv",
-     "param": "decay",
-     "scale": "log"
+     "node": "synth",
+     "param": "hard"
     },
     {
      "id": 3,
-     "node": "ampEnv",
-     "param": "decay",
-     "scale": "log"
+     "node": "synth",
+     "param": "decay"
     },
     {
      "id": 4,
-     "node": "osc",
-     "param": "tune"
+     "node": "synth",
+     "param": "body"
     },
     {
      "id": 5,
-     "node": "out",
-     "param": "gain"
+     "node": "synth",
+     "param": "bright"
+    },
+    {
+     "id": 6,
+     "node": "synth",
+     "param": "pos"
+    },
+    {
+     "id": 7,
+     "node": "synth",
+     "param": "inharm"
+    },
+    {
+     "id": 8,
+     "node": "synth",
+     "param": "prompt"
     }
    ]
   }
  },
  "samples": {
-  "9CABASAR": {
+  "23_03_02": {
    "rate": 48000,
    "encoding": "pcm16",
-   "data": "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",
-   "right": "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",
-   "susXfade": 0
+   "data": "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",
+   "right": "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",
+   "loopStart": 0,
+   "loopEnd": 4001,
+   "loopOn": false
   }
  },
  "lanes": [
@@ -2459,895 +890,26 @@
    "placements": []
   },
   {
-   "id": "kick",
-   "instrument": "kick",
+   "id": "kick1",
+   "instrument": "kick1",
    "patterns": {
-    "four": {
-     "name": "four",
-     "index": 0,
-     "rows": [
-      "C-2 .. .. ..",
-      "... .. .. ..",
-      "... .. .. ..",
-      "... .. .. ..",
-      "C-2 .. .. ..",
-      "... .. .. ..",
-      "... .. .. ..",
-      "... .. .. ..",
-      "C-2 .. .. ..",
-      "... .. .. ..",
-      "... .. .. ..",
-      "... .. .. ..",
-      "C-2 .. .. ..",
-      "... .. .. ..",
-      "... .. .. ..",
-      "... .. .. .."
-     ]
-    }
-   },
-   "placements": [
-    {
-     "puid": "four",
-     "start": 0,
-     "length": 16
-    },
-    {
-     "puid": "four",
-     "start": 16,
-     "length": 16
-    },
-    {
-     "puid": "four",
-     "start": 32,
-     "length": 16
-    },
-    {
-     "puid": "four",
-     "start": 48,
-     "length": 16
-    },
-    {
-     "puid": "four",
-     "start": 64,
-     "length": 16
-    },
-    {
-     "puid": "four",
-     "start": 80,
-     "length": 16
-    },
-    {
-     "puid": "four",
-     "start": 96,
-     "length": 16
-    },
-    {
-     "puid": "four",
-     "start": 112,
-     "length": 16
-    }
-   ]
-  },
-  {
-   "id": "snare",
-   "instrument": "snare",
-   "patterns": {
-    "back": {
-     "name": "back",
-     "index": 0,
-     "rows": [
-      "... .. .. .... .... .. .. .. .. ......",
-      "... .. .. .... .... .. .. .. .. ......",
-      "... .. .. .... .... .. .. .. .. ......",
-      "... .. .. .... .... .. .. .. .. ......",
-      "G-3 B0 .. .... .... .. .. .. .. ......",
-      "... .. .. .... .... .. .. .. .. ......",
-      "... .. .. .... .... .. .. .. .. ......",
-      "... .. .. .... .... .. .. .. .. ......",
-      "... .. .. .... .... .. .. .. .. ......",
-      "... .. .. .... .... .. .. .. .. ......",
-      "... .. .. .... .... .. .. .. .. ......",
-      "... .. .. .... .... .. .. .. .. ......",
-      "G-3 B0 .. .... .... .. .. .. .. ......",
-      "... .. .. .... .... .. .. .. .. ......",
-      "... .. .. .... .... .. .. .. .. ......",
-      "... .. .. .... .... .. .. .. .. ......"
-     ]
-    },
-    "fill": {
-     "name": "fill",
-     "index": 1,
-     "rows": [
-      "... .. .. .... .... .. .. .. .. ......",
-      "... .. .. .... .... .. .. .. .. ......",
-      "... .. .. .... .... .. .. .. .. ......",
-      "... .. .. .... .... .. .. .. .. ......",
-      "G-3 B0 .. .... .... .. .. .. .. ......",
-      "... .. .. .... .... .. .. .. .. ......",
-      "... .. .. .... .... .. .. .. .. ......",
-      "... .. .. .... .... .. .. .. .. ......",
-      "... .. .. .... .... .. .. .. .. ......",
-      "... .. .. .... .... .. .. .. .. ......",
-      "... .. .. .... .... .. .. .. .. ......",
-      "... .. .. .... .... .. .. .. .. ......",
-      "G-3 A0 .. .... .... .. .. .. .. ......",
-      "G-3 20 .. .... .... .. .. .. .. ......",
-      "G-3 C0 .. .... .... .. .. .. .. ......",
-      "G-3 10 .. .... .... .. .. .. .. ......"
-     ]
-    }
-   },
-   "placements": [
-    {
-     "puid": "fill",
-     "start": 128,
-     "length": 16
-    },
-    {
-     "puid": "back",
-     "start": 160,
-     "length": 16
-    },
-    {
-     "puid": "back",
-     "start": 144,
-     "length": 16
-    },
-    {
-     "puid": "back",
-     "start": 176,
-     "length": 16
-    },
-    {
-     "puid": "back",
-     "start": 192,
-     "length": 16
-    },
-    {
-     "puid": "back",
-     "start": 208,
-     "length": 16
-    },
-    {
-     "puid": "back",
-     "start": 224,
-     "length": 16
-    },
-    {
-     "puid": "back",
-     "start": 240,
-     "length": 16
-    },
-    {
-     "puid": "fill",
-     "start": 256,
-     "length": 16
-    },
-    {
-     "puid": "back",
-     "start": 288,
-     "length": 16
-    },
-    {
-     "puid": "back",
-     "start": 272,
-     "length": 16
-    },
-    {
-     "puid": "back",
-     "start": 304,
-     "length": 16
-    },
-    {
-     "puid": "back",
-     "start": 320,
-     "length": 16
-    },
-    {
-     "puid": "back",
-     "start": 336,
-     "length": 16
-    },
-    {
-     "puid": "back",
-     "start": 352,
-     "length": 16
-    },
-    {
-     "puid": "back",
-     "start": 368,
-     "length": 16
-    }
-   ]
-  },
-  {
-   "id": "foop",
-   "instrument": "foop",
-   "patterns": {
-    "1792148803794-0": {
+    "1792333227645-0": {
      "name": "pat00",
      "index": 0,
      "rows": [
-      "... .. ... .. ... .. ... .. ... .. .. 2000 .. .. A0 ......",
-      "... .. ... .. ... .. ... .. ... .. .. 22D8 .. .. .. ......",
-      "... .. ... .. ... .. ... .. ... .. .. 25B0 .. .. A0 ......",
-      "... .. ... .. ... .. ... .. ... .. .. 2889 .. .. .. ......",
-      "G-4 20 A-4 20 D-5 30 F-5 20 ... .. .. 2B61 .. .. 50 ......",
-      "... .. ... .. ... .. ... .. ... .. .. 2E39 .. .. B0 ......",
-      "... .. ... .. ... .. ... .. ... .. .. 3111 .. .. .. ......",
-      "C-4 20 D-4 20 G-4 30 A#4 20 ... .. .. 33E9 .. .. .. ......",
-      "... .. ... .. ... .. ... .. ... .. .. 36C1 .. .. .. ......",
-      "... .. ... .. ... .. ... .. ... .. .. 399A .. .. .. ......",
-      "G-4 20 A-4 20 D-5 30 F-5 20 ... .. .. 3C72 .. .. 48 ......",
-      "... .. ... .. ... .. ... .. ... .. .. 3F4A .. .. .. ......",
-      "... .. ... .. ... .. ... .. ... .. .. 4222 .. .. .. ......",
-      "G-4 20 A-4 20 D-5 30 F-5 20 ... .. .. 44FA .. .. A0 ......",
-      "... .. ... .. ... .. ... .. ... .. .. 47D2 .. .. .. ......",
-      "G-4 20 A-4 20 D-5 30 F-5 20 ... .. .. 4AAB .. .. .. ......",
-      "... .. ... .. ... .. ... .. ... .. .. 4D83 .. .. 40 ......",
-      "... .. ... .. ... .. ... .. ... .. .. 505B .. .. .. ......",
-      "G-4 20 A-4 20 D-5 30 F-5 20 ... .. .. 5333 .. .. A0 ......",
-      "... .. ... .. ... .. ... .. ... .. .. 560B .. .. .. ......",
-      "... .. ... .. ... .. ... .. ... .. .. 58E4 .. .. .. ......",
-      "C-4 20 D-4 20 G-4 30 A#4 20 ... .. .. 5BBC .. .. 98 ......",
-      "... .. ... .. ... .. ... .. ... .. .. 5E94 .. .. .. ......",
-      "... .. ... .. ... .. ... .. ... .. .. 616C .. .. A0 ......",
-      "G-4 20 A-4 20 D-5 30 F-5 20 ... .. .. 6444 .. .. .. ......",
-      "... .. ... .. ... .. ... .. ... .. .. 671C .. .. .. ......",
-      "... .. ... .. ... .. ... .. ... .. .. 69F5 .. .. 48 ......",
-      "G-4 20 A-4 20 D-5 30 F-5 20 ... .. .. 6CCD .. .. .. ......",
-      "... .. ... .. ... .. ... .. ... .. .. 6FA5 .. .. .. ......",
-      "G-4 20 A-4 20 D-5 30 F-5 20 ... .. .. 727D .. .. A0 ......",
-      "... .. ... .. ... .. ... .. ... .. .. 7555 .. .. .. ......",
-      "... .. ... .. ... .. ... .. ... .. .. 782E .. .. .. ......",
-      "G-4 20 A-4 20 D-5 30 F-5 20 ... .. .. 7B06 .. .. 40 ......",
-      "... .. ... .. ... .. ... .. ... .. .. 7DDE .. .. .. ......",
-      "... .. ... .. ... .. ... .. ... .. .. 80B6 .. .. E0 ......",
-      "C-4 20 D-4 20 G-4 30 A#4 20 ... .. .. 838E .. .. .. ......",
-      "... .. ... .. ... .. ... .. ... .. .. 8666 .. .. .. ......",
-      "... .. ... .. ... .. ... .. ... .. .. 893F .. .. 98 ......",
-      "G-4 20 A-4 20 D-5 30 F-5 20 ... .. .. 8C17 .. .. A0 ......",
-      "... .. ... .. ... .. ... .. ... .. .. 8EEF .. .. A0 ......",
-      "... .. ... .. ... .. ... .. ... .. .. 91C7 .. .. .. ......",
-      "G-4 20 A-4 20 D-5 30 F-5 20 ... .. .. 949F .. .. .. ......",
-      "... .. ... .. ... .. ... .. ... .. .. 9777 .. .. 58 ......",
-      "G-4 20 A-4 20 D-5 30 F-5 20 ... .. .. 9A50 .. .. .. ......",
-      "... .. ... .. ... .. ... .. ... .. .. 9D28 .. .. .. ......",
-      "... .. ... .. ... .. ... .. ... .. .. A000 .. .. A0 ......",
-      "G-4 20 A-4 20 D-5 30 F-5 20 ... .. .. .... .. .. .. ......",
-      "... .. ... .. ... .. ... .. ... .. .. .... .. .. .. ......",
-      "G-4 20 A-4 20 D-5 30 F-5 20 ... .. .. 7B06 .. .. 40 ......",
-      "... .. ... .. ... .. ... .. ... .. .. 7DDE .. .. .. ......",
-      "... .. ... .. ... .. ... .. ... .. .. 80B6 .. .. A0 ......",
-      "C-4 20 D-4 20 G-4 30 A#4 20 ... .. .. 838E .. .. .. ......",
-      "... .. ... .. ... .. ... .. ... .. .. 8666 .. .. .. ......",
-      "... .. ... .. ... .. ... .. ... .. .. 893F .. .. 98 ......",
-      "G-4 20 A-4 20 D-5 30 F-5 20 ... .. .. 8C17 .. .. .. ......",
-      "... .. ... .. ... .. ... .. ... .. .. 8EEF .. .. A0 ......",
-      "... .. ... .. ... .. ... .. ... .. .. 91C7 .. .. .. ......",
-      "G-4 20 A-4 20 D-5 30 F-5 20 ... .. .. 949F .. .. .. ......",
-      "... .. ... .. ... .. ... .. ... .. .. 9777 .. .. 48 ......",
-      "G-4 20 A-4 20 D-5 30 F-5 20 ... .. .. 9A50 .. .. .. ......",
-      "... .. ... .. ... .. ... .. ... .. .. 9D28 .. .. .. ......",
-      "... .. ... .. ... .. ... .. ... .. .. A000 .. .. A0 ......",
-      "G-4 20 A-4 20 D-5 30 F-5 20 ... .. .. .... .. .. .. ......",
-      "... .. ... .. ... .. ... .. ... .. .. .... .. .. .. ......"
-     ]
-    },
-    "1792313998274-0": {
-     "name": "pat00 copy",
-     "index": 1,
-     "rows": [
-      "... .. ... .. ... .. ... .. ... .. .. 2000 .. .. 40 ......",
-      "... .. ... .. ... .. ... .. ... .. .. 22D8 .. .. .. ......",
-      "... .. ... .. ... .. ... .. ... .. .. 25B0 .. .. A0 ......",
-      "... .. ... .. ... .. ... .. ... .. .. 2889 .. .. .. ......",
-      "G-4 20 A-4 20 D-5 30 F-5 20 ... .. .. 2B61 .. .. .. ......",
-      "... .. ... .. ... .. ... .. ... .. .. 2E39 .. .. 98 ......",
-      "... .. ... .. ... .. ... .. ... .. .. 3111 .. .. .. ......",
-      "C-4 20 D-4 20 G-4 30 A#4 20 ... .. .. 33E9 .. .. A0 ......",
-      "... .. ... .. ... .. ... .. ... .. .. 36C1 .. .. .. ......",
-      "... .. ... .. ... .. ... .. ... .. .. 399A .. .. .. ......",
-      "G-4 20 A-4 20 D-5 30 F-5 20 ... .. .. 3C72 .. .. 48 ......",
-      "... .. ... .. ... .. ... .. ... .. .. 3F4A .. .. .. ......",
-      "... .. ... .. ... .. ... .. ... .. .. 4222 .. .. .. ......",
-      "G-4 20 A-4 20 D-5 30 F-5 20 ... .. .. 44FA .. .. A0 ......",
-      "... .. ... .. ... .. ... .. ... .. .. 47D2 .. .. .. ......",
-      "G-4 20 A-4 20 D-5 30 F-5 20 ... .. .. 4AAB .. .. .. ......",
-      "... .. ... .. ... .. ... .. ... .. .. 4D83 .. .. 40 ......",
-      "... .. ... .. ... .. ... .. ... .. .. 505B .. .. .. ......",
-      "G-4 20 A-4 20 D-5 30 F-5 20 ... .. .. 5333 .. .. A0 ......",
-      "... .. ... .. ... .. ... .. ... .. .. 560B .. .. .. ......",
-      "... .. ... .. ... .. ... .. ... .. .. 58E4 .. .. .. ......",
-      "C-4 20 D-4 20 G-4 30 A#4 20 ... .. .. 5BBC .. .. 98 ......",
-      "... .. ... .. ... .. ... .. ... .. .. 5E94 .. .. .. ......",
-      "... .. ... .. ... .. ... .. ... .. .. 616C .. .. A0 ......",
-      "G-4 20 A-4 20 D-5 30 F-5 20 ... .. .. 6444 .. .. .. ......",
-      "... .. ... .. ... .. ... .. ... .. .. 671C .. .. .. ......",
-      "... .. ... .. ... .. ... .. ... .. .. 69F5 .. .. 48 ......",
-      "G-4 20 A-4 20 D-5 30 F-5 20 ... .. .. 6CCD .. .. .. ......",
-      "... .. ... .. ... .. ... .. ... .. .. 6FA5 .. .. .. ......",
-      "G-4 20 A-4 20 D-5 30 F-5 20 ... .. .. 727D .. .. A0 ......",
-      "... .. ... .. ... .. ... .. ... .. .. 7555 .. .. .. ......",
-      "... .. ... .. ... .. ... .. ... .. .. 782E .. .. .. ......",
-      "G-4 20 A-4 20 D-5 30 F-5 20 ... .. .. 7B06 .. .. 40 ......",
-      "... .. ... .. ... .. ... .. ... .. .. 7DDE .. .. .. ......",
-      "... .. ... .. ... .. ... .. ... .. .. 80B6 .. .. A0 ......",
-      "C-4 20 D-4 20 G-4 30 A#4 20 ... .. .. 838E .. .. .. ......",
-      "... .. ... .. ... .. ... .. ... .. .. 8666 .. .. .. ......",
-      "... .. ... .. ... .. ... .. ... .. .. 893F .. .. 98 ......",
-      "G-4 20 A-4 20 D-5 30 F-5 20 ... .. .. 8C17 .. .. .. ......",
-      "... .. ... .. ... .. ... .. ... .. .. 8EEF .. .. A0 ......",
-      "... .. ... .. ... .. ... .. ... .. .. 91C7 .. .. .. ......",
-      "G-4 20 A-4 20 D-5 30 F-5 20 ... .. .. 949F .. .. .. ......",
-      "... .. ... .. ... .. ... .. ... .. .. 9777 .. .. 48 ......",
-      "G-4 20 A-4 20 D-5 30 F-5 20 ... .. .. 9A50 .. .. .. ......",
-      "... .. ... .. ... .. ... .. ... .. .. 9D28 .. .. .. ......",
-      "... .. ... .. ... .. ... .. ... .. .. A000 .. .. A0 ......",
-      "G-4 20 A-4 20 D-5 30 F-5 20 ... .. .. .... .. .. .. ......",
-      "... .. ... .. ... .. ... .. ... .. .. .... .. .. .. ......",
-      "... .. ... .. ... .. ... .. ... .. .. .... .. .. 40 ......",
-      "C-4 20 D-4 20 G-4 30 A#4 20 ... .. .. .... .. .. .. ......",
-      "... .. ... .. ... .. ... .. ... .. .. .... .. .. 40 ......",
-      "... .. ... .. ... .. ... .. ... .. .. .... .. .. .. ......",
-      "G-4 20 A-4 20 D-5 30 F-5 20 ... .. .. .... .. .. A0 ......",
-      "... .. ... .. ... .. ... .. ... .. .. .... .. .. .. ......",
-      "... .. ... .. ... .. ... .. ... .. .. .... .. .. .. ......",
-      "G-4 20 A-4 20 D-5 30 F-5 20 ... .. .. E000 .. .. 98 ......",
-      "... .. ... .. ... .. ... .. ... .. .. .... .. .. .. ......",
-      "G-4 20 A-4 20 D-5 30 F-5 20 ... .. .. .... .. .. A0 ......",
-      "... .. ... .. ... .. ... .. ... .. .. .... .. .. .. ......",
-      "... .. ... .. ... .. ... .. ... .. .. .... .. .. .. ......",
-      "G-4 20 A-4 20 D-5 30 F-5 20 ... .. .. .... .. .. 48 ......",
-      "... .. ... .. ... .. ... .. ... .. .. .... .. .. .. ......",
-      "G-4 20 A-4 20 D-5 30 F-5 20 ... .. .. B000 .. .. .. ......",
-      "... .. ... .. ... .. ... .. ... .. .. .... .. .. A0 ......",
-      "... .. ... .. ... .. ... .. ... .. .. .... .. .. .. ......",
-      "G-4 20 A-4 20 D-5 30 F-5 20 ... .. .. .... .. .. .. ......",
-      "... .. ... .. ... .. ... .. ... .. .. .... .. .. 40 ......",
-      "... .. ... .. ... .. ... .. ... .. .. .... .. .. .. ......",
-      "C-4 20 D-4 20 G-4 30 A#4 20 ... .. .. .... .. .. 40 ......",
-      "... .. ... .. ... .. ... .. ... .. .. .... .. .. .. ......",
-      "... .. ... .. ... .. ... .. ... .. .. .... .. .. A0 ......",
-      "G-4 20 A-4 20 D-5 30 F-5 20 ... .. .. 9000 .. .. .. ......",
-      "... .. ... .. ... .. ... .. ... .. .. .... .. .. .. ......",
-      "... .. ... .. ... .. ... .. ... .. .. .... .. .. 98 ......",
-      "G-4 20 A-4 20 D-5 30 F-5 20 ... .. .. .... .. .. .. ......",
-      "... .. ... .. ... .. ... .. ... .. .. .... .. .. A0 ......",
-      "G-4 20 A-4 20 D-5 30 F-5 20 ... .. .. .... .. .. .. ......",
-      "... .. ... .. ... .. ... .. ... .. .. .... .. .. .. ......",
-      "... .. ... .. ... .. ... .. ... .. .. .... .. .. 48 ......",
-      "G-4 20 A-4 20 D-5 30 F-5 20 ... .. .. .... .. .. .. ......",
-      "... .. ... .. ... .. ... .. ... .. .. .... .. .. .. ......",
-      "... .. ... .. ... .. ... .. ... .. .. .... .. .. A0 ......",
-      "C-4 20 D-4 20 G-4 30 A#4 20 ... .. .. .... .. .. .. ......",
-      "... .. ... .. ... .. ... .. ... .. .. .... .. .. .. ......",
-      "... .. ... .. ... .. ... .. ... .. .. .... .. .. 40 ......",
-      "G-4 20 A-4 20 D-5 30 F-5 20 ... .. .. .... .. .. .. ......",
-      "... .. ... .. ... .. ... .. ... .. .. .... .. .. 40 ......",
-      "... .. ... .. ... .. ... .. ... .. .. .... .. .. .. ......",
-      "G-4 20 A-4 20 D-5 30 F-5 20 ... .. .. E000 .. .. A0 ......",
-      "... .. ... .. ... .. ... .. ... .. .. .... .. .. .. ......",
-      "G-4 20 A-4 20 D-5 30 F-5 20 ... .. .. .... .. .. .. ......",
-      "... .. ... .. ... .. ... .. ... .. .. .... .. .. 98 ......",
-      "... .. ... .. ... .. ... .. ... .. .. .... .. .. .. ......",
-      "G-4 20 A-4 20 D-5 30 F-5 20 ... .. .. 9000 .. .. A0 ......",
-      "... .. ... .. ... .. ... .. ... .. .. .... .. .. .. ......",
-      "... .. ... .. ... .. ... .. ... .. .. .... .. .. .. ......",
-      "C-4 20 D-4 20 G-4 30 A#4 20 ... .. .. .... .. .. 48 ......",
-      "... .. ... .. ... .. ... .. ... .. .. .... .. .. .. ......",
-      "... .. ... .. ... .. ... .. ... .. .. .... .. .. .. ......",
-      "G-4 20 A-4 20 D-5 30 F-5 20 ... .. .. .... .. .. A0 ......",
-      "... .. ... .. ... .. ... .. ... .. .. .... .. .. .. ......",
-      "... .. ... .. ... .. ... .. ... .. .. .... .. .. .. ......",
-      "G-4 20 A-4 20 D-5 30 F-5 20 ... .. .. .... .. .. 40 ......",
-      "... .. ... .. ... .. ... .. ... .. .. .... .. .. .. ......",
-      "G-4 20 A-4 20 D-5 30 F-5 20 ... .. .. .... .. .. 40 ......",
-      "... .. ... .. ... .. ... .. ... .. .. .... .. .. .. ......",
-      "... .. ... .. ... .. ... .. ... .. .. .... .. .. A0 ......",
-      "G-4 20 A-4 20 D-5 30 F-5 20 ... .. .. 3000 .. .. .. ......",
-      "... .. ... .. ... .. ... .. ... .. .. .... .. .. .. ......",
-      "... .. ... .. ... .. ... .. ... .. .. .... .. .. 98 ......",
-      "C-4 20 D-4 20 G-4 30 A#4 20 ... .. .. .... .. .. .. ......",
-      "... .. ... .. ... .. ... .. ... .. .. .... .. .. A0 ......",
-      "... .. ... .. ... .. ... .. ... .. .. .... .. .. .. ......",
-      "G-4 20 A-4 20 D-5 30 F-5 20 ... .. .. .... .. .. .. ......",
-      "... .. ... .. ... .. ... .. ... .. .. .... .. .. 48 ......",
-      "... .. ... .. ... .. ... .. ... .. .. .... .. .. .. ......",
-      "G-4 20 A-4 20 D-5 30 F-5 20 ... .. .. .... .. .. .. ......",
-      "... .. ... .. ... .. ... .. ... .. .. .... .. .. A0 ......",
-      "G-4 20 A-4 20 D-5 30 F-5 20 ... .. .. .... .. .. .. ......",
-      "... .. ... .. ... .. ... .. ... .. .. .... .. .. .. ......",
-      "... .. ... .. ... .. ... .. ... .. .. .... .. .. 40 ......",
-      "G-4 20 A-4 20 D-5 30 F-5 20 ... .. .. 8000 .. .. .. ......",
-      "... .. ... .. ... .. ... .. ... .. .. .... .. .. 40 ......",
-      "... .. ... .. ... .. ... .. ... .. .. .... .. .. .. ......",
-      "C-4 20 D-4 20 G-4 30 A#4 20 ... .. .. A000 .. .. A0 ......",
-      "... .. ... .. ... .. ... .. ... .. .. .... .. .. .. ......",
-      "... .. ... .. ... .. ... .. ... .. .. .... .. .. .. ......",
-      "G-4 20 A-4 20 D-5 30 F-5 20 ... .. .. .... .. .. 98 ......",
-      "... .. ... .. ... .. ... .. ... .. .. .... .. .. .. ......",
-      "... .. ... .. ... .. ... .. ... .. .. .... .. .. A0 ......",
-      "G-4 20 A-4 20 D-5 30 F-5 20 ... .. .. .... .. .. .. ......",
-      "... .. ... .. ... .. ... .. ... .. .. .... .. .. .. ......",
-      "G-4 20 A-4 20 D-5 30 F-5 20 ... .. .. .... .. .. 48 ......",
-      "... .. ... .. ... .. ... .. ... .. .. .... .. .. .. ......",
-      "... .. ... .. ... .. ... .. ... .. .. .... .. .. .. ......",
-      "G-4 20 A-4 20 D-5 30 F-5 20 ... .. .. .... .. .. A0 ......",
-      "... .. ... .. ... .. ... .. ... .. .. .... .. .. .. ......",
-      "... .. ... .. ... .. ... .. ... .. .. .... .. .. .. ......",
-      "C-4 20 D-4 20 G-4 30 A#4 20 ... .. .. .... .. .. 40 ......",
-      "... .. ... .. ... .. ... .. ... .. .. .... .. .. .. ......",
-      "... .. ... .. ... .. ... .. ... .. .. .... .. .. .. ......",
-      "G-4 20 A-4 20 D-5 30 F-5 20 ... .. .. .... .. .. 80 ......",
-      "... .. ... .. ... .. ... .. ... .. .. .... .. .. .. ......",
-      "... .. ... .. ... .. ... .. ... .. .. .... .. .. .. ......",
-      "G-4 20 A-4 20 D-5 30 F-5 20 ... .. .. .... .. .. A0 ......",
-      "... .. ... .. ... .. ... .. ... .. .. .... .. .. 50 ......",
-      "G-4 20 A-4 20 D-5 30 F-5 20 ... .. .. .... .. .. A0 ......",
-      "... .. ... .. ... .. ... .. ... .. .. .... .. .. .. ......",
-      "... .. ... .. ... .. ... .. ... .. .. .... .. .. .. ......",
-      "G-4 20 A-4 20 D-5 30 F-5 20 ... .. .. .... .. .. 90 ......",
-      "... .. ... .. ... .. ... .. ... .. .. .... .. .. .. ......",
-      "... .. ... .. ... .. ... .. ... .. .. .... .. .. .. ......",
-      "C-4 20 D-4 20 G-4 30 A#4 20 ... .. .. .... .. .. E0 ......",
-      "... .. ... .. ... .. ... .. ... .. .. .... .. .. .. ......",
-      "... .. ... .. ... .. ... .. ... .. .. .... .. .. .. ......",
-      "G-4 20 A-4 20 D-5 30 F-5 20 ... .. .. .... .. .. 70 ......",
-      "... .. ... .. ... .. ... .. ... .. .. .... .. .. .. ......",
-      "... .. ... .. ... .. ... .. ... .. .. .... .. .. .. ......",
-      "G-4 20 A-4 20 D-5 30 F-5 20 ... .. .. .... .. .. A0 ......",
-      "... .. ... .. ... .. ... .. ... .. .. .... .. .. .. ......",
-      "G-4 20 A-4 20 D-5 30 F-5 20 ... .. .. .... .. .. A0 ......",
-      "... .. ... .. ... .. ... .. ... .. .. .... .. .. .. ......",
-      "... .. ... .. ... .. ... .. ... .. .. .... .. .. 50 ......",
-      "G-4 20 A-4 20 D-5 30 F-5 20 ... .. .. .... .. .. B0 ......",
-      "... .. ... .. ... .. ... .. ... .. .. .... .. .. .. ......",
-      "... .. ... .. ... .. ... .. ... .. .. .... .. .. .. ......",
-      "C-4 20 D-4 20 G-4 30 A#4 20 ... .. .. .... .. .. 90 ......",
-      "... .. ... .. ... .. ... .. ... .. .. .... .. .. .. ......",
-      "... .. ... .. ... .. ... .. ... .. .. .... .. .. .. ......",
-      "G-4 20 A-4 20 D-5 30 F-5 20 ... .. .. .... .. .. E0 ......",
-      "... .. ... .. ... .. ... .. ... .. .. .... .. .. .. ......",
-      "... .. ... .. ... .. ... .. ... .. .. .... .. .. .. ......",
-      "G-4 20 A-4 20 D-5 30 F-5 20 ... .. .. .... .. .. 70 ......",
-      "... .. ... .. ... .. ... .. ... .. .. .... .. .. .. ......",
-      "G-4 20 A-4 20 D-5 30 F-5 20 ... .. .. .... .. .. .. ......",
-      "... .. ... .. ... .. ... .. ... .. .. .... .. .. A0 ......",
-      "... .. ... .. ... .. ... .. ... .. .. .... .. .. .. ......",
-      "G-4 20 A-4 20 D-5 30 F-5 20 ... .. .. .... .. .. A0 ......",
-      "... .. ... .. ... .. ... .. ... .. .. .... .. .. .. ......",
-      "... .. ... .. ... .. ... .. ... .. .. .... .. .. 50 ......",
-      "C-4 20 D-4 20 G-4 30 A#4 20 ... .. .. .... .. .. B0 ......",
-      "... .. ... .. ... .. ... .. ... .. .. .... .. .. .. ......",
-      "... .. ... .. ... .. ... .. ... .. .. .... .. .. .. ......",
-      "G-4 20 A-4 20 D-5 30 F-5 20 ... .. .. .... .. .. 90 ......",
-      "... .. ... .. ... .. ... .. ... .. .. .... .. .. .. ......",
-      "... .. ... .. ... .. ... .. ... .. .. .... .. .. .. ......",
-      "G-4 20 A-4 20 D-5 30 F-5 20 ... .. .. .... .. .. E0 ......",
-      "... .. ... .. ... .. ... .. ... .. .. .... .. .. .. ......",
-      "G-4 20 A-4 20 D-5 30 F-5 20 ... .. .. .... .. .. .. ......",
-      "... .. ... .. ... .. ... .. ... .. .. .... .. .. 70 ......",
-      "... .. ... .. ... .. ... .. ... .. .. .... .. .. .. ......",
-      "G-4 20 A-4 20 D-5 30 F-5 20 ... .. .. .... .. .. .. ......"
-     ]
-    },
-    "1792323720978-1": {
-     "name": "pat02",
-     "index": 2,
-     "rows": [
-      "G-4 20 A-4 20 D-5 30 F-5 20 ... .. .. 7B06 .. .. 40 ......",
-      "... .. ... .. ... .. ... .. ... .. .. 7DDE .. .. .. ......",
-      "... .. ... .. ... .. ... .. ... .. .. 80B6 .. .. E0 ......",
-      "C-4 20 D-4 20 G-4 30 A#4 20 ... .. .. 838E .. .. .. ......",
-      "... .. ... .. ... .. ... .. ... .. .. 8666 .. .. .. ......",
-      "... .. ... .. ... .. ... .. ... .. .. 893F .. .. 98 ......",
-      "G-4 20 A-4 20 D-5 30 F-5 20 ... .. .. 8C17 .. .. A0 ......",
-      "... .. ... .. ... .. ... .. ... .. .. 8EEF .. .. A0 ......",
-      "... .. ... .. ... .. ... .. ... .. .. 91C7 .. .. .. ......",
-      "G-4 20 A-4 20 D-5 30 F-5 20 ... .. .. 949F .. .. .. ......",
-      "... .. ... .. ... .. ... .. ... .. .. 9777 .. .. 58 ......",
-      "G-4 20 A-4 20 D-5 30 F-5 20 ... .. .. 9A50 .. .. .. ......",
-      "... .. ... .. ... .. ... .. ... .. .. 9D28 .. .. .. ......",
-      "... .. ... .. ... .. ... .. ... .. .. A000 .. .. A0 ......",
-      "G-4 20 A-4 20 D-5 30 F-5 20 ... .. .. .... .. .. .. ......",
-      "... .. ... .. ... .. ... .. ... .. .. .... .. .. .. ......",
-      "G-4 20 A-4 20 D-5 30 F-5 20 ... .. .. 7B06 .. .. 40 ......",
-      "... .. ... .. ... .. ... .. ... .. .. 7DDE .. .. .. ......",
-      "... .. ... .. ... .. ... .. ... .. .. 80B6 .. .. A0 ......",
-      "C-4 20 D-4 20 G-4 30 A#4 20 ... .. .. 838E .. .. .. ......",
-      "... .. ... .. ... .. ... .. ... .. .. 8666 .. .. .. ......",
-      "... .. ... .. ... .. ... .. ... .. .. 893F .. .. 98 ......",
-      "G-4 20 A-4 20 D-5 30 F-5 20 ... .. .. 8C17 .. .. .. ......",
-      "... .. ... .. ... .. ... .. ... .. .. 8EEF .. .. 70 ......",
-      "... .. ... .. ... .. ... .. ... .. .. 91C7 .. .. .. ......",
-      "G-4 20 A-4 20 D-5 30 F-5 20 ... .. .. 949F .. .. .. ......",
-      "... .. ... .. ... .. ... .. ... .. .. 9777 .. .. 48 ......",
-      "G-4 20 A-4 20 D-5 30 F-5 20 ... .. .. 9A50 .. .. 90 ......",
-      "... .. ... .. ... .. ... .. ... .. .. 9D28 .. .. .. ......",
-      "... .. ... .. ... .. ... .. ... .. .. A000 .. .. .. ......",
-      "G-4 20 A-4 20 D-5 30 F-5 20 ... .. .. .... .. .. 70 ......",
-      "... .. ... .. ... .. ... .. ... .. .. .... .. .. .. ......"
-     ]
-    }
-   },
-   "placements": [
-    {
-     "puid": "1792148803794-0",
-     "start": 0,
-     "length": 64
-    },
-    {
-     "puid": "1792148803794-0",
-     "start": 64,
-     "length": 32
-    },
-    {
-     "puid": "1792313998274-0",
-     "start": 128,
-     "length": 192
-    },
-    {
-     "puid": "1792148803794-0",
-     "start": 320,
-     "length": 64
-    },
-    {
-     "puid": "1792323720978-1",
-     "start": 96,
-     "length": 32
-    }
-   ],
-   "offs": [
-    384
-   ]
-  },
-  {
-   "id": "hats",
-   "instrument": "hats",
-   "patterns": {
-    "1792267185117-0": {
-     "name": "pat00",
-     "index": 0,
-     "rows": [
-      "1 . .. .. .. 80 40 ......",
-      "1 . .. .. .. .. .. ......",
-      ". 1 .. .. .. .. .. ......",
-      ". . .. .. .. .. .. ......",
-      "1 . .. .. .. .. .. ......",
-      ". . .. .. .. .. .. ......",
-      ". 1 .. .. .. .. .. ......",
-      ". . .. .. .. .. .. ......",
-      "1 . .. .. .. .. .. ......",
-      ". 1 .. .. .. .. .. ......",
-      ". 1 .. .. .. .. .. ......",
-      ". . .. .. .. .. .. ......",
-      "1 . .. .. .. .. .. ......",
-      ". . .. .. .. .. .. ......",
-      ". 1 .. .. .. .. .. ......",
-      ". 1 .. .. .. .. .. ......"
-     ]
-    },
-    "1792314371109-1": {
-     "name": "pat01",
-     "index": 1,
-     "rows": [
-      "1 . B2 47 9D 80 40 ......",
-      "1 . .. .. .. .. .. ......",
-      "1 . .. .. .. .. .. ......",
-      "1 . .. .. .. .. .. ......",
-      "1 . .. .. .. .. .. ......",
-      "1 . .. .. .. .. .. ......",
-      "1 . .. .. .. .. .. ......",
-      "1 . .. .. .. .. .. ......",
-      "1 . .. .. .. .. .. ......",
-      "1 . .. .. .. .. .. ......",
-      "1 . .. .. .. .. .. ......",
-      "1 . .. .. .. .. .. ......",
-      "1 . .. .. .. .. .. ......",
-      "1 . .. .. .. .. .. ......",
-      "1 . .. .. .. .. .. ......",
-      "1 . .. .. .. .. 40 ......"
-     ]
-    },
-    "1792314474208-2": {
-     "name": "pat01 copy",
-     "index": 2,
-     "rows": [
-      "1 . B2 47 9D 80 .. ......",
-      "1 . .. .. .. .. .. ......",
-      "1 . .. .. .. .. .. ......",
-      "1 . .. .. .. .. .. ......",
-      "1 . .. .. .. .. .. ......",
-      "1 . .. .. .. .. .. ......",
-      "1 . .. .. .. .. .. ......",
-      "1 . .. .. .. .. .. ......",
-      "1 . .. .. .. .. .. ......",
-      "1 . .. .. .. .. .. ......",
-      "1 . .. .. .. .. .. ......",
-      "1 . .. .. .. .. .. ......",
-      "1 . .. .. .. .. .. ......",
-      ". 1 .. .. .. .. .. ......",
-      "1 . .. .. .. .. .. ......",
-      "1 . .. .. .. .. .. ......"
-     ]
-    },
-    "1792315040444-0": {
-     "name": "pat01 copy",
-     "index": 3,
-     "rows": [
-      "1 . B2 47 9D 80 .. ......",
-      "1 . .. .. .. .. .. ......",
-      "1 . .. .. .. .. .. ......",
-      "1 . .. .. .. .. .. ......",
-      "1 . .. .. .. .. .. ......",
-      "1 . .. .. .. .. .. ......",
-      "1 . .. .. .. .. .. ......",
-      "1 . .. .. .. .. .. ......",
-      "1 . .. .. .. .. .. ......",
-      "1 . .. .. .. .. .. ......",
-      ". 1 .. .. .. .. .. ......",
-      "1 . .. .. .. .. .. ......",
-      "1 . .. .. .. .. .. ......",
-      ". 1 .. .. .. .. .. ......",
-      "1 . .. .. .. .. .. ......",
-      "1 . .. .. .. .. .. ......"
-     ]
-    },
-    "1792315059435-1": {
-     "name": "pat01 copy",
-     "index": 4,
-     "rows": [
-      "1 . B2 47 9D 80 .. ......",
-      "1 . .. .. .. .. .. ......",
-      "1 . .. .. .. .. .. ......",
-      ". 1 .. .. .. .. .. ......",
-      "1 . .. .. .. .. .. ......",
-      "1 . .. .. .. .. .. ......",
-      "1 . .. .. .. .. .. ......",
-      "1 . .. .. .. .. .. ......",
-      "1 . .. .. .. .. .. ......",
-      "1 . .. .. .. .. .. ......",
-      "1 . .. .. .. .. .. ......",
-      "1 . .. .. .. .. .. ......",
-      "1 . .. .. .. .. .. ......",
-      "1 . .. .. .. .. .. ......",
-      "1 . .. .. .. .. .. ......",
-      "1 . .. .. .. .. .. ......"
-     ]
-    },
-    "1792322543728-0": {
-     "name": "pat05",
-     "index": 5,
-     "rows": [
-      "1 . B2 47 9D 80 40 ......",
-      "1 . .. .. .. 7F 3F ......",
-      "1 . .. .. .. 7F 3E ......",
-      ". 1 .. .. .. 7E 3D ......",
-      "1 . .. .. .. 7E 3C ......",
-      "1 . .. .. .. 7D 3B ......",
-      "1 . .. .. .. 7D 3A ......",
-      "1 . .. .. .. 7C 39 ......",
-      "1 . .. .. .. 7C 38 ......",
-      "1 . .. .. .. 7B 37 ......",
-      "1 . .. .. .. 7B 36 ......",
-      "1 . .. .. .. 7A 35 ......",
-      "1 . .. .. .. 7A 34 ......",
-      "1 . .. .. .. 79 33 ......",
-      "1 . .. .. .. 79 32 ......",
-      "1 . .. .. .. 78 31 ......",
-      "1 . B2 47 9D 78 2F ......",
-      "1 . .. .. .. 77 2E ......",
-      "1 . .. .. .. 77 2D ......",
-      "1 . .. .. .. 76 2C ......",
-      "1 . .. .. .. 76 2B ......",
-      "1 . .. .. .. 75 2A ......",
-      "1 . .. .. .. 75 29 ......",
-      "1 . .. .. .. 74 28 ......",
-      "1 . .. .. .. 74 27 ......",
-      "1 . .. .. .. 73 26 ......",
-      ". 1 .. .. .. 73 25 ......",
-      "1 . .. .. .. 72 24 ......",
-      ". 1 .. .. .. 72 23 ......",
-      "1 . .. .. .. 71 22 ......",
-      ". 1 .. .. .. 71 21 ......",
-      ". 1 .. .. .. 70 20 ......"
-     ]
-    }
-   },
-   "placements": [
-    {
-     "puid": "1792267185117-0",
-     "start": 128,
-     "length": 16
-    },
-    {
-     "puid": "1792267185117-0",
-     "start": 144,
-     "length": 16
-    },
-    {
-     "puid": "1792267185117-0",
-     "start": 160,
-     "length": 16
-    },
-    {
-     "puid": "1792267185117-0",
-     "start": 176,
-     "length": 16
-    },
-    {
-     "puid": "1792267185117-0",
-     "start": 192,
-     "length": 16
-    },
-    {
-     "puid": "1792267185117-0",
-     "start": 208,
-     "length": 16
-    },
-    {
-     "puid": "1792267185117-0",
-     "start": 224,
-     "length": 16
-    },
-    {
-     "puid": "1792267185117-0",
-     "start": 240,
-     "length": 16
-    },
-    {
-     "puid": "1792267185117-0",
-     "start": 256,
-     "length": 16
-    },
-    {
-     "puid": "1792267185117-0",
-     "start": 272,
-     "length": 16
-    },
-    {
-     "puid": "1792267185117-0",
-     "start": 288,
-     "length": 16
-    },
-    {
-     "puid": "1792267185117-0",
-     "start": 304,
-     "length": 16
-    },
-    {
-     "puid": "1792267185117-0",
-     "start": 320,
-     "length": 16
-    },
-    {
-     "puid": "1792267185117-0",
-     "start": 336,
-     "length": 16
-    },
-    {
-     "puid": "1792267185117-0",
-     "start": 352,
-     "length": 16
-    },
-    {
-     "puid": "1792267185117-0",
-     "start": 368,
-     "length": 16
-    },
-    {
-     "puid": "1792314371109-1",
-     "start": 0,
-     "length": 16
-    },
-    {
-     "puid": "1792314371109-1",
-     "start": 16,
-     "length": 16
-    },
-    {
-     "puid": "1792315040444-0",
-     "start": 32,
-     "length": 16
-    },
-    {
-     "puid": "1792314474208-2",
-     "start": 48,
-     "length": 16
-    },
-    {
-     "puid": "1792314371109-1",
-     "start": 64,
-     "length": 16
-    },
-    {
-     "puid": "1792314371109-1",
-     "start": 80,
-     "length": 16
-    },
-    {
-     "puid": "1792322543728-0",
-     "start": 96,
-     "length": 32
-    }
-   ]
-  },
-  {
-   "id": "Loco",
-   "instrument": "Loco",
-   "patterns": {
-    "1792323428563-0": {
-     "name": "pat00",
-     "index": 0,
-     "rows": [
-      "F#3 .. B-3 .. D-4 .. E-4 .. .. .. .. .. .. ......",
-      "... .. ... .. ... .. ... .. .. .. .. .. .. ......",
-      "... .. ... .. ... .. ... .. .. .. .. .. .. ......",
-      "... .. ... .. ... .. ... .. .. .. .. .. .. ......",
-      "... .. ... .. ... .. ... .. .. .. .. .. .. ......",
-      "... .. ... .. ... .. ... .. .. .. .. .. .. ......",
-      "... .. ... .. ... .. ... .. .. .. .. .. .. ......",
-      "... .. ... .. ... .. ... .. .. .. .. .. .. ......",
-      "... .. ... .. ... .. ... .. .. .. .. .. .. ......",
-      "... .. ... .. ... .. ... .. .. .. .. .. .. ......",
-      "... .. ... .. ... .. ... .. .. .. .. .. .. ......",
-      "... .. ... .. ... .. ... .. .. .. .. .. .. ......",
-      "... .. ... .. ... .. ... .. .. .. .. .. .. ......",
-      "... .. ... .. ... .. ... .. .. .. .. .. .. ......",
-      "... .. ... .. ... .. ... .. .. .. .. .. .. ......",
-      "... .. ... .. ... .. ... .. .. .. .. .. .. ......",
-      "... .. ... .. ... .. ... .. .. .. .. .. .. ......",
-      "... .. ... .. ... .. ... .. .. .. .. .. .. ......",
-      "... .. ... .. ... .. ... .. .. .. .. .. .. ......",
-      "... .. ... .. ... .. ... .. .. .. .. .. .. ......",
-      "... .. ... .. ... .. ... .. .. .. .. .. .. ......",
-      "... .. ... .. ... .. ... .. .. .. .. .. .. ......",
-      "... .. ... .. ... .. ... .. .. .. .. .. .. ......",
-      "... .. ... .. ... .. ... .. .. .. .. .. .. ......",
-      "... .. ... .. ... .. ... .. .. .. .. .. .. ......",
-      "... .. ... .. ... .. ... .. .. .. .. .. .. ......",
-      "... .. ... .. ... .. ... .. .. .. .. .. .. ......",
-      "... .. ... .. ... .. ... .. .. .. .. .. .. ......",
-      "... .. ... .. ... .. ... .. .. .. .. .. .. ......",
-      "... .. ... .. ... .. ... .. .. .. .. .. .. ......",
-      "... .. ... .. ... .. ... .. .. .. .. .. .. ......",
-      "... .. ... .. ... .. ... .. .. .. .. .. .. ......"
-     ]
-    }
-   },
-   "placements": [
-    {
-     "puid": "1792323428563-0",
-     "start": 96,
-     "length": 32
-    }
-   ],
-   "offs": [
-    128
-   ]
-  },
-  {
-   "id": "harderkick",
-   "instrument": "harderkick",
-   "patterns": {
-    "1792324510131-0": {
-     "name": "pat00",
-     "index": 0,
-     "rows": [
-      "F-3 .. .. .. .. .. ......",
+      "C-2 .. .. .. .. .. ......",
       "... .. .. .. .. .. ......",
       "... .. .. .. .. .. ......",
       "... .. .. .. .. .. ......",
-      "F-3 .. .. .. .. .. ......",
+      "... .. .. .. .. .. ......",
+      "... .. .. .. .. .. ......",
+      "C-2 .. .. .. .. .. ......",
       "... .. .. .. .. .. ......",
       "... .. .. .. .. .. ......",
       "... .. .. .. .. .. ......",
-      "F-3 .. .. .. .. .. ......",
       "... .. .. .. .. .. ......",
       "... .. .. .. .. .. ......",
-      "... .. .. .. .. .. ......",
-      "F-3 .. .. .. .. .. ......",
+      "C-2 .. .. .. .. .. ......",
       "... .. .. .. .. .. ......",
       "... .. .. .. .. .. ......",
       "... .. .. .. .. .. ......"
@@ -3356,84 +918,516 @@
    },
    "placements": [
     {
-     "puid": "1792324510131-0",
-     "start": 128,
+     "puid": "1792333227645-0",
+     "start": 0,
      "length": 16
     },
     {
-     "puid": "1792324510131-0",
-     "start": 144,
+     "puid": "1792333227645-0",
+     "start": 16,
      "length": 16
     },
     {
-     "puid": "1792324510131-0",
-     "start": 160,
+     "puid": "1792333227645-0",
+     "start": 32,
      "length": 16
     },
     {
-     "puid": "1792324510131-0",
-     "start": 176,
+     "puid": "1792333227645-0",
+     "start": 48,
      "length": 16
     },
     {
-     "puid": "1792324510131-0",
-     "start": 192,
+     "puid": "1792333227645-0",
+     "start": 64,
      "length": 16
     },
     {
-     "puid": "1792324510131-0",
-     "start": 208,
+     "puid": "1792333227645-0",
+     "start": 80,
      "length": 16
     },
     {
-     "puid": "1792324510131-0",
-     "start": 224,
+     "puid": "1792333227645-0",
+     "start": 96,
      "length": 16
     },
     {
-     "puid": "1792324510131-0",
-     "start": 240,
+     "puid": "1792333227645-0",
+     "start": 112,
+     "length": 16
+    }
+   ]
+  },
+  {
+   "id": "woopa",
+   "instrument": "woopa",
+   "patterns": {
+    "1792333711806-0": {
+     "name": "pat00",
+     "index": 0,
+     "rows": [
+      "... .. .. .. .. .. ......",
+      "... .. .. .. .. .. ......",
+      "C-3 .. 83 1A A6 29 ......",
+      "... .. .. .. .. .. ......",
+      "C-2 .. 43 7A 42 19 ......",
+      "... .. .. .. .. .. ......",
+      "... .. .. .. .. .. ......",
+      "... .. .. .. .. .. ......",
+      "C-3 .. 13 1A A6 29 ......",
+      "... .. .. .. .. .. ......",
+      "C-3 .. 83 1A A6 29 ......",
+      "... .. .. .. .. .. ......",
+      "... .. .. .. .. .. ......",
+      "... .. .. .. .. .. ......",
+      "C-3 .. 83 1A A6 29 ......",
+      "... .. .. .. .. .. ......"
+     ]
+    }
+   },
+   "placements": [
+    {
+     "puid": "1792333711806-0",
+     "start": 0,
      "length": 16
     },
     {
-     "puid": "1792324510131-0",
-     "start": 256,
+     "puid": "1792333711806-0",
+     "start": 16,
      "length": 16
     },
     {
-     "puid": "1792324510131-0",
-     "start": 272,
+     "puid": "1792333711806-0",
+     "start": 32,
      "length": 16
     },
     {
-     "puid": "1792324510131-0",
-     "start": 288,
+     "puid": "1792333711806-0",
+     "start": 48,
      "length": 16
     },
     {
-     "puid": "1792324510131-0",
-     "start": 304,
+     "puid": "1792333711806-0",
+     "start": 64,
      "length": 16
     },
     {
-     "puid": "1792324510131-0",
-     "start": 320,
+     "puid": "1792333711806-0",
+     "start": 80,
      "length": 16
     },
     {
-     "puid": "1792324510131-0",
-     "start": 336,
+     "puid": "1792333711806-0",
+     "start": 96,
      "length": 16
     },
     {
-     "puid": "1792324510131-0",
-     "start": 352,
+     "puid": "1792333711806-0",
+     "start": 112,
+     "length": 16
+    }
+   ]
+  },
+  {
+   "id": "adore",
+   "instrument": "adore",
+   "patterns": {
+    "1792348208915-0": {
+     "name": "pat00",
+     "index": 0,
+     "rows": [
+      "... .. .. .... .... .. .. .. .... ......",
+      "... .. .. .... .... .. .. .. .... ......",
+      "C-4 .. .. .... .... .. .. .. .... ......",
+      "... .. .. .... .... .. .. .. .... ......",
+      "... .. .. .... .... .. .. .. .... ......",
+      "... .. .. .... .... .. .. .. .... ......",
+      "C-4 .. .. .... .... .. .. .. .... ......",
+      "... .. .. .... .... .. .. .. .... ......",
+      "... .. .. .... .... .. .. .. .... ......",
+      "... .. .. .... .... .. .. .. .... ......",
+      "C-4 .. .. .... .... .. .. .. .... ......",
+      "... .. .. .... .... .. .. .. .... ......",
+      "... .. .. .... .... .. .. .. .... ......",
+      "... .. .. .... .... .. .. .. .... ......",
+      "C-4 .. .. .... .... .. .. .. .... ......",
+      "C-4 .. .. .... .... .. .. .. .... ......"
+     ]
+    }
+   },
+   "placements": [
+    {
+     "puid": "1792348208915-0",
+     "start": 0,
      "length": 16
     },
     {
-     "puid": "1792324510131-0",
-     "start": 368,
+     "puid": "1792348208915-0",
+     "start": 16,
      "length": 16
+    },
+    {
+     "puid": "1792348208915-0",
+     "start": 32,
+     "length": 16
+    },
+    {
+     "puid": "1792348208915-0",
+     "start": 48,
+     "length": 16
+    },
+    {
+     "puid": "1792348208915-0",
+     "start": 64,
+     "length": 16
+    },
+    {
+     "puid": "1792348208915-0",
+     "start": 80,
+     "length": 16
+    },
+    {
+     "puid": "1792348208915-0",
+     "start": 96,
+     "length": 16
+    },
+    {
+     "puid": "1792348208915-0",
+     "start": 112,
+     "length": 16
+    }
+   ]
+  },
+  {
+   "id": "braids",
+   "instrument": "braids",
+   "patterns": {
+    "1792348453697-1": {
+     "name": "pat00",
+     "index": 0,
+     "rows": [
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......"
+     ]
+    },
+    "1792348459828-2": {
+     "name": "pat01",
+     "index": 1,
+     "rows": [
+      "C-3 .. D#3 .. G-3 .. A-3 .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "=== .. === .. === .. === .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......"
+     ]
+    },
+    "1792348808246-3": {
+     "name": "pat02",
+     "index": 2,
+     "rows": [
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......"
+     ]
+    }
+   },
+   "placements": []
+  },
+  {
+   "id": "pjano",
+   "instrument": "pjano",
+   "patterns": {
+    "1792349018978-4": {
+     "name": "pat00",
+     "index": 0,
+     "rows": [
+      "E-3 .. D-4 .. B-3 .. G-3 .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "A-3 .. C#4 .. E-4 .. D-3 .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "C-3 .. G-3 .. B-3 .. E-4 .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "A-2 .. G-3 .. C-4 .. D-3 .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "B-2 .. A-3 .. F#3 .. D-4 .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "E-4 .. B-3 .. G-3 .. C-3 .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. ... .. .. .. .. .. ......"
+     ]
+    }
+   },
+   "placements": [
+    {
+     "puid": "1792349018978-4",
+     "start": 0,
+     "length": 128
     }
    ]
   }

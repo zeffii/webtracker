@@ -3,6 +3,13 @@ import { ParamRegistry } from './params.js';
 import { compile } from '../graph/compile.js';
 import { compileDsp } from './wasm/load.js';
 
+// What the audio thread would actually run for an instrument: the nodes that are wired to something, and the wires.
+// A node that is not connected yet (just added) changes nothing it plays, so adding or removing one needs no reload.
+const signature = desc => {
+  const linked = new Set(desc.connections.flat().map(port => port.split('.')[0]));
+  return JSON.stringify([desc.voices ?? 1, desc.nodes.filter(n => linked.has(n.id)).map(({ x, y, ...n }) => n), desc.connections]);
+};
+
 export class Engine {
   ctx = null;
   wasmModule = null;
@@ -10,6 +17,7 @@ export class Engine {
   watching = new Set();   // nodes whose output is being watched (replayed when the audio thread starts)
   onFault = null;   // called with an instrument id when the audio thread had to rebuild it
   registry = new ParamRegistry();
+  loaded = new Map();     // instrument -> the signature of what the audio thread has, to skip a reload that would change nothing
   transport = new Int32Array(new SharedArrayBuffer(16));   // [tick, playing, fraction of the tick in 1/65536], written by the worklet
 
   async start() {
@@ -50,13 +58,18 @@ export class Engine {
   // project can be loaded into the running engine.
   reset() {
     this.registry = new ParamRegistry();
+    this.loaded.clear();
     this.node.port.postMessage({ type: 'reset', sab: this.registry.sab });
   }
 
   // Compiles on the main thread and posts the flat result to the worklet.
   loadInstrument(instrument, desc) {
-    const graph = compile(desc, { instrument, nodeTypes: NODE_TYPES, registry: this.registry });
+    const graph = compile(desc, { instrument, nodeTypes: NODE_TYPES, registry: this.registry });   // also gives every parameter its slot, wired or not
+    const sig = signature(desc);
+    if (this.loaded.get(instrument) === sig) return false;   // nothing it plays has changed: the running voices and tails are left alone
+    this.loaded.set(instrument, sig);
     this.node.port.postMessage({ type: 'load', graph });
+    return true;
   }
 
   sendToNode(instrument, node, msg, transfer = []) {

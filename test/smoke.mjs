@@ -5520,3 +5520,22 @@ console.log('smoke test passed');
     assert.ok(a.every(v => Number.isFinite(v) && Math.abs(v) < 4), `note ${note} stays finite with ${JSON.stringify(p)}`);
   }
 }
+
+// Adding a node that is not wired to anything must not reload (and so cut) the running instrument
+{
+  const { Engine } = await import('../src/audio/engine.js');
+  const posts = [];
+  const eng = Object.create(Engine.prototype);
+  eng.registry = new ParamRegistry(); eng.loaded = new Map(); eng.node = { port: { postMessage: m => posts.push(m.type) } };
+  const base = () => ({ voices: 1, nodes: [{ id: 'perc', type: 'combperc', params: {}, ports: ['decay'] }, { id: 'out', type: 'out', params: { gain: 0.5 } }], connections: [['perc.out', 'out.in']] });
+  assert.equal(eng.loadInstrument('t', base()), true, 'the first load posts');
+  assert.equal(eng.loadInstrument('t', base()), false, 'the same graph does not');
+  const more = base(); more.nodes.push({ id: 'lfo1', type: 'lfo', x: 5, y: 5, params: {} });
+  assert.equal(eng.loadInstrument('t', more), false, 'an unconnected new node does not reload');
+  more.connections.push(['lfo1.out', 'perc.@decay']);
+  assert.equal(eng.loadInstrument('t', more), true, 'wiring it in does');
+  const tweaked = JSON.parse(JSON.stringify(more)); tweaked.nodes[1].params.gain = 0.4;
+  assert.equal(eng.loadInstrument('t', tweaked), true, 'a changed parameter value reloads');
+  assert.deepEqual(posts, ['load', 'load', 'load']);
+  console.log('ok: unconnected node adds do not interrupt playback');
+}
