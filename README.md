@@ -161,3 +161,9 @@ Adding a node to a graph (or removing one) that is not wired to anything no long
 
 ### Post-transient resynthesis
 Right click in the sample display, "Post-transient resynthesis". The first few milliseconds of the sample (or of the selection) stay as real sample data, a new small sample; the rest is rebuilt as a tree of synth branches running side by side into one output, in a new instrument with its own lane. A branch is either tonal (a sine with its own pitch sweep and decay) or noise (a noise source through a filter, with a decay). The fit adds branches one at a time, each explaining the biggest part of what is left, and stops at the most allowed or when a new branch would explain less than the tolerance, so a plain kick comes out as one branch and a bell as one per partial. The result is made of ordinary osc, noise, filter, env and gain nodes, so it can be opened and edited like any instrument. Settings (Config, Sample): most branches (8), tolerance in % (5; lower is closer and uses more branches) and the attack kept in ms (0 finds it from the sound). Partials below about 45 Hz or above the pitch range follow the note only as far as the oscillator's tune allows; very high ones are fixed in pitch. New node: `noise` (white noise, restarts from its seed on every note).
+
+### Transport icons and tempo keys
+Play is a right-pointing triangle (a square while playing, to stop) and Rec is a red dot, which turns white on a red button while armed. Alt+Up / Alt+Down change the song tempo by 1 bpm, Alt+Shift+Up / Down by 10.
+
+### About box
+The About button in the header opens a short note on how the project is made and a changelog, newest build first. The text and the changelog live in `src/ui/about.js`: add a line there with each build.

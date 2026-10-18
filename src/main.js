@@ -15,6 +15,7 @@ import { createSampleScreen } from './project/samplescreen.js';
 import { createWaveformView } from './project/waveform.js';
 import { showContextMenu } from './ui/ctxmenu.js';
 import { buildInstrument, fitTail } from './project/ptr.js';
+import { ABOUT, CHANGELOG } from './ui/about.js';
 import { createMidiInput } from './ui/midiin.js';
 import { createMidiWriter } from './seq/midiwrite.js';
 import { createMarkerRegionView } from './project/markerregion.js';
@@ -31,10 +32,14 @@ const engine = new Engine();
 const $ = id => document.getElementById(id);
 let started = false, playing = false, project = null, recording = false;
 
+const PLAY_ICON = '<svg class="ico" viewBox="0 0 12 12"><path d="M2.5 1 L10.5 6 L2.5 11 Z" fill="currentColor"/></svg>';
+const STOP_ICON = '<svg class="ico" viewBox="0 0 12 12"><rect x="2" y="2" width="8" height="8" fill="currentColor"/></svg>';
 const setPlaying = (value, from = null) => {
   playing = value;
   if (playing) engine.play(from); else engine.stop();
-  $('play').textContent = playing ? 'Stop' : 'Play';
+  $('play').innerHTML = playing ? STOP_ICON : PLAY_ICON;
+  $('play').title = playing ? 'Stop (F8)' : 'Play (F5)';
+  $('play').setAttribute('aria-label', playing ? 'Stop' : 'Play');
   if (recording) { if (playing) writer.beginPass(); else writer.endPass(); }   // each run of the song is its own undo step
 };
 const togglePlay = () => setPlaying(!playing);
@@ -62,6 +67,14 @@ document.addEventListener('keydown', e => {
     e.preventDefault();
     if (e.code === 'KeyR') setRecording(!recording);
     else { const on = !config.get('midiVelocity'); config.set('midiVelocity', on); midiSay(on ? 'MIDI velocity on: key velocity is played and written.' : 'MIDI velocity off: the default volume, nothing written.'); }
+    return;
+  }
+  // Alt+Up / Alt+Down: the song's tempo, 1 bpm at a time (10 with Shift).
+  if (e.altKey && !e.ctrlKey && !e.metaKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown') && project) {
+    e.preventDefault();
+    const bpm = Math.max(20, Math.min(400, project.song.bpm + (e.key === 'ArrowUp' ? 1 : -1) * (e.shiftKey ? 10 : 1)));
+    if (bpm !== project.song.bpm) { project.song.bpm = bpm; $('bpm').value = bpm; songChanged(); }
+    $('status').textContent = `Tempo ${bpm} bpm.`;
     return;
   }
   // Alt+S: solo the lane under the cursor (the other lanes let go and play nothing); again to bring everyone back.
@@ -584,6 +597,21 @@ $('theme').addEventListener('change', () => { config.set('theme', $('theme').val
 $('theme').addEventListener('keydown', e => e.stopPropagation());
 config.onChange((k, v) => { if (k === 'theme') showTheme(v); });
 showTheme(config.get('theme'));
+
+// ---- about ----
+{
+  const body = $('about-body'), el = (tag, text, cls) => Object.assign(document.createElement(tag), { textContent: text, className: cls ?? '' });
+  body.append(el('h2', document.title));
+  ABOUT.forEach((text, i) => body.append(el('p', text, i === ABOUT.length - 1 ? 'last' : '')));
+  body.append(el('h3', 'Changelog'));
+  for (const [build, lines] of CHANGELOG) {
+    body.append(el('h4', build));
+    const ul = document.createElement('ul');
+    for (const line of lines) ul.append(el('li', line));
+    body.append(ul);
+  }
+  $('about-open').addEventListener('click', e => { $('about').showModal(); $('about').scrollTop = 0; e.currentTarget.blur(); });
+}
 
 // ---- tempo and swing ----
 const songChanged = () => { engine.setSong(project.song); songInfo(); };

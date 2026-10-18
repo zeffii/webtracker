@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="themes.css">
-  <title>webtracker m201</title>
+  <title>webtracker m203</title>
   <style>
     :root { color-scheme: light dark; font-family: system-ui, sans-serif; }   /* colours: see themes.css */
     body { background: var(--bg); color: var(--fg); }
@@ -28,6 +28,13 @@
     #header { position: sticky; top: 0; z-index: 1; background: var(--bg); border-bottom: 1px solid; padding: .35rem .75rem; }
     #header .line { display: flex; flex-wrap: wrap; gap: .25rem .75rem; align-items: center; }
     #new-wrap { position: relative; }
+    #about { background: var(--bg); color: var(--fg); border: 1px solid; max-width: 44rem; max-height: 80vh; padding: 1rem 1.25rem; font: 13px/1.5 system-ui, sans-serif; }
+    #about::backdrop { background: rgb(0 0 0 / .45); }
+    #about h2 { margin: 0 0 .5rem; font-size: 1.1rem; } #about h3 { margin: 1rem 0 .25rem; font-size: .95rem; } #about h4 { margin: .6rem 0 .1rem; font-size: .85rem; opacity: .8; }
+    #about p { margin: .5rem 0; } #about ul { margin: 0 0 .5rem; padding-left: 1.2rem; } #about .last { font-style: italic; }
+    #about form { margin-top: .75rem; text-align: right; }
+    .ico { width: 1em; height: 1em; vertical-align: -.12em; }
+    #rec[aria-pressed=true] .ico circle { fill: #fff; }
     #rec[aria-pressed=true] { background: #c0303a; border-color: #c0303a; color: #fff; }
     .ctx-menu { position: fixed; z-index: 30; min-width: 15rem; background: var(--bg); color: var(--fg); border: 1px solid; box-shadow: 0 4px 14px rgb(0 0 0 / .35); padding: 2px; font: 12px/18px system-ui, sans-serif; user-select: none; }
     .ctx-item { display: flex; justify-content: space-between; gap: 1.5rem; padding: 1px 8px; cursor: pointer; white-space: nowrap; }
@@ -352,8 +359,8 @@
       <strong>webtracker</strong>
       <button id="save" disabled>Save</button>
       <button id="start">Start</button>
-      <button id="play" disabled>Play</button>
-      <button id="rec" aria-pressed="false" title="Record MIDI notes into the pattern under the playhead while the song plays (Alt+R)">Rec</button>
+      <button id="play" disabled title="Play (F5), stop (F8)" aria-label="Play"><svg class="ico" viewBox="0 0 12 12"><path d="M2.5 1 L10.5 6 L2.5 11 Z" fill="currentColor"/></svg></button>
+      <button id="rec" aria-pressed="false" title="Record MIDI notes into the pattern under the playhead while the song plays (Alt+R)" aria-label="Record"><svg class="ico" viewBox="0 0 12 12"><circle cx="6" cy="6" r="4.5" fill="#d8323f"/></svg></button>
       <button id="follow" aria-pressed="false" title="Follow the song (F9): the grids scroll with the playing row instead of the row marker moving">Follow</button>
       <span id="new-wrap"><button id="new" disabled aria-haspopup="menu" aria-expanded="false">New ▾</button>
         <span id="new-menu" role="menu" hidden>
@@ -379,9 +386,15 @@
         <button id="tab-config">F11 Config</button>
       </nav>
       <select id="theme" style="margin-left:auto" title="Colour theme"><option value="system">system</option><option value="dark">dark</option><option value="black">black</option><option value="bright">bright</option><option value="neon">neon</option><option value="amber">amber</option><option value="phosphor">phosphor</option><option value="ice">ice</option><option value="synthwave">synthwave</option></select>
+      <button id="about-open" title="About webtracker, and what changed in each build">About</button>
       <button id="keys-toggle" title="Show or hide the keyboard shortcut panels">Shortcuts</button>
     </div>
   </div>
+
+  <dialog id="about" aria-label="About webtracker">
+    <div id="about-body"></div>
+    <form method="dialog"><button>Close</button></form>
+  </dialog>
 
   <section id="pane-patterns" class="pane keyed">
     <div class="pane-main">
@@ -406,6 +419,7 @@
           <dt>\ or Insert</dt><dd>note preview on / off: with it on, typed notes sound while the key is held</dd>
           <dt>Ctrl+D</dt><dd>copy the selection (or the cell) to the rows right below it, wherever the cursor is; again to copy it once more below that</dd>
           <dt>Alt+S</dt><dd>solo the lane under the cursor (the others ring out and go quiet); again brings everyone back</dd>
+          <dt>Alt+Up / Down</dt><dd>song tempo up or down by 1 bpm; with Shift by 10</dd>
           <dt>Alt+R</dt><dd>arm recording: a MIDI keyboard writes into the pattern under the playhead of the cursor lane, on the nearest tick, while the song plays</dd>
           <dt>Alt+V</dt><dd>MIDI velocity sensitive or not</dd>
           <dt>Alt+T</dt><dd>tint each pattern faintly in its own colour, to see where they begin and end; again to switch it off</dd>

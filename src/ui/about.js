@@ -1,0 +1,25 @@
+// The About box: how this came about, and what changed in each build, newest first.
+export const ABOUT = [
+  'webtracker is a tracker that lives in the browser: patterns you type on a grid, played by instruments you build out of a graph of nodes. It is the successor of ztracker, a tracker built in Max/MSP, and it grew up looking at the machines that made tracking worth doing: the grid and the speed of the old trackers, the machines-and-wires thinking of Buzz and Buze, and the patching of modular synths and Reaktor.',
+  'It is made in conversation. One of us has the ear and the ideas, tries each build in the browser and says what is wrong or missing; the other writes the code, checks it against a test suite and sends the next build back. Big features are talked through first, with no code until the idea is right; small polish goes round in minutes. Nothing here was planned in advance; every part is there because it was wanted while making music with it.',
+  'It is meant for making real music, techno especially, and it is experimental on purpose.',
+  'I think you\'ll like it.',
+];
+
+export const CHANGELOG = [
+  ['m203', ['This About box.']],
+  ['m202', ['Play, stop and record are icons: a triangle, a square and a red dot.', 'Alt+Up / Alt+Down change the tempo (Shift for 10).']],
+  ['m201', ['Post-transient resynthesis: right click a sample and keep its attack as real sample data while the rest is rebuilt as a few synth branches (as few as the sound needs).', 'New noise node.']],
+  ['m200', ['Save sits at the far left and Load at the right.', 'A new demo song.']],
+  ['m199', ['Adding a node that is not wired to anything no longer cuts the playing song.']],
+  ['m198', ['Save and Load moved apart.']],
+  ['m197', ['MIDI keyboard input: step entry with chords, optional velocity, and quantised recording into patterns while the song plays.']],
+  ['m196', ['Right-click menu on the sample display (trim, cut, silence, reverse, normalise, fades and more).']],
+  ['m195', ['Previewed notes now sound at the same octave they play back at.']],
+  ['m193', ['Pin a parameter view with the thumb-tack so it stays in the graph view while you click other nodes.']],
+  ['m192', ['LFO: steps, how many updates it makes per tick.']],
+  ['m191', ['LFO: range, min and max.']],
+  ['m190', ['Tint patterns by colour (Alt+T), a faint patchwork under the pattern editor.']],
+  ['m189', ['Comb-resonator percussion synth: toms, bells, pipes and industrial hits.']],
+  ['earlier', ['Everything up to m188: patterns, arrangement, the node graph with its synths and effects, the sample editor, importers and the file format. See the README.']],
+];
