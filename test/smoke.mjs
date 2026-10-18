@@ -3704,11 +3704,11 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   };
   pick(other); down('z'); assert.equal(notes.length, 0, 'a node that is not a generator does not play');
   pick(gen);
-  down('z'); down('z', { repeat: true }); assert.deepEqual(notes, [['lead', 36, true]], 'C of octave 3, once despite key repeat');
-  down('q'); assert.deepEqual(notes.at(-1), ['lead', 48, true], 'the upper row is an octave up');
+  down('z'); down('z', { repeat: true }); assert.deepEqual(notes, [['lead', 48, true]], 'C of octave 3 (MIDI 48, as the pattern plays C-3), once despite key repeat');
+  down('q'); assert.deepEqual(notes.at(-1), ['lead', 60, true], 'the upper row is an octave up');
   down(']'); assert.equal(patcher.octave, 4); assert.match(status.textContent, /octave 4/);
-  up('z'); assert.deepEqual(notes.at(-1), ['lead', 36, false], 'a key stops the note it started, whatever the octave now is');
-  patcher.releaseKeys(); assert.deepEqual(notes.at(-1), ['lead', 48, false]);
+  up('z'); assert.deepEqual(notes.at(-1), ['lead', 48, false], 'a key stops the note it started, whatever the octave now is');
+  patcher.releaseKeys(); assert.deepEqual(notes.at(-1), ['lead', 60, false]);
   down('Delete'); // still works: removing the generator is the node delete, not a note
   // panic: the runtime stops every voice
   const { rt } = setup();
@@ -3737,8 +3737,8 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   press('Home'); press('\\');
   assert.equal(view.preview, true, 'backslash turns it on');
   press('x'); assert.equal(played.length, 1);
-  assert.deepEqual(played[0].slice(0, 3), [lanes[0].instrument, 38, true], 'the typed note sounds on the lane instrument');
-  release('x'); assert.deepEqual(played.at(-1).slice(0, 3), [lanes[0].instrument, 38, false], 'and stops when the key is let go');
+  assert.deepEqual(played[0].slice(0, 3), [lanes[0].instrument, 50, true], 'the typed note sounds on the lane instrument, at the pitch the pattern will play (D-3 is MIDI 50)');
+  release('x'); assert.deepEqual(played.at(-1).slice(0, 3), [lanes[0].instrument, 50, false], 'and stops when the key is let go');
   press('Insert'); assert.equal(view.preview, false, 'Insert turns it off again');
   press('c'); assert.equal(played.length, 2, 'nothing more plays');
   press('Insert'); press('1'); assert.equal(played.length, 2, 'a note-off entry is not a note to hear');

@@ -95,8 +95,9 @@ export function createTrackerView({ el, statusEl, transport, onToggle, onBack, o
     stopSound(k);
     const l = lanes[cur.lane], vel = l.rows[cur.tick][cur.col + 1];
     const v = l.columns[cur.col + 1]?.kind === 'vel' && /^[0-9A-F]{2}$/i.test(vel ?? '') ? Math.max(0.05, parseInt(vel, 16) / 255) : 1;
-    sounding.set(k, { instrument: l.instrument, note });
-    onNote(l.instrument, note, true, v);
+    const midi = note + 12;   // a written C-4 plays as MIDI 60 (see encodeCell), so the preview sounds what will play
+    sounding.set(k, { instrument: l.instrument, note: midi });
+    onNote(l.instrument, midi, true, v);
   };
   el.addEventListener('keyup', e => stopSound(e.key.length === 1 ? e.key.toLowerCase() : e.key));
   el.addEventListener('blur', () => { for (const k of [...sounding.keys()]) stopSound(k); });

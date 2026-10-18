@@ -671,7 +671,7 @@ export function createPatcher({ canvas, panel, paramPanel = null, exposedDock = 
       const k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
       if (k === '[' || k === ']') { octave = Math.min(8, Math.max(0, octave + (k === ']' ? 1 : -1))); say(`Keyjazz octave ${octave}`); e.preventDefault(); return; }
       if (Object.hasOwn(PIANO, k)) {
-        if (!e.repeat && !held.has(k)) { const note = octave * 12 + PIANO[k]; held.set(k, note); onNote(instId, note, true); }
+        if (!e.repeat && !held.has(k)) { const note = (octave + 1) * 12 + PIANO[k]; /* the pattern's octave numbers: C-4 is MIDI 60 */ held.set(k, note); onNote(instId, note, true); }
         e.preventDefault();
         return;
       }
