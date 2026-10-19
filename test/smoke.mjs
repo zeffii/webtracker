@@ -5823,3 +5823,30 @@ console.log('smoke test passed');
   assert.deepEqual(notes(), orig);
   console.log('ok: pattern gobble, rotate, randomize');
 }
+
+// The pattern grid keeps one element per row and rewrites only the rows whose markup changed
+{
+  const defs = structuredClone(instruments), registry = new ParamRegistry();
+  for (const [id, d] of Object.entries(defs)) compile(d.graph, { instrument: id, nodeTypes: NODE_TYPES, registry });
+  const lanes = prepareSong(demoSong, defs, registry), editor = createEditor(lanes, 32);
+  let writes = 0;
+  const made = [];
+  const node = () => { const n = { className: '', _h: '', set innerHTML(v) { writes++; this._h = v; }, get innerHTML() { return this._h; }, remove() {}, style: {} }; made.push(n); return n; };
+  const hadDoc = 'document' in globalThis, was = globalThis.document;
+  globalThis.document = { createElement: node };
+  try {
+    let onKey;
+    const el = { childNodes: [], appendChild(c) { this.childNodes.push(c); return c; }, removeChild(c) { this.childNodes.splice(this.childNodes.indexOf(c), 1); }, addEventListener: (type, f) => { if (type === 'keydown') onKey = f; }, textContent: '' };
+    const view = createTrackerView({ el, statusEl: {}, transport: new Int32Array(new SharedArrayBuffer(8)), onToggle() {}, onBack() {} });
+    view.load({ lanes, song: demoSong, editor });
+    view.draw();
+    const rows = el.childNodes.length;
+    assert.ok(rows > 10, 'one element per row');
+    writes = 0; view.draw();
+    assert.equal(writes, 0, 'drawing the same grid again writes nothing');
+    onKey({ key: 'ArrowDown', preventDefault() {} });
+    view.draw();
+    assert.ok(writes >= 1 && writes <= 3, `a cursor move rewrites only its rows (${writes})`);
+  } finally { if (hadDoc) globalThis.document = was; else delete globalThis.document; }
+  console.log('ok: pattern grid row diffing');
+}

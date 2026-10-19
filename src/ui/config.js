@@ -21,7 +21,7 @@ export const SCHEMA = [
   { key: 'hideKeys', label: 'Hide the shortcut panels', type: 'bool', def: false, legacy: ['webtracker.hideKeys', v => v === '1'] },
   { key: 'fontSize', label: 'Pattern editor font size', type: 'int', min: 8, max: 40, def: 13, legacy: ['patternFontSize', v => Number(v)] },
   { group: 'Playing', key: 'follow', label: 'Follow mode', hint: 'the grids scroll with the playing row', type: 'bool', def: false, legacy: ['webtracker.follow', v => v === '1'] },
-  { key: 'playhead', label: 'Playhead', type: 'choice', options: ['marker', 'line'], labels: { marker: 'a > in the tick column', line: 'a thin red line across the grid' }, def: 'marker' },
+  { key: 'playhead', label: 'Playhead', type: 'choice', options: ['marker', 'line', 'band'], labels: { marker: 'a > in the tick column and a bold row', line: 'a thin red line across the grid', band: 'a faint band across the row' }, def: 'band' },
   { key: 'notePreview', label: 'Note preview', hint: 'typed notes sound in the pattern editor', type: 'bool', def: false, legacy: ['patternPreview', v => v === '1'] },
   { group: 'Editing', key: 'graphPullOut', label: 'Graph: dragging a node far out of its chain takes it out', hint: 'the dashed line; off keeps every wire when you move a node (Esc during a drag does the same once)', type: 'bool', def: true },
   { group: 'Editing', key: 'arrowStyle', label: 'Left and Right move by', hint: 'Ctrl+Left/Right always move one character inside the cell', type: 'choice', options: ['cell', 'char'], labels: { cell: 'whole cells: to the start of the next column', char: 'one character at a time (a held key jumps by column)' }, def: 'cell' },

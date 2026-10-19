@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="themes.css">
-  <title>webtracker m210</title>
+  <title>webtracker m211</title>
   <style>
     :root { color-scheme: light dark; font-family: system-ui, sans-serif; }   /* colours: see themes.css */
     body { background: var(--bg); color: var(--fg); }
@@ -161,6 +161,9 @@
     #view .cur .d { opacity: 1; }
     #view .lock { opacity: .5; background: repeating-linear-gradient(135deg, transparent 0 5px, rgba(60, 70, 90, .10) 5px 10px); }
     #view .soloblk { background: rgba(90, 150, 255, .14); }
+    #view .ln { width: max-content; min-width: 100%; }
+    #view .ln:empty::before { content: "\00a0"; }
+    .playline.band { border-top: 0; box-shadow: none; background: color-mix(in srgb, var(--hi) 20%, transparent); }
     #view .now { background: rgba(90, 150, 255, .22); }
     #seq .r.now { position: relative; }
     #seq .r.now::after { content: ""; position: absolute; inset: 0; background: rgba(90, 150, 255, .22); pointer-events: none; }

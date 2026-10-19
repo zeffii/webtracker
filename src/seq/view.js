@@ -86,8 +86,9 @@ export function createTrackerView({ showMenu = (e, items) => showContextMenu(e, 
   let tint = config.get('patternTint');
   config.onChange(k => { if (k === 'patternTint') { tint = config.get('patternTint'); if (lanes) draw(); } });
   const playline = createPlayline(el);
-  let lineMode = config.get('playhead') === 'line';
-  config.onChange(k => { if (k === 'playhead') { lineMode = config.get('playhead') === 'line'; if (lanes) draw(); } });
+  let head = config.get('playhead');   // 'marker': a > in the tick column and a bold row; 'line' and 'band': an overlay that never touches the text
+  const overlay = () => head === 'line' || head === 'band';
+  config.onChange(k => { if (k === 'playhead') { head = config.get('playhead'); if (lanes) draw(); } });
   let measured = null;   // the line height and top padding, measured again only when the font size changes
   const lineMetrics = () => { if (!measured || measured.px !== fontPx) { const m = metrics(); measured = { px: fontPx, lh: m.lh, up: m.up }; } return measured; };
   const sounding = new Map();   // key -> { instrument, note }, so the release stops what the press started
@@ -721,7 +722,18 @@ export function createTrackerView({ showMenu = (e, items) => showContextMenu(e, 
     const pl = l.placements.filter(p => cur.tick >= p.start && cur.tick < p.start + p.length).sort((a, b) => b.start - a.start)[0];
     return pl ? l.patterns[pl.puid]?.name : 'no pattern';
   };
-  let painted = '';   // the markup the grid last showed
+  let painted = '';   // the markup the grid last showed (without a real DOM: in tests)
+  // With a real page every row is an element of its own and only the rows whose markup changed are rewritten, so a
+  // cursor move touches two rows rather than the whole grid, and an unchanged grid costs nothing at all.
+  const real = typeof document !== 'undefined' && typeof el.appendChild === 'function' && typeof el.removeChild === 'function';
+  const rowEls = [], rowHtml = [];
+  const paintLines = lines => {
+    if (!real) { const html = lines.join('\n'); if (html !== painted) { el.innerHTML = html; painted = html; } return; }
+    if (!rowEls.length && el.childNodes.length) el.textContent = '';
+    while (rowEls.length < lines.length) { const d = document.createElement('div'); d.className = 'ln'; el.appendChild(d); rowEls.push(d); rowHtml.push(null); }
+    while (rowEls.length > lines.length) { el.removeChild(rowEls.pop()); rowHtml.pop(); }
+    for (let i = 0; i < lines.length; i++) if (rowHtml[i] !== lines[i]) { rowEls[i].innerHTML = lines[i]; rowHtml[i] = lines[i]; }
+  };
   const draw = () => {
     if (!lanes) return;
     const playing = Atomics.load(transport, 1) === 1, playTick = Atomics.load(transport, 0);
@@ -779,17 +791,16 @@ export function createTrackerView({ showMenu = (e, items) => showContextMenu(e, 
       });
       const inLoop = song.loop && t >= song.loop.start && t < song.loop.end;
       const edge = inLoop ? `${t === song.loop.start ? ' ls' : ''}${t === song.loop.end - 1 ? ' le' : ''}` : '';
-      const row = `<span class="g${inLoop ? ` lp${edge}` : ''}">${playing && t === playTick && !lineMode ? '>' : ' '}${String(t - base).padStart(4, '0')} </span>${chunks.join('  ')}`;
+      const row = `<span class="g${inLoop ? ` lp${edge}` : ''}">${playing && t === playTick && !overlay() ? '>' : ' '}${String(t - base).padStart(4, '0')} </span>${chunks.join('  ')}`;
       const shade = (t - base) % 16 === 0 ? 'r16' : (t - base) % 4 === 0 ? 'r4' : '';
-      const line = playing && t === playTick ? `<b>${following ? `<span class="now">${row}</span>` : row}</b>` : row;
+      const line = playing && t === playTick && !overlay() ? `<b>${following ? `<span class="now">${row}</span>` : row}</b>` : row;
       lines.push(shade ? `<span class="${shade}">${line}</span>` : line);
     }
     while (lines.length < 2 + rowCount) lines.push('');   // always rowCount rows tall, so the drag bar works on a short song
-    const html = lines.join('\n');
-    if (html !== painted) { el.innerHTML = html; painted = html; }   // the same picture as last frame costs nothing: no new elements, no layout
-    if (lineMode && playing && playTick >= top && playTick < Math.min(showHi(), top + rowCount) && playTick >= showLo()) {
+    paintLines(lines);
+    if (overlay() && playing && playTick >= top && playTick < Math.min(showHi(), top + rowCount) && playTick >= showLo()) {
       const m = lineMetrics();
-      playline.show(m.up - el.clientTop + m.lh * (2 + playTick - top));
+      playline.show(m.up - el.clientTop + m.lh * (2 + playTick - top), head === 'band' ? m.lh : 0);
     } else playline.show(null);
     // When the cursor has moved, scroll sideways just far enough to keep it in view, clear of the sticky tick numbers.
     const where = `${cur.lane}:${cur.col}:${cur.ch}`;

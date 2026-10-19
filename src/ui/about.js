@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['m211', ['Snappier pattern editing: every row of the grid is its own element and only the rows that changed are rewritten, so a cursor move or an edit touches two rows instead of the whole grid (key-to-screen time in a test went from about 60 ms to the 33 ms floor of two frames).', 'The playhead is an overlay by default now: a faint band across the playing row that never touches the grid text, so playing costs the grid nothing. Config: Playhead can still be the marker or the red line.']],
   ['m210', ['Pattern editor: Ctrl+Delete deletes and pulls the rows below up, Ctrl+Insert pushes them down; neither crosses into the next pattern.', 'Ctrl+Alt+Up/Down rotates the contents of the selected rows.', 'Ctrl+K randomizes the selection (shuffle values or cells, redraw from the column\'s own spread, nudge, or redraw with empties); Ctrl+Shift+K rolls again from the original, and all the rolls undo in one step.']],
   ['m209', ['Graph: Shift+drag a node takes it out of its chain, Alt+drag moves a copy, Ctrl+X removes the node.', 'Pattern editor: > clears the cell under the cursor, like Delete.']],
   ['m208', ['filterPro: a filter with twelve voicings (lowpass, bandpass, highpass, notch, peak, allpass, morph, 24 dB lowpass, Moog-style ladder, vowel formants, two tuned combs), per-sample cutoff modulation, drive with bias, self-oscillation at full resonance and a dry/wet mix.']],

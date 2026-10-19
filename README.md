@@ -192,3 +192,6 @@ Graph: Shift+drag a node takes it out of its chain (its neighbours are wired tog
 
 ## Gobble, rotate, randomize (m210)
 Pattern editor. Ctrl+Delete deletes the selected cells and pulls the cells below up; Ctrl+Insert pushes them down from the cursor; rows never cross into the next pattern (a selection over several patterns is handled one pattern at a time). Ctrl+Alt+Up/Down rotates the contents of the selected rows, column by column. Ctrl+K opens the randomize menu: shuffle the values (filled cells stay put), shuffle the cells (empties move too), redraw from the column's own spread, nudge by small steps, or redraw with empty cells too (keeping the density). Every new value comes from the column itself, so the selection stays valid. Ctrl+Shift+K rolls again from the original cells; any other key accepts; the rolls undo as one step.
+
+## Snappier grid, subtler playhead (m211)
+The pattern grid keeps one element per row and rewrites only the rows whose markup changed. The playhead is now a faint overlay band by default (Config > Playhead: band, line or the old > marker), so playback never rewrites the grid text.
