@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['m241', ['Vectorscope overlay (Ctrl+Alt+O, or the Scope button): left against right of the master output, turned 45 degrees, in a corner of the window over any screen. A mono sound is a vertical line, a wide one spreads sideways, out-of-phase material lies flat. It draws a glowing line that fades; size, corner, linger and glow are in Config under Scope. Click-through, and it costs nothing while hidden.']],
   ['m240', ['Export WAV (button in the top bar): renders the whole song once, offline and faster than real time, with progress, then a tail of silence-to-be (reverbs and delays dying out) and downloads a stereo .wav. Tail length (default 15 s) and format (16-bit, 24-bit, 32-bit float) are in Config under Export. Press the button again to cancel.']],
   ['m239', ['Demo song retouched: the swells are much quieter (no clipping at their peak), and the tick runs through a Shiva multitap whose length drifts slowly.']],
   ['m238', ['New demo song: an interstellar soundscape, three minutes of a Shepard-style glide under slow chords, delayed stars and seven swells that cut into long, wide Shiva-delay and shimmer tails. Load it with Demo.']],

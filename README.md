@@ -260,6 +260,8 @@ Brave (m235): Brave keeps the folder picker off by default; the Backups panel sa
 
 Download backups (m236): Config > Backup > Download a backup file; `takeDownload()` in src/project/backup.js hands the project over once per change. Off by default. In Brave, turn off "Ask where to save each file" or every download prompts.
 
+Vectorscope (m241): `src/audio/vring.js` is a shared ring of the last output samples, written by the worklet only while the overlay is on; `src/ui/vectorscope.js` draws it (L/R turned 45 degrees, glow and fade). Ctrl+Alt+O, Config > Scope.
+
 Export WAV (m240): the Export WAV button renders the song once, offline (src/audio/export.js: the same runtime and sequencer, fed the messages the engine kept in `sent`), adds a tail (Config > Export) and downloads a stereo WAV, 16/24-bit or 32-bit float.
 
 New demo (m238): a three-minute interstellar soundscape (Shepard glide, chords, delayed stars, swells with long wide tails).

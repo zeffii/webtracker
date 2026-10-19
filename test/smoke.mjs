@@ -6383,6 +6383,27 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   console.log('ok: wav export encoder');
 }
 
+// Vectorscope ring: the writer is silent until the reader switches it on; the reader gets the newest frames, in order, across the wrap.
+{
+  const { RING, ringBuffer, ringReader, ringWriter } = await import('../src/audio/vring.js');
+  const sab = ringBuffer(), w = ringWriter(sab), r = ringReader(sab), out = new Float32Array(RING * 2);
+  assert.equal(w.on, false);
+  r.enable(true);
+  assert.equal(w.on, true);
+  w.write(Float32Array.of(1, 2, 3), Float32Array.of(-1, -2, -3), 3);
+  assert.equal(r.read(out), 3);
+  assert.deepEqual([...out.slice(0, 6)], [1, -1, 2, -2, 3, -3]);
+  assert.equal(r.read(out), 0);
+  const big = Float32Array.from({ length: RING + 10 }, (_, i) => i);
+  w.write(big, big, big.length);
+  assert.equal(r.read(out), RING);   // only the newest RING frames survive
+  assert.equal(out[0], 10);
+  assert.equal(out[(RING - 1) * 2], RING + 9);
+  r.enable(false);
+  assert.equal(w.on, false);
+  console.log('ok: vectorscope ring');
+}
+
 // Sample screen mouse: a click moves to a field, a second click starts typing, digits then set it.
 {
   const { project } = makeProject();

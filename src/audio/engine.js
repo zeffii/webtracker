@@ -2,6 +2,7 @@ import { NODE_TYPES } from './nodes/index.js';
 import { ParamRegistry } from './params.js';
 import { compile } from '../graph/compile.js';
 import { compileDsp } from './wasm/load.js';
+import { ringBuffer } from './vring.js';
 
 // What the audio thread would actually run for an instrument: the nodes that are wired to something, and the wires.
 // A node that is not connected yet (just added) changes nothing it plays, so adding or removing one needs no reload.
@@ -17,6 +18,7 @@ export class Engine {
   watching = new Set();   // nodes whose output is being watched (replayed when the audio thread starts)
   onFault = null;   // called with an instrument id when the audio thread had to rebuild it
   registry = new ParamRegistry();
+  vring = ringBuffer();   // the last output samples, for the vectorscope
   sent = new Map();       // the latest of each message that sets the audio thread up (graphs, node data, song, lanes), for rendering offline
   loaded = new Map();     // instrument -> the signature of what the audio thread has, to skip a reload that would change nothing
   transport = new Int32Array(new SharedArrayBuffer(16));   // [tick, playing, fraction of the tick in 1/65536], written by the worklet
@@ -31,7 +33,7 @@ export class Engine {
     this.node = new AudioWorkletNode(this.ctx, 'tracker-engine', {
       numberOfInputs: 0,
       outputChannelCount: [2],
-      processorOptions: { sab: this.registry.sab, transport: this.transport.buffer, wasm: this.wasmModule },
+      processorOptions: { sab: this.registry.sab, transport: this.transport.buffer, wasm: this.wasmModule, vring: this.vring },
     });
     this.node.port.onmessage = ({ data }) => {
       if (data.type === 'fault') this.onFault?.(data.instrument);

@@ -1,10 +1,12 @@
 import { GraphRuntime } from './runtime.js';
 import { Sequencer } from './sequencer.js';
+import { ringWriter } from './vring.js';
 
 class TrackerEngine extends AudioWorkletProcessor {
   constructor(options) {
     super();
-    const { sab, transport, wasm } = options.processorOptions;
+    const { sab, transport, wasm, vring } = options.processorOptions;
+    this.vring = ringWriter(vring);
     const params = new Float32Array(sab);
     this.rt = new GraphRuntime({ sampleRate, params, wasm });
     this.seq = new Sequencer({ sampleRate, runtime: this.rt, params, transport: new Int32Array(transport) });
@@ -44,6 +46,7 @@ class TrackerEngine extends AudioWorkletProcessor {
     if (this.halted) return true;   // cut: no computation at all until Play
     const t0 = Date.now();
     this.seq.process(out[0], out[1], out[0].length);
+    if (this.vring.on) this.vring.write(out[0], out[1], out[0].length);
     const ms = Date.now() - t0;
     this.sumMs += ms; this.blocks++; this.seen++;
     if (ms > 0 && ms < this.tick) this.tick = ms;

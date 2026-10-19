@@ -1,5 +1,6 @@
 import { Engine } from './audio/engine.js';
 import { encodeWav, renderSong } from './audio/export.js';
+import { createVectorscope } from './ui/vectorscope.js';
 import { NODE_TYPES } from './audio/nodes/index.js';
 import { helpPage } from './graph/help.js';
 import { createBackups, idbStore, memoryStore, stamp } from './project/backup.js';
@@ -74,6 +75,7 @@ document.addEventListener('keydown', e => {
   if (tabs.handleKey(e)) return;
   const here = () => (tabs.active === 'arrange' ? seqView : view).tick;   // the row the cursor is on
   // Ctrl+Shift+R arms and disarms MIDI recording; Alt+V switches MIDI velocity on and off.
+  if (e.ctrlKey && e.altKey && !e.shiftKey && !e.metaKey && e.code === 'KeyO') { e.preventDefault(); toggleScope(); return; }
   if (e.ctrlKey && e.shiftKey && !e.altKey && !e.metaKey && e.code === 'KeyR' && project) { e.preventDefault(); setRecording(!recording); return; }
   if (e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey && e.code === 'KeyV' && project) {
     e.preventDefault();
@@ -1026,6 +1028,21 @@ function startDownloads() {
     if (d) { download(`${d.name}-${stamp(d.time)}${FILE_EXT}`, d.text); $('status').textContent = 'Downloaded a backup file.'; }
   }, Math.max(1, config.get('backupDownloadMinutes')) * 60000);
 }
+
+// Vectorscope overlay: Ctrl+Alt+O or the Scope button. Size, corner and look are in Config.
+const vscopeBox = $('vscope');
+const vscope = createVectorscope({ box: vscopeBox, canvas: $('vscope-canvas'), sab: engine.vring, options: () => ({ linger: config.get('vscopeLinger'), glow: config.get('vscopeGlow') }) });
+const placeScope = () => {
+  vscopeBox.style.setProperty('--vs', config.get('vscopeSize'));
+  const c = config.get('vscopeCorner');
+  vscopeBox.style.top = vscopeBox.style.bottom = vscopeBox.style.left = vscopeBox.style.right = 'auto';
+  vscopeBox.style[c[0] === 't' ? 'top' : 'bottom'] = '12px'; vscopeBox.style[c[1] === 'l' ? 'left' : 'right'] = '12px';
+};
+const showScope = on => { if (on) vscope.show(); else vscope.hide(); $('scope').setAttribute('aria-pressed', String(on)); placeScope(); };
+const toggleScope = () => config.set('vscopeOn', !vscope.open);
+config.onChange((k, v) => { if (k === 'vscopeOn') showScope(v); else if (k.startsWith('vscope')) placeScope(); });
+$('scope').addEventListener('click', toggleScope);
+showScope(config.get('vscopeOn'));
 
 // Export: the whole song, once, offline, as a WAV file. Pressing the button again while it renders cancels.
 let exporting = null;
