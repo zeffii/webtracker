@@ -19,6 +19,7 @@ export function createSequenceView({ el, statusEl, listEl, transport, onToggle, 
   let lanes = null, len = 0, editor = null, song = null;
   const cur = { lane: 0, tick: 0 };
   let typed = '', message = '';
+  let paused = false, lastAuto = null;   // following the song, and the row it last put the cursor on
   let sel = null;          // { lane, tick }: the corner opposite the cursor, while a block of lanes and rows is selected
   let clipboard = null;    // { w, h, items } from the last copy
   let dragging = null;     // the cell where a mouse drag began
@@ -357,7 +358,7 @@ export function createSequenceView({ el, statusEl, listEl, transport, onToggle, 
   let wheelAcc = 0, scrolledFor = null;
   el.addEventListener('wheel', e => {
     e.preventDefault();
-    if (!lanes || e.deltaY === 0 || (follow() && Atomics.load(transport, 1) === 1)) return;
+    if (!lanes || e.deltaY === 0 || (follow() && !paused && Atomics.load(transport, 1) === 1)) return;
     wheelAcc += e.deltaY * (e.deltaMode === 1 ? 16 : 1);
     const step = Math.trunc(wheelAcc / 25);   // a notch of a mouse wheel is about four rows
     if (!step) return;
@@ -373,8 +374,10 @@ export function createSequenceView({ el, statusEl, listEl, transport, onToggle, 
     if (!lanes) return;
     const playing = Atomics.load(transport, 1) === 1, playTick = Atomics.load(transport, 0);
     // Following the song: the cursor goes with the playing row, which stays in the middle of the view while the rows scroll.
-    const following = follow() && playing, nowRow = following ? Math.floor(Math.min(len - 1, playTick) / CELL) : -1;
-    if (following) { cur.tick = nowRow * CELL; sel = null; typed = ''; }
+    if (!(follow() && playing)) { paused = false; lastAuto = null; }
+    else if (!paused && lastAuto !== null && cur.tick !== lastAuto && config.get('followRoam')) { paused = true; message = 'Follow paused while you move around: F9 follows again.'; }
+    const following = follow() && playing && !paused, nowRow = following ? Math.floor(Math.min(len - 1, playTick) / CELL) : -1;
+    if (following) { cur.tick = nowRow * CELL; lastAuto = cur.tick; sel = null; typed = ''; }
     const rows = Math.ceil(len / CELL), curRow = Math.floor(cur.tick / CELL);
     if (following) top = nowRow - (rowCount >> 1);
     else {
@@ -468,5 +471,5 @@ export function createSequenceView({ el, statusEl, listEl, transport, onToggle, 
 
   const goto = (laneIdx, tick) => { cur.lane = laneIdx; cur.tick = rowStart(tick); typed = ''; sel = null; };
   const setRows = n => { rowCount = Math.max(ROWS.min, Math.min(ROWS.max, Math.round(n))); draw(); return rowCount; };
-  return { draw, load, goto, setRows, say: m => { message = m; }, get rows() { return rowCount; }, get lane() { return cur.lane; }, get tick() { return cur.tick; } };
+  return { draw, load, goto, setRows, resume() { const was = paused; paused = false; lastAuto = null; return was; }, say: m => { message = m; }, get rows() { return rowCount; }, get lane() { return cur.lane; }, get tick() { return cur.tick; } };
 }

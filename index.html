@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="themes.css">
-  <title>webtracker m214</title>
+  <title>webtracker m215</title>
   <style>
     :root { color-scheme: light dark; font-family: system-ui, sans-serif; }   /* colours: see themes.css */
     body { background: var(--bg); color: var(--fg); }
@@ -215,7 +215,7 @@
     .keys dl { display: grid; grid-template-columns: max-content 1fr; gap: .2rem .8rem; margin: 0; }
     .keys dt { color: #f0707a; }
     .keys dd { margin: 0; color: color-mix(in srgb, var(--fg) 68%, var(--panel)); }
-    .keys dd .kw { font-weight: inherit; color: color-mix(in srgb, #2a62d6 82%, var(--fg)); }   /* the important words, in a quiet accent */
+    .keys dd .kw { font-weight: inherit; color: var(--fg); background: color-mix(in srgb, #2a62d6 22%, transparent); padding: 0 .3em; margin: 0 -.05em; border-radius: 3px; }   /* the important words, on a tinted fill so they jump out */
     .keys p { margin: .6rem 0 0; opacity: .7; }
     @media (max-width: 1000px) { .pane.keyed:not([hidden]) { grid-template-columns: 1fr; } .keys { height: auto; min-height: 0; max-height: 60vh; } }
 
@@ -444,7 +444,7 @@
           <dt>Alt+Enter</dt><dd><b class="kw">solo-edit</b> the pattern under the cursor (only it is shown, rows numbered from 0); again, or Esc, goes back to the whole song</dd>
           <dt>Ctrl+G</dt><dd>give this placement its own <b class="kw">copy</b> of the pattern (<b class="kw">clone</b> and replace), so edits stop reaching the other places it is used; works in solo-edit too</dd>
           <dt>F5 F6 F7 F8</dt><dd><b class="kw">play</b> from the start (or the <b class="kw">loop</b>); play from the cursor; play just this row once; stop</dd>
-          <dt>F9</dt><dd><b class="kw">follow</b> the song: the grid scrolls with the playing row (highlighted)</dd>
+          <dt>F9</dt><dd><b class="kw">follow</b> the song: the grid scrolls with the playing row (highlighted). Moving the caret to another row <b class="kw">pauses</b> the following; F9 follows again</dd>
           <dt>Ctrl+Up/Down</dt><dd><b class="kw">transpose</b> the notes in the selection by a semitone (Shift: an <b class="kw">octave</b>)</dd>
           <dt>Ctrl+, / Ctrl+.</dt><dd><b class="kw">lower / raise</b> every other value in the selection by one (Ctrl+&lt; / Ctrl+&gt;: a bigger step); commands keep their id</dd>
           <dt>Left / Right</dt><dd>to the start of the previous / next column (Config: one character at a time instead)</dd>
@@ -630,7 +630,7 @@
           <dt>Ctrl+C, X, V</dt><dd><b class="kw">copy</b> or cut the selected patterns (or the one under the cursor); <b class="kw">paste</b> with their top left at the cursor, over what is there</dd>
           <dt>Ctrl+D</dt><dd><b class="kw">copy</b> the selection to the rows right below it, wherever the cursor is; again to <b class="kw">copy</b> it once more below that</dd>
           <dt>F5 F6 F7 F8</dt><dd><b class="kw">play</b> from the start (or the <b class="kw">loop</b>); play from the cursor; play just this row once; stop</dd>
-          <dt>F9</dt><dd><b class="kw">follow</b> the song: the rows scroll with the playing row (highlighted)</dd>
+          <dt>F9</dt><dd><b class="kw">follow</b> the song: the rows scroll with the playing row (highlighted). Moving the caret to another row <b class="kw">pauses</b> the following; F9 follows again</dd>
           <dt>Ctrl+Z, Ctrl+Y</dt><dd><b class="kw">undo</b>, redo</dd>
           <dt>O, Ctrl+1</dt><dd>put a note-off marker on this row (again to <b class="kw">remove</b> it): the lane lets go of what is sounding there, for patterns that end without a <b class="kw">note off</b></dd>
           <dt>Ctrl+B, Ctrl+E</dt><dd>start the <b class="kw">loop</b> at this row, end it with this row (again on the same row to take it away); <b class="kw">play</b> starts at the loop and repeats it</dd>

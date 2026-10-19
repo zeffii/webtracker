@@ -50,6 +50,7 @@ export function createTrackerView({ showMenu = (e, items) => showContextMenu(e, 
   const showLo = () => (windowed() ? lo : 0), showHi = () => (windowed() ? hi : len);
   const cur = { lane: 0, tick: 0, col: 0, ch: 0 };
   let octave = 3, message = '';
+  let paused = false, lastAuto = null;   // following the song, and the row it last put the caret on
   let nugget = false;      // inside a cell: Left/Right step one character at a time until the next step would leave the cell
   let sel = null;          // { lane, tick, col }: the corner opposite the cursor, while a rectangle is selected
   let clipboard = null;    // rows of { token, cell } from the last copy
@@ -800,8 +801,11 @@ export function createTrackerView({ showMenu = (e, items) => showContextMenu(e, 
     // The window stays where it is while the cursor is inside it (so clicking does not move the grid); when the
     // cursor leaves it, the window jumps to put the cursor a few rows in from the top.
     // Following the song: the cursor goes with the playing row, which stays in the middle of the window.
-    const following = follow() && playing && !solo;
-    if (following) { cur.tick = Math.min(len - 1, playTick); sel = null; top = cur.tick - (rowCount >> 1); }
+    // With "the caret may roam" on, moving the caret to another row stops the following until F9 (or the Follow button) asks for it again.
+    if (!(follow() && playing)) { paused = false; lastAuto = null; }
+    else if (!paused && lastAuto !== null && cur.tick !== lastAuto && config.get('followRoam')) { paused = true; message = 'Follow paused while you move around: F9 follows again.'; }
+    const following = follow() && playing && !solo && !paused;
+    if (following) { cur.tick = Math.min(len - 1, playTick); lastAuto = cur.tick; sel = null; top = cur.tick - (rowCount >> 1); }
     else {
       if (scrolledFor !== `${cur.lane},${cur.tick}`) scrolledFor = null;
       if (!scrolledFor && (cur.tick < top || cur.tick >= top + rowCount)) top = cur.tick - Math.min(8, rowCount >> 2);
@@ -895,5 +899,5 @@ export function createTrackerView({ showMenu = (e, items) => showContextMenu(e, 
 
   const setRows = n => { rowCount = Math.max(ROWS.min, Math.min(ROWS.max, Math.round(n))); draw(); return rowCount; };
   const lineHeight = () => (lanes ? metrics().lh : 18);
-  return { draw, load, goto, enterSolo, relayout, say: m => { message = m; }, setSize, setRows, lineHeight, get rows() { return rowCount; }, get fontPx() { return fontPx; }, get tick() { return cur.tick; }, get lane() { return cur.lane; }, get col() { return cur.col; }, get ch() { return cur.ch; }, stepRows: n => { moveRow(n); }, get preview() { return preview; } };
+  return { draw, load, goto, enterSolo, relayout, say: m => { message = m; }, setSize, setRows, lineHeight, get rows() { return rowCount; }, get fontPx() { return fontPx; }, get tick() { return cur.tick; }, get lane() { return cur.lane; }, get col() { return cur.col; }, get ch() { return cur.ch; }, stepRows: n => { moveRow(n); }, resume() { const was = paused; paused = false; lastAuto = null; return was; }, get preview() { return preview; } };
 }

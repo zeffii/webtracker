@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['m215', ['The caret can roam while Follow is on: moving it to another row pauses the following (a message says so), and F9 or the Follow button picks it up again. Config: Allow the caret to roam while following can turn this off.', 'The highlighted words in the shortcut lists now have a background fill so they jump out.']],
   ['m214', ['The shortcut lists now pick out the important words of each description in a quiet accent colour.', 'Demo song updated.']],
   ['m213', ['Fixed: dragging with the mouse in the pattern grid also made a native text selection that smeared across whole lines (the faster redraw no longer destroyed it). The grids now refuse native text selection; the grid\'s own selection is unchanged.']],
   ['m212', ['Interpolation along a curve (Ctrl+I): the first and last filled cells of the selection are the ends, filled cells in between get values by row position. A popup offers shapes, a bend, a wave on top, drawing your own curve with the mouse and including empty cells; the grid updates live, Enter applies and Esc cancels.', 'Nugget mode: after Ctrl+Left/Right, plain Left/Right stay inside the cell until you step past its edge, Up/Down keep the character position.', 'A new demo song.']],

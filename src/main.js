@@ -123,7 +123,7 @@ $('info').addEventListener('input', () => {
 // Follow mode: the grids move with the playing row instead of the row marker moving. F9 or the button; remembered here.
 let following = config.get('follow');
 const syncFollow = () => $('follow').setAttribute('aria-pressed', String(following));
-const toggleFollow = () => config.set('follow', !following);
+const toggleFollow = () => { if (following && (seqView.resume() | view.resume())) return; config.set('follow', !following); };   // while paused by moving the caret, it follows again first
 config.onChange((k, v) => { if (k === 'follow') { following = v; syncFollow(); } });
 $('follow').addEventListener('click', () => { toggleFollow(); $('follow').blur(); });
 syncFollow();

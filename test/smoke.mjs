@@ -5933,3 +5933,34 @@ console.log('smoke test passed');
   uiConfig.set('arrowStyle', 'char');
   console.log('ok: nugget mode');
 }
+
+// Follow mode: the caret follows the playing row until it is moved; then the view lets it roam until it is asked to follow again
+{
+  const registry = new ParamRegistry(), defs = structuredClone(instruments);
+  for (const [id, def] of Object.entries(defs)) compile(def.graph, { instrument: id, nodeTypes: NODE_TYPES, registry });
+  const lanes = prepareSong(demoSong, defs, registry), editor = createEditor(lanes, 32);
+  let onKey;
+  const transport = new Int32Array(new SharedArrayBuffer(8));
+  const view = createTrackerView({ el: { addEventListener: (type, f) => { if (type === 'keydown') onKey = f; }, innerHTML: '' }, statusEl: { textContent: '' }, transport, onToggle() {}, onBack() {}, follow: () => true });
+  view.load({ lanes, song: demoSong, editor });
+  const press = key => onKey({ key, preventDefault() {} });
+  uiConfig.set('playhead', 'marker');   // the overlay playhead needs a page to measure
+  transport[1] = 1; transport[0] = 10;
+  view.draw();
+  assert.equal(view.tick, 10, 'following: the caret is on the playing row');
+  transport[0] = 12; view.draw();
+  assert.equal(view.tick, 12, 'and goes with it');
+  press('ArrowDown');
+  transport[0] = 20; view.draw();
+  assert.equal(view.tick, 13, 'moving the caret lets it roam: the playing row no longer drags it along');
+  transport[0] = 25; view.draw();
+  assert.equal(view.tick, 13);
+  assert.equal(view.resume(), true, 'F9 asks it to follow again');
+  view.draw();
+  assert.equal(view.tick, 25, 'and the caret is back on the playing row');
+  uiConfig.set('followRoam', false);
+  press('ArrowDown'); transport[0] = 30; view.draw();
+  assert.equal(view.tick, 30, 'with the setting off the caret stays locked to the playing row');
+  transport[1] = 0; uiConfig.set('followRoam', true); uiConfig.set('playhead', 'band');
+  console.log('ok: follow roam');
+}
