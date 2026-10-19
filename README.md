@@ -260,6 +260,8 @@ Brave (m235): Brave keeps the folder picker off by default; the Backups panel sa
 
 Download backups (m236): Config > Backup > Download a backup file; `takeDownload()` in src/project/backup.js hands the project over once per change. Off by default. In Brave, turn off "Ask where to save each file" or every download prompts.
 
+Pattern minimaps (m244): `src/seq/minimap.js` draws, on one canvas over the arrangement, the notes (pitch ticks, lengths, off/cut caps) and parameter cells of the 16 ticks in each cell, from the lane's flattened rows; rows are cached by identity (rows are replaced, never edited in place). Config > Arrangement.
+
 Meter band (m243): `src/ui/meters.js` draws the panels, `src/ui/meterdsp.js` has the arithmetic (K-weighted LUFS, correlation, a 4096-point spectrum in 96 log bands and the side share of the spectral panner's ten bands). It reads the same ring as the vectorscope, each reader with its own on-bit. Ctrl+Alt+M, Config > Meters.
 
 Vectorscope (m241): `src/audio/vring.js` is a shared ring of the last output samples, written by the worklet only while the overlay is on; `src/ui/vectorscope.js` draws it (L/R turned 45 degrees, glow and fade). Ctrl+Alt+O, Config > Scope.

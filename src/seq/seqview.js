@@ -4,6 +4,7 @@ import { dimLevel, dimFilter } from '../ui/dim.js';
 import { createPlayline } from '../ui/playline.js';
 import { placementAt, puidByIndex, startsAt } from './edit.js';
 import { setLoopPoint } from './loop.js';
+import { createMinimap } from './minimap.js';
 
 const ROWS = { min: 6, max: 128, normal: 24 };   // rows shown at once
 const CELL = 16;     // ticks in one row
@@ -350,7 +351,7 @@ export function createSequenceView({ el, statusEl, listEl, transport, onToggle, 
     return { cls: `p${pat.index % 6}`, style: '' };
   };
 
-  const playline = createPlayline(el);
+  const playline = createPlayline(el), minimap = createMinimap(el);
   let lineMode = config.get('playhead') === 'line';
   config.onChange(k => { if (k === 'playhead') { lineMode = config.get('playhead') === 'line'; draw(); } });
   let top = 0;                  // the first row on screen
@@ -449,6 +450,9 @@ export function createSequenceView({ el, statusEl, listEl, transport, onToggle, 
     if (lineMode && playing && head && playTick / CELL >= top && playTick / CELL < Math.min(rows, top + rowCount)) {
       playline.show(head.offsetTop + head.offsetHeight * (1 + playTick / CELL - top));
     } else playline.show(null);
+
+    if (config.get('minimapOn')) minimap.paint({ lanes, first: top, last: Math.min(rows, top + rowCount), CELL, html, opts: { lengths: config.get('minimapLengths'), caps: config.get('minimapCaps'), params: config.get('minimapParams') } });
+    else minimap.hide();
 
     const owner = here();
     const ownerPat = owner ? lane().patterns[owner.puid] : null;

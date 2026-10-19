@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="themes.css">
-  <title>webtracker m243</title>
+  <title>webtracker m244</title>
   <link rel="icon" href="icon.ico" sizes="any">
   <link rel="icon" type="image/png" href="icon.png">
   <style>
@@ -105,7 +105,9 @@
     #seq-side .pi.here { background: color-mix(in srgb, currentColor 22%, transparent); }
     #seq-side .sw { margin-right: 2px; vertical-align: middle; height: 11px; }
     #view:focus, #seq:focus { outline: 1px solid; }
-    #seq { overflow-x: auto; line-height: 18px; }
+    #seq { overflow-x: auto; line-height: 18px; isolation: isolate; }
+    #seq .t { position: relative; z-index: 2; }
+    #seq .minimap { position: absolute; left: 0; top: 0; pointer-events: none; z-index: 1; }
     #seq .r { height: 18px; white-space: pre; }
     #seq .cell { position: relative; display: inline-block; width: 14ch; height: 18px; vertical-align: top; overflow: hidden; }
     #seq .cell > i { position: absolute; top: 0; bottom: 0; left: 0; right: 0; display: block; }

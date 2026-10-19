@@ -6430,6 +6430,25 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   console.log('ok: meter arithmetic');
 }
 
+// Arrangement minimaps: what a row of tokens shows (notes with velocity, off and cut marks, parameter values).
+{
+  const { infoOf } = await import('../src/seq/minimap.js');
+  const columns = [{ token: 'note', label: 'note' }, { token: '2hex', label: 'vel' }, { token: '2hex', label: 'cutoff' }, { token: '4hex', label: 'detune' }, { token: 'cmd', label: 'cmd' }];
+  const a = infoOf(['C-4', 'FF', '80', '....', '......'], columns);
+  assert.equal(a.notes.length, 1);
+  assert.equal(a.notes[0].kind, 'note');
+  assert.equal(a.notes[0].pitch, 60);
+  assert.equal(a.notes[0].vel, 1);
+  assert.equal(a.par.length, 3);   // the velocity column is not a parameter
+  assert.ok(Math.abs(a.par[0] - 128 / 255) < 1e-9 && a.par[1] === -1 && a.par[2] === -1);
+  assert.equal(infoOf(['===', '..', '..', '....', '......'], columns).notes[0].kind, 'off');
+  assert.equal(infoOf(['^^^', '..', '..', '....', '......'], columns).notes[0].kind, 'cut');
+  const blank = ['...', '..', '..', '....', '......'];
+  assert.equal(infoOf(blank, columns), infoOf(blank, columns), 'a row is read once');
+  assert.deepEqual(infoOf(blank, columns).notes, []);
+  console.log('ok: arrangement minimap rows');
+}
+
 // Sample screen mouse: a click moves to a field, a second click starts typing, digits then set it.
 {
   const { project } = makeProject();
