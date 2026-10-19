@@ -47,6 +47,8 @@ export const SCHEMA = [
   { key: 'backupDownload', label: 'Download a backup file', hint: 'every few minutes when the project has changed; point the browser\'s download folder at a git folder to keep them (for browsers that cannot write to a folder)', type: 'bool', def: false },
   { key: 'backupDownloadMinutes', label: 'Download every (minutes)', type: 'int', min: 1, max: 240, def: 15 },
   { key: 'backupFolderMode', label: 'Backup folder files', type: 'choice', options: ['latest', 'stamped'], labels: { latest: 'one file per project, overwritten (a git folder keeps the history)', stamped: 'a new file each time' }, def: 'latest' },
+  { group: 'Export', key: 'exportTail', label: 'Export: tail (seconds)', hint: 'rendered after the last row, so reverbs and delays can die out', type: 'int', min: 0, max: 120, def: 15 },
+  { key: 'exportBits', label: 'Export: WAV format', type: 'choice', options: ['16', '24', '32'], labels: { 16: '16-bit', 24: '24-bit', 32: '32-bit float (cannot clip)' }, def: '24' },
   { group: 'Script', key: 'scriptLimit', label: 'Script time limit', hint: 'in ms; a script that runs longer is stopped and changes nothing', type: 'int', min: 100, max: 60000, def: 2000 },
   { group: 'Sample', key: 'ptrMax', label: 'Resynthesis: most branches', hint: 'it uses fewer when more would not help', type: 'int', min: 1, max: 16, def: 8 },
   { key: 'ptrTolerance', label: 'Resynthesis: tolerance (%)', hint: 'a new branch must explain at least this much of the tail; lower is closer and uses more branches', type: 'int', min: 1, max: 30, def: 5 },

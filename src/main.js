@@ -1,4 +1,5 @@
 import { Engine } from './audio/engine.js';
+import { encodeWav, renderSong } from './audio/export.js';
 import { NODE_TYPES } from './audio/nodes/index.js';
 import { helpPage } from './graph/help.js';
 import { createBackups, idbStore, memoryStore, stamp } from './project/backup.js';
@@ -1026,6 +1027,28 @@ function startDownloads() {
   }, Math.max(1, config.get('backupDownloadMinutes')) * 60000);
 }
 
+// Export: the whole song, once, offline, as a WAV file. Pressing the button again while it renders cancels.
+let exporting = null;
+$('export').addEventListener('click', async () => {
+  if (exporting) { exporting.on = true; return; }
+  if (!project || !engine.node) return;
+  const cancel = exporting = { on: false }, button = $('export'), say = text => { $('status').textContent = text; };
+  button.textContent = 'Cancel export';
+  try {
+    engine.stop();
+    const out = await renderSong(engine.exportState(), { tail: config.get('exportTail'), cancel, onProgress: f => say(`Rendering the song: ${Math.round(f * 100)}%`) });
+    if (!out) say('Export cancelled.');
+    else {
+      const bits = Number(config.get('exportBits'));
+      download(`${project.song.name ?? 'untitled'}.wav`, encodeWav(out, bits));
+      const db = out.peak > 0 ? 20 * Math.log10(out.peak) : -Infinity;
+      say(`Exported ${Math.floor(out.seconds / 60)}:${String(Math.round(out.seconds % 60)).padStart(2, '0')} to WAV, peak ${db.toFixed(1)} dB${out.peak > 1 && bits !== 32 ? ' (it clips: lower the master volume or use 32-bit float)' : ''}.`);
+    }
+  } catch (e) { say(`Export failed: ${e.message}`); }
+  exporting = null;
+  button.textContent = 'Export WAV';
+});
+
 $('save').addEventListener('click', () => {
   download(`${project.song.name ?? 'untitled'}${FILE_EXT}`, serializeProject(project));
   backups.snapshot('save');
@@ -1253,7 +1276,7 @@ $('start').addEventListener('click', async () => {
     startDownloads();
     navigator.storage?.persist?.();   // ask the browser not to clear the snapshots when it is short of space
     for (const id of ['start']) $(id).disabled = true;
-    for (const id of ['play', 'panic', 'cut', 'new', 'save', 'load', 'backups', 'patch-add', 'load-samples', 'rec-take', 'rec-source', 'add-inst', 'add-lane', 'add-lane-inst', 'inst-voices', 'inst-notecols', 'inst-name', 'inst-rename', 'inst-up', 'inst-down', 'inst-dup', 'inst-remove', 'lane-name', 'lane-rename', 'lane-left', 'lane-right', 'lane-dup', 'lane-remove', 'lane-remove-all', 'length', 'ins-n', 'ins-go', 'bpm', 'swing', 'preset-name', 'preset-save', 'preset-over', 'preset-rename', 'preset-remove', 'inst-export', 'inst-import', 'lib-load', 'lib-add', 'lib-save']) $(id).disabled = false;
+    for (const id of ['play', 'panic', 'cut', 'new', 'save', 'load', 'backups', 'export', 'patch-add', 'load-samples', 'rec-take', 'rec-source', 'add-inst', 'add-lane', 'add-lane-inst', 'inst-voices', 'inst-notecols', 'inst-name', 'inst-rename', 'inst-up', 'inst-down', 'inst-dup', 'inst-remove', 'lane-name', 'lane-rename', 'lane-left', 'lane-right', 'lane-dup', 'lane-remove', 'lane-remove-all', 'length', 'ins-n', 'ins-go', 'bpm', 'swing', 'preset-name', 'preset-save', 'preset-over', 'preset-rename', 'preset-remove', 'inst-export', 'inst-import', 'lib-load', 'lib-add', 'lib-save']) $(id).disabled = false;
     $('status').textContent =
       `Running at ${engine.ctx.sampleRate} Hz, base latency ${(engine.ctx.baseLatency * 1000).toFixed(1)} ms`;
     // Only the screen that is showing is drawn: a hidden one has nothing to measure or paint, and its work would only delay the one you are using.

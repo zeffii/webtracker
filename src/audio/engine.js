@@ -17,6 +17,7 @@ export class Engine {
   watching = new Set();   // nodes whose output is being watched (replayed when the audio thread starts)
   onFault = null;   // called with an instrument id when the audio thread had to rebuild it
   registry = new ParamRegistry();
+  sent = new Map();       // the latest of each message that sets the audio thread up (graphs, node data, song, lanes), for rendering offline
   loaded = new Map();     // instrument -> the signature of what the audio thread has, to skip a reload that would change nothing
   transport = new Int32Array(new SharedArrayBuffer(16));   // [tick, playing, fraction of the tick in 1/65536], written by the worklet
 
@@ -60,6 +61,7 @@ export class Engine {
   reset() {
     this.registry = new ParamRegistry();
     this.loaded.clear();
+    this.sent.clear();
     this.node.port.postMessage({ type: 'reset', sab: this.registry.sab });
   }
 
@@ -69,11 +71,13 @@ export class Engine {
     const sig = signature(desc);
     if (this.loaded.get(instrument) === sig) return false;   // nothing it plays has changed: the running voices and tails are left alone
     this.loaded.set(instrument, sig);
+    this.sent?.set(`load:${instrument}`, { type: 'load', graph });
     this.node.port.postMessage({ type: 'load', graph });
     return true;
   }
 
   sendToNode(instrument, node, msg, transfer = []) {
+    this.sent?.set(`node:${instrument}:${node}:${msg.type}:${msg.slot ?? ''}`, { type: 'node', instrument, node, msg: transfer.length ? structuredClone(msg) : msg });
     this.node.port.postMessage({ type: 'node', instrument, node, msg }, transfer);
   }
 
@@ -105,12 +109,22 @@ export class Engine {
   setSong({ bpm, ticksPerBeat, length, swing = 0.5, loop }) {
     const slot = name => this.registry.slots.get(`master.m.${name}`);   // the master lane's parameters, once its instrument is loaded
     const master = slot('bpm') !== undefined ? { bpm: slot('bpm'), swing: slot('swing'), tpb: slot('tpb'), volume: slot('volume') } : undefined;
+    this.sent?.set('song', { type: 'song', song: { bpm, ticksPerBeat, length, swing, ...(master ? { master } : {}) } });
     this.node.port.postMessage({ type: 'song', song: { bpm, ticksPerBeat, length, swing, ...(master ? { master } : {}), ...(loop ? { loop: { start: loop.start, end: loop.end } } : {}) } });
   }
 
   // lane = { id, instrument, columns, pages }. The pages are shared memory.
   setLane(lane) {
+    this.sent?.set(`lane:${lane.id}`, { type: 'lane', lane });
     this.node.port.postMessage({ type: 'lane', lane });
+  }
+
+  // Everything an offline render needs: what the audio thread was told (graphs first, then node data, the song, the
+  // lanes), a private copy of the parameter values, the compiled DSP and the sample rate.
+  exportState() {
+    const order = { load: 0, node: 1, song: 2, lane: 3 };
+    const messages = [...this.sent.values()].sort((a, b) => order[a.type] - order[b.type]);
+    return { messages, params: new Float32Array(new Float32Array(this.registry.sab)), wasm: this.wasmModule, sampleRate: this.ctx?.sampleRate ?? 44100 };
   }
 
   // From a tick, or from the start of the loop or the song.

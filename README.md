@@ -260,6 +260,8 @@ Brave (m235): Brave keeps the folder picker off by default; the Backups panel sa
 
 Download backups (m236): Config > Backup > Download a backup file; `takeDownload()` in src/project/backup.js hands the project over once per change. Off by default. In Brave, turn off "Ask where to save each file" or every download prompts.
 
+Export WAV (m240): the Export WAV button renders the song once, offline (src/audio/export.js: the same runtime and sequencer, fed the messages the engine kept in `sent`), adds a tail (Config > Export) and downloads a stereo WAV, 16/24-bit or 32-bit float.
+
 New demo (m238): a three-minute interstellar soundscape (Shepard glide, chords, delayed stars, swells with long wide tails).
 
 Noise colours (m237): `tilt` in dB/oct (-6 brown, -3 pink, 0 white, +3 blue, +6 violet), loudness-matched; `free` runs without notes.

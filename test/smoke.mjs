@@ -6363,6 +6363,26 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   assert.ok(rms(make({ free: 1 })) > 0.2, 'free runs by itself');
 }
 
+// Export: the WAV encoder writes a proper header and clips at full scale, 32-bit float does not clip.
+{
+  const { encodeWav } = await import('../src/audio/export.js');
+  const pcm = { left: Float32Array.of(0, 0.5, 2), right: Float32Array.of(-1, -0.5, 0), sampleRate: 48000 };
+  for (const bits of [16, 24, 32]) {
+    const buf = Buffer.from(await encodeWav(pcm, bits).arrayBuffer());
+    assert.equal(buf.toString('latin1', 0, 4), 'RIFF');
+    assert.equal(buf.readUInt32LE(24), 48000);
+    assert.equal(buf.readUInt16LE(34), bits);
+    assert.equal(buf.length, 44 + 3 * 2 * bits / 8);
+    assert.equal(buf.readUInt32LE(40), 3 * 2 * bits / 8);
+  }
+  const b16 = Buffer.from(await encodeWav(pcm, 16).arrayBuffer());
+  assert.equal(b16.readInt16LE(44 + 8), 32767);   // the 2.0 is clipped
+  assert.equal(b16.readInt16LE(44 + 2), -32767);
+  const b32 = Buffer.from(await encodeWav(pcm, 32).arrayBuffer());
+  assert.equal(b32.readFloatLE(44 + 16), 2);
+  console.log('ok: wav export encoder');
+}
+
 // Sample screen mouse: a click moves to a field, a second click starts typing, digits then set it.
 {
   const { project } = makeProject();
