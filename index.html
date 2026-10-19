@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="themes.css">
-  <title>webtracker m211</title>
+  <title>webtracker m212</title>
   <style>
     :root { color-scheme: light dark; font-family: system-ui, sans-serif; }   /* colours: see themes.css */
     body { background: var(--bg); color: var(--fg); }
@@ -161,6 +161,14 @@
     #view .cur .d { opacity: 1; }
     #view .lock { opacity: .5; background: repeating-linear-gradient(135deg, transparent 0 5px, rgba(60, 70, 90, .10) 5px 10px); }
     #view .soloblk { background: rgba(90, 150, 255, .14); }
+    .curve-pop { position: fixed; z-index: 60; background: var(--panel); color: var(--fg); border: 1px solid color-mix(in srgb, var(--fg) 40%, transparent); box-shadow: 0 6px 20px rgba(0, 0, 0, .25); padding: 8px; width: 318px; font: 12px/1.4 ui-monospace, Consolas, monospace; display: grid; gap: 4px; }
+    .curve-pop canvas { width: 300px; height: 160px; background: color-mix(in srgb, var(--fg) 5%, transparent); cursor: crosshair; }
+    .curve-pop label { display: flex; align-items: center; gap: 6px; }
+    .curve-pop input[type=range] { flex: 1; }
+    .cp-presets { display: flex; flex-wrap: wrap; gap: 3px; }
+    .cp-presets button.on { background: var(--hi); color: var(--hi-fg); }
+    .cp-bar { display: flex; gap: 6px; justify-content: flex-end; }
+    .cp-hint { opacity: .6; font-size: 11px; }
     #view .ln { width: max-content; min-width: 100%; }
     #view .ln:empty::before { content: "\00a0"; }
     .playline.band { border-top: 0; box-shadow: none; background: color-mix(in srgb, var(--hi) 20%, transparent); }
@@ -438,11 +446,11 @@
           <dt>Ctrl+Up/Down</dt><dd>transpose the notes in the selection by a semitone (Shift: an octave)</dd>
           <dt>Ctrl+, / Ctrl+.</dt><dd>lower / raise every other value in the selection by one (Ctrl+&lt; / Ctrl+&gt;: a bigger step); commands keep their id</dd>
           <dt>Left / Right</dt><dd>to the start of the previous / next column (Config: one character at a time instead)</dd>
-          <dt>Ctrl+Left/Right</dt><dd>one character left or right inside the cell, to type into just that digit</dd>
+          <dt>Ctrl+Left/Right</dt><dd>one character left or right inside the cell, to type into just that digit; after that plain Left/Right stay inside the cell (and Up/Down keep the position) until you step past its edge, which enters the next cell at its first character</dd>
           <dt>Ctrl+Shift+H</dt><dd>hide or show the empty columns of the lane the cursor is in (a column with no value at any row; the one under the cursor stays)</dd>
           <dt>Ctrl+Enter</dt><dd>write the live value of the parameter under the cursor (the node setting, or what the song last set) into this cell, then move down a row</dd>
           <dt>Ctrl+Shift+Enter</dt><dd>the same for every parameter column of this row (not notes, velocities or commands)</dd>
-          <dt>Ctrl+I</dt><dd>interpolate: fill the rows between the first and last row of the selection with a straight line, per column (command and 1hex columns are skipped)</dd>
+          <dt>Ctrl+I</dt><dd>interpolate along a curve: per column, the first and last filled cell of the selection are the ends and the filled cells between them get values by row position. The popup picks a shape, bends it, lays a wave on it, lets you draw your own, and can include empty cells; Enter applies, Esc cancels</dd>
           <dt>Ctrl + − 0, wheel</dt><dd>pattern text size</dd>
         </dl>
         <p>Edits are heard on the next tick. Dimmed rows are past the end of the pattern.</p>

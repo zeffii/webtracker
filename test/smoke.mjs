@@ -14,6 +14,7 @@ import { insertPattern, placementAt, setCell } from '../src/seq/edit.js';
 import { createTrackerView, cellAt } from '../src/seq/view.js';
 import { createSequenceView } from '../src/seq/seqview.js';
 import { createEditor } from '../src/seq/editor.js';
+import { shapeTable } from '../src/seq/curve.js';
 import { createMidiWriter, noteColumnsOf, quantize } from '../src/seq/midiwrite.js';
 import * as ops from '../src/seq/edit.js';
 import * as gedit from '../src/graph/edit.js';
@@ -3976,9 +3977,12 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   // interpolate: the middle row of both columns gets the midpoint
   set(0, vc, '10'); set(2, vc, '50'); set(0, nc, 'C-4'); set(2, nc, 'E-4');
   ctrl('i');
+  assert.equal(lane.rows[1][vc], '..', 'only cells that already hold a value are written');
+  set(1, vc, '01'); set(1, nc, 'C-3');   // placeholders
+  ctrl('i');
   assert.equal(lane.rows[1][vc], '30'); assert.equal(lane.rows[1][nc], 'D-4');
   ctrl('z');
-  assert.equal(lane.rows[1][vc], '..', 'the interpolation is one undo step');
+  assert.equal(lane.rows[1][vc], '01', 'the interpolation is one undo step');
 }
 
 // 105. Pattern editor: insert the live value of a parameter, or of a whole row of them.
@@ -5849,4 +5853,83 @@ console.log('smoke test passed');
     assert.ok(writes >= 1 && writes <= 3, `a cursor move rewrites only its rows (${writes})`);
   } finally { if (hadDoc) globalThis.document = was; else delete globalThis.document; }
   console.log('ok: pattern grid row diffing');
+}
+
+// Interpolation: the ends are the first and last filled cells, the curve is applied by row position, empties are optional,
+// the popup's changes are live and cancel puts everything back
+{
+  const registry = new ParamRegistry(), defs = structuredClone(instruments);
+  for (const [id, def] of Object.entries(defs)) compile(def.graph, { instrument: id, nodeTypes: NODE_TYPES, registry });
+  const lanes = prepareSong(demoSong, defs, registry), editor = createEditor(lanes, 32);
+  let onKey, run = null;
+  const view = createTrackerView({
+    showCurve: opts => { run = opts; opts.onChange(opts.curve); }, el: { addEventListener: (type, f) => { if (type === 'keydown') onKey = f; }, innerHTML: '' }, statusEl: {},
+    transport: new Int32Array(new SharedArrayBuffer(8)), onToggle() {}, onBack() {},
+  });
+  uiConfig.set('arrowStyle', 'cell');
+  view.load({ lanes, song: demoSong, editor });
+  const press = (key, extra = {}) => onKey({ key, preventDefault() {}, ...extra });
+  const lane = lanes[0], vc = lane.columns.findIndex(c => c.token === '2hex');
+  const set = (t, v) => editor.setCell(0, t, vc, v);
+  const col = () => lane.rows.slice(0, 9).map(r => r[vc]);
+  for (let t = 0; t < 9; t++) set(t, '..');
+  set(1, '00'); set(2, '01'); set(5, '01'); set(8, 'FF');   // ends at rows 1 and 8, placeholders at 2 and 5
+  view.goto(0, 0);
+  for (let i = 0; i < vc; i++) press('ArrowRight');
+  press('ArrowDown'); for (let i = 0; i < 7; i++) press('ArrowDown', { shiftKey: true });
+  press('i', { ctrlKey: true });
+  assert.ok(run, 'Ctrl+I opens the curve popup');
+  const lin = col();
+  assert.equal(lin[1], '00'); assert.equal(lin[8], 'FF');
+  assert.equal(lin[2], '24', 'row 2 of 1..8 sits a seventh of the way: 255/7 is 36');
+  assert.ok(Math.abs(parseInt(lin[5], 16) - 255 * 4 / 7) <= 1, 'by row position, not by how many cells are filled');
+  assert.equal(lin[3], '..', 'empty cells stay empty');
+  // a bend, live
+  const { curve } = run;
+  curve.table = shapeTable('ease in'); run.onChange(curve);
+  assert.ok(parseInt(col()[5], 16) < parseInt(lin[5], 16), 'ease in is lower at the middle');
+  // including the empties
+  curve.empties = true; run.onChange(curve);
+  assert.notEqual(col()[3], '..', 'with empties included the gaps fill too');
+  assert.equal(col()[0], '..', 'but nothing outside the ends');
+  // cancel puts it all back
+  run.onCancel();
+  assert.deepEqual(col(), ['..', '00', '01', '..', '..', '01', '..', '..', 'FF'], 'cancel restores the cells');
+  // a wave on top, then accept: one undo step
+  press('i', { ctrlKey: true });
+  run.curve.empties = false; run.curve.cycles = 2; run.curve.depth = 0.2; run.onChange(run.curve);
+  run.onAccept();
+  const waved = col();
+  assert.notEqual(waved[5], '01');
+  press('z', { ctrlKey: true });
+  assert.deepEqual(col(), ['..', '00', '01', '..', '..', '01', '..', '..', 'FF'], 'the whole thing is one undo step');
+  console.log('ok: interpolation curve');
+}
+
+// Nugget mode: after Ctrl+Left/Right, plain Left/Right stay inside the cell until its edge; Up/Down keep the position
+{
+  const registry = new ParamRegistry(), defs = structuredClone(instruments);
+  for (const [id, def] of Object.entries(defs)) compile(def.graph, { instrument: id, nodeTypes: NODE_TYPES, registry });
+  const lanes = prepareSong(demoSong, defs, registry), editor = createEditor(lanes, 32);
+  let onKey;
+  const view = createTrackerView({ el: { addEventListener: (type, f) => { if (type === 'keydown') onKey = f; }, innerHTML: '' }, statusEl: {}, transport: new Int32Array(new SharedArrayBuffer(8)), onToggle() {}, onBack() {} });
+  uiConfig.set('arrowStyle', 'cell');
+  view.load({ lanes, song: demoSong, editor });
+  const press = (key, extra = {}) => onKey({ key, preventDefault() {}, ...extra });
+  const at = () => `${view.col}:${view.ch}`;   // the lane the demo opens on
+  view.goto(0, 0);
+  assert.equal(at(), '0:0');
+  press('ArrowRight', { ctrlKey: true });
+  assert.equal(at(), '0:1', 'Ctrl+Right enters the cell');
+  press('ArrowRight'); assert.equal(at(), '0:2', 'plain Right stays inside');
+  press('ArrowLeft'); press('ArrowLeft'); assert.equal(at(), '0:0', 'and Left too, back to the first character');
+  press('ArrowDown'); assert.equal(at(), '0:0');
+  press('ArrowRight'); assert.equal(at(), '0:1', 'still in nugget mode after a row change');
+  press('ArrowRight'); press('ArrowRight');
+  assert.equal(at(), '1:0', 'past the last character it crosses to the first character of the next cell');
+  press('ArrowRight'); assert.equal(at(), '2:0', 'and the mode is over: whole cells again');
+  press('ArrowRight', { ctrlKey: true }); press('ArrowLeft'); press('ArrowLeft');
+  assert.equal(at(), '1:0', 'from the first character, Left crosses to the first character of the previous cell');
+  uiConfig.set('arrowStyle', 'char');
+  console.log('ok: nugget mode');
 }

@@ -8,6 +8,8 @@ import { esc } from './html.js';
 import { describeColumn } from './describe.js';
 import { placementAt } from './edit.js';
 import { showContextMenu } from '../ui/ctxmenu.js';
+import { showCurvePopup } from '../ui/curvepop.js';
+import { newCurve, sampleTable } from './curve.js';
 
 import { LOWER, UPPER } from './piano.js';
 const ROWS = { min: 6, max: 128, normal: 24 };   // rows shown at once
@@ -35,7 +37,7 @@ export function cellAt({ widths, x, line, top, len }) {
 // Keyboard-driven view of every lane side by side. The cursor sits on one character
 // of one cell. Edits go straight into the shared pages, so they are heard on the next
 // tick while the song plays. Call load() with the prepared lanes before drawing.
-export function createTrackerView({ showMenu = (e, items) => showContextMenu(e, items), random = Math.random, el, statusEl, transport, onToggle, onBack, onMove, onRow = () => {}, onNote = () => {}, onSong = () => {}, readParam = () => undefined, follow = () => false }) {
+export function createTrackerView({ showMenu = (e, items) => showContextMenu(e, items), showCurve = opts => showCurvePopup(opts), random = Math.random, el, statusEl, transport, onToggle, onBack, onMove, onRow = () => {}, onNote = () => {}, onSong = () => {}, readParam = () => undefined, follow = () => false }) {
   let lanes = null, len = 0, widths = [], editor = null, song = null;
   // Solo-edit: one placement of one pattern, shown on its own with its rows numbered from 0. Nothing else can be reached.
   // lo..hi is its span of song ticks; hi is the song's length when not in solo-edit and lo is 0.
@@ -48,6 +50,7 @@ export function createTrackerView({ showMenu = (e, items) => showContextMenu(e, 
   const showLo = () => (windowed() ? lo : 0), showHi = () => (windowed() ? hi : len);
   const cur = { lane: 0, tick: 0, col: 0, ch: 0 };
   let octave = 3, message = '';
+  let nugget = false;      // inside a cell: Left/Right step one character at a time until the next step would leave the cell
   let sel = null;          // { lane, tick, col }: the corner opposite the cursor, while a rectangle is selected
   let clipboard = null;    // rows of { token, cell } from the last copy
   let top = 0;             // the first tick on screen, as last drawn
@@ -157,6 +160,7 @@ export function createTrackerView({ showMenu = (e, items) => showContextMenu(e, 
     cur.lane = hopLane(d);
     snapCol();
     cur.ch = Math.min(cur.ch, cellWidth() - 1);
+    nugget = false;
   };
   // One character at a time, hopping to the next cell, column and lane at the ends.
   const moveChar = d => {
@@ -202,6 +206,13 @@ export function createTrackerView({ showMenu = (e, items) => showContextMenu(e, 
       cur.col = d > 0 ? cols[0] : cols.at(-1);
     }
     cur.ch = 0;
+    nugget = false;
+  };
+  // In nugget mode: one character inside the cell, and at either end the next step crosses into the neighbouring cell
+  // (which is entered at its first character, and the mode is over).
+  const nuggetStep = d => {
+    const to = cur.ch + d;
+    if (to >= 0 && to < cellWidth()) cur.ch = to; else moveCell(d);
   };
 
   // The selected rectangle (or just the cursor's cell): ticks t0..t1 and columns c0..c1 of one lane.
@@ -422,25 +433,63 @@ export function createTrackerView({ showMenu = (e, items) => showContextMenu(e, 
       : skipped ? 'Out of range.' : `No ${notes ? 'notes' : 'values'} to change (is there a pattern here?).`;
   };
 
-  // Fills the rows between the first and last row of the selection with a straight line from one end to the other,
-  // column by column. Notes, 2hex and 4hex columns take part; command and 1hex columns are left alone, and so is
-  // a column whose first or last cell is empty (or, for notes, is not a note).
-  const interpolate = () => {
-    const r = rect(), lane = lanes[r.lane], items = [];
-    if (r.t1 - r.t0 < 2) { message = 'Select at least three rows to interpolate between.'; return; }
+  // Interpolating (Ctrl+I): per column of the selection the first and the last cell that hold a value are the two ends, and
+  // the cells between them get values along a curve from one to the other, by row position (so uneven placeholders get
+  // the value that belongs at their row). By default only cells that already have a value are written; the popup can
+  // include the empty ones as well. Notes go by semitone, note-offs are left alone; command columns are skipped.
+  let curve = newCurve(), curveRun = null;
+  const curveTargets = (r, empties) => {
+    const lane = lanes[r.lane], out = [];
     for (let c = r.c0; c <= r.c1; c++) {
-      const kind = lane.columns[c].token, a = lane.rows[r.t0][c], b = lane.rows[r.t1][c];
-      if (kind === 'cmd' || kind === '1hex' || isBlank(a) || isBlank(b)) continue;
-      const isN = kind === 'note', va = isN ? noteSemitones(a) : parseInt(a, 16), vb = isN ? noteSemitones(b) : parseInt(b, 16);
-      if (va === null || vb === null || Number.isNaN(va) || Number.isNaN(vb)) continue;
-      for (let t = r.t0 + 1; t < r.t1; t++) {
-        const v = Math.round(va + ((vb - va) * (t - r.t0)) / (r.t1 - r.t0));
-        items.push({ tick: t, col: c, token: isN ? noteToken(v) : v.toString(16).toUpperCase().padStart(KINDS[kind].width, '0') });
+      const kind = lane.columns[c].token;
+      if (kind === 'cmd') continue;
+      const val = t => { const k = lane.rows[t][c]; if (isBlank(k)) return null; const v = kind === 'note' ? noteSemitones(k) : parseInt(k, 16); return v === null || Number.isNaN(v) ? null : v; };
+      let ta = -1, tb = -1;
+      for (let t = r.t0; t <= r.t1; t++) if (patternSpan(t) && val(t) !== null) { if (ta < 0) ta = t; tb = t; }
+      if (ta < 0 || tb <= ta) continue;
+      const ts = [];
+      for (let t = ta + 1; t < tb; t++) if (patternSpan(t) && (empties ? (kind !== 'note' || isBlank(lane.rows[t][c]) || val(t) !== null) : val(t) !== null)) ts.push(t);
+      out.push({ c, kind, ta, tb, va: val(ta), vb: val(tb), ts });
+    }
+    return out;
+  };
+  const curveItems = (r, cv) => {
+    const items = [];
+    for (const { c, kind, ta, tb, va, vb, ts } of curveTargets(r, cv.empties)) {
+      const top = 16 ** KINDS[kind].width - 1, span = vb !== va ? vb - va : (kind === 'note' ? 12 : Math.max(1, top / 4));
+      for (const t of ts) {
+        const x = (t - ta) / (tb - ta), y = sampleTable(cv.table, x), w = cv.cycles > 0 && cv.depth > 0 ? cv.depth * Math.sin(2 * Math.PI * cv.cycles * x) : 0;
+        const v = Math.round(va + (vb - va) * y + span * w);
+        try { items.push({ tick: t, col: c, token: kind === 'note' ? noteToken(Math.max(0, v)) : clamp(v, 0, top).toString(16).toUpperCase().padStart(KINDS[kind].width, '0') }); } catch { /* out of the note range: the cell stays */ }
       }
     }
-    const changed = items.length && editor.setCells(r.lane, items, 'interpolate');
-    message = changed ? `Interpolated ${items.length} cells.` : 'Nothing to interpolate: each column needs a value at both ends (command and 1hex columns are skipped).';
+    return items;
   };
+  const curveApply = () => {
+    const { r } = curveRun;
+    if (curveRun.applied) { editor.undo(); curveRun.applied = false; }
+    const items = curveItems(r, curve), changed = items.length && editor.setCells(r.lane, items, 'interpolate');
+    curveRun.applied = !!changed;
+    message = changed ? `Interpolating ${items.length} cells.` : 'Nothing to write: needs a value at both ends of a column (tick "include empty cells" to fill the gaps).';
+    draw();
+  };
+  const interpolate = () => {
+    const r = rect();
+    if (r.t1 - r.t0 < 2) { message = 'Select at least three rows to interpolate between.'; return; }
+    const targets = curveTargets(r, true);
+    if (!targets.length) { message = 'Nothing to interpolate: each column needs a value at both ends (command columns are skipped).'; return; }
+    const box = el.getBoundingClientRect?.() ?? { left: 80, top: 80 };
+    curveRun = { r, applied: false };
+    const xs = [...new Set(targets.flatMap(t => t.ts.map(row => (row - t.ta) / (t.tb - t.ta))))];
+    const close = () => { curveRun = null; el.focus?.(); draw(); };
+    showCurve({
+      curve, xs, anchor: { x: (box.right ?? box.left + 600) - 350, y: box.top + 40 },
+      onChange: cv => { curve = cv; if (curveRun) curveApply(); },
+      onAccept: () => { message = curveRun?.applied ? 'Interpolated.' : message; close(); },
+      onCancel: () => { if (curveRun?.applied) editor.undo(); message = 'Interpolation cancelled.'; close(); },
+    });
+  };
+
 
   // Takes a parameter's live value (a slider, or whatever the song last wrote) and turns it into the cell that would
   // write it back: the inverse of how the sequencer reads a cell. Ctrl+Enter writes it into the cursor's cell and moves
@@ -472,7 +521,7 @@ export function createTrackerView({ showMenu = (e, items) => showContextMenu(e, 
   // After typing a character: the next character, or the next row after the last one.
   const advance = () => {
     if (cur.ch + 1 < cellWidth()) cur.ch += 1;
-    else { cur.ch = 0; moveRow(1); }
+    else { cur.ch = 0; nugget = false; moveRow(1); }
   };
 
   // Returns true if the key was used.
@@ -491,7 +540,7 @@ export function createTrackerView({ showMenu = (e, items) => showContextMenu(e, 
         }
         if (write(next)) {
           if (preview && note !== null) startSound(k, note);   // before the cursor moves: the velocity is read from this row
-          cur.ch = 0; moveRow(1);
+          cur.ch = 0; nugget = false; moveRow(1);
         }
         return true;
       }
@@ -540,6 +589,7 @@ export function createTrackerView({ showMenu = (e, items) => showContextMenu(e, 
     const was = [cur.lane, cur.tick];
     Object.assign(cur, hit);
     sel = null;
+    nugget = false;
     dragging = { lane: hit.lane, tick: hit.tick, col: hit.col };
     message = '';
     el.focus?.();
@@ -587,7 +637,7 @@ export function createTrackerView({ showMenu = (e, items) => showContextMenu(e, 
         return;
       }
       if (key === 'arrowup' || key === 'arrowdown') { transpose(true, key === 'arrowup' ? 1 : -1, e.shiftKey); e.preventDefault(); return; }
-      if (key === 'arrowleft' || key === 'arrowright') { moveChar(key === 'arrowright' ? 1 : -1); e.preventDefault(); return; }   // one character inside the cell
+      if (key === 'arrowleft' || key === 'arrowright') { moveChar(key === 'arrowright' ? 1 : -1); nugget = true; e.preventDefault(); return; }   // one character inside the cell
       if (key === ',' || key === '.' || key === '<' || key === '>') { transpose(false, key === '.' || key === '>' ? 1 : -1, key === '<' || key === '>'); e.preventDefault(); return; }
       if (key === 'h' && e.shiftKey) {   // hide or show the empty columns of the lane the cursor is in
         const li = cur.lane, on = !compact.has(li);
@@ -669,8 +719,8 @@ export function createTrackerView({ showMenu = (e, items) => showContextMenu(e, 
     switch (k) {
       case 'ArrowUp': moveRow(-1); break;
       case 'ArrowDown': moveRow(1); break;
-      case 'ArrowLeft': if (config.get('arrowStyle') === 'cell') moveCell(-1); else if (e.repeat) moveColumn(-1); else moveChar(-1); break;
-      case 'ArrowRight': if (config.get('arrowStyle') === 'cell') moveCell(1); else if (e.repeat) moveColumn(1); else moveChar(1); break;
+      case 'ArrowLeft': if (config.get('arrowStyle') === 'cell') { if (nugget) nuggetStep(-1); else moveCell(-1); } else if (e.repeat) moveColumn(-1); else moveChar(-1); break;
+      case 'ArrowRight': if (config.get('arrowStyle') === 'cell') { if (nugget) nuggetStep(1); else moveCell(1); } else if (e.repeat) moveColumn(1); else moveChar(1); break;
       case 'Tab':
         if (solo) {
           soloStyle = soloStyle === 'window' ? 'hatch' : 'window';
@@ -845,5 +895,5 @@ export function createTrackerView({ showMenu = (e, items) => showContextMenu(e, 
 
   const setRows = n => { rowCount = Math.max(ROWS.min, Math.min(ROWS.max, Math.round(n))); draw(); return rowCount; };
   const lineHeight = () => (lanes ? metrics().lh : 18);
-  return { draw, load, goto, enterSolo, relayout, say: m => { message = m; }, setSize, setRows, lineHeight, get rows() { return rowCount; }, get fontPx() { return fontPx; }, get tick() { return cur.tick; }, get lane() { return cur.lane; }, get col() { return cur.col; }, stepRows: n => { moveRow(n); }, get preview() { return preview; } };
+  return { draw, load, goto, enterSolo, relayout, say: m => { message = m; }, setSize, setRows, lineHeight, get rows() { return rowCount; }, get fontPx() { return fontPx; }, get tick() { return cur.tick; }, get lane() { return cur.lane; }, get col() { return cur.col; }, get ch() { return cur.ch; }, stepRows: n => { moveRow(n); }, get preview() { return preview; } };
 }

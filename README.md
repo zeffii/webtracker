@@ -195,3 +195,6 @@ Pattern editor. Ctrl+Delete deletes the selected cells and pulls the cells below
 
 ## Snappier grid, subtler playhead (m211)
 The pattern grid keeps one element per row and rewrites only the rows whose markup changed. The playhead is now a faint overlay band by default (Config > Playhead: band, line or the old > marker), so playback never rewrites the grid text.
+
+## Interpolation curve, nugget mode (m212)
+Ctrl+I: per column of the selection the first and last filled cells are the ends, and the filled cells between them get values by row position (notes by semitone). The popup picks a shape (linear, ease in/out, s-curve, exponential, steps), bends it, adds a wave (cycles, depth), lets you paint your own curve, and can include empty cells. Dots on the curve are the cells that will change. The grid updates live; Enter applies, Esc cancels; one undo step. Nugget mode: Ctrl+Left/Right goes inside a cell; then plain Left/Right stay inside until the next step would cross its edge, and Up/Down keep the character position.
