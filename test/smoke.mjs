@@ -319,7 +319,7 @@ const firstSound = x => x.findIndex(v => Math.abs(v) > 1e-9);
   const lanes = prepareSong(demoSong, instruments, registry);
   let onKey;
   const el = { addEventListener: (type, f) => { if (type === 'keydown') onKey = f; else if (type === 'wheel') onWheel = f; }, innerHTML: '' };
-  const statusEl = { textContent: '' };
+  const statusEl = { textContent: '', set innerHTML(h) { this.html = h; this.textContent = h.replace(/<[^>]+>/g, ' ').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&'); } };
   let toggled = 0;
   const view = createTrackerView({ el, statusEl, transport: new Int32Array(new SharedArrayBuffer(8)), onToggle: () => {}, onRow: t => { toggled = t + 1; }, onBack() {} });
   view.load({ lanes, song: demoSong, editor: createEditor(lanes, demoSong.length) });
@@ -2729,7 +2729,7 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   const lanes = prepareSong(demoSong, instruments, reg2);
   let onKey, backs = 0;
   const el = { addEventListener: (type, f) => { if (type === 'keydown') onKey = f; }, innerHTML: '' };
-  const statusEl = { textContent: '' };
+  const statusEl = { textContent: '', set innerHTML(h) { this.html = h; this.textContent = h.replace(/<[^>]+>/g, ' ').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&'); } };
   const view = createTrackerView({ el, statusEl, transport: new Int32Array(new SharedArrayBuffer(8)), onToggle() {}, onBack: () => backs++ });
   view.load({ lanes, song: demoSong, editor: createEditor(lanes, demoSong.length) });
   const press = (key, times = 1, extra = {}) => { for (let i = 0; i < times; i++) onKey({ key, preventDefault() {}, ...extra }); };
@@ -4045,7 +4045,7 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   const lanes = prepareSong(demoSong, instruments, registry);
   const editor = createEditor(lanes, 32);
   let onKey;
-  const el = { addEventListener: (type, f) => { if (type === 'keydown') onKey = f; else if (type === 'wheel') onWheel = f; }, innerHTML: '' }, statusEl = { textContent: '' };
+  const el = { addEventListener: (type, f) => { if (type === 'keydown') onKey = f; else if (type === 'wheel') onWheel = f; }, innerHTML: '' }, statusEl = { textContent: '', set innerHTML(h) { this.html = h; this.textContent = h.replace(/<[^>]+>/g, ' ').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&'); } };
   const view = createTrackerView({ el, statusEl, transport: new Int32Array(new SharedArrayBuffer(8)), onToggle() {}, onBack() {} });
   view.load({ lanes, song: demoSong, editor });
   const press = (key, extra = {}) => onKey({ key, preventDefault() {}, ...extra });
@@ -4869,6 +4869,10 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   assert.match(describeColumn(lane, 3, cut), /held FF = 18 kHz$/, 'a blank cell shows the last value above it');
   assert.match(describeColumn(lane, 1, cut), /FF = 18 kHz$/, 'a filled cell shows its own');
   assert.match(describeColumn(lane, 0, 1), /^Velocity · 00 to FF$/);
+  { const { describeParts } = await import('../src/seq/describe.js');
+    const parts = describeParts(lane, 1, cut);
+    assert.match(parts.name, /^Cutoff/); assert.match(parts.value, /kHz/); assert.ok(parts.frac > 0.9 && parts.frac <= 1, 'where FF sits in the range');
+    assert.equal(describeParts(lane, 0, 1).value, null, 'an empty velocity has no value'); }
   lane.rows[2][5] = '.';
   const cmd = cols.length - 1;
   lane.rows[2][cmd] = '010000';
@@ -5036,7 +5040,7 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   const lanes = prepareSong(song, instruments, registry);
   let onKey, backs = 0;
   const el = { addEventListener: (type, f) => { if (type === 'keydown') onKey = f; }, innerHTML: '' };
-  const statusEl = { textContent: '' };
+  const statusEl = { textContent: '', set innerHTML(h) { this.html = h; this.textContent = h.replace(/<[^>]+>/g, ' ').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&'); } };
   const view = createTrackerView({ el, statusEl, transport: new Int32Array(new SharedArrayBuffer(8)), onToggle() {}, onBack: () => { backs++; } });
   view.load({ lanes, song, editor: createEditor(lanes, song.length) });
   const press = (key, extra = {}) => onKey({ key, preventDefault() {}, ...extra });
@@ -5814,13 +5818,13 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   press('Home');
   press('ArrowDown', { shiftKey: true }, 7);
   const sorted = a => a.slice().sort();
-  const pick = label => { menu = null; press('k', { ctrlKey: true }); const item = menu.find(m => m.label.startsWith(label)); item.run(); };
+  const pick = label => { menu = null; press('r', { ctrlKey: true }); const item = menu.find(m => m.label.startsWith(label)); item.run(); };
   pick('Shuffle the values');
   assert.deepEqual(sorted(notes().slice(0, 8)), sorted(orig.slice(0, 8)), 'a shuffle keeps the values');
   assert.notDeepEqual(notes().slice(0, 8), orig.slice(0, 8), 'in a new order');
   assert.deepEqual(notes().slice(8), orig.slice(8), 'and does not touch the next pattern');
   const first = notes().slice(0, 8);
-  press('K', { ctrlKey: true, shiftKey: true });
+  press('r', { altKey: true, code: 'KeyR' });
   assert.deepEqual(sorted(notes().slice(0, 8)), sorted(orig.slice(0, 8)), 'rolling again still keeps them');
   assert.notDeepEqual(notes().slice(0, 8), first, 'but gives a different order');
   press('z', { ctrlKey: true });
@@ -6207,5 +6211,28 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   assert.equal(parseProject(out).song.script, "tbin('x...', 'C-3')");
   assert.ok(!serializeProject({ song: { name: 's', bpm: 100, ticksPerBeat: 4, length: 32 }, instruments: {}, samples: {}, lanes: [] }).includes('"script"'));
   console.log('ok: script');
+}
+
+// Pattern editor: Ctrl+K steps the colour, the status bar has the column name and a meter
+{
+  const reg = new ParamRegistry();
+  for (const [id, d] of Object.entries(instruments)) compile(d.graph, { instrument: id, nodeTypes: NODE_TYPES, registry: reg });
+  const lanes = prepareSong(demoSong, instruments, reg);
+  let onKey;
+  const el = { addEventListener: (type, f) => { if (type === 'keydown') onKey = f; }, innerHTML: '' };
+  const statusEl = { textContent: '', set innerHTML(h) { this.html = h; this.textContent = h.replace(/<[^>]+>/g, ' ').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&'); } };
+  const view = createTrackerView({ el, statusEl, transport: new Int32Array(new SharedArrayBuffer(8)), onToggle() {}, onBack() {} });
+  view.load({ lanes, song: demoSong, editor: createEditor(lanes, demoSong.length) });
+  const key = (k, extra = {}) => onKey({ key: k, preventDefault() {}, ...extra });
+  const colorOf = () => lanes[0].patterns[placementAt(lanes[0], 0).puid].color;
+  const was = colorOf();
+  key('k', { ctrlKey: true });
+  assert.notEqual(colorOf(), was, 'Ctrl+K steps the colour');
+  view.draw(); assert.match(statusEl.textContent, /colour \d+ of 16|automatic colour/);
+  key('K', { ctrlKey: true, shiftKey: true });
+  assert.equal(colorOf(), was, 'Ctrl+Shift+K steps back');
+  view.draw();
+  assert.ok(statusEl.html.includes('class="pname"') && statusEl.html.includes('class="spos"'), 'two lines: the place and the column');
+  console.log('ok: pattern colour and status bar');
 }
 console.log('smoke test passed');

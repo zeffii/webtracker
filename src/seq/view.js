@@ -5,7 +5,7 @@ import { createPlayline } from '../ui/playline.js';
 import { patternColour } from '../ui/patcolor.js';
 import { KINDS, encodeCell, noteSemitones, noteToken } from './cells.js';
 import { esc } from './html.js';
-import { describeColumn } from './describe.js';
+import { describeColumn, describeParts } from './describe.js';
 import { placementAt } from './edit.js';
 import { showContextMenu } from '../ui/ctxmenu.js';
 import { showCurvePopup } from '../ui/curvepop.js';
@@ -52,6 +52,7 @@ export function createTrackerView({ showMenu = (e, items) => showContextMenu(e, 
   let octave = 3, message = '';
   let paused = false, lastAuto = null;   // following the song, and the row it last put the caret on
   let nugget = false;      // inside a cell: Left/Right step one character at a time until the next step would leave the cell
+  let lastStatus = '';
   let sel = null;          // { lane, tick, col }: the corner opposite the cursor, while a rectangle is selected
   let clipboard = null;    // rows of { token, cell } from the last copy
   let top = 0;             // the first tick on screen, as last drawn
@@ -326,8 +327,8 @@ export function createTrackerView({ showMenu = (e, items) => showContextMenu(e, 
     message = changed ? `Rotated the selection ${dir < 0 ? 'up' : 'down'}.` : 'Nothing to rotate.';
   };
 
-  // Randomizing the selection (Ctrl+K opens the menu). Every new value is one the column already holds in the selection,
-  // or a small step from one, so the cells stay valid and the spread is kept. Ctrl+Shift+K rolls again from the cells as
+  // Randomizing the selection (Ctrl+R opens the menu). Every new value is one the column already holds in the selection,
+  // or a small step from one, so the cells stay valid and the spread is kept. Alt+R rolls again from the cells as
   // they were before the first roll; any other key accepts the result.
   let roll = null;
   const MODES = {
@@ -619,6 +620,10 @@ export function createTrackerView({ showMenu = (e, items) => showContextMenu(e, 
       draw();
       return;
     }
+    if (lanes && e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey && e.code === 'KeyR') {   // Alt+R: roll the randomize again, from the cells as they were before the first roll
+      if (roll) rollOnce(); else message = 'Nothing to roll again: use Ctrl+R first.';
+      e.preventDefault(); return;
+    }
     if (e.altKey && !e.ctrlKey && !e.metaKey && e.code === 'KeyT') {   // Alt+T: tint the patterns by colour, or not
       const on = !tint; config.set('patternTint', on); message = on ? 'Pattern tint on.' : 'Pattern tint off.';
       e.preventDefault(); return;
@@ -660,10 +665,13 @@ export function createTrackerView({ showMenu = (e, items) => showContextMenu(e, 
       }
       if (key === 'delete') { shiftRows(true); e.preventDefault(); return; }
       if (key === 'insert') { shiftRows(false); e.preventDefault(); return; }
-      if (key === 'k') {   // Ctrl+K: the randomize menu; Ctrl+Shift+K: roll again
-        if (e.shiftKey) { if (roll) rollOnce(); else message = 'Nothing to roll again: use Ctrl+K first.'; } else randomMenu();
+      if (key === 'k') {   // Ctrl+K: the next colour for the pattern under the cursor; Ctrl+Shift+K the previous one
+        const ok = editor.color(cur.lane, solo ? solo.start : cur.tick, e.shiftKey ? -1 : 1);
+        const pat = ok && lanes[cur.lane].patterns[placementAt(lanes[cur.lane], solo ? solo.start : cur.tick).puid];
+        message = !ok ? 'No pattern here.' : Number.isInteger(pat.color) ? `${patternName()}: colour ${pat.color + 1} of 16.` : `${patternName()}: automatic colour.`;
         e.preventDefault(); return;
       }
+      if (key === 'r' && !e.shiftKey && !e.altKey) { randomMenu(); e.preventDefault(); return; }   // Ctrl+R: the randomize menu (Ctrl+Shift+R is Rec, in main.js)
       if (key === 'g' && !e.shiftKey) {   // this placement gets its own copy of its pattern, so editing it no longer changes the others
         message = editor.clone(cur.lane, solo ? solo.start : cur.tick) ? `${patternName()} is now this placement's own copy.` : 'No pattern here.';
         sel = null;
@@ -873,11 +881,18 @@ export function createTrackerView({ showMenu = (e, items) => showContextMenu(e, 
         else if (c.right + pad > box.right) el.scrollLeft += c.right + pad - box.right;
       }
     }
-    statusEl.textContent = [
+    // Two lines: where the cursor is, small; and under it the column's name large, with a meter for where the value sits in
+    // its range, the value, and the range and the hex it is written as.
+    const where1 = [
       solo && `SOLO${lanes[solo.lane].placements.filter(p => p.puid === solo.puid).length > 1 ? ` (shared by ${lanes[solo.lane].placements.filter(p => p.puid === solo.puid).length} placements)` : ''}`,
-      lanes[cur.lane].id, compact.has(cur.lane) ? 'empty columns hidden' : '', `row ${cur.tick - base}`, patternName(), describeColumn(lanes[cur.lane], cur.tick, cur.col), `char ${cur.ch + 1}/${cellWidth()}`, preview ? 'preview on' : '',
-      sel ? `selected ${size(rect())}` : '', `octave ${octave}`, message,
+      lanes[cur.lane].id, compact.has(cur.lane) ? 'empty columns hidden' : '', `row ${cur.tick - base}`, patternName(), `char ${cur.ch + 1}/${cellWidth()}`, preview ? 'preview on' : '',
+      sel ? `selected ${size(rect())}` : '', `octave ${octave}`,
     ].filter(Boolean).join(' · ');
+    const d = describeParts(lanes[cur.lane], cur.tick, cur.col);
+    const cellKind = lanes[cur.lane].columns[cur.col].kind;
+    const meter = d.frac === null ? '' : `<span class="pmeter" aria-hidden="true"><i style="width:${Math.max(0, Math.min(1, d.frac)) * 100}%"></i></span>`;
+    const html = `<span class="spos">${esc(where1)}${message ? ` · <b>${esc(message)}</b>` : ''}</span><span class="sparam k-${esc(cellKind)}"><span class="pname">${esc(d.name)}</span>${meter}${d.value === null ? '' : `<span class="pval">${esc(d.value)}</span>`}<span class="prng">${esc(d.details.join(' · '))}</span></span>`;
+    if (html !== lastStatus) { lastStatus = html; statusEl.innerHTML = html; }
   };
 
   const goto = (laneIdx, tick) => {

@@ -242,3 +242,5 @@ Ctrl+Enter runs the selected code, or all of it; Ctrl+Alt+R in the pattern edito
 
 Not yet: the function table (`0x01: acidLine`) for running functions from the pattern editor or a script node, first-play hooks, and scripting the arrangement.
 
+Pattern editor (m228): the status bar has two lines. The cursor's place (lane, row, pattern, character, octave, selection, messages) is small on top; under it the name of the column is large, with a meter for where the value sits in its range, the value in real units, and the range and the hex it is written as. Ctrl+K steps the colour of the pattern under the cursor through the 16 colours and back to automatic (Ctrl+Shift+K backwards); the randomize menu is Ctrl+R, and Alt+R rolls it again from the cells as they were before the first roll. Arming MIDI recording is Ctrl+Shift+R (it was Alt+R). The built-in demo song is the updated one.
+

@@ -68,11 +68,11 @@ const tabs = createTabs({
 document.addEventListener('keydown', e => {
   if (tabs.handleKey(e)) return;
   const here = () => (tabs.active === 'arrange' ? seqView : view).tick;   // the row the cursor is on
-  // Alt+R arms and disarms MIDI recording; Alt+V switches MIDI velocity on and off.
-  if (e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey && (e.code === 'KeyR' || e.code === 'KeyV') && project) {
+  // Ctrl+Shift+R arms and disarms MIDI recording; Alt+V switches MIDI velocity on and off.
+  if (e.ctrlKey && e.shiftKey && !e.altKey && !e.metaKey && e.code === 'KeyR' && project) { e.preventDefault(); setRecording(!recording); return; }
+  if (e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey && e.code === 'KeyV' && project) {
     e.preventDefault();
-    if (e.code === 'KeyR') setRecording(!recording);
-    else { const on = !config.get('midiVelocity'); config.set('midiVelocity', on); midiSay(on ? 'MIDI velocity on: key velocity is played and written.' : 'MIDI velocity off: the default volume, nothing written.'); }
+    const on = !config.get('midiVelocity'); config.set('midiVelocity', on); midiSay(on ? 'MIDI velocity on: key velocity is played and written.' : 'MIDI velocity off: the default volume, nothing written.');
     return;
   }
   // Alt+Up / Alt+Down: the song's tempo, 1 bpm at a time (10 with Shift).

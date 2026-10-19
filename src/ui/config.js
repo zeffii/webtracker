@@ -11,7 +11,7 @@ export const GROUPS = {
   Playing: 'How the grids behave while the song runs.',
   Editing: 'Defaults for solo-edit, lanes and inserting silence.',
   Sample: 'Post-transient resynthesis (right click in the sample display): the attack stays a real sample and the rest is rebuilt from synth branches.',
-  MIDI: 'A MIDI keyboard plays the machine under the cursor, enters notes in the pattern editor and records into patterns while the song plays (Rec, Alt+R). Chrome and Edge only.',
+  MIDI: 'A MIDI keyboard plays the machine under the cursor, enters notes in the pattern editor and records into patterns while the song plays (Rec, Ctrl+Shift+R). Chrome and Edge only.',
 };
 
 // type: bool | int | choice. `legacy` is the older single-purpose localStorage key, read once to carry settings over.

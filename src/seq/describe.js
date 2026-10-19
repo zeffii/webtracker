@@ -21,6 +21,44 @@ const unscale = (c, denom, v) => {
 // The range of a parameter as text: "20 Hz to 20 kHz (log)".
 const rangeText = c => `${display(c.type, spec(c), c.min)} to ${display(c.type, spec(c), c.max)}${c.log ? ' (log)' : ''}`;
 
+// The same, in parts for the status bar: { name, details: [text], value: the real value as text or null, frac: where the
+// value sits in its range (0 to 1) or null }.
+export function describeParts(lane, tick, ci) {
+  const c = lane.columns[ci], token = lane.rows[tick]?.[ci];
+  const out = { name: c.long ?? c.label, details: [], value: null, frac: null };
+  const width = KINDS[c.token].width;
+  if (c.kind === 'param') {
+    out.details.push(rangeText(c));
+    let hex = token, note = '';
+    if (isBlank(token)) {
+      hex = null;
+      for (let t = tick - 1; t >= 0 && hex === null; t--) if (!isBlank(lane.rows[t]?.[ci])) { hex = lane.rows[t][ci]; note = 'held '; }
+      if (hex === null) { hex = hexOf(unscale(c, c.denom, c.dflt), width); note = 'default '; }
+    }
+    out.value = display(c.type, spec(c), scale(c, c.denom, parseInt(hex, 16)));
+    out.frac = parseInt(hex, 16) / c.denom;
+    out.details.push(`${note}${hex}`);
+  } else if (c.kind === 'vel' || c.kind === 'trig') {
+    out.details.push(c.kind === 'vel' ? '00 to FF' : '1 to F (0 is nothing)');
+    if (!isBlank(token)) {
+      out.frac = parseInt(token, 16) / (c.kind === 'vel' ? 255 : 15);
+      out.value = `${Math.round(out.frac * 100)}%`;
+      out.details.push(token);
+    }
+  } else if (c.kind === 'cmd') {
+    const id = isBlank(token) ? null : parseInt(token.slice(0, 2), 16), t = id === null ? null : c.commands.find(x => x.id === id);
+    if (t) {
+      out.details.push(`${token.slice(0, 2)}: ${t.name}`, rangeText(t));
+      const raw = parseInt(token.slice(2), 16);
+      out.value = display(t.type, spec(t), scale(t, 65535, raw));
+      out.frac = raw / 65535;
+      out.details.push(token.slice(2));
+    } else if (id === 0 && c.presets.length) { out.details.push('00: recall preset'); out.value = `number ${parseInt(token.slice(2), 16)}`; }
+    else out.details.push('CC = command, XXXX = value');
+  }
+  return out;
+}
+
 export function describeColumn(lane, tick, ci) {
   const c = lane.columns[ci], token = lane.rows[tick]?.[ci];
   const parts = [c.long ?? c.label];
