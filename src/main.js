@@ -1,5 +1,6 @@
 import { Engine } from './audio/engine.js';
 import { NODE_TYPES } from './audio/nodes/index.js';
+import { helpPage } from './graph/help.js';
 import { pruneDef } from './graph/edit.js';
 import { createPatcher } from './graph/patcher.js';
 import { createInsertMenu } from './graph/menu.js';
@@ -66,6 +67,7 @@ const tabs = createTabs({
   ],
 });
 document.addEventListener('keydown', e => {
+  if (e.key === 'F1' && !e.ctrlKey && !e.altKey && !e.metaKey && !e.shiftKey && tabs.active === 'instruments' && (!nodeHelp.hidden ? (hideHelp(), true) : patcher.helpSelected())) { e.preventDefault(); return; }   // F1 on the instrument screen shows or hides the help of the selected node
   if (tabs.handleKey(e)) return;
   const here = () => (tabs.active === 'arrange' ? seqView : view).tick;   // the row the cursor is on
   // Ctrl+Shift+R arms and disarms MIDI recording; Alt+V switches MIDI velocity on and off.
@@ -262,7 +264,25 @@ const midiIn = createMidiInput({
 config.onChange(k => { if (k === 'midiOn') midiIn.enable(config.get('midiOn')); });
 if (config.get('midiOn')) midiIn.enable(true);
 
+// The help page of a node (F1 with a node selected, or the ? on its parameter window): a panel over the instrument screen.
+const nodeHelp = $('node-help');
+function showHelp(type) {
+  const def = NODE_TYPES[type];
+  if (!def) return;
+  const page = helpPage(type, def);
+  $('node-help-title').textContent = page.title;
+  $('node-help-body').innerHTML = page.html;
+  nodeHelp.hidden = false;
+  $('node-help-body').scrollTop = 0;
+  nodeHelp.focus();
+}
+function hideHelp() { if (nodeHelp.hidden) return false; nodeHelp.hidden = true; $('patch').focus(); return true; }
+nodeHelp.addEventListener('keydown', e => { if (e.key === 'Escape' || e.key === 'F1') { e.preventDefault(); e.stopPropagation(); hideHelp(); } });
+$('node-help-close').addEventListener('click', hideHelp);
 const patcher = createPatcher({
+  onHelp: showHelp,
+  // the song's tick, for the lines on time and rate sliders: how long it is, how many make a beat, whether to show them and snap to them
+  getTiming: () => (project?.song ? { tickMs: 60000 / (project.song.bpm * project.song.ticksPerBeat), perBeat: project.song.ticksPerBeat, lines: config.get('tickLines'), snap: config.get('tickSnap') } : null),
   onNote: (id, note, on) => { if (!started) return; if (on) engine.noteOn(id, note, 1); else engine.noteOff(id, note); },
   canvas: $('patch'), panel: $('patch-panel'), paramPanel: $('patch-scroll'), exposedDock: $('exposed-scroll'), onEscape: () => $('inst-list').focus(), statusEl: $('patch-status'), nodeTypes: NODE_TYPES,
   onStructure: id => reloadInstrument(id),
@@ -1206,3 +1226,8 @@ $('start').addEventListener('click', async () => {
     $('status').textContent = err.message;
   }
 });
+
+// Ctrl+W closes the tab in a normal browser window and no page can stop that, so the page asks before it goes
+// (the "Leave site?" box); where the key does reach the page (installed app, fullscreen) it is swallowed.
+window.addEventListener('keydown', e => { if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && e.code === 'KeyW') e.preventDefault(); }, true);
+window.addEventListener('beforeunload', e => { e.preventDefault(); e.returnValue = ''; });

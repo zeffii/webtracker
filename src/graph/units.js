@@ -45,6 +45,7 @@ const TYPE_UNIT = {
   blur: { time: 'ms' },
   gater: { smooth: 'ms', depth: '%' },
   freqshift: { shift: 'Hz' },
+  specpan: { lowMono: 'Hz', rotate: '', spread: '%', mix: '%' },
 };
 for (const k of [1, 2, 3, 4]) {
   Object.assign(TYPE_UNIT.fmsynth, { [`ratio${k}`]: 'x', [`fine${k}`]: 'ct', [`atk${k}`]: 'ms', [`dec${k}`]: 'ms', [`rel${k}`]: 'ms' });

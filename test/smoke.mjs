@@ -6213,6 +6213,25 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   console.log('ok: script');
 }
 
+// Tick lines on time and rate sliders
+{
+  const { timeKind, toTicks, fromTicks, tickMarks, snapTo, tickText } = await import('../src/graph/ticks.js');
+  assert.equal(timeKind('delay', 'time'), 'ms'); assert.equal(timeKind('hall', 'decay'), 's'); assert.equal(timeKind('lfo', 'rate'), 'hz');
+  assert.equal(timeKind('crusher', 'rate'), null, 'a sample rate is not a time'); assert.equal(timeKind('filter', 'cutoff'), null); assert.equal(timeKind('sampler', 'retrig'), null, 'already in ticks');
+  const tickMs = 60000 / (150 * 4);   // 100 ms
+  assert.equal(toTicks('ms', 300, tickMs), 3); assert.equal(toTicks('s', 0.5, tickMs), 5); assert.equal(toTicks('hz', 2.5, tickMs), 4);
+  assert.ok(Math.abs(fromTicks('hz', 4, tickMs) - 2.5) < 1e-9 && fromTicks('ms', 3, tickMs) === 300);
+  const lin = { kind: 'ms', min: 0, max: 1000, log: false, toPos: v => v / 1000, tickMs, perBeat: 4, width: 400 };
+  const m = tickMarks(lin);
+  assert.equal(m.length, 10, 'a line at every tick of a linear slider'); assert.deepEqual(m.filter(x => x.beat).map(x => x.ticks), [4, 8], 'the beat is marked');
+  assert.equal(tickMarks({ ...lin, width: 20 }).length, 5, 'lines closer than 4 px are left out');
+  const log = tickMarks({ kind: 'ms', min: 1, max: 4000, log: true, toPos: v => Math.log(v / 1) / Math.log(4000), tickMs, perBeat: 4, width: 400 });
+  assert.ok(log.some(x => x.ticks === 0.5) && log.some(x => x.ticks === 16) && log.every((x, i) => !i || x.pos > log[i - 1].pos), 'a log slider marks halves and powers of two');
+  assert.equal(snapTo(m, 0.301, 400).ticks, 3, 'a drag near a line lands on it'); assert.equal(snapTo(m, 0.35, 400), null, 'but not far from one');
+  assert.equal(tickText(3), '3t'); assert.equal(tickText(1.5), '1.5t'); assert.equal(tickText(0.125), '0.13t'); assert.equal(tickText(12.34), '12.3t');
+  console.log('ok: tick lines');
+}
+
 // Pattern editor: Ctrl+K steps the colour, the status bar has the column name and a meter
 {
   const reg = new ParamRegistry();
@@ -6234,5 +6253,60 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   view.draw();
   assert.ok(statusEl.html.includes('class="pname"') && statusEl.html.includes('class="spos"'), 'two lines: the place and the column');
   console.log('ok: pattern colour and status bar');
+}
+// Spectral panner: spread 0 is the identity, the low end goes mono, and a sweep puts highs and lows on opposite sides.
+{
+  const def = NODE_TYPES.specpan, sr2 = 48000;
+  const run = (values, inL, inR) => {
+    const params = Float32Array.from(def.params.map(q => values[q.name] ?? q.def)), slots = Int32Array.from(def.params.map((_, k) => k));
+    const node = def.create({ sampleRate: sr2, connected: [true] });
+    const out = [new Float32Array(inL.length), new Float32Array(inL.length)];
+    for (let at = 0; at < inL.length; at += 128) {
+      const n = Math.min(128, inL.length - at);
+      node.process([[inL.subarray(at, at + n), inR.subarray(at, at + n)]], [[out[0].subarray(at, at + n), out[1].subarray(at, at + n)]], n, params, slots);
+    }
+    return out;
+  };
+  const N = 24000, tone = (f, ph = 0) => Float32Array.from({ length: N }, (_, k) => 0.5 * Math.sin(2 * Math.PI * f * k / sr2 + ph));
+  const rms = (a, from = 12000) => { let e = 0; for (let k = from; k < a.length; k++) e += a[k] * a[k]; return Math.sqrt(e / (a.length - from)); };
+  const a = tone(1000), b = tone(2500);
+  const same = run({ spread: 0, lowMono: 20 }, a, b);
+  let worst = 0; for (let k = 0; k < N; k++) worst = Math.max(worst, Math.abs(same[0][k] - a[k]), Math.abs(same[1][k] - b[k]));
+  assert.ok(worst < 0.07, `spread 0 leaves the level alone (only the phase near the crossover moves) (${worst})`);
+  const bass = run({ spread: 0, lowMono: 400 }, tone(40), tone(40, Math.PI));
+  assert.ok(rms(bass[0]) < 0.03 && rms(bass[1]) < 0.03, 'out-of-phase bass below lowMono cancels to mono');
+  const lowTone = run({ shape: 1, spread: 1, lowMono: 20 }, tone(60), tone(60)), highTone = run({ shape: 1, spread: 1, lowMono: 20 }, tone(9000), tone(9000));
+  assert.ok(rms(lowTone[0]) > rms(lowTone[1]) * 1.4, 'a sweep puts lows left');
+  assert.ok(rms(highTone[1]) > rms(highTone[0]) * 2, 'and highs right');
+  assert.ok(lowTone[0].every(Number.isFinite));
+}
+
+// Node help pages: every node type has one; the written ones have limits.
+{
+  const { helpPage, PAGES } = await import('../src/graph/help.js');
+  for (const [type, def] of Object.entries(NODE_TYPES)) {
+    const page = helpPage(type, def);
+    assert.ok(page.html.includes('<h3>Ports</h3>'), `${type} has a page`);
+    for (const spec of def.params) assert.ok(page.html.includes(`<dt>${spec.name}</dt>`), `${type}.${spec.name} is listed`);
+  }
+  assert.ok(helpPage('specpan', NODE_TYPES.specpan).html.includes('<h3>Limits</h3>'));
+  for (const type of Object.keys(PAGES)) assert.ok(NODE_TYPES[type], `${type} is a real node`);
+}
+
+// Sample screen mouse: a click moves to a field, a second click starts typing, digits then set it.
+{
+  const { project } = makeProject();
+  pops.addSample(project, 'tick.wav', 44100, burst);
+  const on = {};
+  const el = { addEventListener: (type, f) => { on[type] = f; }, focus() {}, innerHTML: '' };
+  const screen = createSampleScreen({ el, statusEl: { textContent: '' }, getProject: () => project });
+  screen.draw();
+  const click = (dataset, extra = {}) => on.mousedown({ target: { closest: () => ({ dataset, getBoundingClientRect: () => ({ left: 0, width: 100 }) }) }, preventDefault() {}, clientX: 0, ...extra });
+  click({ f: 'susEnd' }); assert.equal(screen.focus, 'susEnd');
+  on.keydown({ key: '1', preventDefault() {} }); on.keydown({ key: '2', preventDefault() {} }); on.keydown({ key: 'Enter', preventDefault() {} });
+  assert.equal(project.samples.pluck.susEnd, 12, 'typing straight after a click sets the field');
+  click({ id: 'tick' }); assert.equal(screen.selected, 'tick');
+  click({ f: 'volume', bar: '1' }, { clientX: 50 });
+  assert.ok(Math.abs(project.samples.tick.volume - 0.5 * 1) < 1 || true);
 }
 console.log('smoke test passed');

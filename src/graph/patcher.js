@@ -13,6 +13,7 @@ import { inputsOf, portKind, resolveKinds } from './kinds.js';
 import { eligibleSources } from './sidechain.js';
 import { factsFor, hintFor } from './hints.js';
 import { choices, display, unitOf } from './units.js';
+import { timeKind, toTicks, fromTicks, tickMarks, snapTo, tickText } from './ticks.js';
 import { createParamView } from './paramview.js';
 import { createCurveEditor } from './curveeditor.js';
 import { createTapEditor } from './tapeditor.js';
@@ -129,7 +130,7 @@ const toValue = (spec, pos) => {
 const toPos = (spec, v) => (isLog(spec) ? Math.log(v / spec.min) / Math.log(spec.max / spec.min) : (v - spec.min) / (spec.max - spec.min));
 const fmt = v => String(Number(v.toPrecision(4)));
 
-export function createPatcher({ canvas, panel, paramPanel = null, exposedDock = null, onScope = () => {}, onEscape = () => {}, statusEl, doc = document, nodeTypes, onStructure, onParam, onData = () => {}, onContext = () => {}, onNote = () => {}, getSampleIds = () => [], getSample = () => null, readLive = () => undefined }) {
+export function createPatcher({ getTiming = () => null, onHelp = () => {}, canvas, panel, paramPanel = null, exposedDock = null, onScope = () => {}, onEscape = () => {}, statusEl, doc = document, nodeTypes, onStructure, onParam, onData = () => {}, onContext = () => {}, onNote = () => {}, getSampleIds = () => [], getSample = () => null, readLive = () => undefined }) {
   let gateEditor = null;    // the step pattern of a trance gate, redrawn when its length moves
   let dxView = null;        // the bank loader and algorithm view of a DVIIloader
   let tapEditor = null;     // the tap view of a Shiva delay, redrawn when its parameters move
@@ -226,7 +227,7 @@ export function createPatcher({ canvas, panel, paramPanel = null, exposedDock = 
         if (type.editor === 'taps') tapEditor?.refresh();
         if (type.editor === 'gate') gateEditor?.refresh();
         if (type.editor === 'dx' && spec.name === 'voice') dxView?.refresh();
-        if (entry()) renderExposed();
+        if (entry()) exposedView?.refresh();   // repaint in place: rebuilding the dock would drop a drag that is under way
       };
       const names = choices(node.type, spec.name);
       return {
@@ -245,6 +246,18 @@ export function createPatcher({ canvas, panel, paramPanel = null, exposedDock = 
           return true;
         },
         hex: () => { const e = entry(); return e ? hexOf(spec, e, get()) : ''; },
+        // Song ticks on a time or rate slider: the value in ticks, the lines, and where a drag snaps to (see ticks.js).
+        ticks: (() => {
+          const kind = timeKind(node.type, spec.name);
+          if (!kind || spec.int) return null;
+          const log = isLog(spec);
+          return {
+            text: () => { const t = getTiming(); return t ? tickText(toTicks(kind, get(), t.tickMs)) : ''; },
+            marks: width => { const t = getTiming(); return t && t.lines ? tickMarks({ kind, min: spec.min, max: spec.max, log, toPos: v => toPos(spec, v), tickMs: t.tickMs, perBeat: t.perBeat, width }) : []; },
+            tempo: () => { const t = getTiming(); return t ? `${t.tickMs.toFixed(3)}|${t.perBeat}|${t.lines}` : ''; },
+            snap: (pos, width) => { const t = getTiming(); if (!t || !t.snap || !t.lines) return pos; const m = snapTo(tickMarks({ kind, min: spec.min, max: spec.max, log, toPos: v => toPos(spec, v), tickMs: t.tickMs, perBeat: t.perBeat, width }), pos, width); return m ? m.pos : pos; },
+          };
+        })(),
         step: spec.int ? 1 / span : 0.005,
         big: spec.int ? Math.max(1, Math.round(span / 10)) / span : 0.05,
         fine: spec.int ? 1 / span : 0.001,
@@ -370,7 +383,7 @@ export function createPatcher({ canvas, panel, paramPanel = null, exposedDock = 
     const type = nodeTypes[node.type];
     if (paramView) {
       if (shownNode && shownNode !== node.id) cursorMemo.set(shownNode, paramView.cursor);
-      paramView.show(`${node.id} · ${node.type}`, rowsFor(node, type), shownNode === node.id ? paramView.cursor : cursorMemo.get(node.id) ?? 0, '', { on: pinsOf().has(node.id), toggle: () => togglePin(node.id) }, pinnedList(node.id));
+      paramView.show(`${node.id} · ${node.type}`, rowsFor(node, type), shownNode === node.id ? paramView.cursor : cursorMemo.get(node.id) ?? 0, '', { on: pinsOf().has(node.id), toggle: () => togglePin(node.id), help: () => onHelp(node.type) }, pinnedList(node.id));
       shownNode = node.id;
     }
     const items = [];
@@ -1030,6 +1043,12 @@ export function createPatcher({ canvas, panel, paramPanel = null, exposedDock = 
   }
 
   return {
+    // F1 with a node selected: asks the page to show that node's help. Returns whether there was a node.
+    helpSelected() {
+      const node = selected?.kind === 'node' ? desc().nodes.find(n => n.id === selected.id) : null;
+      if (node) onHelp(node.type);
+      return !!node;
+    },
     // instruments: { id: { graph, exposed, commands?, samples? } }.
     load({ instruments: next }) {
       instruments = next;

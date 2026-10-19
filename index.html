@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="themes.css">
-  <title>webtracker m228</title>
+  <title>webtracker m232</title>
   <link rel="icon" href="icon.ico" sizes="any">
   <link rel="icon" type="image/png" href="icon.png">
   <style>
@@ -324,6 +324,17 @@
     .curve-presets { display: flex; flex-wrap: wrap; gap: 2px; margin: .25rem 0; max-width: 200px; }
     .curve-presets button { font: inherit; font-size: 11px; padding: 0 .35rem; }
     #patch-wrap { position: relative; }
+    #pane-instruments { position: relative; }
+    #node-help { position: absolute; z-index: 30; top: 8px; right: 8px; width: min(560px, calc(100% - 16px)); max-height: calc(100% - 16px); display: flex; flex-direction: column; background: var(--panel); color: var(--fg); border: 1px solid var(--line); box-shadow: 0 6px 24px rgba(0,0,0,.35); outline: none; }
+    #node-help[hidden] { display: none; }
+    #node-help-head { display: flex; gap: 12px; align-items: baseline; padding: 4px 10px; border-bottom: 1px solid var(--line); }
+    #node-help-head b { font-size: 15px; } #node-help-head span { flex: 1; opacity: .6; font-size: 11px; }
+    #node-help-body { overflow: auto; padding: 4px 12px 10px; line-height: 1.45; }
+    #node-help-body h3 { margin: 12px 0 2px; font-size: 12px; text-transform: uppercase; letter-spacing: .06em; opacity: .75; }
+    #node-help-body p { margin: 6px 0; } #node-help-body ul { margin: 2px 0; padding-left: 18px; } #node-help-body li { margin: 3px 0; }
+    #node-help-body dl { margin: 2px 0; } #node-help-body dt { font-weight: 700; margin-top: 6px; } #node-help-body dd { margin: 0 0 0 12px; opacity: .85; }
+    #node-help-body .hp-cat, #node-help-body .hp-none, #node-help-body .hp-f { opacity: .6; font-size: 12px; }
+    .pv-help { font-weight: 700; cursor: help; }
     #patch-params, #patch-exposed { position: absolute; top: 1px; right: 1px; width: 210px; max-height: 298px; display: flex; background: color-mix(in srgb, var(--bg) 94%, transparent); border: 1px solid; font: 11px/16px ui-monospace, Consolas, monospace; z-index: 5; user-select: none; container-type: inline-size; }
     #patch-exposed { right: auto; left: 1px; }
     #patch-scroll, #exposed-scroll { flex: 1; min-width: 0; overflow-y: auto; }
@@ -351,7 +362,15 @@
     .pv-bar { position: relative; height: 12px; margin: 0 4px 0 2px; border: 1px solid color-mix(in srgb, currentColor 40%, transparent); background: linear-gradient(to right, color-mix(in srgb, currentColor 22%, transparent) var(--p, 0%), transparent var(--p, 0%)); cursor: ew-resize; touch-action: none; }
     .pv-bar::after { content: ''; position: absolute; top: -1px; bottom: -1px; left: var(--p, 0%); width: 3px; margin-left: -2px; background: currentColor; opacity: .75; }
     .pv-val { position: absolute; left: 4px; right: 2px; top: -2px; line-height: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: none; }
-    .pv-hex { position: absolute; right: 4px; top: -2px; line-height: 14px; color: #f0707a; pointer-events: none; }
+    .pv-end { position: absolute; right: 4px; top: -2px; line-height: 14px; display: flex; gap: .8ch; pointer-events: none; }
+    .pv-hex { color: #f0707a; }
+    .pv-val, .pv-end { text-shadow: 0 0 3px var(--bg), 0 0 3px var(--bg); }   /* readable over the tick lines */
+    .pv-tv { color: #f0707a; opacity: .85; font-variant-numeric: tabular-nums; }
+    @container (max-width: 190px) { .pv-tv { display: none; } }
+    /* faint lines where song ticks fall on a time or rate slider, the beat stronger; the one under the value lights up */
+    .pv-tk { position: absolute; top: 0; bottom: 0; width: 1px; background: #f0707a; opacity: .45; pointer-events: none; z-index: 1; }
+    .pv-tk.beat { opacity: .85; }
+    .pv-tk.near { opacity: 1; width: 2px; margin-left: -.5px; }
     .pv-row.sel .pv-name { background: var(--hi); color: var(--hi-fg); }
     .pv-row.sel .pv-bar { border-color: var(--hi); }
     .pv-row.wired { opacity: .45; }
@@ -539,6 +558,10 @@
   </section>
 
   <section id="pane-instruments" class="pane keyed" hidden>
+    <div id="node-help" tabindex="-1" hidden role="dialog" aria-label="Node help">
+      <div id="node-help-head"><b id="node-help-title"></b><span>F1 or Esc closes</span><button id="node-help-close" type="button">Close</button></div>
+      <div id="node-help-body"></div>
+    </div>
     <div class="pane-main">
       <div id="inst-layout">
         <div id="inst-side">
@@ -608,6 +631,7 @@
           <dt>Up/Down</dt><dd>with a node selected: choose a parameter in its panel (PageUp/PageDown 8 rows)</dd>
           <dt>Left/Right</dt><dd>change the parameter (Shift bigger, Ctrl smaller); Home/End go to the ends</dd>
           <dt>Enter</dt><dd>menu for the parameter: type a value, reset, <b class="kw">expose</b> as a pattern column and its width, add a port (right-click a row does the same)</dd>
+          <dt>F1, ?</dt><dd>with a node selected: its <b class="kw">help</b> page (what it is for, how to get the most out of it, its limits)</dd>
           <dt>Piano keys</dt><dd>with a generator node (oscillator, sampler, synth) selected: <b class="kw">play</b> the instrument; [ ] change the <b class="kw">octave</b></dd>
           <dt>Delete, Ctrl+X</dt><dd><b class="kw">remove</b> the node or wire</dd>
           <dt>Shift+drag a node</dt><dd><b class="kw">take it out</b> of its chain (its neighbours are joined) and <b class="kw">move</b> it</dd>

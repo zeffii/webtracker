@@ -27,6 +27,8 @@ export const SCHEMA = [
   { group: 'Editing', key: 'graphPullOut', label: 'Graph: dragging a node far out of its chain takes it out', hint: 'the dashed line; off keeps every wire when you move a node (Esc during a drag does the same once)', type: 'bool', def: true },
   { group: 'Editing', key: 'arrowStyle', label: 'Left and Right move by', hint: 'Ctrl+Left/Right always move one character inside the cell', type: 'choice', options: ['cell', 'char'], labels: { cell: 'whole cells: to the start of the next column', char: 'one character at a time (a held key jumps by column)' }, def: 'cell' },
   { group: 'Editing', key: 'soloStyle', label: 'Solo-edit shows', type: 'choice', options: ['window', 'hatch'], labels: { window: 'the pattern on its own', hatch: 'the song, the rest hatched and locked' }, def: 'window', legacy: ['patternSoloStyle', v => (v === 'hatch' ? 'hatch' : 'window')] },
+  { key: 'tickLines', label: 'Time sliders: tick lines', hint: 'faint red lines where song ticks fall on time and rate parameters, and the value in ticks', type: 'bool', def: true },
+  { key: 'tickSnap', label: 'Time sliders: snap to tick lines', hint: 'a mouse drag lands on a line when it is close; hold Alt to drag freely', type: 'bool', def: true },
   { key: 'followLane', label: 'Instrument editor follows the cursor', hint: 'moving into another lane shows that lane\'s machine', type: 'bool', def: true },
   { key: 'insertLength', label: 'Insert silence: default length', hint: 'in ticks', type: 'int', min: 1, max: 65536, def: 128 },
   { key: 'insertCut', label: 'Insert silence: cut patterns across the cursor', hint: 'off: a pattern crossing the cursor row stays whole', type: 'bool', def: false },

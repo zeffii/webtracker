@@ -22,7 +22,7 @@ const SLIDERS = { volume: 'Default volume', globalVolume: 'Global volume', pan: 
 const LOOP_FIELDS = { loopOn: 'loop', loopBeg: 'loop', loopEnd: 'loop', loopXf: 'loop', susOn: 'sus', susBeg: 'sus', susEnd: 'sus', susXf: 'sus' };
 
 const esc = t => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-const seg = (text, cls) => ({ t: text.length, h: cls ? `<span class="${cls}">${esc(text)}</span>` : esc(text) });
+const seg = (text, cls, at = '') => ({ t: text.length, h: cls || at ? `<span${cls ? ` class="${cls}"` : ''}${at}>${esc(text)}</span>` : esc(text) });
 const line = (...segs) => segs.map(s => (typeof s === 'string' ? seg(s) : s)).reduce((a, s) => ({ t: a.t + s.t, h: a.h + s.h }), { t: 0, h: '' });
 const padTo = (l, n) => l.h + ' '.repeat(Math.max(0, n - l.t));
 const PIANO = { ...LOWER, ...UPPER };
@@ -295,6 +295,33 @@ export function createSampleScreen({ el, statusEl, getProject, onChange = () => 
   }
 
   el.addEventListener('keydown', key);
+
+  // The mouse: a click on a sample picks it; on a field it moves the cursor there (a second click on the field starts typing
+  // a value; digits typed straight after the first click do too); on a switch it flips it; on a slider bar it sets the value.
+  const commit = () => {
+    if (!edit) return;
+    const { field, buf } = edit;
+    edit = null;
+    if (field === 'name') attempt(() => { const next = renameSample(getProject(), sel, buf); const was = sel; sel = next; history.rename(was, next); onRename(was, next); });
+    else if (buf.trim() !== '' && Number.isFinite(Number(buf))) setField(field, Number(buf));
+  };
+  el.addEventListener('mousedown', e => {
+    const hit = e.target.closest?.('[data-f], [data-id]');
+    if (!hit || !sample()) return;
+    e.preventDefault();
+    el.focus();
+    if (hit.dataset.id) { commit(); select(hit.dataset.id); focus = 'list'; draw(); return; }
+    const field = hit.dataset.f, again = focus === field && !edit;
+    if (edit && edit.field !== field) commit();
+    focus = field;
+    if (field === 'view') { if (hit.dataset.mode !== mode) toggle('view'); }
+    else if (field === 'loopOn' || field === 'susOn') toggle(field);
+    else if (hit.dataset.bar) {
+      const r = hit.getBoundingClientRect(), spec = SAMPLE_PROPS[field];
+      setField(field, spec.min + Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)) * (spec.max - spec.min));
+    } else if (again) edit = { field, buf: field === 'name' ? sel : '' };
+    draw();
+  });
   el.addEventListener('keyup', e => stopNote(String(e.key).toLowerCase()));
   el.addEventListener('blur', () => { for (const code of [...held.keys()]) stopNote(code); });
 
@@ -302,15 +329,15 @@ export function createSampleScreen({ el, statusEl, getProject, onChange = () => 
   const fieldCell = (field, text, width, extra = '') => {
     const editing = edit?.field === field;
     const shown = editing ? `${edit.buf}_` : text;
-    return seg(shown.padEnd(width).slice(0, width), `sf${focus === field ? ' on' : ''}${editing ? ' ed' : ''}${extra}`);
+    return seg(shown.padEnd(width).slice(0, width), `sf${focus === field ? ' on' : ''}${editing ? ' ed' : ''}${extra}`, ` data-f="${field}"`);
   };
   const slider = field => {
     const s = sample(), spec = SAMPLE_PROPS[field], v = s[field] ?? spec.def;
     const editing = edit?.field === field;
     const fill = ((v - spec.min) / (spec.max - spec.min)) * 100;
-    const bar = { t: 24, h: `<span class="sl${focus === field ? ' on' : ''}"><i style="width:${fill}%"></i></span>` };
+    const bar = { t: 24, h: `<span class="sl${focus === field ? ' on' : ''}" data-f="${field}" data-bar="1"><i style="width:${fill}%"></i></span>` };
     const num = editing ? `${edit.buf}_` : (field === 'pan' ? v.toFixed(2).padStart(5) : v.toFixed(2));
-    return line(`${SLIDERS[field].padEnd(16)}`, bar, ' ', seg(num, editing ? 'sf ed' : ''));
+    return line(`${SLIDERS[field].padEnd(16)}`, bar, ' ', seg(num, editing ? 'sf ed' : '', ` data-f="${field}"`));
   };
 
   function draw() {
@@ -327,7 +354,7 @@ export function createSampleScreen({ el, statusEl, getProject, onChange = () => 
       for (let i = top; i < Math.min(list.length, top + LIST_ROWS); i++) {
         const id = list[i], d = project.samples[id];
         const cls = id === sel ? (focus === 'list' ? 'sf on' : 'sf') : '';
-        left.push(line(seg(`${id === sel ? '>' : ' '} ${String(i + 1).padStart(2, '0')} ${id.padEnd(22).slice(0, 22)} ${(d.data.length / d.rate).toFixed(2).padStart(6)}s `, cls)));
+        left.push(line(seg(`${id === sel ? '>' : ' '} ${String(i + 1).padStart(2, '0')} ${id.padEnd(22).slice(0, 22)} ${(d.data.length / d.rate).toFixed(2).padStart(6)}s `, cls, ` data-id="${esc(id)}"`)));
       }
       // Slice markers: number, the hex value an Off cell would hold, the frame and the time. The slice command
       // (10 0000 is the first) starts a note at one.
@@ -355,7 +382,7 @@ export function createSampleScreen({ el, statusEl, getProject, onChange = () => 
         line(''),
         ...sliceLines(s),
         line(''),
-        line(' Display   ', seg(' Waveform ', mode === 'wave' ? `sf${focus === 'view' ? ' on' : ''}` : ''), ' ', seg(' Spectrum ', mode === 'spec' ? `sf${focus === 'view' ? ' on' : ''}` : '')),
+        line(' Display   ', seg(' Waveform ', mode === 'wave' ? `sf${focus === 'view' ? ' on' : ''}` : '', ' data-f="view" data-mode="wave"'), ' ', seg(' Spectrum ', mode === 'spec' ? `sf${focus === 'view' ? ' on' : ''}` : '', ' data-f="view" data-mode="spec"')),
       ];
       const rows = Math.max(left.length, right.length);
       const out = [];

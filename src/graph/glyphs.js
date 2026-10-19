@@ -91,6 +91,12 @@ export const GLYPHS = {
     });
     ctx.stroke();
   },
+  specpan: (ctx, cx, cy, w, h) => {   // bars of the spectrum leaning left and right of a centre line
+    ctx.beginPath();
+    [-0.3, 0.25, -0.15, 0.3, -0.25].forEach((d, i) => { const y = cy - h * 0.34 + i * h * 0.17; ctx.moveTo(cx, y); ctx.lineTo(cx + d * w, y); });
+    ctx.moveTo(cx, cy - h * 0.4); ctx.lineTo(cx, cy + h * 0.4);
+    ctx.stroke();
+  },
   freqshift: (ctx, cx, cy, w, h) => {   // a row of harmonics, all moved along by the same step
     for (const [dy, dx] of [[-0.25, 0], [0.2, 0.18]]) {
       ctx.beginPath();

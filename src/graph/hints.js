@@ -173,6 +173,14 @@ const HINTS = {
     feedback: 'Sends the shifted sound back in, so each pass climbs another step: rising or falling spirals.',
     mix: 'Dry/wet balance.',
   },
+  specpan: {
+    shape: 'The pattern across the spectrum: 0 alternate (neighbouring bands to opposite sides, the classic widener), 1 sweep (lows left to highs right), 2 wave (two smooth swings), 3 custom (the b1..b10 sliders, low band to high).',
+    spread: 'How far the bands move toward their pan position. 0 leaves the sound untouched; around 0.5 is a subtle widening, 1 is the full pattern.',
+    rotate: 'Slides the pattern along the bands. Modulate or write it from a pattern and the image drifts.',
+    lowMono: 'Everything below this frequency is made mono, which keeps kick and bass solid in the middle and safe on any speaker system.',
+    mix: 'Dry/wet balance.',
+    b1: 'Pan position of this band (b1 lowest, b10 highest), used by the custom shape: -1 left, 0 where it is, 1 right.',
+  },
   blur: {
     freq: 'Blurs the spectrum across frequency: the fine detail of the harmonics melts into a breathy wash. 0 leaves it sharp.',
     time: 'Blurs across time, in ms: each frequency follows a slow average, so attacks smear and sounds bloom. 0 is off.',

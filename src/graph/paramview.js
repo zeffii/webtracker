@@ -29,6 +29,25 @@ export function createParamView({ doc = document, el: host, side = 'right', show
     const hex = row.hex();
     const h = bar.querySelector('.pv-hex');
     h.textContent = hex;
+    const tv = bar.querySelector?.('.pv-tv');
+    if (tv) tv.textContent = row.ticks ? row.ticks.text() : '';
+    if (row.ticks) paintTicks(row, bar);
+  };
+  // The faint lines where song ticks fall, rebuilt when the tempo or the bar's width changes; the one the value sits on is lit.
+  const paintTicks = (row, bar) => {
+    const width = Math.round(bar.clientWidth || 200), key = `${row.ticks.tempo()}|${width}`;
+    if (bar.tickKey !== key) {
+      bar.tickKey = key;
+      bar.tickEls?.forEach(e => e.remove?.());
+      bar.tickEls = row.ticks.marks(width).map(m => {
+        const e = make('i', `pv-tk${m.beat ? ' beat' : ''}`);
+        e.style.left = `${m.pos * 100}%`; e.pos = m.pos;
+        bar.append(e);
+        return e;
+      });
+    }
+    const p = clamp01(row.pos());
+    bar.tickEls?.forEach(e => e.classList?.toggle('near', Math.abs(e.pos - p) * width < 3));
   };
   const paintAll = () => all().forEach(paint);
   const mark = () => {
@@ -103,6 +122,12 @@ export function createParamView({ doc = document, el: host, side = 'right', show
     const strip = (title, tack, sub) => {
       const h = make('div', `pv-head${sub ? ' pv-sub' : ''}`);
       h.append(make('span', 'pv-title', title));
+      if (tack?.help) {
+        const q = make('span', 'pv-pin pv-help', '?');
+        q.title = 'Help for this node (F1)';
+        q.addEventListener('mousedown', e => { e.preventDefault(); e.stopPropagation(); tack.help(); });
+        h.append(q);
+      }
       if (tack) {
         const b = make('span', `pv-pin${tack.on ? ' on' : ''}`);
         b.title = tack.on ? 'Unpin: stop keeping these parameters here' : 'Pin: keep these parameters here when another node is selected';
@@ -123,18 +148,22 @@ export function createParamView({ doc = document, el: host, side = 'right', show
       name.addEventListener('mouseenter', () => showTip(name, row.hint()));
       name.addEventListener('mouseleave', hideTip);
       const bar = make('div', 'pv-bar');
-      const val = make('span', 'pv-val'), hex = make('span', 'pv-hex');
-      bar.append(val, hex);
+      const val = make('span', 'pv-val'), hex = make('span', 'pv-hex'), tail = make('span', 'pv-end'), tv = make('span', 'pv-tv');
+      tv.title = 'The value in song ticks at this tempo';
+      tail.append(tv, hex);
+      bar.append(val, tail);
       const fromX = e => { const r = bar.getBoundingClientRect(); return (e.clientX - r.left - 1) / Math.max(1, r.width - 2); };
+      // a drag lands on a tick line when it is close to one; Alt drags freely
+      const drag = (r, b, e) => { const p = clamp01(fromX(e)); return r.ticks && !e.altKey ? r.ticks.snap(p, Math.round(b.clientWidth || 200)) : p; };
       bar.addEventListener('pointerdown', e => {
         if (e.target.classList?.contains('pv-type')) return;
         e.preventDefault();
         cursor = i; mark(); closeMenu();
         bar.setPointerCapture?.(e.pointerId);
         bar.dragging = true;
-        set(row, fromX(e));
+        set(row, drag(row, bar, e));
       });
-      bar.addEventListener('pointermove', e => { if (bar.dragging) set(row, fromX(e)); });
+      bar.addEventListener('pointermove', e => { if (bar.dragging) set(row, drag(row, bar, e)); });
       const end = e => { if (bar.dragging) { bar.dragging = false; bar.releasePointerCapture?.(e.pointerId); onFocusBack(); } };
       bar.addEventListener('pointerup', end); bar.addEventListener('pointercancel', end);
       bar.addEventListener('dblclick', () => { row.reset(); paintAll(); });
