@@ -6324,11 +6324,43 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   mode = 'stamped'; text = 'v6'; clock += 1000;
   await b.snapshot('save');
   assert.ok(Object.keys(written).some(k => /^my song-\d{8}-\d{6}\.wax$/.test(k)), 'stamped files get a time in the name');
+  // the download fallback hands the project over once per change
+  text = 'd1'; b.baselineDownload();
+  assert.equal(b.takeDownload(), null, 'nothing changed since the baseline');
+  text = 'd2'; const got = b.takeDownload();
+  assert.equal(got.text, 'd2'); assert.equal(got.name, 'my song');
+  assert.equal(b.takeDownload(), null, 'and not twice');
   // a snapshot asked for just before a replace holds what the project was then
   text = 'before'; clock += 1000;
   const pending = b.snapshot('before load'); text = 'after';
   await pending;
   assert.equal(await b.text((await b.list())[0].id), 'before');
+}
+
+// Noise colours: the tilt sets the slope of the spectrum, the loudness stays matched, free runs without a note.
+{
+  const def = NODE_TYPES.noise, sr2 = 48000, N = 96000;
+  const make = values => {
+    const params = Float32Array.from(def.params.map(q => values[q.name] ?? q.def)), slots = Int32Array.from(def.params.map((_, k) => k));
+    const node = def.create({ sampleRate: sr2, connected: [] }), out = new Float32Array(N);
+    if (!values.free) node.note({ type: 'noteOn', note: 60 });
+    for (let at = 0; at < N; at += 128) node.process([], [out.subarray(at, at + 128)], Math.min(128, N - at), params, slots);
+    return out;
+  };
+  const power = (x, f) => { let re = 0, im = 0; for (let k = 0; k < x.length; k++) { const a = 2 * Math.PI * f * k / sr2; re += x[k] * Math.cos(a); im += x[k] * Math.sin(a); } return (re * re + im * im) / x.length; };
+  const db = (x, lo, hi) => { let a = 0, b = 0; for (const f of [lo * 0.9, lo, lo * 1.1]) a += power(x, f); for (const f of [hi * 0.9, hi, hi * 1.1]) b += power(x, f); return 10 * Math.log10(a / b); };
+  const rms = x => Math.sqrt(x.reduce((s, v) => s + v * v, 0) / x.length);
+  const brown = make({ tilt: -6 }), pink = make({ tilt: -3 }), white = make({ tilt: 0 }), violet = make({ tilt: 6 });
+  assert.ok(db(brown, 150, 2400) > 18, `brown falls steeply (${db(brown, 150, 2400).toFixed(1)} dB over 4 octaves)`);
+  assert.ok(Math.abs(db(pink, 150, 2400) - 12) < 4, `pink falls 3 dB per octave (${db(pink, 150, 2400).toFixed(1)})`);
+  assert.ok(Math.abs(db(white, 150, 2400)) < 2.5, 'white is flat');
+  assert.ok(db(violet, 150, 2400) < -12, 'violet rises');
+  for (const x of [brown, pink, violet]) assert.ok(Math.abs(rms(x) / rms(white) - 1) < 0.15, 'the colours are matched in loudness');
+  assert.equal(rms(make({ tilt: 0, free: 0 }).fill(0)), 0);
+  const quietNode = def.create({ sampleRate: sr2, connected: [] }), idle = new Float32Array(128);
+  quietNode.process([], [idle], 128, Float32Array.from(def.params.map(q => q.def)), Int32Array.from(def.params.map((_, k) => k)));
+  assert.equal(rms(idle), 0, 'silent before a note');
+  assert.ok(rms(make({ free: 1 })) > 0.2, 'free runs by itself');
 }
 
 // Sample screen mouse: a click moves to a field, a second click starts typing, digits then set it.

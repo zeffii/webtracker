@@ -5,6 +5,21 @@ import { hintFor, factsFor } from './hints.js';
 
 // summary: one or two sentences. best: ways to get the most out of it. limits: what it will not do well.
 export const PAGES = {
+  noise: {
+    summary: 'Noise in every colour, from deep brown through pink and white to thin violet, set with tilt (the slope of the spectrum in dB per octave).',
+    best: [
+      'Hats and snares: white or blue noise through a highpass and a short envelope. Hi-hat air is mostly blue and violet.',
+      'Pink noise sounds even to the ear and makes rain, surf and breath; brown makes wind, thunder and rumble under a kick.',
+      'Sweep tilt with a pattern column or an envelope for a noise that darkens or brightens during the hit.',
+      'Free on gives a constant bed. Put it through a filter and an envelope follower or a gate, so it only speaks when you want.',
+      'Restart on makes every hit identical (a snare that never changes); turn it off and each hit differs, which is better for open hats and washes.',
+    ],
+    limits: [
+      'Brown noise carries a lot of energy at the lowest frequencies: put a highpass after it or it will eat your headroom and your speakers.',
+      'The slopes are approximations of the ideal colours, and exact only in the middle of the audio range.',
+      'A free-running noise never lets the instrument go quiet, so it keeps using CPU.',
+    ],
+  },
   specpan: {
     summary: 'Splits the sound into ten bands, from 150 Hz to 10 kHz, and gives each band its own place in the stereo field. Below the low mono frequency the sound is made mono. Used for widening and for keeping the low end in the middle.',
     best: [

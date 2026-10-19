@@ -948,7 +948,7 @@ function openProject({ song, instruments, samples }, { stay = false, instrument 
   $('length').value = song.length;
   $('bpm').value = song.bpm;
   $('swing').value = Math.round((song.swing ?? 0.5) * 100);
-  if (!stay) tabs.show('patterns');
+  if (!stay) { tabs.show('patterns'); backups.baselineDownload?.(); }
 }
 
 const download = (name, text) => {
@@ -999,7 +999,7 @@ const backups = createBackups({
 });
 const backupPanel = createBackupPanel({
   el: $('backup-panel'), backups, say: text => { $('status').textContent = text; },
-  canPickFolder: typeof showDirectoryPicker === 'function',
+  canPickFolder: typeof showDirectoryPicker === 'function', isBrave: !!navigator.brave,
   pickFolder: () => showDirectoryPicker({ id: 'webtracker-backup', mode: 'readwrite' }),
   onRestore: (text, meta) => {
     try {
@@ -1014,7 +1014,17 @@ const backupPanel = createBackupPanel({
 });
 $('backups').addEventListener('click', () => (backupPanel.open ? backupPanel.hide() : backupPanel.show()));
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden' && project && config.get('backupOn')) backups.snapshot('auto'); });
-config.onChange(k => { if (k === 'backupMinutes' || k === 'backupOn') backups.restart(); });
+config.onChange(k => { if (k === 'backupMinutes' || k === 'backupOn') backups.restart(); if (k === 'backupDownload' || k === 'backupDownloadMinutes') startDownloads(); });
+let downloadTimer = null;
+function startDownloads() {
+  clearInterval(downloadTimer); downloadTimer = null;
+  if (!config.get('backupDownload')) return;
+  backups.baselineDownload();
+  downloadTimer = setInterval(() => {
+    const d = backups.takeDownload();
+    if (d) { download(`${d.name}-${stamp(d.time)}${FILE_EXT}`, d.text); $('status').textContent = 'Downloaded a backup file.'; }
+  }, Math.max(1, config.get('backupDownloadMinutes')) * 60000);
+}
 
 $('save').addEventListener('click', () => {
   download(`${project.song.name ?? 'untitled'}${FILE_EXT}`, serializeProject(project));
@@ -1240,6 +1250,7 @@ $('start').addEventListener('click', async () => {
       openProject(createSynthwaveProject());
     }
     backups.start();
+    startDownloads();
     navigator.storage?.persist?.();   // ask the browser not to clear the snapshots when it is short of space
     for (const id of ['start']) $(id).disabled = true;
     for (const id of ['play', 'panic', 'cut', 'new', 'save', 'load', 'backups', 'patch-add', 'load-samples', 'rec-take', 'rec-source', 'add-inst', 'add-lane', 'add-lane-inst', 'inst-voices', 'inst-notecols', 'inst-name', 'inst-rename', 'inst-up', 'inst-down', 'inst-dup', 'inst-remove', 'lane-name', 'lane-rename', 'lane-left', 'lane-right', 'lane-dup', 'lane-remove', 'lane-remove-all', 'length', 'ins-n', 'ins-go', 'bpm', 'swing', 'preset-name', 'preset-save', 'preset-over', 'preset-rename', 'preset-remove', 'inst-export', 'inst-import', 'lib-load', 'lib-add', 'lib-save']) $(id).disabled = false;

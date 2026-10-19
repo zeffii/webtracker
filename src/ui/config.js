@@ -44,6 +44,8 @@ export const SCHEMA = [
   { group: 'Backup', key: 'backupOn', label: 'Automatic backups', hint: 'snapshots of the project kept in this browser; open them with the Backups button', type: 'bool', def: true },
   { key: 'backupMinutes', label: 'Back up every (minutes)', hint: 'only when the project has changed', type: 'int', min: 1, max: 60, def: 3 },
   { key: 'backupKeep', label: 'Snapshots kept', hint: 'the oldest are dropped', type: 'int', min: 5, max: 200, def: 30 },
+  { key: 'backupDownload', label: 'Download a backup file', hint: 'every few minutes when the project has changed; point the browser\'s download folder at a git folder to keep them (for browsers that cannot write to a folder)', type: 'bool', def: false },
+  { key: 'backupDownloadMinutes', label: 'Download every (minutes)', type: 'int', min: 1, max: 240, def: 15 },
   { key: 'backupFolderMode', label: 'Backup folder files', type: 'choice', options: ['latest', 'stamped'], labels: { latest: 'one file per project, overwritten (a git folder keeps the history)', stamped: 'a new file each time' }, def: 'latest' },
   { group: 'Script', key: 'scriptLimit', label: 'Script time limit', hint: 'in ms; a script that runs longer is stopped and changes nothing', type: 'int', min: 100, max: 60000, def: 2000 },
   { group: 'Sample', key: 'ptrMax', label: 'Resynthesis: most branches', hint: 'it uses fewer when more would not help', type: 'int', min: 1, max: 16, def: 8 },

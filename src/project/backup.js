@@ -122,7 +122,20 @@ export function createBackups({ serialize, getName = () => 'untitled', options, 
     return chain;
   }
 
+  // The download fallback: the page cannot write to a folder in every browser, so it can offer the project as a file
+  // every few minutes instead. takeDownload() gives the project when it has changed since the last one (or null).
+  let lastDownload = null;
   return {
+    baselineDownload() { try { const t = serialize(); lastDownload = t == null ? null : hashOf(t); } catch { lastDownload = null; } },
+    takeDownload() {
+      const text = serialize();
+      if (text == null) return null;
+      const hash = hashOf(text);
+      if (lastDownload === null) { lastDownload = hash; return null; }
+      if (hash === lastDownload) return null;
+      lastDownload = hash;
+      return { text, time: now(), name: getName() };
+    },
     snapshot,
     list: () => store.list(),
     async text(id) { return (await store.get(id))?.text ?? null; },

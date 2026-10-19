@@ -7,6 +7,9 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['m237', ['The noise node comes in every colour: tilt sets the slope of the spectrum from -6 dB/oct (brown) through pink and white (0) to +6 (violet), matched in loudness. New free switch: the noise runs by itself, without notes. White at tilt 0 is exactly as before. Help page for noise.']],
+  ['m236', ['Backups by download, for browsers that cannot write to a folder (Brave keeps that off): turn on Download a backup file in Config and the page downloads a time-stamped .wax every 15 minutes (adjustable) while the project has changed. Point the browser\'s download folder at a git folder to keep them.']],
+  ['m235', ['The Backups panel tells Brave users how to switch on folder backups (brave://flags/#file-system-access-api).']],
   ['m234', ['Automatic backups. A snapshot of the project is kept in the browser every 3 minutes while it has changed, when you Save, when the tab is hidden, and before a load, a clear or a restore; the newest 30 are kept. The Backups button lists them with Restore and Save as file. Optionally choose a backup folder (a git folder works) and the page writes the project there too, as one overwritten file or a new file each time. Settings are in Config under Backup.']],
   ['m233', ['Spectral panner shows its settings: a graph under the node with frequency along the bottom and each band\'s pan as a bar (up is left, down is right, as far as spread carries it), the mono region shaded, following every slider live. New demo song.']],
   ['m232', ['Node help pages: F1 with a node selected on the instrument screen (or the ? on its parameter window) opens a page for it: what it is for, how to get the most out of it, its limits, its ports and every parameter. Pages are written for the spectral panner, compressor, hall, delay, filter, freqshift and blur; every other node shows its ports and parameters until it gets a page.']],

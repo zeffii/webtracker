@@ -12,7 +12,7 @@ const kb = n => (n >= 1048576 ? `${(n / 1048576).toFixed(1)} MB` : `${Math.max(1
 const clock = t => new Date(t).toLocaleString([], { weekday: 'short', hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' });
 const REASON = { auto: 'automatic', save: 'save', folder: 'folder chosen', manual: 'backed up by hand', 'before load': 'before a load', 'before clear': 'before a clear', 'before restore': 'before a restore' };
 
-export function createBackupPanel({ doc = document, el, backups, onRestore, onSave, canPickFolder = false, pickFolder = null, say = () => {}, now = () => Date.now() }) {
+export function createBackupPanel({ doc = document, el, backups, onRestore, onSave, canPickFolder = false, isBrave = false, pickFolder = null, say = () => {}, now = () => Date.now() }) {
   const make = (tag, className, text) => { const e = doc.createElement(tag); if (className) e.className = className; if (text !== undefined) e.textContent = text; return e; };
   const button = (label, fn, title) => { const b = make('button', '', label); b.type = 'button'; if (title) b.title = title; b.addEventListener('click', fn); return b; };
 
@@ -23,7 +23,10 @@ export function createBackupPanel({ doc = document, el, backups, onRestore, onSa
     head.append(make('b', '', 'Backups'), make('span', 'bk-hint', 'Esc closes'), button('Back up now', async () => { const m = await backups.snapshot('manual'); say(m ? 'Backed up.' : 'Nothing has changed since the last backup.'); }), button('Close', () => api.hide()));
     el.append(head);
     const foot = make('div', 'bk-folder');
-    if (!canPickFolder) foot.append(make('span', 'bk-hint', 'This browser cannot write to a folder; the snapshots here are the backups.'));
+    if (!canPickFolder) {
+      foot.append(make('span', 'bk-hint', 'This browser cannot write to a folder; the snapshots here are the backups.'));
+      if (isBrave) foot.append(make('span', 'bk-hint', 'Brave keeps this switched off. To use a backup folder, open brave://flags/#file-system-access-api, set it to Enabled, and relaunch Brave.'));
+    }
     else {
       const state = { none: 'No backup folder.', unknown: 'Checking the folder…', granted: 'Writing to', ok: 'Writing to', prompt: 'Needs permission again:', error: 'Could not write to' }[f.state] ?? '';
       foot.append(make('span', '', f.name ? `${state} ${f.name}` : state));

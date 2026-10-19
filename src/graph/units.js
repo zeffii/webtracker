@@ -56,7 +56,7 @@ const ONOFF = ['off', 'on'];
 const WAVES = { osc: ['sine', 'saw', 'square', 'triangle'] };
 const NAMES = {
   osc: { wave: WAVES.osc, track: ONOFF, reset: ONOFF },
-  noise: { restart: ONOFF },
+  noise: { restart: ONOFF, free: ONOFF, tilt: 'dB/oct' },
   squelch: { wave: ['saw', 'square'], sld: ONOFF },
   lfo: { shape: ['sine', 'triangle', 'saw', 'square'], reset: ONOFF, range: ['swing by amount', 'between min and max'] },
   filter: { mode: ['lowpass', 'bandpass', 'highpass'] },

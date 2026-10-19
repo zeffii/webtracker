@@ -464,7 +464,9 @@ const HINTS = {
     sld: 'Written in the Sld column on a note\'s row: 1 glides into this note from the one before without restarting the envelopes. Blank is no slide; it counts for that note only.',
   },
   noise: {
-    level: 'Peak level of the noise.',
+    level: 'Level of the noise. The colours are matched in loudness, so tilt changes the tone, not the level.',
+    tilt: 'The colour of the noise, as the slope of its spectrum in dB per octave: -6 brown (a deep rumble), -3 pink (even across the octaves, like rain or a waterfall), 0 white, +3 blue, +6 violet (a thin hiss). Values between blend neighbours.',
+    free: '1: the noise runs by itself, as a bed under other sounds. 0: it is silent until a note.',
     seed: 'Which noise it is. Another number is another texture, the same every hit.',
     restart: '1: every note starts the noise over from the seed, so every hit is identical. 0: the noise runs on and each hit differs.',
   },

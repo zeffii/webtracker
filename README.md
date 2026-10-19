@@ -255,3 +255,9 @@ Node help (m232): F1 with a node selected on the instrument screen, or the ? on 
 Spectral panner view (m233): the node's panel draws the pan of each band against frequency (src/graph/specpaneditor.js); it only displays, the sliders (b1..b10 for the custom shape) change it.
 
 Backups (m234): src/project/backup.js keeps rolling snapshots in IndexedDB (unchanged projects are not stored twice) and can write each one to a folder chosen with the browser's directory picker (Chrome and Brave; the permission is asked again after a restart, with an Allow button). Panel: src/ui/backuppanel.js. Config: backupOn, backupMinutes, backupKeep, backupFolderMode.
+
+Brave (m235): Brave keeps the folder picker off by default; the Backups panel says to enable brave://flags/#file-system-access-api and relaunch.
+
+Download backups (m236): Config > Backup > Download a backup file; `takeDownload()` in src/project/backup.js hands the project over once per change. Off by default. In Brave, turn off "Ask where to save each file" or every download prompts.
+
+Noise colours (m237): `tilt` in dB/oct (-6 brown, -3 pink, 0 white, +3 blue, +6 violet), loudness-matched; `free` runs without notes.
