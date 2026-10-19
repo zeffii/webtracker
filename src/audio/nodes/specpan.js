@@ -36,6 +36,7 @@ export default {
   kinds: { in: 'stereo', out: 'stereo' },
   shape: 'box',
   glyph: 'specpan',
+  editor: 'specpan',
   params: [
     { name: 'shape', min: 0, max: 3, def: 0, int: true },
     { name: 'spread', min: 0, max: 1, def: 0.6 },

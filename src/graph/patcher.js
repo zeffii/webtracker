@@ -15,6 +15,7 @@ import { factsFor, hintFor } from './hints.js';
 import { choices, display, unitOf } from './units.js';
 import { timeKind, toTicks, fromTicks, tickMarks, snapTo, tickText } from './ticks.js';
 import { createParamView } from './paramview.js';
+import { createSpecPanView } from './specpaneditor.js';
 import { createCurveEditor } from './curveeditor.js';
 import { createTapEditor } from './tapeditor.js';
 import { createDxView } from './dxview.js';
@@ -133,6 +134,7 @@ const fmt = v => String(Number(v.toPrecision(4)));
 export function createPatcher({ getTiming = () => null, onHelp = () => {}, canvas, panel, paramPanel = null, exposedDock = null, onScope = () => {}, onEscape = () => {}, statusEl, doc = document, nodeTypes, onStructure, onParam, onData = () => {}, onContext = () => {}, onNote = () => {}, getSampleIds = () => [], getSample = () => null, readLive = () => undefined }) {
   let gateEditor = null;    // the step pattern of a trance gate, redrawn when its length moves
   let dxView = null;        // the bank loader and algorithm view of a DVIIloader
+  let specView = null;      // the pan-against-frequency view of a spectral panner, redrawn when its parameters move
   let tapEditor = null;     // the tap view of a Shiva delay, redrawn when its parameters move
   let tableEditor = null;   // the wavetable panel of the selected node, redrawn when position or mix move
   let instruments = {}, instId = null, selected = null, drag = null, dirty = true;
@@ -226,6 +228,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
         if (spec.name === 'position' || spec.name === 'mix' || spec.name === 'source') tableEditor?.refresh();
         if (type.editor === 'taps') tapEditor?.refresh();
         if (type.editor === 'gate') gateEditor?.refresh();
+        if (type.editor === 'specpan') specView?.refresh();
         if (type.editor === 'dx' && spec.name === 'voice') dxView?.refresh();
         if (entry()) exposedView?.refresh();   // repaint in place: rebuilding the dock would drop a drag that is under way
       };
@@ -453,6 +456,11 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
         onBank: points => { node.data = { ...node.data, bank: points }; onData(instId, node.id, { type: 'bank', points }); },
       });
       items.splice(1, 0, dxView.el);
+    }
+    specView = null;
+    if (type.editor === 'specpan') {   // the pan of each band against frequency, drawn from the parameters
+      specView = createSpecPanView({ doc, getParam: name => readLive(instId, node.id, name) ?? node.params?.[name] ?? type.params.find(p => p.name === name)?.def ?? 0 });
+      items.splice(1, 0, specView.el);
     }
     tapEditor = null;
     if (type.editor === 'taps') {   // the taps of a Shiva delay, kept on the node and sent live
@@ -871,7 +879,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
     const sig = parts.join(',');
     if (sig === liveSig) return;
     liveSig = sig;
-    paramView?.refresh(); exposedView?.refresh(); tapEditor?.refresh(); gateEditor?.refresh(); dxView?.refresh();
+    paramView?.refresh(); exposedView?.refresh(); tapEditor?.refresh(); gateEditor?.refresh(); specView?.refresh(); dxView?.refresh();
   }
 
   // A graph is moved clear of the exposed-parameters dock once when its instrument is first shown after a load (the file

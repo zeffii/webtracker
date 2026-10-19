@@ -6293,6 +6293,44 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   for (const type of Object.keys(PAGES)) assert.ok(NODE_TYPES[type], `${type} is a real node`);
 }
 
+// The spectral panner's view draws from the parameters without trouble, for every shape.
+{
+  const { createSpecPanView } = await import('../src/graph/specpaneditor.js');
+  const calls = [];
+  const ctx = new Proxy({}, { get: (_, k) => (k === 'canvas' ? null : (...a) => { calls.push(k); }), set: () => true });
+  const doc = { createElement: () => ({ getContext: () => ctx }) };
+  const values = { shape: 0, spread: 0.6, rotate: 0, lowMono: 100 };
+  const view = createSpecPanView({ doc, getParam: name => values[name] ?? 0 });
+  for (const shape of [0, 1, 2, 3]) { values.shape = shape; calls.length = 0; view.refresh(); assert.ok(calls.filter(c => c === 'fillRect').length >= 10, `shape ${shape} draws its bars`); }
+}
+
+// Backups: snapshots are stored once per change, the oldest are dropped, and a chosen folder gets the file.
+{
+  const { createBackups, memoryStore } = await import('../src/project/backup.js');
+  let text = 'v1', clock = 1000, mode = 'latest';
+  const written = {};
+  const handle = { name: 'wax-backups', queryPermission: async () => 'granted', getFileHandle: async file => ({ createWritable: async () => ({ write: async t2 => { written[file] = t2; }, close: async () => {} }) }) };
+  const store = memoryStore();
+  const b = createBackups({ serialize: () => text, getName: () => 'my song', options: () => ({ keep: 3, folderMode: mode }), store, now: () => clock });
+  await b.chooseFolder(async () => handle);
+  assert.equal(written['my song.wax'], 'v1', 'choosing a folder writes the project there');
+  assert.equal(await b.snapshot('auto'), null, 'an unchanged project is not stored again');
+  for (const v of ['v2', 'v3', 'v4', 'v5']) { text = v; clock += 1000; await b.snapshot('auto'); }
+  const rows = await b.list();
+  assert.equal(rows.length, 3, 'only the newest are kept');
+  assert.equal(await b.text(rows[0].id), 'v5');
+  assert.equal(await b.text(rows[2].id), 'v3');
+  assert.equal(written['my song.wax'], 'v5', 'the folder file is overwritten');
+  mode = 'stamped'; text = 'v6'; clock += 1000;
+  await b.snapshot('save');
+  assert.ok(Object.keys(written).some(k => /^my song-\d{8}-\d{6}\.wax$/.test(k)), 'stamped files get a time in the name');
+  // a snapshot asked for just before a replace holds what the project was then
+  text = 'before'; clock += 1000;
+  const pending = b.snapshot('before load'); text = 'after';
+  await pending;
+  assert.equal(await b.text((await b.list())[0].id), 'before');
+}
+
 // Sample screen mouse: a click moves to a field, a second click starts typing, digits then set it.
 {
   const { project } = makeProject();

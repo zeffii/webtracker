@@ -1,6 +1,8 @@
 import { Engine } from './audio/engine.js';
 import { NODE_TYPES } from './audio/nodes/index.js';
 import { helpPage } from './graph/help.js';
+import { createBackups, idbStore, memoryStore, stamp } from './project/backup.js';
+import { createBackupPanel } from './ui/backuppanel.js';
 import { pruneDef } from './graph/edit.js';
 import { createPatcher } from './graph/patcher.js';
 import { createInsertMenu } from './graph/menu.js';
@@ -974,6 +976,7 @@ newMenu.addEventListener('click', e => {
   closeNew();
   const what = { arrangement: 'the arrangement', patterns: 'every pattern and the arrangement', everything: 'everything (instruments, samples, patterns and arrangement; only the master lane is left)' }[kind];
   if (!confirm(`Clear ${what}? This cannot be undone; save first if you want to keep it.`)) return;
+  backups.snapshot('before clear');
   const { song } = project;
   if (kind === 'everything') {
     // nothing left but the master lane (it is always there); instruments and lanes are added from the instrument screen
@@ -986,8 +989,36 @@ newMenu.addEventListener('click', e => {
   projStatus(kind === 'everything' ? 'Cleared everything.' : `Cleared ${what}.`);
 });
 
+// Backups: snapshots in the browser's database, and a copy in a chosen folder (project/backup.js); the panel is the Backups button.
+const backups = createBackups({
+  serialize: () => (project ? serializeProject(project) : null),
+  getName: () => project?.song?.name ?? 'untitled',
+  options: () => ({ on: config.get('backupOn'), minutes: config.get('backupMinutes'), keep: config.get('backupKeep'), folderMode: config.get('backupFolderMode') }),
+  store: typeof indexedDB !== 'undefined' ? idbStore() : memoryStore(),
+  onChange: () => backupPanel?.refresh(),
+});
+const backupPanel = createBackupPanel({
+  el: $('backup-panel'), backups, say: text => { $('status').textContent = text; },
+  canPickFolder: typeof showDirectoryPicker === 'function',
+  pickFolder: () => showDirectoryPicker({ id: 'webtracker-backup', mode: 'readwrite' }),
+  onRestore: (text, meta) => {
+    try {
+      const data = parseProject(text);
+      backups.snapshot('before restore');
+      openProject(data);
+      backupPanel.hide();
+      $('status').textContent = `Restored the backup from ${new Date(meta.time).toLocaleString()}. The project before it was backed up.`;
+    } catch (err) { $('status').textContent = err.message; }
+  },
+  onSave: (text, meta) => download(`${meta.name ?? 'untitled'}-${stamp(meta.time)}${FILE_EXT}`, text),
+});
+$('backups').addEventListener('click', () => (backupPanel.open ? backupPanel.hide() : backupPanel.show()));
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden' && project && config.get('backupOn')) backups.snapshot('auto'); });
+config.onChange(k => { if (k === 'backupMinutes' || k === 'backupOn') backups.restart(); });
+
 $('save').addEventListener('click', () => {
   download(`${project.song.name ?? 'untitled'}${FILE_EXT}`, serializeProject(project));
+  backups.snapshot('save');
   $('status').textContent = 'Saved.';
 });
 $('load').addEventListener('click', () => $('file').click());
@@ -995,6 +1026,7 @@ $('file').addEventListener('change', async e => {
   const [file] = e.target.files;
   e.target.value = '';
   if (!file) return;
+  if (project) backups.snapshot('before load');
   try {
     if (/\.midi?$/i.test(file.name)) {   // a MIDI file adds a lane on a new synth for each of its tracks
       const data = ops.projectData(project), done = importMidi(data, parseMidi(await file.arrayBuffer()));
@@ -1207,8 +1239,10 @@ $('start').addEventListener('click', async () => {
       console.warn(err);
       openProject(createSynthwaveProject());
     }
+    backups.start();
+    navigator.storage?.persist?.();   // ask the browser not to clear the snapshots when it is short of space
     for (const id of ['start']) $(id).disabled = true;
-    for (const id of ['play', 'panic', 'cut', 'new', 'save', 'load', 'patch-add', 'load-samples', 'rec-take', 'rec-source', 'add-inst', 'add-lane', 'add-lane-inst', 'inst-voices', 'inst-notecols', 'inst-name', 'inst-rename', 'inst-up', 'inst-down', 'inst-dup', 'inst-remove', 'lane-name', 'lane-rename', 'lane-left', 'lane-right', 'lane-dup', 'lane-remove', 'lane-remove-all', 'length', 'ins-n', 'ins-go', 'bpm', 'swing', 'preset-name', 'preset-save', 'preset-over', 'preset-rename', 'preset-remove', 'inst-export', 'inst-import', 'lib-load', 'lib-add', 'lib-save']) $(id).disabled = false;
+    for (const id of ['play', 'panic', 'cut', 'new', 'save', 'load', 'backups', 'patch-add', 'load-samples', 'rec-take', 'rec-source', 'add-inst', 'add-lane', 'add-lane-inst', 'inst-voices', 'inst-notecols', 'inst-name', 'inst-rename', 'inst-up', 'inst-down', 'inst-dup', 'inst-remove', 'lane-name', 'lane-rename', 'lane-left', 'lane-right', 'lane-dup', 'lane-remove', 'lane-remove-all', 'length', 'ins-n', 'ins-go', 'bpm', 'swing', 'preset-name', 'preset-save', 'preset-over', 'preset-rename', 'preset-remove', 'inst-export', 'inst-import', 'lib-load', 'lib-add', 'lib-save']) $(id).disabled = false;
     $('status').textContent =
       `Running at ${engine.ctx.sampleRate} Hz, base latency ${(engine.ctx.baseLatency * 1000).toFixed(1)} ms`;
     // Only the screen that is showing is drawn: a hidden one has nothing to measure or paint, and its work would only delay the one you are using.

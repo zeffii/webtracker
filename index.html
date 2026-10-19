@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="themes.css">
-  <title>webtracker m232</title>
+  <title>webtracker m234</title>
   <link rel="icon" href="icon.ico" sizes="any">
   <link rel="icon" type="image/png" href="icon.png">
   <style>
@@ -324,6 +324,14 @@
     .curve-presets { display: flex; flex-wrap: wrap; gap: 2px; margin: .25rem 0; max-width: 200px; }
     .curve-presets button { font: inherit; font-size: 11px; padding: 0 .35rem; }
     #patch-wrap { position: relative; }
+    #backup-panel { position: fixed; z-index: 60; top: 48px; right: 12px; width: min(640px, calc(100% - 24px)); max-height: calc(100% - 72px); display: flex; flex-direction: column; background: var(--panel); color: var(--fg); border: 1px solid var(--line); box-shadow: 0 6px 24px rgba(0,0,0,.35); outline: none; }
+    #backup-panel[hidden] { display: none; }
+    #backup-panel .bk-head { display: flex; gap: 10px; align-items: baseline; padding: 4px 10px; border-bottom: 1px solid var(--line); }
+    #backup-panel .bk-head b { font-size: 15px; } #backup-panel .bk-hint { opacity: .6; font-size: 12px; flex: 1; }
+    #backup-panel .bk-folder { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; padding: 4px 10px; border-bottom: 1px solid var(--line); font-size: 12px; }
+    #backup-panel .bk-list { overflow: auto; padding: 4px 10px 8px; }
+    #backup-panel .bk-row { display: flex; gap: 8px; align-items: baseline; padding: 2px 0; flex-wrap: wrap; }
+    #backup-panel .bk-when { min-width: 22ch; } #backup-panel .bk-what { flex: 1; opacity: .75; font-size: 12px; }
     #pane-instruments { position: relative; }
     #node-help { position: absolute; z-index: 30; top: 8px; right: 8px; width: min(560px, calc(100% - 16px)); max-height: calc(100% - 16px); display: flex; flex-direction: column; background: var(--panel); color: var(--fg); border: 1px solid var(--line); box-shadow: 0 6px 24px rgba(0,0,0,.35); outline: none; }
     #node-help[hidden] { display: none; }
@@ -417,6 +425,7 @@
   </style>
 </head>
 <body>
+  <div id="backup-panel" tabindex="-1" hidden role="dialog" aria-label="Backups"></div>
   <div id="header">
     <div class="line">
       <strong>webtracker</strong>
@@ -436,6 +445,7 @@
       <label>bpm <input id="bpm" type="number" min="20" max="400" step="1" style="width:4em" disabled></label>
       <label title="How much of each pair of rows the first one lasts: 50 is straight, 67 is a triplet shuffle">swing <span class="field"><input id="swing" type="number" min="50" max="75" step="1" style="width:2.6em" disabled><span class="unit">%</span></span></label>
       <button id="load" disabled>Load</button>
+      <button id="backups" disabled title="Backups: the automatic snapshots, and the backup folder">Backups</button>
       <button id="cut" disabled title="Halt all audio computation (silence, zero CPU) until Play is pressed" style="margin-left:auto">Cut</button>
       <button id="panic" disabled title="Panic: stop every sounding note (all notes off)" aria-label="Panic"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><g stroke="currentColor" stroke-width="1.5" stroke-linecap="round" fill="none"><path d="M2.2 9.6 13.8 14.6M13.8 9.6 2.2 14.6"/></g><g fill="currentColor"><circle cx="1.9" cy="9.3" r="1"/><circle cx="14.1" cy="9.3" r="1"/><circle cx="1.9" cy="14.9" r="1"/><circle cx="14.1" cy="14.9" r="1"/></g><path d="M8 .9C4.6.9 2.5 3.2 2.5 6c0 1.7.8 3 2 3.7V12h7V9.7c1.2-.7 2-2 2-3.7C13.5 3.2 11.4.9 8 .9Z" fill="var(--bg)" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round"/><circle cx="5.9" cy="6.3" r="1.5" fill="currentColor"/><circle cx="10.1" cy="6.3" r="1.5" fill="currentColor"/><path d="M8 8.2 7.2 9.6h1.6z" fill="currentColor"/><path d="M6.3 10.4v1.4M8 10.4v1.4M9.7 10.4v1.4" stroke="currentColor" stroke-width=".8"/></svg></button>
     </div>

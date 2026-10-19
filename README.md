@@ -251,3 +251,7 @@ Sample screen mouse (m230): click a sample or a field; click a field again to ty
 Spectral panner (m231): ten bands from 150 Hz to 10 kHz, each panned by a shape (alternate, sweep, wave, custom b1..b10). `spread` 0 leaves the sound alone; `rotate` moves the pattern along the bands; `lowMono` makes everything below it mono (a 24 dB/oct split). Bands bleed into each other near the crossovers, so the pattern is smooth rather than sharp. Check a widened mix in mono.
 
 Node help (m232): F1 with a node selected on the instrument screen, or the ? on its parameter window, shows its help page; F1 or Esc closes it. Pages are in src/graph/help.js (`PAGES`: summary, best, limits); a node with no page shows its ports and the hint of every parameter.
+
+Spectral panner view (m233): the node's panel draws the pan of each band against frequency (src/graph/specpaneditor.js); it only displays, the sliders (b1..b10 for the custom shape) change it.
+
+Backups (m234): src/project/backup.js keeps rolling snapshots in IndexedDB (unchanged projects are not stored twice) and can write each one to a folder chosen with the browser's directory picker (Chrome and Brave; the permission is asked again after a restart, with an Allow button). Panel: src/ui/backuppanel.js. Config: backupOn, backupMinutes, backupKeep, backupFolderMode.
