@@ -260,4 +260,6 @@ Brave (m235): Brave keeps the folder picker off by default; the Backups panel sa
 
 Download backups (m236): Config > Backup > Download a backup file; `takeDownload()` in src/project/backup.js hands the project over once per change. Off by default. In Brave, turn off "Ask where to save each file" or every download prompts.
 
+New demo (m238): a three-minute interstellar soundscape (Shepard glide, chords, delayed stars, swells with long wide tails).
+
 Noise colours (m237): `tilt` in dB/oct (-6 brown, -3 pink, 0 white, +3 blue, +6 violet), loudness-matched; `free` runs without notes.
