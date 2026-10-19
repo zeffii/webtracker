@@ -9,6 +9,8 @@ import { importMidi, parseMidi } from './project/midi.js';
 import { modToProject, parseMod } from './project/mod.js';
 import * as presets from './project/presets.js';
 import { LIBRARY_EXT, addToLibrary, importFromLibrary, newLibrary, parseLibrary, serializeLibrary } from './project/library.js';
+import { createRecorder } from './project/recorder.js';
+import { poolId, isPool, ensurePool, usersOfSample } from './project/ops.js';
 import { idFromName, uniqueId, addLane, addSample, addSamplerInstrument, addSynthInstrument, channelsOf, sampleMessage, slotsOf, syncSamplerStereo } from './project/ops.js';
 import { MASTER, ensureMaster, synthKinds } from './instruments.js';
 import { createSampleScreen } from './project/samplescreen.js';
@@ -780,6 +782,13 @@ const sampleScreen = createSampleScreen({
   onSelection: (from, to) => waveform.setSelection(from, to),
   onSlice: i => waveform.setActiveSlice(i),
   onLoad: () => $('sample-file').click(),
+  onKeep: id => {   // K: copy the sample under the cursor into a new normal sample
+    const s = project.samples[id];
+    if (!s) return;
+    const copy = addSample(project, isPool(id) ? `${id}_kept` : `${id}_copy`, s.rate, s.data.slice(), s.right?.slice());
+    for (const k of ['loopStart', 'loopEnd', 'loopOn', 'loopXfade', 'susStart', 'susEnd', 'susOn', 'susXfade', 'volume', 'globalVolume', 'pan', 'slices']) if (s[k] !== undefined) project.samples[copy][k] = structuredClone(s[k]);
+    refreshProjectUi(); sampleScreen.select(copy); projStatus(`Copied ${id} to ${copy}.`);
+  },
   onView: mode => waveform.setMode(mode),
 });
 
@@ -852,6 +861,7 @@ function openProject({ song, instruments, samples }, { stay = false, instrument 
   engine.reset();
   audition = null;
   sampleScreen.history.clear();
+  ensurePool(samples, engine.ctx?.sampleRate);
   project = { song, instruments, samples, lanes: [], editor: null };
   for (const id of Object.keys(instruments)) {
     loadInst(id);
@@ -965,6 +975,107 @@ $('sample-file').addEventListener('change', async e => {
   refreshProjectUi();
 });
 
+// Recording a sample from another tab, the computer's audio or an input device (project/recorder.js).
+{
+  const btn = $('rec-take'), source = $('rec-source'), meter = $('rec-meter'), timeEl = $('rec-time'), mctx = meter.getContext('2d');
+  let timer = null, peak = 0;
+  const recorder = createRecorder({ getCtx: () => engine.ctx, onLevel: p => { peak = Math.max(peak, p); }, onEnd: take => finish(take) });
+  const option = (value, text) => Object.assign(document.createElement('option'), { value, textContent: text });
+  const refreshInputs = async () => {
+    const keep = source.value;
+    source.replaceChildren(option('display', 'Another tab or screen (share audio)'), option('', 'Default input'));
+    try { for (const d of await recorder.inputs()) if (d.id && d.id !== 'default') source.append(option(d.id, d.label)); } catch { /* no device list */ }
+    if ([...source.options].some(o => o.value === keep)) source.value = keep;
+  };
+  const draw = () => {
+    const w = meter.width, h = meter.height, db = peak > 0 ? 20 * Math.log10(peak) : -90, x = Math.max(0, Math.min(1, (db + 60) / 60)) * w;
+    mctx.clearRect(0, 0, w, h);
+    mctx.fillStyle = db > -1 ? '#d03040' : db > -12 ? '#d0a020' : '#30a060'; mctx.fillRect(0, 0, x, h);
+    peak *= 0.8;
+    timeEl.textContent = recorder.state.recording ? `${recorder.state.seconds.toFixed(1)} s` : timeEl.textContent;
+  };
+  function finish(take) {
+    clearInterval(timer); timer = null; peak = 0; draw();
+    btn.textContent = 'Record'; btn.classList.remove('live');
+    if (!take) { projStatus('Nothing was recorded.'); timeEl.textContent = ''; return; }
+    const id = addSample(project, 'rec', take.rate, take.data, take.right);
+    sampleScreen.select(id);
+    refreshProjectUi();
+    timeEl.textContent = '';
+    projStatus(`Recorded ${take.seconds.toFixed(1)} s as ${id}${take.right ? ' (stereo)' : ''}.`);
+  }
+  btn.addEventListener('click', async () => {
+    if (recorder.state.recording) return finish(recorder.stop());
+    try {
+      const wait = $('rec-wait').checked;
+      projStatus(source.value === 'display' ? 'Pick a tab and tick "Also share tab audio"…' : 'Starting…');
+      await recorder.start(source.value, { waitForSound: wait });
+      btn.textContent = 'Stop'; btn.classList.add('live'); timeEl.textContent = '0.0 s';
+      projStatus(wait ? 'Recording: waiting for sound…' : 'Recording…');
+      timer = setInterval(draw, 50);
+      refreshInputs();
+    } catch (err) {
+      projStatus(err.name === 'NotAllowedError' ? 'Recording was not allowed.' : err.message);
+    }
+  });
+  window.addEventListener('keydown', e => { if (e.key === 'Escape' && recorder.state.recording) { finish(recorder.stop()); e.preventDefault(); e.stopPropagation(); } }, true);
+  refreshInputs();
+}
+
+// Takes from tap nodes (audio/nodes/tap.js): the audio arrives in blocks while the song plays. At the end the sample is
+// assembled, faded, written to its pool slot (and to a normal sample too, when the node asks), and every sampler that
+// plays it is given the new audio.
+{
+  const takes = new Map();
+  const concat = (parts, n) => { const out = new Float32Array(n); let o = 0; for (const p of parts) { out.set(p, o); o += p.length; } return out; };
+  const fade = (a, rate, msIn, msOut) => {   // a raised-cosine fade over the first msIn and the last msOut milliseconds
+    const n = a.length, fi = Math.min(Math.round(msIn * rate / 1000), n >> 1), fo = Math.min(Math.round(msOut * rate / 1000), n >> 1);
+    for (let i = 0; i < fi; i++) a[i] *= 0.5 - 0.5 * Math.cos(Math.PI * i / fi);
+    for (let i = 0; i < fo; i++) a[n - 1 - i] *= 0.5 - 0.5 * Math.cos(Math.PI * i / fo);
+  };
+  const put = (id, t, data, right) => {
+    const old = project.samples[id];
+    project.samples[id] = { rate: t.rate, data, ...(right ? { right } : {}), ...(isPool(id) ? { pool: true, taken: true } : {}), loopStart: 0, loopEnd: data.length };
+    if (old && !isPool(id)) { if (old.volume !== undefined) project.samples[id].volume = old.volume; if (old.pan !== undefined) project.samples[id].pan = old.pan; }
+  };
+  const refreshUsers = ids => {
+    const seen = new Set();
+    for (const id of ids) for (const { instrument, node } of usersOfSample(project, id)) {
+      const stereo = JSON.stringify(project.instruments[instrument].graph.nodes.map(n => !!n.stereo));
+      syncSamplerStereo(project.instruments[instrument], project.samples);
+      const after = JSON.stringify(project.instruments[instrument].graph.nodes.map(n => !!n.stereo));
+      if (stereo !== after) { if (!seen.has(instrument)) { loadInst(instrument); sendSamples(instrument); seen.add(instrument); } } else if (!seen.has(instrument)) sendSample(instrument, node);
+    }
+    auditionDirty = true;
+  };
+  const store = t => {
+    const n = t.ls.reduce((a, c) => a + c.length, 0);
+    if (!n) return;
+    const data = concat(t.ls, n), right = t.rs.length ? concat(t.rs, n) : undefined;
+    fade(data, t.rate, t.fadeIn, t.fade); if (right) fade(right, t.rate, t.fadeIn, t.fade);
+    const id = poolId(t.smp), written = [id];
+    sampleScreen.history.clear();
+    put(id, t, data, right);
+    let said = `Tap ${t.node}: ${(n / t.rate).toFixed(2)} s into ${id}`;
+    if (t.copy > 0) {
+      const normal = Object.keys(project.samples).filter(s => !isPool(s));
+      let to = normal[t.copy - 1];
+      if (to) put(to, t, data.slice(), right?.slice()); else { to = addSample(project, `take${t.copy}`, t.rate, data.slice(), right?.slice()); project.samples[to].loopStart = 0; project.samples[to].loopEnd = n; }
+      written.push(to); said += ` and ${to}`;
+    }
+    refreshUsers(written);
+    refreshProjectUi();
+    projStatus(`${said}.`);
+  };
+  engine.onEmit = ({ instrument, node, msg }) => {
+    const key = `${instrument}\u0000${node}`;
+    if (msg.phase === 'start') { takes.set(key, { ...msg, node, ls: [], rs: [] }); projStatus(`Tap ${node}: recording into ${poolId(msg.smp)}…`); return; }
+    const t = takes.get(key);
+    if (!t || t.take !== msg.take) return;
+    if (msg.phase === 'chunk') { t.ls.push(msg.l); if (msg.r) t.rs.push(msg.r); } else if (msg.phase === 'end') { takes.delete(key); if (project) store(t); }
+  };
+}
+
 // One box makes any new instrument: a synth from the list, a sampler on a chosen sample, or an empty graph.
 {
   const kinds = $('new-inst-kind'), sample = $('new-inst-sample');
@@ -1037,7 +1148,7 @@ $('start').addEventListener('click', async () => {
       openProject(createSynthwaveProject());
     }
     for (const id of ['start']) $(id).disabled = true;
-    for (const id of ['play', 'panic', 'cut', 'new', 'save', 'load', 'patch-add', 'load-samples', 'add-inst', 'add-lane', 'add-lane-inst', 'inst-voices', 'inst-notecols', 'inst-name', 'inst-rename', 'inst-up', 'inst-down', 'inst-dup', 'inst-remove', 'lane-name', 'lane-rename', 'lane-left', 'lane-right', 'lane-dup', 'lane-remove', 'lane-remove-all', 'length', 'ins-n', 'ins-go', 'bpm', 'swing', 'preset-name', 'preset-save', 'preset-over', 'preset-rename', 'preset-remove', 'inst-export', 'inst-import', 'lib-load', 'lib-add', 'lib-save']) $(id).disabled = false;
+    for (const id of ['play', 'panic', 'cut', 'new', 'save', 'load', 'patch-add', 'load-samples', 'rec-take', 'rec-source', 'add-inst', 'add-lane', 'add-lane-inst', 'inst-voices', 'inst-notecols', 'inst-name', 'inst-rename', 'inst-up', 'inst-down', 'inst-dup', 'inst-remove', 'lane-name', 'lane-rename', 'lane-left', 'lane-right', 'lane-dup', 'lane-remove', 'lane-remove-all', 'length', 'ins-n', 'ins-go', 'bpm', 'swing', 'preset-name', 'preset-save', 'preset-over', 'preset-rename', 'preset-remove', 'inst-export', 'inst-import', 'lib-load', 'lib-add', 'lib-save']) $(id).disabled = false;
     $('status').textContent =
       `Running at ${engine.ctx.sampleRate} Hz, base latency ${(engine.ctx.baseLatency * 1000).toFixed(1)} ms`;
     // Only the screen that is showing is drawn: a hidden one has nothing to measure or paint, and its work would only delay the one you are using.

@@ -955,6 +955,7 @@ export function createPatcher({ canvas, panel, paramPanel = null, exposedDock = 
       ctx.textBaseline = 'alphabetic';
       ctx.textAlign = 'center';
       ctx.fillText(node.id, node.x + w / 2, node.y - 5);   // the name sits above the shape
+      if (node.type === 'tap') { const slot = Math.round(node.params?.smp ?? type.params.find(q => q.name === 'smp').def), copy = Math.round(node.params?.copy ?? 0); ctx.fillText(slot >= 1 && slot <= 16 ? `\u2192 tap${String(slot).padStart(2, '0')}${copy ? `, copy ${copy}` : ''}` : '\u2192 (off)', node.x + w / 2, node.y + h + 12); }   // where it writes
       if (node.type === 'sidechain') { ctx.fillText(node.source ? `\u2190 ${node.source}` : '\u2190 (none)', node.x + w / 2, node.y + h + 12); }   // where it listens to
 
       const glyph = GLYPHS[type.glyph];

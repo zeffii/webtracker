@@ -1,4 +1,4 @@
-import { SAMPLE_KEYS } from './ops.js';
+import { SAMPLE_KEYS, isPool, ensurePool } from './ops.js';
 // The project file: plain JSON, version 1, extension .wax.
 //
 // {
@@ -71,7 +71,7 @@ export function serializeProject({ song, instruments, samples, lanes }, { sample
     version: VERSION,
     song: { name: song.name ?? 'untitled', bpm: song.bpm, ticksPerBeat: song.ticksPerBeat, length: song.length, ...(song.swing && song.swing !== 0.5 ? { swing: song.swing } : {}), ...(song.loop ? { loop: { start: song.loop.start, end: song.loop.end } } : {}), ...(song.info ? { info: song.info } : {}) },
     instruments,
-    samples: Object.fromEntries(Object.entries(samples).map(([id, s]) => [id, encodeSample(s, sampleFormat)])),
+    samples: Object.fromEntries(Object.entries(samples).filter(([id]) => !isPool(id)).map(([id, s]) => [id, encodeSample(s, sampleFormat)])),
     lanes: lanes.map(l => ({
       id: l.id,
       instrument: l.instrument,
@@ -149,7 +149,7 @@ export function parseProject(text) {
   }
   upgradeSamplerLayout(data);
   ensureSliceCommand(data);
-  const samples = Object.fromEntries(Object.entries(data.samples ?? {}).map(([id, s]) => [id, decodeSample(s)]));
+  const samples = ensurePool(Object.fromEntries(Object.entries(data.samples ?? {}).filter(([id]) => !isPool(id)).map(([id, s]) => [id, decodeSample(s)])));
   for (const [id, def] of Object.entries(data.instruments)) {
     for (const sampleId of Object.values(def.samples ?? {}).flat()) {
       if (!samples[sampleId]) throw new Error(`Instrument "${id}" uses unknown sample "${sampleId}".`);
@@ -180,7 +180,7 @@ export const INSTRUMENT_EXT = '.waxi';
 export function serializeInstrument(project, id, { sampleFormat = 'pcm16' } = {}) {
   const def = project.instruments[id];
   if (!def) throw new Error(`No instrument called "${id}".`);
-  const used = [...new Set(Object.values(def.samples ?? {}).flat())];
+  const used = [...new Set(Object.values(def.samples ?? {}).flat())].filter(id => !isPool(id));
   return JSON.stringify({
     format: INSTRUMENT_FORMAT,
     version: VERSION,
@@ -197,9 +197,9 @@ export function parseInstrument(text) {
   if (data?.format !== INSTRUMENT_FORMAT) throw new Error('Not an instrument file.');
   if (data.version !== VERSION) throw new Error(`Unsupported file version ${data.version}; this build reads version ${VERSION}.`);
   if (!data.instrument?.graph) throw new Error('The instrument file has no graph.');
-  const samples = Object.fromEntries(Object.entries(data.samples ?? {}).map(([id, s]) => [id, decodeSample(s)]));
+  const samples = Object.fromEntries(Object.entries(data.samples ?? {}).filter(([id]) => !isPool(id)).map(([id, s]) => [id, decodeSample(s)]));
   for (const sampleId of Object.values(data.instrument.samples ?? {}).flat()) {
-    if (!samples[sampleId]) throw new Error(`The instrument uses unknown sample "${sampleId}".`);
+    if (!samples[sampleId] && !isPool(sampleId)) throw new Error(`The instrument uses unknown sample "${sampleId}".`);
   }
   return { name: data.name ?? 'instrument', instrument: data.instrument, samples };
 }

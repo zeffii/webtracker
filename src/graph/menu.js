@@ -20,7 +20,7 @@ const GROUPS = {
     ['Reverb', ['hall', 'plate', 'shimmer']],
     ['Spectral', ['blur']],
     ['Distortion', ['distortion', 'waveshaper', 'crusher']],
-    ['Routing', ['split']],
+    ['Routing', ['split', 'tap']],
   ],
 };
 const ORDER = ['Sources', 'Effects', 'Control', 'Mix & level'];

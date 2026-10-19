@@ -81,6 +81,15 @@ const HINTS = {
     resonance: 'Emphasis at the cutoff. Low is smooth; high rings and whistles around the cutoff.',
     mode: '0 lowpass (keeps lows, cuts highs), 1 bandpass (keeps a band around the cutoff), 2 highpass (keeps highs, cuts lows).',
   },
+  tap: {
+    trig: 'Write 1 in a pattern to start a take on that row, 0 to end it early. Every write to the cell counts, so 1 on a later row retakes.',
+    len: 'Length of a take in ticks (pattern rows). 0 records until a 0 arrives in trig, or the song stops (at most two minutes).',
+    smp: 'Which pool sample the take is written to: 1 to 16 is tap01 to tap16. 0 records nothing. A sampler plays it by picking the same tapNN as its sample.',
+    ch: '1 records mono, 2 records stereo.',
+    fade: 'Fades the end of the take to silence over this many ms, so it never clicks when it loops or is played back.',
+    fadein: 'Fades the start of the take in over this many ms.',
+    copy: 'Also writes the take into this normal sample (its number in the sample list). 0 does not copy. A number past the end of the list adds a new sample.',
+  },
   vocoder: {
     bands: 'How many frequency bands the spectrum is split into. More bands make speech clearer, fewer sound more robotic.',
     low: 'Lowest band centre in Hz.',

@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="themes.css">
-  <title>webtracker m221</title>
+  <title>webtracker m223</title>
   <link rel="icon" href="icon.ico" sizes="any">
   <link rel="icon" type="image/png" href="icon.png">
   <style>
@@ -16,6 +16,9 @@
     .mono, #seq, #view, #header, #smp { font: 13px/1.35 ui-monospace, Consolas, monospace; }
     [hidden] { display: none !important; }
     #smp { margin: .5rem 0; outline: none; white-space: pre; }
+    #rec-row { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; }
+    #rec-meter { background: color-mix(in srgb, currentColor 10%, transparent); }
+    #rec-take.live { background: #d03040; color: #fff; }
     /* the list and the fields are split by one continuous, dim line, as in the instrument screen */
     #smp .lc { display: inline-block; width: 38ch; height: 1.35em; vertical-align: top; overflow: hidden; border-right: 1px solid color-mix(in srgb, currentColor 25%, transparent); }
     #smp .sf { background: rgba(128, 128, 128, .22); }
@@ -469,6 +472,10 @@
       <p><button id="load-samples" disabled>Load samples…</button>
         <input id="sample-file" type="file" accept="audio/*" multiple hidden>
         <span id="proj-status"></span></p>
+      <p id="rec-row"><button id="rec-take" disabled title="Record a new sample from another tab, the computer's audio or an input">Record</button>
+        <select id="rec-source" disabled aria-label="Record from"></select>
+        <label title="Hold the take until something is heard"><input type="checkbox" id="rec-wait" checked> start on sound</label>
+        <canvas id="rec-meter" width="120" height="12" aria-label="Input level"></canvas> <span id="rec-time"></span></p>
     </div>
       <aside class="keys" aria-label="Sample screen shortcuts"><h3>Shortcuts</h3>
         <dl>
@@ -479,6 +486,8 @@
           <dt>Space</dt><dd><b class="kw">play</b> the root note</dd>
           <dt>Esc</dt><dd>back to the list</dd>
           <dt>L</dt><dd>load samples</dd>
+          <dt>K</dt><dd><b class="kw">keep</b>: copy the sample under the cursor into a new normal sample (for a tap take that you want to keep)</dd>
+          <dt>Record button</dt><dd><b class="kw">record</b> a sample from another tab (the browser asks you to pick one and tick "Also share tab audio"), from the whole screen's audio, or from an input device or loopback. Esc or Stop keeps the take</dd>
           <dt>Delete</dt><dd><b class="kw">remove</b> the sample</dd>
           <dt>Shift+drag</dt><dd>select part of the display; drag across it to make a <b class="kw">loop</b>, drag a marker to <b class="kw">move</b> it, double-click to clear</dd>
           <dt>Marker region</dt><dd>the narrow view right of the waveform shows 800 frames around the current marker, the red line is the marker</dd>

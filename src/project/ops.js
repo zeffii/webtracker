@@ -55,6 +55,19 @@ export function syncSamplerStereo(def, samples) {
   }
 }
 
+// The tap pool: sixteen sample slots, tap01 to tap16, that tap nodes record into while a song plays. They are always
+// there (a sampler can be pointed at one before its first take), start as a single silent frame, are never saved
+// with a project and cannot be deleted; deleting one empties it.
+export const POOL_SIZE = 16;
+export const poolId = n => `tap${String(n).padStart(2, '0')}`;
+export const isPool = id => /^tap(0[1-9]|1[0-6])$/.test(id);
+export const isTaken = s => !!s?.taken;   // a pool slot that holds a recording
+export function emptyPoolSlot(rate = 44100) { return { rate, data: new Float32Array(1), pool: true }; }
+export function ensurePool(samples, rate = 44100) {
+  for (let i = 1; i <= POOL_SIZE; i++) if (!samples[poolId(i)]) samples[poolId(i)] = emptyPoolSlot(rate);
+  return samples;
+}
+
 export function addSample(project, name, rate, data, right) {
   const id = uniqueId(new Set(Object.keys(project.samples)), idFromName(name));
   project.samples[id] = right ? { rate, data, right } : { rate, data };
@@ -68,6 +81,7 @@ export function usersOfSample(project, id) {
 }
 
 export function removeSample(project, id) {
+  if (isPool(id)) { project.samples[id] = emptyPoolSlot(project.samples[id]?.rate); return usersOfSample(project, id); }   // a tap slot is emptied, never removed
   if (usersOfSample(project, id).length) throw new Error(`"${id}" is used by an instrument.`);
   delete project.samples[id];
 }

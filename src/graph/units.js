@@ -25,6 +25,7 @@ const TYPE_UNIT = {
   crusher: { rate: 'Hz', bits: 'bit' },
   dcblock: { freq: 'Hz' },
   modchan: {},
+  tap: { fade: 'ms', fadein: 'ms' },
   vocoder: { low: 'Hz', high: 'Hz', attack: 'ms', release: 'ms', shift: 'st', sibilance: '%', tune: 'Hz', noise: '%', level: '' },
   filterpro: { cutoff: 'Hz', vowel: '', damp: '%', drive: '%', bias: '%', level: '' },
   squelch: { tune: 'st', cutoff: 'Hz', decay: 'ms', slide: 'ms', rel: 'ms' },

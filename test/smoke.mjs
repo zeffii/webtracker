@@ -6032,4 +6032,80 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   press('z', { ctrlKey: true });
   assert.equal(lane.placements.length, n, 'one undo brings it back');
 }
+
+// recorder: blocks join into one take (mono when both sides match), the worklet reports blocks and levels
+{
+  const { finishTake, createRecorder } = await import('../src/project/recorder.js');
+  const a = Float32Array.from([0.1, 0.2]), b = Float32Array.from([0.3]);
+  const mono = finishTake([a, b], [a, b]);
+  assert.ok(!mono.right && mono.data.length === 3 && Math.abs(mono.data[2] - 0.3) < 1e-6, 'identical sides make a mono sample');
+  const st = finishTake([a], [Float32Array.from([0.5, 0.2])]);
+  assert.ok(st.right && st.right[0] === 0.5, 'different sides stay stereo');
+  // the worklet processor
+  let Proc; globalThis.AudioWorkletProcessor = class { constructor() { this.port = { postMessage: (m) => { this.sent.push(m); } }; this.sent = []; } }; globalThis.registerProcessor = (name, c) => { Proc = c; };
+  await import('../src/audio/recorder-worklet.js');
+  const p = new Proc();
+  p.process([[new Float32Array(128).fill(0.5)]]);
+  assert.equal(p.sent.length, 0, 'nothing is kept until started');
+  p.port.onmessage({ data: 'start' });
+  for (let i = 0; i < 16; i++) p.process([[new Float32Array(128).fill(0.5), new Float32Array(128).fill(-0.25)]]);
+  assert.equal(p.sent.length, 1, 'a block of 2048 frames is sent');
+  assert.ok(p.sent[0].l.length === 2048 && p.sent[0].l[0] === 0.5 && p.sent[0].r[0] === -0.25 && p.sent[0].peak === 0.5, 'left, right and the peak arrive');
+  p.process([[new Float32Array(128).fill(0.1)]]); p.port.onmessage({ data: 'stop' });
+  assert.equal(p.sent.at(-1).l.length, 128, 'stopping sends the partial block; a mono input fills both sides');
+  assert.equal(p.sent.at(-1).r[5], p.sent.at(-1).l[5]);
+  // errors without a browser
+  const rec = createRecorder({ getCtx: () => null, media: () => null });
+  await assert.rejects(() => rec.start('display'), /not available/);
+  const noAudio = createRecorder({ getCtx: () => ({}), media: () => ({ getDisplayMedia: async () => ({ getVideoTracks: () => [{ stop() {} }], getAudioTracks: () => [], getTracks: () => [] }) }) });
+  await assert.rejects(() => noAudio.start('display'), /No audio was shared/);
+  console.log('ok: recorder');
+}
+
+// tap node and the tap pool
+{
+  const tap = NODE_TYPES.tap, sr = 48000;
+  const { poolId, isPool, ensurePool, removeSample, emptyPoolSlot } = await import('../src/project/ops.js');
+  const { serializeProject, parseProject } = await import('../src/project/file.js');
+  const stamps = new Uint32Array(64), clock = { tickSamples: 6000, stamps, tickId: 0, playing: true };
+  const sent = [];
+  const inst = tap.create({ sampleRate: sr, clock, emit: (msg, transfer) => sent.push({ ...msg }) });
+  const vals = Object.fromEntries(tap.params.map(q => [q.name, q.def])), slots = tap.params.map((_, i) => i);
+  const L = new Float32Array(128).fill(0.5), R = new Float32Array(128).fill(-0.5);
+  const run = () => { const o = [new Float32Array(128), new Float32Array(128)]; inst.process([[L, R]], [o], 128, tap.params.map(q => vals[q.name]), slots); return o; };
+  const out = run();
+  assert.equal(out[0][5], 0.5, 'the audio passes through'); assert.equal(sent.length, 0, 'nothing is recorded before a trig');
+  // a take of 2 ticks: 1 written to trig, then two ticks of 4 blocks each
+  vals.len = 2; vals.smp = 3; vals.trig = 1; stamps[0]++;
+  for (let t = 0; t < 2; t++) { clock.tickId++; if (t === 0) { /* the write came with the first tick */ } for (let b = 0; b < 4; b++) run(); }
+  clock.tickId++; run();   // the third tick boundary ends it
+  const start = sent.find(m => m.phase === 'start'), end = sent.find(m => m.phase === 'end');
+  assert.ok(start && end, 'a take starts and ends'); assert.equal(start.smp, 3); assert.equal(start.ch, 2);
+  const frames = sent.filter(m => m.phase === 'chunk').reduce((a, m) => a + m.l.length, 0);
+  assert.equal(frames, 8 * 128, 'the take holds exactly the two ticks that ran');
+  assert.ok(sent.filter(m => m.phase === 'chunk')[0].r[0] === -0.5, 'stereo takes carry both sides');
+  // trig 0 ends early; smp 0 records nothing; mono sends one side only
+  sent.length = 0; vals.len = 0; vals.trig = 1; vals.ch = 1; stamps[0]++; run(); run();
+  vals.trig = 0; stamps[0]++; run();
+  const mono = sent.filter(m => m.phase === 'chunk');
+  assert.ok(mono.length && mono[0].r === null && Math.abs(mono[0].l[0]) < 1e-6, 'mono is the mix of both sides');
+  assert.ok(sent.some(m => m.phase === 'end'), 'a 0 ends a take with no length');
+  sent.length = 0; vals.smp = 0; vals.trig = 1; stamps[0]++; run();
+  assert.equal(sent.length, 0, 'smp 0 records nothing');
+  // the song stopping ends a take
+  vals.smp = 2; vals.len = 0; stamps[0]++; run(); clock.playing = false; run();
+  assert.ok(sent.some(m => m.phase === 'end'), 'stopping the song ends the take');
+  // the pool
+  const samples = ensurePool({});
+  assert.equal(Object.keys(samples).length, 16); assert.ok(isPool(poolId(7)) && poolId(7) === 'tap07' && !isPool('tap17') && !isPool('tap00') && !isPool('kick'));
+  samples.tap02 = { rate: 48000, data: new Float32Array(100), pool: true, taken: true };
+  removeSample({ samples, instruments: {} }, 'tap02');
+  assert.ok(samples.tap02 && !samples.tap02.taken && samples.tap02.data.length === 1, 'deleting a tap slot empties it');
+  const proj = { song: { name: 't', bpm: 120, ticksPerBeat: 4, length: 16 }, instruments: {}, samples: { ...samples, kick: { rate: 44100, data: new Float32Array(10) } }, lanes: [] };
+  const text = serializeProject(proj);
+  assert.ok(!/tap0\d/.test(JSON.parse(text).samples ? Object.keys(JSON.parse(text).samples).join() : ''), 'tap slots are not saved');
+  const back = parseProject(text);
+  assert.ok(back.samples.kick && back.samples.tap16 && back.samples.tap01.data.length === 1, 'they come back as empty slots');
+  console.log('ok: tap');
+}
 console.log('smoke test passed');

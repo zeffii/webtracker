@@ -1,4 +1,4 @@
-import { setLoop, setSampleProps, setSlices, sliceHex, SAMPLE_PROPS, removeSample, renameSample } from './ops.js';
+import { setLoop, setSampleProps, setSlices, sliceHex, SAMPLE_PROPS, removeSample, renameSample, isPool } from './ops.js';
 import { applyEdit, createHistory, redoEdit, undoEdit } from './sampleedit.js';
 import { LOWER, UPPER } from '../seq/piano.js';
 
@@ -30,13 +30,14 @@ const EDITS = { C: 'crop', T: 'crop', X: 'cut', S: 'silence', R: 'reverse', N: '
 const ROOT = 60;
 const round2 = v => Math.round(v * 100) / 100;
 
-export function createSampleScreen({ el, statusEl, getProject, onChange = () => {}, onSelect = () => {}, onRemove = () => {}, onRename = () => {}, onNote = () => {}, onLoad = () => {}, onView = () => {}, onSelection = () => {}, onSlice = () => {} }) {
+export function createSampleScreen({ el, statusEl, getProject, onChange = () => {}, onSelect = () => {}, onRemove = () => {}, onRename = () => {}, onNote = () => {}, onLoad = () => {}, onKeep = () => {}, onView = () => {}, onSelection = () => {}, onSlice = () => {} }) {
   let sel = null, focus = 'list', edit = null, mode = 'wave', announced = null, last = null, top = 0;
   let selFrom = 0, selTo = 0, octave = 5, activeSlice = -1;   // the slice marker + and - move
   const held = new Map();   // key -> note it is playing
   const history = createHistory();
   const say = text => { if (statusEl) statusEl.textContent = text; };
-  const ids = () => Object.keys(getProject().samples);
+  // the normal samples, then the tap pool slots that hold a take (empty ones stay out of the list)
+  const ids = () => { const all = Object.entries(getProject().samples); return [...all.filter(([id]) => !isPool(id)), ...all.filter(([id, s]) => isPool(id) && s.taken)].map(([id]) => id); };
   const sample = () => (sel ? getProject().samples[sel] : undefined);
   const attempt = fn => {
     try { const users = fn(); say(''); if (users) onChange(users); return true; } catch (err) { say(err.message); return false; }
@@ -196,7 +197,7 @@ export function createSampleScreen({ el, statusEl, getProject, onChange = () => 
     const k = e.key, list = ids();
     const eat = () => { e.preventDefault?.(); return true; };
     if (!list.length) { if (k === 'l' || k === 'L') { onLoad(); return eat(); } return false; }
-    if (!(sel in getProject().samples)) select(list[0]);
+    if (!list.includes(sel)) select(list[0]);
 
     if (edit) {
       if (k === 'Escape') { edit = null; return eat(); }
@@ -258,6 +259,7 @@ export function createSampleScreen({ el, statusEl, getProject, onChange = () => 
       }
       if (k === ' ') { if (!e.repeat) startNote(' ', ROOT); return eat(); }
       if (k === 'l' || k === 'L') { onLoad(); return eat(); }
+      if (k === 'k' || k === 'K') { onKeep(sel); return eat(); }   // copy a tap sample out as a normal one
       const note = pianoNote(e);
       if (note !== null) { if (!e.repeat) startNote(String(k).toLowerCase(), note); return eat(); }
       return false;
@@ -314,7 +316,7 @@ export function createSampleScreen({ el, statusEl, getProject, onChange = () => 
   function draw() {
     const project = getProject();
     const list = ids();
-    if (sel && !(sel in project.samples)) { sel = null; edit = null; }
+    if (sel && !(sel in project.samples && ids().includes(sel))) { sel = null; edit = null; }
     if (!sel && list.length) select(list[0]);
     if (sel !== announced) { announced = sel; onSelect(sel); }
     let html;

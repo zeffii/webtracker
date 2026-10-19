@@ -36,6 +36,7 @@ export class Engine {
       if (data.type === 'fault') this.onFault?.(data.instrument);
       else if (data.type === 'load') this.onLoad?.(data);
       else if (data.type === 'scope') this.onScope?.(data);
+      else if (data.type === 'emit') this.onEmit?.(data);
     };
     for (const key of this.watching) { const [instrument, node] = key.split('\u0000'); this.node.port.postMessage({ type: 'scope', instrument, node, on: true }); }
     this.node.connect(this.ctx.destination);

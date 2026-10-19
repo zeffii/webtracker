@@ -13,6 +13,7 @@ export class GraphRuntime {
   samples = new Map();     // the last sample message per instrument and node, replayed on a rebuild
   stamp = 0;               // counts note events, to find the oldest voice
   onFault = null;          // called with an instrument id when it is rebuilt
+  onEmit = null;           // called with (instrument id, node id, message, transfer list): what a node sends the page (the tap node's takes)
   onScope = null;          // called with (instrument id, node id, left, right): the last SCOPE_N samples a watched node put out
   scopes = new Map();      // watched nodes: key -> { instrument, node, l, r, at, since }
 
@@ -55,7 +56,7 @@ export class GraphRuntime {
     const fresh = () => Array.from({ length: compiled.bufferCount }, () => new Float32Array(this.maxBlock));
     const resolver = buffers => ref => (Array.isArray(ref) ? ref.map(b => buffers[b]) : buffers[ref]);   // stereo ports are [left, right]
     const make = (n, resolve) => {
-      const create = () => NODE_TYPES[n.type].create({ sampleRate: this.sampleRate, maxBlock: this.maxBlock, connected: n.connected, wasm: this.wasm, data: n.data, init: n.init, stereo: n.stereo === true, clock: this.clock, source: n.source, tap: id => this.tap(id) });
+      const create = () => NODE_TYPES[n.type].create({ sampleRate: this.sampleRate, maxBlock: this.maxBlock, connected: n.connected, wasm: this.wasm, data: n.data, init: n.init, stereo: n.stereo === true, clock: this.clock, source: n.source, tap: id => this.tap(id), emit: (msg, transfer) => this.onEmit?.(compiled.instrument, n.id, msg, transfer) });
       const node = { id: n.id, instance: create(), slots: Int32Array.from(n.slots), inputs: n.inputs.map(resolve), outputs: n.outputs.map(resolve) };
       if (n.dual) {   // a mono node on a stereo signal: one copy per channel over the same parameters
         const left = node.instance, right = create();
