@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['m217', ['Vocoder node (Effects, Filter & EQ): up to 32 bands, a voice input and a carrier input (or a built-in buzz when nothing is wired to carrier), attack and release, formant shift, sibilance pass-through.']],
   ['m216', ['Pattern editor: Space writes the live value of the parameter under the cursor and steps down; Ctrl+Space writes the live values of every parameter column of the row. Row audition is F7 only. Ctrl+Enter and Ctrl+Shift+Enter are free.']],
   ['m215', ['The caret can roam while Follow is on: moving it to another row pauses the following (a message says so), and F9 or the Follow button picks it up again. Config: Allow the caret to roam while following can turn this off.', 'The highlighted words in the shortcut lists now have a background fill so they jump out.']],
   ['m214', ['The shortcut lists now pick out the important words of each description in a quiet accent colour.', 'Demo song updated.']],

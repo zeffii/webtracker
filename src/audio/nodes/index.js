@@ -5,6 +5,7 @@ import lfo from './lfo.js';
 import gain from './gain.js';
 import filter from './filter.js';
 import filterpro from './filterpro.js';
+import vocoder from './vocoder.js';
 import delay from './delay.js';
 import out from './out.js';
 import mix from './mix.js';
@@ -57,7 +58,7 @@ import ctrl from './ctrl.js';
 import voices from './voices.js';
 
 // Node type registry. Adding a node type means adding a module and listing it here.
-const TYPES = { sampler, osc, noise, env, lfo, gain, mix, pan, filter, filterpro, delay, chorus, phaser, flanger, distortion, multitap, shiva, blur, gater, freqshift, waveshaper, dcblock, exciter, transient, split, compressor, gate, envfx, eq, crusher, ctrl, notetrig, follower, sidechain, hall, plate, shimmer, subsynth, oberheim, piano, addsynth, fmsynth, dvii, wavetable, granular, specsynth, string, hat808, combperc, squelch, modchan, voices, tempo, out, sum, sumst, fold };
+const TYPES = { sampler, osc, noise, env, lfo, gain, mix, pan, filter, filterpro, vocoder, delay, chorus, phaser, flanger, distortion, multitap, shiva, blur, gater, freqshift, waveshaper, dcblock, exciter, transient, split, compressor, gate, envfx, eq, crusher, ctrl, notetrig, follower, sidechain, hall, plate, shimmer, subsynth, oberheim, piano, addsynth, fmsynth, dvii, wavetable, granular, specsynth, string, hat808, combperc, squelch, modchan, voices, tempo, out, sum, sumst, fold };
 
 // Every effect gets a hard bypass switch as its last parameter (the runtime passes the input straight through while it is on).
 export const NODE_TYPES = TYPES;

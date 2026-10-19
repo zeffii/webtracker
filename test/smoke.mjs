@@ -5120,7 +5120,6 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   Atomics.store(transport, 1, 0);
 }
 
-console.log('smoke test passed');
 
 // 115. Plucked string: pitch, decay time, damping, pluck position, release.
 {
@@ -5964,3 +5963,37 @@ console.log('smoke test passed');
   transport[1] = 0; uiConfig.set('followRoam', true); uiConfig.set('playhead', 'band');
   console.log('ok: follow roam');
 }
+
+// vocoder: the voice's spectrum shapes the carrier, silence in is silence out, shift and band counts stay finite
+{
+  const vc = NODE_TYPES.vocoder, sr = 48000, N = 48128;
+  const run = (over, voice, carrier) => {
+    const inst = vc.create({ sampleRate: sr, connected: [true, !!carrier] });
+    const vals = Object.fromEntries(vc.params.map(q => [q.name, q.def])); Object.assign(vals, over);
+    const params = vc.params.map(q => vals[q.name]), slots = vc.params.map((_, i) => i), y = new Float32Array(N);
+    for (let i = 0; i < N; i += 128) {
+      const o = [new Float32Array(128)];
+      inst.process([Float32Array.from({ length: 128 }, (_, j) => voice(i + j)), carrier ? Float32Array.from({ length: 128 }, (_, j) => carrier(i + j)) : null], o, 128, params, slots);
+      y.set(o[0], i);
+    }
+    return y;
+  };
+  const rms = (a, f = 12000, t = a.length) => { let s = 0; for (let i = f; i < t; i++) s += a[i] * a[i]; return Math.sqrt(s / (t - f)); };
+  const sine = hz => i => 0.5 * Math.sin(2 * Math.PI * hz * i / sr);
+  const saw = hz => i => 2 * ((i * hz / sr) % 1) - 1;
+  let seed = 3; const noise = () => { seed = (seed * 1664525 + 1013904223) >>> 0; return 0.4 * (seed / 2147483648 - 1); };
+  assert.ok(vc.params.every(q => q.def >= q.min && q.def <= q.max), 'vocoder defaults are in range');
+  assert.ok(rms(run({}, () => 0)) < 1e-6, 'a silent voice gives silence');
+  const tone = run({ sibilance: 0 }, sine(500), saw(110));
+  assert.ok(tone.every(Number.isFinite) && rms(tone) > 0.01, 'a voice makes the carrier speak');
+  // gating: the carrier only passes while the voice is on
+  const burst = run({ sibilance: 0 }, i => (i < 24000 ? sine(500)(i) : 0), saw(110));
+  assert.ok(rms(burst, 12000, 22000) > 8 * rms(burst, 36000, 48000), 'the output follows the voice envelope');
+  // spectrum: a low voice tone lets low carrier harmonics through, a high one lets high ones through
+  const hf = a => { let d = 0, e = 0; for (let i = 12001; i < a.length; i++) { const x = a[i] - a[i - 1]; d += x * x; e += a[i] * a[i]; } return d / e; };
+  assert.ok(hf(run({ sibilance: 0 }, sine(3500), saw(110))) > 3 * hf(run({ sibilance: 0 }, sine(300), saw(110))), 'the voice spectrum picks the carrier band');
+  for (const o of [{ bands: 4 }, { bands: 32, q: 20 }, { shift: 12 }, { shift: -12, release: 500 }, { low: 1000, high: 2000 }]) assert.ok(run(o, noise).every(Number.isFinite), `vocoder ${JSON.stringify(o)} stays finite`);
+  assert.ok(rms(run({ sibilance: 1 }, sine(8000), saw(110))) > 2 * rms(run({ sibilance: 0 }, sine(8000), saw(110), 0)), 'sibilance passes the highs');
+  console.log('ok: vocoder');
+}
+console.log('smoke test passed');

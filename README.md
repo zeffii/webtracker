@@ -200,3 +200,6 @@ The pattern grid keeps one element per row and rewrites only the rows whose mark
 
 ## Interpolation curve, nugget mode (m212)
 Ctrl+I: per column of the selection the first and last filled cells are the ends, and the filled cells between them get values by row position (notes by semitone). The popup picks a shape (linear, ease in/out, s-curve, exponential, steps), bends it, adds a wave (cycles, depth), lets you paint your own curve, and can include empty cells. Dots on the curve are the cells that will change. The grid updates live; Enter applies, Esc cancels; one undo step. Nugget mode: Ctrl+Left/Right goes inside a cell; then plain Left/Right stay inside until the next step would cross its edge, and Up/Down keep the character position.
+
+## Vocoder (m217)
+Filter & EQ > vocoder. Wire a voice (or any busy sound: drums work well) into `voice` and a held synth or chord into `carrier`: the voice's spectrum, band by band, is imposed on the carrier. With nothing wired to `carrier` a built-in buzz (a band-limited saw plus a little noise, `tune` sets its pitch) is used. `bands` (4 to 32) between `low` and `high`, `q` for band sharpness, `attack` and `release` for how quickly the bands follow, `shift` moves the carrier bands against the voice bands (formant shift), `sibilance` passes the voice's own highs so consonants stay clear.
