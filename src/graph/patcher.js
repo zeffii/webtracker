@@ -135,6 +135,7 @@ export function createPatcher({ canvas, panel, paramPanel = null, exposedDock = 
   let tapEditor = null;     // the tap view of a Shiva delay, redrawn when its parameters move
   let tableEditor = null;   // the wavetable panel of the selected node, redrawn when position or mix move
   let instruments = {}, instId = null, selected = null, drag = null, dirty = true;
+  const lastSelected = new Map();   // instrument -> the node that was selected when you left it
   // The scopes: an eye on a node shows what it puts out (a scope beside it: wave, spectrum or xy, 200 or 400 pixels).
   // The choice lives on the node as node.scope = { mode, size }; the samples arrive from the audio side.
   const scopeData = new Map();   // node id -> { l, r, sr }
@@ -1039,10 +1040,16 @@ export function createPatcher({ canvas, panel, paramPanel = null, exposedDock = 
     feedScope(id, node, l, r, sr) { if (id === instId) { scopeData.set(node, { l, r, sr }); dirty = true; } },
     show(id) {
       if (instId && instId !== id && def()) for (const n of desc().nodes) if (n.scope) onScope(instId, n.id, false);   // (the old instrument may be gone from a newly loaded project)
+      if (instId && selected?.kind === 'node') lastSelected.set(instId, selected.id);   // coming back to an instrument finds the node you left selected
+      const same = id === instId, kept = same && selected?.kind === 'node' ? selected.id : null;
       instId = id;
       scopeData.clear();
       if (id) for (const n of desc().nodes) if (n.scope) onScope(id, n.id, true);
-      selected = null;
+      // The node that should take the keyjazz: the one selected last time here, else the first generator (an oscillator, a
+      // sampler, a synth), so the piano keys play the instrument at once.
+      const has = nid => !!nid && !!desc()?.nodes.some(n => n.id === nid);
+      const pick = id ? [kept, lastSelected.get(id)].find(has) ?? desc().nodes.find(n => nodeTypes[n.type]?.generator)?.id : null;
+      selected = pick ? { kind: 'node', id: pick } : null;
       group.clear();
       drag = null;
       if (id) autoLayout(desc(), nodeTypes);

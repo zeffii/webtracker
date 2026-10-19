@@ -221,3 +221,7 @@ Effects > Routing > tap records the signal passing through it into a sample, sta
 The pool is sixteen slots, tap01 to tap16, always present (a sampler can be pointed at one before its first take, and both ends are explicit: the writer names its slot and the reader picks the same one). Slots with a take appear at the end of the Samples screen list; they are not saved with the project and come back empty when it is loaded. Delete empties a slot. K copies the sample under the cursor into a new normal sample. Takes loop by default. Taking a mono take into a sampler that was built for mono, or stereo into stereo, is seamless; a change of channel count reloads that instrument once.
 
 Ctrl+G (m224): the copy always gets a colour different from the original's, so the clone is visible at once; before, a colour set with K was copied as it was, and an automatic colour (one of six, by pattern index) could come out the same.
+
+Instrument editor (m225): switching to an instrument selects the node that was selected when you left it, else its first generator node, so keyjazz works without clicking first.
+
+Panic button (m226): a small skull and crossbones instead of the word; same action, and it turns red under the pointer.

@@ -3631,6 +3631,8 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   // keyboard moves between nodes
   const key = k => canvas.listeners.keydown({ key: k, preventDefault() {} });
   patcher.show('lead');
+  assert.equal(patcher.selectedNode, x.node, 'coming back to an instrument selects the node you left');
+  canvas.listeners.mousedown({ offsetX: 5000, offsetY: 5000, preventDefault() {} }); canvas.listeners.mouseup({ offsetX: 5000, offsetY: 5000 });
   assert.equal(patcher.selectedNode, null);
   key('Tab'); const start = patcher.selectedNode;
   assert.ok(start, 'Tab selects the leftmost node');
@@ -3727,9 +3729,11 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   patcher.show('lead');
   const down = (key, extra) => canvas.listeners.keydown({ key, preventDefault() {}, ...extra });
   const up = key => canvas.listeners.keyup({ key });
-  down('z'); assert.equal(notes.length, 0, 'nothing plays with no node selected');
   const nodes = defs.lead.graph.nodes, gen = nodes.find(n => NODE_TYPES[n.type].generator), other = nodes.find(n => !NODE_TYPES[n.type].generator && n.type !== 'out');
   assert.ok(gen && other);
+  assert.equal(patcher.selectedNode, gen.id, 'showing an instrument selects its generator, so the keys play at once');
+  canvas.listeners.mousedown({ offsetX: 5000, offsetY: 5000, preventDefault() {} }); canvas.listeners.mouseup({ offsetX: 5000, offsetY: 5000 });
+  down('z'); assert.equal(notes.length, 0, 'nothing plays with no node selected');
   const pick = node => {
     const { w, h } = nodeBox(NODE_TYPES[node.type]);
     canvas.listeners.mousedown({ offsetX: node.x + w / 2, offsetY: node.y + h / 2, preventDefault() {} });

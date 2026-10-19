@@ -7,6 +7,8 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['m226', ['The Panic button is now a small skull and crossbones (it turns red when you hover it).']],
+  ['m225', ['Instrument editor: switching to an instrument selects the node you left selected there, or else its first generator (oscillator, sampler, synth), so the piano keys play it at once.']],
   ['m224', ['Ctrl+G (a placement gets its own copy of its pattern): the copy now always has a different colour from the original, so you can see it happened. Before, a pattern coloured with K in the sequencer was copied with the same colour, and an automatic colour could also come out the same.']],
   ['m223', ['Tap node (Effects > Routing): records the signal passing through it into a sample while the song plays, started and stopped from pattern columns (trig, len in ticks, smp, ch, fade, fadein, copy). Takes go to a pool of 16 slots, tap01 to tap16 (never saved), which samplers can play; the node shows which slot it writes to. K on the Samples screen copies a sample out as a normal one.']],
   ['m222', ['Recording on the Samples screen: record a new sample from another browser tab or screen audio (Chrome or Edge, through the share picker) or from any input device, with a level meter and an optional wait for sound. Esc or Stop keeps the take as a new sample.']],

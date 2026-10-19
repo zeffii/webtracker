@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="themes.css">
-  <title>webtracker m224</title>
+  <title>webtracker m226</title>
   <link rel="icon" href="icon.ico" sizes="any">
   <link rel="icon" type="image/png" href="icon.png">
   <style>
@@ -16,6 +16,9 @@
     .mono, #seq, #view, #header, #smp { font: 13px/1.35 ui-monospace, Consolas, monospace; }
     [hidden] { display: none !important; }
     #smp { margin: .5rem 0; outline: none; white-space: pre; }
+    #panic { display: inline-flex; align-items: center; padding: .1rem .4rem; }
+    #panic svg { display: block; }
+    #panic:not(:disabled):hover { color: #d03040; }
     #rec-row { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; }
     #rec-meter { background: color-mix(in srgb, currentColor 10%, transparent); }
     #rec-take.live { background: #d03040; color: #fff; }
@@ -392,7 +395,7 @@
       <label title="How much of each pair of rows the first one lasts: 50 is straight, 67 is a triplet shuffle">swing <span class="field"><input id="swing" type="number" min="50" max="75" step="1" style="width:2.6em" disabled><span class="unit">%</span></span></label>
       <button id="load" disabled>Load</button>
       <button id="cut" disabled title="Halt all audio computation (silence, zero CPU) until Play is pressed" style="margin-left:auto">Cut</button>
-      <button id="panic" disabled title="Stop every sounding note (all notes off)">Panic</button>
+      <button id="panic" disabled title="Panic: stop every sounding note (all notes off)" aria-label="Panic"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><g stroke="currentColor" stroke-width="1.5" stroke-linecap="round" fill="none"><path d="M2.2 9.6 13.8 14.6M13.8 9.6 2.2 14.6"/></g><g fill="currentColor"><circle cx="1.9" cy="9.3" r="1"/><circle cx="14.1" cy="9.3" r="1"/><circle cx="1.9" cy="14.9" r="1"/><circle cx="14.1" cy="14.9" r="1"/></g><path d="M8 .9C4.6.9 2.5 3.2 2.5 6c0 1.7.8 3 2 3.7V12h7V9.7c1.2-.7 2-2 2-3.7C13.5 3.2 11.4.9 8 .9Z" fill="var(--bg)" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round"/><circle cx="5.9" cy="6.3" r="1.5" fill="currentColor"/><circle cx="10.1" cy="6.3" r="1.5" fill="currentColor"/><path d="M8 8.2 7.2 9.6h1.6z" fill="currentColor"/><path d="M6.3 10.4v1.4M8 10.4v1.4M9.7 10.4v1.4" stroke="currentColor" stroke-width=".8"/></svg></button>
     </div>
     <div class="line">
       <nav id="tabs">
