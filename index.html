@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="themes.css">
-  <title>webtracker m226</title>
+  <title>webtracker m227</title>
   <link rel="icon" href="icon.ico" sizes="any">
   <link rel="icon" type="image/png" href="icon.png">
   <style>
@@ -66,6 +66,19 @@
     #loadmeter.bad { background: hsl(5 80% 52%); color: #fff; }
     #tabs button { font: inherit; padding: .1rem .6rem; border: 1px solid; background: transparent; color: inherit; cursor: pointer; }
     #tabs button.active { background: var(--hi); color: var(--hi-fg); border-color: var(--hi); }
+    /* the script editor: a transparent textarea over a coloured copy of the same text */
+    #script-box { position: relative; max-width: 110ch; height: 52vh; margin: .3rem 0; background: var(--panel); border: 1px solid var(--line); }
+    #script-hl, #script { position: absolute; inset: 0; box-sizing: border-box; margin: 0; padding: .5rem .6rem; font: 13px/1.4 ui-monospace, Consolas, monospace; tab-size: 2; white-space: pre; overflow: auto; border: 0; letter-spacing: 0; word-spacing: 0; }
+    #script-hl { pointer-events: none; overflow: hidden; color: var(--fg); }
+    #script { background: transparent; color: transparent; caret-color: var(--fg); resize: none; outline: none; z-index: 1; }
+    #script::selection { background: color-mix(in srgb, var(--hi) 55%, transparent); }
+    #script-box:focus-within { outline: 1px solid var(--accent); }
+    .tk-c { opacity: .55; font-style: italic; } .tk-s { color: var(--cc); } .tk-n { color: color-mix(in srgb, var(--accent) 65%, var(--fg)); }
+    .tk-k { color: var(--accent); } .tk-b { font-weight: 700; } .tk-h { color: var(--accent); font-weight: 700; } .tk-r { opacity: .5; }
+    #script-out { box-sizing: border-box; width: 100%; max-width: 110ch; height: 9em; margin: .3rem 0; padding: .3rem .6rem; overflow: auto; font: 12px/1.45 ui-monospace, Consolas, monospace; background: color-mix(in srgb, var(--panel) 85%, var(--fg)); white-space: pre-wrap; }
+    #script-out .err { color: #e0405a; }
+    #script-line { box-sizing: border-box; width: 100%; max-width: 110ch; font: 13px ui-monospace, Consolas, monospace; }
+    #script-run { font: inherit; }
     .pane { padding: .5rem .75rem 2rem; }
 
     /* patterns and arrangement */
@@ -403,6 +416,7 @@
         <button id="tab-samples">F2 Samples</button>
         <button id="tab-instruments">F3 Instruments</button>
         <button id="tab-arrange">F4 Arrangement</button>
+        <button id="tab-script" title="Scripts that fill pattern data (Ctrl+Alt+S)">Script</button>
         <button id="tab-info">F10 Info</button>
         <button id="tab-config">F11 Config</button>
       </nav>
@@ -438,6 +452,7 @@
           <dt>0–9, A–F</dt><dd><b class="kw">overwrite</b> the character under the cursor (an empty cell fills with zeros)</dd>
           <dt>Delete, &gt;</dt><dd><b class="kw">clear</b> the cell</dd>
           <dt>Ctrl+Delete</dt><dd><b class="kw">delete</b> the selected cells and <b class="kw">pull</b> the rows below up (inside the pattern only)</dd>
+          <dt>Ctrl+Alt+R</dt><dd><b class="kw">run</b> the song's script on this pattern (its selection, if there is one); Ctrl+Alt+S opens the Script tab</dd>
           <dt>Ctrl+Shift+Delete</dt><dd><b class="kw">remove</b> the pattern under the cursor from the arrangement (it stays in the list; Ctrl+Z brings it back)</dd>
           <dt>Ctrl+Insert</dt><dd><b class="kw">push</b> the rows below down from the cursor (inside the pattern only)</dd>
           <dt>Ctrl+Alt+Up / Down</dt><dd><b class="kw">rotate</b> the contents of the selected rows, column by column</dd>
@@ -662,6 +677,16 @@
       <div id="info-view" tabindex="0" aria-label="Song info" hidden></div>
       <textarea id="info" spellcheck="false" aria-label="Song info" placeholder="Title, author, notes, greetings..."></textarea>
       <div id="info-status" class="statusbar"></div>
+    </div>
+  </section>
+
+  <section id="pane-script" class="pane" hidden>
+    <div class="pane-main">
+      <div class="help">Scripts write pattern data into the pattern under the cursor in the pattern editor (or its selection). They run in their own thread, only when you ask, and change nothing if they fail or take too long. <b>Ctrl+Enter</b> runs the selected code, or all of it; <b>Ctrl+Alt+R</b> in the pattern editor runs the whole script on the pattern there. Saved with the project. <button id="script-run" type="button">Run</button></div>
+      <div id="script-box"><pre id="script-hl" aria-hidden="true"></pre><textarea id="script" spellcheck="false" wrap="off" autocapitalize="off" autocomplete="off" aria-label="Script"></textarea></div>
+      <div id="script-status" class="statusbar"></div>
+      <pre id="script-out" tabindex="0" aria-label="Script output" aria-live="polite"></pre>
+      <input id="script-line" type="text" spellcheck="false" autocomplete="off" aria-label="Try a line of script" placeholder="try a line here and press Enter, for example: scale('minor', 'A', 2)">
     </div>
   </section>
 

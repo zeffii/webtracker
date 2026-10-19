@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['m227', ['Script tab (Ctrl+Alt+S): a small code editor with colouring. A script writes pattern data into the pattern under the cursor in the pattern editor (or its selection): tbin turns a bit pattern such as \'x... x.x.\' into notes (one character a row, or every step rows), with chords, voices(...) for a sequence per column, euclid, ramp, sine, scale, a seeded random, and more. It runs in a Worker with a time limit and changes nothing if it fails; one undo step. Ctrl+Enter runs the selected code (or all), Ctrl+Alt+R in the pattern editor runs the script on the pattern there. MIDI keys fill a note list in the code. The script is saved with the project.']],
   ['m226', ['The Panic button is now a small skull and crossbones (it turns red when you hover it).']],
   ['m225', ['Instrument editor: switching to an instrument selects the node you left selected there, or else its first generator (oscillator, sampler, synth), so the piano keys play it at once.']],
   ['m224', ['Ctrl+G (a placement gets its own copy of its pattern): the copy now always has a different colour from the original, so you can see it happened. Before, a pattern coloured with K in the sequencer was copied with the same colour, and an automatic colour could also come out the same.']],

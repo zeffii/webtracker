@@ -225,3 +225,20 @@ Ctrl+G (m224): the copy always gets a colour different from the original's, so t
 Instrument editor (m225): switching to an instrument selects the node that was selected when you left it, else its first generator node, so keyjazz works without clicking first.
 
 Panic button (m226): a small skull and crossbones instead of the word; same action, and it turns red under the pointer.
+
+## Scripts (m227)
+
+The Script tab (Ctrl+Alt+S, or click it) holds one script per project, saved in the `.wax` file. A script fills pattern data: it works on a copy of the pattern under the pattern editor's cursor (or the selected rows and columns), and only when it finishes without an error are its changes applied, as one undo step. It runs in a Worker; a script that takes longer than the time limit (Config, Script, 2000 ms) is stopped and changes nothing. Nothing runs by itself: a loaded project's script only runs when you press Run. It is not a security sandbox, so only run scripts you trust. A pattern placed more than once is refused unless Config allows writing into shared patterns, as for MIDI.
+
+Ctrl+Enter runs the selected code, or all of it; Ctrl+Alt+R in the pattern editor runs the whole script on the pattern there. The line under the output is a playground: `scale('minor', 'A', 2)` shows its value. Tab indents, Shift+Tab outdents.
+
+**Bit patterns.** `tbin('x... x.x. x...', 'C-3')`: x or 1 is a hit, . or 0 a rest, ? a hit half of the time; spaces and | are ignored. One character is one row, or `step` rows (`step(8)` for the rest of the script, or `{ step: 8 }` for one call). The pattern is tiled over the selection or the pattern (`{ loop: false }` writes it once). Rests leave the cell alone, so a kick and a hat can share a column one call after the other. A number works too: `tbin(0xA92C, 16, 'C-3')`. A string with digits 2-9 or letters a-f is read as levels and writes the velocity column: `tbin('9..5 ..7.', 'C-3')`.
+
+**Notes.** The second argument is one note or a list; the hits step through it. An entry with spaces or + is a chord, one note a note column: `['C-3 E-3 G-3', 'A-2+C-3+E-3']`. `'==='` is a note off, `'...'` skips. `voices('C-3 E-3', 'A-2 C-3')` gives each note column its own sequence instead. Options: `{ step, at, to, loop, vel, prob, clear }`.
+
+**Helpers.** `euclid(5, 16)`, `rot`, `inv`, `rev`, `both`, `either`, `xor` (on bit strings), `bitsOf(n, len)`, `scale('minor', 'A', 2, count)`, `ramp(a, b)` and `sine(lo, hi, cycles)` for `pat.col('cutoff').fill(...)`, `rnd`, `pick`, `shuffle`, `chance`, `seed(n)` (a run prints its seed, so a good one can be kept), `log(...)`. `pat.col('N1')`, `pat.set(row, col, value)`, `pat.get`, `pat.clear()`, and `sel` (r0, r1, c0, c1, rows) reach the cells directly; a column is found by index, label or parameter name, a number is a MIDI note in a note column and a hex value elsewhere.
+
+**MIDI.** With the cursor in the script, keys struck within the chord window are typed as one entry: `'C-4 E-4 G-4'`, with a comma before it after another entry, and just the names inside a string.
+
+Not yet: the function table (`0x01: acidLine`) for running functions from the pattern editor or a script node, first-play hooks, and scripting the arrangement.
+

@@ -6119,4 +6119,93 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   assert.ok(back.samples.kick && back.samples.tap16 && back.samples.tap01.data.length === 1, 'they come back as empty slots');
   console.log('ok: tap');
 }
+
+// Scripts: the engine (bit patterns, chords, voices, helpers), atomic failure, the kill switch, saving
+{
+  const { execute, euclid, parseSteps, scale } = await import('../src/script/lib.js');
+  const { highlight } = await import('../src/script/highlight.js');
+  const { createScriptRunner } = await import('../src/script/client.js');
+  const cols = [
+    { kind: 'note', token: 'note', label: 'N1', key: 'note' }, { kind: 'vel', token: '2hex', label: 'V1', key: 'vel' },
+    { kind: 'note', token: 'note', label: 'N2', key: 'note:1' }, { kind: 'vel', token: '2hex', label: 'V2', key: 'vel:1' },
+    { kind: 'param', token: '2hex', label: 'Cutoff', key: 'p:f.cutoff:2hex', param: 'cutoff', node: 'f' },
+  ];
+  const blank = n => Array.from({ length: n }, () => ['...', '..', '...', '..', '..']);
+  const run = (code, extra = {}) => execute({ code, pattern: { name: 'p', lane: 'l', instrument: 'i', columns: cols, rows: blank(16) }, ...extra });
+  const cells = r => r.edits.map(e => `${e.row}:${e.col}=${e.token}`).join(' ');
+
+  assert.equal(euclid(3, 8), 'x..x..x.'); assert.equal(euclid(5, 8), 'x.xx.xx.'); assert.equal(euclid(7, 16), 'x..x.x.x..x.x.x.');
+  assert.deepEqual(parseSteps('x.1 0?').map(s => s.hit), [true, false, true, false, true]);
+  assert.throws(() => parseSteps('x.q'), /not a step/);
+  assert.deepEqual(scale('minor', 'A', 2).slice(0, 3), ['A-2', 'B-2', 'C-3']);
+
+  // one character a row, tiled over the pattern, rests left alone
+  let r = run("tbin('x... x.x.', 'C-3')");
+  assert.ok(r.ok); assert.equal(cells(r), '0:0=C-3 4:0=C-3 6:0=C-3 8:0=C-3 12:0=C-3 14:0=C-3');
+  assert.match(r.echo[0], /^N1 0-14: x\.\.\. x\.x\./);
+  // a step of 8 puts the characters 8 rows apart; loop off writes the string once
+  assert.equal(cells(run("tbin('x.x.', 'C-3', { step: 4, loop: false })")), '0:0=C-3 8:0=C-3');
+  assert.equal(cells(run("step(8); tbin('xx', 'C-3')")), '0:0=C-3 8:0=C-3');
+  // a number is a bit pattern, most significant bit first
+  assert.equal(cells(run("tbin(0b1010, 4, 'C-3', { loop: false })")), '0:0=C-3 2:0=C-3');
+  // levels write the velocity column
+  assert.equal(cells(run("tbin('9..5', 'C-3', { loop: false })")), '0:0=C-3 0:1=99 3:0=C-3 3:1=55');
+  // a chord per item goes across the note columns; the items cycle
+  assert.equal(cells(run("tbin('x.x.x.', ['C-3 E-3', 'A-2+C-3'], { loop: false })")), '0:0=C-3 0:2=E-3 2:0=A-2 2:2=C-3 4:0=C-3 4:2=E-3');
+  // voices: each column has its own sequence, one step a hit
+  assert.equal(cells(run("tbin('x.x.', voices('C-3 E-3', 'A-2 C-3'), { loop: false })")), '0:0=C-3 0:2=A-2 2:0=E-3 2:2=C-3');
+  // a note off and a skipped step
+  assert.equal(cells(run("tbin('xx', ['C-3', '==='], { loop: false })")), '0:0=C-3 1:0====');
+  assert.equal(cells(run("tbin('xxx', voices('C-3 ... E-3'), { loop: false })")), '0:0=C-3 2:0=E-3');
+  // bit helpers
+  assert.equal(run("rot('x...', 1)", { expr: true }).ok, true);
+  assert.equal(run("both('xx..', 'x.x.') + either('xx..', 'x.x.') + xor('xx..', 'x.x.')", { expr: true }).value, 'x...xxx..xx.');
+  assert.equal(run("inv(rev('x..'))", { expr: true }).value, 'xx.');
+  // column fills by name, with a function; out-of-range values clamp
+  r = run("pat.col('cutoff').fill(ramp(0x20, 0xE0)); pat.set(3, 'cutoff', 999)");
+  assert.equal(r.edits.length, 16); assert.equal(r.edits[3].token, 'FF'); assert.equal(r.edits[15].token, 'E0');
+  // only the selection
+  assert.equal(run("pat.col('cutoff').fill('40')", { selection: { r0: 2, r1: 4, c0: 4, c1: 4 } }).edits.length, 3);
+  // the seed makes it repeatable
+  assert.equal(run("rnd(1000)", { expr: true, seed: 7 }).value, run("rnd(1000)", { expr: true, seed: 7 }).value);
+  assert.equal(cells(run("tbin('xxxxxxxx', 'C-3', { prob: 0.5 })", { seed: 3 })), cells(run("tbin('xxxxxxxx', 'C-3', { prob: 0.5 })", { seed: 3 })));
+  // failures change nothing and say where
+  r = run("tbin('x...', 'C-3');\n\nnope()");
+  assert.ok(!r.ok && !r.edits && /nope/.test(r.error.message) && r.error.line === 3, `line ${r.error?.line}`);
+  r = run("tbin('x...', 'C-3 E-3 G-3')");
+  assert.ok(!r.ok && /note columns/.test(r.error.message));
+  assert.ok(!run("pat.set(0, 'cutoff', 'zz')").ok && !run("pat.set(99, 'cutoff', 1)").ok && !run("pat.col('nothing')").ok);
+  assert.equal(run('typeof fetch + typeof self', { expr: true }).value, 'undefinedundefined');
+  // a line typed in the playground gives its value
+  assert.equal(run("scale('minor', 'A', 2, 2)", { expr: true }).value, '["A-2","B-2"]');
+  // the colouring marks bit patterns
+  assert.match(highlight("tbin('x.', 1) // hi"), /tk-h">x<.*tk-r">\.<.*tk-n">1<.*tk-c">\/\/ hi/);
+
+  // the kill switch: a script that never ends is stopped and the runner is usable again
+  const { Worker: NodeWorker } = await import('node:worker_threads');
+  const libUrl = new URL('../src/script/lib.js', import.meta.url).href;
+  const make = () => {
+    const w = new NodeWorker(`const { parentPort } = require('node:worker_threads'); import('${libUrl}').then(({ execute }) => parentPort.on('message', ({ id, ...req }) => parentPort.postMessage({ id, ...execute(req) })));`, { eval: true });
+    const map = new Map();
+    return {
+      addEventListener(t, f) { const g = t === 'message' ? d => f({ data: d }) : e => f({ message: e.message }); map.set(f, g); w.on(t, g); },
+      removeEventListener(t, f) { w.off(t, map.get(f)); }, postMessage: m => w.postMessage(m), terminate: () => w.terminate(),
+    };
+  };
+  const runner = createScriptRunner({ limit: () => 500, make });
+  const req = code => ({ code, pattern: { name: 'p', lane: 'l', instrument: 'i', columns: cols, rows: blank(16) } });
+  let res = await runner.run(req("tbin('x...', 'C-3')"));
+  assert.ok(res.ok && res.edits.length === 4, 'a normal script runs in the worker');
+  res = await runner.run(req('while (true) {}'));
+  assert.ok(!res.ok && res.killed && /Stopped/.test(res.error.message), 'an endless loop is stopped');
+  res = await runner.run(req("tbin('x...', 'C-3')"));
+  assert.ok(res.ok, 'and the next run works');
+  runner.dispose();
+
+  // saved with the project
+  const out = serializeProject({ song: { name: 's', bpm: 100, ticksPerBeat: 4, length: 32, script: "tbin('x...', 'C-3')" }, instruments: {}, samples: {}, lanes: [] });
+  assert.equal(parseProject(out).song.script, "tbin('x...', 'C-3')");
+  assert.ok(!serializeProject({ song: { name: 's', bpm: 100, ticksPerBeat: 4, length: 32 }, instruments: {}, samples: {}, lanes: [] }).includes('"script"'));
+  console.log('ok: script');
+}
 console.log('smoke test passed');

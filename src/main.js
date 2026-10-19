@@ -29,6 +29,9 @@ import { createSequenceView } from './seq/seqview.js';
 import { attachGrip } from './ui/grip.js';
 import { createTrackerView } from './seq/view.js';
 import { createTabs } from './ui/tabs.js';
+import { createScriptRunner } from './script/client.js';
+import { createScriptScreen } from './script/screen.js';
+import { placementAt } from './seq/edit.js';
 
 const engine = new Engine();
 const $ = id => document.getElementById(id);
@@ -58,6 +61,7 @@ const tabs = createTabs({
     { id: 'instruments', key: 'F3', el: $('pane-instruments'), button: $('tab-instruments'), focus: $('inst-list') },
     { id: 'arrange', key: 'F4', el: $('pane-arrange'), button: $('tab-arrange'), focus: $('seq') },
     { id: 'config', key: 'F11', el: $('pane-config'), button: $('tab-config'), focus: $('cfg') },
+    { id: 'script', key: null, combo: e => e.ctrlKey && e.altKey && !e.metaKey && !e.shiftKey && e.code === 'KeyS', el: $('pane-script'), button: $('tab-script'), focus: $('script') },
     { id: 'info', key: 'F10', el: $('pane-info'), button: $('tab-info'), focus: { focus: () => (!$('info').hidden ? $('info') : $('info-view')).focus() } },
   ],
 });
@@ -159,6 +163,39 @@ const seqView = createSequenceView({
   onSong: () => songChanged(),
 });
 
+// ---- Scripts ----
+// A script runs in a Worker on a copy of the pattern under the pattern editor's cursor (or its selection) and gives back
+// the cells to change, which go in as one undo step. See src/script/.
+const scriptTarget = () => {
+  if (!project?.editor) return { error: 'Open or start a project first.' };
+  const li = view.lane, lane = project.lanes[li], pl = lane && placementAt(lane, view.tick);
+  if (!pl) return { error: 'There is no pattern under the cursor in the pattern editor: put the cursor in one first (F1).' };
+  const pat = lane.patterns[pl.puid], len = Math.min(pl.length, pat.rows.length), r = view.selection;
+  const columns = lane.columns.map(c => ({ kind: c.kind, token: c.token, label: c.label, key: c.key, ...(c.param ? { param: c.param, node: c.node, base: c.base } : {}) }));
+  const selection = r ? { r0: Math.max(0, r.t0 - pl.start), r1: Math.min(len - 1, r.t1 - pl.start), c0: r.c0, c1: r.c1 } : null;
+  const shared = lane.placements.filter(p => p.puid === pl.puid).length;
+  if (shared > 1 && config.get('midiShared') === 'ask') return { error: `This pattern is used ${shared} times: clone it first (Ctrl+G in the pattern editor), or let MIDI and scripts write into shared patterns in Config.` };
+  return {
+    request: { pattern: { name: pat.name, lane: lane.id, instrument: lane.instrument, columns, rows: pat.rows.slice(0, len) }, selection, cursor: { row: view.tick - pl.start, col: view.col } },
+    apply: edits => project.editor.setCells(li, edits.map(e => ({ tick: pl.start + e.row, col: e.col, token: e.token })), 'script'),
+    label: `${lane.id} ${pat.name}${shared > 1 ? ` (used ${shared} times)` : ''}`,
+  };
+};
+const scriptScreen = createScriptScreen({
+  area: $('script'), hl: $('script-hl'), runButton: $('script-run'), status: $('script-status'), out: $('script-out'), line: $('script-line'),
+  runner: createScriptRunner({ limit: () => config.get('scriptLimit') }),
+  target: scriptTarget,
+  onText: text => { if (project) { if (text) project.song.script = text; else delete project.song.script; } },
+  midi: () => ({ window: config.get('midiWindow'), order: config.get('midiOrder') }),
+});
+// Ctrl+Alt+R in the pattern editor: run the whole script on the pattern there.
+document.addEventListener('keydown', e => {
+  if (!(e.ctrlKey && e.altKey && !e.metaKey && !e.shiftKey && e.code === 'KeyR') || tabs.active !== 'patterns') return;
+  e.preventDefault();
+  view.say('Running the script...');
+  scriptScreen.run().then(text => view.say(text));
+});
+
 // ---- MIDI keyboard ----
 // Plays the machine under the cursor (the selected instrument in the graph view, the sample on the sample screen), enters
 // notes at the cursor in the pattern editor, and with Rec armed writes them into the playing song on the nearest tick.
@@ -209,6 +246,8 @@ const midiIn = createMidiInput({
       if (recording && playing) result = writer.recOn({ li, midi: note, vel, pos: engine.position - latencyTicks() });
       else if (tab === 'patterns') result = writer.stepOn({ li, tick: view.tick, col: view.col, midi: note, vel, time });
       if (result?.message) midiSay(result.message);
+    } else if (tab === 'script') {
+      scriptScreen.midiNote(note);
     } else if (tab === 'instruments') {
       const id = patcher.instrument;
       if (!id) return;
@@ -879,6 +918,7 @@ function openProject({ song, instruments, samples }, { stay = false, instrument 
   view.load({ lanes, song, editor });
   const at = Math.max(lanes.length > 1 ? 1 : 0, lanes.findIndex(l => l.id === lane));   // not the master lane, to start with
   view.goto(at, 0); seqView.goto(at, 0);
+  scriptScreen.load(song.script);
   $('info').value = song.info ?? '';
   infoStatus();
   if (song.info) { renderInfo(); $('info').hidden = true; $('info-view').hidden = false; $('info-edit').textContent = 'Edit'; }

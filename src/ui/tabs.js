@@ -1,6 +1,7 @@
 // Full-screen panes switched by F-keys or by clicking the tab buttons. Only one pane is
 // shown at a time. Panes are plain containers, so a later split layout can host the same ones.
-// tabs: [{ id, key: 'F1', el, button, focus }]; `focus` is the element that takes the keyboard.
+// tabs: [{ id, key: 'F1', combo?, el, button, focus }]; `focus` is the element that takes the keyboard; `combo(e)` is a
+// shortcut for a tab with no F-key of its own.
 export function createTabs({ tabs, onChange = () => {}, initial = tabs[0].id }) {
   let active = null;
 
@@ -22,6 +23,8 @@ export function createTabs({ tabs, onChange = () => {}, initial = tabs[0].id }) 
 
   // Returns true if the key switched tabs.
   const handleKey = e => {
+    const by = tabs.find(t => t.combo?.(e));
+    if (by) { e.preventDefault(); show(by.id); return true; }
     if (e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return false;
     const tab = tabs.find(t => t.key === e.key);
     if (!tab) return false;
