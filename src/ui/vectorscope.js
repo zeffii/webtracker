@@ -6,7 +6,7 @@ import { RING, ringReader } from '../audio/vring.js';
 const TAU = Math.PI * 2;
 
 export function createVectorscope({ box, canvas, sab, options = () => ({ linger: 12, glow: 55 }) }) {
-  const reader = ringReader(sab), g = canvas.getContext('2d'), buf = new Float32Array(RING * 2);
+  const reader = ringReader(sab, 0), g = canvas.getContext('2d'), buf = new Float32Array(RING * 2);
   let raf = 0, open = false;
 
   function size() {

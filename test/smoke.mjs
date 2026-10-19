@@ -6390,6 +6390,8 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   assert.equal(w.on, false);
   r.enable(true);
   assert.equal(w.on, true);
+  const r2 = ringReader(sab, 1); r2.enable(true); r2.enable(false);
+  assert.equal(w.on, true);   // the other reader's bit is still set
   w.write(Float32Array.of(1, 2, 3), Float32Array.of(-1, -2, -3), 3);
   assert.equal(r.read(out), 3);
   assert.deepEqual([...out.slice(0, 6)], [1, -1, 2, -2, 3, -3]);
@@ -6402,6 +6404,30 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   r.enable(false);
   assert.equal(w.on, false);
   console.log('ok: vectorscope ring');
+}
+
+// Meter arithmetic: loudness of a full-scale 997 Hz sine in both channels is about 0 LUFS, one channel -3; correlation; spectrum band and width.
+{
+  const { createLoudness, createCorrelation, createAnalyser, BANDS, SPEC_N } = await import('../src/ui/meterdsp.js');
+  const fs = 48000, N = fs * 4, sine = Float32Array.from({ length: N }, (_, i) => Math.sin(2 * Math.PI * 997 * i / fs)), zero = new Float32Array(N);
+  const both = createLoudness(fs); both.push(sine, sine, N);
+  assert.ok(Math.abs(both.short()) < 0.15, `both channels: ${both.short()}`);
+  const one = createLoudness(fs); one.push(sine, zero, N);
+  assert.ok(Math.abs(one.short() + 3.01) < 0.15, `one channel: ${one.short()}`);
+  assert.ok(Math.abs(one.momentary() - one.short()) < 0.2);
+  const c1 = createCorrelation(fs); c1.push(sine, sine, N); assert.ok(c1.value() > 0.99);
+  const c2 = createCorrelation(fs); c2.push(sine, sine.map(x => -x), N); assert.ok(c2.value() < -0.99);
+  const c3 = createCorrelation(fs); c3.push(sine, Float32Array.from({ length: N }, (_, i) => Math.cos(2 * Math.PI * 997 * i / fs)), N); assert.ok(Math.abs(c3.value()) < 0.05);
+  const a = createAnalyser(fs), l = sine.subarray(0, SPEC_N), r = sine.subarray(0, SPEC_N);
+  a.run(l, r);
+  let top = 0; for (let b = 1; b < BANDS; b++) if (a.db[b] > a.db[top]) top = b;
+  const f = 20 * Math.pow(1000, (top + 0.5) / BANDS);
+  assert.ok(Math.abs(Math.log2(f / 997)) < 0.15, `peak band at ${f} Hz`);
+  assert.ok(a.db[top] > -4 && a.db[top] < 1, `level ${a.db[top]}`);
+  assert.ok(a.width.every(w => w < 0.01), 'mono has no side energy');
+  a.run(l, r.map(x => -x));
+  assert.ok(Math.max(...a.width) > 0.99, 'out of phase is all side');
+  console.log('ok: meter arithmetic');
 }
 
 // Sample screen mouse: a click moves to a field, a second click starts typing, digits then set it.

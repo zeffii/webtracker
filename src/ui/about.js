@@ -7,6 +7,8 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['m243', ['Meter band (Ctrl+Alt+M, or the Meters button): a strip along the bottom of the window, above the status bar, with a spectrum (peak hold), level meters with short-term and momentary loudness (LUFS) and peak, a stereo correlation bar, stereo width for the ten bands of the spectral panner, and a spectrogram of the last 30 seconds. Choose the panels and the height in Config under Meters. Nothing runs while it is hidden. The vectorscope and the meters can be on together.']],
+  ['m242', ['The vectorscope overlay can be dragged anywhere (it is remembered), resized by dragging its corner, and sent back to its corner by double-clicking it. It starts further from the window edge.']],
   ['m241', ['Vectorscope overlay (Ctrl+Alt+O, or the Scope button): left against right of the master output, turned 45 degrees, in a corner of the window over any screen. A mono sound is a vertical line, a wide one spreads sideways, out-of-phase material lies flat. It draws a glowing line that fades; size, corner, linger and glow are in Config under Scope. Click-through, and it costs nothing while hidden.']],
   ['m240', ['Export WAV (button in the top bar): renders the whole song once, offline and faster than real time, with progress, then a tail of silence-to-be (reverbs and delays dying out) and downloads a stereo .wav. Tail length (default 15 s) and format (16-bit, 24-bit, 32-bit float) are in Config under Export. Press the button again to cancel.']],
   ['m239', ['Demo song retouched: the swells are much quieter (no clipping at their peak), and the tick runs through a Shiva multitap whose length drifts slowly.']],

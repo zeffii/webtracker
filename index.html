@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="themes.css">
-  <title>webtracker m241</title>
+  <title>webtracker m243</title>
   <link rel="icon" href="icon.ico" sizes="any">
   <link rel="icon" type="image/png" href="icon.png">
   <style>
@@ -333,8 +333,15 @@
     #backup-panel .bk-row { display: flex; gap: 8px; align-items: baseline; padding: 2px 0; flex-wrap: wrap; }
     #backup-panel .bk-when { min-width: 22ch; } #backup-panel .bk-what { flex: 1; opacity: .75; font-size: 12px; }
     #pane-instruments { position: relative; }
-    #vscope { position: fixed; z-index: 40; pointer-events: none; aspect-ratio: 1; width: calc(var(--vs, 45) * 1vmin); border-radius: 10px; background: rgba(8, 8, 10, .62); border: 1px solid rgba(255, 255, 255, .12); }
+    #meters { position: fixed; left: 0; right: 0; z-index: 2; display: flex; background: #0b0c0f; color: #cfd3da; border-top: 1px solid #000; }
+    #meters[hidden] { display: none; }
+    .meter-pan { position: relative; display: flex; flex-direction: column; min-width: 0; border-right: 1px solid #22252c; }
+    .meter-pan:last-child { border-right: 0; }
+    .meter-pan h6 { margin: 0; position: absolute; left: 7px; top: 4px; font: 500 9px ui-monospace, Consolas, monospace; letter-spacing: .1em; color: #6d7480; pointer-events: none; z-index: 1; }
+    .meter-pan canvas { flex: 1; width: 100%; min-height: 0; display: block; }
+    #vscope { position: fixed; z-index: 40; cursor: move; touch-action: none; user-select: none; aspect-ratio: 1; width: calc(var(--vs, 45) * 1vmin); border-radius: 10px; background: rgba(8, 8, 10, .62); border: 1px solid rgba(255, 255, 255, .12); }
     #vscope[hidden] { display: none; }
+    #vscope-grip { position: absolute; right: 0; bottom: 0; width: 18px; height: 18px; cursor: nwse-resize; background: linear-gradient(135deg, transparent 55%, rgba(255, 255, 255, .35) 55%, transparent 62%, transparent 72%, rgba(255, 255, 255, .35) 72%, transparent 79%); border-bottom-right-radius: 10px; opacity: .6; }
     #vscope canvas { width: 100%; height: 100%; display: block; border-radius: 10px; }
     #vscope span { position: absolute; left: 8px; top: 6px; font: 10px monospace; letter-spacing: .08em; color: rgba(255, 255, 255, .45); }
     #node-help { position: absolute; z-index: 30; top: 8px; right: 8px; width: min(560px, calc(100% - 16px)); max-height: calc(100% - 16px); display: flex; flex-direction: column; background: var(--panel); color: var(--fg); border: 1px solid var(--line); box-shadow: 0 6px 24px rgba(0,0,0,.35); outline: none; }
@@ -429,7 +436,8 @@
   </style>
 </head>
 <body>
-  <div id="vscope" hidden aria-hidden="true"><canvas id="vscope-canvas"></canvas><span>XY master</span></div>
+  <div id="meters" hidden></div>
+  <div id="vscope" hidden title="Drag to move, drag the corner to resize, double-click to put it back in its corner"><canvas id="vscope-canvas"></canvas><span>XY master</span><i id="vscope-grip"></i></div>
   <div id="backup-panel" tabindex="-1" hidden role="dialog" aria-label="Backups"></div>
   <div id="header">
     <div class="line">
@@ -450,7 +458,8 @@
       <label>bpm <input id="bpm" type="number" min="20" max="400" step="1" style="width:4em" disabled></label>
       <label title="How much of each pair of rows the first one lasts: 50 is straight, 67 is a triplet shuffle">swing <span class="field"><input id="swing" type="number" min="50" max="75" step="1" style="width:2.6em" disabled><span class="unit">%</span></span></label>
       <button id="load" disabled>Load</button>
-      <button id="scope" title="Vectorscope overlay: left against right, in a corner of the window (Ctrl+Alt+O)">Scope</button>
+      <button id="meters-btn" title="Meter band along the bottom: spectrum, level and loudness, correlation (Ctrl+Alt+M); choose the panels in Config">Meters</button>
+      <button id="scope" title="Vectorscope overlay: left against right; drag it anywhere (Ctrl+Alt+O)">Scope</button>
       <button id="export" disabled title="Render the whole song to a WAV file, with a tail after the end (length and format in Config)">Export WAV</button>
       <button id="backups" disabled title="Backups: the automatic snapshots, and the backup folder">Backups</button>
       <button id="cut" disabled title="Halt all audio computation (silence, zero CPU) until Play is pressed" style="margin-left:auto">Cut</button>
@@ -648,7 +657,8 @@
           <dt>Up/Down</dt><dd>with a node selected: choose a parameter in its panel (PageUp/PageDown 8 rows)</dd>
           <dt>Left/Right</dt><dd>change the parameter (Shift bigger, Ctrl smaller); Home/End go to the ends</dd>
           <dt>Enter</dt><dd>menu for the parameter: type a value, reset, <b class="kw">expose</b> as a pattern column and its width, add a port (right-click a row does the same)</dd>
-          <dt>Ctrl+Alt+O</dt><dd>the <b class="kw">vectorscope</b> overlay: left against right in a corner of the window, over any screen; size, corner and look in Config</dd>
+          <dt>Ctrl+Alt+M</dt><dd>the <b class="kw">meter band</b> along the bottom: spectrum, level and loudness (LUFS), correlation, stereo width by band, spectrogram; which panels and how tall in Config</dd>
+          <dt>Ctrl+Alt+O</dt><dd>the <b class="kw">vectorscope</b> overlay: left against right, over any screen; drag it anywhere, drag its corner to resize, double-click to send it back to its corner; look and defaults in Config</dd>
           <dt>F1, ?</dt><dd>with a node selected: its <b class="kw">help</b> page (what it is for, how to get the most out of it, its limits)</dd>
           <dt>Piano keys</dt><dd>with a generator node (oscillator, sampler, synth) selected: <b class="kw">play</b> the instrument; [ ] change the <b class="kw">octave</b></dd>
           <dt>Delete, Ctrl+X</dt><dd><b class="kw">remove</b> the node or wire</dd>
