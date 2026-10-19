@@ -588,7 +588,7 @@
       "id": "out",
       "type": "out",
       "params": {
-       "gain": 0.5
+       "gain": 0.22
       }
      }
     ],
@@ -675,6 +675,49 @@
       "type": "gain"
      },
      {
+      "id": "drift",
+      "type": "lfo",
+      "params": {
+       "rate": 0.04,
+       "shape": 0,
+       "range": 1,
+       "min": 0.12,
+       "max": 0.6
+      }
+     },
+     {
+      "id": "multi",
+      "type": "shiva",
+      "params": {
+       "length": 800,
+       "feedback": 0.4,
+       "damp": 0.5,
+       "mix": 0.5
+      },
+      "ports": [
+       "length"
+      ],
+      "data": {
+       "taps": [
+        0.2,
+        1,
+        -0.9,
+        0.4,
+        0.75,
+        0.9,
+        0.6,
+        0.6,
+        -0.6,
+        0.8,
+        0.45,
+        0.6,
+        1,
+        0.35,
+        -0.3
+       ]
+      }
+     },
+     {
       "id": "hall",
       "type": "hall",
       "params": {
@@ -708,6 +751,14 @@
      ],
      [
       "vca.out",
+      "multi.in"
+     ],
+     [
+      "drift.out",
+      "multi.@length"
+     ],
+     [
+      "multi.out",
       "hall.in"
      ],
      [

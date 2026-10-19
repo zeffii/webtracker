@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['m239', ['Demo song retouched: the swells are much quieter (no clipping at their peak), and the tick runs through a Shiva multitap whose length drifts slowly.']],
   ['m238', ['New demo song: an interstellar soundscape, three minutes of a Shepard-style glide under slow chords, delayed stars and seven swells that cut into long, wide Shiva-delay and shimmer tails. Load it with Demo.']],
   ['m237', ['The noise node comes in every colour: tilt sets the slope of the spectrum from -6 dB/oct (brown) through pink and white (0) to +6 (violet), matched in loudness. New free switch: the noise runs by itself, without notes. White at tilt 0 is exactly as before. Help page for noise.']],
   ['m236', ['Backups by download, for browsers that cannot write to a folder (Brave keeps that off): turn on Download a backup file in Config and the page downloads a time-stamped .wax every 15 minutes (adjustable) while the project has changed. Point the browser\'s download folder at a git folder to keep them.']],
