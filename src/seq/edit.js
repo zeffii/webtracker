@@ -136,6 +136,12 @@ export function clonePlacement(lane, length, tick) {
   const pat = lane.patterns[pl.puid];
   const puid = addPattern(lane, copyRows(pat.rows), `${pat.name} copy`, pat.color);
   if (puid === null) return null;
+  // the copy has to look different at once: an explicit colour moves to the next preset, and an automatic one (the
+  // index's, one of six) that comes out the same as the original's gets a preset of its own
+  const copy = lane.patterns[puid];
+  if (Number.isInteger(pat.color)) copy.color = (pat.color + 1) % COLOR_PRESETS;
+  else if (pat.color !== undefined) copy.color = pat.index % COLOR_PRESETS;
+  else if (copy.index % 6 === pat.index % 6) copy.color = (pat.index + 8) % COLOR_PRESETS;
   pl.puid = puid;
   refresh(lane, length);
   return puid;

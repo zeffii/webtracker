@@ -447,6 +447,13 @@ const firstSound = x => x.findIndex(v => Math.abs(v) > 1e-9);
   ops.setCell(lane, 32, 2, 0, 'G-5');
   assert.equal(lane.rows[2][0], 'G-5');
   assert.equal(lane.rows[18][0], before);
+  // a clone never has the colour of its original (the automatic colour comes from the index, one of six)
+  {
+    const l = fresh(), look = pat => (pat.color !== undefined ? `c${pat.color}` : `a${pat.index % 6}`);
+    for (let i = 0; i < 14; i++) { const was = l.patterns[l.placements[0].puid], now = l.patterns[ops.clonePlacement(l, 32, 0)]; assert.notEqual(look(now), look(was), `clone ${i} looks different`); }
+    const e = fresh(); const p0 = e.patterns[e.placements[0].puid]; p0.color = 15;
+    assert.notEqual(look(e.patterns[ops.clonePlacement(e, 32, 0)]), 'c15', 'an explicit colour moves on');
+  }
 
   // slice: two new patterns; what you hear is unchanged
   lane = fresh();
