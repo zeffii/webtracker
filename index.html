@@ -4,7 +4,9 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="themes.css">
-  <title>webtracker m217</title>
+  <title>webtracker m221</title>
+  <link rel="icon" href="icon.ico" sizes="any">
+  <link rel="icon" type="image/png" href="icon.png">
   <style>
     :root { color-scheme: light dark; font-family: system-ui, sans-serif; }   /* colours: see themes.css */
     body { background: var(--bg); color: var(--fg); }
@@ -430,6 +432,7 @@
           <dt>0–9, A–F</dt><dd><b class="kw">overwrite</b> the character under the cursor (an empty cell fills with zeros)</dd>
           <dt>Delete, &gt;</dt><dd><b class="kw">clear</b> the cell</dd>
           <dt>Ctrl+Delete</dt><dd><b class="kw">delete</b> the selected cells and <b class="kw">pull</b> the rows below up (inside the pattern only)</dd>
+          <dt>Ctrl+Shift+Delete</dt><dd><b class="kw">remove</b> the pattern under the cursor from the arrangement (it stays in the list; Ctrl+Z brings it back)</dd>
           <dt>Ctrl+Insert</dt><dd><b class="kw">push</b> the rows below down from the cursor (inside the pattern only)</dd>
           <dt>Ctrl+Alt+Up / Down</dt><dd><b class="kw">rotate</b> the contents of the selected rows, column by column</dd>
           <dt>Ctrl+K</dt><dd><b class="kw">randomize</b> menu for the selection; Ctrl+Shift+K rolls again from the original, any other key accepts</dd>
@@ -451,7 +454,7 @@
           <dt>Ctrl+Left/Right</dt><dd>one character left or right inside the cell, to type into just that digit; after that plain Left/Right stay inside the cell (and Up/Down keep the position) until you step past its edge, which enters the next cell at its first character</dd>
           <dt>Ctrl+Shift+H</dt><dd><b class="kw">hide</b> or show the empty columns of the lane the cursor is in (a column with no value at any row; the one under the cursor stays)</dd>
                     <dt>Ctrl+Space</dt><dd>the same for every parameter column of this row (not notes, velocities or commands)</dd>
-          <dt>Ctrl+I</dt><dd><b class="kw">interpolate</b> along a curve: per column, the first and last filled cell of the selection are the ends and the filled cells between them get values by row position. The popup picks a shape, bends it, lays a wave on it, lets you draw your own, and can include empty cells; Enter applies, Esc cancels</dd>
+          <dt>Ctrl+I</dt><dd><b class="kw">interpolate</b> along a curve: per column, the first and last filled cell of the selection are the ends and the filled cells between them get values by row position. The popup picks a shape, bends it, lays a wave on it, lets you draw your own or shape a <b class="kw">bezier</b> spline with draggable anchors and handles, and can include empty cells; Enter applies, Esc cancels</dd>
           <dt>Ctrl + − 0, wheel</dt><dd>pattern text size</dd>
         </dl>
         <p>Edits are heard on the next tick. Dimmed rows are past the end of the pattern.</p>

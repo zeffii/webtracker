@@ -203,3 +203,11 @@ Ctrl+I: per column of the selection the first and last filled cells are the ends
 
 ## Vocoder (m217)
 Filter & EQ > vocoder. Wire a voice (or any busy sound: drums work well) into `voice` and a held synth or chord into `carrier`: the voice's spectrum, band by band, is imposed on the carrier. With nothing wired to `carrier` a built-in buzz (a band-limited saw plus a little noise, `tune` sets its pitch) is used. `bands` (4 to 32) between `low` and `high`, `q` for band sharpness, `attack` and `release` for how quickly the bands follow, `shift` moves the carrier bands against the voice bands (formant shift), `sibilance` passes the voice's own highs so consonants stay clear.
+
+## Bezier interpolation (m218)
+Ctrl+I > bezier turns the current shape into a spline you can drag: square anchors, round handles. Anchors stay in time order, a handle cannot reach past its neighbouring anchor and values stay inside the range, so the curve is always a function of time. The first and last anchors are the cells' own values (they only have handles to move). Double-click the curve adds an anchor, double-click an anchor removes it, Alt-click an anchor breaks or joins its two handles. Picking another shape, bending or painting leaves bezier mode.
+
+Pattern editor: Ctrl+Shift+Delete removes the pattern under the cursor from the arrangement (m219); the pattern stays in the list and Ctrl+Z brings the placement back.
+
+## Icon (m221)
+icon.ico (16, 24, 32, 48, 64, 128, 256 px) and icon.png (1024 px) are the round pink burst mark, linked as the tab icon in index.html.

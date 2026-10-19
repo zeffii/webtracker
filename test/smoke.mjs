@@ -5996,4 +5996,40 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   assert.ok(rms(run({ sibilance: 1 }, sine(8000), saw(110))) > 2 * rms(run({ sibilance: 0 }, sine(8000), saw(110), 0)), 'sibilance passes the highs');
   console.log('ok: vocoder');
 }
+
+// bezier curve mode: ordered in time, inside the range, ends fixed, monotone x so the curve is a function
+{
+  const { bezierFrom, bezierFix, bezierValue, bezierTable, newCurve, CURVE_N } = await import('../src/seq/curve.js');
+  assert.equal(newCurve().bezier, null);
+  const pts = bezierFrom('s-curve');
+  assert.ok(Math.abs(bezierValue(pts, 0) - 0) < 1e-9 && Math.abs(bezierValue(pts, 1) - 1) < 1e-9, 'the ends are 0 and 1');
+  assert.ok(Math.abs(bezierValue(pts, 0.5) - 0.5) < 1e-3, 'the symmetric s-curve passes the middle');
+  // hostile input: handles far outside, anchors out of order, values out of range
+  const bad = [{ x: 0, y: 0, hl: { x: 0, y: 0 }, hr: { x: 5, y: 9 }, smooth: true }, { x: 0.9, y: 4, hl: { x: -3, y: -9 }, hr: { x: 0.5, y: 5 }, smooth: true }, { x: 0.3, y: -2, hl: { x: -1, y: 3 }, hr: { x: 1, y: -3 }, smooth: false }, { x: 1, y: 0.3, hl: { x: -9, y: 9 }, hr: { x: 0, y: 0 }, smooth: true }];
+  bezierFix(bad);
+  assert.deepEqual(bad.map(p => p.x === bad.map(q => q.x).sort((a, b) => a - b)[bad.indexOf(p)]), [true, true, true, true], 'anchors are in time order');
+  assert.ok(bad[0].y === 0 && bad[3].y === 1, 'the ends keep the first and last values');
+  bad.forEach((p, i) => { assert.ok(p.y >= 0 && p.y <= 1); if (i) assert.ok(p.x + p.hl.x >= bad[i - 1].x - 1e-9, 'a handle stops at its neighbour'); if (i < 3) assert.ok(p.x + p.hr.x <= bad[i + 1].x + 1e-9); });
+  const table = bezierTable(bad);
+  assert.equal(table.length, CURVE_N + 1);
+  assert.ok(table.every(v => Number.isFinite(v) && v >= 0 && v <= 1), 'values stay inside the range');
+}
+
+// Pattern editor: Ctrl+Shift+Delete removes the placement under the cursor, one undo brings it back.
+{
+  const registry = new ParamRegistry();
+  for (const [id, def] of Object.entries(instruments)) compile(def.graph, { instrument: id, nodeTypes: NODE_TYPES, registry });
+  const lanes = prepareSong(demoSong, instruments, registry);
+  const editor = createEditor(lanes, 32);
+  let onKey;
+  const view = createTrackerView({ el: { addEventListener: (type, f) => { if (type === 'keydown') onKey = f; else if (type === 'wheel') onWheel = f; }, innerHTML: '' }, statusEl: {}, transport: new Int32Array(new SharedArrayBuffer(8)), onToggle() {}, onBack() {}, readParam: slot => registry.values[slot] });
+  view.load({ lanes, song: demoSong, editor });
+  const press = (key, extra = {}) => onKey({ key, preventDefault() {}, ...extra });
+  const lane = lanes[0], n = lane.placements.length;
+  view.goto(0, lane.placements[0].start);
+  press('Delete', { ctrlKey: true, shiftKey: true });
+  assert.equal(lane.placements.length, n - 1, 'the placement under the cursor is gone');
+  press('z', { ctrlKey: true });
+  assert.equal(lane.placements.length, n, 'one undo brings it back');
+}
 console.log('smoke test passed');

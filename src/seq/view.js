@@ -653,6 +653,11 @@ export function createTrackerView({ showMenu = (e, items) => showContextMenu(e, 
       }
       if (key === ' ') { insertLive(true); e.preventDefault(); return; }   // Ctrl+Space: the live values of every parameter column of this row
       if (key === 'i') { interpolate(); e.preventDefault(); return; }
+      if (key === 'delete' && e.shiftKey) {   // Ctrl+Shift+Delete: take the pattern under the cursor out of the arrangement (it stays in the list)
+        if (solo) message = 'Not in solo-edit: Esc first.';
+        else message = editor.remove(cur.lane, cur.tick) ? 'Pattern removed from the arrangement. It stays in the list.' : 'No pattern here.';
+        e.preventDefault(); return;
+      }
       if (key === 'delete') { shiftRows(true); e.preventDefault(); return; }
       if (key === 'insert') { shiftRows(false); e.preventDefault(); return; }
       if (key === 'k') {   // Ctrl+K: the randomize menu; Ctrl+Shift+K: roll again

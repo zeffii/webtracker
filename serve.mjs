@@ -17,6 +17,7 @@ const types = {
   '.wasm': 'application/wasm',
   '.svg': 'image/svg+xml',
   '.png': 'image/png',
+  '.ico': 'image/x-icon',
 };
 const base = {
   'Cross-Origin-Opener-Policy': 'same-origin',
