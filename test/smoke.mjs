@@ -365,7 +365,7 @@ const firstSound = x => x.findIndex(v => Math.abs(v) > 1e-9);
   press('f'); assert.equal(row()[3][0], 'F', 'repeats keep going column by column');
   press('Tab');                                 // back to the bass lane, where the checks below expect the cursor
 
-  toggled = 0; press(' '); assert.ok(toggled > 0, 'Space plays the row under the cursor (and steps down)');
+  toggled = 0; press(' '); assert.equal(toggled, 0, 'Space no longer plays the row (F7 does); it writes live values');
   view.draw();
   assert.ok(el.innerHTML.includes('class="cur"') && el.innerHTML.includes('lead') && el.innerHTML.includes('bass'));
   assert.ok(statusEl.textContent.includes('bass'));
@@ -4004,17 +4004,17 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   // note column first: nothing to take
   view.goto(0, 4);
   const noteBefore = lane.rows[4][0];
-  press('Enter', { ctrlKey: true });
+  press(' ');
   assert.equal(lane.rows[4][0], noteBefore, 'a note column is left alone');
   view.goto(0, 4);
   // a parameter column: its live value is written and the cursor moves down
   toCol(pcs[0]);
-  press('Enter', { ctrlKey: true });
+  press(' ');
   const expected = (col.int ? 7 : 0x80).toString(16).toUpperCase().padStart(widthOf(pcs[0]), '0');
   assert.equal(lane.rows[4][pcs[0]], expected, `live value written (${lane.rows[4][pcs[0]]} vs ${expected})`);
   // the whole row: every parameter column of the next row, nothing else
   const before = lane.rows[5].slice();
-  press('Enter', { ctrlKey: true, shiftKey: true });
+  press(' ', { ctrlKey: true });
   pcs.forEach(i => assert.notEqual(lane.rows[5][i], '.'.repeat(widthOf(i)), `column ${cols[i].label} gets its live value`));
   cols.forEach((c, i) => { if (c.kind !== 'param') assert.equal(lane.rows[5][i], before[i], `${c.label} is left as it was`); });
   // the value goes back through the sequencer's own reading: a cell turns into the same value

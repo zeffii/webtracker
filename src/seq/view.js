@@ -493,8 +493,8 @@ export function createTrackerView({ showMenu = (e, items) => showContextMenu(e, 
 
 
   // Takes a parameter's live value (a slider, or whatever the song last wrote) and turns it into the cell that would
-  // write it back: the inverse of how the sequencer reads a cell. Ctrl+Enter writes it into the cursor's cell and moves
-  // down a row, so a sweep can be recorded with one key press per row; Ctrl+Shift+Enter writes the live values of every
+  // write it back: the inverse of how the sequencer reads a cell. Space writes it into the cursor's cell and moves
+  // down a row, so a sweep can be recorded with one key press per row; Ctrl+Space writes the live values of every
   // parameter column of the row at once (not the notes, velocities or commands) and moves down.
   const liveToken = col => {
     const v = readParam(col.slot);
@@ -651,7 +651,7 @@ export function createTrackerView({ showMenu = (e, items) => showContextMenu(e, 
         onSong();
         e.preventDefault(); return;
       }
-      if (key === 'enter') { if (solo) message = 'Not in solo-edit: Esc first.'; else insertLive(e.shiftKey); e.preventDefault(); return; }
+      if (key === ' ') { insertLive(true); e.preventDefault(); return; }   // Ctrl+Space: the live values of every parameter column of this row
       if (key === 'i') { interpolate(); e.preventDefault(); return; }
       if (key === 'delete') { shiftRows(true); e.preventDefault(); return; }
       if (key === 'insert') { shiftRows(false); e.preventDefault(); return; }
@@ -741,7 +741,7 @@ export function createTrackerView({ showMenu = (e, items) => showContextMenu(e, 
       case 'PageDown': moveRow(16); break;
       case 'Home': cur.tick = lo; break;
       case 'End': cur.tick = hi - 1; break;
-      case ' ': onRow(cur.tick); moveRow(1); break;   // plays the row, then steps down: line by line
+      case ' ': insertLive(false); break;   // the live value of the parameter under the cursor (F7 plays the row)
       case '[': octave = Math.max(0, octave - 1); message = `Octave ${octave}`; break;
       case ']': octave = Math.min(9, octave + 1); message = `Octave ${octave}`; break;
       case '\\': case 'Insert':   // note preview on or off

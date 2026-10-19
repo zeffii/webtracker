@@ -29,6 +29,8 @@ sends the two headers for it; any other static server must send
 | F3 | **Instruments** | The node graph of one instrument, its parameters, presets, and the preset library and instrument files. |
 | F4 | **Arrangement** | Patterns placed on a timeline, one column per lane; lane controls sit under the grid. |
 
+Pattern editor: Space writes the live value of the parameter under the cursor into its cell and steps down; Ctrl+Space writes the live values of every parameter column of the row (not notes, velocities or commands). Ctrl+Enter and Ctrl+Shift+Enter are free for something better.
+
 Playback: F5 plays from the start (or the loop), F6 from the cursor, F7 plays just the row under the cursor once (all lanes together), F8 stops. In the pattern editor Space plays the row once and steps down.
 
 F10 is **Info**: a plain text page for notes and greetings, saved with the project.
