@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="themes.css">
-  <title>webtracker m212</title>
+  <title>webtracker m214</title>
   <style>
     :root { color-scheme: light dark; font-family: system-ui, sans-serif; }   /* colours: see themes.css */
     body { background: var(--bg); color: var(--fg); }
@@ -169,6 +169,7 @@
     .cp-presets button.on { background: var(--hi); color: var(--hi-fg); }
     .cp-bar { display: flex; gap: 6px; justify-content: flex-end; }
     .cp-hint { opacity: .6; font-size: 11px; }
+    #view, #seq { user-select: none; }   /* the grids have their own selection: a native text selection would survive the row-by-row redraw and smear across the lines */
     #view .ln { width: max-content; min-width: 100%; }
     #view .ln:empty::before { content: "\00a0"; }
     .playline.band { border-top: 0; box-shadow: none; background: color-mix(in srgb, var(--hi) 20%, transparent); }
@@ -213,7 +214,8 @@
     body.nokeys .pane.keyed:not([hidden]) { grid-template-columns: minmax(0, 1fr); }
     .keys dl { display: grid; grid-template-columns: max-content 1fr; gap: .2rem .8rem; margin: 0; }
     .keys dt { color: #f0707a; }
-    .keys dd { margin: 0; opacity: .7; }
+    .keys dd { margin: 0; color: color-mix(in srgb, var(--fg) 68%, var(--panel)); }
+    .keys dd .kw { font-weight: inherit; color: color-mix(in srgb, #2a62d6 82%, var(--fg)); }   /* the important words, in a quiet accent */
     .keys p { margin: .6rem 0 0; opacity: .7; }
     @media (max-width: 1000px) { .pane.keyed:not([hidden]) { grid-template-columns: 1fr; } .keys { height: auto; min-height: 0; max-height: 60vh; } }
 
@@ -415,42 +417,42 @@
     </div>
       <aside class="keys" aria-label="Pattern editor shortcuts"><h3>Shortcuts</h3>
         <dl>
-          <dt>Click, Esc</dt><dd>click the grid to start; Esc goes to the arrangement (in solo-edit, Esc first goes back to the whole song)</dd>
-          <dt>Arrows</dt><dd>move; Left/Right go to the start of the next or previous column (Ctrl+Left/Right: one character inside the cell)</dd>
-          <dt>Tab</dt><dd>next lane</dd>
+          <dt>Click, Esc</dt><dd>click the grid to start; Esc goes to the arrangement (in <b class="kw">solo-edit</b>, Esc first goes back to the whole song)</dd>
+          <dt>Arrows</dt><dd><b class="kw">move</b>; Left/Right go to the start of the next or previous column (Ctrl+Left/Right: one character inside the cell)</dd>
+          <dt>Tab</dt><dd><b class="kw">next lane</b></dd>
           <dt>PgUp/PgDn</dt><dd>16 rows</dd>
-          <dt>Space</dt><dd>play this row once and step down a row, to go through a pattern line by line</dd>
-          <dt>Enter</dt><dd>insert a pattern</dd>
-          <dt>Z–M, Q–P</dt><dd>play notes</dd>
-          <dt>[ ]</dt><dd>octave</dd>
-          <dt>1</dt><dd>note off</dd>
-          <dt>`</dt><dd>note cut</dd>
-          <dt>0–9, A–F</dt><dd>overwrite the character under the cursor (an empty cell fills with zeros)</dd>
-          <dt>Delete, &gt;</dt><dd>clear the cell</dd>
-          <dt>Ctrl+Delete</dt><dd>delete the selected cells and pull the rows below up (inside the pattern only)</dd>
-          <dt>Ctrl+Insert</dt><dd>push the rows below down from the cursor (inside the pattern only)</dd>
-          <dt>Ctrl+Alt+Up / Down</dt><dd>rotate the contents of the selected rows, column by column</dd>
-          <dt>Ctrl+K</dt><dd>randomize menu for the selection; Ctrl+Shift+K rolls again from the original, any other key accepts</dd>
-          <dt>\ or Insert</dt><dd>note preview on / off: with it on, typed notes sound while the key is held</dd>
-          <dt>Ctrl+D</dt><dd>copy the selection (or the cell) to the rows right below it, wherever the cursor is; again to copy it once more below that</dd>
-          <dt>Alt+S</dt><dd>solo the lane under the cursor (the others ring out and go quiet); again brings everyone back</dd>
-          <dt>Alt+Up / Down</dt><dd>song tempo up or down by 1 bpm; with Shift by 10</dd>
-          <dt>Alt+R</dt><dd>arm recording: a MIDI keyboard writes into the pattern under the playhead of the cursor lane, on the nearest tick, while the song plays</dd>
-          <dt>Shift+1</dt><dd>a note off in every note column of this row of this lane, then down a row</dd>
-          <dt>Alt+V</dt><dd>MIDI velocity sensitive or not</dd>
-          <dt>Alt+T</dt><dd>tint each pattern faintly in its own colour, to see where they begin and end; again to switch it off</dd>
-          <dt>Alt+Enter</dt><dd>solo-edit the pattern under the cursor (only it is shown, rows numbered from 0); again, or Esc, goes back to the whole song</dd>
-          <dt>Ctrl+G</dt><dd>give this placement its own copy of the pattern (clone and replace), so edits stop reaching the other places it is used; works in solo-edit too</dd>
-          <dt>F5 F6 F7 F8</dt><dd>play from the start (or the loop); play from the cursor; play just this row once; stop</dd>
-          <dt>F9</dt><dd>follow the song: the grid scrolls with the playing row (highlighted)</dd>
-          <dt>Ctrl+Up/Down</dt><dd>transpose the notes in the selection by a semitone (Shift: an octave)</dd>
-          <dt>Ctrl+, / Ctrl+.</dt><dd>lower / raise every other value in the selection by one (Ctrl+&lt; / Ctrl+&gt;: a bigger step); commands keep their id</dd>
+          <dt>Space</dt><dd><b class="kw">play</b> this row once and step down a row, to go through a pattern line by line</dd>
+          <dt>Enter</dt><dd><b class="kw">insert</b> a pattern</dd>
+          <dt>Z–M, Q–P</dt><dd><b class="kw">play</b> notes</dd>
+          <dt>[ ]</dt><dd><b class="kw">octave</b></dd>
+          <dt>1</dt><dd><b class="kw">note off</b></dd>
+          <dt>`</dt><dd><b class="kw">note cut</b></dd>
+          <dt>0–9, A–F</dt><dd><b class="kw">overwrite</b> the character under the cursor (an empty cell fills with zeros)</dd>
+          <dt>Delete, &gt;</dt><dd><b class="kw">clear</b> the cell</dd>
+          <dt>Ctrl+Delete</dt><dd><b class="kw">delete</b> the selected cells and <b class="kw">pull</b> the rows below up (inside the pattern only)</dd>
+          <dt>Ctrl+Insert</dt><dd><b class="kw">push</b> the rows below down from the cursor (inside the pattern only)</dd>
+          <dt>Ctrl+Alt+Up / Down</dt><dd><b class="kw">rotate</b> the contents of the selected rows, column by column</dd>
+          <dt>Ctrl+K</dt><dd><b class="kw">randomize</b> menu for the selection; Ctrl+Shift+K rolls again from the original, any other key accepts</dd>
+          <dt>\ or Insert</dt><dd>note <b class="kw">preview</b> on / off: with it on, typed notes sound while the key is held</dd>
+          <dt>Ctrl+D</dt><dd><b class="kw">copy</b> the selection (or the cell) to the rows right below it, wherever the cursor is; again to <b class="kw">copy</b> it once more below that</dd>
+          <dt>Alt+S</dt><dd><b class="kw">solo</b> the lane under the cursor (the others ring out and go quiet); again brings everyone back</dd>
+          <dt>Alt+Up / Down</dt><dd>song <b class="kw">tempo</b> up or down by 1 bpm; with Shift by 10</dd>
+          <dt>Alt+R</dt><dd><b class="kw">arm recording</b>: a MIDI keyboard writes into the pattern under the playhead of the cursor lane, on the nearest tick, while the song plays</dd>
+          <dt>Shift+1</dt><dd>a <b class="kw">note off</b> in every note column of this row of this lane, then down a row</dd>
+          <dt>Alt+V</dt><dd>MIDI <b class="kw">velocity</b> sensitive or not</dd>
+          <dt>Alt+T</dt><dd><b class="kw">tint</b> each pattern faintly in its own colour, to see where they begin and end; again to switch it off</dd>
+          <dt>Alt+Enter</dt><dd><b class="kw">solo-edit</b> the pattern under the cursor (only it is shown, rows numbered from 0); again, or Esc, goes back to the whole song</dd>
+          <dt>Ctrl+G</dt><dd>give this placement its own <b class="kw">copy</b> of the pattern (<b class="kw">clone</b> and replace), so edits stop reaching the other places it is used; works in solo-edit too</dd>
+          <dt>F5 F6 F7 F8</dt><dd><b class="kw">play</b> from the start (or the <b class="kw">loop</b>); play from the cursor; play just this row once; stop</dd>
+          <dt>F9</dt><dd><b class="kw">follow</b> the song: the grid scrolls with the playing row (highlighted)</dd>
+          <dt>Ctrl+Up/Down</dt><dd><b class="kw">transpose</b> the notes in the selection by a semitone (Shift: an <b class="kw">octave</b>)</dd>
+          <dt>Ctrl+, / Ctrl+.</dt><dd><b class="kw">lower / raise</b> every other value in the selection by one (Ctrl+&lt; / Ctrl+&gt;: a bigger step); commands keep their id</dd>
           <dt>Left / Right</dt><dd>to the start of the previous / next column (Config: one character at a time instead)</dd>
           <dt>Ctrl+Left/Right</dt><dd>one character left or right inside the cell, to type into just that digit; after that plain Left/Right stay inside the cell (and Up/Down keep the position) until you step past its edge, which enters the next cell at its first character</dd>
-          <dt>Ctrl+Shift+H</dt><dd>hide or show the empty columns of the lane the cursor is in (a column with no value at any row; the one under the cursor stays)</dd>
-          <dt>Ctrl+Enter</dt><dd>write the live value of the parameter under the cursor (the node setting, or what the song last set) into this cell, then move down a row</dd>
+          <dt>Ctrl+Shift+H</dt><dd><b class="kw">hide</b> or show the empty columns of the lane the cursor is in (a column with no value at any row; the one under the cursor stays)</dd>
+          <dt>Ctrl+Enter</dt><dd><b class="kw">write</b> the live value of the parameter under the cursor (the node setting, or what the song last set) into this cell, then <b class="kw">move</b> down a row</dd>
           <dt>Ctrl+Shift+Enter</dt><dd>the same for every parameter column of this row (not notes, velocities or commands)</dd>
-          <dt>Ctrl+I</dt><dd>interpolate along a curve: per column, the first and last filled cell of the selection are the ends and the filled cells between them get values by row position. The popup picks a shape, bends it, lays a wave on it, lets you draw your own, and can include empty cells; Enter applies, Esc cancels</dd>
+          <dt>Ctrl+I</dt><dd><b class="kw">interpolate</b> along a curve: per column, the first and last filled cell of the selection are the ends and the filled cells between them get values by row position. The popup picks a shape, bends it, lays a wave on it, lets you draw your own, and can include empty cells; Enter applies, Esc cancels</dd>
           <dt>Ctrl + − 0, wheel</dt><dd>pattern text size</dd>
         </dl>
         <p>Edits are heard on the next tick. Dimmed rows are past the end of the pattern.</p>
@@ -471,26 +473,26 @@
           <dt>Tab, Shift+Tab</dt><dd>next / previous field</dd>
           <dt>Left/Right, − +</dt><dd>change a value (Shift bigger, Ctrl bigger still)</dd>
           <dt>digits, Enter</dt><dd>type a value</dd>
-          <dt>Piano keys</dt><dd>play the sample; [ ] change the octave</dd>
-          <dt>Space</dt><dd>play the root note</dd>
+          <dt>Piano keys</dt><dd><b class="kw">play</b> the sample; [ ] change the <b class="kw">octave</b></dd>
+          <dt>Space</dt><dd><b class="kw">play</b> the root note</dd>
           <dt>Esc</dt><dd>back to the list</dd>
           <dt>L</dt><dd>load samples</dd>
-          <dt>Delete</dt><dd>remove the sample</dd>
-          <dt>Shift+drag</dt><dd>select part of the display; drag across it to make a loop, drag a marker to move it, double-click to clear</dd>
+          <dt>Delete</dt><dd><b class="kw">remove</b> the sample</dd>
+          <dt>Shift+drag</dt><dd>select part of the display; drag across it to make a <b class="kw">loop</b>, drag a marker to <b class="kw">move</b> it, double-click to clear</dd>
           <dt>Marker region</dt><dd>the narrow view right of the waveform shows 800 frames around the current marker, the red line is the marker</dd>
-      <dt>+ −</dt><dd>in the list: nudge the current slice marker one frame (Ctrl 100); &lt; and &gt; choose the previous and next marker. The current one is drawn heavier and marked &gt; in the Slices list</dd>
-          <dt>Shift+M, Shift+U</dt><dd>mark a slice at the selection start, unmark the nearest one. The Slices list shows each one's number and hex value; in a pattern, command 10 0000 starts a note at the first, 10 0001 at the second, and so on (10 FFFF gives the Off column back its say)</dd>
-          <dt>Alt+click, Alt+drag</dt><dd>on the display: add a slice marker, move one. Alt+double-click removes the nearest</dd>
-          <dt>Shift+C / T</dt><dd>trim</dd>
-          <dt>Shift+X</dt><dd>cut</dd>
-          <dt>Shift+S</dt><dd>silence</dd>
-          <dt>Shift+R</dt><dd>reverse</dd>
-          <dt>Shift+N</dt><dd>normalise</dd>
-          <dt>Shift+I / O</dt><dd>fade in / out</dd>
-          <dt>Shift+D</dt><dd>remove DC</dd>
-          <dt>Shift+B</dt><dd>bake the loop crossfade</dd>
-          <dt>Ctrl+B, Ctrl+E</dt><dd>start the loop at this tick, end it with this tick (again on the same tick to take it away)</dd>
-          <dt>Ctrl+Z, Ctrl+Y</dt><dd>undo, redo</dd>
+      <dt>+ −</dt><dd>in the list: <b class="kw">nudge</b> the current slice marker one frame (Ctrl 100); &lt; and &gt; choose the previous and next marker. The current one is drawn heavier and marked &gt; in the Slices list</dd>
+          <dt>Shift+M, Shift+U</dt><dd>mark a <b class="kw">slice</b> at the selection start, unmark the nearest one. The Slices list shows each one's number and hex value; in a pattern, command 10 0000 starts a note at the first, 10 0001 at the second, and so on (10 FFFF gives the Off column back its say)</dd>
+          <dt>Alt+click, Alt+drag</dt><dd>on the display: add a <b class="kw">slice marker</b>, move one. Alt+double-click removes the nearest</dd>
+          <dt>Shift+C / T</dt><dd><b class="kw">trim</b></dd>
+          <dt>Shift+X</dt><dd><b class="kw">cut</b></dd>
+          <dt>Shift+S</dt><dd><b class="kw">silence</b></dd>
+          <dt>Shift+R</dt><dd><b class="kw">reverse</b></dd>
+          <dt>Shift+N</dt><dd><b class="kw">normalise</b></dd>
+          <dt>Shift+I / O</dt><dd><b class="kw">fade in / out</b></dd>
+          <dt>Shift+D</dt><dd><b class="kw">remove DC</b></dd>
+          <dt>Shift+B</dt><dd><b class="kw">bake</b> the loop crossfade</dd>
+          <dt>Ctrl+B, Ctrl+E</dt><dd>start the <b class="kw">loop</b> at this tick, end it with this tick (again on the same tick to take it away)</dd>
+          <dt>Ctrl+Z, Ctrl+Y</dt><dd><b class="kw">undo</b>, redo</dd>
         </dl>
         <p>Edits apply to the selection, or to the whole sample when nothing is selected. Stereo samples stay stereo. The display shows the chosen sample as Waveform or Spectrum, with the loop between markers A and B and the sustain loop between a and b.</p>
       </aside>
@@ -562,20 +564,20 @@
           <dt>Up/Down</dt><dd>in the list: choose an instrument</dd>
           <dt>Enter</dt><dd>go to the graph</dd>
           <dt>Esc</dt><dd>back to the list</dd>
-          <dt>Tab, Alt+arrows</dt><dd>in the graph: move between nodes</dd>
+          <dt>Tab, Alt+arrows</dt><dd>in the graph: <b class="kw">move</b> between nodes</dd>
           <dt>Up/Down</dt><dd>with a node selected: choose a parameter in its panel (PageUp/PageDown 8 rows)</dd>
           <dt>Left/Right</dt><dd>change the parameter (Shift bigger, Ctrl smaller); Home/End go to the ends</dd>
-          <dt>Enter</dt><dd>menu for the parameter: type a value, reset, expose as a pattern column and its width, add a port (right-click a row does the same)</dd>
-          <dt>Piano keys</dt><dd>with a generator node (oscillator, sampler, synth) selected: play the instrument; [ ] change the octave</dd>
-          <dt>Delete, Ctrl+X</dt><dd>remove the node or wire</dd>
-          <dt>Shift+drag a node</dt><dd>take it out of its chain (its neighbours are joined) and move it</dd>
-          <dt>Alt+drag a node</dt><dd>make a copy and move the copy</dd>
-          <dt>Drag node</dt><dd>move it (a lassoed group moves together)</dd>
-          <dt>Drag empty space</dt><dd>lasso nodes; Shift+click adds one; Delete removes the group</dd>
-          <dt>Eye above a node</dt><dd>show a scope of what it puts out, beside it: click wave / spec / xy in its header to change the view, and 200 / 400 for the size</dd>
-          <dt>Middle button drag</dt><dd>pan the whole graph</dd>
-          <dt>Drag dot</dt><dd>from an output dot (right) to an input dot (left) to wire them</dd>
-          <dt>Right-click, double-click</dt><dd>empty space in the graph: insert a node. In the menu: the underlined letter of a row opens or inserts it, arrows and Enter move and open, Left or Esc go up a level, / (or clicking the box) searches: type, then Up/Down and Enter</dd>
+          <dt>Enter</dt><dd>menu for the parameter: type a value, reset, <b class="kw">expose</b> as a pattern column and its width, add a port (right-click a row does the same)</dd>
+          <dt>Piano keys</dt><dd>with a generator node (oscillator, sampler, synth) selected: <b class="kw">play</b> the instrument; [ ] change the <b class="kw">octave</b></dd>
+          <dt>Delete, Ctrl+X</dt><dd><b class="kw">remove</b> the node or wire</dd>
+          <dt>Shift+drag a node</dt><dd><b class="kw">take it out</b> of its chain (its neighbours are joined) and <b class="kw">move</b> it</dd>
+          <dt>Alt+drag a node</dt><dd><b class="kw">make a copy</b> and move the <b class="kw">copy</b></dd>
+          <dt>Drag node</dt><dd><b class="kw">move</b> it (a lassoed group moves together)</dd>
+          <dt>Drag empty space</dt><dd><b class="kw">lasso</b> nodes; Shift+click adds one; <b class="kw">Delete</b> removes the group</dd>
+          <dt>Eye above a node</dt><dd>show a <b class="kw">scope</b> of what it puts out, beside it: click wave / spec / xy in its header to change the view, and 200 / 400 for the size</dd>
+          <dt>Middle button drag</dt><dd><b class="kw">pan</b> the whole graph</dd>
+          <dt>Drag dot</dt><dd>from an output dot (right) to an input dot (left) to <b class="kw">wire</b> them</dd>
+          <dt>Right-click, double-click</dt><dd>empty space in the graph: <b class="kw">insert</b> a node. In the menu: the underlined letter of a row opens or inserts it, arrows and Enter <b class="kw">move</b> and open, Left or Esc go up a level, / (or clicking the box) searches: type, then Up/Down and Enter</dd>
           <dt>Left/Right</dt><dd>on a slider: change the parameter (Shift for more)</dd>
         </dl>
         <p>An input can take several wires, which are added together; use a mix node when you want a ratio. Blue wires carry audio, amber wires control signals (envelopes, lfos, triggers), light red wires a ctrl node's glide into a parameter port (tick "port" beside a parameter to give it one), heavier purple wires a stereo pair (a mono wire into a stereo input feeds both channels; stereo into a mono input is averaged). "expose" adds a parameter to the instrument's pattern columns. Changing the wiring or the exposed list swaps the instrument in live and clears undo.</p>
@@ -610,31 +612,31 @@
     </div>
       <aside class="keys" aria-label="Arrangement shortcuts"><h3>Shortcuts</h3>
         <dl>
-          <dt>Up/Down</dt><dd>move in time</dd>
-          <dt>Left/Right</dt><dd>change lane</dd>
+          <dt>Up/Down</dt><dd><b class="kw">move</b> in time</dd>
+          <dt>Left/Right</dt><dd><b class="kw">change lane</b></dd>
           <dt>PgUp/PgDn</dt><dd>16 ticks</dd>
-          <dt>Enter</dt><dd>open the pattern under the cursor in the grid, or insert a new one</dd>
-          <dt>Ctrl+Enter</dt><dd>open the pattern under the cursor on its own (solo-edit): nothing else can be edited or pasted into. In the grid, Tab switches between showing only the pattern (rows from 0) and showing the whole song with the rest greyed, hatched and locked; Esc leaves it</dd>
-          <dt>I</dt><dd>insert a new pattern on top</dd>
+          <dt>Enter</dt><dd>open the pattern under the cursor in the grid, or <b class="kw">insert</b> a new one</dd>
+          <dt>Ctrl+Enter</dt><dd>open the pattern under the cursor on its own (<b class="kw">solo-edit</b>): nothing else can be edited or pasted into. In the grid, Tab switches between showing only the pattern (rows from 0) and showing the whole song with the rest greyed, hatched and locked; Esc leaves it</dd>
+          <dt>I</dt><dd><b class="kw">insert</b> a new pattern on top</dd>
           <dt>two hex digits</dt><dd>place that pattern (see the list) and jump to its end</dd>
-          <dt>N</dt><dd>clone</dd>
-          <dt>S</dt><dd>slice at the cursor</dd>
-          <dt>Alt+S</dt><dd>solo this lane: the other lanes let go of their notes (they ring out) and play nothing, shown darker; again to bring everyone back (also in the pattern editor)</dd>
-          <dt>G</dt><dd>with a block selected: merge everything inside it into one new pattern in each lane; patterns crossing the block's top or bottom are cut there; a lane with nothing in the block gets an empty pattern the size of the block</dd>
+          <dt>N</dt><dd><b class="kw">clone</b></dd>
+          <dt>S</dt><dd><b class="kw">slice</b> at the cursor</dd>
+          <dt>Alt+S</dt><dd><b class="kw">solo</b> this lane: the other lanes let go of their notes (they ring out) and <b class="kw">play</b> nothing, shown darker; again to bring everyone back (also in the pattern editor)</dd>
+          <dt>G</dt><dd>with a block selected: <b class="kw">merge</b> everything inside it into one new pattern in each lane; patterns crossing the block's top or bottom are <b class="kw">cut</b> there; a lane with nothing in the block gets an empty pattern the size of the block</dd>
           <dt>+ −</dt><dd>change length by 16</dd>
-          <dt>, .</dt><dd>move up or down a tick (&lt; &gt; sixteen)</dd>
-          <dt>Delete</dt><dd>remove the pattern</dd>
+          <dt>, .</dt><dd><b class="kw">move</b> up or down a tick (&lt; &gt; sixteen)</dd>
+          <dt>Delete</dt><dd><b class="kw">remove</b> the pattern</dd>
           <dt>Shift+arrows, drag</dt><dd>select a block of lanes and rows</dd>
-          <dt>Ctrl+C, X, V</dt><dd>copy or cut the selected patterns (or the one under the cursor); paste with their top left at the cursor, over what is there</dd>
-          <dt>Ctrl+D</dt><dd>copy the selection to the rows right below it, wherever the cursor is; again to copy it once more below that</dd>
-          <dt>F5 F6 F7 F8</dt><dd>play from the start (or the loop); play from the cursor; play just this row once; stop</dd>
-          <dt>F9</dt><dd>follow the song: the rows scroll with the playing row (highlighted)</dd>
-          <dt>Ctrl+Z, Ctrl+Y</dt><dd>undo, redo</dd>
-          <dt>O, Ctrl+1</dt><dd>put a note-off marker on this row (again to remove it): the lane lets go of what is sounding there, for patterns that end without a note off</dd>
-          <dt>Ctrl+B, Ctrl+E</dt><dd>start the loop at this row, end it with this row (again on the same row to take it away); play starts at the loop and repeats it</dd>
-          <dt>W, Shift+W</dt><dd>set a waypoint, restore it</dd>
-          <dt>M</dt><dd>mute the lane from this row until the next M further down (shown dimmed, with &lt;mute&gt; and &lt;play&gt; cells marking the changes)</dd>
-          <dt>Shift+M</dt><dd>silence the whole lane, whatever its marks say; again to bring it back</dd>
+          <dt>Ctrl+C, X, V</dt><dd><b class="kw">copy</b> or cut the selected patterns (or the one under the cursor); <b class="kw">paste</b> with their top left at the cursor, over what is there</dd>
+          <dt>Ctrl+D</dt><dd><b class="kw">copy</b> the selection to the rows right below it, wherever the cursor is; again to <b class="kw">copy</b> it once more below that</dd>
+          <dt>F5 F6 F7 F8</dt><dd><b class="kw">play</b> from the start (or the <b class="kw">loop</b>); play from the cursor; play just this row once; stop</dd>
+          <dt>F9</dt><dd><b class="kw">follow</b> the song: the rows scroll with the playing row (highlighted)</dd>
+          <dt>Ctrl+Z, Ctrl+Y</dt><dd><b class="kw">undo</b>, redo</dd>
+          <dt>O, Ctrl+1</dt><dd>put a note-off marker on this row (again to <b class="kw">remove</b> it): the lane lets go of what is sounding there, for patterns that end without a <b class="kw">note off</b></dd>
+          <dt>Ctrl+B, Ctrl+E</dt><dd>start the <b class="kw">loop</b> at this row, end it with this row (again on the same row to take it away); <b class="kw">play</b> starts at the loop and repeats it</dd>
+          <dt>W, Shift+W</dt><dd>set a <b class="kw">waypoint</b>, restore it</dd>
+          <dt>M</dt><dd><b class="kw">mute</b> the lane from this row until the next M further down (shown dimmed, with &lt;<b class="kw">mute</b>&gt; and &lt;play&gt; cells marking the changes)</dd>
+          <dt>Shift+M</dt><dd><b class="kw">silence</b> the whole lane, whatever its marks say; again to bring it back</dd>
           <dt>K, Shift+K</dt><dd>step the colour of the pattern under the cursor through 16 pastels and back to automatic (Shift goes backwards)</dd>
         </dl>
       </aside>
