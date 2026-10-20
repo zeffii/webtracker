@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['m266', ['Docked Script panel: the script editor now starts at the same height as the pattern grid.']],
   ['m265', ['Docked Script panel: a Script help button under the editor shows or hides the scripting help and tutorial inside the panel.']],
   ['m264', ['Script panel can be docked to the right of the pattern editor: Ctrl+Alt+D or the Dock button next to the Script tab. Drag its left edge to resize; it is remembered. Scripts still act on the pattern under the pattern editor\'s cursor.']],
   ['m263', ['Opening a pattern from the arrangement (Enter or double-click) scrolls the pattern editor sideways so all of that lane\'s columns are in view, when they fit.']],
