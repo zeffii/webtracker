@@ -6279,6 +6279,16 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   assert.ok(rms(lowTone[0]) > rms(lowTone[1]) * 1.4, 'a sweep puts lows left');
   assert.ok(rms(highTone[1]) > rms(highTone[0]) * 2, 'and highs right');
   assert.ok(lowTone[0].every(Number.isFinite));
+  // the built-in motion: with a rate the image moves by itself (the balance of one band changes over time), and with none it does not
+  const swing = (values) => {
+    const long = Float32Array.from({ length: 96000 }, (_, k) => 0.5 * Math.sin(2 * Math.PI * 5000 * k / sr2)), o = run({ shape: 1, spread: 1, lowMono: 20, ...values }, long, long);
+    const seg = a => { const out = []; for (let q = 0; q < 8; q++) { let e = 0; for (let k = q * 12000; k < (q + 1) * 12000; k++) e += a[k] * a[k]; out.push(Math.sqrt(e / 12000)); } return out; };
+    const bal = seg(o[0]).map((v, i) => v / (v + seg(o[1])[i]));
+    return Math.max(...bal) - Math.min(...bal);
+  };
+  assert.ok(swing({ rate: 1, sweep: 0.5 }) > 0.08, 'the built-in motion moves the image');
+  assert.ok(swing({ rate: 0 }) < 0.02, 'with no rate it stays put');
+  assert.ok(swing({ rate: 1, sweep: 0 }) < 0.02, 'and with no sweep');
 }
 
 // Node help pages: every node type has one; the written ones have limits.
@@ -6464,6 +6474,62 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   assert.equal(r.read(2, out), 0);
   r.mask(0); assert.equal(w.wants(2), false);
   console.log('ok: per-instrument rings');
+}
+
+// The command console: rules parse, bad and clashing rules are switched off, typed text resolves to steps, and the commands act
+// on the selection of the pattern editor.
+{
+  const { DEFAULT_RULES, parseRules, analyse, resolve, stepsOf } = await import('../src/ui/console.js');
+  const good = analyse(parseRules(DEFAULT_RULES));
+  assert.ok(good.length >= 5 && good.every(r => r.usable), 'the default rules are all fine');
+  const steps = text => { const r = resolve(good, text); return r.rule ? stepsOf(r) : null; };
+  assert.deepEqual(steps('cop'), [['clone', null]]);
+  assert.deepEqual(steps('tp12'), [['transpose', 12]]);
+  assert.deepEqual(steps('tp12-'), [['transpose', -12]]);
+  assert.deepEqual(steps('r4'), [['rotate', 4]]);
+  assert.deepEqual(steps('r4-'), [['rotate', -4]]);
+  assert.equal(steps('nothing'), null);
+  const bad = analyse(parseRules('a{n} -> rotate {n}\na1 -> rotate 3\nq -> clone\nq -> clone\nzz -> bogus\ny{n} -> clone\nup -> transpose 12; clone\nno arrow\nz{n}{n} -> rotate {n}\nr -> rotate'));
+  const by = line => bad.find(r => r.line === line);
+  assert.ok(!by(1).usable && by(1).clash && !by(2).usable && by(2).clash, 'a pattern with {n} that matches another rule\'s typing clashes, both ways');
+  assert.ok(!by(3).usable && !by(4).usable, 'duplicates clash');
+  assert.ok(by(5).error && by(6).error && by(8).error && by(9).error && by(10).error, 'unknown action, unused {n}, no arrow, two {n}, missing number are errors');
+  assert.ok(by(7).usable && by(7).steps.length === 2, 'a rule can have several steps');
+  assert.equal(resolve(bad, 'q').none, true, 'a clashing rule does nothing');
+  assert.equal(resolve(bad, 'a1').none, true);
+  by(2).text; const fixed = analyse(parseRules('a{n} -> rotate {n}\nb1 -> rotate 3'));
+  assert.ok(fixed.every(r => r.usable), 'once it no longer clashes it is back on');
+
+  // the commands on a pattern view
+  const defs = structuredClone(instruments), registry = new ParamRegistry();
+  for (const [id, d] of Object.entries(defs)) compile(d.graph, { instrument: id, nodeTypes: NODE_TYPES, registry });
+  const names = ['C-3', 'D-3', 'E-3', 'F-3', 'G-3', 'A-3', 'B-3', 'C-4'];
+  const mk = Array.from({ length: 8 }, (_, i) => `${names[i]} ..`).join('\n');
+  const song = { ...song120([{ id: 'kick', instrument: 'kick', patterns: { a: { text: mk }, b: { text: mk } }, placements: [{ puid: 'a', start: 0, length: 8 }, { puid: 'b', start: 8, length: 8 }] }]) };
+  const lanes = prepareSong(song, defs, registry), editor = createEditor(lanes, 16);
+  let onKey;
+  const view = createTrackerView({
+    showMenu() {}, random: () => 0.5,
+    el: { addEventListener: (type, f) => { if (type === 'keydown') onKey = f; }, innerHTML: '' }, statusEl: {}, transport: new Int32Array(new SharedArrayBuffer(8)), onToggle() {}, onBack() {},
+  });
+  view.load({ lanes, song, editor });
+  const press = (key, mods = {}, times = 1) => { for (let i = 0; i < times; i++) onKey({ key, preventDefault() {}, ...mods }); };
+  const notes = () => lanes[0].rows.map(r => r[0]), orig = notes();
+  press('Home'); press('ArrowDown', { shiftKey: true }, 3);
+  view.commands.rotate(2);
+  assert.deepEqual(notes().slice(0, 4), [orig[2], orig[3], orig[0], orig[1]], 'rotate 2 moves the rows two places');
+  view.commands.rotate(-2);
+  assert.deepEqual(notes().slice(0, 4), orig.slice(0, 4), 'and -2 brings them back');
+  view.commands.rotate(1);
+  assert.deepEqual(notes().slice(0, 4), [orig[3], orig[0], orig[1], orig[2]], 'a positive number moves the content down');
+  view.commands.rotate(-1);
+  view.commands.transpose(12);
+  assert.equal(notes()[0], 'C-4', 'transpose 12 is an octave up');
+  view.commands.transpose(-14);
+  assert.equal(notes()[0], 'A#2', 'and by any number of semitones down');
+  press('z', { ctrlKey: true }, 6);
+  assert.deepEqual(notes(), orig, 'every command is undone by Ctrl+Z');
+  console.log('ok: command console');
 }
 
 // Sample screen mouse: a click moves to a field, a second click starts typing, digits then set it.

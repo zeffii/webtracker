@@ -475,5 +475,9 @@ export function createSequenceView({ el, statusEl, listEl, transport, onToggle, 
 
   const goto = (laneIdx, tick) => { cur.lane = laneIdx; cur.tick = rowStart(tick); typed = ''; sel = null; };
   const setRows = n => { rowCount = Math.max(ROWS.min, Math.min(ROWS.max, Math.round(n))); draw(); return rowCount; };
-  return { draw, load, goto, setRows, resume() { const was = paused; paused = false; lastAuto = null; return was; }, say: m => { message = m; }, get rows() { return rowCount; }, get lane() { return cur.lane; }, get tick() { return cur.tick; } };
+  // What the command console calls here: only the placement under the cursor can be cloned.
+  const commands = {
+    clone: () => { act('clone', editor.clone(cur.lane, editTick()), 'Cloned: this placement now has its own copy.'); draw(); return message; },
+  };
+  return { commands, draw, load, goto, setRows, resume() { const was = paused; paused = false; lastAuto = null; return was; }, say: m => { message = m; }, get rows() { return rowCount; }, get lane() { return cur.lane; }, get tick() { return cur.tick; } };
 }

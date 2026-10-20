@@ -313,18 +313,20 @@ export function createTrackerView({ showMenu = (e, items) => showContextMenu(e, 
 
   // Ctrl+Alt+Up/Down: the contents of the selected rows rotate by one row, column by column; what falls off one end comes
   // in at the other.
-  const rotate = dir => {
+  const rotate = (dir, k = 1) => {
     if (!sel) { message = 'Select some rows to rotate.'; return; }
     const r = rect(), lane = lanes[r.lane], items = [];
     for (const { a, b } of pieces(r)) {
       if (b <= a) continue;
+      const h = b - a + 1, by = ((k % h) + h) % h;
+      if (!by) continue;
       for (let c = r.c0; c <= r.c1; c++) for (let t = a; t <= b; t++) {
-        const src = dir < 0 ? (t === b ? a : t + 1) : (t === a ? b : t - 1);
+        const src = a + ((t - a + (dir < 0 ? by : h - by)) % h);
         items.push({ tick: t, col: c, token: lane.rows[src][c] });
       }
     }
     const changed = items.length && editor.setCells(r.lane, items, 'rotate');
-    message = changed ? `Rotated the selection ${dir < 0 ? 'up' : 'down'}.` : 'Nothing to rotate.';
+    message = changed ? `Rotated the selection ${dir < 0 ? 'up' : 'down'}${k !== 1 ? ` by ${k}` : ''}.` : 'Nothing to rotate.';
   };
 
   // Randomizing the selection (Ctrl+R opens the menu). Every new value is one the column already holds in the selection,
@@ -411,7 +413,7 @@ export function createTrackerView({ showMenu = (e, items) => showContextMenu(e, 
   // value moves by one (Shift: a bigger step, one digit up), stopping at its ends. A command's id is left alone.
   // Blank cells stay blank.
   const STEP = { '1hex': [1, 1], '2hex': [1, 16], '4hex': [1, 256], cmd: [1, 256] };
-  const transpose = (notes, dir, big) => {
+  const transpose = (notes, dir, big, amount) => {
     const r = rect(), lane = lanes[r.lane], items = [];
     let skipped = 0;
     for (let t = r.t0; t <= r.t1; t++) {
@@ -421,7 +423,7 @@ export function createTrackerView({ showMenu = (e, items) => showContextMenu(e, 
         if (notes) {
           const s = kind === 'note' ? noteSemitones(token) : null;
           if (s === null) continue;
-          try { if (s + dir * (big ? 12 : 1) < 0) throw new Error('low'); items.push({ tick: t, col: c, token: noteToken(s + dir * (big ? 12 : 1)) }); } catch { skipped++; }
+          try { const step = amount ?? (big ? 12 : 1); if (s + dir * step < 0) throw new Error('low'); items.push({ tick: t, col: c, token: noteToken(s + dir * step) }); } catch { skipped++; }
         } else if (kind !== 'note') {
           const head = kind === 'cmd' ? token.slice(0, 2) : '', digits = KINDS[kind].width - head.length;
           const v = parseInt(token.slice(head.length), 16), max = 16 ** digits - 1;
@@ -431,7 +433,7 @@ export function createTrackerView({ showMenu = (e, items) => showContextMenu(e, 
       }
     }
     const changed = items.length && editor.setCells(r.lane, items, notes ? 'transpose notes' : 'transpose values');
-    message = changed ? `${notes ? 'Transposed' : 'Moved'} ${items.length} ${notes ? 'notes' : 'values'}${skipped ? `, ${skipped} out of range` : ''}.`
+    message = changed ? `${notes ? 'Transposed' : 'Moved'}${amount ? ` by ${amount * dir}` : ''} ${items.length} ${notes ? 'notes' : 'values'}${skipped ? `, ${skipped} out of range` : ''}.`
       : skipped ? 'Out of range.' : `No ${notes ? 'notes' : 'values'} to change (is there a pattern here?).`;
   };
 
@@ -919,5 +921,15 @@ export function createTrackerView({ showMenu = (e, items) => showContextMenu(e, 
 
   const setRows = n => { rowCount = Math.max(ROWS.min, Math.min(ROWS.max, Math.round(n))); draw(); return rowCount; };
   const lineHeight = () => (lanes ? metrics().lh : 18);
-  return { draw, load, goto, enterSolo, relayout, say: m => { message = m; }, setSize, setRows, lineHeight, get rows() { return rowCount; }, get fontPx() { return fontPx; }, get tick() { return cur.tick; }, get lane() { return cur.lane; }, get col() { return cur.col; }, get ch() { return cur.ch; }, stepRows: n => { moveRow(n); }, resume() { const was = paused; paused = false; lastAuto = null; return was; }, get preview() { return preview; }, get selection() { return sel ? rect() : null; }, get rect() { return rect(); } };
+  // What the command console calls: each returns the status line it left.
+  const commands = {
+    rotate: n => { message = ''; if (n) rotate(n < 0 ? -1 : 1, Math.abs(n)); draw(); return message; },
+    transpose: n => { message = ''; if (n) transpose(true, n < 0 ? -1 : 1, false, Math.abs(n)); draw(); return message; },
+    clone: () => {
+      const cur2 = cur;
+      message = editor.clone(cur2.lane, solo ? solo.start : cur2.tick) ? `${patternName()} is now this placement's own copy.` : 'No pattern here.';
+      sel = null; draw(); return message;
+    },
+  };
+  return { commands, draw, load, goto, enterSolo, relayout, say: m => { message = m; }, setSize, setRows, lineHeight, get rows() { return rowCount; }, get fontPx() { return fontPx; }, get tick() { return cur.tick; }, get lane() { return cur.lane; }, get col() { return cur.col; }, get ch() { return cur.ch; }, stepRows: n => { moveRow(n); }, resume() { const was = paused; paused = false; lastAuto = null; return was; }, get preview() { return preview; }, get selection() { return sel ? rect() : null; }, get rect() { return rect(); } };
 }

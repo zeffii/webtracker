@@ -2,6 +2,7 @@
 // tab, and exportable / importable as JSON. Everything that reads a setting goes through get(), and anything
 // that should react to a change subscribes with onChange(), so the panel, the keyboard shortcuts and the
 // toolbar buttons all stay in step.
+import { DEFAULT_RULES } from './console.js';
 const KEY = 'webtracker.config';
 export const THEMES = ['system', 'dark', 'black', 'bright', 'neon', 'amber', 'phosphor', 'ice', 'synthwave'];
 
@@ -11,12 +12,14 @@ export const GROUPS = {
   Playing: 'How the grids behave while the song runs.',
   Editing: 'Defaults for solo-edit, lanes and inserting silence.',
   Sample: 'Post-transient resynthesis (right click in the sample display): the attack stays a real sample and the rest is rebuilt from synth branches.',
+  Console: 'Press | in the pattern editor or the arrangement for a one-line command box. Each rule says what you type and what it does; a rule that is wrong, or that could match the same typing as another, is switched off until you fix it.',
   MIDI: 'A MIDI keyboard plays the machine under the cursor, enters notes in the pattern editor and records into patterns while the song plays (Rec, Ctrl+Shift+R). Chrome and Edge only.',
 };
 
 // type: bool | int | choice. `legacy` is the older single-purpose localStorage key, read once to carry settings over.
 export const SCHEMA = [
   { group: 'Look', key: 'theme', label: 'Colour theme', type: 'choice', options: THEMES, def: 'system', legacy: ['webtracker.theme', v => v] },
+  { key: 'splash', label: 'First screen', hint: 'only a "click to initialize" button at first, then the tracker (off: the tracker with its Start button)', type: 'bool', def: true },
   { key: 'patternTint', label: 'Tint patterns by colour', hint: 'a faint patchwork behind each pattern in the pattern editor (Alt+T)', type: 'bool', def: false },
   { key: 'hideKeys', label: 'Hide the shortcut panels', type: 'bool', def: false, legacy: ['webtracker.hideKeys', v => v === '1'] },
   { key: 'fontSize', label: 'Pattern editor font size', type: 'int', min: 8, max: 40, def: 13, legacy: ['patternFontSize', v => Number(v)] },
@@ -62,6 +65,7 @@ export const SCHEMA = [
   { key: 'meterCorr', label: 'Meters: correlation', type: 'bool', def: true },
   { key: 'meterWidth', label: 'Meters: stereo width by band', hint: 'the ten bands of the spectral panner', type: 'bool', def: false },
   { key: 'meterSgram', label: 'Meters: spectrogram', hint: 'the last 30 seconds', type: 'bool', def: false },
+  { group: 'Console', key: 'consoleRules', label: 'Command rules', type: 'rules', def: DEFAULT_RULES },
   { group: 'Scope', key: 'vscopeOn', label: 'Vectorscope overlay', hint: 'left against right in a corner of the window (Ctrl+Alt+O, or the Scope button); a mono sound is a vertical line, a wide one spreads sideways', type: 'bool', def: false },
   { key: 'vscopeSize', label: 'Vectorscope: size (% of the window\'s shorter side)', type: 'int', min: 15, max: 80, def: 45 },
   { key: 'vscopeCorner', label: 'Vectorscope: corner', hint: 'where it starts, and where double-clicking it sends it back (you can drag it anywhere, and drag its corner to resize)', type: 'choice', options: ['br', 'tr', 'bl', 'tl'], labels: { br: 'bottom right', tr: 'top right', bl: 'bottom left', tl: 'top left' }, def: 'br' },
@@ -78,6 +82,7 @@ const byKey = Object.fromEntries(SCHEMA.map(s => [s.key, s]));
 // Turns anything into a valid value for the setting, or its default.
 const clean = (s, v) => {
   if (s.type === 'bool') return typeof v === 'boolean' ? v : s.def;
+  if (s.type === 'rules') return typeof v === 'string' && v.length <= 8000 ? v : s.def;
   if (s.type === 'int') { const n = Math.round(Number(v)); return Number.isFinite(n) ? Math.max(s.min, Math.min(s.max, n)) : s.def; }
   return s.options.includes(v) ? v : s.def;
 };

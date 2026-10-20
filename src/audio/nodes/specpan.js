@@ -3,7 +3,7 @@
 // spectrum, `spread` how far bands move from where they are, `rotate` slides the pattern along the bands (it can be
 // modulated or written from a pattern for a moving image), and everything below `lowMono` Hz is made mono, which keeps
 // kick and bass solid. A band moves by blending its own stereo image toward its mono sum placed at the pan position.
-const SHAPE = 0, SPREAD = 1, ROTATE = 2, LOWMONO = 3, MIX = 4, B1 = 5;
+const SHAPE = 0, SPREAD = 1, ROTATE = 2, LOWMONO = 3, MIX = 4, B1 = 5, RATE = 15, SWEEP = 16, WAVE = 17;
 const BANDS = 10, CUTS = BANDS - 1;
 const F_LOW = 150, F_HIGH = 10000;
 export const SHAPES = ['alternate', 'sweep', 'wave', 'custom'];
@@ -44,6 +44,9 @@ export default {
     { name: 'lowMono', min: 20, max: 400, def: 100 },
     { name: 'mix', min: 0, max: 1, def: 1 },
     ...Array.from({ length: BANDS }, (_, i) => ({ name: `b${i + 1}`, min: -1, max: 1, def: 0 })),
+    { name: 'rate', min: 0, max: 20, def: 0 },            // Hz; 0 holds the image still
+    { name: 'sweep', min: 0, max: 2, def: 0.25 },         // how far the motion carries `rotate`
+    { name: 'wave', min: 0, max: 3, def: 0, int: true },  // sine, triangle, saw (a steady drift), square
   ],
   create({ sampleRate }) {
     const cuts = crossovers().map(f => lowpass(f, sampleRate));
@@ -53,7 +56,7 @@ export default {
     // per band, the four gains of out = aL*bl + bL*br (left) and aR*bl + bR*br... folded onto the lowpass outputs
     const cur = new Float64Array(BANDS * 4), target = new Float64Array(BANDS * 4), pans = new Float64Array(BANDS), custom = new Float64Array(BANDS);
     const lpL = new Float64Array(BANDS), lpR = new Float64Array(BANDS), coef = new Float64Array((BANDS + 1) * 4);
-    let started = false;
+    let started = false, phase = 0;
     const tick = (c, z, o, x) => { const y = c[0] * x + z[o]; z[o] = c[1] * x - c[3] * y + z[o + 1]; z[o + 1] = c[2] * x - c[4] * y; return y; };
     return {
       process(inputs, outputs, n, params, slots) {
@@ -62,7 +65,15 @@ export default {
         const lf = params[slots[LOWMONO]];
         if (lf !== lowF) { lowF = lf; low = lowpass(lf, sampleRate); high = lowpass(lf, sampleRate, true); }
         for (let k = 0; k < BANDS; k++) custom[k] = params[slots[B1 + k]];
-        bandPans(shape, params[slots[ROTATE]], custom, pans);
+        let rot = params[slots[ROTATE]];
+        const rate = params[slots[RATE]];
+        if (rate > 0) {   // the internal motion, free-running
+          const wave = Math.round(params[slots[WAVE]]);
+          phase += rate * n / sampleRate; phase -= Math.floor(phase);
+          const v = wave === 0 ? Math.sin(2 * Math.PI * phase) : wave === 1 ? (phase < 0.25 ? 4 * phase : phase < 0.75 ? 2 - 4 * phase : 4 * phase - 4) : wave === 2 ? 2 * phase - 1 : (phase < 0.5 ? 1 : -1);
+          rot += params[slots[SWEEP]] * v;
+        }
+        bandPans(shape, rot, custom, pans);
         // band k, with weight w and position p: left = bl*(1-w+0.5*w*gl) + br*0.5*w*gl; right = br*(1-w+0.5*w*gr) + bl*0.5*w*gr
         for (let k = 0; k < BANDS; k++) {
           const p = Math.max(-1, Math.min(1, pans[k])), w = Math.min(1, Math.abs(p) * spread), a = (p + 1) * Math.PI / 4;

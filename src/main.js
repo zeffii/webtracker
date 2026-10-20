@@ -2,6 +2,8 @@ import { Engine } from './audio/engine.js';
 import { encodeWav, renderSong } from './audio/export.js';
 import { createVectorscope } from './ui/vectorscope.js';
 import { createMeters } from './ui/meters.js';
+import { createSplash } from './ui/splash.js';
+import { parseRules, analyse, resolve, stepsOf, label as stepLabel, describe as describeRule, noteUnknown, unknownTyped, clearUnknown, ACTIONS } from './ui/console.js';
 import { NODE_TYPES } from './audio/nodes/index.js';
 import { helpPage } from './graph/help.js';
 import { createBackups, idbStore, memoryStore, stamp } from './project/backup.js';
@@ -601,6 +603,37 @@ $('inst-file').addEventListener('change', async e => {
         sec.append(head, card);
         sections.push(sec);
       }
+      if (s.type === 'rules') {
+        const box = Object.assign(document.createElement('div'), { className: 'cfg-rules' }), ta = Object.assign(document.createElement('textarea'), { className: 'rules-ta', value: config.get(s.key), spellcheck: false, ariaLabel: s.label }), state = Object.assign(document.createElement('ul'), { className: 'rules-state' });
+        box.style.cssText = 'display:block;padding:6px 12px;border-top:1px solid color-mix(in srgb, var(--fg) 12%, transparent)';
+        ta.wrap = 'off';
+        const gutter = Object.assign(document.createElement('div'), { className: 'rules-gutter', ariaHidden: 'true' }), wrap = Object.assign(document.createElement('div'), { className: 'rules-wrap' });
+        wrap.append(gutter, ta);
+        ta.addEventListener('scroll', () => { gutter.scrollTop = ta.scrollTop; });
+        const show = () => {
+          const rules = analyse(parseRules(ta.value)), total = ta.value.split('\n').length, off = new Set(rules.filter(r => !r.usable).map(r => r.line));
+          gutter.replaceChildren(...Array.from({ length: total }, (_, i) => Object.assign(document.createElement('div'), { textContent: i + 1, className: off.has(i + 1) ? 'bad' : '' })));
+          gutter.scrollTop = ta.scrollTop;
+          const items = rules.map(r => Object.assign(document.createElement('li'), { className: r.usable ? 'ok' : 'bad', textContent: r.usable ? `line ${r.line}: ${r.text}` : `OFF  ${describeRule(r)}` }));
+          const bad = rules.filter(r => !r.usable).length, unknown = Object.entries(unknownTyped());
+          const note = Object.assign(document.createElement('li'), { textContent: bad ? `${bad} rule${bad === 1 ? ' is' : 's are'} switched off until fixed.` : `${rules.length} rules, all on. Actions: ${Object.keys(ACTIONS).join(', ')}.` });
+          if (bad) note.className = 'bad';
+          const more = [];
+          if (unknown.length) {
+            const li = Object.assign(document.createElement('li'), { textContent: `Typed but not understood: ${unknown.sort((a, b) => b[1] - a[1]).slice(0, 12).map(([t, n]) => `${t}${n > 1 ? ` (${n}x)` : ''}`).join(', ')} ` });
+            li.append(Object.assign(document.createElement('button'), { type: 'button', textContent: 'clear', onclick: () => { clearUnknown(); show(); } }));
+            more.push(li);
+          }
+          state.replaceChildren(note, ...items.filter(li => li.className === 'bad'), ...more);
+        };
+        ta.addEventListener('input', () => { config.set(s.key, ta.value); show(); });
+        ta.addEventListener('keydown', e => { if (e.key !== 'Tab' && !/^F\d+$/.test(e.key)) e.stopPropagation(); });
+        const reset = Object.assign(document.createElement('button'), { type: 'button', textContent: 'Back to the default rules', onclick: () => { ta.value = s.def; config.set(s.key, s.def); show(); } });
+        show();
+        box.append(wrap, state, reset);
+        card.append(box);
+        continue;
+      }
       const label = document.createElement('label'), text = document.createElement('span');
       text.textContent = s.label;
       if (s.hint) text.append(document.createElement('br'), Object.assign(document.createElement('small'), { textContent: s.hint }));
@@ -1098,6 +1131,53 @@ const placeMeters = () => {
 };
 const showMeters = on => { if (on) meters.show(); else meters.hide(); $('meters-btn').setAttribute('aria-pressed', String(on)); placeMeters(); };
 const toggleMeters = () => config.set('meterOn', !meters.open);
+
+// ---- the command console: | opens a one-line box that runs a rule from the list in Config on the selection ----
+const cmdbar = $('cmdbar'), cmd = $('cmd'), cmdHint = $('cmd-hint');
+let rules = analyse(parseRules(config.get('consoleRules'))), cmdHistory = [], cmdAt = -1;
+config.onChange(k => { if (k === 'consoleRules') rules = analyse(parseRules(config.get('consoleRules'))); });
+const placeCmd = () => { cmdbar.style.bottom = `${$('footer').offsetHeight + (meters.open ? config.get('meterHeight') : 0)}px`; };
+const closeCmd = (refocus = true) => { cmdbar.hidden = true; cmdBarOpen = false; if (refocus) tabs.show(tabs.active); };
+let cmdBarOpen = false;
+const openCmd = () => { placeCmd(); cmdbar.hidden = false; cmdBarOpen = true; cmd.value = ''; cmdHint.className = ''; cmdHint.textContent = 'a rule from Config, then Enter (Esc closes, ? lists them)'; cmdAt = -1; cmd.focus(); };
+const hintFor = text => {
+  const r = resolve(rules, text);
+  if (r.empty) return ['a rule from Config, then Enter (Esc closes, ? lists them)', false];
+  if (r.none) return [r.blocked ? `that rule is switched off (${describeRule(r.blocked)})` : r.near.length ? `no match; did you mean: ${r.near.map(x => x.split('->')[0].trim()).join(', ')}` : 'no rule for that', true];
+  return [stepsOf(r).map(([a, n]) => stepLabel(a, n)).join(', then '), false];
+};
+cmd.addEventListener('input', () => { if (cmd.value.trim() === '?') { cmdHint.className = ''; cmdHint.textContent = rules.filter(r => r.usable).map(r => r.text.split('->')[0].trim()).join('   '); return; } const [t, bad] = hintFor(cmd.value); cmdHint.textContent = t; cmdHint.className = bad ? 'bad' : ''; });
+cmd.addEventListener('keydown', e => {
+  e.stopPropagation();
+  if (e.key === 'Escape') { e.preventDefault(); closeCmd(); return; }
+  if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+    e.preventDefault();
+    if (!cmdHistory.length) return;
+    cmdAt = e.key === 'ArrowUp' ? Math.min(cmdHistory.length - 1, cmdAt + 1) : Math.max(-1, cmdAt - 1);
+    cmd.value = cmdAt < 0 ? '' : cmdHistory[cmdAt]; cmd.dispatchEvent(new Event('input'));
+    return;
+  }
+  if (e.key !== 'Enter') return;
+  e.preventDefault();
+  const text = cmd.value.trim();
+  if (!text || text === '?') return;
+  const r = resolve(rules, text);
+  if (r.none) { if (!r.blocked) noteUnknown(text); const [t] = hintFor(text); cmdHint.textContent = t; cmdHint.className = 'bad'; return; }
+  const table = (tabs.active === 'arrange' ? seqView : view).commands, said = [];
+  for (const [action, n] of stepsOf(r)) {
+    if (!table[action]) { said.push(`${action} is not available here`); break; }
+    said.push(table[action](n));
+  }
+  cmdHistory = [text, ...cmdHistory.filter(x => x !== text)].slice(0, 30);
+  closeCmd();
+  (tabs.active === 'arrange' ? seqView : view).say?.(said.filter(Boolean).join(' '));
+  (tabs.active === 'arrange' ? seqView : view).draw();
+});
+document.addEventListener('keydown', e => {
+  if (e.key !== '|' || e.ctrlKey || e.altKey || e.metaKey || cmdBarOpen || (tabs.active !== 'patterns' && tabs.active !== 'arrange')) return;
+  if (/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName ?? '')) return;
+  e.preventDefault(); e.stopPropagation(); openCmd();
+}, true);
 config.onChange((k, v) => { if (k === 'meterOn') showMeters(v); else if (k.startsWith('meter')) { meters.rebuild(); placeMeters(); } });
 $('meters-btn').addEventListener('click', toggleMeters);
 addEventListener('resize', placeMeters);
@@ -1316,9 +1396,15 @@ $('add-lane').addEventListener('click', () => {
 });
 $('patch-add').addEventListener('click', () => menu.open(12, 24));
 
+const splash = config.get('splash') ? createSplash({ box: $('splash'), onStart: () => $('start').click() }) : null;
 $('start').addEventListener('click', async () => {
   try {
+    splash?.say('checking cross-origin isolation', crossOriginIsolated ? 'ok' : 'no');
     await engine.start();
+    splash?.say(`audio context  ${engine.ctx.sampleRate} Hz  latency ${(engine.ctx.baseLatency * 1000).toFixed(1)} ms`);
+    splash?.say(engine.wasmModule ? 'dsp compiled  wasm' : 'dsp  javascript fallback', engine.wasmModule ? 'ok' : 'js');
+    splash?.say('audio worklet  tracker-engine');
+    splash?.say(`registering ${Object.keys(NODE_TYPES).length} node types`);
     {
       const el = $('loadmeter');
       let peak = 0, late = 0, avg = 0, lateAt = -1e9;
@@ -1348,6 +1434,7 @@ $('start').addEventListener('click', async () => {
       console.warn(err);
       openProject(createSynthwaveProject());
     }
+    splash?.say(`project  ${project?.song?.name ?? 'untitled'}  ${Object.keys(project?.instruments ?? {}).length} instruments`);
     backups.start();
     startDownloads();
     navigator.storage?.persist?.();   // ask the browser not to clear the snapshots when it is short of space
@@ -1366,8 +1453,11 @@ $('start').addEventListener('click', async () => {
       requestAnimationFrame(frame);
     };
     frame();
+    splash?.say('starting engine', 'ready');
+    splash?.finish();
   } catch (err) {
     $('status').textContent = err.message;
+    splash?.fail(err.message);
   }
 });
 

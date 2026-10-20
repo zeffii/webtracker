@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="themes.css">
-  <title>webtracker m249</title>
+  <title>webtracker m252</title>
   <link rel="icon" href="icon.ico" sizes="any">
   <link rel="icon" type="image/png" href="icon.png">
   <style>
@@ -339,6 +339,35 @@
     #pane-instruments { position: relative; }
     #meters { position: fixed; left: 0; right: 0; z-index: 2; display: flex; background: #0b0c0f; color: #cfd3da; border-top: 1px solid #000; }
     #meters[hidden] { display: none; }
+    /* the first screen */
+    body.splashing { overflow: hidden; }
+    #splash { position: fixed; inset: 0; z-index: 1000; background: #050706; color: #9dffc0; font: 13px/1.55 ui-monospace, Consolas, monospace; display: flex; justify-content: center; padding: 0 max(16px, env(safe-area-inset-left, 0px)); }
+    #splash[hidden] { display: none; }
+    #splash::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: repeating-linear-gradient(to bottom, #0000 0 2px, #0000000d 2px 3px), radial-gradient(ellipse at center, #0000 55%, #000a 100%); }
+    .s-crt { width: 100%; max-width: 980px; display: flex; flex-direction: column; justify-content: center; }
+    .s-log { white-space: pre-wrap; color: #4f8a68; text-shadow: 0 0 6px #4f8a6855; }
+    .s-log .ok { color: #9dffc0; } .s-log .hl { color: #ffd479; } .s-log .bad, .s-log.bad, .s-log div.bad { color: #ff6b6b; }
+    .s-go { all: unset; cursor: pointer; display: inline-block; font: 700 39px/1.25 ui-monospace, Consolas, monospace; color: #9dffc0; text-shadow: 0 0 16px #9dffc088; margin-top: .6em; max-width: 100%; }
+    .s-go:focus-visible { outline: none; }
+    .s-go .caret { display: inline-block; width: .55em; height: 1em; background: #9dffc0; vertical-align: -.12em; margin-left: .12em; animation: s-blink 1s steps(2, start) infinite; }
+    .s-go:hover .p { color: #ffd479; }
+    @keyframes s-blink { to { visibility: hidden; } }
+    .s-hint { color: #4f8a68; font-size: 12px; margin-top: .4em; }
+    .s-bar { height: 10px; border: 1px solid #4f8a68; margin-top: 1em; max-width: 520px; display: none; }
+    .s-bar i { display: block; height: 100%; width: 0; background: #9dffc0; box-shadow: 0 0 10px #9dffc0; transition: width .12s; }
+    #cmdbar { position: fixed; left: 0; right: 0; z-index: 3; display: flex; align-items: center; gap: .5rem; padding: .25rem .6rem; background: var(--panel); border-top: 1px solid color-mix(in srgb, var(--fg) 35%, transparent); font: 13px ui-monospace, Consolas, monospace; }
+    #cmdbar[hidden] { display: none; }
+    #cmdbar label { font-weight: 700; }
+    #cmd { flex: 0 1 16em; font: inherit; padding: .1rem .3rem; background: var(--bg); color: var(--fg); border: 1px solid color-mix(in srgb, var(--fg) 40%, transparent); }
+    #cmd-hint { opacity: .8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    #cmd-hint.bad { color: #d8323f; opacity: 1; }
+    .rules-wrap { display: flex; align-items: stretch; }
+    .rules-gutter { width: 2.6em; flex: none; overflow: hidden; text-align: right; padding: 5px 6px 5px 0; box-sizing: border-box; font: 12px/18px ui-monospace, Consolas, monospace; opacity: .6; border-right: 1px solid color-mix(in srgb, var(--fg) 25%, transparent); height: 12em; }
+    .rules-gutter .bad { color: #d8323f; font-weight: 700; opacity: 1; }
+    .rules-ta { flex: 1; min-width: 0; height: 12em; font: 12px/18px ui-monospace, Consolas, monospace; box-sizing: border-box; padding: 5px 6px; tab-size: 4; white-space: pre; overflow: auto; resize: none; }
+    .rules-state { margin: .3rem 0 0; padding: 0; list-style: none; font: 12px/1.5 ui-monospace, Consolas, monospace; }
+    .rules-state .bad { color: #d8323f; }
+    .rules-state .ok { opacity: .6; }
     .meter-pan { position: relative; display: flex; flex-direction: column; min-width: 0; border-right: 1px solid #22252c; }
     .meter-pan:last-child { border-right: 0; }
     .meter-pan h6 { margin: 0; position: absolute; left: 7px; top: 4px; font: 500 9px ui-monospace, Consolas, monospace; letter-spacing: .1em; color: #6d7480; pointer-events: none; z-index: 1; }
@@ -444,7 +473,16 @@
   </style>
 </head>
 <body>
+  <div id="splash" hidden>
+    <div class="s-crt">
+      <div class="s-log" aria-live="polite"></div>
+      <button class="s-go" type="button"><span class="p">&gt; </span><span class="l">click to initialize</span><span class="caret"></span></button>
+      <div class="s-hint">webtracker &middot; sound starts after the first click</div>
+      <div class="s-bar"><i></i></div>
+    </div>
+  </div>
   <div id="meters" hidden></div>
+  <div id="cmdbar" hidden><label for="cmd">|</label><input id="cmd" type="text" autocomplete="off" spellcheck="false" aria-label="Command"><span id="cmd-hint"></span></div>
   <div id="vscope" hidden title="Drag to move, drag the corner to resize, double-click to put it back in its corner"><canvas id="vscope-canvas"></canvas><span>XY master</span><i id="vscope-grip"></i></div>
   <div id="backup-panel" tabindex="-1" hidden role="dialog" aria-label="Backups"></div>
   <div id="header">
