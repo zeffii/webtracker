@@ -3971,6 +3971,19 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   for (const [id, def] of Object.entries(loaded.instruments)) compile(def.graph, { instrument: id, nodeTypes: NODE_TYPES, registry });
   const lanes = prepareSong(loaded.song, loaded.instruments, registry);
   assert.equal(lanes.length, loaded.song.lanes.length);
+  // the depth charge and the arp are heard, finite, and the arp's pattern columns move its filter and chorus
+  const heard = (id, set = {}, note = 40, secs = 0.6) => {
+    const reg = new ParamRegistry(), rt = new GraphRuntime({ sampleRate: sr, params: reg.values });
+    rt.load(compile(loaded.instruments[id].graph, { instrument: id, nodeTypes: NODE_TYPES, registry: reg }));
+    for (const [k, v] of Object.entries(set)) reg.set(`${id}.${k}`, v);
+    rt.note(id, { type: 'noteOn', note, vel: 1 });
+    return render(rt, secs).left;
+  };
+  const boom = heard('depth', {}, 28, 1.5);
+  assert.ok(boom.every(Number.isFinite) && peak(boom) > 0.02 && peak(boom) < 2, 'the depth charge sounds');
+  const shut = heard('arp', { 'synth.cutoff': 90 }, 69), open = heard('arp', { 'synth.cutoff': 15000 }, 69);
+  assert.ok(open.every(Number.isFinite) && brightness(open) > brightness(shut) * 3, 'the arp opens up');
+  assert.ok(Object.keys(loaded.instruments.arp.exposed).length === 5 && loaded.song.lanes.some(l => l.id === 'arp' && l.placements.length > 20), 'the arp lane is there');
 }
 
 // 104. Pattern editor: transpose notes, transpose values, interpolate.

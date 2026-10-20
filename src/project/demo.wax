@@ -6,7 +6,7 @@
   "bpm": 120,
   "ticksPerBeat": 4,
   "length": 1440,
-  "info": "Interstellar travel: a three minute soundscape, made only from webtracker nodes. 120 bpm, 90 bars.\n\nshep   a Shepard tone: an additive synth with only the octave partials lit rises six octaves in three minutes (an lfo on its pitch input) while two fixed band-pass filters are the window, so it climbs and never gets higher.\npad    the chords of the demo song (Em7, Dmaj7, Cmaj7, Am11, Bm7, Cmaj7, Em9, a second pass that swells higher, a breath on a long Em9, a third pass that builds to the biggest swells, and a long Em9 to end), six voices each, the outer notes quieter so the shape fades at both ends.\nsub    a sine under each chord.\nwind   pink noise through a band-pass an lfo breathes, in a big hall, widened with the spectral panner.\nrise   noise through a high-pass that climbs five octaves while it swells; a Shiva delay takes hold as it climbs (an envelope opens its mix and feedback), so the pattern goes on, wide, when the swell cuts, into a long shimmer tail (23 s, 47 s, 71 s, 103 s, 143 s, 151 s and 167 s).\ntick   a clock every 1.25 s, always the same tick.\nstars  chord tones two octaves up, soft, through two echoes (dotted eighth and a quarter) and a shimmer; one melodic pattern per chord, denser in the second half.\nping   incidental: a glassy blip through a drifting band-pass, taps and a shimmer, from a third of the way in.\ndust   incidental: clusters of crackle in a long slow echo (its length drifts), only in the last third.\n\nEvery lane is built from short patterns cut where the notes start, and the same pattern is placed again where the music repeats."
+  "info": "Interstellar travel: a three minute soundscape, made only from webtracker nodes. 120 bpm, 90 bars.\n\nshep   a Shepard tone: an additive synth with only the octave partials lit rises six octaves in three minutes (an lfo on its pitch input) while two fixed band-pass filters are the window, so it climbs and never gets higher.\npad    the chords of the demo song (Em7, Dmaj7, Cmaj7, Am11, Bm7, Cmaj7, Em9, a second pass that swells higher, a breath on a long Em9, a third pass that builds to the biggest swells, and a long Em9 to end), six voices each, the outer notes quieter so the shape fades at both ends.\nsub    a sine under each chord.\nwind   pink noise through a band-pass an lfo breathes, in a big hall, widened with the spectral panner.\nrise   noise through a high-pass that climbs five octaves while it swells; a Shiva delay takes hold as it climbs (an envelope opens its mix and feedback), so the pattern goes on, wide, when the swell cuts, into a long shimmer tail (23 s, 47 s, 71 s, 103 s, 143 s, 151 s and 167 s).\ntick   a clock every 1.25 s, always the same tick.\nstars  chord tones two octaves up, soft, through two echoes (dotted eighth and a quarter) and a shimmer; one melodic pattern per chord, denser in the second half.\nping   incidental: a glassy blip through a drifting band-pass, taps and a shimmer, from a third of the way in.\ndust   incidental: clusters of crackle in a long slow echo (its length drifts), only in the last third.\n\nEvery lane is built from short patterns cut where the notes start, and the same pattern is placed again where the music repeats.\n\ndepth  depth charges at the tops of the swells: a sine that falls from high to deep while an envelope drains it, through a lowpass and a long hall.\narp    from two thirds of the way in, an arpeggio of each chord that starts out muted (its filter nearly shut, resonant) and quickens from quarters to sixteenths as the filter opens, then drowns in two choruses in series. Every one of those moves is written in the pattern columns (Cut, Res, Mix, Dep, Mx2)."
  },
  "instruments": {
   "shep": {
@@ -1201,6 +1201,237 @@
    },
    "noteColumns": 1,
    "exposed": []
+  },
+  "depth": {
+   "graph": {
+    "nodes": [
+     {
+      "id": "pitchEnv",
+      "type": "env",
+      "params": {
+       "attack": 0.2,
+       "decay": 1500,
+       "sustain": 0,
+       "release": 50,
+       "amount": 2.6
+      }
+     },
+     {
+      "id": "osc",
+      "type": "osc",
+      "params": {
+       "wave": 0,
+       "reset": 1,
+       "phase": 0.25
+      }
+     },
+     {
+      "id": "ampEnv",
+      "type": "env",
+      "params": {
+       "attack": 3,
+       "decay": 4200,
+       "sustain": 0,
+       "release": 900,
+       "vel": 0.6
+      }
+     },
+     {
+      "id": "vca",
+      "type": "gain"
+     },
+     {
+      "id": "body",
+      "type": "filter",
+      "params": {
+       "cutoff": 420,
+       "resonance": 0.15,
+       "mode": 0
+      }
+     },
+     {
+      "id": "hall",
+      "type": "hall",
+      "params": {
+       "size": 1.8,
+       "decay": 9,
+       "damp": 0.6,
+       "predelay": 40,
+       "mix": 0.4
+      }
+     },
+     {
+      "id": "out",
+      "type": "out",
+      "params": {
+       "gain": 0.45
+      }
+     }
+    ],
+    "connections": [
+     [
+      "pitchEnv.out",
+      "osc.fm"
+     ],
+     [
+      "osc.out",
+      "vca.in"
+     ],
+     [
+      "ampEnv.out",
+      "vca.cv"
+     ],
+     [
+      "vca.out",
+      "body.in"
+     ],
+     [
+      "body.out",
+      "hall.in"
+     ],
+     [
+      "hall.out",
+      "out.in"
+     ]
+    ]
+   },
+   "noteColumns": 1,
+   "exposed": []
+  },
+  "arp": {
+   "graph": {
+    "nodes": [
+     {
+      "id": "synth",
+      "type": "subsynth",
+      "params": {
+       "wave1": 0,
+       "wave2": 1,
+       "osc2": 0.55,
+       "detune": 9,
+       "unison": 3,
+       "spread": 18,
+       "width": 0.8,
+       "cutoff": 90,
+       "res": 0.5,
+       "drive": 0.1,
+       "fenv": 1.4,
+       "keytrack": 0.6,
+       "fatk": 1,
+       "fdec": 260,
+       "fsus": 0.15,
+       "frel": 200,
+       "atk": 2,
+       "dec": 240,
+       "sus": 0.3,
+       "rel": 260,
+       "vel": 0.6,
+       "level": 0.24
+      }
+     },
+     {
+      "id": "poly",
+      "type": "voices"
+     },
+     {
+      "id": "chorus",
+      "type": "chorus",
+      "params": {
+       "rate": 0.35,
+       "depth": 2,
+       "delay": 14,
+       "voices": 4,
+       "width": 1,
+       "mix": 0.1
+      }
+     },
+     {
+      "id": "chorus2",
+      "type": "chorus",
+      "params": {
+       "rate": 1.1,
+       "depth": 9,
+       "delay": 24,
+       "voices": 4,
+       "width": 1,
+       "mix": 0
+      }
+     },
+     {
+      "id": "hall",
+      "type": "shimmer",
+      "params": {
+       "size": 1.4,
+       "decay": 6,
+       "damp": 0.5,
+       "predelay": 30,
+       "pitch": 12,
+       "shimmer": 0.25,
+       "tone": 0.5,
+       "mix": 0.3
+      }
+     },
+     {
+      "id": "out",
+      "type": "out",
+      "params": {
+       "gain": 0.5
+      }
+     }
+    ],
+    "connections": [
+     [
+      "synth.out",
+      "poly.in"
+     ],
+     [
+      "poly.out",
+      "chorus.in"
+     ],
+     [
+      "chorus.out",
+      "chorus2.in"
+     ],
+     [
+      "chorus2.out",
+      "hall.in"
+     ],
+     [
+      "hall.out",
+      "out.in"
+     ]
+    ],
+    "voices": 6
+   },
+   "noteColumns": 1,
+   "exposed": [
+    {
+     "node": "synth",
+     "param": "cutoff",
+     "label": "Cut",
+     "scale": "log"
+    },
+    {
+     "node": "synth",
+     "param": "res",
+     "label": "Res"
+    },
+    {
+     "node": "chorus",
+     "param": "mix",
+     "label": "Mix"
+    },
+    {
+     "node": "chorus",
+     "param": "depth",
+     "label": "Dep"
+    },
+    {
+     "node": "chorus2",
+     "param": "mix",
+     "label": "Mx2"
+    }
+   ]
   }
  },
  "samples": {},
@@ -7229,6 +7460,999 @@
      "puid": "dust-c",
      "start": 1372,
      "length": 40
+    }
+   ]
+  },
+  {
+   "id": "depth",
+   "instrument": "depth",
+   "patterns": {
+    "drop E": {
+     "name": "drop E",
+     "index": 0,
+     "rows": [
+      "E-1 FF",
+      "... ..",
+      "... ..",
+      "... ..",
+      "... ..",
+      "... ..",
+      "... ..",
+      "... ..",
+      "... ..",
+      "... ..",
+      "... ..",
+      "... ..",
+      "... ..",
+      "... ..",
+      "... ..",
+      "... .."
+     ]
+    },
+    "drop A": {
+     "name": "drop A",
+     "index": 1,
+     "rows": [
+      "A-1 B0",
+      "... ..",
+      "... ..",
+      "... ..",
+      "... ..",
+      "... ..",
+      "... ..",
+      "... ..",
+      "... ..",
+      "... ..",
+      "... ..",
+      "... ..",
+      "... ..",
+      "... ..",
+      "... ..",
+      "... .."
+     ]
+    },
+    "drop B": {
+     "name": "drop B",
+     "index": 2,
+     "rows": [
+      "B-1 D0",
+      "... ..",
+      "... ..",
+      "... ..",
+      "... ..",
+      "... ..",
+      "... ..",
+      "... ..",
+      "... ..",
+      "... ..",
+      "... ..",
+      "... ..",
+      "... ..",
+      "... ..",
+      "... ..",
+      "... .."
+     ]
+    },
+    "drop E late": {
+     "name": "drop E late",
+     "index": 3,
+     "rows": [
+      "... ..",
+      "... ..",
+      "E-1 FF",
+      "... ..",
+      "... ..",
+      "... ..",
+      "... ..",
+      "... ..",
+      "... ..",
+      "... ..",
+      "... ..",
+      "... ..",
+      "... ..",
+      "... ..",
+      "... ..",
+      "... .."
+     ]
+    },
+    "drop A late": {
+     "name": "drop A late",
+     "index": 4,
+     "rows": [
+      "... ..",
+      "... ..",
+      "... ..",
+      "A-1 C8",
+      "... ..",
+      "... ..",
+      "... ..",
+      "... ..",
+      "... ..",
+      "... ..",
+      "... ..",
+      "... ..",
+      "... ..",
+      "... ..",
+      "... ..",
+      "... .."
+     ]
+    },
+    "drop B late": {
+     "name": "drop B late",
+     "index": 5,
+     "rows": [
+      "... ..",
+      "B-1 C0",
+      "... ..",
+      "... ..",
+      "... ..",
+      "... ..",
+      "... ..",
+      "... ..",
+      "... ..",
+      "... ..",
+      "... ..",
+      "... ..",
+      "... ..",
+      "... ..",
+      "... ..",
+      "... .."
+     ]
+    }
+   },
+   "placements": [
+    {
+     "puid": "drop A",
+     "start": 248,
+     "length": 16
+    },
+    {
+     "puid": "drop E",
+     "start": 440,
+     "length": 16
+    },
+    {
+     "puid": "drop B late",
+     "start": 632,
+     "length": 16
+    },
+    {
+     "puid": "drop E",
+     "start": 888,
+     "length": 16
+    },
+    {
+     "puid": "drop A late",
+     "start": 1208,
+     "length": 16
+    },
+    {
+     "puid": "drop B",
+     "start": 1272,
+     "length": 16
+    },
+    {
+     "puid": "drop E late",
+     "start": 1400,
+     "length": 16
+    }
+   ]
+  },
+  {
+   "id": "arp",
+   "instrument": "arp",
+   "patterns": {
+    "arp 01": {
+     "name": "arp 01",
+     "index": 0,
+     "rows": [
+      "A-3 78 38 8C 1A 22 00",
+      "... .. .. .. .. .. ..",
+      "... .. 38 .. .. .. ..",
+      "... .. .. .. .. .. ..",
+      "C#4 4C 38 .. 1A 22 00",
+      "... .. .. .. .. .. ..",
+      "... .. 38 .. .. .. ..",
+      "... .. .. .. .. .. ..",
+      "E-4 78 38 8C 1A 22 00",
+      "... .. .. .. .. .. ..",
+      "... .. 38 .. .. .. ..",
+      "... .. .. .. .. .. ..",
+      "F#5 4C 38 .. 1A 22 00",
+      "... .. .. .. .. .. ..",
+      "... .. 38 .. .. .. ..",
+      "... .. .. .. .. .. .."
+     ]
+    },
+    "arp 02": {
+     "name": "arp 02",
+     "index": 1,
+     "rows": [
+      "A-4 78 38 8C 1A 22 00",
+      "... .. .. .. .. .. ..",
+      "... .. 38 .. .. .. ..",
+      "... .. .. .. .. .. ..",
+      "A-4 4C 38 .. 1A 22 00",
+      "... .. .. .. .. .. ..",
+      "... .. 38 .. .. .. ..",
+      "... .. .. .. .. .. ..",
+      "C#5 78 38 8C 1A 22 00",
+      "... .. .. .. .. .. ..",
+      "... .. 38 .. .. .. ..",
+      "... .. .. .. .. .. ..",
+      "E-6 4C 38 .. 1A 22 00",
+      "... .. .. .. .. .. ..",
+      "... .. 38 .. .. .. ..",
+      "... .. .. .. .. .. .."
+     ]
+    },
+    "arp 03": {
+     "name": "arp 03",
+     "index": 2,
+     "rows": [
+      "F#5 78 39 8C 1A 22 00",
+      "... .. .. .. .. .. ..",
+      "... .. 39 .. .. .. ..",
+      "... .. .. .. .. .. ..",
+      "A-5 4C 39 .. 1A 22 00",
+      "... .. .. .. .. .. ..",
+      "... .. 39 .. .. .. ..",
+      "... .. .. .. .. .. ..",
+      "F#5 78 39 8C 1A 22 00",
+      "... .. .. .. .. .. ..",
+      "... .. 39 .. .. .. ..",
+      "... .. .. .. .. .. ..",
+      "E-6 4C 3A .. 1A 22 00",
+      "... .. .. .. .. .. ..",
+      "... .. 3A .. .. .. ..",
+      "... .. .. .. .. .. .."
+     ]
+    },
+    "arp 04": {
+     "name": "arp 04",
+     "index": 3,
+     "rows": [
+      "C#5 78 3A 8C 1A 22 00",
+      "... .. .. .. .. .. ..",
+      "... .. 3A .. .. .. ..",
+      "... .. .. .. .. .. ..",
+      "A-4 4C 3B .. 1A 22 00",
+      "... .. .. .. .. .. ..",
+      "... .. 3B .. .. .. ..",
+      "... .. .. .. .. .. ..",
+      "A-4 78 3B 8C 1A 22 00",
+      "... .. .. .. .. .. ..",
+      "... .. 3C .. .. .. ..",
+      "... .. .. .. .. .. ..",
+      "F#5 4C 3C .. 1A 22 00",
+      "... .. .. .. .. .. ..",
+      "... .. 3C .. .. .. ..",
+      "... .. .. .. .. .. .."
+     ]
+    },
+    "arp 05": {
+     "name": "arp 05",
+     "index": 4,
+     "rows": [
+      "E-4 78 3D 8C 1A 22 00",
+      "... .. .. .. .. .. ..",
+      "... .. 3D .. .. .. ..",
+      "... .. .. .. .. .. ..",
+      "D-4 4C 3E .. 1A 22 00",
+      "... .. .. .. .. .. ..",
+      "... .. 3E .. .. .. ..",
+      "... .. .. .. .. .. ..",
+      "B-3 78 3F 8C 1A 22 00",
+      "... .. .. .. .. .. ..",
+      "... .. 3F .. .. .. ..",
+      "... .. .. .. .. .. ..",
+      "D-5 4C 3F .. 1A 22 00",
+      "... .. .. .. .. .. ..",
+      "... .. 40 .. .. .. ..",
+      "... .. .. .. .. .. .."
+     ]
+    },
+    "arp 06": {
+     "name": "arp 06",
+     "index": 5,
+     "rows": [
+      "E-4 78 40 8C 1A 22 00",
+      "... .. .. .. .. .. ..",
+      "... .. 41 .. .. .. ..",
+      "... .. .. .. .. .. ..",
+      "G-4 4C 42 .. 1A 22 00",
+      "... .. .. .. .. .. ..",
+      "... .. 42 .. .. .. ..",
+      "... .. .. .. .. .. ..",
+      "B-4 78 43 8C 1A 22 00",
+      "... .. .. .. .. .. ..",
+      "... .. 43 .. .. .. ..",
+      "... .. .. .. .. .. ..",
+      "B-5 4C 44 .. 1A 22 00",
+      "... .. .. .. .. .. ..",
+      "... .. 45 .. .. .. ..",
+      "... .. .. .. .. .. .."
+     ]
+    },
+    "arp 07": {
+     "name": "arp 07",
+     "index": 6,
+     "rows": [
+      "B-4 78 45 8C 1A 22 00",
+      "... .. .. .. .. .. ..",
+      "D-5 4C 46 .. .. .. ..",
+      "... .. .. .. .. .. ..",
+      "E-5 78 46 .. 1A 22 00",
+      "... .. .. .. .. .. ..",
+      "G-6 4C 47 .. .. .. ..",
+      "... .. .. .. .. .. ..",
+      "E-5 78 48 8C 1A 22 00",
+      "... .. .. .. .. .. ..",
+      "D-5 4C 49 .. .. .. ..",
+      "... .. .. .. .. .. ..",
+      "B-4 78 49 .. 1A 22 00",
+      "... .. .. .. .. .. ..",
+      "G-5 4C 4A .. .. .. ..",
+      "... .. .. .. .. .. .."
+     ]
+    },
+    "arp 08": {
+     "name": "arp 08",
+     "index": 7,
+     "rows": [
+      "G-4 78 4B 8C 1A 22 00",
+      "... .. .. .. .. .. ..",
+      "E-4 4C 4C .. .. .. ..",
+      "... .. .. .. .. .. ..",
+      "D-4 78 4C .. 1A 22 00",
+      "... .. .. .. .. .. ..",
+      "B-4 4C 4D .. .. .. ..",
+      "... .. .. .. .. .. ..",
+      "G-3 78 4E 8C 1A 22 00",
+      "... .. .. .. .. .. ..",
+      "B-3 4C 4F .. .. .. ..",
+      "... .. .. .. .. .. ..",
+      "D-4 78 50 .. 1A 22 00",
+      "... .. .. .. .. .. ..",
+      "E-5 4C 51 .. .. .. ..",
+      "... .. .. .. .. .. .."
+     ]
+    },
+    "arp 09": {
+     "name": "arp 09",
+     "index": 8,
+     "rows": [
+      "G-4 78 52 8C 1A 22 00",
+      "... .. .. .. .. .. ..",
+      "G-4 4C 52 .. .. .. ..",
+      "... .. .. .. .. .. ..",
+      "B-4 78 53 .. 1A 22 00",
+      "... .. .. .. .. .. ..",
+      "D-6 4C 54 .. .. .. ..",
+      "... .. .. .. .. .. ..",
+      "E-5 78 55 8C 1A 22 00",
+      "... .. .. .. .. .. ..",
+      "G-5 4C 56 .. .. .. ..",
+      "... .. .. .. .. .. ..",
+      "E-5 78 57 .. 1A 22 00",
+      "... .. .. .. .. .. ..",
+      "D-6 4C 58 .. .. .. ..",
+      "... .. .. .. .. .. .."
+     ]
+    },
+    "arp 10": {
+     "name": "arp 10",
+     "index": 9,
+     "rows": [
+      "B-4 78 59 8C 1A 22 00",
+      "... .. .. .. .. .. ..",
+      "G-4 4C 5A .. .. .. ..",
+      "... .. .. .. .. .. ..",
+      "G-4 78 5B .. 1A 22 00",
+      "... .. .. .. .. .. ..",
+      "E-5 4C 5C .. .. .. ..",
+      "... .. .. .. .. .. ..",
+      "D-4 78 5D 8C 1A 22 00",
+      "... .. .. .. .. .. ..",
+      "B-3 4C 5E .. .. .. ..",
+      "... .. .. .. .. .. ..",
+      "G-3 78 5F .. 1A 22 00",
+      "... .. .. .. .. .. ..",
+      "B-4 4C 60 .. .. .. ..",
+      "... .. .. .. .. .. .."
+     ]
+    },
+    "arp 11": {
+     "name": "arp 11",
+     "index": 10,
+     "rows": [
+      "D-4 78 62 8B 1A 22 00",
+      "... .. .. .. .. .. ..",
+      "E-4 4C 63 .. .. .. ..",
+      "... .. .. .. .. .. ..",
+      "G-4 78 64 .. 1A 22 00",
+      "... .. .. .. .. .. ..",
+      "G-5 4C 65 .. .. .. ..",
+      "... .. .. .. .. .. ..",
+      "B-4 78 66 8B 1A 22 00",
+      "... .. .. .. .. .. ..",
+      "D-5 4C 67 .. .. .. ..",
+      "... .. .. .. .. .. ..",
+      "E-5 78 68 .. 1A 22 00",
+      "... .. .. .. .. .. ..",
+      "G-6 4C 6A .. .. .. ..",
+      "... .. .. .. .. .. .."
+     ]
+    },
+    "arp 12": {
+     "name": "arp 12",
+     "index": 11,
+     "rows": [
+      "E-5 78 6B 8A 1A 22 00",
+      "... .. .. .. .. .. ..",
+      "D-5 4C 6C .. .. .. ..",
+      "... .. .. .. .. .. ..",
+      "B-4 78 6D .. 1A 22 00",
+      "... .. .. .. .. .. ..",
+      "G-5 4C 6E .. .. .. ..",
+      "... .. .. .. .. .. ..",
+      "G-4 78 70 89 1A 22 00",
+      "... .. .. .. .. .. ..",
+      "E-4 4C 71 .. .. .. ..",
+      "... .. .. .. .. .. ..",
+      "D-4 78 72 .. 1A 22 00",
+      "... .. .. .. .. .. ..",
+      "B-4 4C 73 .. .. .. ..",
+      "... .. .. .. .. .. .."
+     ]
+    },
+    "arp 13": {
+     "name": "arp 13",
+     "index": 12,
+     "rows": [
+      "E-4 78 75 87 1A 22 00",
+      "... .. .. .. .. .. ..",
+      "G-4 4C 76 .. .. .. ..",
+      "... .. .. .. .. .. ..",
+      "C-5 78 77 .. 1A 22 00",
+      "... .. .. .. .. .. ..",
+      "E-6 4C 78 .. .. .. ..",
+      "... .. .. .. .. .. ..",
+      "C-5 78 7A 86 1A 22 00",
+      "... .. .. .. .. .. ..",
+      "G-4 4C 7B .. .. .. ..",
+      "... .. .. .. .. .. ..",
+      "E-4 78 7C .. 1A 22 00",
+      "... .. .. .. .. .. ..",
+      "C-5 4C 7E .. .. .. ..",
+      "... .. .. .. .. .. .."
+     ]
+    },
+    "arp 14": {
+     "name": "arp 14",
+     "index": 13,
+     "rows": [
+      "G-3 78 7F 84 1A 22 00",
+      "... .. .. .. .. .. ..",
+      "C-4 4C 80 .. .. .. ..",
+      "... .. .. .. .. .. ..",
+      "E-4 78 82 .. 1A 22 00",
+      "... .. .. .. .. .. ..",
+      "G-5 4C 83 .. .. .. ..",
+      "... .. .. .. .. .. ..",
+      "C-5 78 84 82 1A 22 00",
+      "... .. .. .. .. .. ..",
+      "E-5 4C 86 .. .. .. ..",
+      "... .. .. .. .. .. ..",
+      "C-5 78 87 .. 1A 22 00",
+      "... .. .. .. .. .. ..",
+      "G-5 4C 88 .. .. .. ..",
+      "... .. .. .. .. .. .."
+     ]
+    },
+    "arp 15": {
+     "name": "arp 15",
+     "index": 14,
+     "rows": [
+      "E-4 78 8A 81 1A 22 00",
+      "... .. .. .. .. .. ..",
+      "C-4 4C 8B .. .. .. ..",
+      "... .. .. .. .. .. ..",
+      "G-3 78 8C .. 1A 22 00",
+      "... .. .. .. .. .. ..",
+      "C-5 4C 8E .. .. .. ..",
+      "... .. .. .. .. .. ..",
+      "E-4 78 8F 7E 1A 22 00",
+      "... .. .. .. .. .. ..",
+      "G-4 4C 90 .. .. .. ..",
+      "... .. .. .. .. .. ..",
+      "C-5 78 92 .. 1A 22 00",
+      "... .. .. .. .. .. ..",
+      "E-6 4C 93 .. .. .. ..",
+      "... .. .. .. .. .. .."
+     ]
+    },
+    "arp 16": {
+     "name": "arp 16",
+     "index": 15,
+     "rows": [
+      "C-5 78 95 7C 1A 22 00",
+      "... .. .. .. .. .. ..",
+      "G-4 4C 96 .. .. .. ..",
+      "... .. .. .. .. .. ..",
+      "E-4 78 97 .. 1A 22 00",
+      "... .. .. .. .. .. ..",
+      "C-5 4C 99 .. .. .. ..",
+      "... .. .. .. .. .. ..",
+      "G-3 78 9A 7A 1A 22 00",
+      "... .. .. .. .. .. ..",
+      "C-4 4C 9C .. .. .. ..",
+      "... .. .. .. .. .. ..",
+      "E-4 78 9D .. 1A 22 00",
+      "... .. .. .. .. .. ..",
+      "G-5 4C 9E .. .. .. ..",
+      "... .. .. .. .. .. .."
+     ]
+    },
+    "arp 17": {
+     "name": "arp 17",
+     "index": 16,
+     "rows": [
+      "D-5 78 A0 78 1A 22 00",
+      "A-5 4C .. .. .. .. ..",
+      "D-5 78 A1 .. .. .. ..",
+      "A-5 4C .. .. .. .. ..",
+      "F#4 78 A3 .. 1A 22 00",
+      "A-4 4C .. .. .. .. ..",
+      "D-4 78 A4 .. .. .. ..",
+      "A-4 4C .. .. .. .. ..",
+      "F#3 78 A5 75 1C 23 00",
+      "A-3 4C .. .. .. .. ..",
+      "D-4 78 A7 .. .. .. ..",
+      "A-5 4C .. .. .. .. ..",
+      "F#4 78 A8 .. 1F 24 00",
+      "A-4 4C .. .. .. .. ..",
+      "D-5 78 A9 .. .. .. ..",
+      "A-6 4C .. .. .. .. .."
+     ]
+    },
+    "arp 18": {
+     "name": "arp 18",
+     "index": 17,
+     "rows": [
+      "D-5 78 AB 73 23 25 00",
+      "A-4 4C .. .. .. .. ..",
+      "F#4 78 AC .. .. .. ..",
+      "A-5 4C .. .. .. .. ..",
+      "D-4 78 AE .. 29 27 00",
+      "A-3 4C .. .. .. .. ..",
+      "F#3 78 AF .. .. .. ..",
+      "A-4 4C .. .. .. .. ..",
+      "D-4 78 B0 70 2F 29 00",
+      "A-4 4C .. .. .. .. ..",
+      "F#4 78 B2 .. .. .. ..",
+      "A-5 4C .. .. .. .. ..",
+      "D-5 78 B3 .. 36 2B 00",
+      "A-5 4C .. .. .. .. ..",
+      "D-5 78 B4 .. .. .. ..",
+      "A-5 4C .. .. .. .. .."
+     ]
+    },
+    "arp 19": {
+     "name": "arp 19",
+     "index": 18,
+     "rows": [
+      "F#4 78 B6 6D 3D 2D 00",
+      "A-4 4C .. .. .. .. ..",
+      "D-4 78 B7 .. .. .. ..",
+      "A-4 4C .. .. .. .. ..",
+      "F#3 78 B8 .. 46 30 00",
+      "A-3 4C .. .. .. .. ..",
+      "D-4 78 BA .. .. .. ..",
+      "A-5 4C .. .. .. .. ..",
+      "F#4 78 BB 6B 4F 33 00",
+      "A-4 4C .. .. .. .. ..",
+      "D-5 78 BC .. .. .. ..",
+      "A-6 4C .. .. .. .. ..",
+      "D-5 78 BE .. 58 37 00",
+      "A-4 4C .. .. .. .. ..",
+      "F#4 78 BF .. .. .. ..",
+      "A-5 4C .. .. .. .. .."
+     ]
+    },
+    "arp 20": {
+     "name": "arp 20",
+     "index": 19,
+     "rows": [
+      "D-4 78 C0 68 62 3A 00",
+      "A-3 4C .. .. .. .. ..",
+      "F#3 78 C2 .. .. .. ..",
+      "A-4 4C .. .. .. .. ..",
+      "D-4 78 C3 .. 6C 3E 00",
+      "A-4 4C .. .. .. .. ..",
+      "F#4 78 C4 .. .. .. ..",
+      "A-5 4C .. .. .. .. ..",
+      "D-5 78 C5 65 77 42 00",
+      "A-5 4C .. .. .. .. ..",
+      "D-5 78 C7 .. .. .. ..",
+      "A-5 4C .. .. .. .. ..",
+      "F#4 78 C8 .. 82 46 00",
+      "A-4 4C .. .. .. .. ..",
+      "D-4 78 C9 .. .. .. ..",
+      "A-4 4C .. .. .. .. .."
+     ]
+    },
+    "arp 21": {
+     "name": "arp 21",
+     "index": 20,
+     "rows": [
+      "B-4 78 CA 63 8C 4A 00",
+      "E-5 4C .. .. .. .. ..",
+      "G-5 78 CC .. .. .. ..",
+      "B-6 4C .. .. .. .. ..",
+      "G-5 78 CD .. 97 4F 01",
+      "E-5 4C .. .. .. .. ..",
+      "B-4 78 CE .. .. .. ..",
+      "G-5 4C .. .. .. .. ..",
+      "B-4 78 CF 60 A2 54 03",
+      "G-4 4C .. .. .. .. ..",
+      "E-4 78 D0 .. .. .. ..",
+      "B-4 4C .. .. .. .. ..",
+      "G-3 78 D1 .. AC 59 07",
+      "B-3 4C .. .. .. .. ..",
+      "E-4 78 D3 .. .. .. ..",
+      "G-5 4C .. .. .. .. .."
+     ]
+    },
+    "arp 22": {
+     "name": "arp 22",
+     "index": 21,
+     "rows": [
+      "B-4 78 D4 5D B6 5D 0C",
+      "G-4 4C .. .. .. .. ..",
+      "B-4 78 D5 .. .. .. ..",
+      "E-6 4C .. .. .. .. ..",
+      "G-5 78 D6 .. C0 63 12",
+      "B-5 4C .. .. .. .. ..",
+      "G-5 78 D7 .. .. .. ..",
+      "E-6 4C .. .. .. .. ..",
+      "B-4 78 D8 5B CA 68 1A",
+      "G-4 4C .. .. .. .. ..",
+      "B-4 78 D9 .. .. .. ..",
+      "G-5 4C .. .. .. .. ..",
+      "E-4 78 DA .. D3 6D 22",
+      "B-3 4C .. .. .. .. ..",
+      "G-3 78 DB .. .. .. ..",
+      "B-4 4C .. .. .. .. .."
+     ]
+    },
+    "arp 23": {
+     "name": "arp 23",
+     "index": 22,
+     "rows": [
+      "E-4 78 DC 58 DB 72 2B",
+      "G-4 4C .. .. .. .. ..",
+      "B-4 78 DD .. .. .. ..",
+      "G-5 4C .. .. .. .. ..",
+      "B-4 78 DE .. E3 78 35",
+      "E-5 4C .. .. .. .. ..",
+      "G-5 78 DF .. .. .. ..",
+      "B-6 4C .. .. .. .. ..",
+      "G-5 78 E0 56 EA 7D 3F",
+      "E-5 4C .. .. .. .. ..",
+      "B-4 78 E1 .. .. .. ..",
+      "G-5 4C .. .. .. .. ..",
+      "B-4 78 E2 .. F0 83 4A",
+      "G-4 4C .. .. .. .. ..",
+      "E-4 78 E3 .. .. .. ..",
+      "B-4 4C .. .. .. .. .."
+     ]
+    },
+    "arp 24": {
+     "name": "arp 24",
+     "index": 23,
+     "rows": [
+      "G-3 78 E4 53 F5 88 55",
+      "B-3 4C .. .. .. .. ..",
+      "E-4 78 E4 .. .. .. ..",
+      "G-5 4C .. .. .. .. ..",
+      "B-4 78 E5 .. F9 8D 61",
+      "G-4 4C .. .. .. .. ..",
+      "B-4 78 E6 .. .. .. ..",
+      "E-6 4C .. .. .. .. ..",
+      "G-5 78 E7 51 FC 93 6C",
+      "B-5 4C .. .. .. .. ..",
+      "G-5 78 E8 .. .. .. ..",
+      "E-6 4C .. .. .. .. ..",
+      "B-4 78 E8 .. FE 98 78",
+      "G-4 4C .. .. .. .. ..",
+      "B-4 78 E9 .. .. .. ..",
+      "G-5 4C .. .. .. .. .."
+     ]
+    },
+    "arp 25": {
+     "name": "arp 25",
+     "index": 24,
+     "rows": [
+      "D-5 78 EA 4F FF 9E 83",
+      "B-4 4C .. .. .. .. ..",
+      "G-4 78 EB .. .. .. ..",
+      "F#5 4C .. .. .. .. ..",
+      "D-4 78 EB .. FF A3 8F",
+      "B-3 4C .. .. .. .. ..",
+      "G-3 78 EC .. .. .. ..",
+      "B-4 4C .. .. .. .. ..",
+      "D-4 78 ED 4C FF A8 9A",
+      "F#4 4C .. .. .. .. ..",
+      "G-4 78 ED .. .. .. ..",
+      "B-5 4C .. .. .. .. ..",
+      "D-5 78 EE .. FF AD A4",
+      "F#5 4C .. .. .. .. ..",
+      "D-5 78 EE .. .. .. ..",
+      "B-5 4C .. .. .. .. .."
+     ]
+    },
+    "arp 26": {
+     "name": "arp 26",
+     "index": 25,
+     "rows": [
+      "G-4 78 EF 4A FF B3 AE",
+      "F#4 4C .. .. .. .. ..",
+      "D-4 78 EF .. .. .. ..",
+      "B-4 4C .. .. .. .. ..",
+      "G-3 78 F0 .. FF B7 B7",
+      "B-3 4C .. .. .. .. ..",
+      "D-4 78 F0 .. .. .. ..",
+      "F#5 4C .. .. .. .. ..",
+      "G-4 78 F1 49 FF BC BF",
+      "B-4 4C .. .. .. .. ..",
+      "D-5 78 F1 .. .. .. ..",
+      "F#6 4C .. .. .. .. ..",
+      "D-5 78 F2 .. FF C1 C6",
+      "B-4 4C .. .. .. .. ..",
+      "G-4 78 F2 .. .. .. ..",
+      "F#5 4C .. .. .. .. .."
+     ]
+    },
+    "arp 27": {
+     "name": "arp 27",
+     "index": 26,
+     "rows": [
+      "D-4 78 F2 47 FF C6 CD",
+      "B-3 4C .. .. .. .. ..",
+      "G-3 78 F3 .. .. .. ..",
+      "B-4 4C .. .. .. .. ..",
+      "D-4 78 F3 .. FF CA D2",
+      "F#4 4C .. .. .. .. ..",
+      "G-4 78 F3 .. .. .. ..",
+      "B-5 4C .. .. .. .. ..",
+      "D-5 78 F3 45 FF CE D6",
+      "F#5 4C .. .. .. .. ..",
+      "D-5 78 F4 .. .. .. ..",
+      "B-5 4C .. .. .. .. ..",
+      "G-4 78 F4 .. FF D2 D8",
+      "F#4 4C .. .. .. .. ..",
+      "D-4 78 F4 .. .. .. ..",
+      "B-4 4C .. .. .. .. .."
+     ]
+    },
+    "arp 28": {
+     "name": "arp 28",
+     "index": 27,
+     "rows": [
+      "G-3 78 F4 44 FF D6 D9",
+      "B-3 4C .. .. .. .. ..",
+      "D-4 78 F4 .. .. .. ..",
+      "F#5 4C .. .. .. .. ..",
+      "G-4 78 F4 .. FF D9 D9",
+      "B-4 4C .. .. .. .. ..",
+      "D-5 78 F4 .. .. .. ..",
+      "F#6 4C .. .. .. .. ..",
+      "D-5 78 F4 43 FF DD D9",
+      "B-4 4C .. .. .. .. ..",
+      "G-4 78 F4 .. .. .. ..",
+      "F#5 4C .. .. .. .. ..",
+      "D-4 78 F4 .. FF E0 D9",
+      "B-3 4C .. .. .. .. ..",
+      "G-3 78 F4 .. .. .. ..",
+      "B-4 4C .. .. .. .. .."
+     ]
+    },
+    "arp 29": {
+     "name": "arp 29",
+     "index": 28,
+     "rows": [
+      "D-4 78 F4 42 FF E3 D9",
+      "F#4 4C .. .. .. .. ..",
+      "G-4 78 F4 .. .. .. ..",
+      "B-5 4C .. .. .. .. ..",
+      "D-5 78 F4 .. FF E5 D9",
+      "F#5 4C .. .. .. .. ..",
+      "D-5 78 F4 .. .. .. ..",
+      "B-5 4C .. .. .. .. ..",
+      "G-4 78 F4 41 FF E7 D9",
+      "F#4 4C .. .. .. .. ..",
+      "D-4 78 F4 .. .. .. ..",
+      "B-4 4C .. .. .. .. ..",
+      "G-3 78 F4 .. FF E9 D9",
+      "B-3 4C .. .. .. .. ..",
+      "D-4 78 F4 .. .. .. ..",
+      "F#5 4C .. .. .. .. .."
+     ]
+    },
+    "arp 30": {
+     "name": "arp 30",
+     "index": 29,
+     "rows": [
+      "G-4 78 F4 40 FF EB D9",
+      "B-4 4C .. .. .. .. ..",
+      "D-5 78 F4 .. .. .. ..",
+      "F#6 4C .. .. .. .. ..",
+      "D-5 78 F4 .. FF EC D9",
+      "B-4 4C .. .. .. .. ..",
+      "G-4 78 F4 .. .. .. ..",
+      "F#5 4C .. .. .. .. ..",
+      "D-4 78 F4 40 FF ED D9",
+      "B-3 4C .. .. .. .. ..",
+      "G-3 78 F4 .. .. .. ..",
+      "B-4 4C .. .. .. .. ..",
+      "D-4 78 F4 .. FF EE D9",
+      "F#4 4C .. .. .. .. ..",
+      "G-4 78 F4 .. .. .. ..",
+      "B-5 4C .. .. .. .. .."
+     ]
+    }
+   },
+   "placements": [
+    {
+     "puid": "arp 01",
+     "start": 960,
+     "length": 16
+    },
+    {
+     "puid": "arp 02",
+     "start": 976,
+     "length": 16
+    },
+    {
+     "puid": "arp 03",
+     "start": 992,
+     "length": 16
+    },
+    {
+     "puid": "arp 04",
+     "start": 1008,
+     "length": 16
+    },
+    {
+     "puid": "arp 05",
+     "start": 1024,
+     "length": 16
+    },
+    {
+     "puid": "arp 06",
+     "start": 1040,
+     "length": 16
+    },
+    {
+     "puid": "arp 07",
+     "start": 1056,
+     "length": 16
+    },
+    {
+     "puid": "arp 08",
+     "start": 1072,
+     "length": 16
+    },
+    {
+     "puid": "arp 09",
+     "start": 1088,
+     "length": 16
+    },
+    {
+     "puid": "arp 10",
+     "start": 1104,
+     "length": 16
+    },
+    {
+     "puid": "arp 11",
+     "start": 1120,
+     "length": 16
+    },
+    {
+     "puid": "arp 12",
+     "start": 1136,
+     "length": 16
+    },
+    {
+     "puid": "arp 13",
+     "start": 1152,
+     "length": 16
+    },
+    {
+     "puid": "arp 14",
+     "start": 1168,
+     "length": 16
+    },
+    {
+     "puid": "arp 15",
+     "start": 1184,
+     "length": 16
+    },
+    {
+     "puid": "arp 16",
+     "start": 1200,
+     "length": 16
+    },
+    {
+     "puid": "arp 17",
+     "start": 1216,
+     "length": 16
+    },
+    {
+     "puid": "arp 18",
+     "start": 1232,
+     "length": 16
+    },
+    {
+     "puid": "arp 19",
+     "start": 1248,
+     "length": 16
+    },
+    {
+     "puid": "arp 20",
+     "start": 1264,
+     "length": 16
+    },
+    {
+     "puid": "arp 21",
+     "start": 1280,
+     "length": 16
+    },
+    {
+     "puid": "arp 22",
+     "start": 1296,
+     "length": 16
+    },
+    {
+     "puid": "arp 23",
+     "start": 1312,
+     "length": 16
+    },
+    {
+     "puid": "arp 24",
+     "start": 1328,
+     "length": 16
+    },
+    {
+     "puid": "arp 25",
+     "start": 1344,
+     "length": 16
+    },
+    {
+     "puid": "arp 26",
+     "start": 1360,
+     "length": 16
+    },
+    {
+     "puid": "arp 27",
+     "start": 1376,
+     "length": 16
+    },
+    {
+     "puid": "arp 28",
+     "start": 1392,
+     "length": 16
+    },
+    {
+     "puid": "arp 29",
+     "start": 1408,
+     "length": 16
+    },
+    {
+     "puid": "arp 30",
+     "start": 1424,
+     "length": 16
     }
    ]
   }
