@@ -41,6 +41,15 @@ export function laneWriter(sab) {
   const head = new Int32Array(sab, 0, LANE_SLOTS + 1), data = new Float32Array(sab, 4 * (LANE_SLOTS + 1));
   return {
     wants: slot => (Atomics.load(head, LANE_SLOTS) >> slot & 1) === 1,
+    // Silence into every wanted slot: the engine is cut, and the displays should die down rather than freeze.
+    silence(n) {
+      for (let k = 0; k < LANE_SLOTS; k++) {
+        if (!this.wants(k)) continue;
+        let w = head[k];
+        for (let i = 0; i < n; i++, w = (w + 1) | 0) data[k * RING + (w & (RING - 1))] = 0;
+        Atomics.store(head, k, w);
+      }
+    },
     write(slot, l, r, n) {
       const base = slot * RING;
       let w = head[slot];

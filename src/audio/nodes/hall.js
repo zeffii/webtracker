@@ -48,7 +48,7 @@ export default {
     return {
       process(inputs, outputs, n, params, slots) {
         const [inL, inR] = inputs[0], [outL, outR] = outputs[0];
-        const sz = params[slots[SIZE]], rt60 = params[slots[DECAY]];
+        const sz = params[slots[SIZE]], rt60 = Math.min(20, params[slots[DECAY]]);
         const fc = Math.max(800, 20000 * (1 - params[slots[DAMP]]) ** 2);
         const lpCoef = 1 - Math.exp(-2 * Math.PI * fc / sampleRate);
         const preTarget = Math.min(params[slots[PREDELAY]] * ms, preSize - 3);

@@ -33,13 +33,17 @@ export function createMeters({ box, sab, lsab, sampleRate, options, lanes = () =
     lbox?.remove(); lbox = null;
     if (!layersOn()) return;
     lbox = document.createElement('div'); lbox.className = 'layer-btns';
+    const refresh = () => { for (const c of lbox.children) if (!c.classList.contains('all')) c.setAttribute('aria-pressed', String(!off.has(+c.textContent))); };
+    const all = document.createElement('button'); all.type = 'button'; all.className = 'all'; all.textContent = 'all'; all.title = 'Show every layer; when every layer is shown, hide them all';
+    all.addEventListener('click', () => { off = off.size ? new Set() : new Set(layers.map(x => x.idx)); saveOff(); refresh(); pushMask(); });
+    lbox.append(all);
     for (const L of layers) {
       const b = document.createElement('button'); b.type = 'button'; b.textContent = L.idx; b.title = `Lane ${L.idx}: ${L.instrument} (click to show or hide; Shift+click to hear only this one)`;
       b.style.setProperty('--h', L.hue); b.setAttribute('aria-pressed', String(!off.has(L.idx)));
       b.addEventListener('click', e => {
         if (e.shiftKey) { const only = layers.every(x => x === L || off.has(x.idx)) && !off.has(L.idx); off = new Set(only ? [] : layers.filter(x => x !== L).map(x => x.idx)); }
         else if (off.has(L.idx)) off.delete(L.idx); else off.add(L.idx);
-        saveOff(); for (const c of lbox.children) c.setAttribute('aria-pressed', String(!off.has(+c.textContent))); pushMask();
+        saveOff(); refresh(); pushMask();
       });
       lbox.append(b);
     }

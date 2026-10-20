@@ -7,7 +7,7 @@ class TrackerEngine extends AudioWorkletProcessor {
     super();
     const { sab, transport, wasm, vring, lring } = options.processorOptions;
     this.vring = ringWriter(vring);
-    const lanes = laneWriter(lring), slotOf = new Map();
+    const lanes = this.lanes = laneWriter(lring), slotOf = new Map();
     this.setLaneIds = ids => { slotOf.clear(); ids.forEach((id, k) => slotOf.set(id, k)); };
     const params = new Float32Array(sab);
     this.rt = new GraphRuntime({ sampleRate, params, wasm });
@@ -47,7 +47,12 @@ class TrackerEngine extends AudioWorkletProcessor {
 
   process(_inputs, outputs) {
     const out = outputs[0];
-    if (this.halted) return true;   // cut: no computation at all until Play
+    if (this.halted) {   // cut: no computation at all until Play, but the displays are fed silence so they fall to nothing
+      const out = outputs[0], n = out[0].length;
+      if (this.vring.on) { this.silent ??= new Float32Array(n); this.vring.write(this.silent, this.silent, n); }
+      this.lanes.silence(n);
+      return true;
+    }
     const t0 = Date.now();
     this.seq.process(out[0], out[1], out[0].length);
     if (this.vring.on) this.vring.write(out[0], out[1], out[0].length);

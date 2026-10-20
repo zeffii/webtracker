@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="themes.css">
-  <title>webtracker m248</title>
+  <title>webtracker m249</title>
   <link rel="icon" href="icon.ico" sizes="any">
   <link rel="icon" type="image/png" href="icon.png">
   <style>
@@ -65,6 +65,8 @@
     #loadmeter.warn { background: hsl(40 90% 55%); color: #000; }
     #loadmeter.bad { background: hsl(5 80% 52%); color: #fff; }
     #tabs button { font: inherit; padding: .1rem .6rem; border: 1px solid; background: transparent; color: inherit; cursor: pointer; }
+    #tab-config { font: inherit; padding: .1rem .5rem; border: 1px solid; background: transparent; color: inherit; cursor: pointer; }
+    #tab-config.active { background: var(--hi); color: var(--hi-fg); border-color: var(--hi); }
     #tabs button.active { background: var(--hi); color: var(--hi-fg); border-color: var(--hi); }
     /* the script editor: a transparent textarea over a coloured copy of the same text */
     #script-box { position: relative; max-width: 110ch; height: 52vh; margin: .3rem 0; background: var(--panel); border: 1px solid var(--line); }
@@ -341,8 +343,9 @@
     .meter-pan:last-child { border-right: 0; }
     .meter-pan h6 { margin: 0; position: absolute; left: 7px; top: 4px; font: 500 9px ui-monospace, Consolas, monospace; letter-spacing: .1em; color: #6d7480; pointer-events: none; z-index: 1; }
     .layer-btns { position: absolute; right: 6px; top: 3px; display: flex; gap: 2px; z-index: 2; }
-    .layer-btns button { min-width: 16px; height: 14px; padding: 0 3px; font: 500 9px/12px ui-monospace, Consolas, monospace; color: #9aa0aa; background: transparent; border: 1px solid #2a2e36; border-radius: 3px; cursor: pointer; }
-    .layer-btns button[aria-pressed="true"] { color: #fff; background: hsl(var(--h) 60% 30% / .75); border-color: hsl(var(--h) 70% 50%); }
+    .layer-btns button { min-width: 16px; height: 14px; padding: 0 3px; font: 500 9px/12px ui-monospace, Consolas, monospace; color: #5b616c; background: transparent; border: 1px solid #2a2e36; border-radius: 3px; cursor: pointer; text-decoration: line-through; }
+    .layer-btns button[aria-pressed="true"] { color: #fff; font-weight: 700; text-decoration: none; background: hsl(var(--h) 65% 38%); border-color: hsl(var(--h) 80% 62%); }
+    .layer-btns button.all { --h: 220; margin-right: 4px; text-decoration: none; color: #9aa0aa; }
     .meter-pan canvas { flex: 1; width: 100%; min-height: 0; display: block; }
     #vscope { position: fixed; z-index: 40; cursor: move; touch-action: none; user-select: none; aspect-ratio: 1; width: calc(var(--vs, 45) * 1vmin); border-radius: 10px; background: rgba(8, 8, 10, .62); border: 1px solid rgba(255, 255, 255, .12); }
     #vscope[hidden] { display: none; }
@@ -478,11 +481,11 @@
         <button id="tab-arrange">F4 Arrangement</button>
         <button id="tab-script" title="Scripts that fill pattern data (Ctrl+Alt+S)">Script</button>
         <button id="tab-info">F10 Info</button>
-        <button id="tab-config">F11 Config</button>
       </nav>
       <select id="theme" style="margin-left:auto" title="Colour theme"><option value="system">system</option><option value="dark">dark</option><option value="black">black</option><option value="bright">bright</option><option value="neon">neon</option><option value="amber">amber</option><option value="phosphor">phosphor</option><option value="ice">ice</option><option value="synthwave">synthwave</option></select>
       <button id="about-open" title="About webtracker, and what changed in each build">About</button>
       <button id="keys-toggle" title="Show or hide the keyboard shortcut panels">Shortcuts</button>
+      <button id="tab-config" class="gear" title="Config (F11)" aria-label="Config"><svg class="ico" viewBox="0 0 16 16"><path fill="currentColor" fill-rule="evenodd" d="M7 .8h2l.4 1.9c.4.1.8.3 1.2.5l1.6-1 1.4 1.4-1 1.6c.2.4.4.8.5 1.2l1.9.4v2l-1.9.4c-.1.4-.3.8-.5 1.2l1 1.6-1.4 1.4-1.6-1c-.4.2-.8.4-1.2.5L9 15.2H7l-.4-1.9c-.4-.1-.8-.3-1.2-.5l-1.6 1-1.4-1.4 1-1.6c-.2-.4-.4-.8-.5-1.2L.9 9V7l1.9-.4c.1-.4.3-.8.5-1.2l-1-1.6 1.4-1.4 1.6 1c.4-.2.8-.4 1.2-.5L7 .8ZM8 5.4a2.6 2.6 0 1 0 0 5.2 2.6 2.6 0 0 0 0-5.2Z"/></svg></button>
     </div>
   </div>
 
