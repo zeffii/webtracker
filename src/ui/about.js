@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['m274', ['The demo song is two minutes now (it was three). The arp comes in just before the middle and its filter opens in about 25 seconds instead of a minute, with the choruses following close behind.']],
   ['m273', ['Demo song: depth charges (a sine that falls from high to deep, through a long hall) at the tops of seven of the swells, and an arp from two thirds of the way in. The arp starts muted (its filter nearly shut), quickens from quarter notes to sixteenths while the filter opens, then drowns in two choruses in series. All of it is written in the pattern columns of the instrument (Cut, Res, Mix, Dep, Mx2), so it shows how to automate node parameters from a pattern.']],
   ['m272', ['Sampler: command 1E sets the subdivide (subticks per tick, default 6), the unit of the volume slides\' time, as in UnwieldyTracker. A slide to nothing stops at -120 dB. (Checked against the UnwieldyTracker 2 DLL: the level scale, the fine-slide unit and the timing match.)']],
   ['m271', ['Sampler volume slides now follow the later UnwieldyTracker: in XXYY, XX is the time (in subticks, six to a tick) and YY the amount (levels in 40 hex = the sound\'s own level, dB in whole dB, fine slides in 256ths of a dB). New commands 90 to 93: the same slides as 1A to 1D with the time in tens of milliseconds, whatever the tempo.']],
