@@ -348,10 +348,11 @@
     #splash.leaving { opacity: 0; }
     .s-card canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
     .s-word { position: absolute; left: 41cqw; top: 22cqw; margin: 0; font: 700 9.2cqw/1 ui-monospace, Consolas, monospace; letter-spacing: -.02em; color: #f0f0f1; user-select: none; white-space: nowrap; }
-    .s-go { position: absolute; left: 41.8cqw; top: 35cqw; font: 500 max(11px, 1.9cqw)/1 ui-monospace, Consolas, monospace; letter-spacing: .2em; text-transform: uppercase; color: #8d8f95; background: #fff; border: 1px solid #c9cacf; border-radius: 2px; padding: 1.1cqw 2.6cqw; cursor: pointer; transition: opacity .25s, color .2s, border-color .2s; }
-    .s-go:hover { color: #f39; border-color: #f39; }
-    .s-go:focus-visible { outline: 1px solid #f39; outline-offset: 3px; }
-    .s-go[hidden] { display: block; opacity: 0; pointer-events: none; }
+    .s-card { cursor: pointer; outline: none; }
+    .s-card.busy { cursor: default; }
+    .s-go { position: absolute; left: 41.8cqw; top: 35cqw; font: max(10px, 1.5cqw)/1 ui-monospace, Consolas, monospace; letter-spacing: .06em; color: #b3b5ba; transition: opacity .25s, color .2s; user-select: none; }
+    .s-card:hover .s-go { color: #f39; }
+    .s-go[hidden] { display: block; opacity: 0; }
     .s-log { position: absolute; left: 42cqw; top: 34.5cqw; pointer-events: none; font: clamp(10px, 1.45cqw, 13px)/1.6 ui-monospace, Consolas, monospace; color: #9a9ca3; white-space: pre; }
     .s-log .bad { color: #d33; }
     #cmdbar { position: fixed; left: 0; right: 0; z-index: 3; display: flex; align-items: center; gap: .5rem; padding: .25rem .6rem; background: var(--panel); border-top: 1px solid color-mix(in srgb, var(--fg) 35%, transparent); font: 13px ui-monospace, Consolas, monospace; }
@@ -476,7 +477,7 @@
     <div class="s-card">
       <canvas></canvas>
       <p class="s-word">webtracker</p>
-      <button class="s-go" type="button">Enter</button>
+      <div class="s-go">click anywhere to enter</div>
       <div class="s-log" aria-live="polite"></div>
     </div>
   </div>

@@ -1,17 +1,19 @@
-// The first screen: a white card with the logo turning behind a very faint "webtracker" and one small Enter button.
-// The browser needs a click before it will make sound, so Enter is that click; it runs what the Start button runs. While
+// The first screen: a white card with the logo turning behind a very faint "webtracker" and a quiet "click anywhere to enter".
+// The browser needs a click before it will make sound, so a click on the card (or Enter / Space) is that click; it runs what the Start button runs. While
 // the engine starts, a few grey lines report the real steps, and the card fades to show the tracker (about a second).
-// The logo is sixteen identical rectangles (found by fitting the icon), all in one plane, drawn as a wireframe on a plain canvas.
+// The logo is fourteen identical slabs in one plane (from your 3D model), drawn as a wireframe on a plain canvas.
 const wait = ms => new Promise(r => setTimeout(r, ms));
 const frame = () => new Promise(r => requestAnimationFrame(r));
 
-const SHAPE = { w: .1636, h: .4909, rects: [[.7182, -.1909, 100], [.3727, .6455, 32], [.7455, .0182, 90], [-.7364, .0636, 92], [.3545, -.6545, 152], [-.0364, .7455, 0], [-.6818, .2909, 110], [-.4636, .5818, 142], [-.5909, .4545, 128], [-.6091, -.4273, 58], [-.2818, -.6909, 18], [.7182, .2455, 66], [.7091, -.2455, 106], [-.6818, -.2909, 62], [.6636, .3455, 60], [-.1636, -.7091, 12]] };
-const T = .08, R = .56, CX = -.16, CY = .31, D = 4.2;   // slab thickness, radius, centre (in card widths), eye distance
+// The logo as modelled: fourteen identical thin slabs lying in one plane (x, y of each centre and its angle in degrees, in
+// units of the ring's radius; every slab is 0.545 long, 0.189 wide and 0.077 thick).
+const PETALS = [[-0.7451, -0.0000, -0.0], [-0.6313, -0.3956, 32.1], [-0.3411, -0.6624, 62.7], [-0.1337, -0.7330, 79.7], [0.2802, -0.6904, 112.1], [0.5745, -0.4744, 140.4], [0.6839, -0.2956, 156.6], [0.7439, 0.0411, -176.8], [0.6471, 0.3693, -150.3], [0.4004, 0.6283, -122.5], [0.3023, 0.6810, -113.9], [-0.0559, 0.7430, -85.7], [-0.3864, 0.6370, -58.8], [-0.7011, 0.2523, -19.8]];
+const LEN = 0.5455, WID = 0.1895, T = 0.0773, R = .46, CX = -.12, CY = .30, D = 4.2;   // R, CX, CY: size and place on the card, in card widths; D: eye distance
 const EDGES = [[0, 1], [1, 2], [2, 3], [3, 0], [4, 5], [5, 6], [6, 7], [7, 4], [0, 4], [1, 5], [2, 6], [3, 7]], FACES = [[0, 1, 2, 3], [4, 5, 6, 7], [0, 1, 5, 4], [1, 2, 6, 5], [2, 3, 7, 6], [3, 0, 4, 7]];
-const BOXES = SHAPE.rects.map(([x, y, deg]) => {
-  const a = -deg * Math.PI / 180, c = Math.cos(a), s = Math.sin(a), pts = [];
+const BOXES = PETALS.map(([x, y, deg]) => {
+  const a = deg * Math.PI / 180, c = Math.cos(a), s = Math.sin(a), pts = [];
   for (const dz of [-1, 1]) for (const [dx, dy] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) {
-    const px = dx * SHAPE.w / 2, py = dy * SHAPE.h / 2;
+    const px = dx * LEN / 2, py = dy * WID / 2;
     pts.push([x + px * c - py * s, y + px * s + py * c, dz * T / 2]);
   }
   return pts;
@@ -23,7 +25,7 @@ export function createSplash({ box, onStart }) {
   let W = 0, H = 0, dpr = 1, boost = 0, boostTo = 0, running = true, typing = [], nextAt = 0;
   document.body.classList.add('splashing');
   box.hidden = false;
-  go.focus({ preventScroll: true });
+  card.tabIndex = 0; card.setAttribute('role', 'button'); card.setAttribute('aria-label', 'Enter webtracker'); card.focus({ preventScroll: true });
 
   const size = () => { dpr = devicePixelRatio || 1; W = card.clientWidth; H = card.clientHeight; cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); };
   new ResizeObserver(size).observe(card); size();
@@ -69,11 +71,15 @@ export function createSplash({ box, onStart }) {
     return job;
   }
 
-  go.addEventListener('click', () => {
-    go.hidden = true; go.disabled = true; boostTo = .7;
+  let busy = false;
+  const enter = () => {
+    if (busy) return;
+    busy = true; go.hidden = true; card.classList.add('busy'); boostTo = .7;
     log.textContent = ''; typing = []; nextAt = 0;
     onStart();
-  });
+  };
+  card.addEventListener('click', enter);
+  card.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); enter(); } });
 
   return {
     say,
@@ -87,7 +93,7 @@ export function createSplash({ box, onStart }) {
     async fail(message) {
       await Promise.all(typing);
       const row = document.createElement('div'); row.className = 'bad'; row.textContent = message; log.append(row);
-      go.hidden = false; go.disabled = false; boostTo = 0;
+      go.hidden = false; go.textContent = 'click to try again'; card.classList.remove('busy'); busy = false; boostTo = 0;
     },
   };
 }
