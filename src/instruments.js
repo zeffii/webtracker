@@ -31,6 +31,38 @@ export const samplerCommands = [
   // 10 slice: start at a slice marker of the sample (set on the Samples screen), 0000 the first, 0001 the second
   // and so on, sorted by position. It wins over the Off column while it points at a marker; FFFF puts Off back in charge.
   { id: 0x10, node: 'sampler', param: 'slice' },
+  // Grains and texture (everything defaults to off). 0B grain: how long each sound lasts, 1000 is one tick; with it the
+  // repeats overlap instead of cutting each other. 0C edge: how much of a grain is fade. 0D accel: each repeat's interval
+  // is multiplied by this, 8000 is x1. 0E step: semitones each repeat is higher, 8000 none, 0800 one semitone. 0F slide: pitch
+  // bend in semitones per tick while a sound plays. 11 flip: 1 plays every repeat the other way round. 12 prob: the chance a
+  // repeat sounds, FFFF always. 13 to 17 jitter (random, up to the amount): offset, pitch, pan, timing, level.
+  // Volume slides, as in UnwieldyTracker (XXYY: XX the time in subticks, six to a tick, 00 at once; YY the amount). 18 linear slide to level
+  // YY/40 (40 is the sound's own level); 19 the same evenly in dB; 1A down by YY dB; 1B up by YY dB; 1C down and 1D up by YY/256 dB.
+  // 90 to 93 are 1A to 1D with XX in tens of milliseconds. Written while a sound plays they slide it; before a note, every sound of the
+  // note. 0000 turns them off.
+  { id: 0x18, node: 'sampler', param: 'volLin' },
+  { id: 0x19, node: 'sampler', param: 'volLog' },
+  { id: 0x1A, node: 'sampler', param: 'volDown' },
+  { id: 0x1B, node: 'sampler', param: 'volUp' },
+  { id: 0x1C, node: 'sampler', param: 'volFineDown' },
+  { id: 0x1D, node: 'sampler', param: 'volFineUp' },
+  { id: 0x1E, node: 'sampler', param: 'subdivide' },   // subticks in a tick (default 6), for the time of the slides
+  { id: 0x90, node: 'sampler', param: 'volDownMs' },
+  { id: 0x91, node: 'sampler', param: 'volUpMs' },
+  { id: 0x92, node: 'sampler', param: 'volFineDownMs' },
+  { id: 0x93, node: 'sampler', param: 'volFineUpMs' },
+  { id: 0x0B, node: 'sampler', param: 'grain' },
+  { id: 0x0C, node: 'sampler', param: 'edge' },
+  { id: 0x0D, node: 'sampler', param: 'accel' },
+  { id: 0x0E, node: 'sampler', param: 'step' },
+  { id: 0x0F, node: 'sampler', param: 'slide' },
+  { id: 0x11, node: 'sampler', param: 'flip' },
+  { id: 0x12, node: 'sampler', param: 'prob' },
+  { id: 0x13, node: 'sampler', param: 'jOffset' },
+  { id: 0x14, node: 'sampler', param: 'jPitch' },
+  { id: 0x15, node: 'sampler', param: 'jPan' },
+  { id: 0x16, node: 'sampler', param: 'jTime' },
+  { id: 0x17, node: 'sampler', param: 'jLevel' },
 ];
 
 export const withParams = (graph, overrides) => ({

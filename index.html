@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="themes.css">
-  <title>webtracker m266</title>
+  <title>webtracker m272</title>
   <link rel="icon" href="icon.ico" sizes="any">
   <link rel="icon" type="image/png" href="icon.png">
   <style>
@@ -84,6 +84,18 @@
     body.sdock #script-help { display: inline-block; }
     body.sdock #pane-script.keyed:not([hidden]) { grid-template-columns: minmax(0, 1fr); }
     body.sdock #pane-script #script-box { height: 40vh; margin-top: 13px; }   /* its top lines up with the pattern grid */
+    #keys-float { position: fixed; right: 16px; top: 96px; z-index: 40; width: min(26rem, calc(100vw - 32px)); max-height: min(75vh, 40rem); display: flex; flex-direction: column; background: var(--panel); color: var(--fg); border: 1px solid color-mix(in srgb, var(--fg) 30%, transparent); box-shadow: 0 6px 24px rgba(0, 0, 0, .35); font: 11px/1.45 ui-monospace, Consolas, monospace; }
+    #keys-float[hidden] { display: none; }
+    #keys-float header { display: flex; align-items: center; gap: .5rem; padding: .3rem .5rem; cursor: move; user-select: none; border-bottom: 1px solid color-mix(in srgb, var(--fg) 20%, transparent); }
+    #keys-float header b { flex: 1; font-weight: normal; opacity: .7; }
+    #keys-float header button { font: inherit; padding: 0 .45rem; cursor: pointer; }
+    #keys-float-body { overflow-y: auto; padding: .5rem .7rem; }
+    #keys-float-body dl { display: grid; grid-template-columns: max-content 1fr; gap: .2rem .8rem; margin: 0; }
+    #keys-float-body dt { color: #f0707a; }
+    #keys-float-body dd { margin: 0; color: color-mix(in srgb, var(--fg) 68%, var(--panel)); }
+    #keys-float-body dd .kw { font-weight: inherit; color: var(--fg); background: color-mix(in srgb, #2a62d6 22%, transparent); padding: 0 .3em; border-radius: 3px; }
+    #keys-float-body p { margin: .6rem 0 0; opacity: .7; }
+    #keys-float-body h3 { display: none; }
     #dock-grip { display: none; }
     body.sdock #pane-script:not([hidden]) #dock-grip { display: block; position: absolute; left: -3px; top: 0; bottom: 0; width: 6px; cursor: col-resize; }
     #script-box { position: relative; max-width: 110ch; height: 52vh; margin: .3rem 0; background: var(--panel); border: 1px solid var(--line); }
@@ -273,7 +285,8 @@
     .keys h3 { margin: 0 0 .4rem; font: inherit; opacity: .6; display: flex; justify-content: space-between; align-items: center; }
     .keys h3 button { font: inherit; font-size: 10px; padding: 0 .35rem; }
     /* hidden: the main part of each screen takes the whole width */
-    body.nokeys .keys { display: none; }
+    body.nokeys .keys:not(.md) { display: none; }   /* the shortcuts live in the floating window (Shortcuts button); the script tutorial stays */
+    body.nokeys #pane-script:not([hidden]) { grid-template-columns: minmax(0, 1fr) 20rem; }
     body.nokeys #pane-arrange .keys { display: block; }   /* in the arrangement the pattern list stays; only the shortcuts go */
     body.nokeys #pane-arrange .keys > :not(#seq-side) { display: none; }
     body.nokeys .pane.keyed:not([hidden]) { grid-template-columns: minmax(0, 1fr); }
@@ -563,7 +576,7 @@
       </nav>
       <select id="theme" style="margin-left:auto" title="Colour theme"><option value="system">system</option><option value="dark">dark</option><option value="black">black</option><option value="bright">bright</option><option value="neon">neon</option><option value="amber">amber</option><option value="phosphor">phosphor</option><option value="ice">ice</option><option value="synthwave">synthwave</option></select>
       <button id="about-open" title="About webtracker, and what changed in each build">About</button>
-      <button id="keys-toggle" title="Show or hide the keyboard shortcut panels">Shortcuts</button>
+      <button id="keys-toggle" title="Show the keyboard shortcuts of this screen in a small window (Esc closes it)" aria-pressed="false">Shortcuts</button>
       <button id="tab-config" class="gear" title="Config (F11)" aria-label="Config"><svg class="ico" viewBox="0 0 16 16"><path fill="currentColor" fill-rule="evenodd" d="M7 .8h2l.4 1.9c.4.1.8.3 1.2.5l1.6-1 1.4 1.4-1 1.6c.2.4.4.8.5 1.2l1.9.4v2l-1.9.4c-.1.4-.3.8-.5 1.2l1 1.6-1.4 1.4-1.6-1c-.4.2-.8.4-1.2.5L9 15.2H7l-.4-1.9c-.4-.1-.8-.3-1.2-.5l-1.6 1-1.4-1.4 1-1.6c-.2-.4-.4-.8-.5-1.2L.9 9V7l1.9-.4c.1-.4.3-.8.5-1.2l-1-1.6 1.4-1.4 1.6 1c.4-.2.8-.4 1.2-.5L7 .8ZM8 5.4a2.6 2.6 0 1 0 0 5.2 2.6 2.6 0 0 0 0-5.2Z"/></svg></button>
     </div>
   </div>
@@ -574,6 +587,7 @@
     <form method="dialog"><button>Close</button></form>
   </dialog>
 
+  <div id="keys-float" role="dialog" aria-label="Keyboard shortcuts" hidden><header><b id="keys-float-title">Shortcuts</b><button id="keys-float-close" type="button" title="Close (Esc)" aria-label="Close">&times;</button></header><div id="keys-float-body" tabindex="0"></div></div>
   <div id="split">
   <section id="pane-patterns" class="pane keyed">
     <div class="pane-main">

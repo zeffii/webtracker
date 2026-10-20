@@ -2633,7 +2633,7 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     const def = { ...structuredClone(instruments.lead), noteColumns: 3 };
     const registry = new ParamRegistry();
     const defs = { lead: def };
-    for (const n of ['filter.cutoff', 'filter.resonance', 'delay.mix', 'delay.time', 'delay.feedback', 'sampler.nnaFade', 'sampler.offset', 'sampler.retrig', 'sampler.repeats', 'sampler.shift', 'sampler.ramp', 'sampler.reverse', 'sampler.sample', 'sampler.slice']) registry.allocate(`lead.${n}`, 0.5, 0, 1000);
+    for (const n of ['filter.cutoff', 'filter.resonance', 'delay.mix', 'delay.time', 'delay.feedback', 'sampler.nnaFade', 'sampler.offset', 'sampler.retrig', 'sampler.repeats', 'sampler.shift', 'sampler.ramp', 'sampler.reverse', 'sampler.sample', 'sampler.slice', ...['grain', 'edge', 'accel', 'step', 'slide', 'flip', 'prob', 'jOffset', 'jPitch', 'jPan', 'jTime', 'jLevel', 'volLin', 'volLog', 'volDown', 'volUp', 'volFineDown', 'volFineUp', 'volDownMs', 'volUpMs', 'volFineDownMs', 'volFineUpMs', 'subdivide'].map(k => `sampler.${k}`), ...['grain', 'edge', 'accel', 'step', 'slide', 'flip', 'prob', 'jOffset', 'jPitch', 'jPan', 'jTime', 'jLevel'].map(k => `sampler.${k}`)]) registry.allocate(`lead.${n}`, 0.5, 0, 1000);
     const cols = buildColumns('lead', def, registry);
     assert.deepEqual(cols.map(c => c.label), ['N1', 'V1', 'N2', 'V2', 'N3', 'V3', 'Smp', 'Off', 'Rtg', 'Cut', 'Res', 'Mix', 'Time', 'Cmd']);
     assert.deepEqual(cols.slice(0, 2).map(c => c.key), ['note', 'vel'], 'the first pair keeps its keys');
@@ -3958,6 +3958,8 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   assert.ok(first(1, 0, 1) < 0.6 && first(1, 0, 1) > 0.58, 'reverse from a slice plays backwards from the marker');
   const { instruments } = await import('../src/instruments.js');
   assert.ok(instruments.lead.commands.some(c => c.id === 0x10 && c.param === 'slice'));
+  assert.ok(['grain', 'edge', 'accel', 'step', 'slide', 'flip', 'prob', 'jOffset', 'jPitch', 'jPan', 'jTime', 'jLevel'].every(k => instruments.lead.commands.some(c => c.param === k)), 'the grain commands are in the table');
+  assert.equal(new Set(instruments.lead.commands.map(c => c.id)).size, instruments.lead.commands.length, 'no two commands share an id');
 }
 
 // 103. The shipped demo song loads like any saved project and renders.
@@ -6577,6 +6579,103 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     }
   }
   console.log('ok: markdown');
+}
+
+// Left and Right at the ends of the lanes stop, unless Config asks them to wrap round.
+{
+  const registry = new ParamRegistry();
+  for (const [id, def] of Object.entries(instruments)) compile(def.graph, { instrument: id, nodeTypes: NODE_TYPES, registry });
+  const lanes = prepareSong(demoSong, instruments, registry);
+  let onKey;
+  const el = { addEventListener: (type, f) => { if (type === 'keydown') onKey = f; }, innerHTML: '' };
+  const view = createTrackerView({ el, statusEl: { set innerHTML(h) {} }, transport: new Int32Array(new SharedArrayBuffer(8)), onToggle: () => {}, onBack() {} });
+  view.load({ lanes, song: demoSong, editor: createEditor(lanes, demoSong.length) });
+  const press = (key, extra = {}) => onKey({ key, preventDefault() {}, ...extra });
+  const was = uiConfig.get('laneWrap');
+  try {
+    uiConfig.set('laneWrap', false);
+    press('Home'); press('ArrowLeft');
+    assert.deepEqual([view.lane, view.col, view.ch], [0, 0, 0], 'Left at the very start stays there');
+    for (let i = 0; i < 400; i++) press('ArrowRight');
+    const end = [view.lane, view.col, view.ch];
+    assert.equal(end[0], lanes.length - 1, 'Right walks to the last lane');
+    press('ArrowRight'); assert.deepEqual([view.lane, view.col, view.ch], end, 'and stops at the very end');
+    uiConfig.set('laneWrap', true);
+    press('ArrowRight'); assert.deepEqual([view.lane, view.col, view.ch], [0, 0, 0], 'with wrapping on it goes round');
+    press('ArrowLeft'); assert.deepEqual([view.lane, view.col, view.ch], end, 'and back');
+  } finally { uiConfig.set('laneWrap', was); }
+}
+
+// Sampler grains: grain length, overlap, probability, pitch step, slide and jitter.
+{
+  const sampler = (await import('../src/audio/nodes/sampler.js')).default;
+  const names = sampler.params.map(q => q.name), defs = sampler.params.map(q => q.def);
+  const data = Float32Array.from({ length: 20000 }, () => 1);   // a constant, so the output is the envelope times the gain
+  const run = (set, frames = 4000, { note = 60, off = null } = {}) => {
+    const node = sampler.create({ sampleRate: sr, clock: { tickSamples: 1000 } });
+    node.message({ type: 'sample', data, rate: sr });
+    node.note({ type: 'noteOn', note, vel: 1 });
+    const params = defs.map((d, i) => set[names[i]] ?? d), slots = names.map((_, i) => i);
+    const out = new Float32Array(frames);
+    for (let at = 0; at < frames; at += block) {
+      const o = new Float32Array(block);
+      node.process([], [o], block, params, slots);
+      out.set(o.subarray(0, Math.min(block, frames - at)), at);
+    }
+    return out;
+  };
+  const energyAfter = (o, from) => o.slice(from).reduce((a, v) => a + Math.abs(v), 0);
+  const plain = run({});
+  assert.ok(energyAfter(plain, 3000) > 0, 'without a grain the sample plays on');
+  const grained = run({ grain: 1 });   // one tick = 1000 samples
+  assert.ok(energyAfter(grained, 1300) === 0 && energyAfter(grained, 0) > 0, 'a grain ends after its length');
+  // repeats with a grain overlap; without one they cut each other
+  const cut = run({ retrig: 0.5 }), cloud = run({ retrig: 0.5, grain: 1.5 });
+  assert.ok(Math.max(...cloud.slice(1200, 3000)) > Math.max(...cut.slice(1200, 3000)) * 1.5, 'overlapping grains add up');
+  // probability 0: only the first sound
+  const none = run({ retrig: 0.5, grain: 0.4, prob: 0 });
+  assert.ok(energyAfter(none, 600) === 0 && energyAfter(none, 0) > 0, 'prob 0 drops every repeat');
+  const all = run({ retrig: 0.5, grain: 0.4 });
+  assert.ok(energyAfter(all, 600) > 0, 'prob 1 plays them');
+  // accel below 1 speeds the repeats up: more sounds start in the same time
+  const starts = o => { let n = 0; for (let i = 1; i < o.length; i++) if (o[i - 1] < 0.01 && o[i] >= 0.01) n++; return n; };
+  assert.ok(starts(run({ retrig: 1, grain: 0.1, accel: 0.7 }, 6000)) > starts(run({ retrig: 1, grain: 0.1 }, 6000)), 'accel speeds repeats up');
+  // pitch step and slide use a ramp so position shows in the value
+  const ramp = Float32Array.from({ length: 20000 }, (_, i) => i / 20000);
+  const rampRun = set => {
+    const node = sampler.create({ sampleRate: sr, clock: { tickSamples: 1000 } });
+    node.message({ type: 'sample', data: ramp, rate: sr });
+    node.note({ type: 'noteOn', note: 60, vel: 1 });
+    const params = defs.map((d, i) => set[names[i]] ?? d), slots = names.map((_, i) => i), out = new Float32Array(3072);
+    for (let at = 0; at < 3072; at += block) { const o = new Float32Array(block); node.process([], [o], block, params, slots); out.set(o, at); }
+    return out;
+  };
+  const steady = rampRun({}), up = rampRun({ slide: 0.5 }), down = rampRun({ slide: -0.5 });
+  assert.ok(up[3000] > steady[3000] && down[3000] < steady[3000], 'slide bends the pitch up and down');
+  // jitter: pitch jitter changes the sound, zero jitter does not; the notes still play
+  const j0 = rampRun({ jPitch: 0 }), j1 = rampRun({ jPitch: 6 });
+  assert.ok(j0.every((v, i) => v === steady[i]) && j1.some((v, i) => Math.abs(v - steady[i]) > 1e-4), 'jitter only when asked');
+  // volume slides: at the note, and written to a sound that plays
+  const slideBase = run({ edge: 0 }, 3000)[2500];
+  const dbDown = run({ volDown: 0x0606 }, 3000)[2500], lin = run({ volLin: 0x0620 }, 3000)[2500], logTo = run({ volLog: 0x0601 }, 3000)[2500];
+  assert.ok(Math.abs(dbDown / slideBase - Math.pow(10, -6 / 20)) < 0.01, 'volDown 6 dB over a tick');
+  assert.ok(Math.abs(lin / slideBase - 0.5) < 0.01, 'volLin to 0x20, half');
+  assert.ok(Math.abs(logTo / slideBase - 1 / 64) < 0.002, 'volLog to 1/64');
+  assert.ok(Math.abs(run({ volFineDown: 0x0680 }, 3000)[2500] / slideBase - Math.pow(10, -0.5 / 20)) < 0.01, 'fine slide: half a dB');
+  assert.ok(Math.abs(run({ volDown: 0x0C06, subdivide: 12 }, 3000)[2500] / slideBase - Math.pow(10, -6 / 20)) < 0.01, 'subdivide 12: 12 subticks are one tick');
+  assert.ok(Math.abs(run({ volDownMs: 0x0206 }, 3000)[2500] / slideBase - Math.pow(10, -6 / 20)) < 0.01, 'the millisecond slide: 6 dB in 20 ms');
+  {
+    const node = sampler.create({ sampleRate: sr, clock: { tickSamples: 1000 } });
+    node.message({ type: 'sample', data, rate: sr });
+    node.note({ type: 'noteOn', note: 60, vel: 1 });
+    const params = defs.map(d => d), slots = names.map((_, i) => i), out = new Float32Array(4096);
+    for (let at = 0; at < 4096; at += block) {
+      if (at === 1024) params[names.indexOf('volDown')] = 0x060C;   // 12 dB over a tick, written mid-note
+      const o = new Float32Array(block); node.process([], [o], block, params, slots); out.set(o, at);
+    }
+    assert.ok(Math.abs(out[3000] / out[1000] - Math.pow(10, -12 / 20)) < 0.02, 'a slide written to a playing sound slides it');
+  }
+  assert.ok(run({ retrig: 0.5, grain: 0.8, jOffset: 1, jPitch: 12, jPan: 1, jTime: 1, jLevel: 1 }).every(Number.isFinite), 'every jitter at full stays finite');
 }
 
 // Node presets

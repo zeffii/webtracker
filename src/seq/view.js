@@ -158,6 +158,8 @@ export function createTrackerView({ showMenu = (e, items) => showContextMenu(e, 
 
   const moveRow = d => { const n = hi - lo; cur.tick = lo + ((cur.tick - lo + d) % n + n) % n; };
   const hopLane = d => (solo ? solo.lane : (cur.lane + d + lanes.length) % lanes.length);   // the lane a step off the end of one lands in
+  // Left and Right at the first or last column of the first or last lane (or of the lane in solo-edit): wrap round to the other end, or stop (Config)
+  const stopsAtEnd = d => !config.get('laneWrap') && (solo !== null || cur.lane + d < 0 || cur.lane + d >= lanes.length);
   const moveLane = d => {
     cur.lane = hopLane(d);
     snapCol();
@@ -170,6 +172,7 @@ export function createTrackerView({ showMenu = (e, items) => showContextMenu(e, 
     if (cur.ch < 0) {
       const prev = neighbour(cur.lane, cur.col, -1);
       if (prev < 0) {
+        if (stopsAtEnd(-1)) { cur.ch = 0; return; }
         cur.lane = hopLane(-1);
         cur.col = visibleCols(cur.lane, -1).at(-1);
       } else cur.col = prev;
@@ -177,6 +180,7 @@ export function createTrackerView({ showMenu = (e, items) => showContextMenu(e, 
     } else if (cur.ch >= cellWidth()) {
       const next = neighbour(cur.lane, cur.col, 1);
       if (next < 0) {
+        if (stopsAtEnd(1)) { cur.ch = cellWidth() - 1; return; }
         cur.lane = hopLane(1);
         cur.col = visibleCols(cur.lane, -1)[0];
       } else cur.col = next;
@@ -191,6 +195,7 @@ export function createTrackerView({ showMenu = (e, items) => showContextMenu(e, 
     const there = neighbour(cur.lane, cur.col, d);
     if (there >= 0) cur.col = there;
     else {
+      if (stopsAtEnd(d)) return;
       cur.lane = hopLane(d);
       const cols = visibleCols(cur.lane, -1);
       cur.col = d > 0 ? cols[0] : cols.at(-1);
@@ -203,6 +208,7 @@ export function createTrackerView({ showMenu = (e, items) => showContextMenu(e, 
     const there = neighbour(cur.lane, cur.col, d);
     if (there >= 0) cur.col = there;
     else {
+      if (stopsAtEnd(d)) return;
       cur.lane = hopLane(d);
       const cols = visibleCols(cur.lane, -1);
       cur.col = d > 0 ? cols[0] : cols.at(-1);

@@ -131,12 +131,16 @@ export function upgradeSamplerLayout(data) {
 
 // Returns { song, instruments, samples } in the shape prepareSong and the engine use.
 // Sampler instruments saved before the slice command got it: it is added on loading.
+// The same for the grain and texture commands (0B to 17), added where their id and parameter are both free.
+const LATER_SAMPLER_COMMANDS = [[0x10, 'slice'], [0x0B, 'grain'], [0x0C, 'edge'], [0x0D, 'accel'], [0x0E, 'step'], [0x0F, 'slide'], [0x11, 'flip'], [0x12, 'prob'], [0x13, 'jOffset'], [0x14, 'jPitch'], [0x15, 'jPan'], [0x16, 'jTime'], [0x17, 'jLevel'], [0x18, 'volLin'], [0x19, 'volLog'], [0x1A, 'volDown'], [0x1B, 'volUp'], [0x1C, 'volFineDown'], [0x1D, 'volFineUp'], [0x90, 'volDownMs'], [0x91, 'volUpMs'], [0x92, 'volFineDownMs'], [0x93, 'volFineUpMs'], [0x1E, 'subdivide']];
 function ensureSliceCommand(data) {
   for (const def of Object.values(data.instruments ?? {})) {
     const node = def.graph?.nodes?.find(n => n.type === 'sampler');
     if (!node || !def.commands) continue;
-    if (def.commands.some(c => c.id === 0x10 || (c.node === node.id && c.param === 'slice'))) continue;
-    def.commands.push({ id: 0x10, node: node.id, param: 'slice' });
+    for (const [id, param] of LATER_SAMPLER_COMMANDS) {
+      if (def.commands.some(c => c.id === id || (c.node === node.id && c.param === param))) continue;
+      def.commands.push({ id, node: node.id, param });
+    }
   }
 }
 

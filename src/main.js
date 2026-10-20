@@ -64,6 +64,7 @@ $('panic').addEventListener('click', e => { engine.panic(); patcher.releaseKeys(
 $('play').addEventListener('click', e => { togglePlay(); e.currentTarget.blur(); });
 
 // The Script panel docked beside the pattern editor: shown with it while the Patterns tab is up.
+let keysRefresh = () => {};   // set once the floating shortcuts window exists
 let scriptDock = false, dockW = 0;
 try { scriptDock = localStorage.getItem('webtracker.scriptDock') === '1'; dockW = Number(localStorage.getItem('webtracker.scriptDockW')) || 0; } catch {}
 function applyDock(id = 'patterns', relayout = true) {
@@ -95,7 +96,7 @@ $('dock-grip').addEventListener('mousedown', e => {
 // Full-screen panes. Switching with an F-key or a click focuses the pane's main element.
 let tabBefore = 'patterns', tabNow = 'patterns';   // where the Info close button goes back to
 const tabs = createTabs({
-  onChange: id => { if (id !== tabNow) { tabBefore = tabNow; tabNow = id; } applyDock(id); },
+  onChange: id => { if (id !== tabNow) { tabBefore = tabNow; tabNow = id; } applyDock(id); keysRefresh(id); },
   tabs: [
     { id: 'patterns', key: 'F1', el: $('pane-patterns'), button: $('tab-patterns'), focus: $('view') },
     { id: 'samples', key: 'F2', el: $('pane-samples'), button: $('tab-samples'), focus: $('smp') },
@@ -350,23 +351,37 @@ attachGrip({ grip: $('patch-grip'), key: 'webtracker.graphHeight', get: () => pa
 attachGrip({ grip: $('view-grip'), key: 'webtracker.patternRows', get: () => view.rows, set: n => view.setRows(n), unit: () => view.lineHeight(), step: 1, bigStep: 8, normal: 24 });
 attachGrip({ grip: $('seq-grip'), key: 'webtracker.arrangementRows', get: () => seqView.rows, set: n => seqView.setRows(n), unit: () => 18, step: 1, bigStep: 8, normal: 24 });
 
-// The keyboard shortcut panels can be hidden (the button in the tab bar, or "hide" in a panel); the screens then
-// use the whole width. The choice is remembered in this browser.
-{
-  const toggle = $('keys-toggle');
-  const apply = hidden => {
-    document.body.classList.toggle('nokeys', hidden);
-    toggle.setAttribute('aria-pressed', String(!hidden));
+// The keyboard shortcuts of the screen in view, in a small floating window: the Shortcuts button opens and closes it, Esc
+// closes it, and its title bar drags it. Its text is a copy of the screen's own shortcut list, taken when it opens and when the
+// screen changes. (The old fixed panels are always hidden; the script tutorial and the arrangement's pattern list stay.)
+(() => {
+  document.body.classList.add('nokeys');
+  const box = $('keys-float'), body = $('keys-float-body'), button = $('keys-toggle');
+  const PANES = { patterns: 'pane-patterns', samples: 'pane-samples', instruments: 'pane-instruments', arrange: 'pane-arrange' };
+  const fill = id => {
+    const aside = PANES[id] && document.querySelector(`#${PANES[id]} .keys`);
+    body.replaceChildren();
+    if (!aside) { body.append(Object.assign(document.createElement('p'), { textContent: 'This screen has no shortcut list of its own.' })); return; }
+    for (const n of aside.children) if (n.id !== 'seq-side' && n.tagName !== 'H3') body.append(n.cloneNode(true));
+    $('keys-float-title').textContent = `Shortcuts: ${id === 'arrange' ? 'arrangement' : id}`;
   };
-  apply(config.get('hideKeys'));
-  config.onChange((k, v) => { if (k === 'hideKeys') apply(v); });
-  toggle.addEventListener('click', () => config.set('hideKeys', !document.body.classList.contains('nokeys')));
-  for (const h of document.querySelectorAll('.keys h3')) {
-    const hide = Object.assign(document.createElement('button'), { textContent: 'hide', title: 'Hide the shortcut panels' });
-    hide.addEventListener('click', () => apply(true));
-    h.append(hide);
-  }
-}
+  const open = id => { fill(id); box.hidden = false; button.setAttribute('aria-pressed', 'true'); };
+  const close = () => { if (box.hidden) return false; box.hidden = true; button.setAttribute('aria-pressed', 'false'); return true; };
+  button.addEventListener('click', () => { if (box.hidden) open(tabs.active); else close(); button.blur(); });
+  $('keys-float-close').addEventListener('click', close);
+  // Esc closes it before anything else sees the key
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && !box.hidden && close()) { e.preventDefault(); e.stopImmediatePropagation(); } }, true);
+  // dragging by the title bar
+  $('keys-float').querySelector('header').addEventListener('mousedown', e => {
+    if (e.target.closest('button')) return;
+    e.preventDefault();
+    const r = box.getBoundingClientRect(), dx = e.clientX - r.left, dy = e.clientY - r.top;
+    const move = m => { box.style.left = `${Math.max(0, Math.min(innerWidth - 60, m.clientX - dx))}px`; box.style.top = `${Math.max(0, Math.min(innerHeight - 30, m.clientY - dy))}px`; box.style.right = 'auto'; };
+    const up = () => { removeEventListener('mousemove', move); removeEventListener('mouseup', up); };
+    addEventListener('mousemove', move); addEventListener('mouseup', up);
+  });
+  keysRefresh = id => { if (!box.hidden) fill(id); };
+})();
 
 // The floating insert menu lives over the patcher canvas.
 const menu = createInsertMenu({ parent: $('patch-wrap'), nodeTypes: NODE_TYPES, onPick: (type, at) => patcher.add(type, at) });

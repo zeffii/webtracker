@@ -62,6 +62,96 @@ export const PAGES = {
     best: ['A few Hz of shift gives a slow, shimmering detune; hundreds of Hz gives bells and robot voices.', 'Feedback makes spirals that climb or fall forever. Use small values and keep a hand on mix.'],
     limits: ['It does not keep musical intervals: a shifted chord is not a transposed chord.'],
   },
+  sampler: {
+    summary: 'Plays the samples of the instrument, one note at a time or in repeating bursts. Besides pitch and level it has a start position, slices, loops, a new-note action, and a retrigger engine that can repeat, move through the sample, change pitch and speed, and scatter the repeats randomly into grains.',
+    best: [
+      'One-shots (drums): leave grain and the jitters at 0. Each hit plays to its end and rings over the next note.',
+      'Stutters and rolls: put an interval in the Rtg column (1000 is one tick, 0800 half a tick) and the repeats follow until the note ends. 0A reverse and 11 flip turn them backwards.',
+      'Fake granular synthesis: a short Rtg, a grain length a little longer than the interval, a tiny 08 shift so the window creeps through the sample, and a little jitter on offset, pitch and pan. Sustained notes become clouds.',
+      'Use a long, slow sample (a pad, a voice, a field recording), set the Off column to the interesting part, and let 08 shift walk away from it.',
+      'Rising and falling rolls: 0D accel below 1 speeds the repeats up, above 1 slows them. 0E step makes each repeat a semitone (or any amount) higher.',
+      'Everything is a pattern command, so a roll can change from row to row. Write 0000 to the command to turn it off again.',
+    ],
+    limits: [
+      'Sixteen voices per instrument. A big cloud (short interval, long grains) uses a voice per grain in flight, and the oldest is stolen when they run out: shorten the grain or slow the rate if it starts to sound thin.',
+      'The jitters come from a random number generator that is not reset, so a bar with jitter sounds a little different each time it plays. Exported renders differ from run to run.',
+      'Repeats keep going until the note ends: a new note, a note off or a cut. A repeat that would start past the end (or before the start) of the sample ends the chain.',
+      'The gap between repeats cannot go below 1 ms, so a strong accel does not run away.',
+      'No time stretching: grain length and pitch are independent only in the sense that you choose both. Every sound plays at the speed that its pitch implies.',
+    ],
+    sections: [
+      {
+        title: 'How a note plays',
+        text: [
+          'A note starts a sound at the start position (the Off column, or a slice marker if the 10 slice command points at one) and plays it forward, or backward when 0A reverse is 1. The sample\'s own loops apply: a looping sample plays on until the note ends, a one-shot plays to its end.',
+          'A new note fades out looping voices over nnaFade ms (new-note action). One-shots are left to ring.',
+        ],
+      },
+      {
+        title: 'Repeats: how a note becomes a chain',
+        text: [
+          'Give the note an interval in the Rtg column and it repeats. The interval is in ticks, written as four hex digits: 1000 is one tick, 0800 half a tick, 0400 a quarter, 2000 two ticks.',
+          '07 repeats says how many (0 means until the note ends). Before each repeat the chain moves on: 08 shift moves the start along the sample, 09 ramp multiplies the volume, 0E step raises the pitch, 11 flip turns the direction round, and 0D accel changes the interval for the repeat after.',
+          'Without a grain length, each repeat cuts the one before (2 ms crossfade), like a stutter. With a grain length the sounds end on their own and overlap.',
+        ],
+      },
+      {
+        title: 'Grains',
+        text: [
+          '0B grain is how long each sound lasts. Every sound, the first and each repeat, gets a fade in and a fade out; 0C edge sets how much of the grain is fade (0 hard edges of 2 ms, 1 a triangle, 8000-ish halfway).',
+          'A grain a little longer than the interval overlaps the next one, which smooths into a continuous sound. A grain shorter than the interval leaves gaps and sounds like a gate. The sample pitch and the grain length are independent: shift moves through the sample slowly while grains keep their own pitch.',
+          'The jitters make the texture. 13 jOffset moves each grain\'s start, 14 jPitch detunes it, 15 jPan places it, 16 jTime makes the repeat late, 17 jLevel makes it quieter. Each takes a maximum; the actual value is random between none and that.',
+          '12 prob drops repeats at random (the timing carries on, so it is a gap, not a slowdown).',
+        ],
+      },
+      {
+        title: 'Recipes',
+        text: [
+          'Cloud: Rtg 0400, 07 repeats 0000, 0B grain 1800, 0C edge 8000, 08 shift 8040, 13 jOffset 0200, 14 jPitch 0800, 15 jPan 4000. Hold the note and the cloud drifts through the sample.',
+          'Rising roll: Rtg 1000, 07 repeats 0010, 0D accel 6000, 0E step 8800, 09 ramp B000. Sixteen hits, each faster, a semitone higher, and getting louder.',
+          'Tape stop: 0F slide 7800 bends down one semitone every tick for as long as the sound plays.',
+          'Gated chop: 0B grain 0400, Rtg 0800, 12 prob C000, 11 flip 0001. Quarter-tick chops, a quarter missing, every other one backwards.',
+          'Fade out a held note: 1A 0C18 (down 24 dB over two ticks), or 19 0C01 for a fade to nearly nothing in two ticks. Write the slide on the row where the fade should start; the note keeps playing underneath. A slide stops at its target, so write another to go on.',
+          'Reset: write 0000 to 0B grain, 08 shift 8000, 0D accel 8000, 0E step 8000, 0F slide 8000, 11 flip 0000, 12 prob FFFF and the jitters 0000. (Rtg 0000 stops the repeats.)',
+        ],
+      },
+      {
+        title: 'The command list',
+        rows: [
+          ['Smp', 'column: which sample of the instrument\'s list plays'],
+          ['Off', 'column: start position, 0000 the start, FFFF the end'],
+          ['Rtg', 'column: ticks between repeats, 1000 is one tick, 0000 no repeats'],
+          ['01 / 02', 'filter cutoff / resonance'],
+          ['03, 04, 05', 'delay time / feedback / mix'],
+          ['06 nnaFade', 'ms for looping voices to fade when a new note starts'],
+          ['07 repeats', 'how many repeats (0000 until the note ends)'],
+          ['08 shift', 'the start moves this far along the sample per repeat; 8000 none, above goes forward, below back'],
+          ['09 ramp', 'each repeat\'s volume is multiplied by this; C000 is x1, 8000 halves it'],
+          ['0A reverse', '0001 plays backwards (the start counts from the end)'],
+          ['0B grain', 'each sound lasts this many ticks (1000 is one tick); 0000 plays to the sample\'s end'],
+          ['0C edge', 'fade share of a grain: 0000 hard, FFFF triangle'],
+          ['0D accel', 'each repeat\'s interval is multiplied by this: 8000 is x1, 4000 halves it (speeds up), C000 is x1.5'],
+          ['0E step', 'semitones each repeat is higher: 8000 none, 8800 +1, 7800 -1 (0800 is one semitone)'],
+          ['0F slide', 'pitch bend while a sound plays, semitones per tick: 8000 none, 8800 up one per tick, 7800 down'],
+          ['10 slice', 'start at a slice marker: 0000 the first, 0001 the second; FFFF puts Off back in charge'],
+          ['18 volLin', 'XXYY: slide the volume in a straight line to the level YY/40 (hex; 40 is the sound\'s own level, 20 half, 80 double), in XX subticks (six to a tick; 00 at once). Written while a sound plays it slides that sound; before a note, every sound of the note'],
+          ['19 volLog', 'XXYY: the same, even in dB (a steady fade); level 00 goes to about -80 dB'],
+          ['1A volDown', 'XXYY: slide down by YY dB in XX subticks (1A 0606: 6 dB over one tick)'],
+          ['1B volUp', 'XXYY: slide up by YY dB in XX subticks'],
+          ['1C / 1D', 'XXYY: fine slide down / up by YY/256 dB (1C 0680: half a dB over one tick)'],
+          ['1E subdivide', 'subticks in a tick, default 6: the unit of the slides\' time (a slide of XX subticks lasts XX/subdivide ticks)'],
+          ['90 to 93', 'the same as 1A to 1D, with XX in tens of milliseconds, whatever the tempo (90 0A06: 6 dB down over 100 ms)'],
+          ['11 flip', '0001: every repeat plays the other way round'],
+          ['12 prob', 'chance a repeat sounds: FFFF always, 8000 half'],
+          ['13 jOffset', 'random start, up to this fraction of the sample either way: FFFF is the whole sample'],
+          ['14 jPitch', 'random pitch, up to this many semitones either way: FFFF is 12'],
+          ['15 jPan', 'random pan: FFFF is anywhere from full left to full right'],
+          ['16 jTime', 'each repeat late by a random part of the interval: FFFF up to a whole interval'],
+          ['17 jLevel', 'random volume: FFFF down to silence at worst'],
+        ],
+      },
+    ],
+  },
   blur: {
     summary: 'Smears the sound across frequency and time, so it melts into a breathy wash.',
     best: ['Use it on a send, with mix partly open, to turn a sound into a pad.', 'Freeze holds the moment, so the sound hangs in the air until you release it.'],
@@ -80,6 +170,11 @@ export function helpPage(type, def) {
     parts.push(`<p>${esc(page.summary)}</p>`);
     if (page.best.length) parts.push(`<h3>Getting the most out of it</h3><ul>${page.best.map(b => `<li>${esc(b)}</li>`).join('')}</ul>`);
     if (page.limits.length) parts.push(`<h3>Limits</h3><ul>${page.limits.map(b => `<li>${esc(b)}</li>`).join('')}</ul>`);
+    for (const sec of page.sections ?? []) {   // longer explanations: paragraphs and command lists
+      parts.push(`<h3>${esc(sec.title)}</h3>`);
+      for (const t of sec.text ?? []) parts.push(`<p>${esc(t)}</p>`);
+      if (sec.rows) parts.push(`<dl>${sec.rows.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('')}</dl>`);
+    }
   } else parts.push('<p class="hp-none">There is no written page for this node yet. This is its list of parameters.</p>');
   parts.push(`<h3>Ports</h3><p>In: ${esc(kinds(def.inputs ?? []))}. Out: ${esc(kinds(def.outputs ?? []))}.</p>`);
   const rows = (def.params ?? []).map(spec => {
