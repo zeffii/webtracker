@@ -80,6 +80,11 @@ function toggleDock() {
   applyDock(tabs.active);
   if (scriptDock && tabs.active === 'patterns') $('script').focus(); else if (!scriptDock && tabs.active === 'patterns') $('view').focus();
 }
+$('script-help').addEventListener('click', e => {
+  const on = document.body.classList.toggle('shelp');
+  $('script-help').setAttribute('aria-pressed', String(on));
+  e.currentTarget.blur();
+});
 $('script-dock').addEventListener('click', e => { toggleDock(); e.currentTarget.blur(); });
 $('dock-grip').addEventListener('mousedown', e => {
   e.preventDefault();

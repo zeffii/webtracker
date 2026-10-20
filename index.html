@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="themes.css">
-  <title>webtracker m264</title>
+  <title>webtracker m265</title>
   <link rel="icon" href="icon.ico" sizes="any">
   <link rel="icon" type="image/png" href="icon.png">
   <style>
@@ -78,6 +78,11 @@
     body.sdock #split > #pane-patterns { flex: 1 1 0; min-width: 0; }
     body.sdock #split > #pane-script:not([hidden]) { flex: 0 0 var(--dock-w, 32rem); min-width: 0; display: block; border-left: 1px solid var(--line); }
     body.sdock #pane-script .keys, body.sdock #pane-script .help { display: none; }
+    body.sdock.shelp #pane-script .keys, body.sdock.shelp #pane-script .help { display: block; }
+    body.sdock.shelp #pane-script .keys { height: auto; max-height: 45vh; margin-top: .5rem; }
+    #script-help { display: none; margin: .3rem 0; }
+    body.sdock #script-help { display: inline-block; }
+    body.sdock #pane-script.keyed:not([hidden]) { grid-template-columns: minmax(0, 1fr); }
     body.sdock #pane-script #script-box { height: 40vh; }
     #dock-grip { display: none; }
     body.sdock #pane-script:not([hidden]) #dock-grip { display: block; position: absolute; left: -3px; top: 0; bottom: 0; width: 6px; cursor: col-resize; }
@@ -627,6 +632,7 @@
       <div class="help">Scripts write pattern data into the pattern under the cursor in the pattern editor (or its selection). They run in their own thread, only when you ask, and change nothing if they fail or take too long. <b>Ctrl+Enter</b> runs the selected code, or all of it; <b>Ctrl+Alt+R</b> in the pattern editor runs the whole script on the pattern there. Saved with the project. <button id="script-run" type="button">Run</button></div>
       <div id="script-box"><pre id="script-hl" aria-hidden="true"></pre><textarea id="script" spellcheck="false" wrap="off" autocapitalize="off" autocomplete="off" aria-label="Script"></textarea></div>
       <div id="script-status" class="statusbar"></div>
+      <button id="script-help" type="button" aria-pressed="false" title="Show or hide the scripting help and tutorial beside the docked panel">Script help</button>
       <pre id="script-out" tabindex="0" aria-label="Script output" aria-live="polite"></pre>
       <input id="script-line" type="text" spellcheck="false" autocomplete="off" aria-label="Try a line of script" placeholder="try a line here and press Enter, for example: scale('minor', 'A', 2)">
     </div>
