@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="themes.css">
-  <title>webtracker m253</title>
+  <title>webtracker m255</title>
   <link rel="icon" href="icon.ico" sizes="any">
   <link rel="icon" type="image/png" href="icon.png">
   <style>
@@ -97,8 +97,7 @@
     #cursor .pval { font-weight: 700; font-variant-numeric: tabular-nums; }
     #cursor .prng { opacity: .65; }
     .statusbar { margin: 0; padding: 1px 6px; font: 12px/1.5 ui-monospace, Consolas, monospace; min-height: 1.5em; background: color-mix(in srgb, var(--panel) 80%, var(--fg)); white-space: pre-wrap; }
-    #seq-below { display: flex; gap: 1.25rem; align-items: flex-start; margin-top: .6rem; }
-        #seq-side { flex: none; box-sizing: content-box; width: 24ch; max-height: 361px; overflow-x: hidden; overflow-y: auto; scrollbar-width: thin; font: 12px/17px ui-monospace, Consolas, monospace; padding: 2px 0; white-space: pre; }
+        #seq-side { box-sizing: border-box; width: 100%; margin-bottom: .7rem; max-height: 361px; overflow-x: hidden; overflow-y: auto; scrollbar-width: thin; font: 12px/17px ui-monospace, Consolas, monospace; padding: 2px 0; white-space: pre; }
     /* its own height: room for the header and 20 patterns, then (only then) it scrolls */
     #lane-name { width: 14ch; flex: none; }
     #seq-side .ph, #seq-side .pi { height: 17px; overflow: hidden; }
@@ -246,7 +245,10 @@
     .keys h3 button { font: inherit; font-size: 10px; padding: 0 .35rem; }
     /* hidden: the main part of each screen takes the whole width */
     body.nokeys .keys { display: none; }
+    body.nokeys #pane-arrange .keys { display: block; }   /* in the arrangement the pattern list stays; only the shortcuts go */
+    body.nokeys #pane-arrange .keys > :not(#seq-side) { display: none; }
     body.nokeys .pane.keyed:not([hidden]) { grid-template-columns: minmax(0, 1fr); }
+    body.nokeys #pane-arrange:not([hidden]) { grid-template-columns: minmax(0, 1fr) 20rem; }
     .keys dl { display: grid; grid-template-columns: max-content 1fr; gap: .2rem .8rem; margin: 0; }
     .keys dt { color: #f0707a; }
     .keys dd { margin: 0; color: color-mix(in srgb, var(--fg) 68%, var(--panel)); }
@@ -351,7 +353,6 @@
     .s-card { cursor: pointer; outline: none; }
     .s-card.busy { cursor: default; }
     .s-go { position: absolute; left: 41.8cqw; top: 35cqw; font: max(10px, 1.5cqw)/1 ui-monospace, Consolas, monospace; letter-spacing: .06em; color: #b3b5ba; transition: opacity .25s, color .2s; user-select: none; }
-    .s-card:hover .s-go { color: #f39; }
     .s-go[hidden] { display: block; opacity: 0; }
     .s-log { position: absolute; left: 42cqw; top: 34.5cqw; pointer-events: none; font: clamp(10px, 1.45cqw, 13px)/1.6 ui-monospace, Consolas, monospace; color: #9a9ca3; white-space: pre; }
     .s-log .bad { color: #d33; }
@@ -744,11 +745,10 @@
         <button id="add-lane" disabled title="Add a lane that plays this instrument">Add lane for</button><select id="add-lane-inst" aria-label="Instrument for the new lane" disabled></select>
       </div>
       <div id="seq-grip" class="grip" tabindex="0" role="separator" aria-orientation="horizontal" aria-label="Rows shown: drag, or use Up and Down" title="Drag to change how many rows are shown"></div>
-      <div id="seq-below">
-        <div id="seq-side"><div id="seq-list"></div></div>
-      </div>
     </div>
-      <aside class="keys" aria-label="Arrangement shortcuts"><h3>Shortcuts</h3>
+      <aside class="keys" aria-label="Arrangement patterns and shortcuts">
+        <div id="seq-side"><div id="seq-list"></div></div>
+        <h3>Shortcuts</h3>
         <dl>
           <dt>Up/Down</dt><dd><b class="kw">move</b> in time</dd>
           <dt>Left/Right</dt><dd><b class="kw">change lane</b></dd>

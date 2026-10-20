@@ -85,8 +85,15 @@ const inside = (node, def, x, y) => {
 export { portKind };
 export const KIND_COLOR = { audio: 'hsl(210 50% 58%)', control: 'hsl(35 75% 52%)', stereo: 'hsl(285 40% 62%)', param: 'hsl(5 85% 72%)' };
 
+// How far the wire leaves a port before it bends: 50 px normally, shrinking to nothing as the two ends come within
+// Config's wireStraight distance of each other (fully straight at that distance, full arms at twice it).
+const arm = (a, b) => {
+  const s = config.get('wireStraight');
+  return s > 0 ? 50 * Math.max(0, Math.min(1, (Math.hypot(b.x - a.x, b.y - a.y) - s) / s)) : 50;
+};
+
 const bezier = (a, b, t) => {
-  const c1 = { x: a.x + 60, y: a.y }, c2 = { x: b.x - 60, y: b.y }, u = 1 - t;
+  const k = arm(a, b), c1 = { x: a.x + k, y: a.y }, c2 = { x: b.x - k, y: b.y }, u = 1 - t;
   const w = [u * u * u, 3 * u * u * t, 3 * u * t * t, t * t * t];
   return { x: w[0] * a.x + w[1] * c1.x + w[2] * c2.x + w[3] * b.x, y: w[0] * a.y + w[1] * c1.y + w[2] * c2.y + w[3] * b.y };
 };
@@ -927,7 +934,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
       ctx.strokeStyle = chosen ? accent : KIND_COLOR[kind];
       ctx.lineWidth = hot ? 5 : chosen ? 3.5 : kind === 'stereo' ? 3 : 1.75;   // a stereo pair is drawn heavier
       ctx.moveTo(a.x, a.y);
-      ctx.bezierCurveTo(a.x + 50, a.y, b.x - 50, b.y, b.x, b.y);
+      { const k = arm(a, b); ctx.bezierCurveTo(a.x + k, a.y, b.x - k, b.y, b.x, b.y); }
       ctx.stroke();
     });
     if (drag?.kind === 'move' && drag.pull && drag.inline) {   // where the neighbours would be joined
@@ -937,7 +944,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
       ctx.lineWidth = 2;
       ctx.beginPath();
       ctx.moveTo(drag.inline.a.x, drag.inline.a.y);
-      ctx.bezierCurveTo(drag.inline.a.x + 50, drag.inline.a.y, drag.inline.b.x - 50, drag.inline.b.y, drag.inline.b.x, drag.inline.b.y);
+      { const k = arm(drag.inline.a, drag.inline.b); ctx.bezierCurveTo(drag.inline.a.x + k, drag.inline.a.y, drag.inline.b.x - k, drag.inline.b.y, drag.inline.b.x, drag.inline.b.y); }
       ctx.stroke();
       ctx.restore();
     }
@@ -1033,7 +1040,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
       ctx.lineWidth = 4;
       ctx.beginPath();
       ctx.moveTo(a.x, a.y);
-      ctx.bezierCurveTo(a.x + 50, a.y, b.x - 50, b.y, b.x, b.y);
+      { const k = arm(a, b); ctx.bezierCurveTo(a.x + k, a.y, b.x - k, b.y, b.x, b.y); }
       ctx.stroke();
       ctx.restore();
     }
