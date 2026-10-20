@@ -343,16 +343,16 @@
     body.splashing { overflow: hidden; }
     #splash { position: fixed; inset: 0; z-index: 1000; background: #c9ccd3; display: grid; place-items: center; transition: opacity .3s; }
     #splash[hidden] { display: none; }
-    .s-card { position: relative; width: min(92vw, 150vh); aspect-ratio: 1.61 / 1; container-type: inline-size; background: #fff; overflow: hidden; box-shadow: 0 1px 0 #0001, 0 12px 40px -18px #0006; transition: opacity .35s, transform .5s; }
+    .s-card { position: relative; width: min(45vw, 72vh); min-width: min(92vw, 520px); aspect-ratio: 1.61 / 1; container-type: inline-size; background: #fff; overflow: hidden; box-shadow: 0 1px 0 #0001, 0 12px 40px -18px #0006; transition: opacity .35s, transform .5s; }
     #splash.leaving .s-card { opacity: 0; transform: scale(1.03); }
     #splash.leaving { opacity: 0; }
     .s-card canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
-    .s-word { position: absolute; left: 41cqw; top: 31cqw; margin: 0; font: 700 9.2cqw/1 ui-monospace, Consolas, monospace; letter-spacing: -.02em; color: #f0f0f1; user-select: none; white-space: nowrap; }
-    .s-go { position: absolute; left: 41.8cqw; top: 43.5cqw; font: 500 max(11px, 1.9cqw)/1 ui-monospace, Consolas, monospace; letter-spacing: .2em; text-transform: uppercase; color: #8d8f95; background: #fff; border: 1px solid #c9cacf; border-radius: 2px; padding: 1.1cqw 2.6cqw; cursor: pointer; transition: opacity .25s, color .2s, border-color .2s; }
+    .s-word { position: absolute; left: 41cqw; top: 22cqw; margin: 0; font: 700 9.2cqw/1 ui-monospace, Consolas, monospace; letter-spacing: -.02em; color: #f0f0f1; user-select: none; white-space: nowrap; }
+    .s-go { position: absolute; left: 41.8cqw; top: 35cqw; font: 500 max(11px, 1.9cqw)/1 ui-monospace, Consolas, monospace; letter-spacing: .2em; text-transform: uppercase; color: #8d8f95; background: #fff; border: 1px solid #c9cacf; border-radius: 2px; padding: 1.1cqw 2.6cqw; cursor: pointer; transition: opacity .25s, color .2s, border-color .2s; }
     .s-go:hover { color: #f39; border-color: #f39; }
     .s-go:focus-visible { outline: 1px solid #f39; outline-offset: 3px; }
     .s-go[hidden] { display: block; opacity: 0; pointer-events: none; }
-    .s-log { position: absolute; left: 42cqw; top: 43cqw; pointer-events: none; font: clamp(10px, 1.45cqw, 13px)/1.6 ui-monospace, Consolas, monospace; color: #9a9ca3; white-space: pre; }
+    .s-log { position: absolute; left: 42cqw; top: 34.5cqw; pointer-events: none; font: clamp(10px, 1.45cqw, 13px)/1.6 ui-monospace, Consolas, monospace; color: #9a9ca3; white-space: pre; }
     .s-log .bad { color: #d33; }
     #cmdbar { position: fixed; left: 0; right: 0; z-index: 3; display: flex; align-items: center; gap: .5rem; padding: .25rem .6rem; background: var(--panel); border-top: 1px solid color-mix(in srgb, var(--fg) 35%, transparent); font: 13px ui-monospace, Consolas, monospace; }
     #cmdbar[hidden] { display: none; }
