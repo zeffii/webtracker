@@ -1,14 +1,17 @@
 import { GraphRuntime } from './runtime.js';
 import { Sequencer } from './sequencer.js';
-import { ringWriter } from './vring.js';
+import { ringWriter, laneWriter } from './vring.js';
 
 class TrackerEngine extends AudioWorkletProcessor {
   constructor(options) {
     super();
-    const { sab, transport, wasm, vring } = options.processorOptions;
+    const { sab, transport, wasm, vring, lring } = options.processorOptions;
     this.vring = ringWriter(vring);
+    const lanes = laneWriter(lring), slotOf = new Map();
+    this.setLaneIds = ids => { slotOf.clear(); ids.forEach((id, k) => slotOf.set(id, k)); };
     const params = new Float32Array(sab);
     this.rt = new GraphRuntime({ sampleRate, params, wasm });
+    this.rt.onLane = (id, l, r, n) => { const k = slotOf.get(id); if (k !== undefined && lanes.wants(k)) lanes.write(k, l, r, n); };
     this.seq = new Sequencer({ sampleRate, runtime: this.rt, params, transport: new Int32Array(transport) });
     // Load meter. The worklet has no fine clock, only Date.now() in whole milliseconds, but the average of many such
     // readings is unbiased, so the load is exact on average; the peak is good to about a millisecond.
@@ -25,6 +28,7 @@ class TrackerEngine extends AudioWorkletProcessor {
       else if (data.type === 'scope') this.rt.setScope(data.instrument, data.node, data.on);
       else if (data.type === 'cut') { this.rt.panic(); this.seq.stop(); this.halted = true; }
       else if (data.type === 'panic') this.rt.panic();
+      else if (data.type === 'lanetaps') this.setLaneIds(data.ids);
       else if (data.type === 'reset') {
         const fresh = new Float32Array(data.sab);
         this.rt.reset(fresh);

@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="themes.css">
-  <title>webtracker m245</title>
+  <title>webtracker m248</title>
   <link rel="icon" href="icon.ico" sizes="any">
   <link rel="icon" type="image/png" href="icon.png">
   <style>
@@ -209,7 +209,7 @@
     #view .now { background: rgba(90, 150, 255, .22); }
     #seq .r.now { position: relative; }
     #seq .r.now::after { content: ""; position: absolute; inset: 0; background: rgba(90, 150, 255, .22); pointer-events: none; }
-    #follow[aria-pressed="true"] { background: var(--hi); color: var(--hi-fg); }
+    #follow[aria-pressed="true"], #scope[aria-pressed="true"], #meters-btn[aria-pressed="true"] { background: var(--hi); color: var(--hi-fg); }
     #seq .cell.sel::after { content: ""; position: absolute; inset: 0; background: color-mix(in srgb, var(--hi) 40%, transparent); pointer-events: none; }
     #view .sel { background: color-mix(in srgb, var(--hi) 40%, transparent); }
     #view .cur { background: var(--hi); color: var(--hi-fg); }
@@ -340,6 +340,9 @@
     .meter-pan { position: relative; display: flex; flex-direction: column; min-width: 0; border-right: 1px solid #22252c; }
     .meter-pan:last-child { border-right: 0; }
     .meter-pan h6 { margin: 0; position: absolute; left: 7px; top: 4px; font: 500 9px ui-monospace, Consolas, monospace; letter-spacing: .1em; color: #6d7480; pointer-events: none; z-index: 1; }
+    .layer-btns { position: absolute; right: 6px; top: 3px; display: flex; gap: 2px; z-index: 2; }
+    .layer-btns button { min-width: 16px; height: 14px; padding: 0 3px; font: 500 9px/12px ui-monospace, Consolas, monospace; color: #9aa0aa; background: transparent; border: 1px solid #2a2e36; border-radius: 3px; cursor: pointer; }
+    .layer-btns button[aria-pressed="true"] { color: #fff; background: hsl(var(--h) 60% 30% / .75); border-color: hsl(var(--h) 70% 50%); }
     .meter-pan canvas { flex: 1; width: 100%; min-height: 0; display: block; }
     #vscope { position: fixed; z-index: 40; cursor: move; touch-action: none; user-select: none; aspect-ratio: 1; width: calc(var(--vs, 45) * 1vmin); border-radius: 10px; background: rgba(8, 8, 10, .62); border: 1px solid rgba(255, 255, 255, .12); }
     #vscope[hidden] { display: none; }
@@ -460,8 +463,8 @@
       <label>bpm <input id="bpm" type="number" min="20" max="400" step="1" style="width:4em" disabled></label>
       <label title="How much of each pair of rows the first one lasts: 50 is straight, 67 is a triplet shuffle">swing <span class="field"><input id="swing" type="number" min="50" max="75" step="1" style="width:2.6em" disabled><span class="unit">%</span></span></label>
       <button id="load" disabled>Load</button>
-      <button id="meters-btn" title="Meter band along the bottom: spectrum, level and loudness, correlation (Ctrl+Alt+M); choose the panels in Config">Meters</button>
-      <button id="scope" title="Vectorscope overlay: left against right; drag it anywhere (Ctrl+Alt+O)">Scope</button>
+      <button id="meters-btn" title="Meter band along the bottom: spectrum, level and loudness, correlation (Ctrl+Alt+M); choose the panels in Config" aria-label="Meters" aria-pressed="false"><svg class="ico" viewBox="0 0 12 12"><g fill="currentColor"><rect x="1" y="6" width="2" height="5"/><rect x="4" y="2" width="2" height="9"/><rect x="7" y="4.5" width="2" height="6.5"/><rect x="10" y="7.5" width="1.5" height="3.5"/></g></svg></button>
+      <button id="scope" title="Vectorscope overlay: left against right; drag it anywhere (Ctrl+Alt+O)" aria-label="Scope" aria-pressed="false"><svg class="ico" viewBox="0 0 12 12"><g fill="none" stroke="currentColor" stroke-width="1.1"><rect x="1" y="1" width="10" height="10" rx="1.5"/><path d="M2.5 9.5 4 6.5 5.5 7.5 7 3.5 8.2 6 9.5 2.5" stroke-linejoin="round" stroke-linecap="round"/></g></svg></button>
       <button id="export" disabled title="Render the whole song to a WAV file, with a tail after the end (length and format in Config)">Export WAV</button>
       <button id="backups" disabled title="Backups: the automatic snapshots, and the backup folder">Backups</button>
       <button id="cut" disabled title="Halt all audio computation (silence, zero CPU) until Play is pressed" style="margin-left:auto">Cut</button>
@@ -738,7 +741,7 @@
 
   <section id="pane-info" class="pane" hidden>
     <div class="pane-main">
-      <div class="help">Song info: notes, credits, greetings. Plain text, saved with the project; web addresses become links when you are not editing. <button id="info-edit" type="button">Edit</button></div>
+      <div class="help">Song info: notes, credits, greetings. Plain text, saved with the project; web addresses become links when you are not editing. <button id="info-edit" type="button">Edit</button><button id="info-close" type="button" title="Close the info page and go back" aria-label="Close" style="float:right">&times;</button></div>
       <div id="info-view" tabindex="0" aria-label="Song info" hidden></div>
       <textarea id="info" spellcheck="false" aria-label="Song info" placeholder="Title, author, notes, greetings..."></textarea>
       <div id="info-status" class="statusbar"></div>

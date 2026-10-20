@@ -1,16 +1,50 @@
 // The meter band: a strip along the bottom of the window with a spectrum, level and loudness meters, a correlation bar, the
 // stereo width of the spectral panner's ten bands and a spectrogram. It reads the ring of output samples once per frame and
 // does nothing while hidden. Which panels show, and how tall the band is, come from `options()`.
-import { RING, ringReader } from '../audio/vring.js';
+import { RING, ringReader, laneReader, LANE_SLOTS } from '../audio/vring.js';
 import { BANDS, SPEC_N, WIDTH_BANDS, createAnalyser, createCorrelation, createLoudness } from './meterdsp.js';
 
 const TXT = '#6d7480', GRID = 'rgba(255,255,255,.07)', BRIGHT = '#cfd3da';
 const FONT = (px, w = 400) => `${w} ${px}px ui-monospace, Consolas, monospace`;
 
-export function createMeters({ box, sab, sampleRate, options }) {
+export function createMeters({ box, sab, lsab, sampleRate, options, lanes = () => [], setTaps = () => {} }) {
   const reader = ringReader(sab, 1), buf = new Float32Array(RING * 2);
   const mono = { l: new Float32Array(SPEC_N), r: new Float32Array(SPEC_N) };   // the newest SPEC_N frames
   const lBlock = new Float32Array(RING), rBlock = new Float32Array(RING);
+  const lreader = laneReader(lsab), LKEY = 'webtracker.layers.off';
+  let layers = [], layerSig = '', off = new Set(), lbox = null;   // layers: [{ idx, instrument, slot, hue, l (newest SPEC_N frames), spec }]
+  try { off = new Set(JSON.parse(localStorage.getItem(LKEY)) ?? []); } catch { /* none kept */ }
+  const saveOff = () => { try { localStorage.setItem(LKEY, JSON.stringify([...off])); } catch { /* not kept */ } };
+  const lbuf = new Float32Array(RING);
+  const layersOn = () => options().layers && options().spectrum;
+  const pushMask = () => { let m = 0; if (open && layersOn()) for (const L of layers) if (!off.has(L.idx)) m |= 1 << L.slot; lreader.mask(m); };
+  // The layer for each instrument that makes sound in a lane (not the master lane), numbered as the lanes are.
+  function syncLayers() {
+    const list = lanes(), seen = new Set(), next = [];
+    list.forEach((lane, idx) => { if (idx === 0 || seen.has(lane.instrument) || next.length >= LANE_SLOTS) return; seen.add(lane.instrument); next.push({ idx, instrument: lane.instrument }); });
+    const sig = next.map(x => `${x.idx}:${x.instrument}`).join();
+    if (sig === layerSig) return false;
+    layerSig = sig;
+    layers = next.map((x, slot) => ({ ...x, slot, hue: (x.idx * 137.508 + 20) % 360, l: new Float32Array(SPEC_N), spec: new Float32Array(BANDS).fill(-120) }));
+    setTaps(layers.map(x => x.instrument));
+    return true;
+  }
+  function buildButtons(host) {
+    lbox?.remove(); lbox = null;
+    if (!layersOn()) return;
+    lbox = document.createElement('div'); lbox.className = 'layer-btns';
+    for (const L of layers) {
+      const b = document.createElement('button'); b.type = 'button'; b.textContent = L.idx; b.title = `Lane ${L.idx}: ${L.instrument} (click to show or hide; Shift+click to hear only this one)`;
+      b.style.setProperty('--h', L.hue); b.setAttribute('aria-pressed', String(!off.has(L.idx)));
+      b.addEventListener('click', e => {
+        if (e.shiftKey) { const only = layers.every(x => x === L || off.has(x.idx)) && !off.has(L.idx); off = new Set(only ? [] : layers.filter(x => x !== L).map(x => x.idx)); }
+        else if (off.has(L.idx)) off.delete(L.idx); else off.add(L.idx);
+        saveOff(); for (const c of lbox.children) c.setAttribute('aria-pressed', String(!off.has(+c.textContent))); pushMask();
+      });
+      lbox.append(b);
+    }
+    host.append(lbox);
+  }
   let raf = 0, open = false, fs = 44100, panels = [], signature = '', analyser, loud, corr;
   const state = { l: 0, r: 0, pl: 0, pr: 0, hl: 0, hr: 0, spec: new Float32Array(BANDS).fill(-120), peak: new Float32Array(BANDS).fill(-120), width: new Float32Array(WIDTH_BANDS), hist: [], last: 0 };
 
@@ -19,14 +53,16 @@ export function createMeters({ box, sab, sampleRate, options }) {
   };
   function build() {
     const o = options(), kinds = ['sgram', 'spectrum', 'width', 'level', 'corr'].filter(k => o[k]);
-    const sig = kinds.join();
-    if (sig === signature) return;
-    signature = sig; box.textContent = ''; panels = [];
+    const sig = `${kinds.join()}|${layersOn()}`, changed = syncLayers();
+    if (sig === signature && !changed) return;
+    signature = sig; box.textContent = ''; panels = []; lbox = null;
     for (const k of kinds) {
       const d = document.createElement('div'), h = document.createElement('h6'), c = document.createElement('canvas');
       d.className = 'meter-pan'; d.style.flex = `${KINDS[k][1]} 1 0`; h.textContent = KINDS[k][0]; d.append(h, c); box.append(d);
       panels.push({ kind: k, canvas: c });
+      if (k === 'spectrum') buildButtons(d);
     }
+    pushMask();
   }
   function ctxOf(c) {
     const dpr = devicePixelRatio || 1, w = c.clientWidth, h = c.clientHeight;
@@ -42,10 +78,27 @@ export function createMeters({ box, sab, sampleRate, options }) {
       const Y = v => T + H * (1 - Math.max(0, Math.min(1, (v + 80) / 80)));
       for (const d of [-60, -40, -20, 0]) { g.beginPath(); g.moveTo(X0, Y(d)); g.lineTo(w - 4, Y(d)); g.stroke(); g.fillText(d, 2, Y(d) + 3); }
       for (const f of [50, 100, 200, 500, 1000, 2000, 5000, 10000]) { const x = X0 + Math.log(f / 20) / Math.log(1000) * (w - X0 - 4); g.beginPath(); g.moveTo(x, T); g.lineTo(x, T + H); g.stroke(); g.fillText(f >= 1000 ? `${f / 1000}k` : f, x - 8, h - 4); }
-      const X = i => X0 + i / (BANDS - 1) * (w - X0 - 4), gr = g.createLinearGradient(0, T, 0, T + H);
-      gr.addColorStop(0, 'rgba(120,255,170,.55)'); gr.addColorStop(1, 'rgba(120,255,170,.02)');
-      g.beginPath(); g.moveTo(X(0), T + H); for (let i = 0; i < BANDS; i++) g.lineTo(X(i), Y(state.spec[i])); g.lineTo(X(BANDS - 1), T + H); g.fillStyle = gr; g.fill();
-      g.beginPath(); for (let i = 0; i < BANDS; i++) i ? g.lineTo(X(i), Y(state.spec[i])) : g.moveTo(X(i), Y(state.spec[i])); g.strokeStyle = '#78ffaa'; g.lineWidth = 1.4; g.stroke();
+      const X = i => X0 + i / (BANDS - 1) * (w - X0 - 4), stacked = layersOn(), rainbow = !stacked && options().colour !== 'green';
+      if (stacked) {   // one translucent layer per instrument, added together where they overlap; the whole mix is a faint outline
+        g.globalCompositeOperation = 'lighter';
+        for (const L of layers) {
+          if (off.has(L.idx)) continue;
+          g.beginPath(); g.moveTo(X(0), T + H); for (let i = 0; i < BANDS; i++) g.lineTo(X(i), Y(L.spec[i])); g.lineTo(X(BANDS - 1), T + H);
+          g.fillStyle = `hsla(${L.hue},85%,55%,.2)`; g.fill();
+          g.beginPath(); for (let i = 0; i < BANDS; i++) i ? g.lineTo(X(i), Y(L.spec[i])) : g.moveTo(X(i), Y(L.spec[i]));
+          g.strokeStyle = `hsla(${L.hue},90%,65%,.75)`; g.lineWidth = 1; g.stroke();
+        }
+        g.globalCompositeOperation = 'source-over';
+        g.beginPath(); for (let i = 0; i < BANDS; i++) i ? g.lineTo(X(i), Y(state.spec[i])) : g.moveTo(X(i), Y(state.spec[i])); g.strokeStyle = 'rgba(255,255,255,.4)'; g.lineWidth = 1; g.stroke();
+        return;
+      }
+      let gr;
+      if (rainbow) {   // colour by frequency, left to right, like a light spectrum: dark, violet, blue, cyan, green, yellow, orange, red, dark red
+        gr = g.createLinearGradient(X0, 0, w - 4, 0);
+        [[0, '#14001f'], [.07, '#6a00c8'], [.2, '#1c2cff'], [.34, '#00d5ff'], [.5, '#27e82f'], [.64, '#f2f21a'], [.76, '#ff9a00'], [.88, '#ff2a00'], [1, '#5a0000']].forEach(([o, c]) => gr.addColorStop(o, c));
+      } else { gr = g.createLinearGradient(0, T, 0, T + H); gr.addColorStop(0, 'rgba(120,255,170,.55)'); gr.addColorStop(1, 'rgba(120,255,170,.02)'); }
+      g.beginPath(); g.moveTo(X(0), T + H); for (let i = 0; i < BANDS; i++) g.lineTo(X(i), Y(state.spec[i])); g.lineTo(X(BANDS - 1), T + H); g.globalAlpha = rainbow ? 0.92 : 1; g.fillStyle = gr; g.fill(); g.globalAlpha = 1;
+      g.beginPath(); for (let i = 0; i < BANDS; i++) i ? g.lineTo(X(i), Y(state.spec[i])) : g.moveTo(X(i), Y(state.spec[i])); g.strokeStyle = rainbow ? 'rgba(255,255,255,.85)' : '#78ffaa'; g.lineWidth = rainbow ? 1 : 1.4; g.stroke();
       g.beginPath(); for (let i = 0; i < BANDS; i++) i ? g.lineTo(X(i), Y(state.peak[i])) : g.moveTo(X(i), Y(state.peak[i])); g.strokeStyle = 'rgba(255,255,255,.35)'; g.lineWidth = 1; g.stroke();
     },
     level(c) {
@@ -122,6 +175,15 @@ export function createMeters({ box, sab, sampleRate, options }) {
       for (let b = 0; b < WIDTH_BANDS; b++) state.width[b] += (analyser.width[b] - state.width[b]) * .15;
       if (panels.some(p => p.kind === 'sgram')) { state.hist.push(Float32Array.from(state.spec)); if (state.hist.length > 400) state.hist.shift(); }
     }
+    if (layersOn() && panels.some(p => p.kind === 'spectrum')) {
+      for (const L of layers) {
+        if (off.has(L.idx)) continue;
+        const got = lreader.read(L.slot, lbuf);
+        if (got > 0) { const keep = Math.min(got, SPEC_N); L.l.copyWithin(0, keep); L.l.set(lbuf.subarray(got - keep, got), SPEC_N - keep); }
+        analyser.run(L.l, L.l);
+        for (let i = 0; i < BANDS; i++) { const v = analyser.db[i]; L.spec[i] += (v - L.spec[i]) * (v > L.spec[i] ? .6 : .14); }
+      }
+    }
     for (const p of panels) draw[p.kind](p.canvas);
     raf = requestAnimationFrame(frame);
   }
@@ -132,9 +194,9 @@ export function createMeters({ box, sab, sampleRate, options }) {
       if (open) return;
       fs = sampleRate(); analyser = createAnalyser(fs); loud = createLoudness(fs); corr = createCorrelation(fs);
       mono.l.fill(0); mono.r.fill(0); state.hist.length = 0; state.last = 0; signature = '';
-      open = true; box.hidden = false; reader.enable(true); raf = requestAnimationFrame(frame);
+      open = true; box.hidden = false; reader.enable(true); for (const L of layers) L.l.fill(0); raf = requestAnimationFrame(frame);
     },
-    hide() { open = false; box.hidden = true; reader.enable(false); cancelAnimationFrame(raf); },
+    hide() { open = false; box.hidden = true; reader.enable(false); pushMask(); cancelAnimationFrame(raf); },
     rebuild() { signature = ''; },
   };
 }

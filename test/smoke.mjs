@@ -6449,6 +6449,23 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   console.log('ok: arrangement minimap rows');
 }
 
+// Per-instrument rings for the layered spectrum: only the slots in the mask are written, and a reader sees just its slot.
+{
+  const { RING, laneBuffer, laneWriter, laneReader } = await import('../src/audio/vring.js');
+  const sab = laneBuffer(), w = laneWriter(sab), r = laneReader(sab), out = new Float32Array(RING);
+  const l = Float32Array.from({ length: 8 }, (_, i) => i), rr = Float32Array.from({ length: 8 }, () => 1);
+  assert.equal(w.wants(2), false);
+  r.mask(1 << 2);
+  assert.equal(w.wants(2), true); assert.equal(w.wants(1), false);
+  w.write(2, l, rr, 8);
+  assert.equal(r.read(1, out), 0);
+  assert.equal(r.read(2, out), 8);
+  assert.equal(out[3], 2);   // the mean of left (3) and right (1)
+  assert.equal(r.read(2, out), 0);
+  r.mask(0); assert.equal(w.wants(2), false);
+  console.log('ok: per-instrument rings');
+}
+
 // Sample screen mouse: a click moves to a field, a second click starts typing, digits then set it.
 {
   const { project } = makeProject();

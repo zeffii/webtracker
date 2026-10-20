@@ -277,6 +277,7 @@ export class GraphRuntime {
         continue;
       }
       inst.block = this.blockNo;
+      this.onLane?.(id, inst.left, inst.right, n);   // the page's layered spectrum, when it is on
       if (this.scopes.size) for (const scope of this.scopes.values()) if (scope.instrument === id) this.watch(scope, inst, n);
       for (let i = 0; i < n; i++) {
         left[i] += inst.left[i];

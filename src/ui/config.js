@@ -56,6 +56,8 @@ export const SCHEMA = [
   { group: 'Meters', key: 'meterOn', label: 'Meter band', hint: 'a strip along the bottom of the window (Ctrl+Alt+M, or the Meters button)', type: 'bool', def: false },
   { key: 'meterHeight', label: 'Meter band: height (px)', type: 'int', min: 100, max: 500, def: 190 },
   { key: 'meterSpectrum', label: 'Meters: spectrum', type: 'bool', def: true },
+  { key: 'meterLayers', label: 'Meters: spectrum by instrument', hint: 'the spectrum is split into one translucent layer per instrument, with small numbered buttons to hide lanes; the colour setting is not used then', type: 'bool', def: false },
+  { key: 'meterColour', label: 'Meters: spectrum colour', type: 'choice', options: ['spectrum', 'green'], labels: { spectrum: 'by frequency, like a light spectrum (violet at the bass to red at the top)', green: 'plain green' }, def: 'spectrum' },
   { key: 'meterLevel', label: 'Meters: level and loudness', type: 'bool', def: true },
   { key: 'meterCorr', label: 'Meters: correlation', type: 'bool', def: true },
   { key: 'meterWidth', label: 'Meters: stereo width by band', hint: 'the ten bands of the spectral panner', type: 'bool', def: false },

@@ -2,7 +2,7 @@ import { NODE_TYPES } from './nodes/index.js';
 import { ParamRegistry } from './params.js';
 import { compile } from '../graph/compile.js';
 import { compileDsp } from './wasm/load.js';
-import { ringBuffer } from './vring.js';
+import { ringBuffer, laneBuffer } from './vring.js';
 
 // What the audio thread would actually run for an instrument: the nodes that are wired to something, and the wires.
 // A node that is not connected yet (just added) changes nothing it plays, so adding or removing one needs no reload.
@@ -18,6 +18,8 @@ export class Engine {
   watching = new Set();   // nodes whose output is being watched (replayed when the audio thread starts)
   onFault = null;   // called with an instrument id when the audio thread had to rebuild it
   registry = new ParamRegistry();
+  lring = laneBuffer();   // per-instrument output rings, for the layered spectrum
+  laneIds = [];           // the instruments in the slots of lring
   vring = ringBuffer();   // the last output samples, for the vectorscope
   sent = new Map();       // the latest of each message that sets the audio thread up (graphs, node data, song, lanes), for rendering offline
   loaded = new Map();     // instrument -> the signature of what the audio thread has, to skip a reload that would change nothing
@@ -33,7 +35,7 @@ export class Engine {
     this.node = new AudioWorkletNode(this.ctx, 'tracker-engine', {
       numberOfInputs: 0,
       outputChannelCount: [2],
-      processorOptions: { sab: this.registry.sab, transport: this.transport.buffer, wasm: this.wasmModule, vring: this.vring },
+      processorOptions: { sab: this.registry.sab, transport: this.transport.buffer, wasm: this.wasmModule, vring: this.vring, lring: this.lring },
     });
     this.node.port.onmessage = ({ data }) => {
       if (data.type === 'fault') this.onFault?.(data.instrument);
@@ -41,10 +43,14 @@ export class Engine {
       else if (data.type === 'scope') this.onScope?.(data);
       else if (data.type === 'emit') this.onEmit?.(data);
     };
+    if (this.laneIds.length) this.node.port.postMessage({ type: 'lanetaps', ids: this.laneIds });
     for (const key of this.watching) { const [instrument, node] = key.split('\u0000'); this.node.port.postMessage({ type: 'scope', instrument, node, on: true }); }
     this.node.connect(this.ctx.destination);
     await this.ctx.resume();
   }
+
+  // Which instrument each slot of the per-instrument rings follows.
+  setLaneTaps(ids) { this.laneIds = ids; this.node?.port.postMessage({ type: 'lanetaps', ids }); }
 
   // Where the audio stack says we stand: output latency in ms and, where the browser reports it, how many times it
   // had to fill in silence because a block arrived late.

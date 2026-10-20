@@ -31,3 +31,40 @@ export function ringReader(sab, bit = 0) {
     },
   };
 }
+
+// Per-instrument rings (mono, the mean of left and right) for the layered spectrum: a header of one write position per slot
+// and, after the last, the bit mask of the slots the page wants; then RING frames for each slot. A slot not in the mask is not written.
+export const LANE_SLOTS = 24;
+export const laneBuffer = () => new SharedArrayBuffer(4 * (LANE_SLOTS + 1) + LANE_SLOTS * RING * 4);
+
+export function laneWriter(sab) {
+  const head = new Int32Array(sab, 0, LANE_SLOTS + 1), data = new Float32Array(sab, 4 * (LANE_SLOTS + 1));
+  return {
+    wants: slot => (Atomics.load(head, LANE_SLOTS) >> slot & 1) === 1,
+    write(slot, l, r, n) {
+      const base = slot * RING;
+      let w = head[slot];
+      for (let i = 0; i < n; i++, w = (w + 1) | 0) data[base + (w & (RING - 1))] = (l[i] + r[i]) * 0.5;
+      Atomics.store(head, slot, w);
+    },
+  };
+}
+
+export function laneReader(sab) {
+  const head = new Int32Array(sab, 0, LANE_SLOTS + 1), data = new Float32Array(sab, 4 * (LANE_SLOTS + 1)), at = new Int32Array(LANE_SLOTS);
+  return {
+    mask(m) {
+      const was = Atomics.load(head, LANE_SLOTS);
+      Atomics.store(head, LANE_SLOTS, m);
+      for (let k = 0; k < LANE_SLOTS; k++) if ((m >> k & 1) && !(was >> k & 1)) at[k] = Atomics.load(head, k);
+    },
+    // The frames written to a slot since the last read (at most RING), oldest first, into `out`; returns how many.
+    read(slot, out) {
+      const w = Atomics.load(head, slot), base = slot * RING;
+      let n = (w - at[slot]) | 0;
+      if (n > RING) { at[slot] = (w - RING) | 0; n = RING; }
+      for (let i = 0; i < n; i++, at[slot] = (at[slot] + 1) | 0) out[i] = data[base + (at[slot] & (RING - 1))];
+      return n;
+    },
+  };
+}

@@ -60,7 +60,9 @@ $('panic').addEventListener('click', e => { engine.panic(); patcher.releaseKeys(
 $('play').addEventListener('click', e => { togglePlay(); e.currentTarget.blur(); });
 
 // Full-screen panes. Switching with an F-key or a click focuses the pane's main element.
+let tabBefore = 'patterns', tabNow = 'patterns';   // where the Info close button goes back to
 const tabs = createTabs({
+  onChange: id => { if (id !== tabNow) { tabBefore = tabNow; tabNow = id; } },
   tabs: [
     { id: 'patterns', key: 'F1', el: $('pane-patterns'), button: $('tab-patterns'), focus: $('view') },
     { id: 'samples', key: 'F2', el: $('pane-samples'), button: $('tab-samples'), focus: $('smp') },
@@ -127,6 +129,7 @@ const editInfo = on => {
   $('info-edit').textContent = on ? 'Done' : 'Edit';
   (on ? $('info') : $('info-view')).focus();
 };
+$('info-close').addEventListener('click', () => tabs.show(tabBefore === 'info' ? 'patterns' : tabBefore));
 $('info-edit').addEventListener('click', () => editInfo(!$('info').hidden === false));
 $('info-view').addEventListener('dblclick', () => editInfo(true));
 $('info').addEventListener('keydown', e => { if (e.key === 'Escape') { editInfo(false); e.preventDefault(); } });
@@ -1085,8 +1088,8 @@ showScope(config.get('vscopeOn'));
 // Meter band: Ctrl+Alt+M or the Meters button. It sits above the status bar, and the page gets room under it.
 const metersBox = $('meters');
 const meters = createMeters({
-  box: metersBox, sab: engine.vring, sampleRate: () => engine.ctx?.sampleRate ?? 44100,
-  options: () => ({ spectrum: config.get('meterSpectrum'), level: config.get('meterLevel'), corr: config.get('meterCorr'), width: config.get('meterWidth'), sgram: config.get('meterSgram') }),
+  box: metersBox, sab: engine.vring, lsab: engine.lring, lanes: () => project?.lanes ?? [], setTaps: ids => engine.setLaneTaps(ids), sampleRate: () => engine.ctx?.sampleRate ?? 44100,
+  options: () => ({ spectrum: config.get('meterSpectrum'), level: config.get('meterLevel'), corr: config.get('meterCorr'), width: config.get('meterWidth'), sgram: config.get('meterSgram'), layers: config.get('meterLayers'), colour: config.get('meterColour') }),
 });
 const placeMeters = () => {
   const foot = $('footer').offsetHeight, h = config.get('meterHeight');
