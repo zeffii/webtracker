@@ -10,7 +10,7 @@ import { LOWER, UPPER } from '../seq/piano.js';
 // the piano keys (as in the pattern view; [ and ] change the octave) play the sample while held, with
 // no instrument or effects, only its own volume, global volume and pan; Space plays it at its root note;
 // L loads files; Delete removes it. Shift+C or T trim (keep the selection, else the loop region), X cut, S silence, R reverse, N normalise, I fade in,
-// O fade out, D remove DC offset and B bake the loop crossfades act on the selection (the Select field
+// O fade out, Shift+Z zooms the display to the selection, Shift+A out, Shift+W to the whole sample (Ctrl+wheel on it too); D remove DC offset and B bake the loop crossfades act on the selection (the Select field
 // or Shift+drag on the display), or on the whole sample when nothing is selected; Ctrl+Z / Ctrl+Y undo and redo. In the fields: Tab/Down and Shift+Tab/Up
 // move between them, Esc goes back to the list; Left/Right or -/+ change the value (Shift is a bigger step,
 // Ctrl a much bigger one); digits type a value and Enter sets it (Enter on a field starts editing it).
@@ -30,7 +30,7 @@ const EDITS = { C: 'crop', T: 'crop', X: 'cut', S: 'silence', R: 'reverse', N: '
 const ROOT = 60;
 const round2 = v => Math.round(v * 100) / 100;
 
-export function createSampleScreen({ el, statusEl, getProject, onChange = () => {}, onSelect = () => {}, onRemove = () => {}, onRename = () => {}, onNote = () => {}, onLoad = () => {}, onKeep = () => {}, onView = () => {}, onSelection = () => {}, onSlice = () => {} }) {
+export function createSampleScreen({ el, statusEl, getProject, onChange = () => {}, onSelect = () => {}, onRemove = () => {}, onRename = () => {}, onNote = () => {}, onLoad = () => {}, onKeep = () => {}, onView = () => {}, onSelection = () => {}, onSlice = () => {}, onZoom = () => '' }) {
   let sel = null, focus = 'list', edit = null, mode = 'wave', announced = null, last = null, top = 0;
   let selFrom = 0, selTo = 0, octave = 5, activeSlice = -1;   // the slice marker + and - move
   const held = new Map();   // key -> note it is playing
@@ -131,7 +131,7 @@ export function createSampleScreen({ el, statusEl, getProject, onChange = () => 
       return;
     }
     const p = LOOP_FIELDS[field], [, ek, ok] = loopKeys(p);
-    if (!(s[ek] > 0)) attempt(() => setLoop(project, sel, 0, s.data.length, p));   // no points yet: loop the whole sample
+    if (!(s[ek] > 0)) attempt(() => { setLoop(project, sel, 0, s.data.length, p); return setSampleProps(project, sel, { [ok]: true }); });   // no points yet: loop the whole sample, switched on
     else attempt(() => setSampleProps(project, sel, { [ok]: !isOn(s, p) }));
   }
 
@@ -224,6 +224,7 @@ export function createSampleScreen({ el, statusEl, getProject, onChange = () => 
       }
       return eat();
     }
+    if (e.shiftKey && focus !== 'name' && (k === 'Z' || k === 'A' || k === 'W')) { say(onZoom(k === 'Z' ? 'selection' : k === 'A' ? 'out' : 'all') ?? ''); return eat(); }   // zoom the display: to the selection, out, whole sample
     if ((k === '[' || k === ']') && focus !== 'name') {
       octave = Math.min(9, Math.max(0, octave + (k === ']' ? 1 : -1)));
       say(`Octave ${octave}`);

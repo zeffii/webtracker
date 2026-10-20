@@ -1447,8 +1447,10 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   assert.deepEqual([project.samples.s.loopStart, project.samples.s.loopEnd], [1000, 6000]);
   fire('mousedown', 99); fire('mousemove', 50); fire('mouseup', 50);      // grab the start marker
   assert.deepEqual([project.samples.s.loopStart, project.samples.s.loopEnd], [500, 6000]);
-  fire('mousedown', 300); fire('mousemove', 305); fire('mouseleave', 305); // leaving the canvas cancels
-  assert.equal(project.samples.s.loopEnd, 6000);
+  fire('mousedown', 300); fire('mousemove', 305); fire('mouseleave', 305); // leaving the canvas ends the drag where it left
+  assert.deepEqual([project.samples.s.loopStart, project.samples.s.loopEnd], [3000, 3050]);
+  fire('mousedown', 99); fire('mousemove', 100); fire('mouseup', 100);
+  project.samples.s.loopStart = 500; project.samples.s.loopEnd = 6000;
   fire('mousedown', 300); fire('mouseup', 300);                           // a plain click changes nothing
   assert.equal(project.samples.s.loopEnd, 6000);
   fire('mousedown', 598); fire('mousemove', 0); fire('mouseup', 0);        // the end cannot pass the start
@@ -6590,6 +6592,29 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   assert.equal(got.params.atk, 7); assert.deepEqual(got.data.spectrum, [1, 0.5]);
   assert.equal(clamped.find(([n]) => n === 'tilt')[1], 99 > 12 ? 12 : 99);   // out-of-range values are clamped when applied
   console.log('ok: node presets');
+}
+
+// Waveform zoom and edge drags
+{
+  const { project } = makeProject();
+  const zid = pops.addSample(project, 'z.wav', 44100, new Float32Array(10000).map((_, i) => Math.sin(i / 20)));
+  const on = {};
+  const canvas = { width: 400, height: 100, style: {}, addEventListener: (t, f) => { on[t] = f; }, getContext: () => new Proxy({}, { get: () => () => {}, set: () => true }) };
+  let picked = null;
+  const wv = createWaveformView({ canvas, statusEl: { textContent: '' }, getProject: () => project, onSelect: r => { picked = r; } });
+  wv.fit(400); wv.show(typeof zid === 'string' ? zid : Object.keys(project.samples).at(-1));
+  const pt = (type, x, extra = {}) => on[type]({ offsetX: x, shiftKey: true, button: 0, ...extra });
+  pt('mousedown', 100); pt('mousemove', 300); pt('mouseleave', 450);   // dragged out past the right edge: ends at the last frame
+  assert.deepEqual(picked, { from: 2500, to: 10000 }, 'a selection reaching past the edge is kept');
+  pt('mousedown', 300); pt('mousemove', 100); pt('mouseleave', -40);
+  assert.deepEqual(picked, { from: 0, to: 7500 }, 'and so is one past the start');
+  wv.setSelection(2500, 5000);
+  assert.equal(wv.zoom('selection'), ''); assert.deepEqual(wv.view, [2500, 5000]);
+  pt('mousedown', 0); pt('mousemove', 400); pt('mouseleave', 420);
+  assert.deepEqual(picked, { from: 2500, to: 5000 }, 'selecting in a zoomed view maps through it');
+  wv.zoom('out'); assert.deepEqual(wv.view, [1250, 6250]);
+  wv.zoom('all'); assert.deepEqual(wv.view, [0, 10000]);
+  wv.setSelection(0, 0); assert.ok(wv.zoom('selection'), 'no selection: a message');
 }
 
 // Sample screen mouse: a click moves to a field, a second click starts typing, digits then set it.

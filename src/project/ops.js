@@ -100,6 +100,7 @@ export function setLoop(project, id, loopStart, loopEnd, kind = 'loop') {
     if (loopEnd - loopStart < 2) throw new Error('The loop must be at least two frames long.');
     sample[startKey] = loopStart;
     sample[endKey] = loopEnd;
+    if (sample[onKey] === undefined) sample[onKey] = false;   // a new loop starts switched off; the Loop / SusLoop switch turns it on
   }
   return usersOfSample(project, id);
 }

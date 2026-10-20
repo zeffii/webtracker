@@ -860,6 +860,10 @@ const waveform = createWaveformView({
       { label: 'Remove DC offset', hint: `Shift+D · ${scope}`, run: edit('removeDc') },
       { label: 'Bake loop crossfades', hint: 'Shift+B', run: edit('bakeCrossfade') },
       { separator: true },
+      { label: 'Zoom to selection', hint: 'Shift+Z', disabled: !has, run: () => waveform.zoom('selection') },
+      { label: 'Zoom out', hint: 'Shift+A', run: () => waveform.zoom('out') },
+      { label: 'Show whole sample', hint: 'Shift+W', run: () => waveform.zoom('all') },
+      { separator: true },
       { label: 'Select all', run: () => sampleScreen.setSelection(0, s?.data.length ?? 0) },
       { label: 'Clear selection', disabled: !has, run: () => sampleScreen.setSelection(0, 0) },
       { label: 'Post-transient resynthesis', hint: `${scope} → new instrument`, run: resynthesize },
@@ -901,6 +905,7 @@ const sampleScreen = createSampleScreen({
   onNote: playSample,
   onSelection: (from, to) => waveform.setSelection(from, to),
   onSlice: i => waveform.setActiveSlice(i),
+  onZoom: kind => waveform.zoom(kind),
   onLoad: () => $('sample-file').click(),
   onKeep: id => {   // K: copy the sample under the cursor into a new normal sample
     const s = project.samples[id];

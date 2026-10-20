@@ -2,11 +2,11 @@ import { setLoop, setSlices, sliceHex } from './ops.js';
 import { computeSpectrogram, heat } from './spectrogram.js';
 
 // Min and max of the sample for each pixel column: what the waveform view draws.
-export function computePeaks(data, width) {
+export function computePeaks(data, width, a = 0, b = data.length) {
   const peaks = new Float32Array(width * 2);
-  const per = data.length / width;
+  const per = (b - a) / width;
   for (let x = 0; x < width; x++) {
-    const from = Math.floor(x * per), to = Math.min(data.length, Math.max(from + 1, Math.floor((x + 1) * per)));
+    const from = Math.min(data.length, a + Math.floor(x * per)), to = Math.min(data.length, Math.max(from + 1, a + Math.floor((x + 1) * per)));
     let lo = Infinity, hi = -Infinity;
     for (let i = from; i < to; i++) {
       const v = data[i];
@@ -45,8 +45,19 @@ export function createWaveformView({ canvas, statusEl, getProject, onLoop, onSel
   const say = text => { if (statusEl) statusEl.textContent = text; };
   const sample = () => (id ? getProject().samples[id] : undefined);
   const frames = () => sample().data.length;
-  const frameToX = f => (f / frames()) * W;
-  const xToFrame = x => Math.round(Math.min(Math.max(x / W, 0), 1) * frames());
+  // The view: frames va..vb are what the display shows (vb 0 = the whole sample). Zoom changes it; selecting, loops and slices all go through frameToX / xToFrame.
+  let va = 0, vb = 0;
+  const MIN_SPAN = 16;
+  const range = () => { const n = sample() ? frames() : 0; const b = vb > 0 ? Math.min(vb, n) : n, a = Math.min(va, Math.max(0, b - 1)); return [a, Math.max(b, a + 1)]; };
+  const frameToX = f => { const [a, b] = range(); return ((f - a) / (b - a)) * W; };
+  const xToFrame = x => { const [a, b] = range(); return Math.round(a + Math.min(Math.max(x / W, 0), 1) * (b - a)); };
+  const setView = (a, b) => {
+    const n = frames();
+    const span = Math.min(n, Math.max(MIN_SPAN, Math.round(b - a)));
+    a = Math.min(Math.max(0, Math.round(a)), n - span);
+    if (span >= n) { va = 0; vb = 0; } else { va = a; vb = a + span; }
+    lastKey = null;
+  };
   const loopOf = s => drag?.preview ?? { start: s.loopStart ?? 0, end: s.loopEnd ?? 0 };
 
   const commit = (start, end) => {
@@ -99,16 +110,21 @@ export function createWaveformView({ canvas, statusEl, getProject, onLoop, onSel
     else drag = { kind: 'region', anchor: xToFrame(e.offsetX), preview: null };
   });
 
-  canvas.addEventListener('mousemove', e => {
+  const move = x => {
     const s = sample();
     if (!drag || !s) return;
-    const f = xToFrame(e.offsetX);
+    const f = xToFrame(x);
     if (drag.kind === 'slice') drag.preview[drag.i] = Math.min(f, frames() - 1);
     else if (drag.kind === 'start') drag.preview = { start: Math.min(f, drag.preview.end - 2), end: drag.preview.end };
     else if (drag.kind === 'select') { if (Math.abs(f - drag.anchor) >= 1) drag.preview = { start: Math.min(f, drag.anchor), end: Math.max(f, drag.anchor) }; }
     else if (drag.kind === 'end') drag.preview = { start: drag.preview.start, end: Math.max(f, drag.preview.start + 2) };
     else if (Math.abs(f - drag.anchor) >= 2) drag.preview = { start: Math.min(f, drag.anchor), end: Math.max(f, drag.anchor) };
-  });
+  };
+  canvas.addEventListener('mousemove', e => move(e.offsetX));
+  // a drag goes on outside the display: the pointer past either edge holds the selection at the first or last frame of the view
+  // (it used to be cancelled the moment the mouse left, which threw away selections reaching the edge)
+  globalThis.addEventListener?.('mousemove', e => { if (drag && e.target !== canvas) move(e.clientX - canvas.getBoundingClientRect().left); });
+  globalThis.addEventListener?.('mouseup', e => { if (drag && e.target !== canvas) finish(); });
 
   const finish = () => {
     const d = drag;
@@ -118,7 +134,21 @@ export function createWaveformView({ canvas, statusEl, getProject, onLoop, onSel
     if (d?.preview) commit(Math.max(0, d.preview.start), d.preview.end);
   };
   canvas.addEventListener('mouseup', finish);
-  canvas.addEventListener('mouseleave', () => { drag = null; });
+  canvas.addEventListener('mouseleave', e => { if (drag && !globalThis.addEventListener) { move(e.offsetX); finish(); } });
+  canvas.addEventListener('wheel', e => {   // Ctrl+wheel zooms about the mouse; the plain wheel moves along a zoomed view
+    if (!sample() || !frames()) return;
+    const [a, b] = range();
+    if (e.ctrlKey) {
+      e.preventDefault?.();
+      const at = xToFrame(e.offsetX), k = e.deltaY < 0 ? 0.5 : 2;
+      const na = at - (at - a) * k;
+      setView(na, na + (b - a) * k);
+    } else if (vb > 0) {
+      e.preventDefault?.();
+      const d = ((e.deltaX || e.deltaY) / 100) * (b - a) * 0.2;
+      setView(a + d, b + d);
+    }
+  }, { passive: false });
   canvas.addEventListener('dblclick', e => {
     if (!sample()) return;
     if (e?.altKey) { const at = nearestSlice(sample(), e.offsetX, GRAB * 2); if (at >= 0) commitSlices(sample().slices.filter((_, i) => i !== at)); return; }
@@ -134,19 +164,21 @@ export function createWaveformView({ canvas, statusEl, getProject, onLoop, onSel
     const s = sample();
     const { start, end } = s ? (drag?.kind === 'select' ? { start: s.loopStart ?? 0, end: s.loopEnd ?? 0 } : loopOf(s)) : { start: 0, end: 0 };
     const pick = drag?.kind === 'select' && drag.preview ? { from: drag.preview.start, to: drag.preview.end } : selection;
-    const key = s ? `${id}:${mode}:${s.data.length}:${start}:${end}:${LOOPS.slice(1).map(l => `${s[l.start]}.${s[l.end]}.${s[l.on]}`).join()}:${s.loopOn}:${s.loopXfade}:${s.susXfade}:${pick.from}-${pick.to}:${slicesOf(s).join(',')}:${active}:${W}:${H}:${settled}:${typeof getComputedStyle === 'function' ? getComputedStyle(canvas).color : ''}` : 'none';
+    const [va0, vb0] = s ? range() : [0, 0];
+    const key = s ? `${va0}-${vb0}:${id}:${mode}:${s.data.length}:${start}:${end}:${LOOPS.slice(1).map(l => `${s[l.start]}.${s[l.end]}.${s[l.on]}`).join()}:${s.loopOn}:${s.loopXfade}:${s.susXfade}:${pick.from}-${pick.to}:${slicesOf(s).join(',')}:${active}:${W}:${H}:${settled}:${typeof getComputedStyle === 'function' ? getComputedStyle(canvas).color : ''}` : 'none';
     if (key === lastKey) return;
     lastKey = key;
     ctx.clearRect(0, 0, W, H);
     if (!s) return;
     const ink = typeof getComputedStyle === 'function' ? getComputedStyle(canvas).color : '#888';
     if (mode === 'spec') {
+      const sl = x => (x && (va0 > 0 || vb0 < s.data.length) ? x.subarray(va0, vb0) : x);
       const pw = canvas.width, ph = canvas.height;
-      const fresh = cache?.data === s.data && cache.spec?.pw === pw && cache.spec?.ph === ph;
-      if (!fresh && cache?.data === s.data && cache.spec?.img && !settled) {   // the size is still changing: show the last picture, stretched
+      const fresh = cache?.data === s.data && cache.spec?.pw === pw && cache.spec?.ph === ph && cache.spec?.a === va0 && cache.spec?.b === vb0;
+      if (!fresh && cache?.data === s.data && cache.spec?.img && !settled && cache.spec.a === va0 && cache.spec.b === vb0) {   // the size is still changing: show the last picture, stretched
         ctx.drawImage(cache.spec.img, 0, 0, W, H);
       } else {
-        if (!fresh) cache = { ...(cache?.data === s.data ? cache : { data: s.data }), spec: { pw, ph, cells: computeSpectrogram(s.data, s.right, pw, ph) } };
+        if (!fresh) cache = { ...(cache?.data === s.data ? cache : { data: s.data }), spec: { pw, ph, a: va0, b: vb0, cells: computeSpectrogram(sl(s.data), sl(s.right), pw, ph) } };
         const image = ctx.createImageData(pw, ph);
         for (let i = 0; i < pw * ph; i++) image.data.set(heat(cache.spec.cells[i]), i * 4);
         if (!cache.spec.img && typeof document !== 'undefined' && document.createElement) {   // kept to stretch while the size is dragged
@@ -160,7 +192,7 @@ export function createWaveformView({ canvas, statusEl, getProject, onLoop, onSel
         ctx.restore();
       }
     } else {
-      if (!cache || cache.data !== s.data || !cache.peaks || cache.w !== W) cache = { data: s.data, w: W, peaks: computePeaks(s.data, W), rightPeaks: s.right ? computePeaks(s.right, W) : null };
+      if (!cache || cache.data !== s.data || !cache.peaks || cache.w !== W || cache.a !== va0 || cache.b !== vb0) cache = { data: s.data, w: W, a: va0, b: vb0, peaks: computePeaks(s.data, W, va0, vb0), rightPeaks: s.right ? computePeaks(s.right, W, va0, vb0) : null };
       // a stereo sample is drawn as two lanes, left above right
       const lanes = cache.rightPeaks ? [[cache.peaks, H / 4], [cache.rightPeaks, 3 * H / 4]] : [[cache.peaks, H / 2]];
       const amp = lanes.length === 2 ? H / 4 - 4 : H / 2 - 4;
@@ -177,7 +209,9 @@ export function createWaveformView({ canvas, statusEl, getProject, onLoop, onSel
     ctx.textBaseline = 'top';
     LOOPS.forEach((l, n) => {
       const a = n === 0 ? start : s[l.start] ?? 0, b = n === 0 ? end : s[l.end] ?? 0;
-      if (!(b > a) || (n === 0 && !drag && s[l.on] === false) || (n === 1 && s[l.on] === false)) return;
+      if (!(b > a)) return;
+      const off = n === 0 ? !drag && s[l.on] === false : s[l.on] === false;   // a switched-off loop is drawn faint
+      ctx.globalAlpha = off ? 0.35 : 1;
       const xs = frameToX(a), xe = frameToX(b);
       ctx.fillStyle = l.fill;
       ctx.fillRect(xs, 0, xe - xs, H);
@@ -196,6 +230,7 @@ export function createWaveformView({ canvas, statusEl, getProject, onLoop, onSel
       ctx.fillText(l.marks[0], xs + 4, 2 + n * 12);
       ctx.textAlign = 'right';
       ctx.fillText(l.marks[1], xe - 4, 2 + n * 12);
+      ctx.globalAlpha = 1;
     });
     if (pick.to > pick.from) {   // the selection the edit tools act on
       const xs = frameToX(pick.from), xe = frameToX(pick.to);
@@ -217,11 +252,23 @@ export function createWaveformView({ canvas, statusEl, getProject, onLoop, onSel
     ctx.fillStyle = mode === 'spec' ? '#fff' : ink;
     ctx.textBaseline = 'bottom';
     ctx.textAlign = 'left';
-    ctx.fillText(`${id}  ${s.data.length} frames${s.right ? '  stereo' : ''}`, 4, H - 2);
+    ctx.fillText(`${id}  ${s.data.length} frames${s.right ? '  stereo' : ''}${vb0 < s.data.length || va0 > 0 ? `  view ${va0}-${vb0}` : ''}`, 4, H - 2);
   }
 
   return {
-    show(next) { id = next; drag = null; lastKey = null; active = -1; },
+    show(next) { id = next; drag = null; lastKey = null; active = -1; va = 0; vb = 0; },
+    // Zoom: 'selection' fits the selection (else the loop), 'out' doubles the view, 'all' shows the whole sample. Returns a message when nothing happened.
+    zoom(kind) {
+      const s = sample();
+      if (!s || !frames()) return '';
+      const [a, b] = range();
+      if (kind === 'all') setView(0, frames());
+      else if (kind === 'out') { const mid = (a + b) / 2; setView(mid - (b - a), mid + (b - a)); }
+      else if (selection.to > selection.from) setView(selection.from, selection.to);
+      else return 'Select a range first (Shift+drag), then zoom to it.';
+      return '';
+    },
+    get view() { return range(); },
     // The width follows the space the view has (CSS pixels); the picture is drawn again at once.
     fit(width) {
       const w = Math.round(Math.max(300, width));
