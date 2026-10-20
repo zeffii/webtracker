@@ -102,7 +102,7 @@ export function retime(data, k) {
     if (lane.mutes) lane.mutes = lane.mutes.map(t => t * k);
     if (lane.offs) lane.offs = lane.offs.map(t => t * k);
   }
-  if (song.loop) song.loop = { start: song.loop.start * k, end: song.loop.end * k };
+  if (song.loop) song.loop = { ...song.loop, start: song.loop.start * k, end: song.loop.end * k };
   song.length *= k;
   song.ticksPerBeat *= k;
 }

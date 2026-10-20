@@ -26,6 +26,8 @@ import { createWaveformView } from './project/waveform.js';
 import { showContextMenu } from './ui/ctxmenu.js';
 import { buildInstrument, fitTail } from './project/ptr.js';
 import { ABOUT, CHANGELOG } from './ui/about.js';
+import { renderMarkdown } from './ui/markdown.js';
+import { TUTORIAL } from './script/tutorial.js';
 import { createMidiInput } from './ui/midiin.js';
 import { createMidiWriter } from './seq/midiwrite.js';
 import { createMarkerRegionView } from './project/markerregion.js';
@@ -216,7 +218,7 @@ document.addEventListener('keydown', e => {
 const midiVoices = new Map();   // MIDI note -> what its press started, so the release stops that and nothing else
 const midiSay = text => { (tabs.active === 'arrange' ? seqView : view).say(text); };
 const writer = createMidiWriter({
-  lanes: () => project?.lanes ?? [], editor: () => project.editor, length: () => project.song.length, loop: () => project.song.loop ?? null,
+  lanes: () => project?.lanes ?? [], editor: () => project.editor, length: () => project.song.length, loop: () => (project.song.loop && !project.song.loop.off ? project.song.loop : null),
   settings: () => ({ chord: config.get('midiChord'), window: config.get('midiWindow'), velocity: config.get('midiVelocity'), offs: config.get('midiOffs'), shared: config.get('midiShared'), order: config.get('midiOrder') }),
 });
 const setRecording = on => {
@@ -702,6 +704,16 @@ $('theme').addEventListener('keydown', e => e.stopPropagation());
 config.onChange((k, v) => { if (k === 'theme') showTheme(v); });
 showTheme(config.get('theme'));
 
+// ---- the script tutorial: markdown, and a click on an example puts it in the try-a-line box ----
+{
+  const tut = $('script-tut');
+  tut.innerHTML = renderMarkdown(TUTORIAL);
+  for (const code of tut.querySelectorAll('pre code')) {
+    code.title = 'Click to put this in the box below the output, to try it';
+    code.addEventListener('click', () => { const l = $('script-line'); l.value = code.textContent.trim().split('\n')[0]; l.focus(); });
+  }
+}
+
 // ---- about ----
 {
   const body = $('about-body'), el = (tag, text, cls) => Object.assign(document.createElement(tag), { textContent: text, className: cls ?? '' });
@@ -730,6 +742,12 @@ $('swing').addEventListener('change', () => {
   $('swing').value = pct;
   songChanged();
 });
+$('bar').addEventListener('change', () => {
+  const n = Math.max(1, Math.min(16, Math.round(Number($('bar').value)) || 4));
+  if (n === 4) delete project.song.beatsPerBar; else project.song.beatsPerBar = n;
+  $('bar').value = n;
+  songChanged(); seqView.draw();
+});
 $('length').addEventListener('change', () => {
   const before = project.song.length;
   reshape(() => {
@@ -749,7 +767,7 @@ config.onChange((k, v) => { if (k === 'insertCut') $('ins-cut').checked = v; els
 $('ins-go').addEventListener('click', () => insertSilence($('ins-n').value));
 $('ins-n').addEventListener('keydown', e => { if (e.key === 'Enter') insertSilence($('ins-n').value); });
 for (const b of document.querySelectorAll('.ins-pre')) { b.disabled = false; b.addEventListener('click', () => { $('ins-n').value = b.dataset.n; insertSilence(b.dataset.n); }); }
-for (const id of ['length', 'ins-n', 'bpm', 'swing']) $(id).addEventListener('keydown', e => e.stopPropagation());
+for (const id of ['length', 'ins-n', 'bpm', 'swing', 'bar']) $(id).addEventListener('keydown', e => e.stopPropagation());
 
 $('inst-rename').addEventListener('click', () => {
   const id = patcher.instrument;
@@ -989,6 +1007,7 @@ function openProject({ song, instruments, samples }, { stay = false, instrument 
   $('length').value = song.length;
   $('bpm').value = song.bpm;
   $('swing').value = Math.round((song.swing ?? 0.5) * 100);
+  $('bar').value = song.beatsPerBar ?? 4;
   if (!stay) { tabs.show('patterns'); backups.baselineDownload?.(); }
 }
 
@@ -1239,9 +1258,9 @@ $('file').addEventListener('change', async e => {
 });
 
 $('load-samples').addEventListener('click', () => $('sample-file').click());
-$('sample-file').addEventListener('change', async e => {
-  const files = [...e.target.files];
-  e.target.value = '';
+$('sample-file').addEventListener('change', e => { const files = [...e.target.files]; e.target.value = ''; loadSampleFiles(files); });
+async function loadSampleFiles(files) {
+  if (!engine.ctx) { projStatus('Start the engine first (press Start), then drop the files again.'); return; }
   for (const file of files) {
     try {
       // The browser decodes the file and resamples it to the audio context's rate.
@@ -1254,7 +1273,26 @@ $('sample-file').addEventListener('change', async e => {
     }
   }
   refreshProjectUi();
-});
+}
+
+// Audio files can be dragged onto the sample screen. Dropping a file anywhere else would make the browser open it and
+// leave the page, so the rest of the page just refuses.
+{
+  const pane = $('pane-samples'), hasFiles = e => [...(e.dataTransfer?.types ?? [])].includes('Files');
+  document.addEventListener('dragover', e => { if (hasFiles(e)) { e.preventDefault(); if (!pane.contains(e.target)) e.dataTransfer.dropEffect = 'none'; } });
+  document.addEventListener('drop', e => { if (hasFiles(e) && !pane.contains(e.target)) e.preventDefault(); });
+  let depth = 0;
+  const mark = on => pane.classList.toggle('dropping', on);
+  pane.addEventListener('dragenter', e => { if (hasFiles(e)) { depth++; mark(true); } });
+  pane.addEventListener('dragleave', e => { if (hasFiles(e) && --depth <= 0) { depth = 0; mark(false); } });
+  pane.addEventListener('dragover', e => { if (hasFiles(e)) { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; } });
+  pane.addEventListener('drop', e => {
+    if (!hasFiles(e)) return;
+    e.preventDefault(); depth = 0; mark(false);
+    const files = [...e.dataTransfer.files], audio = files.filter(f => f.type.startsWith('audio/') || /\.(wav|aiff?|flac|mp3|ogg|oga|opus|m4a|aac|webm)$/i.test(f.name));
+    if (audio.length) loadSampleFiles(audio); else projStatus('Only audio files can be dropped here.');
+  });
+}
 
 // Recording a sample from another tab, the computer's audio or an input device (project/recorder.js).
 {
@@ -1439,7 +1477,7 @@ $('start').addEventListener('click', async () => {
     startDownloads();
     navigator.storage?.persist?.();   // ask the browser not to clear the snapshots when it is short of space
     for (const id of ['start']) $(id).disabled = true;
-    for (const id of ['play', 'panic', 'cut', 'new', 'save', 'load', 'backups', 'export', 'patch-add', 'load-samples', 'rec-take', 'rec-source', 'add-inst', 'add-lane', 'add-lane-inst', 'inst-voices', 'inst-notecols', 'inst-name', 'inst-rename', 'inst-up', 'inst-down', 'inst-dup', 'inst-remove', 'lane-name', 'lane-rename', 'lane-left', 'lane-right', 'lane-dup', 'lane-remove', 'lane-remove-all', 'length', 'ins-n', 'ins-go', 'bpm', 'swing', 'preset-name', 'preset-save', 'preset-over', 'preset-rename', 'preset-remove', 'inst-export', 'inst-import', 'lib-load', 'lib-add', 'lib-save']) $(id).disabled = false;
+    for (const id of ['play', 'panic', 'cut', 'new', 'save', 'load', 'backups', 'export', 'patch-add', 'load-samples', 'rec-take', 'rec-source', 'add-inst', 'add-lane', 'add-lane-inst', 'inst-voices', 'inst-notecols', 'inst-name', 'inst-rename', 'inst-up', 'inst-down', 'inst-dup', 'inst-remove', 'lane-name', 'lane-rename', 'lane-left', 'lane-right', 'lane-dup', 'lane-remove', 'lane-remove-all', 'length', 'ins-n', 'ins-go', 'bpm', 'swing', 'bar', 'preset-name', 'preset-save', 'preset-over', 'preset-rename', 'preset-remove', 'inst-export', 'inst-import', 'lib-load', 'lib-add', 'lib-save']) $(id).disabled = false;
     $('status').textContent =
       `Running at ${engine.ctx.sampleRate} Hz, base latency ${(engine.ctx.baseLatency * 1000).toFixed(1)} ms`;
     // Only the screen that is showing is drawn: a hidden one has nothing to measure or paint, and its work would only delay the one you are using.

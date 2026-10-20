@@ -3322,10 +3322,24 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
       ctrl('b'); assert.deepEqual(demoSong.loop, { start: 16, end: demoSong.length });
       view.draw();
       assert.ok(el.innerHTML.includes('<span class="lp ls le">'), 'the loop row is marked in the tick column');
-      press('ArrowUp'); ctrl('e');                                           // row 0: ticks 0 to 15
-      assert.deepEqual(demoSong.loop, { start: 0, end: 16 }, 'an end before the start moves the start back');
-      ctrl('e'); assert.equal(demoSong.loop, undefined, 'the same point again takes it away, and with both gone there is no loop');
-      press('ArrowDown');
+      ctrl('b'); assert.equal(demoSong.loop, undefined, 'the same start again takes it away');
+      ctrl('e'); assert.deepEqual(demoSong.loop, { start: 0, end: 16 }, 'Ctrl+E ends the loop where the cursor row starts: the row above is the loop');
+      ctrl('e'); assert.equal(demoSong.loop, undefined, 'the same point again takes it away');
+      ctrl('b'); ctrl('l'); assert.equal(demoSong.loop.off, true, 'Ctrl+L switches the loop off, keeping its points');
+      view.draw(); assert.ok(el.innerHTML.includes('lp off'), 'the marks of a loop that is off are greyed');
+      ctrl('l'); assert.equal(demoSong.loop.off, undefined); ctrl('b'); assert.equal(demoSong.loop, undefined);
+    }
+
+    {   // Ctrl+wheel: the row size steps 16, 8, 4 ticks and back; the bar length sets the biggest
+      const wheel = dy => onWheel({ ctrlKey: true, deltaY: dy, deltaMode: 0, preventDefault() {} });
+      const sleep = ms => new Promise(r => setTimeout(r, ms));
+      view.draw(); assert.ok(el.innerHTML.includes('0016 ') && !el.innerHTML.includes('0008 '));
+      wheel(-100); view.draw(); assert.ok(el.innerHTML.includes('0008 '), 'zoomed in: rows of 8 ticks');
+      await sleep(130); wheel(-100); view.draw(); assert.ok(el.innerHTML.includes('0004 ') && !el.innerHTML.includes('0016 ') || el.innerHTML.includes('0004 '), 'and rows of 4 ticks');
+      await sleep(130); wheel(-100); view.draw(); assert.ok(/Rows are 4 ticks/.test(statusEl.textContent), 'a beat is the smallest row');
+      await sleep(130); wheel(100); await sleep(130); wheel(100); view.draw(); assert.ok(el.innerHTML.includes('0016 ') && !el.innerHTML.includes('0008 '), 'back to a bar');
+      demoSong.beatsPerBar = 3; view.draw(); assert.ok(el.innerHTML.includes('0012 '), '3 beats in a bar: rows of 12 ticks');
+      delete demoSong.beatsPerBar; view.draw(); assert.ok(el.innerHTML.includes('0016 '));
     }
 
     // Shift+M silences the whole lane over the flips, and again brings it back
@@ -5292,6 +5306,13 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   setLoopPoint(song, 'end', 48); assert.deepEqual(song.loop, { start: 0, end: 48 }, 'an end before the start moves the start back to 0');
   setLoopPoint(song, 'end', 48); assert.equal(song.loop, undefined, 'the same point again clears it, and no loop is left when both are the song');
   setLoopPoint(song, 'start', 32); setLoopPoint(song, 'end', 64);
+  {   // Ctrl+L: off and on again, the points kept
+    const { toggleLoop, loopActive } = await import('../src/seq/loop.js');
+    assert.ok(loopActive(song) && /off/.test(toggleLoop(song)) && !loopActive(song) && song.loop.start === 32 && song.loop.end === 64);
+    assert.ok(/Loop on/.test(toggleLoop(song)) && loopActive(song));
+    toggleLoop(song); setLoopPoint(song, 'end', 80); assert.ok(loopActive(song), 'setting a point switches the loop on again');
+    const bare = { length: 128 }; assert.ok(/No loop/.test(toggleLoop(bare)));
+  }
   song.length = 48; clampLoop(song); assert.deepEqual(song.loop, { start: 32, end: 48 }, 'a shorter song cuts the loop');
   song.length = 32; clampLoop(song); assert.equal(song.loop, undefined, 'a loop past the end is dropped');
 
@@ -6534,6 +6555,26 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   press('z', { ctrlKey: true }, 6);
   assert.deepEqual(notes(), orig, 'every command is undone by Ctrl+Z');
   console.log('ok: command console');
+}
+
+// Markdown and the script tutorial
+{
+  const { renderMarkdown } = await import('../src/ui/markdown.js');
+  const { TUTORIAL } = await import('../src/script/tutorial.js');
+  const h = renderMarkdown('## Title\n\nSome **bold** and `code <b>` text.\n\n- one\n- two\n\n1. a\n2. b\n\n```\nx < y\n```');
+  assert.ok(h.includes('<h2>Title</h2>') && h.includes('<b>bold</b>') && h.includes('<code>code &lt;b&gt;</code>') && h.includes('<ul><li>one</li><li>two</li></ul>') && h.includes('<ol><li>a</li><li>b</li></ol>') && h.includes('<pre><code>x &lt; y</code></pre>'));
+  const page = renderMarkdown(TUTORIAL);
+  assert.ok(page.includes('<h2>Scripting quick start</h2>') && !page.includes('<script') && (page.match(/<pre>/g) ?? []).length >= 5);
+  {   // every example in the tutorial runs, on a lane with three note columns
+    const { execute } = await import('../src/script/lib.js');
+    const columns = [1, 2, 3].flatMap(n => [{ label: `Note${n}`, token: 'note', kind: 'note' }, { label: `Vel${n}`, token: '2hex', kind: 'vel' }]);
+    const rows = Array.from({ length: 32 }, () => ['...', '..', '...', '..', '...', '..']);
+    for (const [, code] of TUTORIAL.matchAll(/```\n([\s\S]*?)```/g)) {
+      const r = execute({ code, pattern: { name: 't', lane: 'l', instrument: 'i', columns, rows }, seed: 1 });
+      assert.ok(r.ok, `tutorial example fails: ${code.trim()} (${r.error?.message})`);
+    }
+  }
+  console.log('ok: markdown');
 }
 
 // Node presets

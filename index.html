@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="themes.css">
-  <title>webtracker m257</title>
+  <title>webtracker m261</title>
   <link rel="icon" href="icon.ico" sizes="any">
   <link rel="icon" type="image/png" href="icon.png">
   <style>
@@ -41,6 +41,8 @@
     #about h2 { margin: 0 0 .5rem; font-size: 1.1rem; } #about h3 { margin: 1rem 0 .25rem; font-size: .95rem; } #about h4 { margin: .6rem 0 .1rem; font-size: .85rem; opacity: .8; }
     #about p { margin: .5rem 0; } #about ul { margin: 0 0 .5rem; padding-left: 1.2rem; } #about .last { font-style: italic; }
     #about form { margin-top: .75rem; text-align: right; }
+    #about form.about-x { position: sticky; top: 0; height: 0; margin: 0; z-index: 1; }   /* a close button at the top right that stays there while the text scrolls */
+    #about .about-x button { position: absolute; right: -.5rem; top: -.5rem; font-size: 1.1rem; line-height: 1; padding: 0 .45rem; }
     .ico { width: 1em; height: 1em; vertical-align: -.12em; }
     #rec[aria-pressed=true] .ico circle { fill: #fff; }
     #rec[aria-pressed=true] { background: #c0303a; border-color: #c0303a; color: #fff; }
@@ -80,6 +82,15 @@
     .tk-k { color: var(--accent); } .tk-b { font-weight: 700; } .tk-h { color: var(--accent); font-weight: 700; } .tk-r { opacity: .5; }
     #script-out { box-sizing: border-box; width: 100%; max-width: 110ch; height: 9em; margin: .3rem 0; padding: .3rem .6rem; overflow: auto; font: 12px/1.45 ui-monospace, Consolas, monospace; background: color-mix(in srgb, var(--panel) 85%, var(--fg)); white-space: pre-wrap; }
     #script-out .err { color: #e0405a; }
+    .keys.md { font: 12.5px/1.5 system-ui, sans-serif; }
+    .md h2 { font-size: 1.05rem; margin: .6rem 0 .3rem; } .md h3 { font-size: .9rem; margin: .9rem 0 .2rem; opacity: .85; } .md p { margin: .35rem 0; }
+    .md ul, .md ol { margin: .3rem 0; padding-left: 1.4rem; } .md li { margin: .15rem 0; }
+    .md code { font: 12px ui-monospace, Consolas, monospace; background: color-mix(in srgb, var(--fg) 10%, transparent); padding: 0 .3em; border-radius: 3px; }
+    .md pre { margin: .35rem 0; padding: .4rem .6rem; background: var(--panel); border: 1px solid var(--line); white-space: pre-wrap; overflow-wrap: anywhere; }
+    .keys.md #script-tut h3 { display: block; font: 600 13px/1.4 system-ui, sans-serif; opacity: .85; margin: .9rem 0 .2rem; }
+    .keys.md #script-tut h2 { margin-top: .2rem; }
+    .md pre code { background: none; padding: 0; }
+    .md code[title], .md pre:has(code[title]) { cursor: pointer; }
     #script-line { box-sizing: border-box; width: 100%; max-width: 110ch; font: 13px ui-monospace, Consolas, monospace; }
     #script-run { font: inherit; }
     .pane { padding: .5rem .75rem 2rem; }
@@ -171,10 +182,11 @@
     .sw.p4 { background: hsl(0 70% 55%); }
     .sw.p5 { background: hsl(55 70% 50%); }
     /* the song's loop: an amber bar beside the tick numbers of the rows inside it, with a line where it starts and ends */
-    .lp { box-shadow: inset 3px 0 0 hsl(45 90% 50%); }
-    .lp.ls { box-shadow: inset 3px 0 0 hsl(45 90% 50%), inset 0 1px 0 hsl(45 90% 50%); }
-    .lp.le { box-shadow: inset 3px 0 0 hsl(45 90% 50%), inset 0 -1px 0 hsl(45 90% 50%); }
-    .lp.ls.le { box-shadow: inset 3px 0 0 hsl(45 90% 50%), inset 0 1px 0 hsl(45 90% 50%), inset 0 -1px 0 hsl(45 90% 50%); }
+    .lp.off { --lpc: hsl(45 12% 60%); }   /* the loop is switched off: its marks stay, greyed */
+    .lp { box-shadow: inset 3px 0 0 var(--lpc, hsl(45 90% 50%)); }
+    .lp.ls { box-shadow: inset 3px 0 0 var(--lpc, hsl(45 90% 50%)), inset 0 1px 0 var(--lpc, hsl(45 90% 50%)); }
+    .lp.le { box-shadow: inset 3px 0 0 var(--lpc, hsl(45 90% 50%)), inset 0 -1px 0 var(--lpc, hsl(45 90% 50%)); }
+    .lp.ls.le { box-shadow: inset 3px 0 0 var(--lpc, hsl(45 90% 50%)), inset 0 1px 0 var(--lpc, hsl(45 90% 50%)), inset 0 -1px 0 var(--lpc, hsl(45 90% 50%)); }
     #seq .gn.g2 { background: color-mix(in srgb, var(--fg) 12%, transparent); }
     #seq .gn.g1 { background: color-mix(in srgb, var(--fg) 24%, transparent); }
     #seq .mk { color: inherit; }
@@ -359,6 +371,7 @@
     .s-go[hidden] { display: block; opacity: 0; }
     .s-log { position: absolute; left: 42cqw; top: 34.5cqw; pointer-events: none; font: clamp(10px, 1.45cqw, 13px)/1.6 ui-monospace, Consolas, monospace; color: #9a9ca3; white-space: pre; }
     .s-log .bad { color: #d33; }
+    #pane-samples.dropping { outline: 2px dashed var(--accent, #2b6be0); outline-offset: -4px; }   /* an audio file is being dragged over the sample screen */
     #cmdbar { position: fixed; left: 0; right: 0; z-index: 3; display: flex; align-items: center; gap: .5rem; padding: .25rem .6rem; background: var(--panel); border-top: 1px solid color-mix(in srgb, var(--fg) 35%, transparent); font: 13px ui-monospace, Consolas, monospace; }
     #cmdbar[hidden] { display: none; }
     #cmdbar label { font-weight: 700; }
@@ -505,6 +518,7 @@
       <label title="Song length in ticks; 16 ticks is one row of the arrangement">length <input id="length" type="number" min="16" max="65536" step="16" style="width:4.5em" disabled></label>
       <label>bpm <input id="bpm" type="number" min="20" max="400" step="1" style="width:4em" disabled></label>
       <label title="How much of each pair of rows the first one lasts: 50 is straight, 67 is a triplet shuffle">swing <span class="field"><input id="swing" type="number" min="50" max="75" step="1" style="width:2.6em" disabled><span class="unit">%</span></span></label>
+      <label title="Beats in a bar, the top number of the time signature: the rows of the arrangement are one bar tall and its shading follows (Ctrl+wheel there changes the row size)">bar <input id="bar" type="number" min="1" max="16" step="1" style="width:3em" disabled></label>
       <i class="sep"></i>
       <button id="load" disabled>Open</button>
       <button id="export" disabled title="Render the whole song to a WAV file, with a tail after the end (length and format in Config)">Export</button>
@@ -540,6 +554,7 @@
   </div>
 
   <dialog id="about" aria-label="About webtracker">
+    <form method="dialog" class="about-x"><button aria-label="Close" title="Close (Esc)">&times;</button></form>
     <div id="about-body"></div>
     <form method="dialog"><button>Close</button></form>
   </dialog>
@@ -634,7 +649,7 @@
           <dt>Shift+I / O</dt><dd><b class="kw">fade in / out</b></dd>
           <dt>Shift+D</dt><dd><b class="kw">remove DC</b></dd>
           <dt>Shift+B</dt><dd><b class="kw">bake</b> the loop crossfade</dd>
-          <dt>Ctrl+B, Ctrl+E</dt><dd>start the <b class="kw">loop</b> at this tick, end it with this tick (again on the same tick to take it away)</dd>
+          <dt>Ctrl+B, Ctrl+E</dt><dd>start the <b class="kw">loop</b> at this tick, end it with this tick (again on the same tick to take it away); Ctrl+L switches the loop <b class="kw">off</b> and on</dd>
           <dt>Ctrl+Z, Ctrl+Y</dt><dd><b class="kw">undo</b>, redo</dd>
         </dl>
         <p>Edits apply to the selection, or to the whole sample when nothing is selected. Stereo samples stay stereo. The display shows the chosen sample as Waveform or Spectrum, with the loop between markers A and B and the sustain loop between a and b.</p>
@@ -763,6 +778,7 @@
         <dl>
           <dt>Up/Down</dt><dd><b class="kw">move</b> in time</dd>
           <dt>Left/Right</dt><dd><b class="kw">change lane</b></dd>
+          <dt>Ctrl+wheel</dt><dd>the size of a row: a bar, half a bar, a beat (<b class="kw">zoom</b> in and out)</dd>
           <dt>PgUp/PgDn</dt><dd>16 ticks</dd>
           <dt>Enter</dt><dd>open the pattern under the cursor in the grid, or <b class="kw">insert</b> a new one</dd>
           <dt>Ctrl+Enter</dt><dd>open the pattern under the cursor on its own (<b class="kw">solo-edit</b>): nothing else can be edited or pasted into. In the grid, Tab switches between showing only the pattern (rows from 0) and showing the whole song with the rest greyed, hatched and locked; Esc leaves it</dd>
@@ -782,7 +798,7 @@
           <dt>F9</dt><dd><b class="kw">follow</b> the song: the rows scroll with the playing row (highlighted). Moving the caret to another row <b class="kw">pauses</b> the following; F9 follows again</dd>
           <dt>Ctrl+Z, Ctrl+Y</dt><dd><b class="kw">undo</b>, redo</dd>
           <dt>O, Ctrl+1</dt><dd>put a note-off marker on this row (again to <b class="kw">remove</b> it): the lane lets go of what is sounding there, for patterns that end without a <b class="kw">note off</b></dd>
-          <dt>Ctrl+B, Ctrl+E</dt><dd>start the <b class="kw">loop</b> at this row, end it with this row (again on the same row to take it away); <b class="kw">play</b> starts at the loop and repeats it</dd>
+          <dt>Ctrl+B, Ctrl+E</dt><dd>start the <b class="kw">loop</b> at this row, end it at the start of this row, so this row is the first one after the loop (again on the same row to take it away); <b class="kw">play</b> starts at the loop and repeats it. Ctrl+L switches the loop <b class="kw">off</b> and on, keeping its points</dd>
           <dt>W, Shift+W</dt><dd>set a <b class="kw">waypoint</b>, restore it</dd>
           <dt>M</dt><dd><b class="kw">mute</b> the lane from this row until the next M further down (shown dimmed, with &lt;<b class="kw">mute</b>&gt; and &lt;play&gt; cells marking the changes)</dd>
           <dt>Shift+M</dt><dd><b class="kw">silence</b> the whole lane, whatever its marks say; again to bring it back</dd>
@@ -800,7 +816,7 @@
     </div>
   </section>
 
-  <section id="pane-script" class="pane" hidden>
+  <section id="pane-script" class="pane keyed" hidden>
     <div class="pane-main">
       <div class="help">Scripts write pattern data into the pattern under the cursor in the pattern editor (or its selection). They run in their own thread, only when you ask, and change nothing if they fail or take too long. <b>Ctrl+Enter</b> runs the selected code, or all of it; <b>Ctrl+Alt+R</b> in the pattern editor runs the whole script on the pattern there. Saved with the project. <button id="script-run" type="button">Run</button></div>
       <div id="script-box"><pre id="script-hl" aria-hidden="true"></pre><textarea id="script" spellcheck="false" wrap="off" autocapitalize="off" autocomplete="off" aria-label="Script"></textarea></div>
@@ -808,6 +824,7 @@
       <pre id="script-out" tabindex="0" aria-label="Script output" aria-live="polite"></pre>
       <input id="script-line" type="text" spellcheck="false" autocomplete="off" aria-label="Try a line of script" placeholder="try a line here and press Enter, for example: scale('minor', 'A', 2)">
     </div>
+    <aside class="keys md" aria-label="Scripting tutorial"><h3>Tutorial</h3><div id="script-tut"></div></aside>
   </section>
 
   <section id="pane-config" class="pane" hidden>

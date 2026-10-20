@@ -242,7 +242,7 @@ export function insertTicks(project, tick, n, { cut = true } = {}) {
     lane.offs = (lane.offs ?? []).map(move);
   }
   const loop = project.song.loop;
-  if (loop) project.song.loop = { start: move(loop.start), end: loop.end > at ? loop.end + n : loop.end };
+  if (loop) project.song.loop = { ...loop, start: move(loop.start), end: loop.end > at ? loop.end + n : loop.end };
   return n;
 }
 

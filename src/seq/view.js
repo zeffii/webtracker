@@ -1,4 +1,4 @@
-import { setLoopPoint } from './loop.js';
+import { setLoopPoint, toggleLoop } from './loop.js';
 import * as config from '../ui/config.js';
 import { dimLevel, dimFilter } from '../ui/dim.js';
 import { createPlayline } from '../ui/playline.js';
@@ -658,6 +658,7 @@ export function createTrackerView({ showMenu = (e, items) => showContextMenu(e, 
         onSong();
         e.preventDefault(); return;
       }
+      if (key === 'l' && !e.shiftKey) { message = toggleLoop(song); onSong(); e.preventDefault(); return; }   // Ctrl+L: the loop on or off
       if (key === ' ') { insertLive(true); e.preventDefault(); return; }   // Ctrl+Space: the live values of every parameter column of this row
       if (key === 'i') { interpolate(); e.preventDefault(); return; }
       if (key === 'delete' && e.shiftKey) {   // Ctrl+Shift+Delete: take the pattern under the cursor out of the arrangement (it stays in the list)
@@ -860,7 +861,7 @@ export function createTrackerView({ showMenu = (e, items) => showContextMenu(e, 
       });
       const inLoop = song.loop && t >= song.loop.start && t < song.loop.end;
       const edge = inLoop ? `${t === song.loop.start ? ' ls' : ''}${t === song.loop.end - 1 ? ' le' : ''}` : '';
-      const row = `<span class="g${inLoop ? ` lp${edge}` : ''}">${playing && t === playTick && !overlay() ? '>' : ' '}${String(t - base).padStart(4, '0')} </span>${chunks.join('  ')}`;
+      const row = `<span class="g${inLoop ? ` lp${song.loop.off ? ' off' : ''}${edge}` : ''}">${playing && t === playTick && !overlay() ? '>' : ' '}${String(t - base).padStart(4, '0')} </span>${chunks.join('  ')}`;
       const shade = (t - base) % 16 === 0 ? 'r16' : (t - base) % 4 === 0 ? 'r4' : '';
       const line = playing && t === playTick && !overlay() ? `<b>${following ? `<span class="now">${row}</span>` : row}</b>` : row;
       lines.push(shade ? `<span class="${shade}">${line}</span>` : line);

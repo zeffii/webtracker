@@ -26,9 +26,17 @@ export function setLoopPoint(song, which, tick) {
     else { e = tick; if (e <= s) s = 0; message = `Loop ends at ${e}.`; }
   }
   if (s === 0 && e === song.length) { delete song.loop; return message; }
-  song.loop = { start: s, end: e };
+  song.loop = { start: s, end: e };   // setting a point switches the loop on again
   return message;
 }
+
+// Ctrl+L: the loop switched off and on again with its points kept (song.loop.off). Without a loop there is nothing to switch.
+export function toggleLoop(song) {
+  if (!song.loop) return 'No loop yet: Ctrl+B and Ctrl+E set its start and end.';
+  if (song.loop.off) delete song.loop.off; else song.loop = { ...song.loop, off: true };
+  return song.loop.off ? 'Loop off (its points are kept).' : 'Loop on.';
+}
+export const loopActive = song => !!song.loop && !song.loop.off;
 
 // After the song's length changes: keep the loop inside it, or drop it.
 export function clampLoop(song) {
@@ -36,5 +44,5 @@ export function clampLoop(song) {
   const { start, end } = loopRange(song);
   if (song.loop.start >= song.length) delete song.loop;
   else if (start === 0 && end === song.length) delete song.loop;
-  else song.loop = { start, end };
+  else song.loop = { ...song.loop, start, end };
 }

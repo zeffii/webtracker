@@ -3,11 +3,11 @@ import * as config from '../ui/config.js';
 import { dimLevel, dimFilter } from '../ui/dim.js';
 import { createPlayline } from '../ui/playline.js';
 import { placementAt, puidByIndex, startsAt } from './edit.js';
-import { setLoopPoint } from './loop.js';
+import { setLoopPoint, toggleLoop } from './loop.js';
 import { createMinimap } from './minimap.js';
 
 const ROWS = { min: 6, max: 128, normal: 24 };   // rows shown at once
-const CELL = 16;     // ticks in one row
+let CELL = 16;      // ticks in one row: a bar by default (the beats in a bar times the ticks in a beat); Ctrl+wheel halves it down to a beat and back
 const COLW = 14;     // characters per lane column
 const INSET = 6;     // pixels a pattern is inset from the right for each pattern under it
 const hex2 = n => n.toString(16).toUpperCase().padStart(2, '0');
@@ -25,8 +25,28 @@ export function createSequenceView({ el, statusEl, listEl, transport, onToggle, 
   let clipboard = null;    // { w, h, items } from the last copy
   let dragging = null;     // the cell where a mouse drag began
 
+  // The row sizes on offer: the divisors of a bar that are at least a beat, biggest first (16, 8, 4 for 4/4 at 4 ticks a beat).
+  const barTicks = () => Math.max(1, Math.round(song?.beatsPerBar ?? 4)) * Math.max(1, song?.ticksPerBeat ?? 4);
+  const cellSizes = () => {
+    const bar = barTicks(), beat = Math.min(bar, Math.max(1, song?.ticksPerBeat ?? 4)), out = [];
+    for (let d = bar; d >= beat; d--) if (bar % d === 0) out.push(d);
+    return out;
+  };
+  let wantCell = 0;
+  try { wantCell = Number(localStorage.getItem('webtracker.arrangementRow')) || 0; } catch { /* no storage */ }
+  const syncCell = () => { const sizes = cellSizes(); const was = CELL; CELL = sizes.includes(wantCell) ? wantCell : sizes[0]; return CELL !== was; };
+  const zoomRows = dir => {   // dir 1: smaller rows (zoom in), -1: bigger
+    const sizes = cellSizes(), at = sizes.indexOf(CELL), next = Math.max(0, Math.min(sizes.length - 1, (at < 0 ? 0 : at) + dir));
+    if (sizes[next] === CELL) { message = `Rows are ${CELL} ticks${CELL === sizes[0] ? ' (a bar)' : ''}: the ${dir > 0 ? 'smallest' : 'biggest'} size.`; return; }
+    const topTick = top * CELL;
+    wantCell = CELL = sizes[next];
+    try { localStorage.setItem('webtracker.arrangementRow', String(CELL)); } catch { /* no storage */ }
+    top = Math.floor(topTick / CELL); sel = null; typed = '';
+    message = `Rows are ${CELL} ticks.`;
+  };
+
   const load = ({ lanes: l, song: s, editor: e }) => {
-    lanes = l; len = s.length; editor = e; song = s;
+    lanes = l; len = s.length; editor = e; song = s; syncCell();
     Object.assign(cur, { lane: 0, tick: 0 });
     typed = ''; message = ''; sel = null;
   };
@@ -212,13 +232,14 @@ export function createSequenceView({ el, statusEl, listEl, transport, onToggle, 
     if (dialog) { return; }
     if (e.ctrlKey || e.metaKey) {
       const key = e.key.toLowerCase(), li0 = cur.lane, tick0 = cur.tick;
-      if ((key === 'b' || key === 'e') && !e.shiftKey) {   // the loop: Ctrl+B starts it at this row, Ctrl+E ends it with this row
+      if ((key === 'b' || key === 'e') && !e.shiftKey) {   // the loop: Ctrl+B starts it at this row, Ctrl+E ends it where this row starts (this row is not in the loop)
         const row = rowStart(cur.tick);
-        message = key === 'b' ? setLoopPoint(song, 'start', row) : setLoopPoint(song, 'end', row + CELL);
+        message = key === 'b' ? setLoopPoint(song, 'start', row) : setLoopPoint(song, 'end', row);
         onSong();
         e.preventDefault();
         return;
       }
+      if (key === 'l' && !e.shiftKey) { message = toggleLoop(song); onSong(); e.preventDefault(); return; }   // Ctrl+L: the loop on or off
       if (key === 'z' || key === 'y') {
         const redo = key === 'y' || e.shiftKey;
         const label = redo ? editor.redo() : editor.undo();
@@ -356,9 +377,14 @@ export function createSequenceView({ el, statusEl, listEl, transport, onToggle, 
   config.onChange(k => { if (k === 'playhead') { lineMode = config.get('playhead') === 'line'; draw(); } });
   let top = 0;                  // the first row on screen
   // The wheel scrolls the rows without moving the cursor; the view follows the cursor again as soon as it moves.
-  let wheelAcc = 0, scrolledFor = null;
+  let wheelAcc = 0, scrolledFor = null, zoomAt = null;
   el.addEventListener('wheel', e => {
     e.preventDefault();
+    if (e.ctrlKey) {   // Ctrl+wheel: the size of a row (a bar, half a bar, a beat), one step for each notch
+      const now = performance.now();
+      if (lanes && e.deltaY !== 0 && now - (zoomAt ?? 0) > 120) { zoomAt = now; zoomRows(e.deltaY < 0 ? 1 : -1); draw(); }
+      return;
+    }
     if (!lanes || e.deltaY === 0 || (follow() && !paused && Atomics.load(transport, 1) === 1)) return;
     wheelAcc += e.deltaY * (e.deltaMode === 1 ? 16 : 1);
     const step = Math.trunc(wheelAcc / 25);   // a notch of a mouse wheel is about four rows
@@ -389,8 +415,9 @@ export function createSequenceView({ el, statusEl, listEl, transport, onToggle, 
     const picked = sel ? block() : null;
     const blocks = lanes.map(layout);
     const row = (text, cls = '') => `<div class="r${cls}">${text}</div>`;
-    // the tick numbers: every 64 ticks a subtle shade, a darker one every 256 (a bar)
-    const num = t => { const s = String(t).padStart(4, '0'); return t % 64 ? `${s} ` : `<span class="gn ${t % 256 ? 'g2' : 'g1'}">${s} </span>`; };
+    // the tick numbers: every four bars a subtle shade, a darker one every sixteen
+    if (syncCell()) top = 0;   // the bar changed under us: the row size follows it
+    const bar = barTicks(), num = t => { const s = String(t).padStart(4, '0'); return t % (bar * 4) ? `${s} ` : `<span class="gn ${t % (bar * 16) ? 'g2' : 'g1'}">${s} </span>`; };
     const lines = [row(`      ${lanes.map((l, li) => {
       const head = `${li === cur.lane ? '>' : ' '}${esc(l.id.slice(0, COLW - 1).padEnd(COLW - 1))}`;
       const dim = dimFilter(dimLevel(l));
@@ -435,7 +462,7 @@ export function createSequenceView({ el, statusEl, listEl, transport, onToggle, 
         }
         return `<span class="${classes}"${dim ? ` style="${dim}"` : ''}>${layers}${isCur ? '<i class="cb"></i>' : ''}<span class="t">${inner}</span></span>`;
       });
-      const lp = song.loop && t + CELL > song.loop.start && t < song.loop.end ? ` lp${t <= song.loop.start ? ' ls' : ''}${t + CELL >= song.loop.end ? ' le' : ''}` : '';
+      const lp = song.loop && t + CELL > song.loop.start && t < song.loop.end ? ` lp${song.loop.off ? ' off' : ''}${t <= song.loop.start ? ' ls' : ''}${t + CELL >= song.loop.end ? ' le' : ''}` : '';
       lines.push(row(`${lp ? `<span class="${lp.trim()}">` : ''}${playing && playTick >= t && playTick < t + CELL && !lineMode ? '>' : ' '}${num(t)}${lp ? '</span>' : ''}${cells.join('')}`, r === nowRow ? ' now' : ''));
     }
 
