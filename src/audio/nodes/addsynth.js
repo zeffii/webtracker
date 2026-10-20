@@ -9,7 +9,7 @@
 // Monophonic, last note wins, with glide. Partials are rotating phasors, so cost is a few
 // multiplies per partial per sample, and anything past 0.45 * the sample rate is skipped.
 import { Adsr } from './adsr.js';
-import { HARMONICS, normalizeSpectrum } from './spectra.js';
+import { HARMONICS, SPECTRA, normalizeSpectrum } from './spectra.js';
 
 const SPEC = [
   { name: 'harmonics', min: 1, max: HARMONICS, def: HARMONICS, int: true },
@@ -43,6 +43,13 @@ export default {
   editor: 'spectrum',   // the patcher panel offers the spectrum editor for this node
   kinds: { pitch: 'control', out: 'stereo' },
   params: SPEC,
+  presets: [   // factory presets: the parameters that differ from the defaults, and the drawn spectrum
+    { name: 'organ', params: { atk: 4, dec: 50, sus: 1, rel: 120, level: 0.45 }, data: { spectrum: SPECTRA.organ() } },
+    { name: 'glass bell', params: { stretch: 0.3, hdecay: 7, atk: 0.5, dec: 2400, sus: 0, rel: 1200, width: 0.6, level: 0.4 }, data: { spectrum: SPECTRA.saw() } },
+    { name: 'hollow pad', params: { drift: 0.35, width: 0.85, atk: 700, dec: 900, sus: 0.85, rel: 1400, level: 0.4 }, data: { spectrum: SPECTRA.hollow() } },
+    { name: 'formant choir', params: { drift: 0.15, width: 0.7, atk: 350, dec: 600, sus: 0.9, rel: 900, level: 0.45 }, data: { spectrum: SPECTRA.formant() } },
+    { name: 'soft sine', params: { atk: 8, dec: 300, sus: 0.9, rel: 250, level: 0.5 }, data: { spectrum: SPECTRA.sine() } },
+  ],
   create({ sampleRate, connected, data, maxBlock = 128 }) {
     const pitchOn = connected[0];
     const amp = new Adsr(sampleRate);

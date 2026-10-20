@@ -464,10 +464,10 @@ export function createSequenceView({ el, statusEl, listEl, transport, onToggle, 
     ].filter(Boolean).join(' · ');
     if (listEl) {
       // The patterns of this lane: colour, two-digit shortcut, name and length; the one under the cursor is marked.
-      const html = `<div class="ph">${esc(lane().id)}: ${Object.keys(lane().patterns).length} patterns</div>${
+      const html = `<div class="ph"><span>${esc(lane().id)}: ${Object.keys(lane().patterns).length} patterns</span><span>len</span></div>${
         Object.entries(lane().patterns).sort((a, b) => a[1].index - b[1].index).map(([puid, p]) => {
           const { cls, style } = colourOf(p);
-          return `<div class="pi${owner && owner.puid === puid ? ' here' : ''}"><span class="sw${cls ? ` ${cls}` : ''}"${style ? ` style="background:${style}"` : ''}> </span> ${hex2(p.index)} ${esc(p.name.padEnd(10))} ${String(p.length).padStart(3)}</div>`;
+          return `<div class="pi${owner && owner.puid === puid ? ' here' : ''}"><span class="sw${cls ? ` ${cls}` : ''}"${style ? ` style="background:${style}"` : ''}> </span><span>${hex2(p.index)}</span><span class="pn">${esc(p.name)}</span><span class="pl">${p.length}</span></div>`;
         }).join('') || '<div class="pi">none yet</div>'}`;
       if (html !== lastList) { lastList = html; listEl.innerHTML = html; }
     }

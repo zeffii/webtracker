@@ -1,4 +1,5 @@
 import * as config from '../ui/config.js';
+import { factoryPresets, userPresets, saveUserPreset, deleteUserPreset, capture, valuesOf, DATA_KEYS } from './nodepresets.js';
 import { MODES, SIZES, scopeBox, headerHit, drawScope } from './scope.js';
 import { addNode, autoLayout, connect, disconnect, duplicateNodes, insertOnWire, pruneDef, pullOut, removeNode, setBits, setExposed, setParam, setPort, nudgeClear } from './edit.js';
 
@@ -518,6 +519,35 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
       const add = el('button', { textContent: 'Add sample', title: 'Add another sample to the list, to play with the Smp column' });
       add.addEventListener('click', () => { if (getSampleIds().length) save([...list, getSampleIds()[0]]); });
       items.splice(1, 0, ...rows, add);
+    }
+    if (!type.master && type.params.length) {   // presets: the ones the node type ships, and the ones you saved for it
+      const live = name => readLive(instId, node.id, name);
+      const pick = el('select', { ariaLabel: 'Node preset' });
+      const fill = chosen => {
+        const f = factoryPresets(type), u = userPresets(node.type);
+        pick.replaceChildren(el('option', { value: '', textContent: '(choose a preset)' }),
+          ...(f.length ? [el('optgroup', { label: 'factory' }, ...f.map(x => el('option', { value: `f:${x.name}`, textContent: x.name })))] : []),
+          ...(u.length ? [el('optgroup', { label: 'yours' }, ...u.map(x => el('option', { value: `u:${x.name}`, textContent: x.name })))] : []));
+        pick.value = chosen ?? '';
+      };
+      fill();
+      pick.addEventListener('change', () => {
+        const [kind, ...rest] = pick.value.split(':'), name = rest.join(':');
+        const preset = kind === 'f' ? factoryPresets(type).find(x => x.name === name) : kind === 'u' ? userPresets(node.type).find(x => x.name === name) : null;
+        if (!preset) return;
+        for (const [k, v] of valuesOf(preset, type)) { setParam(desc(), node.id, k, v); onParam(instId, node.id, k, v); }
+        for (const k of DATA_KEYS) if (preset.data?.[k]) { node.data = { ...node.data, [k]: [...preset.data[k]] }; onData(instId, node.id, { type: k, points: [...preset.data[k]] }); }
+        dirty = true; renderPanel();
+      });
+      const name = el('input', { placeholder: 'save as…', ariaLabel: 'Name for a new preset', size: 12 });
+      const save = el('button', { textContent: 'Save', title: 'Keep this node\'s settings as a preset for every node of this type (kept in this browser)' });
+      save.addEventListener('click', () => {
+        const n = name.value.trim(); if (!n) return;
+        if (saveUserPreset(node.type, capture(node, type, n, live))) { name.value = ''; fill(`u:${n}`); say(`Saved the preset "${n}".`); } else say('The browser would not keep the preset.');
+      });
+      const drop = el('button', { textContent: '✕', title: 'Delete the chosen preset of yours' });
+      drop.addEventListener('click', () => { if (pick.value.startsWith('u:')) { deleteUserPreset(node.type, pick.value.slice(2)); fill(); } });
+      items.unshift(el('div', { className: 'prow presets' }, el('span', { textContent: 'preset' }), pick, name, save, drop));
     }
     if (!type.master) {
       const dup = el('button', { textContent: 'Duplicate node', title: 'Copy this node with its settings (Ctrl+D)' });

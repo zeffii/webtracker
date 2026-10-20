@@ -828,6 +828,10 @@ const hit = 'C-2 .. .. ..';
   live['osc.tune'] = 7;   // a pattern wrote it: the row follows
   assert.equal(patcher.paramRows().find(r => r.name === 'tune').text(), '7');
   delete live['osc.tune'];
+  {   // the node panel opens with a preset row
+    let pick = null; walk(panel, e => { if (e.ariaLabel === 'Node preset') pick = e; });
+    assert.ok(pick, 'a node panel has a preset menu');
+  }
 
   // drag a node
   const from = mid('vca'), x0 = node('vca').x;
@@ -6530,6 +6534,21 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   press('z', { ctrlKey: true }, 6);
   assert.deepEqual(notes(), orig, 'every command is undone by Ctrl+Z');
   console.log('ok: command console');
+}
+
+// Node presets
+{
+  const { factoryPresets, valuesOf, capture } = await import('../src/graph/nodepresets.js');
+  const t = NODE_TYPES.addsynth, list = factoryPresets(t);
+  assert.ok(list.length >= 4 && list.every(p => p.name && p.data.spectrum.length === 32));
+  const bell = valuesOf(list.find(p => p.name === 'glass bell'), t), get = k => bell.find(([n]) => n === k)[1];
+  assert.equal(get('stretch'), 0.3); assert.equal(get('tune'), 0);   // what a preset leaves out goes back to the default
+  assert.equal(get('harmonics'), 32);
+  const node = { params: { tilt: 99, atk: 7 }, data: { spectrum: [1, 0.5] } };
+  const got = capture(node, t, 'mine'), clamped = valuesOf(got, t);
+  assert.equal(got.params.atk, 7); assert.deepEqual(got.data.spectrum, [1, 0.5]);
+  assert.equal(clamped.find(([n]) => n === 'tilt')[1], 99 > 12 ? 12 : 99);   // out-of-range values are clamped when applied
+  console.log('ok: node presets');
 }
 
 // Sample screen mouse: a click moves to a field, a second click starts typing, digits then set it.

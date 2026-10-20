@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="themes.css">
-  <title>webtracker m256</title>
+  <title>webtracker m257</title>
   <link rel="icon" href="icon.ico" sizes="any">
   <link rel="icon" type="image/png" href="icon.png">
   <style>
@@ -102,10 +102,12 @@
     /* its own height: room for the header and 20 patterns, then (only then) it scrolls */
     #lane-name { width: 14ch; flex: none; }
     #seq-side .ph, #seq-side .pi { height: 17px; overflow: hidden; }
-    #seq-side .ph { padding: 0 6px; opacity: .6; }
-    #seq-side .pi { padding: 0 6px; }
+    #seq-side .ph { padding: 0 6px; opacity: .6; display: flex; justify-content: space-between; }
+    #seq-side .pi { padding: 0 6px; display: grid; grid-template-columns: 14px 2.3ch minmax(0, 1fr) 5ch; gap: 0 6px; align-items: center; }
+    #seq-side .pn { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    #seq-side .pl { text-align: right; }
     #seq-side .pi.here { background: color-mix(in srgb, currentColor 22%, transparent); }
-    #seq-side .sw { margin-right: 2px; vertical-align: middle; height: 11px; }
+    #seq-side .sw { width: 11px; height: 11px; margin: 0; }
     #view:focus, #seq:focus { outline: 1px solid; }
     #seq { overflow-x: auto; line-height: 18px; isolation: isolate; }
     #seq .t { position: relative; z-index: 2; }
@@ -462,6 +464,9 @@
     /* compact parameter rows: label, dark inset bar with a block handle, value */
     .prow { display: grid; grid-template-columns: 8rem 12rem 5rem auto; gap: .5rem; align-items: center; font: 13px/1.2 ui-monospace, Consolas, monospace; margin: 2px 0; }
     .prow output { text-align: right; }
+    .prow.presets { display: flex; flex-wrap: wrap; gap: .4rem; }
+    .prow.presets > span { width: 5rem; }
+    .prow.presets input { width: 9rem; }
     #hint-pop { position: fixed; display: none; z-index: 50; max-width: 22rem; padding: .4rem .6rem; background: var(--bg); color: var(--fg); border: 1px solid; box-shadow: 0 2px 10px #0006; pointer-events: none; font-size: 12px; line-height: 1.4; }
     #hint-pop p { margin: .25rem 0; }
     #hint-pop small { opacity: .65; }

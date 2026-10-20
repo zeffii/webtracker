@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['m257', ['Node presets: every node\'s panel has a preset menu: the factory presets of the node type (the additive synth has organ, glass bell, hollow pad, formant choir and soft sine) and your own, which you save by typing a name and pressing Save (kept in this browser, for every project and every node of that type; the ✕ deletes the chosen one of yours). A preset sets every parameter and the drawn spectrum; whatever it leaves out goes back to the default. The pattern list in the arrangement panel has its lengths in a column of their own, right-aligned, with long names cut short.']],
   ['m256', ['Top bar regrouped, with a thin rule between the groups: Save | Start, play, record, Follow | length, bpm, swing | Open, Export, Backups, New | meters, scope | Cut, panic. Load is now called Open and Export WAV is just Export.']],
   ['m255', ['Arrangement: the list of the patterns of the lane under the cursor is now in the panel on the right, above the shortcuts, instead of under the grid. Hiding the shortcuts keeps the list.']],
   ['m254', ['Graph: a wire between two close nodes loses its S-curve: its bend eases away as the ends come within 60 px of each other and it is a straight line at that distance (Config > Editing > Graph: wires between close nodes go straight; 0 keeps every wire curved). The "click anywhere to enter" text on the splash stays grey.']],
