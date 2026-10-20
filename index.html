@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="themes.css">
-  <title>webtracker m252</title>
+  <title>webtracker m253</title>
   <link rel="icon" href="icon.ico" sizes="any">
   <link rel="icon" type="image/png" href="icon.png">
   <style>
@@ -341,20 +341,19 @@
     #meters[hidden] { display: none; }
     /* the first screen */
     body.splashing { overflow: hidden; }
-    #splash { position: fixed; inset: 0; z-index: 1000; background: #050706; color: #9dffc0; font: 13px/1.55 ui-monospace, Consolas, monospace; display: flex; justify-content: center; padding: 0 max(16px, env(safe-area-inset-left, 0px)); }
+    #splash { position: fixed; inset: 0; z-index: 1000; background: #c9ccd3; display: grid; place-items: center; transition: opacity .3s; }
     #splash[hidden] { display: none; }
-    #splash::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: repeating-linear-gradient(to bottom, #0000 0 2px, #0000000d 2px 3px), radial-gradient(ellipse at center, #0000 55%, #000a 100%); }
-    .s-crt { width: 100%; max-width: 980px; display: flex; flex-direction: column; justify-content: center; }
-    .s-log { white-space: pre-wrap; color: #4f8a68; text-shadow: 0 0 6px #4f8a6855; }
-    .s-log .ok { color: #9dffc0; } .s-log .hl { color: #ffd479; } .s-log .bad, .s-log.bad, .s-log div.bad { color: #ff6b6b; }
-    .s-go { all: unset; cursor: pointer; display: inline-block; font: 700 39px/1.25 ui-monospace, Consolas, monospace; color: #9dffc0; text-shadow: 0 0 16px #9dffc088; margin-top: .6em; max-width: 100%; }
-    .s-go:focus-visible { outline: none; }
-    .s-go .caret { display: inline-block; width: .55em; height: 1em; background: #9dffc0; vertical-align: -.12em; margin-left: .12em; animation: s-blink 1s steps(2, start) infinite; }
-    .s-go:hover .p { color: #ffd479; }
-    @keyframes s-blink { to { visibility: hidden; } }
-    .s-hint { color: #4f8a68; font-size: 12px; margin-top: .4em; }
-    .s-bar { height: 10px; border: 1px solid #4f8a68; margin-top: 1em; max-width: 520px; display: none; }
-    .s-bar i { display: block; height: 100%; width: 0; background: #9dffc0; box-shadow: 0 0 10px #9dffc0; transition: width .12s; }
+    .s-card { position: relative; width: min(92vw, 150vh); aspect-ratio: 1.61 / 1; container-type: inline-size; background: #fff; overflow: hidden; box-shadow: 0 1px 0 #0001, 0 12px 40px -18px #0006; transition: opacity .35s, transform .5s; }
+    #splash.leaving .s-card { opacity: 0; transform: scale(1.03); }
+    #splash.leaving { opacity: 0; }
+    .s-card canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+    .s-word { position: absolute; left: 41cqw; top: 31cqw; margin: 0; font: 700 9.2cqw/1 ui-monospace, Consolas, monospace; letter-spacing: -.02em; color: #f0f0f1; user-select: none; white-space: nowrap; }
+    .s-go { position: absolute; left: 41.8cqw; top: 43.5cqw; font: 500 max(11px, 1.9cqw)/1 ui-monospace, Consolas, monospace; letter-spacing: .2em; text-transform: uppercase; color: #8d8f95; background: #fff; border: 1px solid #c9cacf; border-radius: 2px; padding: 1.1cqw 2.6cqw; cursor: pointer; transition: opacity .25s, color .2s, border-color .2s; }
+    .s-go:hover { color: #f39; border-color: #f39; }
+    .s-go:focus-visible { outline: 1px solid #f39; outline-offset: 3px; }
+    .s-go[hidden] { display: block; opacity: 0; pointer-events: none; }
+    .s-log { position: absolute; left: 42cqw; top: 43cqw; pointer-events: none; font: clamp(10px, 1.45cqw, 13px)/1.6 ui-monospace, Consolas, monospace; color: #9a9ca3; white-space: pre; }
+    .s-log .bad { color: #d33; }
     #cmdbar { position: fixed; left: 0; right: 0; z-index: 3; display: flex; align-items: center; gap: .5rem; padding: .25rem .6rem; background: var(--panel); border-top: 1px solid color-mix(in srgb, var(--fg) 35%, transparent); font: 13px ui-monospace, Consolas, monospace; }
     #cmdbar[hidden] { display: none; }
     #cmdbar label { font-weight: 700; }
@@ -474,11 +473,11 @@
 </head>
 <body>
   <div id="splash" hidden>
-    <div class="s-crt">
+    <div class="s-card">
+      <canvas></canvas>
+      <p class="s-word">webtracker</p>
+      <button class="s-go" type="button">Enter</button>
       <div class="s-log" aria-live="polite"></div>
-      <button class="s-go" type="button"><span class="p">&gt; </span><span class="l">click to initialize</span><span class="caret"></span></button>
-      <div class="s-hint">webtracker &middot; sound starts after the first click</div>
-      <div class="s-bar"><i></i></div>
     </div>
   </div>
   <div id="meters" hidden></div>
