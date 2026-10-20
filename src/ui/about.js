@@ -7,6 +7,8 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['m264', ['Script panel can be docked to the right of the pattern editor: Ctrl+Alt+D or the Dock button next to the Script tab. Drag its left edge to resize; it is remembered. Scripts still act on the pattern under the pattern editor\'s cursor.']],
+  ['m263', ['Opening a pattern from the arrangement (Enter or double-click) scrolls the pattern editor sideways so all of that lane\'s columns are in view, when they fit.']],
   ['m262', ['Sample screen: the display zooms. Shift+Z zooms to the selection, Shift+A zooms out, Shift+W shows the whole sample, Ctrl+wheel zooms about the mouse and the wheel scrolls a zoomed view (also in the right-click menu).', 'A new sample loop starts switched off (drawn faint on the display); the Loop / SusLoop switch turns it on.', 'A selection dragged out past the edge of the display (the start, the end, or the last sample) is no longer thrown away: the pointer past an edge holds it at the first or last frame.']],
   ['m261', ['Sample screen: drag audio files onto it to load them (a dashed outline shows where they will land); several at once work. Dropping a file anywhere else on the page is refused, so a slip no longer makes the browser open the file and leave the page.']],
   ['m260', ['Script tab: a quick-start tutorial under the editor, rendered from markdown (it folds away, and remembers that). Click an example in it to put it in the try-a-line box. There is a small markdown renderer in the app for help texts like this one.']],

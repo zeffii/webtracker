@@ -41,7 +41,7 @@ export function createTrackerView({ showMenu = (e, items) => showContextMenu(e, 
   let lanes = null, len = 0, widths = [], editor = null, song = null;
   // Solo-edit: one placement of one pattern, shown on its own with its rows numbered from 0. Nothing else can be reached.
   // lo..hi is its span of song ticks; hi is the song's length when not in solo-edit and lo is 0.
-  let solo = null, lo = 0, hi = 0;
+  let solo = null, lo = 0, hi = 0, fitLane = null;   // fitLane: the lane to scroll into full view at the next draw
   // Two ways to show it: 'window' (only the pattern, rows from 0) or 'hatch' (the whole song, everything but the pattern greyed
   // and hatched and locked). Tab flips between them while in solo-edit; it is remembered.
   let soloStyle = 'window';
@@ -872,6 +872,17 @@ export function createTrackerView({ showMenu = (e, items) => showContextMenu(e, 
       const m = lineMetrics();
       playline.show(m.up - el.clientTop + m.lh * (2 + playTick - top), head === 'band' ? m.lh : 0);
     } else playline.show(null);
+    // Coming in from the arrangement: scroll so the whole of the lane's columns can be seen, if they fit.
+    if (fitLane !== null && el.clientWidth > 0 && el.querySelector) {
+      const m = metrics(), shown = widths.map((w, li) => w.filter((_, ci) => (vis[li] ?? w.map((__, i) => i)).includes(ci)));
+      const list = windowed() ? [shown[solo.lane]] : shown, at = windowed() ? 0 : fitLane;
+      let start = GUTTER;
+      for (let i = 0; i < at; i++) start += 1 + list[i].reduce((a, b) => a + b, 0) + list[i].length - 1 + 2;
+      const w = list[at], x0 = m.left + start * m.cw, x1 = m.left + (start + 1 + w.reduce((a, b) => a + b, 0) + w.length - 1 + 1) * m.cw, gut = m.left + GUTTER * m.cw;
+      if (x0 - el.scrollLeft < gut || x1 - el.scrollLeft > el.clientWidth) el.scrollLeft = Math.max(0, x0 - gut);
+      fitLane = null;
+      shownAt = `${cur.lane}:${cur.col}:${cur.ch}`;
+    }
     // When the cursor has moved, scroll sideways just far enough to keep it in view, clear of the sticky tick numbers.
     const where = `${cur.lane}:${cur.col}:${cur.ch}`;
     if (where !== shownAt && el.querySelector) {
@@ -899,7 +910,7 @@ export function createTrackerView({ showMenu = (e, items) => showContextMenu(e, 
   };
 
   const goto = (laneIdx, tick) => {
-    solo = null; lo = 0; hi = len;
+    solo = null; lo = 0; hi = len; fitLane = laneIdx;
     cur.lane = laneIdx;
     cur.tick = tick;
     snapCol();

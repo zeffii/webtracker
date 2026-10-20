@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="themes.css">
-  <title>webtracker m262</title>
+  <title>webtracker m264</title>
   <link rel="icon" href="icon.ico" sizes="any">
   <link rel="icon" type="image/png" href="icon.png">
   <style>
@@ -72,6 +72,15 @@
     #tab-config.active { background: var(--hi); color: var(--hi-fg); border-color: var(--hi); }
     #tabs button.active { background: var(--hi); color: var(--hi-fg); border-color: var(--hi); }
     /* the script editor: a transparent textarea over a coloured copy of the same text */
+    /* Script panel docked to the right of the pattern editor (Ctrl+Alt+D) */
+    #split { display: contents; }
+    body.sdock #split { display: flex; align-items: stretch; }
+    body.sdock #split > #pane-patterns { flex: 1 1 0; min-width: 0; }
+    body.sdock #split > #pane-script:not([hidden]) { flex: 0 0 var(--dock-w, 32rem); min-width: 0; display: block; border-left: 1px solid var(--line); }
+    body.sdock #pane-script .keys, body.sdock #pane-script .help { display: none; }
+    body.sdock #pane-script #script-box { height: 40vh; }
+    #dock-grip { display: none; }
+    body.sdock #pane-script:not([hidden]) #dock-grip { display: block; position: absolute; left: -3px; top: 0; bottom: 0; width: 6px; cursor: col-resize; }
     #script-box { position: relative; max-width: 110ch; height: 52vh; margin: .3rem 0; background: var(--panel); border: 1px solid var(--line); }
     #script-hl, #script { position: absolute; inset: 0; box-sizing: border-box; margin: 0; padding: .5rem .6rem; font: 13px/1.4 ui-monospace, Consolas, monospace; tab-size: 2; white-space: pre; overflow: auto; border: 0; letter-spacing: 0; word-spacing: 0; }
     #script-hl { pointer-events: none; overflow: hidden; color: var(--fg); }
@@ -544,6 +553,7 @@
         <button id="tab-instruments">F3 Instruments</button>
         <button id="tab-arrange">F4 Arrangement</button>
         <button id="tab-script" title="Scripts that fill pattern data (Ctrl+Alt+S)">Script</button>
+        <button id="script-dock" title="Show the Script panel beside the pattern editor (Ctrl+Alt+D)" aria-pressed="false">Dock</button>
         <button id="tab-info">F10 Info</button>
       </nav>
       <select id="theme" style="margin-left:auto" title="Colour theme"><option value="system">system</option><option value="dark">dark</option><option value="black">black</option><option value="bright">bright</option><option value="neon">neon</option><option value="amber">amber</option><option value="phosphor">phosphor</option><option value="ice">ice</option><option value="synthwave">synthwave</option></select>
@@ -559,6 +569,7 @@
     <form method="dialog"><button>Close</button></form>
   </dialog>
 
+  <div id="split">
   <section id="pane-patterns" class="pane keyed">
     <div class="pane-main">
       <pre id="view" tabindex="0"></pre>
@@ -610,6 +621,18 @@
         <p>Edits are heard on the next tick. Dimmed rows are past the end of the pattern.</p>
       </aside>
   </section>
+  <section id="pane-script" class="pane keyed" hidden style="position:relative">
+    <div id="dock-grip" title="Drag to resize"></div>
+    <div class="pane-main">
+      <div class="help">Scripts write pattern data into the pattern under the cursor in the pattern editor (or its selection). They run in their own thread, only when you ask, and change nothing if they fail or take too long. <b>Ctrl+Enter</b> runs the selected code, or all of it; <b>Ctrl+Alt+R</b> in the pattern editor runs the whole script on the pattern there. Saved with the project. <button id="script-run" type="button">Run</button></div>
+      <div id="script-box"><pre id="script-hl" aria-hidden="true"></pre><textarea id="script" spellcheck="false" wrap="off" autocapitalize="off" autocomplete="off" aria-label="Script"></textarea></div>
+      <div id="script-status" class="statusbar"></div>
+      <pre id="script-out" tabindex="0" aria-label="Script output" aria-live="polite"></pre>
+      <input id="script-line" type="text" spellcheck="false" autocomplete="off" aria-label="Try a line of script" placeholder="try a line here and press Enter, for example: scale('minor', 'A', 2)">
+    </div>
+    <aside class="keys md" aria-label="Scripting tutorial"><h3>Tutorial</h3><div id="script-tut"></div></aside>
+  </section>
+  </div>
 
   <section id="pane-samples" class="pane keyed" hidden>
     <div class="pane-main">
@@ -817,16 +840,6 @@
     </div>
   </section>
 
-  <section id="pane-script" class="pane keyed" hidden>
-    <div class="pane-main">
-      <div class="help">Scripts write pattern data into the pattern under the cursor in the pattern editor (or its selection). They run in their own thread, only when you ask, and change nothing if they fail or take too long. <b>Ctrl+Enter</b> runs the selected code, or all of it; <b>Ctrl+Alt+R</b> in the pattern editor runs the whole script on the pattern there. Saved with the project. <button id="script-run" type="button">Run</button></div>
-      <div id="script-box"><pre id="script-hl" aria-hidden="true"></pre><textarea id="script" spellcheck="false" wrap="off" autocapitalize="off" autocomplete="off" aria-label="Script"></textarea></div>
-      <div id="script-status" class="statusbar"></div>
-      <pre id="script-out" tabindex="0" aria-label="Script output" aria-live="polite"></pre>
-      <input id="script-line" type="text" spellcheck="false" autocomplete="off" aria-label="Try a line of script" placeholder="try a line here and press Enter, for example: scale('minor', 'A', 2)">
-    </div>
-    <aside class="keys md" aria-label="Scripting tutorial"><h3>Tutorial</h3><div id="script-tut"></div></aside>
-  </section>
 
   <section id="pane-config" class="pane" hidden>
     <div class="pane-main">

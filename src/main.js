@@ -63,10 +63,34 @@ $('cut').addEventListener('click', e => { if (playing) setPlaying(false); engine
 $('panic').addEventListener('click', e => { engine.panic(); patcher.releaseKeys(); e.currentTarget.blur(); });
 $('play').addEventListener('click', e => { togglePlay(); e.currentTarget.blur(); });
 
+// The Script panel docked beside the pattern editor: shown with it while the Patterns tab is up.
+let scriptDock = false, dockW = 0;
+try { scriptDock = localStorage.getItem('webtracker.scriptDock') === '1'; dockW = Number(localStorage.getItem('webtracker.scriptDockW')) || 0; } catch {}
+function applyDock(id = 'patterns', relayout = true) {
+  document.body.classList.toggle('sdock', scriptDock);
+  if (dockW) document.body.style.setProperty('--dock-w', `${dockW}px`);
+  $('script-dock').setAttribute('aria-pressed', String(scriptDock));
+  $('script-dock').classList.toggle('active', scriptDock);
+  if (id === 'patterns') $('pane-script').hidden = !scriptDock;
+  if (relayout) try { view.relayout(); } catch {}
+}
+function toggleDock() {
+  scriptDock = !scriptDock;
+  try { localStorage.setItem('webtracker.scriptDock', scriptDock ? '1' : '0'); } catch {}
+  applyDock(tabs.active);
+  if (scriptDock && tabs.active === 'patterns') $('script').focus(); else if (!scriptDock && tabs.active === 'patterns') $('view').focus();
+}
+$('script-dock').addEventListener('click', e => { toggleDock(); e.currentTarget.blur(); });
+$('dock-grip').addEventListener('mousedown', e => {
+  e.preventDefault();
+  const move = m => { dockW = Math.max(240, Math.min(window.innerWidth - 360, window.innerWidth - m.clientX)); applyDock(tabs.active); };
+  const up = () => { removeEventListener('mousemove', move); removeEventListener('mouseup', up); try { localStorage.setItem('webtracker.scriptDockW', String(dockW)); } catch {} };
+  addEventListener('mousemove', move); addEventListener('mouseup', up);
+});
 // Full-screen panes. Switching with an F-key or a click focuses the pane's main element.
 let tabBefore = 'patterns', tabNow = 'patterns';   // where the Info close button goes back to
 const tabs = createTabs({
-  onChange: id => { if (id !== tabNow) { tabBefore = tabNow; tabNow = id; } },
+  onChange: id => { if (id !== tabNow) { tabBefore = tabNow; tabNow = id; } applyDock(id); },
   tabs: [
     { id: 'patterns', key: 'F1', el: $('pane-patterns'), button: $('tab-patterns'), focus: $('view') },
     { id: 'samples', key: 'F2', el: $('pane-samples'), button: $('tab-samples'), focus: $('smp') },
@@ -79,6 +103,7 @@ const tabs = createTabs({
 });
 document.addEventListener('keydown', e => {
   if (e.key === 'F1' && !e.ctrlKey && !e.altKey && !e.metaKey && !e.shiftKey && tabs.active === 'instruments' && (!nodeHelp.hidden ? (hideHelp(), true) : patcher.helpSelected())) { e.preventDefault(); return; }   // F1 on the instrument screen shows or hides the help of the selected node
+  if (e.ctrlKey && e.altKey && !e.metaKey && !e.shiftKey && e.code === 'KeyD') { e.preventDefault(); toggleDock(); return; }
   if (tabs.handleKey(e)) return;
   const here = () => (tabs.active === 'arrange' ? seqView : view).tick;   // the row the cursor is on
   // Ctrl+Shift+R arms and disarms MIDI recording; Alt+V switches MIDI velocity on and off.
