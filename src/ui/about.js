@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['m256', ['Top bar regrouped, with a thin rule between the groups: Save | Start, play, record, Follow | length, bpm, swing | Open, Export, Backups, New | meters, scope | Cut, panic. Load is now called Open and Export WAV is just Export.']],
   ['m255', ['Arrangement: the list of the patterns of the lane under the cursor is now in the panel on the right, above the shortcuts, instead of under the grid. Hiding the shortcuts keeps the list.']],
   ['m254', ['Graph: a wire between two close nodes loses its S-curve: its bend eases away as the ends come within 60 px of each other and it is a straight line at that distance (Config > Editing > Graph: wires between close nodes go straight; 0 keeps every wire curved). The "click anywhere to enter" text on the splash stays grey.']],
   ['m253', ['First screen redone: a white card (1 : 1.6) with your logo, bigger than the card and cut off at its left, built from the fourteen identical slabs of your 3D model, all in one plane, and drawn as a slowly turning wireframe (plain canvas, no libraries); a very faint "webtracker" and a quiet "click anywhere to enter" (a click on the card, or Enter or Space, starts the engine), the logo swings a little further while a few grey lines report the real start-up steps, and the card fades away to show the tracker (about a second); the card takes about a fifth of the screen. Config > Look > First screen still turns it off.']],

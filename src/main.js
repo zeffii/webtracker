@@ -1202,7 +1202,7 @@ $('export').addEventListener('click', async () => {
     }
   } catch (e) { say(`Export failed: ${e.message}`); }
   exporting = null;
-  button.textContent = 'Export WAV';
+  button.textContent = 'Export';
 });
 
 $('save').addEventListener('click', () => {
