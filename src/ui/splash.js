@@ -2,6 +2,8 @@
 // The browser needs a click before it will make sound, so a click on the card (or Enter / Space) is that click; it runs what the Start button runs. While
 // the engine starts, a few grey lines report the real steps, and the card fades to show the tracker (about a second).
 // The logo is fourteen identical slabs in one plane (from your 3D model), drawn as a wireframe on a plain canvas.
+import { createBlob } from './blob.js';
+import * as config from './config.js';
 const wait = ms => new Promise(r => setTimeout(r, ms));
 const frame = () => new Promise(r => requestAnimationFrame(r));
 
@@ -21,18 +23,28 @@ const BOXES = PETALS.map(([x, y, deg]) => {
 
 export function createSplash({ box, onStart }) {
   const card = box.querySelector('.s-card'), cv = box.querySelector('canvas'), go = box.querySelector('.s-go'), log = box.querySelector('.s-log');
-  const g = cv.getContext('2d');
+  // The backdrop: a translucent blob in WebGL (Config: First screen look), or, without WebGL or on request, the turning logo.
+  const bcv = box.querySelector('.s-blob');
+  const blob = config.get('splashStyle') === 'blob' && bcv ? createBlob(bcv) : null;
+  box.classList.toggle('blob', !!blob);
+  if (!blob && bcv) bcv.hidden = true;
+  const g = blob ? null : cv.getContext('2d');
   let W = 0, H = 0, dpr = 1, boost = 0, boostTo = 0, running = true, typing = [], nextAt = 0;
   document.body.classList.add('splashing');
   box.hidden = false;
   card.tabIndex = 0; card.setAttribute('role', 'button'); card.setAttribute('aria-label', 'Enter webtracker'); card.focus({ preventScroll: true });
 
+  if (blob) {
+    box.addEventListener('pointermove', e => blob.point(e.clientX / innerWidth * 2 - 1, 1 - e.clientY / innerHeight * 2));
+    box.addEventListener('pointerdown', () => blob.excite(true));
+  }
   const size = () => { dpr = devicePixelRatio || 1; W = card.clientWidth; H = card.clientHeight; cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); };
   new ResizeObserver(size).observe(card); size();
 
   const t0 = performance.now();
   const draw = now => {
     if (!running) return;
+    if (blob) { blob.draw(now); requestAnimationFrame(draw); return; }
     const t = (now - t0) / 1000;
     boost += (boostTo - boost) * .02;
     const yaw = .5 * Math.sin(t * .18) + boost, pitch = .26 * Math.sin(t * .13 + 1), roll = t * .012;
@@ -74,7 +86,7 @@ export function createSplash({ box, onStart }) {
   let busy = false;
   const enter = () => {
     if (busy) return;
-    busy = true; go.hidden = true; card.classList.add('busy'); boostTo = .7;
+    busy = true; go.hidden = true; card.classList.add('busy'); boostTo = .7; blob?.excite(true);
     log.textContent = ''; typing = []; nextAt = 0;
     onStart();
   };
@@ -87,13 +99,13 @@ export function createSplash({ box, onStart }) {
     async finish() {
       await Promise.all(typing); await wait(120);
       box.classList.add('leaving'); await wait(380);
-      running = false; box.hidden = true; box.classList.remove('leaving'); document.body.classList.remove('splashing');
+      running = false; blob?.lose(); box.hidden = true; box.classList.remove('leaving'); document.body.classList.remove('splashing');
     },
     // It did not work: say why, and let Enter be clicked again.
     async fail(message) {
       await Promise.all(typing);
       const row = document.createElement('div'); row.className = 'bad'; row.textContent = message; log.append(row);
-      go.hidden = false; go.textContent = 'click to try again'; card.classList.remove('busy'); busy = false; boostTo = 0;
+      go.hidden = false; go.textContent = 'click to try again'; card.classList.remove('busy'); busy = false; boostTo = 0; blob?.excite(false);
     },
   };
 }
