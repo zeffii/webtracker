@@ -146,7 +146,7 @@ const toValue = (spec, pos) => {
 const toPos = (spec, v) => (isLog(spec) ? Math.log(v / spec.min) / Math.log(spec.max / spec.min) : (v - spec.min) / (spec.max - spec.min));
 const fmt = v => String(Number(v.toPrecision(4)));
 
-export function createPatcher({ getTiming = () => null, onHelp = () => {}, canvas, panel, paramPanel = null, exposedDock = null, onScope = () => {}, onEscape = () => {}, statusEl, doc = document, nodeTypes, onStructure, onParam, onData = () => {}, onContext = () => {}, onNote = () => {}, getSampleIds = () => [], getSample = () => null, readLive = () => undefined }) {
+export function createPatcher({ getTiming = () => null, onHelp = () => {}, canvas, panel, paramPanel = null, exposedDock = null, floatDock = null, onScope = () => {}, onEscape = () => {}, statusEl, doc = document, nodeTypes, onStructure, onParam, onData = () => {}, onContext = () => {}, onNote = () => {}, getSampleIds = () => [], getSample = () => null, readLive = () => undefined }) {
   let gateEditor = null;    // the step pattern of a trance gate, redrawn when its length moves
   let dxView = null;        // the bank loader and algorithm view of a DVIIloader
   let specView = null;      // the pan-against-frequency view of a spectral panner, redrawn when its parameters move
@@ -224,6 +224,9 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
   const paramView = paramPanel ? createParamView({ doc, el: paramPanel, showTip, hideTip, onFocusBack: () => canvas.focus?.() }) : null;
   // The exposed parameters, always shown in a dock of their own on the left of the graph.
   const exposedView = exposedDock ? createParamView({ doc, el: exposedDock, side: 'left', showTip, hideTip, onFocusBack: () => canvas.focus?.() }) : null;
+  // The same exposed rows in a floating window (it belongs to the page, which shows and moves it).
+  const floatView = floatDock ? createParamView({ doc, el: floatDock, side: 'left', showTip, hideTip, onFocusBack: () => doc.activeElement?.blur?.() }) : null;
+  let floatOn = false;
   const pins = new Map();   // instrument id -> the node ids whose parameters are pinned in the panel
   const pinsOf = () => { const s = pins.get(instId) ?? new Set(); for (const id of [...s]) if (!desc().nodes.some(n => n.id === id)) s.delete(id); pins.set(instId, s); return s; };
   const togglePin = id => { const s = pinsOf(); if (s.has(id)) s.delete(id); else s.add(id); renderNodePanel(); };
@@ -378,7 +381,14 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
     });
   }
 
+  function renderFloat() {
+    if (!floatView) return;
+    if (!floatOn || !instId) { floatView.hide(); return; }
+    floatView.show('', exposedRows(), floatView.cursor, 'Nothing exposed in this machine yet.');
+  }
+
   function renderExposed() {
+    renderFloat();
     if (!exposedView) return;
     if (!instId) { exposedView.hide(); return; }
     exposedView.show('exposed', exposedRows(), exposedView.cursor, 'Nothing exposed yet. Select a node, press Enter on a row and choose "Expose".');
@@ -956,11 +966,11 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
     const parts = [];
     const sel = selected?.kind === 'node' ? desc().nodes.find(n => n.id === selected.id) : null;
     if (sel && paramView?.open) for (const sp of nodeTypes[sel.type]?.params ?? []) parts.push(readLive(instId, sel.id, sp.name));
-    if (exposedView?.open) for (const e of def().exposed) parts.push(readLive(instId, e.node, e.param));
+    if (exposedView?.open || floatView?.open) for (const e of def().exposed) parts.push(readLive(instId, e.node, e.param));
     const sig = parts.join(',');
     if (sig === liveSig) return;
     liveSig = sig;
-    paramView?.refresh(); exposedView?.refresh(); tapEditor?.refresh(); gateEditor?.refresh(); specView?.refresh(); dxView?.refresh();
+    paramView?.refresh(); exposedView?.refresh(); floatView?.refresh(); tapEditor?.refresh(); gateEditor?.refresh(); specView?.refresh(); dxView?.refresh();
   }
 
   // A graph is moved clear of the exposed-parameters dock once when its instrument is first shown after a load (the file
@@ -1242,6 +1252,10 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
     get height() { return H; },
     get selectedNode() { return selected?.kind === 'node' ? selected.id : null; },
     draw,
+    // the floating exposed-parameters window: on or off, and kept current while another screen is showing
+    float(on) { floatOn = !!on; renderFloat(); },
+    live() { followLive(); },
+    get floating() { return !!floatView?.open; },
     get instrument() { return instId; },
     get octave() { return octave; },
     releaseKeys,

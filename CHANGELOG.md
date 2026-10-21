@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 292 · 2026-10-21
+
+- Floating parameter window: Ctrl+Alt+P (or the params button in the status bar) shows the exposed sliders of the cursor lane's machine over the pattern editor and the arrangement. Drag its title to move it; the sliders work with the mouse or a MIDI knob while the song plays. Position and on/off are remembered.
+
 ## 291 · 2026-10-21
 
 - Script: scatter({ samples, density or hits, note, vel, offset, retrig, cmd, cmdChance, step, clear }) writes a random pattern from a collection of samples: each option is a value, a list to pick from, { min, max } or a function. Documented in the Script tab's quick start.

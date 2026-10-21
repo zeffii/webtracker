@@ -471,6 +471,10 @@
     .pv-help { font-weight: 700; cursor: help; }
     #patch-params, #patch-exposed { position: absolute; top: 1px; right: 1px; width: 210px; max-height: 298px; display: flex; background: color-mix(in srgb, var(--bg) 94%, transparent); border: 1px solid; font: 11px/16px ui-monospace, Consolas, monospace; z-index: 5; user-select: none; container-type: inline-size; }
     #patch-exposed { right: auto; left: 1px; }
+    #float-params { position: fixed; top: 90px; right: 24px; width: 230px; max-height: 60vh; display: none; flex-direction: column; background: color-mix(in srgb, var(--bg) 94%, transparent); border: 1px solid; font: 11px/16px ui-monospace, Consolas, monospace; z-index: 30; user-select: none; container-type: inline-size; box-shadow: 0 4px 18px #0006; }
+    #float-title { display: flex; justify-content: space-between; align-items: center; gap: .5rem; padding: 1px 4px; cursor: move; border-bottom: 1px solid; background: color-mix(in srgb, currentColor 12%, transparent); touch-action: none; }
+    #float-title button { all: unset; cursor: pointer; padding: 0 4px; }
+    #float-scroll { flex: 1; min-height: 0; overflow-y: auto; }
     #patch-scroll, #exposed-scroll { flex: 1; min-width: 0; overflow-y: auto; }
     .pv-grip { width: 5px; flex: none; cursor: ew-resize; background: color-mix(in srgb, currentColor 18%, transparent); touch-action: none; }
     .pv-grip:hover, .pv-grip:focus { background: var(--hi); outline: none; }
@@ -649,6 +653,7 @@
           <dt>0–9, A–F</dt><dd><b class="kw">overwrite</b> the character under the cursor (an empty cell fills with zeros)</dd>
           <dt>Delete, &gt;</dt><dd><b class="kw">clear</b> the cell</dd>
           <dt>Ctrl+Delete</dt><dd><b class="kw">delete</b> the selected cells and <b class="kw">pull</b> the rows below up (inside the pattern only)</dd>
+          <dt>Ctrl+Alt+P</dt><dd><b class="kw">floating parameters</b>: a window with the cursor lane's exposed sliders, to move with the mouse or a MIDI knob while the song plays (also the <b>params</b> button in the status bar); drag its title to move it</dd>
           <dt>Ctrl+Alt+R</dt><dd><b class="kw">run</b> the song's script on this pattern (its selection, if there is one); Ctrl+Alt+S opens the Script tab</dd>
           <dt>Ctrl+Shift+Delete</dt><dd><b class="kw">remove</b> the pattern under the cursor from the arrangement (it stays in the list; Ctrl+Z brings it back)</dd>
           <dt>Ctrl+Insert</dt><dd><b class="kw">push</b> the rows below down from the cursor (inside the pattern only)</dd>
@@ -923,7 +928,8 @@
     </div>
   </section>
 
-  <div id="footer" class="statusbar"><div id="cursor" class="statusbar"></div><div id="seq-status" class="foot-row"></div><div class="foot-row"><span id="song-info"></span><span id="status">Press Start to create the audio engine.</span><button id="loadcopy" type="button" title="Copy the load line to the clipboard">copy</button><span id="loadmeter" title="Audio load: average, worst block (as a share of the time each block is allowed), blocks that ran late, output latency. Click to reset.">cpu --</span></div></div>
+  <div id="float-params"><div id="float-title"><span id="float-name">parameters</span><button id="float-close" type="button" title="Close (Ctrl+Alt+P)" aria-label="Close the floating parameters">×</button></div><div id="float-scroll"></div></div>
+  <div id="footer" class="statusbar"><div id="cursor" class="statusbar"></div><div id="seq-status" class="foot-row"></div><div class="foot-row"><span id="song-info"></span><span id="status">Press Start to create the audio engine.</span><button id="float-toggle" type="button" aria-pressed="false" title="Floating window with the exposed parameters of the cursor lane (Ctrl+Alt+P)">params</button><button id="loadcopy" type="button" title="Copy the load line to the clipboard">copy</button><span id="loadmeter" title="Audio load: average, worst block (as a share of the time each block is allowed), blocks that ran late, output latency. Click to reset.">cpu --</span></div></div>
 
   <script>
     // "build NNN · sha" from version.json (stamped by the Pages workflow, made from git by serve.mjs); without the file the label stays empty

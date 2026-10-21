@@ -96,7 +96,7 @@ $('dock-grip').addEventListener('mousedown', e => {
 // Full-screen panes. Switching with an F-key or a click focuses the pane's main element.
 let tabBefore = 'patterns', tabNow = 'patterns';   // where the Info close button goes back to
 const tabs = createTabs({
-  onChange: id => { if (id !== tabNow) { tabBefore = tabNow; tabNow = id; } applyDock(id); keysRefresh(id); requestAnimationFrame(() => fitArrangement()); },
+  onChange: id => { if (id !== tabNow) { tabBefore = tabNow; tabNow = id; } applyDock(id); keysRefresh(id); requestAnimationFrame(() => { fitArrangement(); syncFloat(); }); },
   tabs: [
     { id: 'patterns', key: 'F1', el: $('pane-patterns'), button: $('tab-patterns'), focus: $('view') },
     { id: 'samples', key: 'F2', el: $('pane-samples'), button: $('tab-samples'), focus: $('smp') },
@@ -183,13 +183,15 @@ syncFollow();
 
 // The instrument editor shows the machine of the lane the cursor is in (a setting on the Config tab).
 let lastLane = -1;
+let floatWanted = false;   // the floating parameter window is on: it needs the cursor lane's machine
 function followLane(laneIdx) {
   if (laneIdx === lastLane) return;
   lastLane = laneIdx;
   const id = project?.lanes[laneIdx]?.instrument;
-  if (!config.get('followLane') || !id || id === patcher.instrument || !(id in project.instruments)) return;
+  if ((!config.get('followLane') && !floatWanted) || !id || id === patcher.instrument || !(id in project.instruments)) return;
   patcher.show(id);
   renderInstList();
+  if (floatWanted) syncFloat();
 }
 
 const view = createTrackerView({
@@ -243,6 +245,51 @@ document.addEventListener('keydown', e => {
   view.say('Running the script...');
   scriptScreen.run().then(text => view.say(text));
 });
+
+// ---- the floating parameter window ----
+// The exposed sliders of the cursor lane's machine, over the pattern editor or the arrangement; the graph's own dock covers the rest.
+const floatBox = $('float-params');
+const syncFloat = () => {
+  const show = floatWanted && (tabs.active === 'patterns' || tabs.active === 'arrange');
+  patcher.float(show);
+  $('float-toggle').setAttribute('aria-pressed', String(floatWanted));
+  if (show) $('float-name').textContent = `${patcher.instrument ?? ''} · parameters`;
+};
+const setFloat = on => {
+  floatWanted = on;
+  try { localStorage.setItem('webtracker.float', on ? '1' : '0'); } catch {}
+  if (on) { lastLane = -1; followLane(seqView.lane); }
+  syncFloat();
+};
+{
+  try { floatWanted = localStorage.getItem('webtracker.float') === '1'; } catch {}
+  try {
+    const pos = JSON.parse(localStorage.getItem('webtracker.floatPos') ?? 'null');
+    if (pos) { floatBox.style.left = `${pos.x}px`; floatBox.style.top = `${pos.y}px`; floatBox.style.right = 'auto'; }
+  } catch {}
+  const title = $('float-title');
+  title.addEventListener('pointerdown', e => {
+    if (e.target.closest('button')) return;
+    const r = floatBox.getBoundingClientRect(), dx = e.clientX - r.left, dy = e.clientY - r.top;
+    title.setPointerCapture(e.pointerId);
+    const move = ev => {
+      const x = Math.min(innerWidth - 40, Math.max(0, ev.clientX - dx)), y = Math.min(innerHeight - 24, Math.max(0, ev.clientY - dy));
+      Object.assign(floatBox.style, { left: `${x}px`, top: `${y}px`, right: 'auto' });
+    };
+    const up = () => {
+      title.removeEventListener('pointermove', move); title.removeEventListener('pointerup', up);
+      const b = floatBox.getBoundingClientRect();
+      try { localStorage.setItem('webtracker.floatPos', JSON.stringify({ x: Math.round(b.left), y: Math.round(b.top) })); } catch {}
+    };
+    title.addEventListener('pointermove', move); title.addEventListener('pointerup', up);
+  });
+  $('float-toggle').addEventListener('click', e => { setFloat(!floatWanted); e.currentTarget.blur(); });
+  $('float-close').addEventListener('click', () => setFloat(false));
+  document.addEventListener('keydown', e => {
+    if (!(e.ctrlKey && e.altKey && !e.metaKey && !e.shiftKey && e.code === 'KeyP')) return;
+    e.preventDefault(); setFloat(!floatWanted);
+  });
+}
 
 // ---- MIDI keyboard ----
 // Plays the machine under the cursor (the selected instrument in the graph view, the sample on the sample screen), enters
@@ -330,7 +377,7 @@ const patcher = createPatcher({
   // the song's tick, for the lines on time and rate sliders: how long it is, how many make a beat, whether to show them and snap to them
   getTiming: () => (project?.song ? { tickMs: 60000 / (project.song.bpm * project.song.ticksPerBeat), perBeat: project.song.ticksPerBeat, lines: config.get('tickLines'), snap: config.get('tickSnap') } : null),
   onNote: (id, note, on) => { if (!started) return; if (on) engine.noteOn(id, note, 1); else engine.noteOff(id, note); },
-  canvas: $('patch'), panel: $('patch-panel'), paramPanel: $('patch-scroll'), exposedDock: $('exposed-scroll'), onEscape: () => $('inst-list').focus(), statusEl: $('patch-status'), nodeTypes: NODE_TYPES,
+  canvas: $('patch'), panel: $('patch-panel'), paramPanel: $('patch-scroll'), exposedDock: $('exposed-scroll'), floatDock: $('float-scroll'), onEscape: () => $('inst-list').focus(), statusEl: $('patch-status'), nodeTypes: NODE_TYPES,
   onStructure: id => reloadInstrument(id),
   onContext: ({ x, y, replace }) => menu.open(x, y, replace),
   onData: (id, node, msg) => engine.sendToNode(id, node, msg),
@@ -1611,7 +1658,7 @@ $('start').addEventListener('click', async () => {
       songInfo(); syncLaneName();
       if (tab === 'arrange' || !tab) seqView.draw();
       if (tab === 'patterns' || !tab) view.draw();
-      if (tab === 'instruments' || !tab) patcher.draw();
+      if (tab === 'instruments' || !tab) patcher.draw(); else if (floatWanted) patcher.live();
       if (tab === 'samples' || !tab) { sampleScreen.draw(); waveform.draw(); region.draw(); }
       requestAnimationFrame(frame);
     };

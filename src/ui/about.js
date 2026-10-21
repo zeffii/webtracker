@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['292', ['Floating parameter window: Ctrl+Alt+P (or the params button in the status bar) shows the exposed sliders of the cursor lane\'s machine over the pattern editor and the arrangement. Drag its title to move it; the sliders work with the mouse or a MIDI knob while the song plays. Position and on/off are remembered.']],
   ['291', ['Script: scatter({ samples, density or hits, note, vel, offset, retrig, cmd, cmdChance, step, clear }) writes a random pattern from a collection of samples: each option is a value, a list to pick from, { min, max } or a function. Documented in the Script tab\'s quick start.']],
   ['290', ['Samples: Shift+E auto-slices: a marker on every hit of the sample (or of the selection), found by spectral-flux onset detection. Sensitivity and the shortest gap are in Config (Sample).']],
   ['289', ['Pattern editor: fills the window height (Config: pattern editor fills the window height), and its cursor rows (position, column name, value meter, range) moved into the main status bar. The page\'s bottom space follows the status bar\'s height. On Pages the service worker now revalidates files, so a new build is never held back by the browser\'s cache.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['285', ['Hosted on GitHub Pages: every push to master runs the tests and publishes the app. A service worker supplies the cross-origin isolation headers there, and the header shows "build NNN · commit" (version.json, made from git by serve.mjs, with a + for uncommitted changes).']],
   ['284', ['Fixed: m283 did not start (a stray quote in the About text). The smoke test now loads that file.']],
   ['283', ['Parameter view: a parameter that a CC command writes has a blue stripe and tint on its name and the command\'s id in the bar (2C, 31...). A small cc button in the panel title (and Config, Graph) hides all of them.']],
-  ['282', ['Sampler commands from UnwieldyTracker: stretch (2B to 2D, the whole sample spread over a length by granular repeats), jumps in the wave (60 to 67), a filter on each sound (30 to 35: type, cutoff, resonance, slides, step per repeat), vibrato and cutoff LFO (40 to 45) with phase sync (50 to 53), humanizing the cutoff and timing (38, 39), resets (A0 to AF) and settings slots (70 save, 71 load). See the Sampler help. Shuffle (80 to 83) is not in yet.']],
 ];
