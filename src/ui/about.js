@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['306', ['Blob first screen: a few quiet lights instead of one even glow: a soft warm key from the upper left, a cooler fill from the right, and a faint light from behind and below that shows through the thin parts.']],
   ['305', ['First screen: a slow translucent blob (WebGL metaballs with a subsurface-style shader) drifts behind the Wax wordmark, follows the pointer a little and brightens when you click in. Config > First screen look switches back to the turning logo, which is also used when WebGL is not available; reduced-motion keeps it still.']],
   ['304', ['Graph editor: Insert opens the machine menu, and Ctrl+D (duplicate), Ctrl+X and Delete (remove) work on the selected node wherever the focus is on the instrument screen, not only on the canvas. The Duplicate node and Delete node buttons are gone.']],
   ['303', ['Graph editor: a node\'s preset row and its Duplicate and Delete buttons now sit in the bar above the graph, beside Add node, instead of under it.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['299', ['Nugget mode now stays in nugget mode when you type: after the last character of a cell (an octave, say) the cursor goes down a row on that same character and keeps the mode, instead of jumping to the first character of the next cell.']],
   ['298', ['Config defaults: Follow mode (the red line) is on, and dragging a graph node far from its chain no longer takes it out (both still switchable on the Config page; a setting you already saved is kept).']],
   ['297', ['New synth node: Fourpole (Synths in the add menu, and an instrument kind). After the design of Fuzzpilz\'s Buzz machine Orange Kid: two table oscillators with ten waves (sine, triangle, square, saws, three sawoids, two seeded noises), phase, transpose, detune, six mixes (1+2, 1-2, 2-1, 1*2, 1/2, 2/1) and a start/end window on the table; two linear ADSRs, the second a modulation envelope; four resonant lowpass/highpass filters that can slave to filter 1, eight routings, a cutoff limit (fixed Hz or relative to the note) and inertia; vibrato, glide, tuning; envelope amounts for vibrato rate and depth, cutoff, resonance, pitch and amplitude.']],
-  ['296', ['Script tab: a live Euclidean preview under the editor. Every euclid(hits, steps, rotate) written with plain numbers, and every \'x..x\' string, is drawn as a ring and a row of steps while you type, before anything runs; the card of the caret\'s line is outlined.']],
 ];

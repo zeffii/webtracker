@@ -19,7 +19,11 @@ if(hit){vec3 pos=ro+rd*t;vec3 n=nrm(pos);
 float tt=.03;for(int i=0;i<20;i++){float d=-map(pos+rd*tt);if(d<.002)break;tt+=max(d,.02);}float thk=tt;
 float th2=0.;for(int i=1;i<=5;i++){float s=float(i)*.1;th2+=clamp(-map(pos-n*s),0.,s);}
 float thin=exp(-th2*4.2),core=exp(-thk*.9);
-float wrap=clamp((dot(n,normalize(vec3(-.35,.55,-.75)))+.55)/1.55,0.,1.);
+// a few quiet lights, not just an even glow: a soft key from the upper left, a cool fill from the right, a warm light from behind and below
+float key=clamp((dot(n,normalize(vec3(-.45,.6,-.65)))+.55)/1.55,0.,1.);
+float fill=clamp((dot(n,normalize(vec3(.8,.1,-.5)))+.6)/1.6,0.,1.);
+float back=clamp(dot(n,normalize(vec3(.2,-.8,.6)))*.5+.5,0.,1.);
+float wrap=clamp(key*.82+fill*.18,0.,1.);
 float fr=pow(1.-max(dot(n,-rd),0.),3.);
 vec3 deep=C1*.80,mid=mix(C1,C2,.35);
 vec3 body=mix(deep,mid,wrap*.75+.25*(1.-core));
@@ -27,6 +31,9 @@ body=mix(body,C2,clamp(thin*.9,0.,1.)*.8);                 // translucent necks 
 body=mix(body,C2,clamp(exp(-thk*1.5)*.32,0.,1.));           // a little light through the thin edges
 body+=(C2-C1)*.05*fr;
 body+=(C2-C1)*.06*smoothstep(.0,1.,1.-th2*3.);
+body+=vec3(.05,.035,.0)*pow(key,3.)*(1.-thin);                                  // key: a touch of warmth where it lands
+body+=vec3(-.02,.02,.045)*fill*(1.-wrap)*.9;                                    // fill: slightly cooler on the shadow side
+body=mix(body,C2*vec3(1.0,.98,.94),pow(back,4.)*clamp(.25+thin,0.,1.)*.22);   // light from behind: shows through the thin parts and rims
 body=mix(body,C2,B*.18);
 col=body;}
 col+=(h(gl_FragCoord.xy+T)-.5)*.03;
