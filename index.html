@@ -68,6 +68,10 @@
     #new-menu button:hover, #new-menu button:focus { background: var(--hi); color: var(--hi-fg); }
     #header .line + .line { margin-top: .3rem; }
     .grow { flex: 1; }
+    #foot-tools { flex: none; display: inline-flex; align-items: center; gap: .35rem; margin-left: .5rem; }
+    #foot-tools button { min-width: 1.8rem; height: 1.5rem; padding: 0 .3rem; display: inline-flex; align-items: center; justify-content: center; }
+    #foot-tools .ri { width: 1rem; height: 1rem; }
+    #foot-tools select { font: inherit; }
     .ri { width: 1.1rem; height: 1.1rem; display: block; }
     /* the rail: the logo (the start button until the audio runs), one icon per screen, and help and config at the foot */
     #rail { position: fixed; left: 0; top: 0; bottom: 0; width: var(--rail); box-sizing: border-box; z-index: 5; display: flex; flex-direction: column; align-items: center; gap: .3rem; padding: .5rem 0; background: var(--bg); border-right: 1px solid; }
@@ -91,7 +95,7 @@
     #header .sep { width: 1px; height: 1.4rem; background: currentColor; opacity: .35; flex: none; }   /* a rule between groups of toolbar items */
     /* the window's own status bar: song position and engine status, always at the bottom */
     #footer { position: fixed; left: var(--rail); right: 0; bottom: 0; z-index: 1; display: flex; flex-direction: column; border-top: 1px solid color-mix(in srgb, currentColor 25%, transparent); white-space: pre; overflow: hidden; }
-    .foot-row { display: flex; gap: 1.5rem; min-width: 0; }
+    .foot-row { display: flex; gap: 1rem; min-width: 0; align-items: center; }
     #seq-status { display: none; overflow: hidden; text-overflow: ellipsis; }   /* the lane under the cursor: a row of its own above the status bar while the arrangement is shown */
     body:has(#pane-arrange:not([hidden])) #seq-status { display: block; }
     body { padding-bottom: calc(var(--footer-h, 2rem) + 6px); }   /* the footer's height changes with the tab: main.js keeps this variable */
@@ -109,7 +113,7 @@
     #seq-tools select { flex: 1 1 6rem; min-width: 0; }
     #seq-tools button { padding: 1px 6px; }
     #song-info { font-variant-numeric: tabular-nums; }
-    #status { opacity: .7; }
+    #status { opacity: .7; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
     #tabs { display: flex; gap: .25rem; }
     #loadcopy { margin-left: auto; font: inherit; padding: 0 .4rem; line-height: 1.2; }
     #loadmeter { cursor: pointer; white-space: pre; font-variant-numeric: tabular-nums; padding: 0 .5rem; }
@@ -639,7 +643,7 @@
       <button id="tab-patterns" title="Patterns (F1)" aria-label="Patterns"><svg class="ri" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h16v16H4z M4 10h16 M4 15h16 M10 4v16"/></svg></button>
       <button id="tab-samples" title="Samples (F2)" aria-label="Samples"><svg class="ri" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12h3l2-6 3 12 3-9 2 3h7"/></svg></button>
       <button id="tab-instruments" title="Instruments (F3)" aria-label="Instruments"><svg class="ri" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h6v5H4z M14 14h6v5h-6z M10 7.5h4v9"/></svg></button>
-      <button id="tab-arrange" title="Arrangement (F4)" aria-label="Arrangement"><svg class="ri" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 5h8v4H3z M9 11h12v4H9z M5 17h7v3H5z"/></svg></button>
+      <button id="tab-arrange" title="Arrangement (F4)" aria-label="Arrangement"><svg class="ri" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 4h4v8H3z M10 9h4v11h-4z M17 3h4v5h-4z M17 12h4v6h-4z"/></svg></button>
       <button id="tab-script" title="Script: scripts that fill pattern data (Ctrl+Alt+S)" aria-label="Script"><svg class="ri" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 4c-3 0-3 2-3 4s0 4-2 4c2 0 2 2 2 4s0 4 3 4 M16 4c3 0 3 2 3 4s0 4 2 4c-2 0-2 2-2 4s0 4-3 4"/></svg></button>
       <button id="script-dock" title="Dock: show the Script panel beside the pattern editor (Ctrl+Alt+D)" aria-label="Dock" aria-pressed="false"><svg class="ri" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 4h18v16H3z M3 14h18"/></svg></button>
       <button id="tab-info" title="Song info (F10)" aria-label="Info"><svg class="ri" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h9l4 4v14H6z M15 3v4h4 M9 12h7 M9 16h7"/></svg></button>
@@ -662,7 +666,7 @@
         <label title="How much of each pair of rows the first one lasts: 50 is straight, 67 is a triplet shuffle"><span>swing</span> <span class="field"><input id="swing" type="number" min="50" max="75" step="1" style="width:2.6em" disabled><span class="unit">%</span></span></label>
         <label title="Beats in a bar, the top number of the time signature: the rows of the arrangement are one <span>bar</span> tall and its shading follows (Ctrl+wheel there changes the row size)"><span>bar</span> <input id="bar" type="number" min="1" max="16" step="1" style="width:3em" disabled></label>
       </div>
-      <span class="grow"></span>
+      <i class="sep"></i>
       <button id="save" disabled title="Save the project (.wax)" aria-label="Save"><svg class="ri" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 3h11l3 3v15H5z M8 3v6h8V3 M8 21v-7h8v7"/></svg></button>
       <button id="load" disabled title="Open a project" aria-label="Open"><svg class="ri" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7h6l2 2h10v10H3z"/></svg></button>
       <button id="export" disabled title="Export: render the whole song to a WAV file, with a tail after the end (length and format in Config)" aria-label="Export"><svg class="ri" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12 M7 8l5-5 5 5 M4 15v5h16v-5"/></svg></button>
@@ -674,15 +678,7 @@
           <button role="menuitem" data-clear="everything" title="Start over: no instruments, samples, patterns or arrangement (only the master lane stays)">Clear everything</button>
         </span></span>
       <input id="file" type="file" accept=".wax,.wtrk,.json,.mid,.midi,.mod" hidden>
-      <i class="sep"></i>
-      <button id="meters-btn" title="Meter band along the bottom: spectrum, level and loudness, correlation (Ctrl+Alt+M); choose the panels in Config" aria-label="Meters" aria-pressed="false"><svg class="ico" viewBox="0 0 12 12"><g fill="currentColor"><rect x="1" y="6" width="2" height="5"/><rect x="4" y="2" width="2" height="9"/><rect x="7" y="4.5" width="2" height="6.5"/><rect x="10" y="7.5" width="1.5" height="3.5"/></g></svg></button>
-      <button id="scope" title="Vectorscope overlay: left against right; drag it anywhere (Ctrl+Alt+O)" aria-label="Scope" aria-pressed="false"><svg class="ico" viewBox="0 0 12 12"><g fill="none" stroke="currentColor" stroke-width="1.1"><rect x="1" y="1" width="10" height="10" rx="1.5"/><path d="M2.5 9.5 4 6.5 5.5 7.5 7 3.5 8.2 6 9.5 2.5" stroke-linejoin="round" stroke-linecap="round"/></g></svg></button>
-      <i class="sep"></i>
-      <button id="cut" disabled title="Cut: halt all audio computation (silence, zero CPU) until Play is pressed" aria-label="Cut"><svg class="ri" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 4a3 3 0 1 0 0 6a3 3 0 1 0 0-6z M6 14a3 3 0 1 0 0 6a3 3 0 1 0 0-6z M8.5 8L20 19 M8.5 16L20 5"/></svg></button>
-      <button id="panic" disabled title="Panic: stop every sounding note (all notes off)" aria-label="Panic"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><g stroke="currentColor" stroke-width="1.5" stroke-linecap="round" fill="none"><path d="M2.2 9.6 13.8 14.6M13.8 9.6 2.2 14.6"/></g><g fill="currentColor"><circle cx="1.9" cy="9.3" r="1"/><circle cx="14.1" cy="9.3" r="1"/><circle cx="1.9" cy="14.9" r="1"/><circle cx="14.1" cy="14.9" r="1"/></g><path d="M8 .9C4.6.9 2.5 3.2 2.5 6c0 1.7.8 3 2 3.7V12h7V9.7c1.2-.7 2-2 2-3.7C13.5 3.2 11.4.9 8 .9Z" fill="var(--bg)" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round"/><circle cx="5.9" cy="6.3" r="1.5" fill="currentColor"/><circle cx="10.1" cy="6.3" r="1.5" fill="currentColor"/><path d="M8 8.2 7.2 9.6h1.6z" fill="currentColor"/><path d="M6.3 10.4v1.4M8 10.4v1.4M9.7 10.4v1.4" stroke="currentColor" stroke-width=".8"/></svg></button>
-      <i class="sep"></i>
-      <span id="build"></span>
-      <select id="theme" title="Colour theme"><option value="system">system</option><option value="dark">dark</option><option value="black">black</option><option value="bright">bright</option><option value="neon">neon</option><option value="amber">amber</option><option value="phosphor">phosphor</option><option value="ice">ice</option><option value="synthwave">synthwave</option></select>
+      <span class="grow"></span>
     </div>
   </div>
 
@@ -998,7 +994,7 @@
   </section>
 
   <div id="float-params"><div id="float-title"><span id="float-name">parameters</span><button id="float-close" type="button" title="Close (Ctrl+Alt+P)" aria-label="Close the floating parameters">×</button></div><div id="float-scroll"></div></div>
-  <div id="footer" class="statusbar"><div id="cursor" class="statusbar"></div><div id="seq-status" class="foot-row"></div><div class="foot-row"><span id="song-info"></span><span id="status">Press Start to create the audio engine.</span><button id="float-toggle" type="button" aria-pressed="false" title="Floating window with the exposed parameters of the cursor lane (Ctrl+Alt+P)">params</button><button id="loadcopy" type="button" title="Copy the load line to the clipboard">copy</button><span id="loadmeter" title="Audio load: average, worst block (as a share of the time each block is allowed), blocks that ran late, output latency. Click to reset.">cpu --</span></div></div>
+  <div id="footer" class="statusbar"><div id="cursor" class="statusbar"></div><div id="seq-status" class="foot-row"></div><div class="foot-row"><span id="song-info"></span><span id="status">Press Start to create the audio engine.</span><button id="float-toggle" type="button" aria-pressed="false" title="Floating window with the exposed parameters of the cursor lane (Ctrl+Alt+P)">params</button><button id="loadcopy" type="button" title="Copy the load line to the clipboard">copy</button><span id="loadmeter" title="Audio load: average, worst block (as a share of the time each block is allowed), blocks that ran late, output latency. Click to reset.">cpu --</span><span id="foot-tools"><button id="meters-btn" title="Meter band along the bottom: spectrum, level and loudness, correlation (Ctrl+Alt+M); choose the panels in Config" aria-label="Meters" aria-pressed="false"><svg class="ico" viewBox="0 0 12 12"><g fill="currentColor"><rect x="1" y="6" width="2" height="5"/><rect x="4" y="2" width="2" height="9"/><rect x="7" y="4.5" width="2" height="6.5"/><rect x="10" y="7.5" width="1.5" height="3.5"/></g></svg></button> <button id="scope" title="Vectorscope overlay: left against right; drag it anywhere (Ctrl+Alt+O)" aria-label="Scope" aria-pressed="false"><svg class="ico" viewBox="0 0 12 12"><g fill="none" stroke="currentColor" stroke-width="1.1"><rect x="1" y="1" width="10" height="10" rx="1.5"/><path d="M2.5 9.5 4 6.5 5.5 7.5 7 3.5 8.2 6 9.5 2.5" stroke-linejoin="round" stroke-linecap="round"/></g></svg></button> <button id="cut" disabled title="Cut: halt all audio computation (silence, zero CPU) until Play is pressed" aria-label="Cut"><svg class="ri" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 4a3 3 0 1 0 0 6a3 3 0 1 0 0-6z M6 14a3 3 0 1 0 0 6a3 3 0 1 0 0-6z M8.5 8L20 19 M8.5 16L20 5"/></svg></button> <button id="panic" disabled title="Panic: stop every sounding note (all notes off)" aria-label="Panic"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><g stroke="currentColor" stroke-width="1.5" stroke-linecap="round" fill="none"><path d="M2.2 9.6 13.8 14.6M13.8 9.6 2.2 14.6"/></g><g fill="currentColor"><circle cx="1.9" cy="9.3" r="1"/><circle cx="14.1" cy="9.3" r="1"/><circle cx="1.9" cy="14.9" r="1"/><circle cx="14.1" cy="14.9" r="1"/></g><path d="M8 .9C4.6.9 2.5 3.2 2.5 6c0 1.7.8 3 2 3.7V12h7V9.7c1.2-.7 2-2 2-3.7C13.5 3.2 11.4.9 8 .9Z" fill="var(--bg)" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round"/><circle cx="5.9" cy="6.3" r="1.5" fill="currentColor"/><circle cx="10.1" cy="6.3" r="1.5" fill="currentColor"/><path d="M8 8.2 7.2 9.6h1.6z" fill="currentColor"/><path d="M6.3 10.4v1.4M8 10.4v1.4M9.7 10.4v1.4" stroke="currentColor" stroke-width=".8"/></svg></button> <span id="build"></span> <select id="theme" title="Colour theme"><option value="system">system</option><option value="dark">dark</option><option value="black">black</option><option value="bright">bright</option><option value="neon">neon</option><option value="amber">amber</option><option value="phosphor">phosphor</option><option value="ice">ice</option><option value="synthwave">synthwave</option></select></span></div></div>
 
   <script>
     // "build NNN · sha" from version.json (stamped by the Pages workflow, made from git by serve.mjs); without the file the label stays empty

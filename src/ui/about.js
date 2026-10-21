@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['319', ['Header tidy: the file icons (save, open, export, backups, new) sit next to the song display, and the meters, scope, cut and panic buttons, the build number and the theme moved to the right end of the bottom status bar. The Arrangement icon now shows vertical lanes.']],
   ['318', ['New top layout: a slim icon rail down the left edge holds the logo (still the Start button), one icon per screen (Patterns, Samples, Instruments, Arrangement, Script, Dock, Info; hover for the name and key) and Shortcuts, About and Config at the foot. The top bar is one row: transport, the song numbers (len, bpm, swing, bar) as a dark green display you edit in place, then file and tool icons, then the theme.']],
   ['317', ['Note preview is on by default: typed notes in the pattern editor sound while the key is held (Insert or \\ still switches it off; a choice you already made is kept).']],
   ['316', ['The Start button is gone from the top bar: the Wax logo on the left is the Start button until the audio is running (click it, or Enter when focused), then it is just the name.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['312', ['Pattern view: on an empty velocity cell the status bar now shows the value that is in effect there, held from the last velocity written above it in that column (or default FF = 100% before any), the same way parameter columns already do.']],
   ['311', ['The loop is now two thin light-red lines running the full width of the pattern and arrangement views, one where it starts and one where it ends, instead of the yellow marks in the tick column. A loop that is switched off keeps its lines, faded.']],
   ['310', ['Sequence editor: Insert pushes the patterns from the caret down by 16 ticks, and Delete on an empty spot pulls the patterns below up towards the caret (16 ticks, or as far as the gap allows). Delete on a pattern still removes it.']],
-  ['309', ['Pattern colours follow the theme: in the arrangement, the pattern list and the tinted pattern editor, the hue still tells patterns apart but the brightness, saturation and strength are set per theme, so dark themes get deep muted tints instead of washed-out pastels, and the amber, phosphor and synthwave themes keep the colours in their own family. Bright is unchanged.']],
 ];
