@@ -345,6 +345,7 @@ export function createSequenceView({ el, statusEl, listEl, transport, onToggle, 
         else act('insert a pattern', editor.insertPattern(li, t), 'Pattern inserted.');
         break;
       case 'h': config.set('seqNames', !config.get('seqNames')); message = config.get('seqNames') ? 'Pattern names shown.' : 'Pattern names hidden.'; break;   // H: pattern names in the cells on or off
+      case 'v': config.set('minimapOn', !config.get('minimapOn')); message = config.get('minimapOn') ? 'Pattern minimaps on.' : 'Pattern minimaps off.'; break;   // V: the pattern minimaps in the cells on or off
       case 'l': message = toggleLoop(song); onSong(); break;   // L: the loop on or off (Ctrl+L too, where the browser lets it through)
       case 'i': act('insert a pattern', editor.insertPattern(li, t, { overlay: true }), 'Pattern inserted.'); break;
       case 'n': act('clone', editor.clone(li, t), 'Cloned: this placement now has its own copy.'); break;

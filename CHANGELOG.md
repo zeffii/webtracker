@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 288 · 2026-10-21
+
+- Arrangement: V switches the pattern minimaps on and off; H and V are in the shortcut list.
+
 ## 287 · 2026-10-21
 
 - Arrangement side panel: a one-row draggable line between the pattern list and the lane controls sets the list's height (Up/Down on the line when it has focus, double-click for automatic). It is remembered.

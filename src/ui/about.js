@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['288', ['Arrangement: V switches the pattern minimaps on and off; H and V are in the shortcut list.']],
   ['287', ['Arrangement side panel: a one-row draggable line between the pattern list and the lane controls sets the list\'s height (Up/Down on the line when it has focus, double-click for automatic). It is remembered.']],
   ['286', ['Arrangement: the lane, insert-silence and add-lane controls moved under the pattern list, the lane\'s status line is now a row of its own above the status bar, and the arrangement fills the window height (Config: arrangement fills the window height; off brings the drag bar back).']],
   ['285', ['Hosted on GitHub Pages: every push to master runs the tests and publishes the app. A service worker supplies the cross-origin isolation headers there, and the header shows "build NNN · commit" (version.json, made from git by serve.mjs, with a + for uncommitted changes).']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['281', ['Graph: a very faint dot grid (a brighter dot every 12) and nodes snap to it while you drag; hold Ctrl to move freely. Config (Graph) has the on/off switches, the spacing and the bright-dot interval. The tick lines on time sliders are light blue now.']],
   ['280', ['Sampler commands 20 to 2A: pitch slides (20 to 23, XX semitones over YY subticks), glide to the next note (24), shortest and longest repeat time (25, 26) and a repeat time curve (27), cut after and release after n ticks (28, 29) with a per-repeat scale (2A). See the Sampler help.', 'Sequence editor: H hides the pattern names in the cells (Config: show pattern names); the statusbar gives the name of the pattern under the cursor and how many times it is placed in the lane, so you can clone it (N) before editing.']],
   ['279', ['The absolute offset parameter is called blockCount (the number of full 65536-frame blocks before the frame in Off). The sampler\'s About page has a section on FF and F0 with examples.']],
-  ['278', ['Sampler: command FF makes the Off column absolute. Off holds the low four hex digits of a frame number and the value of FF the number of full 65536-frame blocks before it (the hh of hh:hhhh): Off 0300 with FF0002 starts at frame 2:0300. It stays until F0 (any value, F00000 will do) puts Off back to a fraction of the sample. Each sampler instrument has its own state. Saved sampler instruments get both commands on loading.']],
 ];
