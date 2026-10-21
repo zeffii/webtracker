@@ -4,14 +4,20 @@
 //
 // The page gives `target()`: { error } or { request, apply(edits), label }.
 import { highlight } from './highlight.js';
+import { findPatterns, renderViz } from './euclidviz.js';
 import { noteToken } from '../seq/cells.js';
 
-export function createScriptScreen({ area, hl, runButton, status, out, line, runner, target, onText = () => {}, midi = () => ({ window: 60, order: 'pitch' }) }) {
+export function createScriptScreen({ area, hl, viz = null, runButton, status, out, line, runner, target, onText = () => {}, midi = () => ({ window: 60, order: 'pitch' }) }) {
   let loaded = false;
   const history = [];
   let hist = -1;
 
   const paint = () => { hl.innerHTML = `${highlight(area.value)}\n`; hl.scrollTop = area.scrollTop; hl.scrollLeft = area.scrollLeft; };
+  // The Euclidean preview under the editor: redrawn as you type (and when the caret changes line, to mark the card of that line).
+  let patterns = [];
+  const caretLine = () => area.value.slice(0, area.selectionStart).split('\n').length;
+  const drawViz = () => { if (viz) renderViz(viz, patterns, caretLine()); };
+  const scanViz = () => { if (viz) { patterns = findPatterns(area.value); drawViz(); } };
   const info = () => { status.textContent = `${area.value ? area.value.split('\n').length : 0} lines · ${area.value.length} characters`; };
 
   const show = (lines, error = false) => {
@@ -59,7 +65,8 @@ export function createScriptScreen({ area, hl, runButton, status, out, line, run
     if (!document.execCommand?.('insertText', false, text)) { area.setRangeText(text, area.selectionStart, area.selectionEnd, 'end'); area.dispatchEvent(new Event('input')); }
   };
 
-  area.addEventListener('input', () => { paint(); info(); if (loaded) onText(area.value); });
+  area.addEventListener('input', () => { paint(); info(); scanViz(); if (loaded) onText(area.value); });
+  for (const ev of ['keyup', 'click']) area.addEventListener(ev, drawViz);
   area.addEventListener('scroll', () => { hl.scrollTop = area.scrollTop; hl.scrollLeft = area.scrollLeft; });
   area.addEventListener('keydown', e => {
     if (e.key === 'Enter' && e.ctrlKey && !e.altKey && !e.metaKey) { e.preventDefault(); runText(); return; }
@@ -127,7 +134,7 @@ export function createScriptScreen({ area, hl, runButton, status, out, line, run
     midiNote,
     focus: () => area.focus(),
     get text() { return area.value; },
-    load(text) { loaded = false; area.value = text ?? ''; paint(); info(); loaded = true; out.replaceChildren(); },
+    load(text) { loaded = false; area.value = text ?? ''; paint(); info(); scanViz(); loaded = true; out.replaceChildren(); },
     refresh: () => { paint(); },
   };
 }

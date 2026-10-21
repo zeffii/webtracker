@@ -132,6 +132,21 @@
     #script-box:focus-within { outline: 1px solid var(--accent); }
     .tk-c { opacity: .55; font-style: italic; } .tk-s { color: var(--cc); } .tk-n { color: color-mix(in srgb, var(--accent) 65%, var(--fg)); }
     .tk-k { color: var(--accent); } .tk-b { font-weight: 700; } .tk-h { color: var(--accent); font-weight: 700; } .tk-r { opacity: .5; }
+    #script-viz { display: flex; flex-wrap: wrap; gap: .4rem; max-width: 110ch; margin: .3rem 0; }
+    #script-viz[hidden] { display: none; }
+    .ev-card { display: flex; gap: .5rem; align-items: center; padding: .25rem .5rem; background: var(--panel); border: 1px solid var(--line); font: 12px/1.35 ui-monospace, Consolas, monospace; min-width: 0; }
+    .ev-card.cur { border-color: var(--accent); }
+    .ev-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+    .ev-text span { opacity: .6; }
+    .ev-bits { letter-spacing: .08em; opacity: .75; overflow-wrap: anywhere; }
+    .ev-ring .ev-base { fill: none; stroke: var(--line); stroke-width: 1; }
+    .ev-ring .ev-poly { fill: color-mix(in srgb, var(--accent) 14%, transparent); stroke: var(--accent); stroke-width: 1; stroke-linejoin: round; opacity: .8; }
+    .ev-ring .ev-hit { fill: var(--accent); } .ev-ring .ev-rest { fill: var(--line); }
+    .ev-steps { display: flex; gap: 1px; }
+    .ev-steps i { width: 7px; height: 12px; background: color-mix(in srgb, var(--fg) 12%, transparent); }
+    .ev-steps i.beat { margin-left: 3px; } .ev-steps i.beat:first-child { margin-left: 0; }
+    .ev-steps i.on { background: var(--accent); }
+    .ev-more { align-self: center; opacity: .6; font: 12px ui-monospace, Consolas, monospace; }
     #script-out { box-sizing: border-box; width: 100%; max-width: 110ch; height: 9em; margin: .3rem 0; padding: .3rem .6rem; overflow: auto; font: 12px/1.45 ui-monospace, Consolas, monospace; background: color-mix(in srgb, var(--panel) 85%, var(--fg)); white-space: pre-wrap; }
     #script-out .err { color: #e0405a; }
     .keys.md { font: 12.5px/1.5 system-ui, sans-serif; }
@@ -689,6 +704,7 @@
     <div class="pane-main">
       <div class="help">Scripts write pattern data into the pattern under the cursor in the pattern editor (or its selection). They run in their own thread, only when you ask, and change nothing if they fail or take too long. <b>Ctrl+Enter</b> runs the selected code, or all of it; <b>Ctrl+Alt+R</b> in the pattern editor runs the whole script on the pattern there. Saved with the project. <button id="script-run" type="button">Run</button></div>
       <div id="script-box"><pre id="script-hl" aria-hidden="true"></pre><textarea id="script" spellcheck="false" wrap="off" autocapitalize="off" autocomplete="off" aria-label="Script"></textarea></div>
+      <div id="script-viz" hidden aria-label="Preview of the Euclidean and x.. patterns in the script"></div>
       <div id="script-status" class="statusbar"></div>
       <button id="script-help" type="button" aria-pressed="false" title="Show or hide the scripting help and tutorial beside the docked panel">Script help</button>
       <pre id="script-out" tabindex="0" aria-label="Script output" aria-live="polite"></pre>

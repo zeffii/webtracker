@@ -23,6 +23,8 @@ Step through a scale on each hit, with the velocities alternating:
 tbin('x.x. ..x. x..x ..x.', scale('minor', 'A', 3), { vel: [0xC0, 0x80] })
 \`\`\`
 
+Under the editor, every \`euclid(hits, steps, rotate)\` written with plain numbers, and every \`'x..x'\` string, is drawn as a ring and a row of steps as you type, before anything runs; the one on the caret's line is outlined.
+
 A Euclidean rhythm of 5 hits in 16 steps, rotated by 2, every step 2 rows long:
 
 \`\`\`

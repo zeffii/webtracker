@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 296 · 2026-10-21
+
+- Script tab: a live Euclidean preview under the editor. Every euclid(hits, steps, rotate) written with plain numbers, and every 'x..x' string, is drawn as a ring and a row of steps while you type, before anything runs; the card of the caret's line is outlined.
+
 ## 295 · 2026-10-21
 
 - The arrangement's shortcut window no longer repeats the lane controls and the pattern list's splitter; it lists only the keys.

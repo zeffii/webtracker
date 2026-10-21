@@ -6937,4 +6937,15 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   assert.ok(!bad.ok && /no Smp/.test(bad.error.message), 'a lane without the column says so');
   console.log('ok: scatter');
 }
+// 113. the Euclidean preview finds literal euclid() calls and x.. strings, and skips what needs the script to run
+{
+  const { findPatterns } = await import('../src/script/euclidviz.js');
+  const { euclid: euclidOf } = await import('../src/script/lib.js');
+  const found = findPatterns("tbin(euclid(3, 8))\nlet k = 5; euclid(k, 8)\n// euclid(1, 4)\nvoices('x...x...')\neuclid(5,16,2)");
+  assert.deepEqual(found.map(f => [f.line, f.bits]), [[1, 'x..x..x.'], [4, 'x...x...'], [5, euclidOf(5, 16, 2)]]);
+  assert.equal(found[0].hits, 3); assert.equal(found[0].steps, 8);
+  assert.equal(found[2].steps, 16); assert.equal(found[2].hits, 5);
+  assert.deepEqual(findPatterns('euclid(3, 0)'), [], 'no steps: nothing to draw');
+  console.log('ok: euclid preview');
+}
 console.log('smoke test passed');

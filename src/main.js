@@ -232,7 +232,7 @@ const scriptTarget = () => {
   };
 };
 const scriptScreen = createScriptScreen({
-  area: $('script'), hl: $('script-hl'), runButton: $('script-run'), status: $('script-status'), out: $('script-out'), line: $('script-line'),
+  area: $('script'), hl: $('script-hl'), viz: $('script-viz'), runButton: $('script-run'), status: $('script-status'), out: $('script-out'), line: $('script-line'),
   runner: createScriptRunner({ limit: () => config.get('scriptLimit') }),
   target: scriptTarget,
   onText: text => { if (project) { if (text) project.song.script = text; else delete project.song.script; } },

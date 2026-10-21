@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['296', ['Script tab: a live Euclidean preview under the editor. Every euclid(hits, steps, rotate) written with plain numbers, and every \'x..x\' string, is drawn as a ring and a row of steps while you type, before anything runs; the card of the caret\'s line is outlined.']],
   ['295', ['The arrangement\'s shortcut window no longer repeats the lane controls and the pattern list\'s splitter; it lists only the keys.']],
   ['294', ['Changing the song length no longer stops the song: the new length is sent to the running engine and the cursor stays where it was.']],
   ['293', ['Recording sliders: with Rec armed (Ctrl+Shift+R) and the song playing, moving a slider in the floating window, the graph\'s exposed dock or the node panel writes its value into the lane on the nearest tick: into the parameter\'s own column, else into the Cmd column as CCXXYY. The last value of a tick stays, a take is one undo step, and Config (Recording sliders) can write only every 2nd, 4th... row.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['289', ['Pattern editor: fills the window height (Config: pattern editor fills the window height), and its cursor rows (position, column name, value meter, range) moved into the main status bar. The page\'s bottom space follows the status bar\'s height. On Pages the service worker now revalidates files, so a new build is never held back by the browser\'s cache.']],
   ['288', ['Arrangement: V switches the pattern minimaps on and off; H and V are in the shortcut list.']],
   ['287', ['Arrangement side panel: a one-row draggable line between the pattern list and the lane controls sets the list\'s height (Up/Down on the line when it has focus, double-click for automatic). It is remembered.']],
-  ['286', ['Arrangement: the lane, insert-silence and add-lane controls moved under the pattern list, the lane\'s status line is now a row of its own above the status bar, and the arrangement fills the window height (Config: arrangement fills the window height; off brings the drag bar back).']],
 ];
