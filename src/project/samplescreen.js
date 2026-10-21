@@ -1,4 +1,5 @@
 import * as config from '../ui/config.js';
+import { detectOnsets } from './onsets.js';
 import { setLoop, setSampleProps, setSlices, placeHex, SAMPLE_PROPS, removeSample, renameSample, isPool } from './ops.js';
 import { applyEdit, createHistory, redoEdit, undoEdit } from './sampleedit.js';
 import { LOWER, UPPER } from '../seq/piano.js';
@@ -222,6 +223,17 @@ export function createSampleScreen({ el, statusEl, getProject, onChange = () => 
       else if (slices.length) {
         const nearest = slices.reduce((best, f) => (Math.abs(f - at) < Math.abs(best - at) ? f : best));
         if (attempt(() => setSlices(getProject(), sel, slices.filter(f => f !== nearest)))) setActive(-1);
+      }
+      return eat();
+    }
+    if (e.shiftKey && focus !== 'name' && k === 'E') {   // find the onsets (hits) of the sample, or of the selection, and put a slice marker on each
+      const s = sample(), whole = selTo <= selFrom, from = whole ? 0 : selFrom, to = whole ? s.data.length : selTo;
+      const hits = detectOnsets(s.data, s.right, s.rate, { from, to, sensitivity: config.get('sliceSensitivity') / 100, minGapMs: config.get('sliceMinGap') });
+      if (!hits.length) say('No onsets found: try a higher sensitivity in Config (Sample).');
+      else {
+        const keep = (s.slices ?? []).filter(f => f < from || f >= to);   // markers outside the range stay; inside it they are replaced
+        const marks = [...new Set([...keep, ...(hits[0] - from > Math.round(0.02 * s.rate) ? [from] : []), ...hits])];
+        if (attempt(() => setSlices(getProject(), sel, marks))) { setActive(-1); say(`Found ${hits.length} onsets${whole ? '' : ' in the selection'}: ${sample().slices.length} slice markers now.`); }
       }
       return eat();
     }

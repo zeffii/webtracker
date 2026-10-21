@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['290', ['Samples: Shift+E auto-slices: a marker on every hit of the sample (or of the selection), found by spectral-flux onset detection. Sensitivity and the shortest gap are in Config (Sample).']],
   ['289', ['Pattern editor: fills the window height (Config: pattern editor fills the window height), and its cursor rows (position, column name, value meter, range) moved into the main status bar. The page\'s bottom space follows the status bar\'s height. On Pages the service worker now revalidates files, so a new build is never held back by the browser\'s cache.']],
   ['288', ['Arrangement: V switches the pattern minimaps on and off; H and V are in the shortcut list.']],
   ['287', ['Arrangement side panel: a one-row draggable line between the pattern list and the lane controls sets the list\'s height (Up/Down on the line when it has focus, double-click for automatic). It is remembered.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['283', ['Parameter view: a parameter that a CC command writes has a blue stripe and tint on its name and the command\'s id in the bar (2C, 31...). A small cc button in the panel title (and Config, Graph) hides all of them.']],
   ['282', ['Sampler commands from UnwieldyTracker: stretch (2B to 2D, the whole sample spread over a length by granular repeats), jumps in the wave (60 to 67), a filter on each sound (30 to 35: type, cutoff, resonance, slides, step per repeat), vibrato and cutoff LFO (40 to 45) with phase sync (50 to 53), humanizing the cutoff and timing (38, 39), resets (A0 to AF) and settings slots (70 save, 71 load). See the Sampler help. Shuffle (80 to 83) is not in yet.']],
   ['281', ['Graph: a very faint dot grid (a brighter dot every 12) and nodes snap to it while you drag; hold Ctrl to move freely. Config (Graph) has the on/off switches, the spacing and the bright-dot interval. The tick lines on time sliders are light blue now.']],
-  ['280', ['Sampler commands 20 to 2A: pitch slides (20 to 23, XX semitones over YY subticks), glide to the next note (24), shortest and longest repeat time (25, 26) and a repeat time curve (27), cut after and release after n ticks (28, 29) with a per-repeat scale (2A). See the Sampler help.', 'Sequence editor: H hides the pattern names in the cells (Config: show pattern names); the statusbar gives the name of the pattern under the cursor and how many times it is placed in the lane, so you can clone it (N) before editing.']],
 ];

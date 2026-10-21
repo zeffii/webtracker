@@ -6878,4 +6878,20 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   assert.ok(about.CHANGELOG.length >= 1 && about.CHANGELOG.length <= 10, 'the changelog shows the latest ten');
   console.log('ok: about page loads');
 }
+// 111. Onset detection finds hits in a synthetic loop and ignores a steady tone.
+{
+  const { detectOnsets } = await import('../src/project/onsets.js');
+  const rate = 44100, data = new Float32Array(rate * 2);
+  let seedN = 7; const noise = () => { seedN = (Math.imul(seedN, 1664525) + 1013904223) >>> 0; return seedN / 2147483648 - 1; };
+  const hits = [0.2, 0.5, 0.9, 1.3, 1.6].map(t => Math.round(t * rate));
+  for (const h of hits) for (let i = 0; i < 6000 && h + i < data.length; i++) data[h + i] += noise() * Math.exp(-i / 900) * 0.8;
+  const found = detectOnsets(data, null, rate, { sensitivity: 0.5 });
+  assert.equal(found.length, hits.length, `five hits found (got ${found.length})`);
+  hits.forEach((h, i) => assert.ok(Math.abs(found[i] - h) < rate * 0.01, `hit ${i} within 10 ms (${found[i]} vs ${h})`));
+  assert.ok(detectOnsets(data, null, rate, { sensitivity: 1 }).length >= found.length, 'more sensitive finds at least as many');
+  const tone = Float32Array.from({ length: rate }, (_, i) => Math.sin(i * 0.05) * 0.5);
+  assert.equal(detectOnsets(tone, null, rate, {}).length, 0, 'a steady tone has no onsets');
+  assert.ok(detectOnsets(data, null, rate, { from: 0.4 * rate, to: 1.0 * rate }).every(f => f >= 0.4 * rate && f < 1.0 * rate), 'a range keeps to itself');
+  console.log('ok: onset detection');
+}
 console.log('smoke test passed');

@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 290 · 2026-10-21
+
+- Samples: Shift+E auto-slices: a marker on every hit of the sample (or of the selection), found by spectral-flux onset detection. Sensitivity and the shortest gap are in Config (Sample).
+
 ## 289 · 2026-10-21
 
 - Pattern editor: fills the window height (Config: pattern editor fills the window height), and its cursor rows (position, column name, value meter, range) moved into the main status bar. The page's bottom space follows the status bar's height. On Pages the service worker now revalidates files, so a new build is never held back by the browser's cache.
