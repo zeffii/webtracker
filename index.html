@@ -68,8 +68,20 @@
     #header .line + .line { margin-top: .3rem; }
     #header .sep { width: 1px; height: 1.4rem; background: currentColor; opacity: .35; flex: none; }   /* a rule between groups of toolbar items */
     /* the window's own status bar: song position and engine status, always at the bottom */
-    #footer { position: fixed; left: 0; right: 0; bottom: 0; z-index: 1; display: flex; gap: 1.5rem; border-top: 1px solid color-mix(in srgb, currentColor 25%, transparent); white-space: pre; overflow: hidden; }
+    #footer { position: fixed; left: 0; right: 0; bottom: 0; z-index: 1; display: flex; flex-direction: column; border-top: 1px solid color-mix(in srgb, currentColor 25%, transparent); white-space: pre; overflow: hidden; }
+    .foot-row { display: flex; gap: 1.5rem; min-width: 0; }
+    #seq-status { display: none; overflow: hidden; text-overflow: ellipsis; }   /* the lane under the cursor: a row of its own above the status bar while the arrangement is shown */
+    body:has(#pane-arrange:not([hidden])) #seq-status { display: block; }
     body { padding-bottom: 2rem; }
+    body:has(#pane-arrange:not([hidden])) { padding-bottom: 3.5rem; }
+    body.seqfit #seq-grip { display: none; }
+    /* the lane and silence controls under the pattern list */
+    #seq-tools { margin: 0 0 .7rem; font-size: 12px; }
+    #seq-tools .manage { display: flex; flex-wrap: wrap; gap: .25rem; align-items: center; margin: .3rem 0; }
+    #seq-tools .help { flex: 1 0 100%; opacity: .7; }
+    #seq-tools input[type="text"], #seq-tools #lane-name { flex: 1 1 6rem; min-width: 0; }
+    #seq-tools select { flex: 1 1 6rem; min-width: 0; }
+    #seq-tools button { padding: 1px 6px; }
     #song-info { font-variant-numeric: tabular-nums; }
     #status { opacity: .7; }
     #tabs { display: flex; gap: .25rem; }
@@ -298,7 +310,7 @@
     body.nokeys .keys:not(.md) { display: none; }   /* the shortcuts live in the floating window (Shortcuts button); the script tutorial stays */
     body.nokeys #pane-script:not([hidden]) { grid-template-columns: minmax(0, 1fr) 20rem; }
     body.nokeys #pane-arrange .keys { display: block; }   /* in the arrangement the pattern list stays; only the shortcuts go */
-    body.nokeys #pane-arrange .keys > :not(#seq-side) { display: none; }
+    body.nokeys #pane-arrange .keys > :not(#seq-side):not(#seq-tools) { display: none; }
     body.nokeys .pane.keyed:not([hidden]) { grid-template-columns: minmax(0, 1fr); }
     #pane-arrange { --side-w: 20rem; position: relative; }
     body.nokeys #pane-arrange:not([hidden]), #pane-arrange.keyed:not([hidden]) { grid-template-columns: minmax(0, 1fr) var(--side-w); }
@@ -821,28 +833,29 @@
     <div id="side-grip" tabindex="0" role="separator" aria-orientation="vertical" aria-label="Width of the pattern list: drag, or use Left and Right; double-click to hide or show it" title="Drag to change the width of the pattern list (all the way right hides it); double-click to hide or show"></div>
     <div class="pane-main">
       <pre id="seq" tabindex="0"></pre>
-      <div id="seq-status" class="statusbar"></div>
-      <div class="manage row" style="margin:.3rem 0">
-        <span class="help">Lane under the cursor:</span>
-        <input id="lane-name" aria-label="Rename the lane under the cursor" disabled>
-        <button id="lane-rename" disabled>Rename</button>
-        <button id="lane-left" disabled title="Move earlier">◀</button><button id="lane-right" disabled title="Move later">▶</button>
-        <button id="lane-dup" disabled>Duplicate</button><button id="lane-remove" disabled title="Remove the lane (its instrument stays)">Remove</button><button id="lane-remove-all" disabled title="Remove the lane and the instrument it plays (if no other lane plays it)">Remove with machine</button>
-      </div>
-      <div class="manage row" style="margin:.3rem 0">
-        <span class="help">Insert silence at the cursor row:</span>
-        <input id="ins-n" type="number" min="1" max="65536" value="128" style="width:4.5em" aria-label="Ticks of silence to insert" disabled>
-        <button id="ins-go" disabled title="Push everything from the cursor row down by this many ticks">Insert</button>
-        <button class="ins-pre" data-n="16" disabled>16</button><button class="ins-pre" data-n="32" disabled>32</button><button class="ins-pre" data-n="48" disabled>48</button><button class="ins-pre" data-n="64" disabled>64</button><button class="ins-pre" data-n="128" disabled>128</button><button class="ins-pre" data-n="256" disabled>256</button><button class="ins-pre" data-n="512" disabled>512</button>
-        <label title="On: a pattern running across the cursor row is cut in two there and its second half moves down. Off: it stays whole and only patterns starting at or after the cursor row move."><input type="checkbox" id="ins-cut"> cut patterns across the cursor</label>
-      </div>
-      <div class="manage row" style="margin:.3rem 0">
-        <button id="add-lane" disabled title="Add a lane that plays this instrument">Add lane for</button><select id="add-lane-inst" aria-label="Instrument for the new lane" disabled></select>
-      </div>
       <div id="seq-grip" class="grip" tabindex="0" role="separator" aria-orientation="horizontal" aria-label="Rows shown: drag, or use Up and Down" title="Drag to change how many rows are shown"></div>
     </div>
       <aside class="keys" aria-label="Arrangement patterns and shortcuts">
         <div id="seq-side"><div id="seq-list"></div></div>
+        <div id="seq-tools">
+        <div class="manage row">
+          <span class="help">Lane under the cursor</span>
+          <input id="lane-name" aria-label="Rename the lane under the cursor" disabled>
+          <button id="lane-rename" disabled>Rename</button>
+          <button id="lane-left" disabled title="Move earlier">◀</button><button id="lane-right" disabled title="Move later">▶</button>
+          <button id="lane-dup" disabled>Duplicate</button><button id="lane-remove" disabled title="Remove the lane (its instrument stays)">Remove</button><button id="lane-remove-all" disabled title="Remove the lane and the instrument it plays (if no other lane plays it)">Remove with machine</button>
+        </div>
+        <div class="manage row">
+          <span class="help">Insert silence at the cursor row</span>
+          <input id="ins-n" type="number" min="1" max="65536" value="128" style="width:4.5em" aria-label="Ticks of silence to insert" disabled>
+          <button id="ins-go" disabled title="Push everything from the cursor row down by this many ticks">Insert</button>
+          <button class="ins-pre" data-n="16" disabled>16</button><button class="ins-pre" data-n="32" disabled>32</button><button class="ins-pre" data-n="48" disabled>48</button><button class="ins-pre" data-n="64" disabled>64</button><button class="ins-pre" data-n="128" disabled>128</button><button class="ins-pre" data-n="256" disabled>256</button><button class="ins-pre" data-n="512" disabled>512</button>
+          <label title="On: a pattern running across the cursor row is cut in two there and its second half moves down. Off: it stays whole and only patterns starting at or after the cursor row move."><input type="checkbox" id="ins-cut"> cut patterns across the cursor</label>
+        </div>
+        <div class="manage row">
+          <button id="add-lane" disabled title="Add a lane that plays this instrument">Add lane for</button><select id="add-lane-inst" aria-label="Instrument for the new lane" disabled></select>
+        </div>
+        </div>
         <h3>Shortcuts</h3>
         <dl>
           <dt>Up/Down</dt><dd><b class="kw">move</b> in time</dd>
@@ -902,7 +915,7 @@
     </div>
   </section>
 
-  <div id="footer" class="statusbar"><span id="song-info"></span><span id="status">Press Start to create the audio engine.</span><button id="loadcopy" type="button" title="Copy the load line to the clipboard">copy</button><span id="loadmeter" title="Audio load: average, worst block (as a share of the time each block is allowed), blocks that ran late, output latency. Click to reset.">cpu --</span></div>
+  <div id="footer" class="statusbar"><div id="seq-status" class="foot-row"></div><div class="foot-row"><span id="song-info"></span><span id="status">Press Start to create the audio engine.</span><button id="loadcopy" type="button" title="Copy the load line to the clipboard">copy</button><span id="loadmeter" title="Audio load: average, worst block (as a share of the time each block is allowed), blocks that ran late, output latency. Click to reset.">cpu --</span></div></div>
 
   <script>
     // "build NNN · sha" from version.json (stamped by the Pages workflow, made from git by serve.mjs); without the file the label stays empty

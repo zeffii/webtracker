@@ -96,7 +96,7 @@ $('dock-grip').addEventListener('mousedown', e => {
 // Full-screen panes. Switching with an F-key or a click focuses the pane's main element.
 let tabBefore = 'patterns', tabNow = 'patterns';   // where the Info close button goes back to
 const tabs = createTabs({
-  onChange: id => { if (id !== tabNow) { tabBefore = tabNow; tabNow = id; } applyDock(id); keysRefresh(id); },
+  onChange: id => { if (id !== tabNow) { tabBefore = tabNow; tabNow = id; } applyDock(id); keysRefresh(id); requestAnimationFrame(() => fitArrangement()); },
   tabs: [
     { id: 'patterns', key: 'F1', el: $('pane-patterns'), button: $('tab-patterns'), focus: $('view') },
     { id: 'samples', key: 'F2', el: $('pane-samples'), button: $('tab-samples'), focus: $('smp') },
@@ -376,6 +376,15 @@ if (globalThis.ResizeObserver) new ResizeObserver(() => { const w = $('patch-wra
 }
 attachGrip({ grip: $('patch-grip'), key: 'webtracker.graphHeight', get: () => patcher.height, set: h => patcher.resize(h), step: 20, bigStep: 100, normal: 460 });
 attachGrip({ grip: $('view-grip'), key: 'webtracker.patternRows', get: () => view.rows, set: n => view.setRows(n), unit: () => view.lineHeight(), step: 1, bigStep: 8, normal: 24 });
+// The arrangement fills the window: the rows shown follow the height that is left (Config: seqFit); the drag bar is for when it is off.
+const fitArrangement = () => {
+  document.body.classList.toggle('seqfit', config.get('seqFit'));
+  if (!config.get('seqFit') || tabs.active !== 'arrange') return;
+  const el = $('seq'), room = innerHeight - el.getBoundingClientRect().top - $('footer').offsetHeight - 12;
+  seqView.setRows(Math.floor(room / 18) - Math.max(0, el.childElementCount - seqView.rows));
+};
+addEventListener('resize', fitArrangement);
+config.onChange(k => { if (k === 'seqFit') fitArrangement(); });
 attachGrip({ grip: $('seq-grip'), key: 'webtracker.arrangementRows', get: () => seqView.rows, set: n => seqView.setRows(n), unit: () => 18, step: 1, bigStep: 8, normal: 24 });
 
 // The keyboard shortcuts of the screen in view, in a small floating window: the Shortcuts button opens and closes it, Esc
