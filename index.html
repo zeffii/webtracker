@@ -76,7 +76,8 @@
     .ri { width: 1.1rem; height: 1.1rem; display: block; }
     /* the rail: the logo (the start button until the audio runs), one icon per screen, and help and config at the foot */
     #rail { position: fixed; left: 0; top: 0; bottom: 0; width: var(--rail); box-sizing: border-box; z-index: 5; display: flex; flex-direction: column; align-items: center; gap: .3rem; padding: .5rem 0; background: var(--bg); border-right: 1px solid color-mix(in srgb, currentColor 14%, transparent); }
-    #rail #logo { font-size: .95rem; margin-bottom: .5rem; }
+    #rail #logo { width: 2.3rem; margin-bottom: .5rem; display: flex; }
+    .logo-glyph { width: 100%; height: auto; display: block; }
     #rail #tabs { flex-direction: column; gap: .3rem; }
     #rail button { width: 2.4rem; height: 2.2rem; padding: 0; display: inline-flex; align-items: center; justify-content: center; font: inherit; border: 1px solid transparent; border-radius: 3px; background: transparent; color: inherit; cursor: pointer; opacity: .75; }
     #rail #tabs button, #rail .rb { border-color: transparent; }
@@ -336,7 +337,9 @@
     /* the song's loop: two thin light-red lines across the grid, where it starts and ends */
     .looplines { position: absolute; left: 0; height: 0; border-top: 1px solid hsl(0 85% 78%); pointer-events: none; z-index: 2; }
     .looplines.off { opacity: .4; }
-    #logo.idle { cursor: pointer; text-decoration: underline dotted; text-underline-offset: 3px; }
+    #logo.idle { cursor: pointer; }
+    #logo.idle .logo-glyph { opacity: .8; }
+    #logo.idle:hover .logo-glyph { opacity: 1; }
     #seq .gn.g2 { background: color-mix(in srgb, var(--fg) 12%, transparent); }
     #seq .gn.g1 { background: color-mix(in srgb, var(--fg) 24%, transparent); }
     #seq .mk { color: inherit; }
@@ -523,7 +526,8 @@
     #splash[hidden] { display: none; }
     .s-card { position: relative; width: min(45vw, 72vh); min-width: min(92vw, 520px); aspect-ratio: 1.61 / 1; container-type: inline-size; background: #fff; overflow: hidden; box-shadow: 0 1px 0 #0001, 0 12px 40px -18px #0006; transition: opacity .35s, transform .5s; }
     #splash.blob .s-card canvas:not(.s-blob) { display: none; }
-    #splash.blob .s-word { left: 50%; top: 40%; transform: translate(-50%, -50%); font-size: 16cqw; color: #ffffffb0; text-shadow: 0 2px 30px #2a6f7a40; }
+    #splash.blob .s-word { left: 50%; top: 40%; transform: translate(-50%, -50%); width: 44cqw; line-height: 0; color: #ffffffd0; filter: drop-shadow(0 2px 20px #2a6f7a60); }
+    .s-glyph { width: 100%; height: auto; display: block; }
     #splash.blob .s-go { left: 50%; top: 66%; transform: translateX(-50%); color: #2d4a52; font-size: max(10px, 1.6cqw); }
     #splash.blob .s-log { left: 28cqw; top: 68%; text-align: left; color: #2d4a52; font-size: clamp(10px, 1.5cqw, 13px); }
     #splash.leaving .s-card { opacity: 0; transform: scale(1.03); }
@@ -672,7 +676,7 @@
     <div class="s-card">
       <canvas class="s-blob"></canvas>
       <canvas></canvas>
-      <p class="s-word">Wax</p>
+      <p class="s-word"><svg class="s-glyph" xmlns="http://www.w3.org/2000/svg" viewBox="70 90 2320 820" fill="currentColor" fill-rule="evenodd" role="img" aria-label="Wax"><path transform="translate(280)" d="M40 850 L280 640 L310 800 L460 800 L850 130 L420 530 L380 360 L110 590 L-20 300 L-210 250 Z"/><path transform="translate(910)" d="M-140 800 L250 310 L454.7 311.2 L630 800 L440 800 L410 680 L130 720 L60 800 Z M200 610 L390 580 L347 414.8 Z"/><path transform="translate(1580)" d="M-20 650 L100 570 L-80 470 L-150 280 L230 480 L810 90 L630 400 L390 570 L540 650 L730 910 L240 650 L30 800 Z"/></svg></p>
       <div class="s-go">click anywhere to enter</div>
       <div class="s-log" aria-live="polite"></div>
     </div>
@@ -682,7 +686,7 @@
   <div id="vscope" hidden title="Drag to move, drag the corner to resize, double-click to put it back in its corner"><canvas id="vscope-canvas"></canvas><span>XY master</span><i id="vscope-grip"></i></div>
   <div id="backup-panel" tabindex="-1" hidden role="dialog" aria-label="Backups"></div>
   <nav id="rail" aria-label="Screens">
-    <strong id="logo" class="idle" title="Click to start the audio" role="button" tabindex="0">Wax</strong>
+    <strong id="logo" class="idle" title="Click to start the audio" role="button" tabindex="0"><svg class="logo-glyph" xmlns="http://www.w3.org/2000/svg" viewBox="70 90 2320 820" fill="currentColor" fill-rule="evenodd" role="img" aria-label="Wax"><path transform="translate(280)" d="M40 850 L280 640 L310 800 L460 800 L850 130 L420 530 L380 360 L110 590 L-20 300 L-210 250 Z"/><path transform="translate(910)" d="M-140 800 L250 310 L454.7 311.2 L630 800 L440 800 L410 680 L130 720 L60 800 Z M200 610 L390 580 L347 414.8 Z"/><path transform="translate(1580)" d="M-20 650 L100 570 L-80 470 L-150 280 L230 480 L810 90 L630 400 L390 570 L540 650 L730 910 L240 650 L30 800 Z"/></svg></strong>
     <nav id="tabs">
       <button id="tab-patterns" title="Patterns (F1)" aria-label="Patterns"><svg class="ri" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h16v16H4z M4 10h16 M4 15h16 M10 4v16"/></svg></button>
       <button id="tab-samples" title="Samples (F2)" aria-label="Samples"><svg class="ri" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12h3l2-6 3 12 3-9 2 3h7"/></svg></button>

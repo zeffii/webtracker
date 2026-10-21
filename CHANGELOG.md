@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 325 · 2026-10-21
+
+- The WAX logo: your glyphs are now the logo on the start screen and at the top of the rail (still the Start button until the audio runs). They take the theme's text colour.
+
 ## 324 · 2026-10-21
 
 - The start screen's report no longer jumps around as lines are typed: it is left-aligned from a fixed edge instead of centred.
