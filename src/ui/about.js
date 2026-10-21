@@ -17,5 +17,4 @@ export const CHANGELOG = [
   ['284', ['Fixed: m283 did not start (a stray quote in the About text). The smoke test now loads that file.']],
   ['283', ['Parameter view: a parameter that a CC command writes has a blue stripe and tint on its name and the command\'s id in the bar (2C, 31...). A small cc button in the panel title (and Config, Graph) hides all of them.']],
   ['282', ['Sampler commands from UnwieldyTracker: stretch (2B to 2D, the whole sample spread over a length by granular repeats), jumps in the wave (60 to 67), a filter on each sound (30 to 35: type, cutoff, resonance, slides, step per repeat), vibrato and cutoff LFO (40 to 45) with phase sync (50 to 53), humanizing the cutoff and timing (38, 39), resets (A0 to AF) and settings slots (70 save, 71 load). See the Sampler help. Shuffle (80 to 83) is not in yet.']],
-  ['281', ['Graph: a very faint dot grid (a brighter dot every 12) and nodes snap to it while you drag; hold Ctrl to move freely. Config (Graph) has the on/off switches, the spacing and the bright-dot interval. The tick lines on time sliders are light blue now.']],
 ];
