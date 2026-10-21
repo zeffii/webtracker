@@ -492,7 +492,7 @@ attachGrip({ grip: $('seq-grip'), key: 'webtracker.arrangementRows', get: () => 
     const aside = PANES[id] && document.querySelector(`#${PANES[id]} .keys`);
     body.replaceChildren();
     if (!aside) { body.append(Object.assign(document.createElement('p'), { textContent: 'This screen has no shortcut list of its own.' })); return; }
-    for (const n of aside.children) if (n.id !== 'seq-side' && n.tagName !== 'H3') body.append(n.cloneNode(true));
+    for (const n of aside.children) if (!['seq-side', 'seq-tools', 'list-grip'].includes(n.id) && n.tagName !== 'H3') body.append(n.cloneNode(true));
     $('keys-float-title').textContent = `Shortcuts: ${id === 'arrange' ? 'arrangement' : id}`;
   };
   const open = id => { fill(id); box.hidden = false; button.setAttribute('aria-pressed', 'true'); };

@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 295 · 2026-10-21
+
+- The arrangement's shortcut window no longer repeats the lane controls and the pattern list's splitter; it lists only the keys.
+
 ## 294 · 2026-10-21
 
 - Changing the song length no longer stops the song: the new length is sent to the running engine and the cursor stays where it was.
