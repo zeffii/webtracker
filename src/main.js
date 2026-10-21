@@ -210,6 +210,7 @@ const seqView = createSequenceView({
   el: $('seq'), statusEl: $('seq-status'), listEl: $('seq-list'), transport: engine.transport, onToggle: togglePlay,
   onOpen: (lane, tick, { solo = false } = {}) => { if (!solo || !view.enterSolo(lane, tick)) view.goto(lane, tick); tabs.show('patterns'); },
   onMove: (lane, tick) => { view.goto(lane, tick); followLane(lane); },
+  onParams: () => setFloat(true),
   onSeek: tick => { if (!started) return; if (playing) engine.play(tick); else setPlaying(true, tick); },
   onSong: () => songChanged(),
 });

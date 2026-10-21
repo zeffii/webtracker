@@ -4,6 +4,7 @@ import { dimLevel, dimFilter } from '../ui/dim.js';
 import { createPlayline, createLoopLines } from '../ui/playline.js';
 import { placementAt, puidByIndex, startsAt } from './edit.js';
 import { setLoopPoint, toggleLoop } from './loop.js';
+import { showContextMenu } from '../ui/ctxmenu.js';
 import { createMinimap } from './minimap.js';
 
 const ROWS = { min: 6, max: 128, normal: 24 };   // rows shown at once
@@ -16,7 +17,7 @@ const hex2 = n => n.toString(16).toUpperCase().padStart(2, '0');
 // column. The cursor sits on a row; edits happen at the row's start, or at the start of a
 // pattern that begins inside it. A pattern is a block that starts with its index and name; a later
 // pattern covers the ones under it. Keyboard-driven.
-export function createSequenceView({ el, statusEl, listEl, transport, onToggle, onOpen, onMove, onSeek, onSong = () => {}, follow = () => false }) {
+export function createSequenceView({ el, statusEl, listEl, transport, onToggle, onOpen, onMove, onSeek, onParams = () => {}, onSong = () => {}, follow = () => false }) {
   let lanes = null, len = 0, editor = null, song = null;
   const cur = { lane: 0, tick: 0 };
   let typed = '', message = '';
@@ -209,6 +210,29 @@ export function createSequenceView({ el, statusEl, listEl, transport, onToggle, 
   el.addEventListener('dblclick', e => {
     if (!lanes || e.button !== 0 || !pointed(e)) return;
     if (here()) onOpen(cur.lane, editTick(), { solo: e.ctrlKey || e.metaKey });
+  });
+  // Right-click a pattern: the cursor goes there and a small menu offers what the keys do, and the parameters of its lane.
+  el.addEventListener('contextmenu', e => {
+    if (!lanes) return;
+    const hit = pointed(e);
+    if (!hit) return;
+    e.preventDefault();
+    Object.assign(cur, hit); sel = null; typed = ''; message = '';
+    onMove?.(cur.lane, cur.tick);
+    draw();
+    if (!here()) return;
+    const li = cur.lane, t = editTick(), go = (label, result, ok) => { act(label, result, ok); draw(); };
+    showContextMenu(e, [
+      { label: 'Open in the pattern editor', hint: 'Enter', run: () => onOpen(li, t) },
+      { label: 'Open on its own', hint: 'Ctrl+double-click', run: () => onOpen(li, t, { solo: true }) },
+      { separator: true },
+      { label: 'Give it its own copy', hint: 'N', run: () => go('clone', editor.clone(li, t), 'Cloned: this placement now has its own copy.') },
+      { label: 'Slice here', hint: 'S', run: () => go('slice', editor.slice(li, t), 'Sliced.') },
+      { label: 'Remove from the arrangement', hint: 'Delete', run: () => go('remove', editor.remove(li, t), 'Removed. The pattern stays in the list.') },
+      { separator: true },
+      { label: 'Rename… (not yet)', disabled: true },
+      { label: 'Params', hint: 'Ctrl+Alt+P', run: () => { onParams(li); draw(); } },
+    ]);
   });
   const stopDrag = () => { dragging = null; };
   el.addEventListener('mouseup', stopDrag);

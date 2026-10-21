@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 321 · 2026-10-21
+
+- Right-click a pattern in the arrangement for a small menu: open it in the pattern editor (or on its own), give it its own copy, slice, remove, and Params, which opens the floating parameters of that lane (Rename is a greyed placeholder). The Open button now sits beside Play, and the params button in the status bar is an icon.
+
 ## 320 · 2026-10-21
 
 - Rail: the divider between the rail and the page is a faint line, and the icon outlines are gone (a soft outline appears on hover, the open screen stays filled).
