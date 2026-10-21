@@ -1,5 +1,6 @@
-import { noteToken } from './cells.js';
+import { noteToken, KINDS } from './cells.js';
 import { placementAt } from './edit.js';
+import { unscale } from './describe.js';
 
 // Getting played notes into patterns, for the MIDI keyboard. Two ways in, both writing through the editor:
 //
@@ -14,6 +15,11 @@ import { placementAt } from './edit.js';
 // columns in turn; a monophonic lane steals its one column. Letting a key go writes a note off (===) on its tick, unless
 // that is the same tick, a pass is not set to write them, or the cell is taken (a new note is a note off anyway). A pass,
 // from arming to stopping, is one undo step.
+//
+// Parameter moves (recParam): while recording, a slider moved in the floating window or the graph writes its value into the
+// lane's column for that parameter, or else into its Cmd column as CCXXYY, on the nearest tick (every `paramStep`th row if
+// that is more than 1). The same cell is rewritten as the slider keeps moving, so the last value of a tick stays; the pass's
+// undo step covers these too.
 //
 // A pattern that several placements share is only written to when settings().shared is 'write'.
 const HEX = '0123456789ABCDEF';
@@ -31,6 +37,7 @@ export function quantize(pos, loop, length) {
 export function createMidiWriter({ lanes, editor, length, loop, settings, say = () => {} }) {
   let chord = null, chordId = 0, pass = 0;
   const voices = new Map();   // recording: midi note -> { li, col, tick }
+  const lastParam = new Map();   // recording a slider: lane:column -> the last tick:token written
 
   const target = (li, tick) => {
     const lane = lanes()[li], pl = lane && placementAt(lane, tick);
@@ -78,7 +85,7 @@ export function createMidiWriter({ lanes, editor, length, loop, settings, say = 
     },
 
     // ---- recording ----
-    beginPass() { pass++; voices.clear(); },
+    beginPass() { pass++; voices.clear(); lastParam.clear(); },
     endPass() { voices.clear(); },
     recOn({ li, midi, vel = 100, pos }) {
       const tick = quantize(pos, loop(), length());
@@ -98,6 +105,32 @@ export function createMidiWriter({ lanes, editor, length, loop, settings, say = 
       } catch { return { wrote: false, message: 'Note out of range.' }; }
       voices.set(midi, { li, col, tick });
       return { wrote: true, tick };
+    },
+    // Returns { wrote, tick } or { wrote: false, message } (no column or command for it, or no pattern there).
+    recParam({ li, node, param, value, pos }) {
+      const lane = lanes()[li];
+      if (!lane || !Number.isFinite(value)) return { wrote: false };
+      const step = Math.max(1, Math.round(settings().paramStep ?? 1));
+      const lo = loop() ? loop().start : 0;
+      const tick = quantize(Math.round((pos - lo) / step) * step + lo, loop(), length());
+      const t = target(li, tick);
+      if (t.error) return { wrote: false, message: t.error };
+      const hex = (n, w) => Math.round(n).toString(16).toUpperCase().padStart(w, '0');
+      let col = lane.columns.findIndex(c => c.kind === 'param' && c.node === node && c.param === param), token;
+      if (col >= 0) {
+        const c = lane.columns[col];
+        token = hex(unscale(c, c.denom, value), KINDS[c.token].width);
+      } else {
+        col = lane.columns.findIndex(c => c.kind === 'cmd' && c.commands.some(x => x.node === node && x.param === param && x.slot >= 0 && !Number.isFinite(x.fixed)));
+        if (col < 0) return { wrote: false, message: `${lane.instrument}: ${param} has no column or command to record into.` };
+        const cmd = lane.columns[col].commands.find(x => x.node === node && x.param === param && x.slot >= 0 && !Number.isFinite(x.fixed));
+        token = `${hex(cmd.id, 2)}${hex(unscale(cmd, 65535, value), 4)}`;
+      }
+      const key = `${li}:${col}:${tick}`;
+      if (lastParam.get(`${li}:${col}`) === `${tick}:${token}`) return { wrote: true, tick };   // the same cell again
+      lastParam.set(`${li}:${col}`, `${tick}:${token}`);
+      put(li, [{ tick, col, token }], 'parameter recording', `rec:${pass}`);
+      return { wrote: true, tick, key };
     },
     recOff({ midi, pos }) {
       const v = voices.get(midi);

@@ -60,7 +60,7 @@ export function buildColumns(instrument, def, registry) {
       })])),
       commands: (def.commands ?? []).map(c => c.reset || c.setting ? { id: c.id, slot: -1, reset: c.reset ?? 0, setting: c.setting ?? '', min: 0, max: 0, name: c.setting ? `${c.setting} settings` : 'reset' } : ({
         id: c.id, log: c.scale === 'log', ...(Number.isFinite(c.fixed) ? { fixed: c.fixed } : {}), ...target(c.node, c.param),
-        name: `${longName(c.param)}${context ? ` · ${c.node}` : ''}`, type: def.graph.nodes.find(n => n.id === c.node)?.type, param: c.param,
+        name: `${longName(c.param)}${context ? ` · ${c.node}` : ''}`, type: def.graph.nodes.find(n => n.id === c.node)?.type, param: c.param, node: c.node,
       })),
       presets,
     });

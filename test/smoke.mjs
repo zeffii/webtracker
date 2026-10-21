@@ -4633,6 +4633,24 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   };
   const notes = noteColumnsOf(prepareSong({ bpm: 120, ticksPerBeat: 4, length: 32, swing: 0.5, lanes: [oneLane('pad', 'pad', Array(32).fill(padRow).join('\n'), 32)] }, padSet, registry)[0]);
   assert.equal(notes.length, 3, 'the pad has three note columns');
+  {   // a slider moved while recording goes into its column, on the nearest tick (every Nth row if asked), the last value of a tick staying
+    const { w, cell, lane, cfg, editor } = setupMidi();
+    const ci = lane.columns.findIndex(c => c.kind === 'param' && c.token === '2hex' && !c.int && !c.log);
+    const c = lane.columns[ci];
+    w.beginPass();
+    assert.deepEqual(w.recParam({ li: 0, node: c.node, param: c.param, value: c.min, pos: 3.8 }), { wrote: true, tick: 4, key: `0:${ci}:4` });
+    assert.equal(cell(4, ci), '00', 'the minimum is 00');
+    w.recParam({ li: 0, node: c.node, param: c.param, value: c.max, pos: 4.1 });
+    assert.equal(cell(4, ci), 'FF', 'the last value in a tick stays');
+    w.recParam({ li: 0, node: c.node, param: c.param, value: (c.min + c.max) / 2, pos: 6.2 });
+    assert.equal(cell(6, ci), '80', 'halfway is 80');
+    cfg.paramStep = 4;
+    w.recParam({ li: 0, node: c.node, param: c.param, value: c.max, pos: 9.4 });
+    assert.equal(cell(8, ci), 'FF', 'every 4th row: tick 9.4 lands on row 8');
+    const nobody = w.recParam({ li: 0, node: 'nonesuch', param: 'x', value: 1, pos: 2 });
+    assert.equal(nobody.wrote, false); assert.match(nobody.message, /no column or command/);
+    editor.undo?.();
+  }
   {   // a chord of four keys within the window: three columns, the fourth refused, the cursor is the caller's business
     const { w, cell, cfg } = setupMidi();
     const keys = [60, 64, 67, 71];

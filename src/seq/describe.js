@@ -13,7 +13,7 @@ const scale = (c, denom, raw) => {
   const x = raw / denom;
   return c.int ? Math.min(c.max, c.min + raw) : c.log ? c.min * Math.pow(c.max / c.min, x) : c.min + x * (c.max - c.min);
 };
-const unscale = (c, denom, v) => {
+export const unscale = (c, denom, v) => {
   const x = c.int ? v - c.min : c.log ? (Math.log(v / c.min) / Math.log(c.max / c.min)) * denom : ((v - c.min) / (c.max - c.min)) * denom;
   return Math.max(0, Math.min(denom, Math.round(x)));
 };

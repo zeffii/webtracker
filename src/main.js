@@ -298,9 +298,19 @@ const midiVoices = new Map();   // MIDI note -> what its press started, so the r
 const midiSay = text => { (tabs.active === 'arrange' ? seqView : view).say(text); };
 const writer = createMidiWriter({
   lanes: () => project?.lanes ?? [], editor: () => project.editor, length: () => project.song.length, loop: () => (project.song.loop && !project.song.loop.off ? project.song.loop : null),
-  settings: () => ({ chord: config.get('midiChord'), window: config.get('midiWindow'), velocity: config.get('midiVelocity'), offs: config.get('midiOffs'), shared: config.get('midiShared'), order: config.get('midiOrder') }),
+  settings: () => ({ chord: config.get('midiChord'), window: config.get('midiWindow'), velocity: config.get('midiVelocity'), offs: config.get('midiOffs'), paramStep: config.get('midiParamStep'), shared: config.get('midiShared'), order: config.get('midiOrder') }),
 });
+// A slider moved while recording: into the cursor lane if it plays that machine, else the first lane that does.
+const saidParam = new Set();
+function recordParam(instrument, node, param, value) {
+  const lanes = project?.lanes ?? [];
+  const li = lanes[seqView.lane]?.instrument === instrument ? seqView.lane : lanes.findIndex(l => l.instrument === instrument);
+  if (li < 0) return;
+  const r = writer.recParam({ li, node, param, value, pos: engine.position - latencyTicks() });
+  if (!r.wrote && r.message && !saidParam.has(r.message)) { saidParam.add(r.message); midiSay(r.message); }
+}
 const setRecording = on => {
+  saidParam.clear();
   recording = on;
   $('rec').setAttribute('aria-pressed', String(on));
   if (on) writer.beginPass(); else writer.endPass();
@@ -388,6 +398,7 @@ const patcher = createPatcher({
   onParam: (id, node, name, value) => {
     const address = `${id}.${node}.${name}`;
     if (engine.registry.slots.has(address)) engine.set(address, value);
+    if (recording && playing) recordParam(id, node, name, value);
   },
 });
 
