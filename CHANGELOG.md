@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 324 · 2026-10-21
+
+- The start screen's report no longer jumps around as lines are typed: it is left-aligned from a fixed edge instead of centred.
+
 ## 323 · 2026-10-21
 
 - Chord palette (Alt+C): put the cursor on a row of notes, or select rows, and a palette shows the chord on a small piano roll with its name. Voicings (inversions, drops, spread), One note (change a single voice by a semitone or a scale step, with the interval and the chord it makes), Quality (major, minor, 7ths, sus, dim, aug, 9ths) and Smooth rows (each chord revoiced to move as little as possible from the one above). Every variation has an ear button that plays it for one second. Pick the key and scale so changes stay in key; Enter writes it as one undo step.
