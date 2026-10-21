@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 318 · 2026-10-21
+
+- New top layout: a slim icon rail down the left edge holds the logo (still the Start button), one icon per screen (Patterns, Samples, Instruments, Arrangement, Script, Dock, Info; hover for the name and key) and Shortcuts, About and Config at the foot. The top bar is one row: transport, the song numbers (len, bpm, swing, bar) as a dark green display you edit in place, then file and tool icons, then the theme.
+
 ## 317 · 2026-10-21
 
 - Note preview is on by default: typed notes in the pattern editor sound while the key is held (Insert or \ still switches it off; a choice you already made is kept).
