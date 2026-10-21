@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="themes.css">
-  <title>webtracker m279</title>
+  <title>webtracker m281</title>
   <link rel="icon" href="icon.ico" sizes="any">
   <link rel="icon" type="image/png" href="icon.png">
   <style>
@@ -475,8 +475,8 @@
     .pv-tv { color: #f0707a; opacity: .85; font-variant-numeric: tabular-nums; }
     @container (max-width: 190px) { .pv-tv { display: none; } }
     /* faint lines where song ticks fall on a time or rate slider, the beat stronger; the one under the value lights up */
-    .pv-tk { position: absolute; top: 0; bottom: 0; width: 1px; background: #f0707a; opacity: .45; pointer-events: none; z-index: 1; }
-    .pv-tk.beat { opacity: .85; }
+    .pv-tk { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--tk, #9fd0ff); opacity: .35; pointer-events: none; z-index: 1; }
+    .pv-tk.beat { opacity: .7; }
     .pv-tk.near { opacity: 1; width: 2px; margin-left: -.5px; }
     .pv-row.sel .pv-name { background: var(--hi); color: var(--hi-fg); }
     .pv-row.sel .pv-bar { border-color: var(--hi); }

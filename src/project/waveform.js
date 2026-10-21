@@ -1,4 +1,4 @@
-import { setLoop, setSlices, placeHex } from './ops.js';
+import { setLoop, setSlices, sliceHex, frameHex } from './ops.js';
 import * as config from '../ui/config.js';
 import { computeSpectrogram, heat } from './spectrogram.js';
 
@@ -256,13 +256,24 @@ export function createWaveformView({ canvas, statusEl, getProject, onLoop, onSel
       ctx.fillRect(xe - 1, 0, 1, H);
     }
     slicesOf(s).forEach((f, i) => {   // the slice markers, numbered in order of position
-      const x = frameToX(f), label = `${(drag?.kind === 'slice' ? [...drag.preview].sort((a, b) => a - b).indexOf(f) : i).toString(16).toUpperCase().padStart(2, '0')} ${placeHex(f, frames(), config.get('hexMode'))}`;
+      const hexMode = config.get('hexMode'), num = (drag?.kind === 'slice' ? [...drag.preview].sort((a, b) => a - b).indexOf(f) : i).toString(16).toUpperCase().padStart(2, '0');
+      const x = frameToX(f), label = hexMode === 'absolute' ? num : `${num} ${sliceHex(f, frames())}`;   // the number and the relative hex at the top
       const here = drag?.kind !== 'slice' && i === active;
       ctx.fillStyle = '#f0707a';
       ctx.fillRect(x - (here ? 1 : 0), 0, here ? 3 : 1, H);
       ctx.textBaseline = 'top';
-      ctx.textAlign = x > W - 70 ? 'right' : 'left';
-      ctx.fillText(label, x + (x > W - 70 ? -3 : 3), 14 + (i % 3) * 12);
+      const right = x > W - 70;
+      ctx.textAlign = right ? 'right' : 'left';
+      ctx.fillText(label, x + (right ? -3 : 3), 14 + (i % 3) * 12);
+      if (hexMode !== 'relative') {   // the absolute hex at the bottom, on a very light blue ground
+        const abs = frameHex(f, frames()), w = ctx.measureText(abs).width + 6, y = H - 34 - (i % 3) * 14, bx = right ? x - 3 - w : x + 3;
+        ctx.fillStyle = 'rgba(200, 225, 255, 0.92)';
+        ctx.fillRect(bx, y, w, 13);
+        ctx.fillStyle = '#1d3557';
+        ctx.textBaseline = 'middle';
+        ctx.textAlign = 'left';
+        ctx.fillText(abs, bx + 3, y + 7);
+      }
     });
     ctx.fillStyle = mode === 'spec' ? '#fff' : ink;
     ctx.textBaseline = 'bottom';

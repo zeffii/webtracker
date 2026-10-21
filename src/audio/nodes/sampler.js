@@ -32,10 +32,12 @@ const VOICES = 16;
 const LEVEL = 0, ROOT = 1, RELEASE = 2, NNA_FADE = 3, OFFSET = 4, REVERSE = 5, RETRIG = 6, REPEATS = 7, SHIFT = 8, RAMP = 9, SAMPLE = 10, SLICE = 11;
 const VS = 24, VS_KINDS = ['lin', 'log', 'down', 'up', 'fineDown', 'fineUp', 'downMs', 'upMs', 'fineDownMs', 'fineUpMs'];   // volume slides: ten parameters, 24 to 33
 const ABS = 35;     // the `blockCount` parameter: below 65535, Off holds the low four hex digits of a frame number and this the blocks of 65536 frames before it
+const PORT = 36, PORT_KINDS = ['down', 'up', 'fineDown', 'fineUp'];   // portamento slides: four parameters, 36 to 39
+const PORTTO = 40, RMIN = 41, RMAX = 42, RPOW = 43, CUTAFTER = 44, RELAFTER = 45, TSCALE = 46;   // glide to the next note; retrigger time limits and curve; cut and release after a time; their per-repeat scale
 const SUBDIV = 34;   // the `subdivide` parameter: subticks per tick, for the times of the slides (UnwieldyTracker's Subdivide, default 6)
 const FLOOR = 1e-6;   // a slide to nothing stops at -120 dB, as UnwieldyTracker's does
 const GRAIN = 12, EDGE = 13, ACCEL = 14, STEP = 15, SLIDE = 16, FLIP = 17, PROB = 18, JOFF = 19, JPITCH = 20, JPAN = 21, JTIME = 22, JLEVEL = 23;
-const DEFAULTS = { [ABS]: 65535, [SUBDIV]: 6, [EDGE]: 0.5, [ACCEL]: 1, [PROB]: 1, [RAMP]: 1 };   // for a node whose parameter list is older than these
+const DEFAULTS = { [TSCALE]: 1, [ABS]: 65535, [SUBDIV]: 6, [EDGE]: 0.5, [ACCEL]: 1, [PROB]: 1, [RAMP]: 1 };   // for a node whose parameter list is older than these
 const PLAYING = 0, RELEASING = 1, FADING = 2, CUTTING = 3;   // voice modes (cutting: the 2 ms fade of a sound a repeat replaces)
 
 export default {
@@ -89,6 +91,17 @@ export default {
     { name: 'volFineUpMs', min: 0, max: 65535, def: 0, int: true },
     { name: 'subdivide', min: 1, max: 255, def: 6, int: true },        // subticks in a tick, for the time of the volume slides
     { name: 'blockCount', min: 0, max: 65535, def: 65535, int: true },   // absolute offset: the 65536-frame block Off counts from (the FF command); 65535 is off, Off is a fraction of the sample (the F0 command)
+    { name: 'portDown', min: 0, max: 65535, def: 0, int: true },         // pitch slide down by XX semitones over YY subticks
+    { name: 'portUp', min: 0, max: 65535, def: 0, int: true },           // pitch slide up by XX semitones over YY subticks
+    { name: 'portFineDown', min: 0, max: 65535, def: 0, int: true },     // down by XX/256 semitone over YY subticks
+    { name: 'portFineUp', min: 0, max: 65535, def: 0, int: true },       // up by XX/256 semitone over YY subticks
+    { name: 'portTo', min: 0, max: 65535 / 16, def: 0 },                 // a note that follows one still sounding in its column glides to the new pitch over XXY.Y subticks instead of restarting (0: restart)
+    { name: 'retrigMin', min: 0, max: 65535 / 256, def: 0 },             // the shortest time between repeats, XX.YY subticks (0: no limit)
+    { name: 'retrigMax', min: 0, max: 65535, def: 0, int: true },        // the longest time between repeats, XXYY subticks (0: no limit)
+    { name: 'retrigPow', min: -2, max: 65535 / 16384 - 2, def: 0 },      // the nth interval is also multiplied by n to this power; hex 8000 is 0
+    { name: 'cutAfter', min: 0, max: 65535 / 16, def: 0 },               // every sound is cut after this many ticks (XXX.Y hex: 0010 is one tick); 0: never
+    { name: 'releaseAfter', min: 0, max: 65535 / 16, def: 0 },           // every sound is released after this many ticks, and fades over the Release time
+    { name: 'cutScale', min: 0, max: 65535 / 32768, def: 1 },            // each repeat multiplies the cut and release times by this; hex 8000 is x1
   ],
   create({ sampleRate, stereo = false, clock }) {
     // The samples this node can play, by slot (the instrument's sample list); a note picks one by the `sample`
@@ -112,6 +125,10 @@ export default {
     const grainLeft = new Float64Array(VOICES).fill(Infinity), atkStep = new Float64Array(VOICES).fill(1), fadeStep = new Float64Array(VOICES).fill(1);
     const volMul = new Float64Array(VOICES).fill(1), vsKind = new Uint8Array(VOICES), vsLeft = new Float64Array(VOICES), vsStep = new Float64Array(VOICES);
     const lastVs = new Float64Array(VS_KINDS.length);   // the slide values seen last, to notice a new one written to a sound that is playing
+    const cutLeft = new Float64Array(VOICES).fill(Infinity), relLeft = new Float64Array(VOICES).fill(Infinity);   // samples until the sound is cut / released
+    const portLeft = new Float64Array(VOICES), portMul = new Float64Array(VOICES).fill(1);   // a pitch slide: samples left and the factor per sample
+    const from = new Int32Array(VOICES).fill(-1), choke = new Uint8Array(VOICES);   // the note a new one follows in its column; whether it chokes the others
+    const lastPs = new Float64Array(PORT_KINDS.length);
     let chains = [];
     const endChain = v => { for (const c of chains) if (c.v === v) c.alive = false; };
     let seed = 0x2545f491;
@@ -156,9 +173,8 @@ export default {
       note(msg) {
         if (msg.type === 'noteOn') {
           for (const c of chains) c.alive = false;   // a new note ends the repeats of the one before
-          // a looping sample cannot end by itself, so a new note fades it; choke: the keyjazz in the sample screen,
-          // where a new note fades the old one even if it is a one-shot
-          for (let v = 0; v < VOICES; v++) if (active[v] && mode[v] === PLAYING && (loopy[v] || msg.choke)) mode[v] = FADING;
+          // (a looping sample cannot end by itself, so a new note fades it; choke: the keyjazz in the sample screen, where it fades
+          // the old one even if it is a one-shot. That happens when the note starts, in process, unless it glides from the old one.)
           let v = active.indexOf(0);
           if (v < 0) {   // all voices busy: take the oldest
             v = 0;
@@ -167,6 +183,7 @@ export default {
           active[v] = 1; mode[v] = PLAYING; note[v] = msg.note; inSus[v] = 0; loopy[v] = 0;
           pos[v] = 0; gain[v] = msg.vel ?? 1; env[v] = 0; age[v] = ++stamp;
           fresh[v] = 1; dir[v] = 1; skip[v] = 0; cutAt[v] = Infinity; grainLeft[v] = Infinity;
+          from[v] = msg.from ?? -1; choke[v] = msg.choke ? 1 : 0;
         } else if (msg.type === 'noteOff') {
           for (const c of chains) if (c.note === msg.note) c.alive = false;
           if (!msg.implied) {   // an implied release (a new note in the same column) is left to nnaFade
@@ -209,6 +226,12 @@ export default {
           const target = k === 1 ? Math.max(FLOOR, a / 64) : cur * Math.pow(10, (down ? -1 : 1) * (fine ? a / 256 : a) / 20);
           vsKind[w] = 2; vsStep[w] = Math.pow(Math.max(FLOOR, target) / cur, 1 / n);
         };
+        // A pitch slide on voice w: kind index into PORT_KINDS, value XXYY (XX semitones, or XX/256 for the fine ones, over YY subticks).
+        const startPort = (w, kind, value) => {
+          const a = (value >> 8) & 255, t = value & 255, semis = (kind === 0 ? -a : kind === 1 ? a : kind === 2 ? -a / 256 : a / 256);
+          portLeft[w] = Math.max(1, Math.round(t / subdivide * tickSamples));
+          portMul[w] = Math.pow(2, semis / 12 / portLeft[w]);
+        };
         // Starts a sound on voice w from a chain's state: where in the sample, which way, how loud, how high; the jitters apply here.
         const begin = (w, st, at) => {
           const S = bank[st.si], cfg = st.cfg, last = S.sample.length - 1;
@@ -222,6 +245,9 @@ export default {
           if (cfg.vs) startSlide(w, cfg.vs.kind, cfg.vs.value);
           slideMul[w] = cfg.slide !== 0 && tickSamples > 0 ? Math.pow(2, cfg.slide / 12 / tickSamples) : 1;
           vpan[w] = cfg.jPan * jit();
+          cutLeft[w] = st.cutT > 0 ? st.cutT : Infinity; relLeft[w] = st.relT > 0 ? st.relT : Infinity;
+          portLeft[w] = 0; portMul[w] = 1;
+          if (cfg.ps) startPort(w, cfg.ps.kind, cfg.ps.value);
           skip[w] = at;
           if (cfg.grain >= 1) {
             const fade = Math.max(0.002 * sampleRate, cfg.edge * cfg.grain / 2);
@@ -232,6 +258,21 @@ export default {
         for (let v = 0; v < VOICES; v++) {
           if (!active[v] || !fresh[v]) continue;
           fresh[v] = 0;
+          const P = i => { const x = params[slots[i]]; return Number.isFinite(x) ? x : DEFAULTS[i] ?? 0; };
+          const portTo = P(PORTTO);
+          if (portTo > 0 && from[v] >= 0 && from[v] !== note[v]) {   // a glide: the sound still playing in this column bends to the new note, with no restart
+            let w = -1;
+            for (let k = 0; k < VOICES; k++) if (k !== v && active[k] && mode[k] === PLAYING && note[k] === from[v] && (w < 0 || age[k] > age[w])) w = k;
+            if (w >= 0) {
+              pitchMul[w] *= Math.pow(2, (from[v] - note[v]) / 12);   // sounds as before at the new note's key, then slides to it
+              note[w] = note[v]; gain[w] = gain[v];
+              portLeft[w] = Math.max(1, Math.round(portTo / 16 / subdivide * tickSamples));
+              portMul[w] = Math.pow(2, (note[v] - from[v]) / 12 / portLeft[w]);
+              active[v] = 0;
+              continue;
+            }
+          }
+          for (let k = 0; k < VOICES; k++) if (k !== v && active[k] && mode[k] === PLAYING && !fresh[k] && age[k] < age[v] && (loopy[k] || choke[v])) mode[k] = FADING;
           const si = Math.max(0, Math.min(255, Math.floor(params[slots[SAMPLE]]) || 0));
           if (!bank[si]) { active[v] = 0; continue; }   // no sample in that slot: the note is silent
           const last = bank[si].sample.length - 1;
@@ -239,7 +280,6 @@ export default {
           const block = Math.floor(Number.isFinite(params[slots[ABS]]) ? params[slots[ABS]] : 65535);
           const frame = block < 65535 ? block * 65536 + Math.round(Math.max(0, Math.min(1, params[slots[OFFSET]])) * 65535) : -1;   // absolute: Off is the low part of the frame number
           const off = marker !== undefined ? Math.min(1, marker / Math.max(1, last)) : frame >= 0 ? Math.min(1, frame / Math.max(1, last)) : Math.max(0, Math.min(1, params[slots[OFFSET]]));
-          const P = i => { const x = params[slots[i]]; return Number.isFinite(x) ? x : DEFAULTS[i] ?? 0; };
           const cfg = {
             shift: P(SHIFT), ramp: P(RAMP), accel: P(ACCEL), step: P(STEP), flip: P(FLIP) >= 1, prob: P(PROB), slide: P(SLIDE),
             grain: P(GRAIN) * tickSamples, edge: P(EDGE), jOffset: P(JOFF), jPitch: P(JPITCH), jPan: P(JPAN), jTime: P(JTIME), jLevel: P(JLEVEL),
@@ -247,12 +287,19 @@ export default {
           let vs = null;
           VS_KINDS.forEach((_, k) => { const x = Math.floor(P(VS + k)); lastVs[k] = x; if (!vs && x > 0) vs = { kind: k, value: x }; });
           cfg.vs = vs;
-          const st = { si, note: note[v], dir: P(REVERSE) >= 1 ? -1 : 1, fromSlice: marker !== undefined, base: off, gain: gain[v], pitch: 0, cfg };
+          let ps = null;
+          PORT_KINDS.forEach((_, k) => { const x = Math.floor(P(PORT + k)); lastPs[k] = x; if (!ps && x > 0) ps = { kind: k, value: x }; });
+          cfg.ps = ps;
+          const sub = tickSamples / subdivide;   // samples in a subtick
+          cfg.rMin = P(RMIN) * sub; cfg.rMax = P(RMAX) * sub; cfg.rPow = P(RPOW); cfg.tScale = P(TSCALE);
+          const lim = t => Math.max(MIN_GAP, cfg.rMin, cfg.rMax > 0 ? Math.min(t, cfg.rMax) : t);
+          const st = { si, note: note[v], dir: P(REVERSE) >= 1 ? -1 : 1, fromSlice: marker !== undefined, base: off, gain: gain[v], pitch: 0, cfg, cutT: P(CUTAFTER) / 16 * tickSamples, relT: P(RELAFTER) / 16 * tickSamples };
           begin(v, st, 0);
           const every = P(RETRIG) * tickSamples;
           if (every >= 1) {
             const reps = Math.floor(P(REPEATS));
-            chains.push({ alive: true, v, vAge: age[v], note: note[v], st, interval: every, nom: every, spawnIn: every + cfg.jTime * every * rnd(), left: reps > 0 ? reps : Infinity });
+            const first = lim(every);
+            chains.push({ alive: true, v, vAge: age[v], note: note[v], st, base: every, k: 0, lim, interval: first, nom: first, spawnIn: first + cfg.jTime * first * rnd(), left: reps > 0 ? reps : Infinity });
           }
         }
         // A slide value written while sounds play slides them (the sounds that are playing and not yet fading out).
@@ -262,6 +309,12 @@ export default {
           if (x !== lastVs[k] && x > 0) for (let v = 0; v < VOICES; v++) if (active[v] && mode[v] === PLAYING) startSlide(v, k, x);
           lastVs[k] = x;
         }
+        for (let k = 0; k < PORT_KINDS.length; k++) {
+          const x = Math.floor(params[slots[PORT + k]]);
+          if (!Number.isFinite(x)) continue;
+          if (x !== lastPs[k] && x > 0) for (let v = 0; v < VOICES; v++) if (active[v] && mode[v] === PLAYING) startPort(v, k, x);
+          lastPs[k] = x;
+        }
         // Repeats that fall in this block: the new sound starts part way through it and, with no grain length, the one before is cut there.
         chains = chains.filter(c => c.alive);
         for (const c of chains) {
@@ -270,6 +323,7 @@ export default {
             const nextBase = st.base + cfg.shift;
             if (c.left < 1 || nextBase < 0 || nextBase > 1) { c.alive = false; break; }   // the chain is finished
             st.base = nextBase; st.gain *= cfg.ramp; st.pitch += cfg.step; if (cfg.flip) st.dir = -st.dir;
+            st.cutT *= cfg.tScale; st.relT *= cfg.tScale;
             c.left--;
             const at = Math.max(0, Math.ceil(c.spawnIn));
             if (rnd() < cfg.prob) {
@@ -284,7 +338,8 @@ export default {
               c.v = w; c.vAge = age[w];
             }
             c.nom += c.interval;
-            c.interval = Math.max(MIN_GAP, c.interval * cfg.accel);
+            c.k++;
+            c.interval = c.lim(c.base * Math.pow(cfg.accel, c.k) * Math.pow(c.k + 1, cfg.rPow));
             c.spawnIn = c.nom + cfg.jTime * c.interval * rnd();
           }
           if (c.alive) { c.nom -= n; c.spawnIn -= n; }
@@ -296,6 +351,8 @@ export default {
           const pn = Math.max(-1, Math.min(1, S.pan + vpan[v]));
           const panL = Math.min(1, 1 - pn), panR = Math.min(1, 1 + pn);
           const baseRate = Math.pow(2, (note[v] - root) / 12) * S.ratio, slideBy = slideMul[v];
+          let cl = cutLeft[v], rl = relLeft[v], pl = portLeft[v];
+          const pmul = portMul[v];
           let pm = pitchMul[v], gl = grainLeft[v], cs = attack, vm = volMul[v], vl = vsLeft[v];
           const vk = vsKind[v], vstep = vsStep[v];
           const atk = atkStep[v];
@@ -308,7 +365,9 @@ export default {
           for (let i = skip[v]; i < n; i++) {
             if (i >= cutAt[v]) { m = mode[v] = CUTTING; cs = attack; }
             else if (gl <= 0 && m !== CUTTING) { m = mode[v] = CUTTING; cs = fadeStep[v]; }
-            gl--;
+            else if (cl <= 0 && m !== CUTTING) { m = mode[v] = CUTTING; cs = attack; }
+            else if (rl <= 0 && m === PLAYING) { m = mode[v] = RELEASING; inSus[v] = 0; }
+            gl--; cl--; rl--;
             const rate = baseRate * pm;
             if (loop) {
               if (p >= le) p = ls + (p - ls) % span;
@@ -342,8 +401,9 @@ export default {
             }
             p += back ? -rate : rate;
             pm *= slideBy;
+            if (pl > 0) { pm *= pmul; pl--; }
           }
-          pos[v] = p; env[v] = e; skip[v] = 0; pitchMul[v] = pm; grainLeft[v] = gl; volMul[v] = vm; vsLeft[v] = vl;
+          pos[v] = p; env[v] = e; skip[v] = 0; pitchMul[v] = pm; grainLeft[v] = gl; cutLeft[v] = cl; relLeft[v] = rl; portLeft[v] = pl; volMul[v] = vm; vsLeft[v] = vl;
         }
         cutAt.fill(Infinity);
       },

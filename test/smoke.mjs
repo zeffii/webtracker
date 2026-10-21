@@ -833,10 +833,20 @@ const hit = 'C-2 .. .. ..';
     assert.ok(pick, 'a node panel has a preset menu');
   }
 
-  // drag a node
+  // drag a node (snapping is tested below)
+  uiConfig.set('graphSnap', false);
   const from = mid('vca'), x0 = node('vca').x;
   fire('mousedown', from); fire('mousemove', { x: from.x + 30, y: from.y + 5 }); fire('mouseup', { x: from.x + 30, y: from.y + 5 });
   assert.equal(node('vca').x, x0 + 30);
+  {   // with snapping on, a dragged node lands on a dot of the grid (24 px apart); Ctrl moves freely
+    uiConfig.set('graphSnap', true);
+    const m = mid('vca'), x1 = node('vca').x, y1 = node('vca').y;
+    fire('mousedown', m); fire('mousemove', { x: m.x + 37, y: m.y + 11 }); fire('mouseup', { x: m.x + 37, y: m.y + 11 });
+    assert.equal(node('vca').x % 24, 0, 'x on the grid'); assert.equal(node('vca').y % 24, 0, 'y on the grid');
+    assert.ok(Math.abs(node('vca').x - (x1 + 37)) <= 12 && Math.abs(node('vca').y - (y1 + 11)) <= 12, 'the nearest dot');
+    uiConfig.set('graphSnap', false);
+    console.log('ok: graph snap');
+  }
 
   // add an lfo and wire it to the oscillator's sync input with the mouse
   patcher.add('lfo');
@@ -2633,7 +2643,7 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     const def = { ...structuredClone(instruments.lead), noteColumns: 3 };
     const registry = new ParamRegistry();
     const defs = { lead: def };
-    for (const n of ['filter.cutoff', 'filter.resonance', 'delay.mix', 'delay.time', 'delay.feedback', 'sampler.nnaFade', 'sampler.offset', 'sampler.retrig', 'sampler.repeats', 'sampler.shift', 'sampler.ramp', 'sampler.reverse', 'sampler.sample', 'sampler.slice', ...['grain', 'edge', 'accel', 'step', 'slide', 'flip', 'prob', 'jOffset', 'jPitch', 'jPan', 'jTime', 'jLevel', 'volLin', 'volLog', 'volDown', 'volUp', 'volFineDown', 'volFineUp', 'volDownMs', 'volUpMs', 'volFineDownMs', 'volFineUpMs', 'subdivide', 'blockCount'].map(k => `sampler.${k}`), ...['grain', 'edge', 'accel', 'step', 'slide', 'flip', 'prob', 'jOffset', 'jPitch', 'jPan', 'jTime', 'jLevel'].map(k => `sampler.${k}`)]) registry.allocate(`lead.${n}`, 0.5, 0, 1000);
+    for (const n of ['filter.cutoff', 'filter.resonance', 'delay.mix', 'delay.time', 'delay.feedback', 'sampler.nnaFade', 'sampler.offset', 'sampler.retrig', 'sampler.repeats', 'sampler.shift', 'sampler.ramp', 'sampler.reverse', 'sampler.sample', 'sampler.slice', ...['grain', 'edge', 'accel', 'step', 'slide', 'flip', 'prob', 'jOffset', 'jPitch', 'jPan', 'jTime', 'jLevel', 'volLin', 'volLog', 'volDown', 'volUp', 'volFineDown', 'volFineUp', 'volDownMs', 'volUpMs', 'volFineDownMs', 'volFineUpMs', 'subdivide', 'blockCount', 'portDown', 'portUp', 'portFineDown', 'portFineUp', 'portTo', 'retrigMin', 'retrigMax', 'retrigPow', 'cutAfter', 'releaseAfter', 'cutScale'].map(k => `sampler.${k}`), ...['grain', 'edge', 'accel', 'step', 'slide', 'flip', 'prob', 'jOffset', 'jPitch', 'jPan', 'jTime', 'jLevel'].map(k => `sampler.${k}`)]) registry.allocate(`lead.${n}`, 0.5, 0, 1000);
     const cols = buildColumns('lead', def, registry);
     assert.deepEqual(cols.map(c => c.label), ['N1', 'V1', 'N2', 'V2', 'N3', 'V3', 'Smp', 'Off', 'Rtg', 'Cut', 'Res', 'Mix', 'Time', 'Cmd']);
     assert.deepEqual(cols.slice(0, 2).map(c => c.key), ['note', 'vel'], 'the first pair keeps its keys');
@@ -6816,5 +6826,17 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   render(seq, 0.5); assert.equal(at(), 1, 'FF 0001');
   render(seq, 0.5); assert.equal(at(), 65535, 'F0 again');
   console.log('ok: absolute offset commands');
+}
+// 108. The pitch, retrigger-limit and cut commands reach their sampler parameters.
+{
+  const row = cmd => `... .. .. .... .... .. .. .. .... ${cmd}`;
+  const cmds = [['200C06', 'portDown', 0x0C06], ['2B0000', null], ['240060', 'portTo', 0x60], ['281000', null]];
+  const { seq, registry } = songSetup(song120([oneLane('lead', 'lead', patternText(16, { 0: row('200C06'), 4: row('240060'), 8: row('280018'), 12: row('2A8000') }))]));
+  seq.play();
+  render(seq, 0.05); assert.equal(registry.get('lead.sampler.portDown'), 0x0C06 / 1, 'portDown');
+  render(seq, 0.7); assert.equal(registry.get('lead.sampler.portTo') > 0, true, 'portTo');
+  render(seq, 0.5); assert.ok(Math.abs(registry.get('lead.sampler.cutAfter') - 0x18 / 16) < 1e-3, 'cutAfter 1.5 ticks');
+  render(seq, 0.5); assert.ok(Math.abs(registry.get('lead.sampler.cutScale') - 1) < 1e-3, 'cutScale 8000 is x1');
+  console.log('ok: pitch and cut commands');
 }
 console.log('smoke test passed');

@@ -344,6 +344,7 @@ export function createSequenceView({ el, statusEl, listEl, transport, onToggle, 
         if (here()) onOpen(li, t);
         else act('insert a pattern', editor.insertPattern(li, t), 'Pattern inserted.');
         break;
+      case 'h': config.set('seqNames', !config.get('seqNames')); message = config.get('seqNames') ? 'Pattern names shown.' : 'Pattern names hidden.'; break;   // H: pattern names in the cells on or off
       case 'l': message = toggleLoop(song); onSong(); break;   // L: the loop on or off (Ctrl+L too, where the browser lets it through)
       case 'i': act('insert a pattern', editor.insertPattern(li, t, { overlay: true }), 'Pattern inserted.'); break;
       case 'n': act('clone', editor.clone(li, t), 'Cloned: this placement now has its own copy.'); break;
@@ -466,7 +467,7 @@ export function createSequenceView({ el, statusEl, listEl, transport, onToggle, 
         let swatch = null;
         if (pl) {
           const pat = l.patterns[pl.puid];
-          text = (pl.start >= t ? `${hex2(pat.index)} ${pat.name}` : '').slice(0, COLW).padEnd(COLW);
+          text = (pl.start >= t ? (config.get('seqNames') ? `${hex2(pat.index)} ${pat.name}` : hex2(pat.index)) : '').slice(0, COLW).padEnd(COLW);
           if (pl.more) text = `${text.slice(0, COLW - 1)}+`;
           swatch = colourOf(pat);
         }
@@ -510,7 +511,7 @@ export function createSequenceView({ el, statusEl, listEl, transport, onToggle, 
     const ownerPat = owner ? lane().patterns[owner.puid] : null;
     statusEl.textContent = [
       `lane ${cur.lane + 1}/${lanes.length} ${lane().id}`, `row ${curRow}/${rows - 1}`, `tick ${editTick()}`,
-      ownerPat ? `${hex2(ownerPat.index)} ${ownerPat.name}` : 'no pattern',
+      ownerPat ? `${hex2(ownerPat.index)} "${ownerPat.name}" used ${lane().placements.filter(p => p.puid === owner.puid).length}x in this lane` : 'no pattern',
       lane().silenced ? 'silenced' : lane().soloMuted ? 'quiet: another lane is soloed' : lane().solo ? 'solo' : (lane().mask?.[rowStart(cur.tick)] & 3) && 'muted',
       picked && `selected ${picked.l1 - picked.l0 + 1}x${(picked.t1 - picked.t0) / CELL + 1}`, typed && `typing ${typed}`, message,
     ].filter(Boolean).join(' · ');

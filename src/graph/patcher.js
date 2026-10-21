@@ -153,6 +153,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
   let tapEditor = null;     // the tap view of a Shiva delay, redrawn when its parameters move
   let tableEditor = null;   // the wavetable panel of the selected node, redrawn when position or mix move
   let instruments = {}, instId = null, selected = null, drag = null, dirty = true;
+  const gridOff = { x: 0, y: 0 };   // where the grid's dots sit: panning moves the nodes, so the grid moves with them
   const lastSelected = new Map();   // instrument -> the node that was selected when you left it
   // The scopes: an eye on a node shows what it puts out (a scope beside it: wave, spectrum or xy, 200 or 400 pixels).
   // The choice lives on the node as node.scope = { mode, size }; the samples arrive from the audio side.
@@ -658,6 +659,10 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
     if (!drag) return;
     if (drag.kind === 'move') {
       let dx = e.offsetX - drag.x, dy = e.offsetY - drag.y;
+      if (config.get('graphSnap') && !e.ctrlKey) {   // the first node lands on a dot, the rest of a group keep their distance from it
+        const g = config.get('graphGridSize'), f = drag.from.values().next().value;
+        dx = Math.round((f.x + dx - gridOff.x) / g) * g + gridOff.x - f.x; dy = Math.round((f.y + dy - gridOff.y) / g) * g + gridOff.y - f.y;
+      }
       for (const { x, y } of drag.from.values()) { dx = Math.max(dx, -x); dy = Math.max(dy, 14 - y); }   // none leaves the top or left edge (room above for the name)
       for (const [id, p] of drag.from) { const node = desc().nodes.find(n => n.id === id); node.x = p.x + dx; node.y = p.y + dy; }
       if (drag.force && !drag.moved && Math.hypot(dx, dy) > 5) drag.moved = true;
@@ -666,6 +671,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
       const dx = e.offsetX - drag.x, dy = e.offsetY - drag.y;
       drag.x = e.offsetX; drag.y = e.offsetY;
       for (const node of desc().nodes) { node.x += dx; node.y += dy; }
+      gridOff.x += dx; gridOff.y += dy;
     } else if (drag.kind === 'lasso') {
       drag.x = e.offsetX; drag.y = e.offsetY;
     } else {
@@ -986,6 +992,17 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
     ctx.clearRect(0, 0, W, H);
     if (!instId) return;
     const ink = typeof getComputedStyle === 'function' ? getComputedStyle(canvas).color : '#888';
+    if (config.get('graphGrid')) {   // a very faint grid of dots, a brighter one every few
+      const g = config.get('graphGridSize'), major = config.get('graphGridMajor'), mod = (a, m) => ((a % m) + m) % m;
+      const ox = mod(gridOff.x, g), oy = mod(gridOff.y, g), i0 = Math.round((ox - gridOff.x) / g), j0 = Math.round((oy - gridOff.y) / g);
+      ctx.fillStyle = ink;
+      for (let j = 0, y = oy; y < H; j++, y += g) for (let i = 0, x = ox; x < W; i++, x += g) {
+        const big = major > 0 && mod(i + i0, major) === 0 && mod(j + j0, major) === 0;
+        ctx.globalAlpha = big ? 0.3 : 0.11;
+        ctx.fillRect(Math.round(x) - (big ? 1 : 0.5), Math.round(y) - (big ? 1 : 0.5), big ? 2 : 1.5, big ? 2 : 1.5);
+      }
+      ctx.globalAlpha = 1;
+    }
     const accent = (typeof getComputedStyle === 'function' && getComputedStyle(canvas).getPropertyValue('--accent').trim()) || 'hsl(210 70% 55%)';
     ctx.font = '12px ui-monospace, Consolas, monospace';
     ctx.lineWidth = 1.5;

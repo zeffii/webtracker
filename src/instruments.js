@@ -52,6 +52,23 @@ export const samplerCommands = [
   // puts Off back to a fraction of the sample.
   { id: 0xFF, node: 'sampler', param: 'blockCount' },
   { id: 0xF0, node: 'sampler', param: 'blockCount', fixed: 65535 },
+  // Pitch, retrigger limits and timed cuts (the ideas of UnwieldyTracker's portamento, retrigger limit, cut and release commands).
+  // 20 to 23 slide the pitch: XXYY, XX semitones (the fine ones XX/256) over YY subticks, like the volume slides. 24 portamento to the
+  // note: a note that follows one still sounding in its column bends to the new pitch over XXY.Y subticks instead of restarting.
+  // 25 and 26: the shortest (XX.YY) and longest (XXYY) subticks between repeats, 0000 no limit. 27: the nth interval is also multiplied
+  // by n to the power (value - 8000) / 4000. 28 cut and 29 release every sound after XXX.Y ticks (0010 is one tick, 0018 one and a
+  // half); 2A: each repeat multiplies those times by this, 8000 is x1.
+  { id: 0x20, node: 'sampler', param: 'portDown' },
+  { id: 0x21, node: 'sampler', param: 'portUp' },
+  { id: 0x22, node: 'sampler', param: 'portFineDown' },
+  { id: 0x23, node: 'sampler', param: 'portFineUp' },
+  { id: 0x24, node: 'sampler', param: 'portTo' },
+  { id: 0x25, node: 'sampler', param: 'retrigMin' },
+  { id: 0x26, node: 'sampler', param: 'retrigMax' },
+  { id: 0x27, node: 'sampler', param: 'retrigPow' },
+  { id: 0x28, node: 'sampler', param: 'cutAfter' },
+  { id: 0x29, node: 'sampler', param: 'releaseAfter' },
+  { id: 0x2A, node: 'sampler', param: 'cutScale' },
   { id: 0x90, node: 'sampler', param: 'volDownMs' },
   { id: 0x91, node: 'sampler', param: 'volUpMs' },
   { id: 0x92, node: 'sampler', param: 'volFineDownMs' },
