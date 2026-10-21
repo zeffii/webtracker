@@ -6948,4 +6948,74 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   assert.deepEqual(findPatterns('euclid(3, 0)'), [], 'no steps: nothing to draw');
   console.log('ok: euclid preview');
 }
+
+// 114. Fourpole: tables, pitch, mixes, filter routes and slave filters.
+{
+  const sr = 44100, def = NODE_TYPES.fourpole;
+  const run = (vals, { note = 57, secs = 0.4, off = null } = {}) => {
+    const params = Float32Array.from(def.params.map(p => vals[p.name] ?? p.def)), slots = Int32Array.from(def.params.map((_, i) => i));
+    const node = def.create({ sampleRate: sr, connected: [false, false], maxBlock: 128 }); node.note({ type: 'noteOn', note, vel: 1 });
+    const N = Math.floor(sr * secs / 128) * 128, L = new Float32Array(N), l = new Float32Array(128), r = new Float32Array(128), z = new Float32Array(128);
+    for (let a = 0; a < N; a += 128) { if (off !== null && a === off) node.note({ type: 'noteOff' }); node.process([z, z], [[l, r]], 128, params, slots); L.set(l, a); }
+    return L;
+  };
+  const rms = x => Math.sqrt(x.reduce((s, v) => s + v * v, 0) / x.length);
+  const cross = (x, a, b) => { const at = []; for (let i = a + 1; i < b; i++) if (x[i - 1] < 0 && x[i] >= 0) at.push(i - 1 - x[i - 1] / (x[i] - x[i - 1])); return (at.length - 1) * sr / (at.at(-1) - at[0]); };
+  const raw = { f1type: 0, sus: 1, atk: 1 };
+  for (let w = 0; w < 10; w++) { const x = run({ ...raw, wave1: w }); assert.ok(x.every(Number.isFinite) && rms(x) > 0.05, `fourpole wave ${w} sounds`); if (w < 8) assert.ok(Math.abs(cross(x, 8000, 17000) - 220) < 1, `wave ${w} plays the note`); }
+  assert.deepEqual(Array.from(run({ ...raw, wave1: 8, seed: 5 }).slice(0, 64)), Array.from(run({ ...raw, wave1: 8, seed: 5 }).slice(0, 64)), 'the same seed gives the same noise');
+  assert.notDeepEqual(Array.from(run({ ...raw, wave1: 8, seed: 5 }).slice(2000, 2064)), Array.from(run({ ...raw, wave1: 8, seed: 6 }).slice(2000, 2064)), 'another seed, another noise');
+  const mixes = [0, 1, 2, 3, 4, 5].map(m => rms(run({ ...raw, wave1: 1, wave2: 2, mix: m, transpose: 7 })));
+  assert.ok(mixes.every(v => v > 0.05 && Number.isFinite(v)) && Math.abs(mixes[3] - mixes[0]) > 0.05, 'the mixes differ');
+  const off2 = run({ ...raw, wave1: 3, wave2: 10 }), on2 = run({ ...raw, wave1: 3, wave2: 3, detune: 0 });
+  assert.ok(rms(on2) > rms(off2) * 1.9, 'oscillator 2 adds to oscillator 1 and 10 turns it off');
+  const lo = rms(run({ wave1: 3, sus: 1, f1cut: 5 }, { note: 69 })), hi = rms(run({ wave1: 3, sus: 1, f1cut: 1000 }, { note: 69 }));
+  assert.ok(lo < hi * 0.3, 'a low cutoff darkens the saw');
+  const hpf = rms(run({ wave1: 3, sus: 1, f1type: 2, f1cut: 600 }, { note: 45 })), lpf = rms(run({ wave1: 3, sus: 1, f1type: 1, f1cut: 600 }, { note: 45 }));
+  assert.ok(hpf < lpf, 'the highpass takes the low saw away');
+  const slave = run({ wave1: 3, sus: 1, f1cut: 25, f2type: 1, f2cut: 1001, f2res: 49 }, { note: 57 }), solo = run({ wave1: 3, sus: 1, f1cut: 25 }, { note: 57 });
+  assert.ok(rms(slave) < rms(solo) * 0.9, 'a slaved filter 2 filters again with filter 1\'s settings');
+  for (let r = 0; r < 8; r++) { const x = run({ wave1: 3, sus: 1, route: r, f1type: 1, f2type: 2, f3type: 3, f4type: 2, f1cut: 300, f1res: 300, f2cut: 500, f3cut: 200, f4cut: 100 }, { note: 45 }); assert.ok(x.every(Number.isFinite) && rms(x) > 0.001, `route ${r} sounds`); }
+  const lim = rms(run({ wave1: 3, sus: 1, limit: 6, f1cut: 1000 }, { note: 69 })), full = rms(run({ wave1: 3, sus: 1, limit: 0, f1cut: 1000 }, { note: 69 }));
+  assert.ok(lim < full * 0.8, 'the cutoff limit scales what 100% means');
+  const e = run({ ...raw, rel: 50 }, { secs: 0.6, off: 12800 });
+  assert.ok(rms(e.slice(0, 12000)) > 0.05 && rms(e.slice(-2000)) < 1e-4, 'release dies away');
+  assert.ok(Math.abs(cross(run({ ...raw, wave1: 3, tuning: 450 }), 8000, 17000) / 220 - 450 / 440) < 0.002, 'tuning sets the pitch of A');
+  console.log('ok: fourpole');
+}
+
+// 114. Fourpole: tables, pitch, mixes, filter routes and slave filters.
+{
+  const sr = 44100, def = NODE_TYPES.fourpole;
+  const run = (vals, { note = 57, secs = 0.4, off = null } = {}) => {
+    const params = Float32Array.from(def.params.map(p => vals[p.name] ?? p.def)), slots = Int32Array.from(def.params.map((_, i) => i));
+    const node = def.create({ sampleRate: sr, connected: [false, false], maxBlock: 128 }); node.note({ type: 'noteOn', note, vel: 1 });
+    const N = Math.floor(sr * secs / 128) * 128, L = new Float32Array(N), l = new Float32Array(128), r = new Float32Array(128), z = new Float32Array(128);
+    for (let a = 0; a < N; a += 128) { if (off !== null && a === off) node.note({ type: 'noteOff' }); node.process([z, z], [[l, r]], 128, params, slots); L.set(l, a); }
+    return L;
+  };
+  const rms = x => Math.sqrt(x.reduce((s, v) => s + v * v, 0) / x.length);
+  const cross = (x, a, b) => { const at = []; for (let i = a + 1; i < b; i++) if (x[i - 1] < 0 && x[i] >= 0) at.push(i - 1 - x[i - 1] / (x[i] - x[i - 1])); return (at.length - 1) * sr / (at.at(-1) - at[0]); };
+  const raw = { f1type: 0, sus: 1, atk: 1 };
+  for (let w = 0; w < 10; w++) { const x = run({ ...raw, wave1: w }); assert.ok(x.every(Number.isFinite) && rms(x) > 0.05, `fourpole wave ${w} sounds`); if (w < 8) assert.ok(Math.abs(cross(x, 8000, 17000) - 220) < 1, `wave ${w} plays the note`); }
+  assert.deepEqual(Array.from(run({ ...raw, wave1: 8, seed: 5 }).slice(0, 64)), Array.from(run({ ...raw, wave1: 8, seed: 5 }).slice(0, 64)), 'the same seed gives the same noise');
+  assert.notDeepEqual(Array.from(run({ ...raw, wave1: 8, seed: 5 }).slice(2000, 2064)), Array.from(run({ ...raw, wave1: 8, seed: 6 }).slice(2000, 2064)), 'another seed, another noise');
+  const mixes = [0, 1, 2, 3, 4, 5].map(m => rms(run({ ...raw, wave1: 1, wave2: 2, mix: m, transpose: 7 })));
+  assert.ok(mixes.every(v => v > 0.05 && Number.isFinite(v)) && Math.abs(mixes[3] - mixes[0]) > 0.05, 'the mixes differ');
+  const off2 = run({ ...raw, wave1: 3, wave2: 10 }), on2 = run({ ...raw, wave1: 3, wave2: 3, detune: 0 });
+  assert.ok(rms(on2) > rms(off2) * 1.9, 'oscillator 2 adds to oscillator 1 and 10 turns it off');
+  const lo = rms(run({ wave1: 3, sus: 1, f1cut: 5 }, { note: 69 })), hi = rms(run({ wave1: 3, sus: 1, f1cut: 1000 }, { note: 69 }));
+  assert.ok(lo < hi * 0.3, 'a low cutoff darkens the saw');
+  const hpf = rms(run({ wave1: 3, sus: 1, f1type: 2, f1cut: 600 }, { note: 45 })), lpf = rms(run({ wave1: 3, sus: 1, f1type: 1, f1cut: 600 }, { note: 45 }));
+  assert.ok(hpf < lpf, 'the highpass takes the low saw away');
+  const slave = run({ wave1: 3, sus: 1, f1cut: 25, f2type: 1, f2cut: 1001, f2res: 49 }), solo = run({ wave1: 3, sus: 1, f1cut: 25 });
+  assert.ok(rms(slave) < rms(solo) * 0.9, 'a slaved filter 2 filters again with filter 1\'s settings');
+  for (let r = 0; r < 8; r++) { const x = run({ wave1: 3, sus: 1, route: r, f1type: 1, f2type: 2, f3type: 3, f4type: 2, f1cut: 300, f1res: 300, f2cut: 500, f3cut: 200, f4cut: 100 }, { note: 45 }); assert.ok(x.every(Number.isFinite) && rms(x) > 0.001, `route ${r} sounds`); }
+  const lim = rms(run({ wave1: 3, sus: 1, limit: 6, f1cut: 1000 }, { note: 69 })), full = rms(run({ wave1: 3, sus: 1, limit: 0, f1cut: 1000 }, { note: 69 }));
+  assert.ok(lim < full * 0.8, 'the cutoff limit scales what 100% means');
+  const e = run({ ...raw, rel: 50 }, { secs: 0.6, off: 12800 });
+  assert.ok(rms(e.slice(0, 12000)) > 0.05 && rms(e.slice(-2000)) < 1e-4, 'release dies away');
+  assert.ok(Math.abs(cross(run({ ...raw, wave1: 3, tuning: 450 }), 8000, 17000) / 220 - 450 / 440) < 0.002, 'tuning sets the pitch of A');
+  console.log('ok: fourpole');
+}
 console.log('smoke test passed');

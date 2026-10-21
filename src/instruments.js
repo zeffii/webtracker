@@ -272,6 +272,31 @@ export const synthKinds = {
       ],
     }),
   },
+  fourpole: {
+    label: 'Fourpole (4 filters, 2 envelopes)',
+    make: () => ({
+      graph: {
+        nodes: [{ id: 'synth', type: 'fourpole', params: { wave1: 3, wave2: 2, detune: 7, mix: 0, f1type: 1, f1cut: 350, f1res: 250, e2cut: 3, atk2: 1, dec2: 300, sus2: 0.1, rel2: 150, atk: 2, dec: 400, sus: 0.7, rel: 150 } }, { id: 'poly', type: 'voices' }, { id: 'out', type: 'out', params: { gain: 0.5 } }],
+        connections: [['synth.out', 'poly.in'], ['poly.out', 'out.in']], voices: 6,
+      },
+      noteColumns: 2,
+      exposed: [
+        { node: 'synth', param: 'f1cut', label: 'Cut' },
+        { node: 'synth', param: 'f1res', label: 'Res' },
+        { node: 'synth', param: 'e2cut', label: 'Env' },
+        { node: 'synth', param: 'detune', label: 'Det' },
+      ],
+      commands: [
+        { id: 0x01, node: 'synth', param: 'f1cut' },
+        { id: 0x02, node: 'synth', param: 'f1res' },
+        { id: 0x03, node: 'synth', param: 'e2cut' },
+        { id: 0x04, node: 'synth', param: 'route' },
+        { id: 0x05, node: 'synth', param: 'glide' },
+        { id: 0x06, node: 'synth', param: 'vibdepth' },
+        { id: 0x07, node: 'synth', param: 'mix' },
+      ],
+    }),
+  },
   oberheim: {
     label: 'Oberheim-style synth',
     make: () => ({
