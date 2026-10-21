@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## m284
+
+- Fixed: m283 did not start (a stray quote in the About text). The smoke test now loads that file.
+
 ## m283
 
 - Parameter view: a parameter that a CC command writes has a blue stripe and tint on its name and the command's id in the bar (2C, 31...). A small cc button in the panel title (and Config, Graph) hides all of them.

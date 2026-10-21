@@ -6872,4 +6872,10 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   render(seq, 0.5); assert.equal(at(), 0, 'A1: the retrigger settings reset');
   console.log('ok: reset and settings commands');
 }
+// 110. The About page's text loads (a stray quote in it once broke the whole app) and shows at most ten builds.
+{
+  const about = await import('../src/ui/about.js');
+  assert.ok(about.CHANGELOG.length >= 1 && about.CHANGELOG.length <= 10, 'the changelog shows the latest ten');
+  console.log('ok: about page loads');
+}
 console.log('smoke test passed');
