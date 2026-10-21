@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 317 · 2026-10-21
+
+- Note preview is on by default: typed notes in the pattern editor sound while the key is held (Insert or \ still switches it off; a choice you already made is kept).
+
 ## 316 · 2026-10-21
 
 - The Start button is gone from the top bar: the Wax logo on the left is the Start button until the audio is running (click it, or Enter when focused), then it is just the name.
