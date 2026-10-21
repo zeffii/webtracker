@@ -54,7 +54,11 @@ export function buildColumns(instrument, def, registry) {
   if (def.commands?.length || presets.length) {
     columns.push({
       kind: 'cmd', token: 'cmd', label: 'Cmd', key: 'cmd', long: 'Command',
-      commands: (def.commands ?? []).map(c => ({
+      groups: Object.fromEntries(Object.entries(def.commandGroups ?? {}).map(([bit, names]) => [bit, names.flatMap(n => {
+        const slot = registry.slots.get(`${instrument}.sampler.${n}`);
+        return slot === undefined ? [] : [{ slot, value: def.graph.nodes.find(k => k.id === 'sampler')?.params?.[n] ?? registry.values[slot] }];
+      })])),
+      commands: (def.commands ?? []).map(c => c.reset || c.setting ? { id: c.id, slot: -1, reset: c.reset ?? 0, setting: c.setting ?? '', min: 0, max: 0, name: c.setting ? `${c.setting} settings` : 'reset' } : ({
         id: c.id, log: c.scale === 'log', ...(Number.isFinite(c.fixed) ? { fixed: c.fixed } : {}), ...target(c.node, c.param),
         name: `${longName(c.param)}${context ? ` · ${c.node}` : ''}`, type: def.graph.nodes.find(n => n.id === c.node)?.type, param: c.param,
       })),

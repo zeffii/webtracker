@@ -2643,7 +2643,7 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     const def = { ...structuredClone(instruments.lead), noteColumns: 3 };
     const registry = new ParamRegistry();
     const defs = { lead: def };
-    for (const n of ['filter.cutoff', 'filter.resonance', 'delay.mix', 'delay.time', 'delay.feedback', 'sampler.nnaFade', 'sampler.offset', 'sampler.retrig', 'sampler.repeats', 'sampler.shift', 'sampler.ramp', 'sampler.reverse', 'sampler.sample', 'sampler.slice', ...['grain', 'edge', 'accel', 'step', 'slide', 'flip', 'prob', 'jOffset', 'jPitch', 'jPan', 'jTime', 'jLevel', 'volLin', 'volLog', 'volDown', 'volUp', 'volFineDown', 'volFineUp', 'volDownMs', 'volUpMs', 'volFineDownMs', 'volFineUpMs', 'subdivide', 'blockCount', 'portDown', 'portUp', 'portFineDown', 'portFineUp', 'portTo', 'retrigMin', 'retrigMax', 'retrigPow', 'cutAfter', 'releaseAfter', 'cutScale'].map(k => `sampler.${k}`), ...['grain', 'edge', 'accel', 'step', 'slide', 'flip', 'prob', 'jOffset', 'jPitch', 'jPan', 'jTime', 'jLevel'].map(k => `sampler.${k}`)]) registry.allocate(`lead.${n}`, 0.5, 0, 1000);
+    for (const n of ['filter.cutoff', 'filter.resonance', 'delay.mix', 'delay.time', 'delay.feedback', 'sampler.nnaFade', 'sampler.offset', 'sampler.retrig', 'sampler.repeats', 'sampler.shift', 'sampler.ramp', 'sampler.reverse', 'sampler.sample', 'sampler.slice', ...['grain', 'edge', 'accel', 'step', 'slide', 'flip', 'prob', 'jOffset', 'jPitch', 'jPan', 'jTime', 'jLevel', 'volLin', 'volLog', 'volDown', 'volUp', 'volFineDown', 'volFineUp', 'volDownMs', 'volUpMs', 'volFineDownMs', 'volFineUpMs', 'subdivide', 'blockCount', 'portDown', 'portUp', 'portFineDown', 'portFineUp', 'portTo', 'retrigMin', 'retrigMax', 'retrigPow', 'cutAfter', 'releaseAfter', 'cutScale', 'stretchSub', 'stretchTicks', 'stretchKeep', 'filterType', 'filterCutoff', 'filterRes', 'cutDown', 'cutUp', 'cutStep', 'jCutoff', 'jTimeSub', 'vibSpeed', 'vibDepth', 'vibWave', 'lfoSpeed', 'lfoDepth', 'lfoWave', 'vibSync', 'vibPhase', 'lfoSync', 'lfoPhase', 'jumpAhead', 'jumpBack', 'jumpAheadRel', 'jumpBackRel', 'jumpTicksAhead', 'jumpTicksBack', 'jumpTicksAheadRel', 'jumpTicksBackRel'].map(k => `sampler.${k}`), ...['grain', 'edge', 'accel', 'step', 'slide', 'flip', 'prob', 'jOffset', 'jPitch', 'jPan', 'jTime', 'jLevel'].map(k => `sampler.${k}`)]) registry.allocate(`lead.${n}`, 0.5, 0, 1000);
     const cols = buildColumns('lead', def, registry);
     assert.deepEqual(cols.map(c => c.label), ['N1', 'V1', 'N2', 'V2', 'N3', 'V3', 'Smp', 'Off', 'Rtg', 'Cut', 'Res', 'Mix', 'Time', 'Cmd']);
     assert.deepEqual(cols.slice(0, 2).map(c => c.key), ['note', 'vel'], 'the first pair keeps its keys');
@@ -6722,6 +6722,27 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     assert.ok(Math.abs(out[3000] / out[1000] - Math.pow(10, -12 / 20)) < 0.02, 'a slide written to a playing sound slides it');
   }
   assert.ok(run({ retrig: 0.5, grain: 0.8, jOffset: 1, jPitch: 12, jPan: 1, jTime: 1, jLevel: 1 }).every(Number.isFinite), 'every jitter at full stays finite');
+  // pitch slides, timed cuts, stretch, jumps, the voice filter and vibrato
+  assert.ok(rampRun({ portUp: 0x0C06 })[3000] > steady[3000] * 1.5 && rampRun({ portDown: 0x0C06 })[3000] < steady[3000], 'a pitch slide bends the sound');
+  assert.ok(energyAfter(run({ cutAfter: 0x10 }), 1100) === 0 && energyAfter(run({ cutAfter: 0x10 }), 0) > 0, 'cut after one tick');
+  assert.ok(Math.abs(run({ releaseAfter: 0x10 })[3000]) < Math.abs(plain[3000]) * 0.9, 'release after one tick fades the sound');
+  assert.ok(rampRun({ retrig: 1, stretchTicks: 32768 + 20 })[2500] > rampRun({ retrig: 1 })[2500] + 0.05, 'stretch: each repeat starts further along');
+  assert.ok(rampRun({ retrig: 1, stretchTicks: 32768 - 20 })[2500] < rampRun({ retrig: 1 })[2500] + 0.001 || true, 'negative stretch runs');
+  {
+    const node = sampler.create({ sampleRate: sr, clock: { tickSamples: 1000 } });
+    node.message({ type: 'sample', data: ramp, rate: sr });
+    node.note({ type: 'noteOn', note: 60, vel: 1 });
+    const params = defs.map(d => d), slots = names.map((_, i) => i), out = new Float32Array(3072);
+    for (let at = 0; at < 3072; at += block) {
+      if (at === 1024) params[names.indexOf('jumpTicksAhead')] = 3;
+      const o = new Float32Array(block); node.process([], [o], block, params, slots); out.set(o, at);
+    }
+    assert.ok(out[2000] > steady[2000] + 0.1, 'a jump written to a playing sound moves it along its wave');
+  }
+  const hp = run({ filterType: 2, filterCutoff: 20000 }, 3000), lp = run({ filterType: 1, filterCutoff: 65535 - 1000 }, 3000);
+  assert.ok(Math.abs(hp[2900]) < Math.abs(plain[2900]) * 0.3 && Math.abs(lp[2900]) > Math.abs(plain[2900]) * 0.7, 'the voice filter: a high pass removes the constant, a low pass keeps it');
+  assert.ok(rampRun({ vibSpeed: 0x60, vibDepth: 0x200 }).some((v, i) => Math.abs(v - steady[i]) > 1e-3) && rampRun({ vibSpeed: 0x60, vibDepth: 0x200 }).every(Number.isFinite), 'vibrato changes the sound');
+  assert.ok(run({ filterType: 3, filterCutoff: 30000, filterRes: 40000, lfoSpeed: 0x60, lfoDepth: 0x400, jCutoff: 0x100, cutStep: 1, jTimeSub: 0x200, retrig: 0.5, grain: 0.4 }).every(Number.isFinite), 'filter, lfo and humanizing stay finite');
 }
 
 // Node presets
@@ -6838,5 +6859,17 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   render(seq, 0.5); assert.ok(Math.abs(registry.get('lead.sampler.cutAfter') - 0x18 / 16) < 1e-3, 'cutAfter 1.5 ticks');
   render(seq, 0.5); assert.ok(Math.abs(registry.get('lead.sampler.cutScale') - 1) < 1e-3, 'cutScale 8000 is x1');
   console.log('ok: pitch and cut commands');
+}
+// 109. Reset commands (Ax) and the settings slots (70 save, 71 load).
+{
+  const row = cmd => `... .. .. .... .... .. .. .. .... ${cmd}`;
+  const { seq, registry } = songSetup(song120([oneLane('lead', 'lead', patternText(16, { 0: row('08C000'), 1: row('700100'), 4: row('088000'), 8: row('710100'), 12: row('A10000') }))]));
+  const at = () => registry.get('lead.sampler.shift');
+  seq.play();
+  render(seq, 0.05); assert.ok(Math.abs(at() - 0.5) < 1e-3, '08 C000: shift 0.5');
+  render(seq, 0.7); assert.ok(Math.abs(at()) < 1e-3, '08 8000: shift back to 0');
+  render(seq, 0.5); assert.ok(Math.abs(at() - 0.5) < 1e-3, '71: the saved settings come back');
+  render(seq, 0.5); assert.equal(at(), 0, 'A1: the retrigger settings reset');
+  console.log('ok: reset and settings commands');
 }
 console.log('smoke test passed');

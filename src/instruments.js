@@ -13,7 +13,21 @@ export const samplerExposed = [
   { node: 'delay', param: 'time', label: 'Time', bits: 16 },
 ];
 
+// The groups that the Ax reset commands and the settings slots (70 save, 71 load) work on; the bits add up. A reset puts
+// the parameters back to what the instrument starts with.
+export const samplerGroups = {
+  1: ['shift', 'ramp', 'accel', 'step', 'slide', 'flip', 'prob', 'retrigMin', 'retrigMax', 'retrigPow', 'cutScale', 'cutStep', 'stretchSub', 'stretchTicks', 'stretchKeep'],   // on retrigger
+  2: ['jOffset', 'jPitch', 'jPan', 'jTime', 'jLevel', 'jCutoff', 'jTimeSub'],   // humanization
+  4: ['filterType', 'filterCutoff', 'filterRes', 'cutDown', 'cutUp'],            // the filter
+  8: ['vibSpeed', 'vibDepth', 'vibWave', 'lfoSpeed', 'lfoDepth', 'lfoWave', 'vibPhase', 'lfoPhase'],   // vibrato and LFO
+};
+
 export const samplerCommands = [
+  // Ax resets, additively: 1 the retrigger settings, 2 humanization, 4 the filter, 8 vibrato and LFO (A0 and AF all of them). 70 saves
+  // and 71 loads those settings (xx: which, added up, yy: one of 16 slots, 00 to 0F), for the lane.
+  ...Array.from({ length: 16 }, (_, k) => ({ id: 0xA0 + k, reset: k === 0 ? 15 : k })),
+  { id: 0x70, setting: 'save' },
+  { id: 0x71, setting: 'load' },
   { id: 0x01, node: 'filter', param: 'cutoff', scale: 'log' },
   { id: 0x02, node: 'filter', param: 'resonance' },
   { id: 0x03, node: 'delay', param: 'time' },
@@ -69,6 +83,40 @@ export const samplerCommands = [
   { id: 0x28, node: 'sampler', param: 'cutAfter' },
   { id: 0x29, node: 'sampler', param: 'releaseAfter' },
   { id: 0x2A, node: 'sampler', param: 'cutScale' },
+  // Stretch, jumps, a filter on each sound, vibrato and cutoff LFO (the ideas of UnwieldyTracker's 10/14/15, 60 to 67, 30 to 53).
+  // 2B, 2C, 2D stretch the whole sample over xxyy-8000 subticks, ticks, ticks kept when the repeat time changes. 60 to 67 jump in the wave of the
+  // sounds playing: subticks or ticks, ahead or back, by the sample's own time or the playing speed. 30 filter type, 31 cutoff, 32 resonance,
+  // 33 and 34 cutoff slides, 35 cutoff step per repeat, 38 humanize cutoff, 39 humanize timing. 40 to 45 vibrato and cutoff LFO speed, depth
+  // and wave; 50 to 53 their phases (now, and per note).
+  { id: 0x2B, node: 'sampler', param: 'stretchSub' },
+  { id: 0x2C, node: 'sampler', param: 'stretchTicks' },
+  { id: 0x2D, node: 'sampler', param: 'stretchKeep' },
+  { id: 0x30, node: 'sampler', param: 'filterType' },
+  { id: 0x31, node: 'sampler', param: 'filterCutoff' },
+  { id: 0x32, node: 'sampler', param: 'filterRes' },
+  { id: 0x33, node: 'sampler', param: 'cutDown' },
+  { id: 0x34, node: 'sampler', param: 'cutUp' },
+  { id: 0x35, node: 'sampler', param: 'cutStep' },
+  { id: 0x38, node: 'sampler', param: 'jCutoff' },
+  { id: 0x39, node: 'sampler', param: 'jTimeSub' },
+  { id: 0x40, node: 'sampler', param: 'vibSpeed' },
+  { id: 0x41, node: 'sampler', param: 'vibDepth' },
+  { id: 0x42, node: 'sampler', param: 'vibWave' },
+  { id: 0x43, node: 'sampler', param: 'lfoSpeed' },
+  { id: 0x44, node: 'sampler', param: 'lfoDepth' },
+  { id: 0x45, node: 'sampler', param: 'lfoWave' },
+  { id: 0x50, node: 'sampler', param: 'vibSync' },
+  { id: 0x51, node: 'sampler', param: 'vibPhase' },
+  { id: 0x52, node: 'sampler', param: 'lfoSync' },
+  { id: 0x53, node: 'sampler', param: 'lfoPhase' },
+  { id: 0x60, node: 'sampler', param: 'jumpAhead' },
+  { id: 0x61, node: 'sampler', param: 'jumpBack' },
+  { id: 0x62, node: 'sampler', param: 'jumpAheadRel' },
+  { id: 0x63, node: 'sampler', param: 'jumpBackRel' },
+  { id: 0x64, node: 'sampler', param: 'jumpTicksAhead' },
+  { id: 0x65, node: 'sampler', param: 'jumpTicksBack' },
+  { id: 0x66, node: 'sampler', param: 'jumpTicksAheadRel' },
+  { id: 0x67, node: 'sampler', param: 'jumpTicksBackRel' },
   { id: 0x90, node: 'sampler', param: 'volDownMs' },
   { id: 0x91, node: 'sampler', param: 'volUpMs' },
   { id: 0x92, node: 'sampler', param: 'volFineDownMs' },
@@ -118,6 +166,7 @@ export const instruments = {
     layout: 2,
     exposed: samplerExposed,
     commands: samplerCommands,
+  commandGroups: samplerGroups,
     samples: { sampler: 'pluck' },   // node id -> sample id
   },
   bass: {
@@ -125,6 +174,7 @@ export const instruments = {
     layout: 2,
     exposed: samplerExposed,
     commands: samplerCommands,
+  commandGroups: samplerGroups,
     samples: { sampler: 'pluck' },
   },
   kick: {
@@ -143,6 +193,7 @@ export const newSamplerInstrument = sampleId => structuredClone({
   layout: 2,
   exposed: samplerExposed,
   commands: samplerCommands,
+  commandGroups: samplerGroups,
   samples: { sampler: sampleId },
 });
 

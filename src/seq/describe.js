@@ -47,7 +47,8 @@ export function describeParts(lane, tick, ci) {
     }
   } else if (c.kind === 'cmd') {
     const id = isBlank(token) ? null : parseInt(token.slice(0, 2), 16), t = id === null ? null : c.commands.find(x => x.id === id);
-    if (t) {
+    if (t && (t.reset || t.setting)) { out.details.push(`${token.slice(0, 2)}: ${t.reset ? 'reset settings (1 retrigger, 2 humanize, 4 filter, 8 vibrato and LFO; A0 all)' : `${t.setting}: XX = settings added up, YY = slot 00 to 0F`}`); out.value = t.reset ? 'reset' : token.slice(2); }
+    else if (t) {
       out.details.push(`${token.slice(0, 2)}: ${t.name}`, rangeText(t));
       const raw = parseInt(token.slice(2), 16);
       out.value = display(t.type, spec(t), scale(t, 65535, raw));
@@ -77,7 +78,8 @@ export function describeColumn(lane, tick, ci) {
     if (!isBlank(token)) parts.push(`${token} = ${Math.round(parseInt(token, 16) / (c.kind === 'vel' ? 255 : 15) * 100)}%`);
   } else if (c.kind === 'cmd') {
     const id = isBlank(token) ? null : parseInt(token.slice(0, 2), 16), t = id === null ? null : c.commands.find(x => x.id === id);
-    if (t) {
+    if (t && (t.reset || t.setting)) parts.push(`${token.slice(0, 2)}: ${t.reset ? 'reset settings' : `${t.setting} settings (XX groups, YY slot)`}`);
+    else if (t) {
       parts.push(`${token.slice(0, 2)}: ${t.name}`, rangeText(t));
       const raw = parseInt(token.slice(2), 16);
       parts.push(`${token.slice(2)} = ${display(t.type, spec(t), scale(t, 65535, raw))}`);

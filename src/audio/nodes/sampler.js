@@ -34,10 +34,13 @@ const VS = 24, VS_KINDS = ['lin', 'log', 'down', 'up', 'fineDown', 'fineUp', 'do
 const ABS = 35;     // the `blockCount` parameter: below 65535, Off holds the low four hex digits of a frame number and this the blocks of 65536 frames before it
 const PORT = 36, PORT_KINDS = ['down', 'up', 'fineDown', 'fineUp'];   // portamento slides: four parameters, 36 to 39
 const PORTTO = 40, RMIN = 41, RMAX = 42, RPOW = 43, CUTAFTER = 44, RELAFTER = 45, TSCALE = 46;   // glide to the next note; retrigger time limits and curve; cut and release after a time; their per-repeat scale
+const STRETCH = 47, JUMP = 50;   // stretch (subticks, ticks, ticks with the length kept: three parameters, 47 to 49); jumps in the wave (eight, 50 to 57)
+const FTYPE = 58, FCUT = 59, FRES = 60, CSD = 61, CSU = 62, CSTEP = 63, JCUT = 64, JTSUB = 65;   // the voice filter, its cutoff slides and per-repeat step, and the humanizing of cutoff and timing
+const VIBS = 66, VIBD = 67, VIBW = 68, LFOS = 69, LFOD = 70, LFOW = 71, VIBPH = 72, LFOPH = 73, VIBNOW = 74, LFONOW = 75;   // vibrato and cutoff LFO, and their phase syncs
 const SUBDIV = 34;   // the `subdivide` parameter: subticks per tick, for the times of the slides (UnwieldyTracker's Subdivide, default 6)
 const FLOOR = 1e-6;   // a slide to nothing stops at -120 dB, as UnwieldyTracker's does
 const GRAIN = 12, EDGE = 13, ACCEL = 14, STEP = 15, SLIDE = 16, FLIP = 17, PROB = 18, JOFF = 19, JPITCH = 20, JPAN = 21, JTIME = 22, JLEVEL = 23;
-const DEFAULTS = { [TSCALE]: 1, [ABS]: 65535, [SUBDIV]: 6, [EDGE]: 0.5, [ACCEL]: 1, [PROB]: 1, [RAMP]: 1 };   // for a node whose parameter list is older than these
+const DEFAULTS = { [STRETCH]: 32768, [STRETCH + 1]: 32768, [STRETCH + 2]: 32768, [FCUT]: 65535, [VIBPH]: 65535, [LFOPH]: 65535, [TSCALE]: 1, [ABS]: 65535, [SUBDIV]: 6, [EDGE]: 0.5, [ACCEL]: 1, [PROB]: 1, [RAMP]: 1 };   // for a node whose parameter list is older than these
 const PLAYING = 0, RELEASING = 1, FADING = 2, CUTTING = 3;   // voice modes (cutting: the 2 ms fade of a sound a repeat replaces)
 
 export default {
@@ -102,6 +105,31 @@ export default {
     { name: 'cutAfter', min: 0, max: 65535 / 16, def: 0 },               // every sound is cut after this many ticks (XXX.Y hex: 0010 is one tick); 0: never
     { name: 'releaseAfter', min: 0, max: 65535 / 16, def: 0 },           // every sound is released after this many ticks, and fades over the Release time
     { name: 'cutScale', min: 0, max: 65535 / 32768, def: 1 },            // each repeat multiplies the cut and release times by this; hex 8000 is x1
+    // Stretch: the whole sample is spread over this length (xxyy - 8000, negative goes backwards), each repeat starting that much further along.
+    { name: 'stretchSub', min: 0, max: 65535, def: 32768, int: true },   // the length in subticks; 8000 is off
+    { name: 'stretchTicks', min: 0, max: 65535, def: 32768, int: true }, // the length in ticks
+    { name: 'stretchKeep', min: 0, max: 65535, def: 32768, int: true },  // in ticks, and the length holds when the repeat time changes
+    // Jumps in the wave of the sounds that are playing: xxyy subticks (60 to 63) or ticks (64 to 67), ahead or back, by the sample's own time or the playing speed.
+    ...['jumpAhead', 'jumpBack', 'jumpAheadRel', 'jumpBackRel', 'jumpTicksAhead', 'jumpTicksBack', 'jumpTicksAheadRel', 'jumpTicksBackRel'].map(name => ({ name, min: 0, max: 65535, def: 0, int: true })),
+    // A filter for each sound; the cutoff can move with each repeat, slide and wobble.
+    { name: 'filterType', min: 0, max: 5, def: 0, int: true },            // 0 off, 1 low pass, 2 high pass, 3 band pass (constant skirt), 4 band pass (constant peak), 5 notch
+    { name: 'filterCutoff', min: 0, max: 65535, def: 65535, int: true }, // 20 Hz to 20 kHz, evenly in pitch
+    { name: 'filterRes', min: 0, max: 65535, def: 0, int: true },        // 0: flat, FFFF: very resonant
+    { name: 'cutDown', min: 0, max: 65535, def: 0, int: true },          // cutoff slide down: XX semitones over YY subticks
+    { name: 'cutUp', min: 0, max: 65535, def: 0, int: true },
+    { name: 'cutStep', min: -16, max: 65535 / 2048 - 16, def: 0 },       // semitones each repeat moves the cutoff; hex 8000 is 0
+    { name: 'jCutoff', min: 0, max: 65535 / 256, def: 0 },                       // random cutoff, up to xx.yy semitones either way
+    { name: 'jTimeSub', min: 0, max: 65535 / 256, def: 0 },                      // each repeat comes late by up to xx.yy subticks
+    { name: 'vibSpeed', min: 0, max: 65535 / 16, def: 0 },               // vibrato period in subticks, xxy.y; 0 off
+    { name: 'vibDepth', min: 0, max: 65535 / 256, def: 0 },                      // xx.yy semitones
+    { name: 'vibWave', min: 0, max: 3, def: 0, int: true },              // 0 sine, 1 triangle, 2 square, 3 saw
+    { name: 'lfoSpeed', min: 0, max: 65535 / 16, def: 0 },               // cutoff LFO period in subticks
+    { name: 'lfoDepth', min: 0, max: 65535 / 256, def: 0 },                      // xx.yy semitones of cutoff
+    { name: 'lfoWave', min: 0, max: 3, def: 0, int: true },
+    { name: 'vibPhase', min: 0, max: 65535, def: 65535, int: true },     // every note starts the vibrato at this phase (xxyy of a turn); FFFF: free running
+    { name: 'lfoPhase', min: 0, max: 65535, def: 65535, int: true },
+    { name: 'vibSync', min: 0, max: 65535, def: 0, int: true },         // set the vibrato phase now
+    { name: 'lfoSync', min: 0, max: 65535, def: 0, int: true },
   ],
   create({ sampleRate, stereo = false, clock }) {
     // The samples this node can play, by slot (the instrument's sample list); a note picks one by the `sample`
@@ -129,6 +157,14 @@ export default {
     const portLeft = new Float64Array(VOICES), portMul = new Float64Array(VOICES).fill(1);   // a pitch slide: samples left and the factor per sample
     const from = new Int32Array(VOICES).fill(-1), choke = new Uint8Array(VOICES);   // the note a new one follows in its column; whether it chokes the others
     const lastPs = new Float64Array(PORT_KINDS.length);
+    // The filter of each voice (a biquad per channel), and the phases of its vibrato and cutoff LFO.
+    const fType = new Uint8Array(VOICES), fHz = new Float64Array(VOICES), fQ = new Float64Array(VOICES), fOff = new Float64Array(VOICES);
+    const fz = new Float64Array(VOICES * 4), fk = new Float64Array(VOICES * 5);   // states z1 z2 (left) y1 y2 (right); coefficients b0 b1 b2 a1 a2
+    const csLeft = new Float64Array(VOICES), csStep = new Float64Array(VOICES);   // a cutoff slide: samples left, semitones per sample
+    const vibPh = new Float64Array(VOICES), lfoPh = new Float64Array(VOICES);
+    const lastJ = new Float64Array(8), lastCs = new Float64Array(2), lastNow = new Float64Array(2).fill(NaN);
+    let gVib = 0, gLfo = 0;
+    const wave = (w, ph) => w === 1 ? 4 * Math.abs(ph - 0.5) - 1 : w === 2 ? (ph < 0.5 ? 1 : -1) : w === 3 ? 2 * ph - 1 : Math.sin(ph * 2 * Math.PI);
     let chains = [];
     const endChain = v => { for (const c of chains) if (c.v === v) c.alive = false; };
     let seed = 0x2545f491;
@@ -232,6 +268,10 @@ export default {
           portLeft[w] = Math.max(1, Math.round(t / subdivide * tickSamples));
           portMul[w] = Math.pow(2, semis / 12 / portLeft[w]);
         };
+        const startCs = (w, kind, value) => {
+          const a = (value >> 8) & 255, t = value & 255, n = Math.max(1, Math.round(t / subdivide * tickSamples));
+          csLeft[w] = n; csStep[w] = (kind === 0 ? -a : a) / n;
+        };
         // Starts a sound on voice w from a chain's state: where in the sample, which way, how loud, how high; the jitters apply here.
         const begin = (w, st, at) => {
           const S = bank[st.si], cfg = st.cfg, last = S.sample.length - 1;
@@ -246,6 +286,10 @@ export default {
           slideMul[w] = cfg.slide !== 0 && tickSamples > 0 ? Math.pow(2, cfg.slide / 12 / tickSamples) : 1;
           vpan[w] = cfg.jPan * jit();
           cutLeft[w] = st.cutT > 0 ? st.cutT : Infinity; relLeft[w] = st.relT > 0 ? st.relT : Infinity;
+          fType[w] = cfg.fType; fHz[w] = cfg.fHz; fQ[w] = cfg.fQ; fOff[w] = st.cutAdd + cfg.jCut * jit(); csLeft[w] = 0; csStep[w] = 0;
+          fz.fill(0, w * 4, w * 4 + 4); fk.fill(0, w * 5, w * 5 + 5);
+          if (cfg.cs) startCs(w, cfg.cs.kind, cfg.cs.value);
+          vibPh[w] = cfg.vibPh >= 0 ? cfg.vibPh : gVib; lfoPh[w] = cfg.lfoPh >= 0 ? cfg.lfoPh : gLfo;
           portLeft[w] = 0; portMul[w] = 1;
           if (cfg.ps) startPort(w, cfg.ps.kind, cfg.ps.value);
           skip[w] = at;
@@ -290,10 +334,21 @@ export default {
           let ps = null;
           PORT_KINDS.forEach((_, k) => { const x = Math.floor(P(PORT + k)); lastPs[k] = x; if (!ps && x > 0) ps = { kind: k, value: x }; });
           cfg.ps = ps;
+          let cs = null;
+          [CSD, CSU].forEach((id, k) => { const x = Math.floor(P(id)); lastCs[k] = x; if (!cs && x > 0) cs = { kind: k, value: x }; });
+          cfg.cs = cs;
+          const ftype = Math.floor(P(FTYPE));
+          cfg.fType = ftype; cfg.fHz = 20 * Math.pow(1000, P(FCUT) / 65535); cfg.fQ = 0.707 * Math.pow(28, P(FRES) / 65535);
+          cfg.cStep = P(CSTEP); cfg.jCut = P(JCUT); cfg.jTsub = P(JTSUB);
+          cfg.vibPh = P(VIBPH) < 65535 ? P(VIBPH) / 65536 : -1; cfg.lfoPh = P(LFOPH) < 65535 ? P(LFOPH) / 65536 : -1;
+          for (let k = 0; k < 8; k++) lastJ[k] = Math.floor(P(JUMP + k));
           const sub = tickSamples / subdivide;   // samples in a subtick
           cfg.rMin = P(RMIN) * sub; cfg.rMax = P(RMAX) * sub; cfg.rPow = P(RPOW); cfg.tScale = P(TSCALE);
           const lim = t => Math.max(MIN_GAP, cfg.rMin, cfg.rMax > 0 ? Math.min(t, cfg.rMax) : t);
-          const st = { si, note: note[v], dir: P(REVERSE) >= 1 ? -1 : 1, fromSlice: marker !== undefined, base: off, gain: gain[v], pitch: 0, cfg, cutT: P(CUTAFTER) / 16 * tickSamples, relT: P(RELAFTER) / 16 * tickSamples };
+          // Stretch: the whole sample over a length, each repeat starting that much further along (negative: backwards).
+          const sSub = Math.floor(P(STRETCH)) - 32768, sTk = Math.floor(P(STRETCH + 1)) - 32768, sKeep = Math.floor(P(STRETCH + 2)) - 32768;
+          cfg.stretch = sKeep ? { L: sKeep * tickSamples, keep: true } : sTk ? { L: sTk * tickSamples, keep: false } : sSub ? { L: sSub * sub, keep: false } : null;
+          const st = { cutAdd: 0, si, note: note[v], dir: P(REVERSE) >= 1 ? -1 : 1, fromSlice: marker !== undefined, base: off, gain: gain[v], pitch: 0, cfg, cutT: P(CUTAFTER) / 16 * tickSamples, relT: P(RELAFTER) / 16 * tickSamples };
           begin(v, st, 0);
           const every = P(RETRIG) * tickSamples;
           if (every >= 1) {
@@ -315,14 +370,42 @@ export default {
           if (x !== lastPs[k] && x > 0) for (let v = 0; v < VOICES; v++) if (active[v] && mode[v] === PLAYING) startPort(v, k, x);
           lastPs[k] = x;
         }
+        for (let k = 0; k < 2; k++) {
+          const x = Math.floor(params[slots[CSD + k]]);
+          if (!Number.isFinite(x)) continue;
+          if (x !== lastCs[k] && x > 0) for (let v = 0; v < VOICES; v++) if (active[v] && mode[v] === PLAYING) startCs(v, k, x);
+          lastCs[k] = x;
+        }
+        // A jump written while sounds play moves them along their wave: subticks or ticks, by the sample's own time or the playing speed.
+        for (let k = 0; k < 8; k++) {
+          const x = Math.floor(params[slots[JUMP + k]]);
+          if (!Number.isFinite(x)) continue;
+          if (x !== lastJ[k] && x > 0) for (let v = 0; v < VOICES; v++) {
+            if (!active[v] || mode[v] !== PLAYING || !bank[sm[v]]) continue;
+            const S = bank[sm[v]], unit = k < 4 ? tickSamples / subdivide : tickSamples;
+            const speed = (k & 2) ? Math.pow(2, (note[v] - root) / 12) * S.ratio * pitchMul[v] : S.ratio;
+            const sign = (k & 1) ? -1 : 1;
+            pos[v] = Math.max(0, Math.min(S.sample.length - 1, pos[v] + dir[v] * sign * x * unit * speed));
+          }
+          lastJ[k] = x;
+        }
+        // The phases of the vibrato and cutoff LFO; a value written to the sync parameters sets them now.
+        const vibIn = params[slots[VIBNOW]], lfoIn = params[slots[LFONOW]];
+        if (Number.isFinite(vibIn) && vibIn !== lastNow[0]) { if (Number.isFinite(lastNow[0])) { gVib = vibIn / 65536; vibPh.fill(gVib); } lastNow[0] = vibIn; }
+        if (Number.isFinite(lfoIn) && lfoIn !== lastNow[1]) { if (Number.isFinite(lastNow[1])) { gLfo = lfoIn / 65536; lfoPh.fill(gLfo); } lastNow[1] = lfoIn; }
+        const PP = i => { const x = params[slots[i]]; return Number.isFinite(x) ? x : DEFAULTS[i] ?? 0; };
+        const subS = tickSamples / subdivide;
+        const vibInc = PP(VIBS) > 0 && subS > 0 ? 1 / (PP(VIBS) / 16 * subS) : 0, vibDepth = PP(VIBD) / 256, vibWave = Math.floor(PP(VIBW));
+        const lfoInc = PP(LFOS) > 0 && subS > 0 ? 1 / (PP(LFOS) / 16 * subS) : 0, lfoDepth = PP(LFOD) / 256, lfoWave = Math.floor(PP(LFOW));
+        gVib = (gVib + vibInc * n) % 1; gLfo = (gLfo + lfoInc * n) % 1;
         // Repeats that fall in this block: the new sound starts part way through it and, with no grain length, the one before is cut there.
         chains = chains.filter(c => c.alive);
         for (const c of chains) {
           const st = c.st, cfg = st.cfg;
           while (c.spawnIn < n) {
-            const nextBase = st.base + cfg.shift;
+            const nextBase = st.base + (cfg.stretch ? (cfg.stretch.keep ? c.interval : c.base) / cfg.stretch.L : cfg.shift);
             if (c.left < 1 || nextBase < 0 || nextBase > 1) { c.alive = false; break; }   // the chain is finished
-            st.base = nextBase; st.gain *= cfg.ramp; st.pitch += cfg.step; if (cfg.flip) st.dir = -st.dir;
+            st.base = nextBase; st.gain *= cfg.ramp; st.pitch += cfg.step; st.cutAdd += cfg.cStep; if (cfg.flip) st.dir = -st.dir;
             st.cutT *= cfg.tScale; st.relT *= cfg.tScale;
             c.left--;
             const at = Math.max(0, Math.ceil(c.spawnIn));
@@ -340,7 +423,7 @@ export default {
             c.nom += c.interval;
             c.k++;
             c.interval = c.lim(c.base * Math.pow(cfg.accel, c.k) * Math.pow(c.k + 1, cfg.rPow));
-            c.spawnIn = c.nom + cfg.jTime * c.interval * rnd();
+            c.spawnIn = c.nom + cfg.jTime * c.interval * rnd() + cfg.jTsub * (tickSamples / subdivide) * rnd();
           }
           if (c.alive) { c.nom -= n; c.spawnIn -= n; }
         }
@@ -357,6 +440,10 @@ export default {
           const vk = vsKind[v], vstep = vsStep[v];
           const atk = atkStep[v];
           let m = mode[v];
+          const ft = fType[v], fq = fQ[v], hz0 = fHz[v];
+          let fo = fOff[v], csl = csLeft[v], vph = vibPh[v], lph = lfoPh[v];
+          let z1 = fz[v * 4], z2 = fz[v * 4 + 1], y1 = fz[v * 4 + 2], y2 = fz[v * 4 + 3];
+          let b0 = fk[v * 5], b1 = fk[v * 5 + 1], b2 = fk[v * 5 + 2], a1 = fk[v * 5 + 3], a2 = fk[v * 5 + 4];
           const back = dir[v] < 0;
           const loop = back ? null : inSus[v] ? sus : norm.on ? norm : null;
           const ls = loop ? loop.start : 0, le = loop ? loop.end : 0, xf = loop ? loop.xf : 0;
@@ -368,7 +455,10 @@ export default {
             else if (cl <= 0 && m !== CUTTING) { m = mode[v] = CUTTING; cs = attack; }
             else if (rl <= 0 && m === PLAYING) { m = mode[v] = RELEASING; inSus[v] = 0; }
             gl--; cl--; rl--;
-            const rate = baseRate * pm;
+            let vibS = 0, lfoS = 0;
+            if (vibInc > 0) { vibS = vibDepth * wave(vibWave, vph); vph += vibInc; if (vph >= 1) vph -= 1; }
+            if (lfoInc > 0) { lfoS = lfoDepth * wave(lfoWave, lph); lph += lfoInc; if (lph >= 1) lph -= 1; }
+            const rate = baseRate * pm * (vibS !== 0 ? Math.pow(2, vibS / 12) : 1);
             if (loop) {
               if (p >= le) p = ls + (p - ls) % span;
             } else if (back ? p <= 0 : p >= last) {
@@ -382,6 +472,7 @@ export default {
               if (e <= 0) { active[v] = 0; break; }
             }
             if (vl > 0) { vm = vk === 1 ? Math.max(0, vm + vstep) : vm * vstep; vl--; }
+            if (csl > 0) { fo += csStep[v]; csl--; }
             const amp = e * gain[v] * level * vm;
             // inside the crossfade the loop's tail blends into the audio before its start
             const t = xf > 0 && p >= le - xf ? (p - (le - xf)) / xf : -1;
@@ -391,6 +482,22 @@ export default {
             if (right) {
               r = tap(right, p, le, ls);
               if (t >= 0) r = r * wa + tap(right, p - span, 0, 0) * wb;
+            }
+            if (ft > 0) {   // the voice filter: coefficients are renewed every 16 samples, since the cutoff moves
+              if (((i + 1) & 15) === 0 || b0 === 0) {
+                const f = Math.min(0.45 * sampleRate, Math.max(20, hz0 * Math.pow(2, (fo + lfoS) / 12))), w0 = 2 * Math.PI * f / sampleRate;
+                const cw = Math.cos(w0), sw = Math.sin(w0), al = sw / (2 * fq);
+                let nb0, nb1, nb2;
+                if (ft === 1) { nb0 = (1 - cw) / 2; nb1 = 1 - cw; nb2 = nb0; }
+                else if (ft === 2) { nb0 = (1 + cw) / 2; nb1 = -(1 + cw); nb2 = nb0; }
+                else if (ft === 3) { nb0 = sw / 2; nb1 = 0; nb2 = -nb0; }
+                else if (ft === 4) { nb0 = al; nb1 = 0; nb2 = -al; }
+                else { nb0 = 1; nb1 = -2 * cw; nb2 = 1; }
+                const a0 = 1 + al;
+                b0 = nb0 / a0; b1 = nb1 / a0; b2 = nb2 / a0; a1 = -2 * cw / a0; a2 = (1 - al) / a0;
+              }
+              const yl = b0 * l + z1; z1 = b1 * l - a1 * yl + z2; z2 = b2 * l - a2 * yl; l = yl;
+              if (right) { const yr = b0 * r + y1; y1 = b1 * r - a1 * yr + y2; y2 = b2 * r - a2 * yr; r = yr; }
             }
             if (!right) {
               if (outR) { outL[i] += l * amp * panL; outR[i] += l * amp * panR; } else outL[i] += l * amp;
@@ -403,6 +510,9 @@ export default {
             pm *= slideBy;
             if (pl > 0) { pm *= pmul; pl--; }
           }
+          fOff[v] = fo; csLeft[v] = csl; vibPh[v] = vph; lfoPh[v] = lph;
+          fz[v * 4] = z1; fz[v * 4 + 1] = z2; fz[v * 4 + 2] = y1; fz[v * 4 + 3] = y2;
+          fk[v * 5] = b0; fk[v * 5 + 1] = b1; fk[v * 5 + 2] = b2; fk[v * 5 + 3] = a1; fk[v * 5 + 4] = a2;
           pos[v] = p; env[v] = e; skip[v] = 0; pitchMul[v] = pm; grainLeft[v] = gl; cutLeft[v] = cl; relLeft[v] = rl; portLeft[v] = pl; volMul[v] = vm; vsLeft[v] = vl;
         }
         cutAt.fill(Infinity);

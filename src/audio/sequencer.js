@@ -7,11 +7,12 @@ export const PAGE_TICKS = 1024;
 
 // Command table for a CCXXYY column: id -> parameter target, as flat arrays so
 // that playing a row does not allocate.
-function buildCommandTable(commands, presets = []) {
+function buildCommandTable(commands, presets = [], groups = {}) {
   const t = {
     presets: new Map(presets.map(p => [p.id, p])),   // preset id -> { slots, values, msgs }, recalled by command 00
-    slot: new Int32Array(256).fill(-1), min: new Float64Array(256), max: new Float64Array(256), log: new Uint8Array(256), int: new Uint8Array(256), fix: new Float64Array(256).fill(NaN) };   // fix: a command that writes one value whatever its value cell says
+    slot: new Int32Array(256).fill(-1), min: new Float64Array(256), max: new Float64Array(256), log: new Uint8Array(256), int: new Uint8Array(256), fix: new Float64Array(256).fill(NaN), reset: new Uint8Array(256), setting: new Uint8Array(256), groups };   // fix: a command that writes one value whatever its value cell says
   for (const c of commands) {
+    if (c.reset) t.reset[c.id] = c.reset; if (c.setting) t.setting[c.id] = c.setting === 'save' ? 1 : 2;
     t.slot[c.id] = c.slot; t.min[c.id] = c.min; t.max[c.id] = c.max; t.log[c.id] = c.log ? 1 : 0; t.int[c.id] = c.int ? 1 : 0; if (Number.isFinite(c.fixed)) t.fix[c.id] = c.fixed;
   }
   return t;
@@ -73,7 +74,7 @@ export class Sequencer {
   // lane = { id, instrument, columns, pages }. Messages are preallocated per lane
   // so that playing a row does not allocate.
   setLane({ id, instrument, columns, pages, mask }) {
-    const cols = columns.map(c => ({ ...c, table: c.commands ? buildCommandTable(c.commands, c.presets) : null }));
+    const cols = columns.map(c => ({ ...c, table: c.commands ? buildCommandTable(c.commands, c.presets, c.groups) : null }));
     const before = this.lanes.get(id);
     const fresh = {
       instrument, pages,
@@ -95,7 +96,7 @@ export class Sequencer {
     // A lane that is replaced while it plays (its machine was rewired, a column changed) keeps what it was sounding, so the
     // note-offs still find their notes; with a different set of note columns everything of that machine is let go instead.
     if (before && before.instrument === instrument) {
-      if (before.prev.length === fresh.prev.length) { fresh.prev.set(before.prev); fresh.notes.set(before.notes); fresh.vels.set(before.vels); fresh.muted = before.muted; }
+      if (before.prev.length === fresh.prev.length) { fresh.prev.set(before.prev); fresh.notes.set(before.notes); fresh.vels.set(before.vels); fresh.muted = before.muted; fresh.settings = before.settings; }
       else if (before.prev.some(n => n >= 0)) this.runtime.note(instrument, before.all);
     }
     this.lanes.set(id, fresh);
@@ -200,7 +201,15 @@ export class Sequencer {
         // Needs both halves: the command id and its value.
         const value = page[base + col.ch + 1];
         const id = decodeHex2(v), t = col.table;
-        if (t.slot[id] >= 0 && !Number.isNaN(t.fix[id])) { this.params[t.slot[id]] = t.fix[id]; this.touch(t.slot[id]); }   // e.g. F0: back to relative offsets
+        const inGroups = mask => Object.entries(t.groups).filter(([bit]) => mask & bit).flatMap(([, list]) => list);
+        if (t.reset[id]) { for (const g of inGroups(t.reset[id])) { this.params[g.slot] = g.value; this.touch(g.slot); } }   // Ax: back to the starting values
+        else if (t.setting[id] && value !== EMPTY) {   // 70 save, 71 load: xx the groups, yy the slot of 16
+          const x = decodeHex4(value), list = inGroups((x >> 8) & 255), slotNo = x & 15;
+          lane.settings ??= [];
+          if (t.setting[id] === 1) lane.settings[slotNo] = list.map(g => [g.slot, this.params[g.slot]]);
+          else for (const [slot, val] of lane.settings[slotNo] ?? []) if (list.some(g => g.slot === slot)) { this.params[slot] = val; this.touch(slot); }
+        }
+        else if (t.slot[id] >= 0 && !Number.isNaN(t.fix[id])) { this.params[t.slot[id]] = t.fix[id]; this.touch(t.slot[id]); }   // e.g. F0: back to relative offsets
         else if (value !== EMPTY && t.slot[id] >= 0) {
           // 0003 is wave 3 for a whole-number target; otherwise the value runs across the range.
           if (t.int[id] === 1) { this.params[t.slot[id]] = Math.min(t.max[id], t.min[id] + decodeHex4(value)); this.touch(t.slot[id]); }
