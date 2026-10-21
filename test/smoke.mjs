@@ -6232,6 +6232,11 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   let r = run("tbin('x... x.x.', 'C-3')");
   assert.ok(r.ok); assert.equal(cells(r), '0:0=C-3 4:0=C-3 6:0=C-3 8:0=C-3 12:0=C-3 14:0=C-3');
   assert.match(r.echo[0], /^N1 0-14: x\.\.\. x\.x\./);
+  // a '.' empties its cell (note and velocity); keep: true leaves what is there
+  { const full = Array.from({ length: 16 }, () => ['E-4', '40', '...', '..', '..']);
+    const go = code => execute({ code, pattern: { name: 'p', lane: 'l', instrument: 'i', columns: cols, rows: full } });
+    assert.equal(cells(go("tbin('x...', 'C-3', { loop: false })")), '0:0=C-3 1:0=... 1:1=.. 2:0=... 2:1=.. 3:0=... 3:1=..', 'rests blank the cells they cover');
+    assert.equal(cells(go("tbin('x...', 'C-3', { loop: false, keep: true })")), '0:0=C-3', 'keep: true leaves them'); }
   // a step of 8 puts the characters 8 rows apart; loop off writes the string once
   assert.equal(cells(run("tbin('x.x.', 'C-3', { step: 4, loop: false })")), '0:0=C-3 8:0=C-3');
   assert.equal(cells(run("step(8); tbin('xx', 'C-3')")), '0:0=C-3 8:0=C-3');

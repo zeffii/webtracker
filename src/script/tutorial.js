@@ -11,7 +11,7 @@ A script writes notes and values into the **pattern under the cursor** in the pa
 3. **Ctrl+Alt+R** in the pattern editor runs the whole script on that pattern without switching tabs.
 
 ### Notes from bit patterns
-\`x\` is a hit, \`.\` is a rest, spaces are ignored. The pattern repeats down the whole selection.
+\`x\` is a hit, \`.\` is a rest and empties its cell (add \`keep: true\` in the options to leave what is there), spaces are ignored. The pattern repeats down the whole selection.
 
 \`\`\`
 tbin('x... x... x... x...', 'C-2')

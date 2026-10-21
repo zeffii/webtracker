@@ -228,9 +228,10 @@ export function execute(req) {
       const row = at + i * step;
       if (row > to) break;
       const s = steps[i % steps.length];
-      if (!s.hit) continue;
+      const rest = () => { if (o.keep) return; for (const k of used) { put(row, k, KINDS.note.blank); if (velOf(k) >= 0) put(row, velOf(k), KINDS['2hex'].blank); } };   // a '.' empties the cell, unless keep: true
+      if (!s.hit) { rest(); continue; }
       const n = designed++;
-      if ((s.chance !== undefined && rand() >= s.chance) || (o.prob !== undefined && rand() >= o.prob)) continue;
+      if ((s.chance !== undefined && rand() >= s.chance) || (o.prob !== undefined && rand() >= o.prob)) { rest(); continue; }
       const toks = voices ? voices.map(l => l[n % l.length]) : chords[n % chords.length];
       toks.forEach((tok, k) => {
         if (tok === '...') return;
