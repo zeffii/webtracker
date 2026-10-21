@@ -9,6 +9,56 @@
   "info": "Interstellar travel: a two minute soundscape, made only from webtracker nodes. 120 bpm, 62 bars.\n\nshep   a Shepard tone: an additive synth with only the octave partials lit rises six octaves in two minutes (an lfo on its pitch input) while two fixed band-pass filters are the window, so it climbs and never gets higher.\npad    the chords of the demo song (Em7, Dmaj7, Cmaj7, Am11, Bm7, Cmaj7, Em9, a second pass that swells higher, a breath on a long Em9, a third pass that builds to the biggest swells, and a long Em9 to end), six voices each, the outer notes quieter so the shape fades at both ends.\nsub    a sine under each chord.\nwind   pink noise through a band-pass an lfo breathes, in a big hall, widened with the spectral panner.\nrise   noise through a high-pass that climbs five octaves while it swells; a Shiva delay takes hold as it climbs (an envelope opens its mix and feedback), so the pattern goes on, wide, when the swell cuts, into a long shimmer tail (23 s, 31 s, 55 s, 95 s, 103 s and 119 s).\ntick   a clock every 1.25 s, always the same tick.\nstars  chord tones two octaves up, soft, through two echoes (dotted eighth and a quarter) and a shimmer; one melodic pattern per chord, denser in the second half.\nping   incidental: a glassy blip through a drifting band-pass, taps and a shimmer, from a third of the way in.\ndust   incidental: clusters of crackle in a long slow echo (its length drifts), only in the second half.\n\nEvery lane is built from short patterns cut where the notes start, and the same pattern is placed again where the music repeats.\n\ndepth  depth charges at the tops of the swells: a sine that falls from high to deep while an envelope drains it, through a lowpass and a long hall.\narp    from just before the middle, an arpeggio of each chord that starts out muted (its filter nearly shut, resonant) and quickens from quarters to sixteenths as the filter opens, then drowns in two choruses in series. Every one of those moves is written in the pattern columns (Cut, Res, Mix, Dep, Mx2)."
  },
  "instruments": {
+  "master": {
+   "graph": {
+    "nodes": [
+     {
+      "id": "m",
+      "type": "tempo",
+      "x": 40,
+      "y": 108,
+      "params": {
+       "bpm": 120,
+       "swing": 50,
+       "tpb": 4,
+       "volume": 1
+      }
+     },
+     {
+      "id": "out",
+      "type": "out",
+      "x": 240,
+      "y": 108
+     }
+    ],
+    "connections": []
+   },
+   "noteColumns": 0,
+   "exposed": [
+    {
+     "node": "m",
+     "param": "bpm",
+     "label": "BPM",
+     "bits": 16
+    },
+    {
+     "node": "m",
+     "param": "swing",
+     "label": "Swg"
+    },
+    {
+     "node": "m",
+     "param": "tpb",
+     "label": "TPB"
+    },
+    {
+     "node": "m",
+     "param": "volume",
+     "label": "Vol"
+    }
+   ],
+   "commands": []
+  },
   "shep": {
    "graph": {
     "nodes": [
@@ -22,7 +72,9 @@
        "min": 0,
        "max": 6,
        "reset": 1
-      }
+      },
+      "x": 20,
+      "y": 30
      },
      {
       "id": "synth",
@@ -74,7 +126,9 @@
         0,
         1
        ]
-      }
+      },
+      "x": 170,
+      "y": 30
      },
      {
       "id": "win1",
@@ -83,7 +137,9 @@
        "cutoff": 420,
        "resonance": 0.12,
        "mode": 1
-      }
+      },
+      "x": 320,
+      "y": 30
      },
      {
       "id": "win2",
@@ -92,7 +148,9 @@
        "cutoff": 420,
        "resonance": 0.12,
        "mode": 1
-      }
+      },
+      "x": 470,
+      "y": 30
      },
      {
       "id": "hall",
@@ -106,7 +164,9 @@
        "shimmer": 0.45,
        "tone": 0.5,
        "mix": 0.4
-      }
+      },
+      "x": 620,
+      "y": 30
      },
      {
       "id": "wide",
@@ -116,14 +176,18 @@
        "spread": 0.5,
        "lowMono": 120,
        "rotate": 0.1
-      }
+      },
+      "x": 770,
+      "y": 30
      },
      {
       "id": "out",
       "type": "out",
       "params": {
        "gain": 1.5
-      }
+      },
+      "x": 920,
+      "y": 30
      }
     ],
     "connections": [
@@ -185,11 +249,15 @@
        "rel": 3200,
        "vel": 0.5,
        "level": 0.22
-      }
+      },
+      "x": 20,
+      "y": 108
      },
      {
       "id": "poly",
-      "type": "voices"
+      "type": "voices",
+      "x": 170,
+      "y": 108
      },
      {
       "id": "chorus",
@@ -198,7 +266,9 @@
        "rate": 0.25,
        "depth": 6,
        "mix": 0.4
-      }
+      },
+      "x": 320,
+      "y": 108
      },
      {
       "id": "hall",
@@ -212,14 +282,18 @@
        "shimmer": 0.3,
        "tone": 0.5,
        "mix": 0.35
-      }
+      },
+      "x": 470,
+      "y": 108
      },
      {
       "id": "out",
       "type": "out",
       "params": {
        "gain": 0.5
-      }
+      },
+      "x": 620,
+      "y": 108
      }
     ],
     "connections": [
@@ -304,7 +378,9 @@
       "params": {
        "wave": 0,
        "reset": 0
-      }
+      },
+      "x": 20,
+      "y": 80
      },
      {
       "id": "env",
@@ -314,18 +390,24 @@
        "decay": 600,
        "sustain": 1,
        "release": 3000
-      }
+      },
+      "x": 20,
+      "y": 160
      },
      {
       "id": "vca",
-      "type": "gain"
+      "type": "gain",
+      "x": 170,
+      "y": 80
      },
      {
       "id": "out",
       "type": "out",
       "params": {
        "gain": 0.055
-      }
+      },
+      "x": 320,
+      "y": 80
      }
     ],
     "connections": [
@@ -476,7 +558,9 @@
        "tilt": 0,
        "restart": 1,
        "level": 0.8
-      }
+      },
+      "x": 20,
+      "y": 30
      },
      {
       "id": "sweep",
@@ -487,7 +571,9 @@
        "sustain": 0,
        "release": 200,
        "amount": 5
-      }
+      },
+      "x": 20,
+      "y": 110
      },
      {
       "id": "hp",
@@ -496,7 +582,9 @@
        "cutoff": 250,
        "resonance": 0.25,
        "mode": 2
-      }
+      },
+      "x": 170,
+      "y": 30
      },
      {
       "id": "swell",
@@ -506,11 +594,15 @@
        "decay": 1,
        "sustain": 1,
        "release": 150
-      }
+      },
+      "x": 20,
+      "y": 190
      },
      {
       "id": "vca",
-      "type": "gain"
+      "type": "gain",
+      "x": 320,
+      "y": 30
      },
      {
       "id": "tide",
@@ -521,7 +613,9 @@
        "sustain": 1,
        "release": 5000,
        "amount": 1
-      }
+      },
+      "x": 20,
+      "y": 270
      },
      {
       "id": "echo",
@@ -557,7 +651,9 @@
         0.32,
         0.9
        ]
-      }
+      },
+      "x": 470,
+      "y": 30
      },
      {
       "id": "tail",
@@ -572,7 +668,9 @@
        "tone": 0.5,
        "width": 1,
        "mix": 0.65
-      }
+      },
+      "x": 620,
+      "y": 30
      },
      {
       "id": "wide",
@@ -582,14 +680,18 @@
        "spread": 0.8,
        "lowMono": 150,
        "rotate": 0.3
-      }
+      },
+      "x": 770,
+      "y": 30
      },
      {
       "id": "out",
       "type": "out",
       "params": {
        "gain": 0.22
-      }
+      },
+      "x": 920,
+      "y": 30
      }
     ],
     "connections": [
@@ -1069,7 +1171,9 @@
        "tilt": 3,
        "restart": 1,
        "level": 1
-      }
+      },
+      "x": 20,
+      "y": 80
      },
      {
       "id": "band",
@@ -1078,7 +1182,9 @@
        "cutoff": 4200,
        "resonance": 0.55,
        "mode": 1
-      }
+      },
+      "x": 170,
+      "y": 80
      },
      {
       "id": "env",
@@ -1089,11 +1195,15 @@
        "sustain": 0,
        "release": 8,
        "vel": 1
-      }
+      },
+      "x": 20,
+      "y": 160
      },
      {
       "id": "vca",
-      "type": "gain"
+      "type": "gain",
+      "x": 320,
+      "y": 80
      },
      {
       "id": "drift",
@@ -1104,7 +1214,9 @@
        "range": 1,
        "min": 0.25,
        "max": 0.95
-      }
+      },
+      "x": 20,
+      "y": 240
      },
      {
       "id": "echo",
@@ -1133,7 +1245,9 @@
         0.45,
         0.6
        ]
-      }
+      },
+      "x": 470,
+      "y": 80
      },
      {
       "id": "hall",
@@ -1144,7 +1258,9 @@
        "damp": 0.5,
        "predelay": 25,
        "mix": 0.5
-      }
+      },
+      "x": 620,
+      "y": 80
      },
      {
       "id": "wide",
@@ -1154,14 +1270,18 @@
        "spread": 0.8,
        "lowMono": 300,
        "rotate": 0.2
-      }
+      },
+      "x": 770,
+      "y": 80
      },
      {
       "id": "out",
       "type": "out",
       "params": {
        "gain": 0.6
-      }
+      },
+      "x": 920,
+      "y": 80
      }
     ],
     "connections": [
@@ -1307,31 +1427,38 @@
       "params": {
        "wave1": 0,
        "wave2": 1,
-       "osc2": 0.55,
+       "osc2": 0.49586647948837936,
        "detune": 9,
        "unison": 3,
-       "spread": 18,
+       "spread": 10.567774138199969,
        "width": 0.8,
        "cutoff": 90,
        "res": 0.5,
-       "drive": 0.1,
+       "drive": 0.06660427390422712,
        "fenv": 1.4,
-       "keytrack": 0.6,
-       "fatk": 1,
-       "fdec": 260,
-       "fsus": 0.15,
-       "frel": 200,
+       "keytrack": 0.7803774762127593,
+       "fatk": 1.2895131089003156,
+       "fdec": 40.986217020875046,
+       "fsus": 0.5208235844642022,
+       "frel": 62.499999999999986,
        "atk": 2,
-       "dec": 240,
-       "sus": 0.3,
-       "rel": 260,
+       "dec": 84.43272703561553,
+       "sus": 0.2462954297301513,
+       "rel": 499.9999999999998,
        "vel": 0.6,
-       "level": 0.24
-      }
+       "level": 0.24,
+       "noise": 0.22632974574949305,
+       "pw": 0.3300655124005615,
+       "glide": 3.4316019341756356
+      },
+      "x": 20,
+      "y": 124
      },
      {
       "id": "poly",
-      "type": "voices"
+      "type": "voices",
+      "x": 170,
+      "y": 124
      },
      {
       "id": "chorus",
@@ -1343,7 +1470,9 @@
        "voices": 4,
        "width": 1,
        "mix": 0.1
-      }
+      },
+      "x": 320,
+      "y": 124
      },
      {
       "id": "chorus2",
@@ -1355,7 +1484,9 @@
        "voices": 4,
        "width": 1,
        "mix": 0
-      }
+      },
+      "x": 470,
+      "y": 124
      },
      {
       "id": "hall",
@@ -1369,13 +1500,29 @@
        "shimmer": 0.25,
        "tone": 0.5,
        "mix": 0.3
-      }
+      },
+      "x": 628,
+      "y": 215
      },
      {
       "id": "out",
       "type": "out",
       "params": {
        "gain": 0.5
+      },
+      "x": 782,
+      "y": 200
+     },
+     {
+      "id": "specpan1",
+      "type": "specpan",
+      "x": 447,
+      "y": 220,
+      "params": {
+       "spread": 0.39104663858992356,
+       "rotate": 0.9201372640773671,
+       "rate": 5.025737014506317,
+       "sweep": 0.8320074871314928
       }
      }
     ],
@@ -1393,12 +1540,16 @@
       "chorus2.in"
      ],
      [
-      "chorus2.out",
-      "hall.in"
-     ],
-     [
       "hall.out",
       "out.in"
+     ],
+     [
+      "chorus2.out",
+      "specpan1.in"
+     ],
+     [
+      "specpan1.out",
+      "hall.in"
      ]
     ],
     "voices": 6
@@ -1436,6 +1587,12 @@
  },
  "samples": {},
  "lanes": [
+  {
+   "id": "master",
+   "instrument": "master",
+   "patterns": {},
+   "placements": []
+  },
   {
    "id": "shep",
    "instrument": "shep",

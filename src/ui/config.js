@@ -10,13 +10,14 @@ export const THEMES = ['system', 'dark', 'black', 'bright', 'neon', 'amber', 'ph
 export const GROUPS = {
   Look: 'Colours and sizes. Applied at once.',
   Playing: 'How the grids behave while the song runs.',
+  Graph: 'The colours of the wires and ports in the graph view, by what they carry. Hover a wire to see its kind in the status line under the graph.',
   Editing: 'Defaults for solo-edit, lanes and inserting silence.',
   Sample: 'Post-transient resynthesis (right click in the sample display): the attack stays a real sample and the rest is rebuilt from synth branches.',
   Console: 'Press | in the pattern editor or the arrangement for a one-line command box. Each rule says what you type and what it does; a rule that is wrong, or that could match the same typing as another, is switched off until you fix it.',
   MIDI: 'A MIDI keyboard plays the machine under the cursor, enters notes in the pattern editor and records into patterns while the song plays (Rec, Ctrl+Shift+R). Chrome and Edge only.',
 };
 
-// type: bool | int | choice. `legacy` is the older single-purpose localStorage key, read once to carry settings over.
+// type: bool | int | choice | colour (a #rrggbb string) | rules. `legacy` is the older single-purpose localStorage key, read once to carry settings over.
 export const SCHEMA = [
   { group: 'Look', key: 'theme', label: 'Colour theme', type: 'choice', options: THEMES, def: 'system', legacy: ['webtracker.theme', v => v] },
   { key: 'splash', label: 'First screen', hint: 'only a "click to initialize" button at first, then the tracker (off: the tracker with its Start button)', type: 'bool', def: true },
@@ -26,6 +27,10 @@ export const SCHEMA = [
   { key: 'followRoam', label: 'Allow the caret to roam while following', hint: 'moving the caret to another row pauses the following until F9 or the Follow button', type: 'bool', def: true },
   { key: 'playhead', label: 'Playhead', type: 'choice', options: ['marker', 'line', 'band'], labels: { marker: 'a > in the tick column and a bold row', line: 'a thin red line across the grid', band: 'a faint band across the row' }, def: 'band' },
   { key: 'notePreview', label: 'Note preview', hint: 'typed notes sound in the pattern editor', type: 'bool', def: false, legacy: ['patternPreview', v => v === '1'] },
+  { group: 'Graph', key: 'wireAudio', label: 'Wire colour: audio', hint: 'a mono audio signal', type: 'colour', def: '#5e94c9' },
+  { key: 'wireControl', label: 'Wire colour: control', hint: 'envelopes, lfos and triggers', type: 'colour', def: '#e09429' },
+  { key: 'wireStereo', label: 'Wire colour: stereo', hint: 'a left and right pair on one wire', type: 'colour', def: '#b177c5' },
+  { key: 'wireParam', label: 'Wire colour: parameter', hint: 'a control signal that drives a parameter port', type: 'colour', def: '#f4857b' },
   { group: 'Editing', key: 'wireStraight', label: 'Graph: wires between close nodes go straight', hint: 'below this distance (in pixels) the wire loses its S-curve and becomes a straight line, easing in up to twice that; 0 keeps every wire curved', type: 'int', min: 0, max: 400, def: 60 },
   { group: 'Editing', key: 'graphPullOut', label: 'Graph: dragging a node far out of its chain takes it out', hint: 'the dashed line; off keeps every wire when you move a node (Esc during a drag does the same once)', type: 'bool', def: true },
   { group: 'Editing', key: 'laneWrap', label: 'Left and Right wrap round the ends', hint: 'off: the caret stops at the first and last column; on: Left on the first column goes to the last lane\'s last column, and Right on that one goes back to the start', type: 'bool', def: false },
@@ -83,6 +88,7 @@ const byKey = Object.fromEntries(SCHEMA.map(s => [s.key, s]));
 // Turns anything into a valid value for the setting, or its default.
 const clean = (s, v) => {
   if (s.type === 'bool') return typeof v === 'boolean' ? v : s.def;
+  if (s.type === 'colour') return typeof v === 'string' && /^#[0-9a-f]{6}$/i.test(v) ? v.toLowerCase() : s.def;
   if (s.type === 'rules') return typeof v === 'string' && v.length <= 8000 ? v : s.def;
   if (s.type === 'int') { const n = Math.round(Number(v)); return Number.isFinite(n) ? Math.max(s.min, Math.min(s.max, n)) : s.def; }
   return s.options.includes(v) ? v : s.def;

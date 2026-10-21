@@ -6745,4 +6745,11 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   click({ f: 'volume', bar: '1' }, { clientX: 50 });
   assert.ok(Math.abs(project.samples.tick.volume - 0.5 * 1) < 1 || true);
 }
+// 104. Wire colours are settings: a #rrggbb string, anything else falls back to the default.
+{
+  assert.equal(uiConfig.get('wireAudio'), '#5e94c9');
+  uiConfig.set('wireAudio', '#FF0000'); assert.equal(uiConfig.get('wireAudio'), '#ff0000');
+  uiConfig.set('wireAudio', 'red'); assert.equal(uiConfig.get('wireAudio'), '#5e94c9', 'a bad colour is the default');
+  console.log('ok: wire colours');
+}
 console.log('smoke test passed');

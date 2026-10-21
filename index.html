@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="themes.css">
-  <title>webtracker m274</title>
+  <title>webtracker m275</title>
   <link rel="icon" href="icon.ico" sizes="any">
   <link rel="icon" type="image/png" href="icon.png">
   <style>
@@ -290,7 +290,14 @@
     body.nokeys #pane-arrange .keys { display: block; }   /* in the arrangement the pattern list stays; only the shortcuts go */
     body.nokeys #pane-arrange .keys > :not(#seq-side) { display: none; }
     body.nokeys .pane.keyed:not([hidden]) { grid-template-columns: minmax(0, 1fr); }
-    body.nokeys #pane-arrange:not([hidden]) { grid-template-columns: minmax(0, 1fr) 20rem; }
+    #pane-arrange { --side-w: 20rem; position: relative; }
+    body.nokeys #pane-arrange:not([hidden]), #pane-arrange.keyed:not([hidden]) { grid-template-columns: minmax(0, 1fr) var(--side-w); }
+    body #pane-arrange.noside:not([hidden]) { grid-template-columns: minmax(0, 1fr) 0; gap: 0; }
+    #pane-arrange.noside .keys { display: none !important; }
+    #side-grip { position: absolute; top: .5rem; bottom: 2rem; right: calc(.75rem + var(--side-w) + .5rem - 5px); width: 10px; cursor: col-resize; z-index: 3; border-radius: 3px; touch-action: none; }
+    #pane-arrange.noside #side-grip { right: .1rem; width: 12px; background: color-mix(in srgb, var(--fg) 25%, transparent); }
+    #side-grip:hover, #side-grip.dragging { background: color-mix(in srgb, var(--fg) 30%, transparent); }
+    #pane-arrange[hidden] #side-grip { display: none; }
     .keys dl { display: grid; grid-template-columns: max-content 1fr; gap: .2rem .8rem; margin: 0; }
     .keys dt { color: #f0707a; }
     .keys dd { margin: 0; color: color-mix(in srgb, var(--fg) 68%, var(--panel)); }
@@ -794,6 +801,7 @@
   </section>
 
   <section id="pane-arrange" class="pane keyed" hidden>
+    <div id="side-grip" tabindex="0" role="separator" aria-orientation="vertical" aria-label="Width of the pattern list: drag, or use Left and Right; double-click to hide or show it" title="Drag to change the width of the pattern list (all the way right hides it); double-click to hide or show"></div>
     <div class="pane-main">
       <pre id="seq" tabindex="0"></pre>
       <div id="seq-status" class="statusbar"></div>
@@ -842,7 +850,9 @@
           <dt>F9</dt><dd><b class="kw">follow</b> the song: the rows scroll with the playing row (highlighted). Moving the caret to another row <b class="kw">pauses</b> the following; F9 follows again</dd>
           <dt>Ctrl+Z, Ctrl+Y</dt><dd><b class="kw">undo</b>, redo</dd>
           <dt>O, Ctrl+1</dt><dd>put a note-off marker on this row (again to <b class="kw">remove</b> it): the lane lets go of what is sounding there, for patterns that end without a <b class="kw">note off</b></dd>
-          <dt>Ctrl+B, Ctrl+E</dt><dd>start the <b class="kw">loop</b> at this row, end it at the start of this row, so this row is the first one after the loop (again on the same row to take it away); <b class="kw">play</b> starts at the loop and repeats it. Ctrl+L switches the loop <b class="kw">off</b> and on, keeping its points</dd>
+          <dt>Ctrl+B, Ctrl+E</dt><dd>start the <b class="kw">loop</b> at this row, end it at the start of this row, so this row is the first one after the loop (again on the same row to take it away); <b class="kw">play</b> starts at the loop and repeats it. L (or Ctrl+L) switches the loop <b class="kw">off</b> and on, keeping its points</dd>
+          <dt>Click a tick number</dt><dd>puts the <b class="kw">playhead</b> on that tick (the row's height is its ticks): while playing it jumps there, stopped it <b class="kw">plays</b> from there</dd>
+          <dt>Double-click a pattern</dt><dd>open it in the pattern editor (Ctrl+double-click: <b class="kw">solo-edit</b>)</dd>
           <dt>W, Shift+W</dt><dd>set a <b class="kw">waypoint</b>, restore it</dd>
           <dt>M</dt><dd><b class="kw">mute</b> the lane from this row until the next M further down (shown dimmed, with &lt;<b class="kw">mute</b>&gt; and &lt;play&gt; cells marking the changes)</dd>
           <dt>Shift+M</dt><dd><b class="kw">silence</b> the whole lane, whatever its marks say; again to bring it back</dd>

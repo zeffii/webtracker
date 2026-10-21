@@ -105,6 +105,7 @@ export class Sequencer {
 
   // From a tick when one is given; otherwise from the start of the loop, or of the song.
   play(from = null) {
+    if (this.playing) this.releaseAll();   // jumping while playing: what rings is let go first
     this.resetTempo();
     this.preview = 0;
     this.tick = from !== null && from >= 0 && from < this.song.length ? from : this.song.loop ? loopRange(this.song).start : 0;

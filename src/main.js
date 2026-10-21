@@ -207,6 +207,7 @@ const seqView = createSequenceView({
   el: $('seq'), statusEl: $('seq-status'), listEl: $('seq-list'), transport: engine.transport, onToggle: togglePlay,
   onOpen: (lane, tick, { solo = false } = {}) => { if (!solo || !view.enterSolo(lane, tick)) view.goto(lane, tick); tabs.show('patterns'); },
   onMove: (lane, tick) => { view.goto(lane, tick); followLane(lane); },
+  onSeek: tick => { if (!started) return; if (playing) engine.play(tick); else setPlaying(true, tick); },
   onSong: () => songChanged(),
 });
 
@@ -347,6 +348,32 @@ const patcher = createPatcher({
 // the rest of the screen follows. The choices are remembered in this browser.
 // The graph fills the space between the list and the shortcut panel.
 if (globalThis.ResizeObserver) new ResizeObserver(() => { const w = $('patch-wrap').clientWidth; if (w > 0) patcher.fit(w - 2); }).observe($('patch-wrap'));
+// The arrangement's pattern list: drag the bar between it and the sequence (all the way right hides it; double-click toggles).
+{
+  const pane = $('pane-arrange'), grip = $('side-grip'), DEFAULT = 320;
+  let w = DEFAULT;
+  try { const n = localStorage.getItem('webtracker.sideWidth'); if (n !== null) w = Number(n); } catch {}
+  const apply = n => {
+    w = Math.max(0, Math.min(700, Math.round(n)));
+    if (w < 70) w = 0;
+    pane.classList.toggle('noside', w === 0);
+    if (w) pane.style.setProperty('--side-w', `${w}px`);
+    try { localStorage.setItem('webtracker.sideWidth', String(w)); } catch {}
+    try { seqView.draw(); } catch {}
+  };
+  grip.addEventListener('pointerdown', e => {
+    grip.setPointerCapture?.(e.pointerId); grip.classList.add('dragging'); e.preventDefault();
+    const move = ev => { const r = pane.getBoundingClientRect(); apply(r.right - 12 - 8 - ev.clientX); };
+    const up = () => { grip.classList.remove('dragging'); grip.removeEventListener('pointermove', move); grip.removeEventListener('pointerup', up); grip.removeEventListener('pointercancel', up); };
+    grip.addEventListener('pointermove', move); grip.addEventListener('pointerup', up); grip.addEventListener('pointercancel', up);
+  });
+  grip.addEventListener('dblclick', () => apply(w ? 0 : DEFAULT));
+  grip.addEventListener('keydown', e => {
+    const d = { ArrowLeft: 1, ArrowRight: -1 }[e.key]; if (!d) return;
+    apply((w || 0) + d * (e.shiftKey ? 60 : 20)); e.preventDefault();
+  });
+  apply(w);
+}
 attachGrip({ grip: $('patch-grip'), key: 'webtracker.graphHeight', get: () => patcher.height, set: h => patcher.resize(h), step: 20, bigStep: 100, normal: 460 });
 attachGrip({ grip: $('view-grip'), key: 'webtracker.patternRows', get: () => view.rows, set: n => view.setRows(n), unit: () => view.lineHeight(), step: 1, bigStep: 8, normal: 24 });
 attachGrip({ grip: $('seq-grip'), key: 'webtracker.arrangementRows', get: () => seqView.rows, set: n => seqView.setRows(n), unit: () => 18, step: 1, bigStep: 8, normal: 24 });
@@ -690,6 +717,9 @@ $('inst-file').addEventListener('change', async e => {
         for (const o of s.options) input.append(Object.assign(document.createElement('option'), { value: o, textContent: s.labels?.[o] ?? o }));
         input.value = config.get(s.key);
         input.addEventListener('change', () => config.set(s.key, input.value));
+      } else if (s.type === 'colour') {
+        input = Object.assign(document.createElement('input'), { type: 'color', value: config.get(s.key) });
+        input.addEventListener('input', () => config.set(s.key, input.value));
       } else {
         input = Object.assign(document.createElement('input'), { type: s.type === 'bool' ? 'checkbox' : 'number' });
         if (s.type === 'int') Object.assign(input, { min: s.min, max: s.max });

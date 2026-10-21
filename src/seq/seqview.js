@@ -16,7 +16,7 @@ const hex2 = n => n.toString(16).toUpperCase().padStart(2, '0');
 // column. The cursor sits on a row; edits happen at the row's start, or at the start of a
 // pattern that begins inside it. A pattern is a block that starts with its index and name; a later
 // pattern covers the ones under it. Keyboard-driven.
-export function createSequenceView({ el, statusEl, listEl, transport, onToggle, onOpen, onMove, onSong = () => {}, follow = () => false }) {
+export function createSequenceView({ el, statusEl, listEl, transport, onToggle, onOpen, onMove, onSeek, onSong = () => {}, follow = () => false }) {
   let lanes = null, len = 0, editor = null, song = null;
   const cur = { lane: 0, tick: 0 };
   let typed = '', message = '';
@@ -167,8 +167,27 @@ export function createSequenceView({ el, statusEl, listEl, transport, onToggle, 
     const ri = Array.prototype.indexOf.call(el.children, rowEl) - 1, li = Array.from(rowEl.querySelectorAll('.cell')).indexOf(cell);
     return ri < 0 || li < 0 ? null : { lane: li, tick: (top + ri) * CELL };
   };
+  // The tick column: a click there puts the playhead on that tick (the row's height covers its ticks), and plays from it
+  // when the song is stopped.
+  const tickAt = e => {
+    const rowEl = e.target?.closest?.('.r');
+    if (!rowEl || e.target.closest('.cell')) return null;
+    const ri = Array.prototype.indexOf.call(el.children, rowEl) - 1, first = rowEl.querySelector('.cell');
+    if (ri < 0 || !first || e.clientX >= first.getBoundingClientRect().left || (top + ri) * CELL >= len) return null;
+    const box = rowEl.getBoundingClientRect(), f = Math.min(0.999, Math.max(0, (e.clientY - box.top) / box.height));
+    return Math.min(len - 1, (top + ri) * CELL + Math.floor(f * CELL));
+  };
   el.addEventListener('mousedown', e => {
     if (!lanes || e.button !== 0) return;
+    const at = onSeek ? tickAt(e) : null;
+    if (at !== null) {
+      e.preventDefault(); el.focus?.();
+      cur.tick = rowStart(at); sel = null; typed = '';
+      message = `Playing from tick ${at}.`;
+      onMove?.(cur.lane, cur.tick);
+      onSeek(at);
+      return;
+    }
     const hit = pointed(e);
     if (!hit) return;
     Object.assign(cur, hit);
@@ -185,6 +204,11 @@ export function createSequenceView({ el, statusEl, listEl, transport, onToggle, 
     sel = hit.lane === dragging.lane && hit.tick === dragging.tick ? null : { ...dragging };
     Object.assign(cur, hit);
     onMove?.(cur.lane, cur.tick);
+  });
+  // Double-click a pattern: open it in the pattern editor (Ctrl+double-click: on its own, solo-edit).
+  el.addEventListener('dblclick', e => {
+    if (!lanes || e.button !== 0 || !pointed(e)) return;
+    if (here()) onOpen(cur.lane, editTick(), { solo: e.ctrlKey || e.metaKey });
   });
   const stopDrag = () => { dragging = null; };
   el.addEventListener('mouseup', stopDrag);
@@ -320,6 +344,7 @@ export function createSequenceView({ el, statusEl, listEl, transport, onToggle, 
         if (here()) onOpen(li, t);
         else act('insert a pattern', editor.insertPattern(li, t), 'Pattern inserted.');
         break;
+      case 'l': message = toggleLoop(song); onSong(); break;   // L: the loop on or off (Ctrl+L too, where the browser lets it through)
       case 'i': act('insert a pattern', editor.insertPattern(li, t, { overlay: true }), 'Pattern inserted.'); break;
       case 'n': act('clone', editor.clone(li, t), 'Cloned: this placement now has its own copy.'); break;
       case 's': act('slice', editor.slice(li, t), 'Sliced.'); break;

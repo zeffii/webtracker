@@ -84,7 +84,14 @@ const inside = (node, def, x, y) => {
 
 // Wire and port colours by what the signal is: audio, or control (envelopes, lfos, triggers).
 export { portKind };
-export const KIND_COLOR = { audio: 'hsl(210 50% 58%)', control: 'hsl(35 75% 52%)', stereo: 'hsl(285 40% 62%)', param: 'hsl(5 85% 72%)' };
+export const KIND_COLOR = { audio: '#5e94c9', control: '#e09429', stereo: '#b177c5', param: '#f4857b' };   // the defaults; Config's Graph group changes them
+const kindColour = kind => config.get(`wire${kind[0].toUpperCase()}${kind.slice(1)}`) ?? KIND_COLOR[kind];
+const KIND_TEXT = {
+  audio: 'audio: a mono signal',
+  control: 'control: an envelope, lfo or trigger signal',
+  stereo: 'stereo audio: left and right travel on this one wire',
+  param: 'parameter control: a 0 to 1 signal mapped onto a parameter',
+};
 
 // How far the wire leaves a port before it bends: 50 px normally, shrinking to nothing as the two ends come within
 // Config's wireStraight distance of each other (fully straight at that distance, full arms at twice it).
@@ -625,6 +632,28 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
     dirty = true;
   });
 
+  // Hovering a wire or a port says what it carries in the status line under the graph.
+  let hoverText = '';
+  canvas.addEventListener('mousemove', e => {
+    if (drag) return;
+    let text = '';
+    const h = hitTest(desc(), nodeTypes, e.offsetX, e.offsetY);
+    if (h?.kind === 'link' || h?.kind === 'port') {
+      const { kindOf } = resolveKinds(desc(), nodeTypes);
+      if (h.kind === 'link') {
+        const link = desc().connections[h.index], a = desc().nodes.find(n => n.id === link[0].split('.')[0]);
+        text = `Wire ${link[0]} to ${link[1]}, ${KIND_TEXT[kindOf(a, link[0].split('.')[1])]}`;
+      } else {
+        const node = desc().nodes.find(n => n.id === h.node);
+        text = `${h.side === 'in' ? 'Input' : 'Output'} ${h.node}.${h.port}, ${KIND_TEXT[kindOf(node, h.port)]}`;
+      }
+    }
+    if (text) { hoverText = text; say(text); }
+    else if (hoverText) { if (statusEl?.textContent === hoverText) say(''); hoverText = ''; }
+  });
+  config.onChange?.(k => { if (k.startsWith('wire')) dirty = true; });
+  canvas.addEventListener('mouseleave', () => { if (hoverText && statusEl?.textContent === hoverText) say(''); hoverText = ''; });
+
   canvas.addEventListener('mousemove', e => {
     if (!drag) return;
     if (drag.kind === 'move') {
@@ -961,7 +990,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
       const hot = drag?.kind === 'move' && drag.hover === i;
       const chosen = hot || (selected?.kind === 'link' && selected.index === i);
       ctx.beginPath();
-      ctx.strokeStyle = chosen ? accent : KIND_COLOR[kind];
+      ctx.strokeStyle = chosen ? accent : kindColour(kind);
       ctx.lineWidth = hot ? 5 : chosen ? 3.5 : kind === 'stereo' ? 3 : 1.75;   // a stereo pair is drawn heavier
       ctx.moveTo(a.x, a.y);
       { const k = arm(a, b); ctx.bezierCurveTo(a.x + k, a.y, b.x - k, b.y, b.x, b.y); }
@@ -1034,7 +1063,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
           const p = portPos(node, type, side, i);
           ctx.beginPath();
           ctx.arc(p.x, p.y, PORT_R, 0, 2 * Math.PI);
-          ctx.fillStyle = KIND_COLOR[kindOf(node, name)];
+          ctx.fillStyle = kindColour(kindOf(node, name));
           ctx.fill();
           ctx.strokeStyle = ink;
           ctx.lineWidth = 1;
