@@ -146,7 +146,7 @@ const toValue = (spec, pos) => {
 const toPos = (spec, v) => (isLog(spec) ? Math.log(v / spec.min) / Math.log(spec.max / spec.min) : (v - spec.min) / (spec.max - spec.min));
 const fmt = v => String(Number(v.toPrecision(4)));
 
-export function createPatcher({ getTiming = () => null, onHelp = () => {}, canvas, panel, paramPanel = null, exposedDock = null, floatDock = null, onScope = () => {}, onEscape = () => {}, statusEl, doc = document, nodeTypes, onStructure, onParam, onData = () => {}, onContext = () => {}, onNote = () => {}, getSampleIds = () => [], getSample = () => null, readLive = () => undefined }) {
+export function createPatcher({ getTiming = () => null, onHelp = () => {}, canvas, panel, toolsEl = null, paramPanel = null, exposedDock = null, floatDock = null, onScope = () => {}, onEscape = () => {}, statusEl, doc = document, nodeTypes, onStructure, onParam, onData = () => {}, onContext = () => {}, onNote = () => {}, getSampleIds = () => [], getSample = () => null, readLive = () => undefined }) {
   let gateEditor = null;    // the step pattern of a trance gate, redrawn when its length moves
   let dxView = null;        // the bank loader and algorithm view of a DVIIloader
   let specView = null;      // the pan-against-frequency view of a spectral panner, redrawn when its parameters move
@@ -409,6 +409,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
         const list = pinnedList();
         if (list.length) paramView.show('', [], 0, '', null, list); else paramView.hide();
       }
+      toolsEl?.replaceChildren();
       panel.replaceChildren(el('p', {}, instId ? 'Click a node to edit its parameters.' : 'No instrument.'));
       return;
     }
@@ -571,14 +572,16 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
       items.unshift(el('div', { className: 'prow presets' }, el('span', { textContent: 'preset' }), pick, name, save, drop));
     }
     if (!type.master) {
-      const dup = el('button', { textContent: 'Duplicate node', title: 'Copy this node with its settings (Ctrl+D)' });
+      const dup = el('button', { className: 'tool', textContent: 'Duplicate node', title: 'Copy this node with its settings (Ctrl+D)' });
       dup.addEventListener('click', duplicateSelected);
       items.push(dup);
-      const del = el('button', { textContent: 'Delete node' });
+      const del = el('button', { className: 'tool', textContent: 'Delete node' });
       del.addEventListener('click', removeSelected);
       items.push(del);
     }
-    panel.replaceChildren(...items);
+    // the preset row and the duplicate and delete buttons live in the bar above the graph, next to Add node
+    const tool = x => x.classList?.contains('presets') || x.classList?.contains('tool');
+    if (toolsEl) { toolsEl.replaceChildren(...items.filter(tool)); panel.replaceChildren(...items.filter(x => !tool(x))); } else panel.replaceChildren(...items);
   }
 
   // ---- mouse and keyboard ----

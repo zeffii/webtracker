@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 303 · 2026-10-21
+
+- Graph editor: a node's preset row and its Duplicate and Delete buttons now sit in the bar above the graph, beside Add node, instead of under it.
+
 ## 302 · 2026-10-21
 
 - Script: in tbin, a . now empties its cell (note and velocity), so a pattern written over an older one replaces it instead of mixing with it; tbin(..., { keep: true }) leaves the old cells alone as before.

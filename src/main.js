@@ -388,7 +388,7 @@ const patcher = createPatcher({
   // the song's tick, for the lines on time and rate sliders: how long it is, how many make a beat, whether to show them and snap to them
   getTiming: () => (project?.song ? { tickMs: 60000 / (project.song.bpm * project.song.ticksPerBeat), perBeat: project.song.ticksPerBeat, lines: config.get('tickLines'), snap: config.get('tickSnap') } : null),
   onNote: (id, note, on) => { if (!started) return; if (on) engine.noteOn(id, note, 1); else engine.noteOff(id, note); },
-  canvas: $('patch'), panel: $('patch-panel'), paramPanel: $('patch-scroll'), exposedDock: $('exposed-scroll'), floatDock: $('float-scroll'), onEscape: () => $('inst-list').focus(), statusEl: $('patch-status'), nodeTypes: NODE_TYPES,
+  canvas: $('patch'), panel: $('patch-panel'), toolsEl: $('patch-tools'), paramPanel: $('patch-scroll'), exposedDock: $('exposed-scroll'), floatDock: $('float-scroll'), onEscape: () => $('inst-list').focus(), statusEl: $('patch-status'), nodeTypes: NODE_TYPES,
   onStructure: id => reloadInstrument(id),
   onContext: ({ x, y, replace }) => menu.open(x, y, replace),
   onData: (id, node, msg) => engine.sendToNode(id, node, msg),

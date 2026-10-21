@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['303', ['Graph editor: a node\'s preset row and its Duplicate and Delete buttons now sit in the bar above the graph, beside Add node, instead of under it.']],
   ['302', ['Script: in tbin, a . now empties its cell (note and velocity), so a pattern written over an older one replaces it instead of mixing with it; tbin(..., { keep: true }) leaves the old cells alone as before.']],
   ['301', ['Script help: Euclidean rhythms explained in plain words with pictures: a ring and step row for an example, a builder with hits / steps / shift sliders and a button that puts the tbin line in the try-a-line box, and a gallery of twelve traditional rhythms to click. The help text can now carry such pictures (a line like ::euclid 5 8:: draws one).']],
   ['300', ['The app is now called Wax (the page title, header, About and README); the repository, web address and your saved settings keep the webtracker name.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['296', ['Script tab: a live Euclidean preview under the editor. Every euclid(hits, steps, rotate) written with plain numbers, and every \'x..x\' string, is drawn as a ring and a row of steps while you type, before anything runs; the card of the caret\'s line is outlined.']],
   ['295', ['The arrangement\'s shortcut window no longer repeats the lane controls and the pattern list\'s splitter; it lists only the keys.']],
   ['294', ['Changing the song length no longer stops the song: the new length is sent to the running engine and the cursor stays where it was.']],
-  ['293', ['Recording sliders: with Rec armed (Ctrl+Shift+R) and the song playing, moving a slider in the floating window, the graph\'s exposed dock or the node panel writes its value into the lane on the nearest tick: into the parameter\'s own column, else into the Cmd column as CCXXYY. The last value of a tick stays, a take is one undo step, and Config (Recording sliders) can write only every 2nd, 4th... row.']],
 ];
