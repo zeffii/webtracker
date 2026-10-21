@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 294 · 2026-10-21
+
+- Changing the song length no longer stops the song: the new length is sent to the running engine and the cursor stays where it was.
+
 ## 293 · 2026-10-21
 
 - Recording sliders: with Rec armed (Ctrl+Shift+R) and the song playing, moving a slider in the floating window, the graph's exposed dock or the node panel writes its value into the lane on the nearest tick: into the parameter's own column, else into the Cmd column as CCXXYY. The last value of a tick stays, a take is one undo step, and Config (Recording sliders) can write only every 2nd, 4th... row.

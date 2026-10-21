@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['294', ['Changing the song length no longer stops the song: the new length is sent to the running engine and the cursor stays where it was.']],
   ['293', ['Recording sliders: with Rec armed (Ctrl+Shift+R) and the song playing, moving a slider in the floating window, the graph\'s exposed dock or the node panel writes its value into the lane on the nearest tick: into the parameter\'s own column, else into the Cmd column as CCXXYY. The last value of a tick stays, a take is one undo step, and Config (Recording sliders) can write only every 2nd, 4th... row.']],
   ['292', ['Floating parameter window: Ctrl+Alt+P (or the params button in the status bar) shows the exposed sliders of the cursor lane\'s machine over the pattern editor and the arrangement. Drag its title to move it; the sliders work with the mouse or a MIDI knob while the song plays. Position and on/off are remembered.']],
   ['291', ['Script: scatter({ samples, density or hits, note, vel, offset, retrig, cmd, cmdChance, step, clear }) writes a random pattern from a collection of samples: each option is a value, a list to pick from, { min, max } or a function. Documented in the Script tab\'s quick start.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['287', ['Arrangement side panel: a one-row draggable line between the pattern list and the lane controls sets the list\'s height (Up/Down on the line when it has focus, double-click for automatic). It is remembered.']],
   ['286', ['Arrangement: the lane, insert-silence and add-lane controls moved under the pattern list, the lane\'s status line is now a row of its own above the status bar, and the arrangement fills the window height (Config: arrangement fills the window height; off brings the drag bar back).']],
   ['285', ['Hosted on GitHub Pages: every push to master runs the tests and publishes the app. A service worker supplies the cross-origin isolation headers there, and the header shows "build NNN · commit" (version.json, made from git by serve.mjs, with a + for uncommitted changes).']],
-  ['284', ['Fixed: m283 did not start (a stray quote in the About text). The smoke test now loads that file.']],
 ];

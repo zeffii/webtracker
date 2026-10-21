@@ -926,11 +926,28 @@ $('bar').addEventListener('change', () => {
   $('bar').value = n;
   songChanged(); seqView.draw();
 });
+// A new song length is sent to the running engine as it is: the song goes on playing (the other reshaping edits reload the project and stop it).
 $('length').addEventListener('change', () => {
   const before = project.song.length;
-  reshape(() => {
-    try { const n = ops.setSongLength(project, $('length').value); return { message: `Song length ${n} ticks.` }; } catch (err) { $('length').value = before; throw err; }
-  });
+  try {
+    const n = ops.setSongLength(project, $('length').value);
+    const data = ops.projectData(project);
+    const at = { lane: seqView.lane, tick: seqView.tick, vTick: view.tick };
+    const lanes = prepareSong(data.song, project.instruments, engine.registry);
+    engine.setSong(data.song);
+    for (const { id, instrument, columns, pages, mask } of lanes) engine.setLane({ id, instrument, columns, pages, mask });
+    const editor = createEditor(lanes, data.song.length);
+    project = { song: data.song, instruments: project.instruments, samples: project.samples, lanes, editor };
+    seqView.load({ lanes, song: data.song, editor });
+    view.load({ lanes, song: data.song, editor });
+    const lane = Math.min(at.lane, lanes.length - 1);
+    seqView.goto(lane, Math.min(at.tick, n - 1)); view.goto(lane, Math.min(at.vTick ?? 0, n - 1));
+    $('length').value = n; songInfo();
+    $('patch-status').textContent = `Song length ${n} ticks.`;
+  } catch (err) {
+    $('length').value = before;
+    $('patch-status').textContent = err.message;
+  }
 });
 const insertSilence = n => {
   const tick = seqView.tick, lane = seqView.lane;
