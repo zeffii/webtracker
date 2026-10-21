@@ -4940,11 +4940,11 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   lane.rows[1][cut] = 'FF';
   assert.match(describeColumn(lane, 3, cut), /held FF = 18 kHz$/, 'a blank cell shows the last value above it');
   assert.match(describeColumn(lane, 1, cut), /FF = 18 kHz$/, 'a filled cell shows its own');
-  assert.match(describeColumn(lane, 0, 1), /^Velocity · 00 to FF$/);
+  assert.match(describeColumn(lane, 0, 1), /^Velocity · 00 to FF · default FF = 100%$/);
   { const { describeParts } = await import('../src/seq/describe.js');
     const parts = describeParts(lane, 1, cut);
     assert.match(parts.name, /^Cutoff/); assert.match(parts.value, /kHz/); assert.ok(parts.frac > 0.9 && parts.frac <= 1, 'where FF sits in the range');
-    assert.equal(describeParts(lane, 0, 1).value, null, 'an empty velocity has no value'); }
+    assert.equal(describeParts(lane, 0, 1).value, '100%', 'an empty velocity shows the default, FF'); }
   lane.rows[2][5] = '.';
   const cmd = cols.length - 1;
   lane.rows[2][cmd] = '010000';

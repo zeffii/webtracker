@@ -44,6 +44,12 @@ export function describeParts(lane, tick, ci) {
       out.frac = parseInt(token, 16) / (c.kind === 'vel' ? 255 : 15);
       out.value = `${Math.round(out.frac * 100)}%`;
       out.details.push(token);
+    } else if (c.kind === 'vel') {   // blank: the last velocity written in this column still holds, FF (100%) before any
+      let hex = null;
+      for (let t = tick - 1; t >= 0 && hex === null; t--) if (!isBlank(lane.rows[t]?.[ci])) hex = lane.rows[t][ci];
+      out.frac = parseInt(hex ?? 'FF', 16) / 255;
+      out.value = `${Math.round(out.frac * 100)}%`;
+      out.details.push(`${hex === null ? 'default ' : 'held '}${hex ?? 'FF'}`);
     }
   } else if (c.kind === 'cmd') {
     const id = isBlank(token) ? null : parseInt(token.slice(0, 2), 16), t = id === null ? null : c.commands.find(x => x.id === id);
@@ -76,6 +82,11 @@ export function describeColumn(lane, tick, ci) {
   } else if (c.kind === 'vel' || c.kind === 'trig') {
     parts.push(c.kind === 'vel' ? '00 to FF' : '1 to F (0 is nothing)');
     if (!isBlank(token)) parts.push(`${token} = ${Math.round(parseInt(token, 16) / (c.kind === 'vel' ? 255 : 15) * 100)}%`);
+    else if (c.kind === 'vel') {
+      let hex = null;
+      for (let t = tick - 1; t >= 0 && hex === null; t--) if (!isBlank(lane.rows[t]?.[ci])) hex = lane.rows[t][ci];
+      parts.push(`${hex === null ? 'default' : 'held'} ${hex ?? 'FF'} = ${Math.round(parseInt(hex ?? 'FF', 16) / 255 * 100)}%`);
+    }
   } else if (c.kind === 'cmd') {
     const id = isBlank(token) ? null : parseInt(token.slice(0, 2), 16), t = id === null ? null : c.commands.find(x => x.id === id);
     if (t && (t.reset || t.setting)) parts.push(`${token.slice(0, 2)}: ${t.reset ? 'reset settings' : `${t.setting} settings (XX groups, YY slot)`}`);
