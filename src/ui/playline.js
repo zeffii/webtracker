@@ -17,3 +17,23 @@ export function createPlayline(el) {
     },
   };
 }
+
+// The song's loop as two thin light-red lines across the whole grid: one where it starts, one where it ends. Same
+// arrangement as the playline: absolutely placed divs inside the grid element, put back after every redraw.
+export function createLoopLines(el) {
+  const mk = () => { const d = typeof document !== 'undefined' ? document.createElement('div') : null; if (d) d.className = 'looplines'; return d; };
+  const lines = [mk(), mk()];
+  return {
+    show(ys, off = false) {   // ys: [start y, end y], either may be null when out of view; null hides both
+      if (!lines[0] || !el.appendChild) return;
+      lines.forEach((d, i) => {
+        const y = ys?.[i];
+        if (y === null || y === undefined) { d.remove(); return; }
+        d.className = off ? 'looplines off' : 'looplines';
+        d.style.top = `${y}px`;
+        d.style.width = `${Math.max(el.scrollWidth, el.clientWidth)}px`;
+        if (d.parentNode !== el) el.appendChild(d);
+      });
+    },
+  };
+}

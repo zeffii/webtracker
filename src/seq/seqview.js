@@ -1,7 +1,7 @@
 import { esc } from './html.js';
 import * as config from '../ui/config.js';
 import { dimLevel, dimFilter } from '../ui/dim.js';
-import { createPlayline } from '../ui/playline.js';
+import { createPlayline, createLoopLines } from '../ui/playline.js';
 import { placementAt, puidByIndex, startsAt } from './edit.js';
 import { setLoopPoint, toggleLoop } from './loop.js';
 import { createMinimap } from './minimap.js';
@@ -403,7 +403,7 @@ export function createSequenceView({ el, statusEl, listEl, transport, onToggle, 
     return { cls: `p${pat.index % 6}`, style: '' };
   };
 
-  const playline = createPlayline(el), minimap = createMinimap(el);
+  const playline = createPlayline(el), looplines = createLoopLines(el), minimap = createMinimap(el);
   let lineMode = config.get('playhead') === 'line';
   config.onChange(k => { if (k === 'playhead') { lineMode = config.get('playhead') === 'line'; draw(); } });
   let top = 0;                  // the first row on screen
@@ -493,8 +493,7 @@ export function createSequenceView({ el, statusEl, listEl, transport, onToggle, 
         }
         return `<span class="${classes}"${dim ? ` style="${dim}"` : ''}>${layers}${isCur ? '<i class="cb"></i>' : ''}<span class="t">${inner}</span></span>`;
       });
-      const lp = song.loop && t + CELL > song.loop.start && t < song.loop.end ? ` lp${song.loop.off ? ' off' : ''}${t <= song.loop.start ? ' ls' : ''}${t + CELL >= song.loop.end ? ' le' : ''}` : '';
-      lines.push(row(`${lp ? `<span class="${lp.trim()}">` : ''}${playing && playTick >= t && playTick < t + CELL && !lineMode ? '>' : ' '}${num(t)}${lp ? '</span>' : ''}${cells.join('')}`, r === nowRow ? ' now' : ''));
+      lines.push(row(`${playing && playTick >= t && playTick < t + CELL && !lineMode ? '>' : ' '}${num(t)}${cells.join('')}`, r === nowRow ? ' now' : ''));
     }
 
     // the rect is always rowCount rows tall, so the drag bar works even when the song has fewer rows
@@ -508,6 +507,10 @@ export function createSequenceView({ el, statusEl, listEl, transport, onToggle, 
     if (lineMode && playing && head && playTick / CELL >= top && playTick / CELL < Math.min(rows, top + rowCount)) {
       playline.show(head.offsetTop + head.offsetHeight * (1 + playTick / CELL - top));
     } else playline.show(null);
+    {
+      const lp = song.loop, yOf = t => head && t / CELL >= top && t / CELL <= Math.min(rows, top + rowCount) ? head.offsetTop + head.offsetHeight * (1 + t / CELL - top) : null;
+      looplines.show(lp ? [yOf(lp.start), yOf(lp.end)] : null, !!lp?.off);
+    }
 
     if (config.get('minimapOn')) minimap.paint({ lanes, first: top, last: Math.min(rows, top + rowCount), CELL, html, opts: { lengths: config.get('minimapLengths'), caps: config.get('minimapCaps'), params: config.get('minimapParams') } });
     else minimap.hide();

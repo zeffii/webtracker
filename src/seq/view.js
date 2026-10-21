@@ -1,7 +1,7 @@
 import { setLoopPoint, toggleLoop } from './loop.js';
 import * as config from '../ui/config.js';
 import { dimLevel, dimFilter } from '../ui/dim.js';
-import { createPlayline } from '../ui/playline.js';
+import { createPlayline, createLoopLines } from '../ui/playline.js';
 import { patternColour } from '../ui/patcolor.js';
 import { KINDS, encodeCell, noteSemitones, noteToken } from './cells.js';
 import { esc } from './html.js';
@@ -90,7 +90,7 @@ export function createTrackerView({ showMenu = (e, items) => showContextMenu(e, 
   });
   let tint = config.get('patternTint');
   config.onChange(k => { if (k === 'patternTint') { tint = config.get('patternTint'); if (lanes) draw(); } });
-  const playline = createPlayline(el);
+  const playline = createPlayline(el), looplines = createLoopLines(el);
   let head = config.get('playhead');   // 'marker': a > in the tick column and a bold row; 'line' and 'band': an overlay that never touches the text
   const overlay = () => head === 'line' || head === 'band';
   config.onChange(k => { if (k === 'playhead') { head = config.get('playhead'); if (lanes) draw(); } });
@@ -865,15 +865,17 @@ export function createTrackerView({ showMenu = (e, items) => showContextMenu(e, 
         const dim = dimFilter(dimLevel(lane)), shaded = dim ? `<span style="${dim}">${tinted}</span>` : tinted;
         return !solo || soloStyle !== 'hatch' ? shaded : `<span class="${locked ? 'lock' : 'soloblk'}">${shaded}</span>`;
       });
-      const inLoop = song.loop && t >= song.loop.start && t < song.loop.end;
-      const edge = inLoop ? `${t === song.loop.start ? ' ls' : ''}${t === song.loop.end - 1 ? ' le' : ''}` : '';
-      const row = `<span class="g${inLoop ? ` lp${song.loop.off ? ' off' : ''}${edge}` : ''}">${playing && t === playTick && !overlay() ? '>' : ' '}${String(t - base).padStart(4, '0')} </span>${chunks.join('  ')}`;
+      const row = `<span class="g">${playing && t === playTick && !overlay() ? '>' : ' '}${String(t - base).padStart(4, '0')} </span>${chunks.join('  ')}`;
       const shade = (t - base) % 16 === 0 ? 'r16' : (t - base) % 4 === 0 ? 'r4' : '';
       const line = playing && t === playTick && !overlay() ? `<b>${following ? `<span class="now">${row}</span>` : row}</b>` : row;
       lines.push(shade ? `<span class="${shade}">${line}</span>` : line);
     }
     while (lines.length < 2 + rowCount) lines.push('');   // always rowCount rows tall, so the drag bar works on a short song
     paintLines(lines);
+    if (song.loop && typeof getComputedStyle === 'function') {
+      const m = lineMetrics(), lp = song.loop, yOf = t => t >= top && t <= top + rowCount ? m.up - el.clientTop + m.lh * (2 + t - top) : null;
+      looplines.show([yOf(lp.start), yOf(lp.end)], !!lp.off);
+    } else looplines.show(null);
     if (overlay() && playing && playTick >= top && playTick < Math.min(showHi(), top + rowCount) && playTick >= showLo()) {
       const m = lineMetrics();
       playline.show(m.up - el.clientTop + m.lh * (2 + playTick - top), head === 'band' ? m.lh : 0);

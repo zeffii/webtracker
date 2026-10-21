@@ -3343,12 +3343,11 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
       const ctrl = key => onKey({ key, ctrlKey: true, preventDefault() {} });
       ctrl('b'); assert.deepEqual(demoSong.loop, { start: 16, end: demoSong.length });
       view.draw();
-      assert.ok(el.innerHTML.includes('<span class="lp ls le">'), 'the loop row is marked in the tick column');
       ctrl('b'); assert.equal(demoSong.loop, undefined, 'the same start again takes it away');
       ctrl('e'); assert.deepEqual(demoSong.loop, { start: 0, end: 16 }, 'Ctrl+E ends the loop where the cursor row starts: the row above is the loop');
       ctrl('e'); assert.equal(demoSong.loop, undefined, 'the same point again takes it away');
       ctrl('b'); ctrl('l'); assert.equal(demoSong.loop.off, true, 'Ctrl+L switches the loop off, keeping its points');
-      view.draw(); assert.ok(el.innerHTML.includes('lp off'), 'the marks of a loop that is off are greyed');
+      view.draw();   // the loop is drawn as two overlay lines now, which need a real page; here it just must not throw
       ctrl('l'); assert.equal(demoSong.loop.off, undefined); ctrl('b'); assert.equal(demoSong.loop, undefined);
     }
 
