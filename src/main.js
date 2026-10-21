@@ -1635,6 +1635,14 @@ $('add-lane').addEventListener('click', () => {
   }
 });
 $('patch-add').addEventListener('click', () => menu.open(12, 24));
+// On the instrument screen: Insert shows the machine menu; Ctrl+D duplicates and Ctrl+X or Delete removes the selected node, wherever the focus is (except in a field)
+document.addEventListener('keydown', e => {
+  if (tabs.active !== 'instruments' || e.defaultPrevented || !project || nodeHelp.hidden === false) return;
+  const t = e.target;
+  if (t.closest?.('input, select, textarea, [contenteditable], #inst-list, dialog, .insert-menu')) return;
+  if (e.key === 'Insert' && !e.ctrlKey && !e.altKey && !e.metaKey) { menu.open(12, 24); e.preventDefault(); return; }
+  if (t !== $('patch') && patcher.nodeKey(e)) e.preventDefault();   // the canvas does these itself
+});
 
 const splash = config.get('splash') ? createSplash({ box: $('splash'), onStart: () => $('start').click() }) : null;
 $('start').addEventListener('click', async () => {

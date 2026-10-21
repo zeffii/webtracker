@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 304 · 2026-10-21
+
+- Graph editor: Insert opens the machine menu, and Ctrl+D (duplicate), Ctrl+X and Delete (remove) work on the selected node wherever the focus is on the instrument screen, not only on the canvas. The Duplicate node and Delete node buttons are gone.
+
 ## 303 · 2026-10-21
 
 - Graph editor: a node's preset row and its Duplicate and Delete buttons now sit in the bar above the graph, beside Add node, instead of under it.

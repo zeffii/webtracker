@@ -571,14 +571,6 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
       drop.addEventListener('click', () => { if (pick.value.startsWith('u:')) { deleteUserPreset(node.type, pick.value.slice(2)); fill(); } });
       items.unshift(el('div', { className: 'prow presets' }, el('span', { textContent: 'preset' }), pick, name, save, drop));
     }
-    if (!type.master) {
-      const dup = el('button', { className: 'tool', textContent: 'Duplicate node', title: 'Copy this node with its settings (Ctrl+D)' });
-      dup.addEventListener('click', duplicateSelected);
-      items.push(dup);
-      const del = el('button', { className: 'tool', textContent: 'Delete node' });
-      del.addEventListener('click', removeSelected);
-      items.push(del);
-    }
     // the preset row and the duplicate and delete buttons live in the bar above the graph, next to Add node
     const tool = x => x.classList?.contains('presets') || x.classList?.contains('tool');
     if (toolsEl) { toolsEl.replaceChildren(...items.filter(tool)); panel.replaceChildren(...items.filter(x => !tool(x))); } else panel.replaceChildren(...items);
@@ -1156,6 +1148,13 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
   }
 
   return {
+    // Ctrl+D, Ctrl+X and Delete from anywhere on the instrument screen that is not a text field: the same as on the canvas. Returns whether it was used.
+    nodeKey(e) {
+      if (!instId || e.altKey || e.metaKey || selected?.kind !== 'node') return false;
+      if (e.ctrlKey && !e.shiftKey && (e.key === 'd' || e.key === 'D')) { duplicateSelected(); return true; }
+      if ((e.ctrlKey && !e.shiftKey && (e.key === 'x' || e.key === 'X')) || (!e.ctrlKey && e.key === 'Delete')) { removeSelected(); return true; }
+      return false;
+    },
     // F1 with a node selected: asks the page to show that node's help. Returns whether there was a node.
     helpSelected() {
       const node = selected?.kind === 'node' ? desc().nodes.find(n => n.id === selected.id) : null;
