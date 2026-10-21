@@ -6022,6 +6022,13 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   assert.equal(view.ch, ch0, 'on the same character');
   press('ArrowUp'); assert.equal(view.tick, t0, 'and Up back');
   uiConfig.set('nuggetStep', 1);
+  // typing the last character of a note in nugget mode goes down a row and stays on that character, still in nugget mode
+  view.goto(0, 0); press('ArrowLeft'); press('ArrowLeft'); assert.equal(at(), '0:0'); press('z'); view.goto(0, 0);
+  press('ArrowRight', { ctrlKey: true }); press('ArrowRight');
+  assert.equal(at(), '0:2', 'on the octave');
+  press('3'); assert.equal(view.tick, 1, 'the octave moves down a row');
+  assert.equal(at(), '0:2', 'on the same character');
+  press('ArrowLeft'); assert.equal(at(), '0:1', 'and still in nugget mode: Left steps one character');
   uiConfig.set('arrowStyle', 'char');
   console.log('ok: nugget mode');
 }

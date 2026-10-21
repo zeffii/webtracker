@@ -531,7 +531,7 @@ export function createTrackerView({ showMenu = (e, items) => showContextMenu(e, 
   // After typing a character: the next character, or the next row after the last one.
   const advance = () => {
     if (cur.ch + 1 < cellWidth()) cur.ch += 1;
-    else { cur.ch = 0; nugget = false; moveRow(1); }
+    else { if (!nugget) cur.ch = 0; moveRow(1); }   // nugget mode stays on this character, and stays in nugget mode
   };
 
   // Returns true if the key was used.
@@ -550,7 +550,7 @@ export function createTrackerView({ showMenu = (e, items) => showContextMenu(e, 
         }
         if (write(next)) {
           if (preview && note !== null) startSound(k, note);   // before the cursor moves: the velocity is read from this row
-          cur.ch = 0; nugget = false; moveRow(1);
+          if (!nugget) cur.ch = 0; moveRow(1);   // in nugget mode: the next row, same character, still nugget mode
         }
         return true;
       }

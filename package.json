@@ -1,6 +1,6 @@
 {
   "name": "webtracker",
-  "version": "0.298.0",
+  "version": "0.299.0",
   "private": true,
   "type": "module",
   "scripts": {
