@@ -215,45 +215,48 @@
     #seq .cb { background: var(--hi); }
     #seq .t { position: relative; padding-left: 4px; }
     #seq .cell.cur .t { color: var(--hi-fg); }
-    #seq .L.p0 { --c: hsl(210 70% 55% / .35); }
-    #seq .L.p1 { --c: hsl(150 60% 45% / .35); }
-    #seq .L.p2 { --c: hsl(30 80% 55% / .35); }
-    #seq .L.p3 { --c: hsl(280 60% 60% / .35); }
-    #seq .L.p4 { --c: hsl(0 70% 55% / .35); }
-    #seq .L.p5 { --c: hsl(55 70% 50% / .35); }
-    #seq .L.c0 { --c: hsl(0 65% 72% / .6); }
-    #seq .L.c1 { --c: hsl(22 65% 72% / .6); }
-    #seq .L.c2 { --c: hsl(45 65% 72% / .6); }
-    #seq .L.c3 { --c: hsl(68 65% 72% / .6); }
-    #seq .L.c4 { --c: hsl(90 65% 72% / .6); }
-    #seq .L.c5 { --c: hsl(112 65% 72% / .6); }
-    #seq .L.c6 { --c: hsl(135 65% 72% / .6); }
-    #seq .L.c7 { --c: hsl(158 65% 72% / .6); }
-    #seq .L.c8 { --c: hsl(180 65% 72% / .6); }
-    #seq .L.c9 { --c: hsl(202 65% 72% / .6); }
-    #seq .L.c10 { --c: hsl(225 65% 72% / .6); }
-    #seq .L.c11 { --c: hsl(248 65% 72% / .6); }
-    #seq .L.c12 { --c: hsl(270 65% 72% / .6); }
-    #seq .L.c13 { --c: hsl(292 65% 72% / .6); }
-    #seq .L.c14 { --c: hsl(315 65% 72% / .6); }
-    #seq .L.c15 { --c: hsl(338 65% 72% / .6); }
+    /* pattern colours follow the theme: the hue says which pattern, the theme sets how bright, how saturated and how strong the tint is (see --pat-* in themes.css) */
+    #seq .L { --c: hsl(calc(var(--pat-hue, 0) + (var(--h, 0) - var(--pat-hue, 0)) * var(--pat-spread, 1)) calc(var(--s, 65%) + var(--pat-ds, 0%)) calc(var(--l, 72%) + var(--pat-dl, 0%)) / calc(var(--a, .6) * var(--pat-am, 1))); }
+    #seq .L.p0 { --h: 210; --s: 70%; --l: 55%; --a: .35; }
+    #seq .L.p1 { --h: 150; --s: 60%; --l: 45%; --a: .35; }
+    #seq .L.p2 { --h: 30; --s: 80%; --l: 55%; --a: .35; }
+    #seq .L.p3 { --h: 280; --s: 60%; --l: 60%; --a: .35; }
+    #seq .L.p4 { --h: 0; --s: 70%; --l: 55%; --a: .35; }
+    #seq .L.p5 { --h: 55; --s: 70%; --l: 50%; --a: .35; }
+    #seq .L.c0 { --h: 0; --s: 65%; --l: 72%; --a: .6; }
+    #seq .L.c1 { --h: 22; --s: 65%; --l: 72%; --a: .6; }
+    #seq .L.c2 { --h: 45; --s: 65%; --l: 72%; --a: .6; }
+    #seq .L.c3 { --h: 68; --s: 65%; --l: 72%; --a: .6; }
+    #seq .L.c4 { --h: 90; --s: 65%; --l: 72%; --a: .6; }
+    #seq .L.c5 { --h: 112; --s: 65%; --l: 72%; --a: .6; }
+    #seq .L.c6 { --h: 135; --s: 65%; --l: 72%; --a: .6; }
+    #seq .L.c7 { --h: 158; --s: 65%; --l: 72%; --a: .6; }
+    #seq .L.c8 { --h: 180; --s: 65%; --l: 72%; --a: .6; }
+    #seq .L.c9 { --h: 202; --s: 65%; --l: 72%; --a: .6; }
+    #seq .L.c10 { --h: 225; --s: 65%; --l: 72%; --a: .6; }
+    #seq .L.c11 { --h: 248; --s: 65%; --l: 72%; --a: .6; }
+    #seq .L.c12 { --h: 270; --s: 65%; --l: 72%; --a: .6; }
+    #seq .L.c13 { --h: 292; --s: 65%; --l: 72%; --a: .6; }
+    #seq .L.c14 { --h: 315; --s: 65%; --l: 72%; --a: .6; }
+    #seq .L.c15 { --h: 338; --s: 65%; --l: 72%; --a: .6; }
     .sw { display: inline-block; width: 1ch; height: 1em; vertical-align: text-bottom; box-sizing: border-box; border: 1px solid var(--fg); }
-    .sw.c0 { background: hsl(0 65% 72%); }
-    .sw.c1 { background: hsl(22 65% 72%); }
-    .sw.c2 { background: hsl(45 65% 72%); }
-    .sw.c3 { background: hsl(68 65% 72%); }
-    .sw.c4 { background: hsl(90 65% 72%); }
-    .sw.c5 { background: hsl(112 65% 72%); }
-    .sw.c6 { background: hsl(135 65% 72%); }
-    .sw.c7 { background: hsl(158 65% 72%); }
-    .sw.c8 { background: hsl(180 65% 72%); }
-    .sw.c9 { background: hsl(202 65% 72%); }
-    .sw.c10 { background: hsl(225 65% 72%); }
-    .sw.c11 { background: hsl(248 65% 72%); }
-    .sw.c12 { background: hsl(270 65% 72%); }
-    .sw.c13 { background: hsl(292 65% 72%); }
-    .sw.c14 { background: hsl(315 65% 72%); }
-    .sw.c15 { background: hsl(338 65% 72%); }
+        .sw { background: hsl(calc(var(--pat-hue, 0) + (var(--h, 0) - var(--pat-hue, 0)) * var(--pat-spread, 1)) calc(65% + var(--pat-ds, 0%)) calc(72% + var(--pat-dl, 0%))); }
+    .sw.c0 { --h: 0; }
+    .sw.c1 { --h: 22; }
+    .sw.c2 { --h: 45; }
+    .sw.c3 { --h: 68; }
+    .sw.c4 { --h: 90; }
+    .sw.c5 { --h: 112; }
+    .sw.c6 { --h: 135; }
+    .sw.c7 { --h: 158; }
+    .sw.c8 { --h: 180; }
+    .sw.c9 { --h: 202; }
+    .sw.c10 { --h: 225; }
+    .sw.c11 { --h: 248; }
+    .sw.c12 { --h: 270; }
+    .sw.c13 { --h: 292; }
+    .sw.c14 { --h: 315; }
+    .sw.c15 { --h: 338; }
     .sw.p0 { background: hsl(210 70% 55%); }
     .sw.p1 { background: hsl(150 60% 45%); }
     .sw.p2 { background: hsl(30 80% 55%); }
