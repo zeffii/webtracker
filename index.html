@@ -72,9 +72,8 @@
     .foot-row { display: flex; gap: 1.5rem; min-width: 0; }
     #seq-status { display: none; overflow: hidden; text-overflow: ellipsis; }   /* the lane under the cursor: a row of its own above the status bar while the arrangement is shown */
     body:has(#pane-arrange:not([hidden])) #seq-status { display: block; }
-    body { padding-bottom: 2rem; }
-    body:has(#pane-arrange:not([hidden])) { padding-bottom: 3.5rem; }
-    body.seqfit #seq-grip { display: none; }
+    body { padding-bottom: calc(var(--footer-h, 2rem) + 6px); }   /* the footer's height changes with the tab: main.js keeps this variable */
+    body.seqfit #seq-grip, body.viewfit #view-grip { display: none; }
     /* the lane and silence controls under the pattern list */
     #seq-side.sized { height: var(--list-h); max-height: none; }
     #list-grip { height: 17px; margin: 0; cursor: row-resize; position: relative; touch-action: none; }   /* one row of space between the list and the lane controls, to drag */
@@ -152,7 +151,8 @@
     #view, #seq, #smp, #patch, #wave, #seq-side { background: var(--panel); }
     #view, #seq { margin-bottom: 0; }
     /* the pattern editor's status bar: the cursor's place small on top; under it the column's name large, a meter for where the value sits in its range, the value, and the range */
-    #cursor { display: flex; flex-direction: column; gap: 1px; padding: 3px 8px 5px; white-space: normal; }
+    #cursor { display: none; flex-direction: column; gap: 1px; padding: 3px 8px 5px; white-space: normal; }
+    body:has(#pane-patterns:not([hidden])) #cursor { display: flex; }   /* in the footer: the pattern editor's cursor rows sit above the status bar while that tab is shown */
     #cursor .spos { font-size: 11px; opacity: .7; }
     #cursor .spos b { opacity: 1; color: var(--fg); }
     #cursor .sparam { display: flex; align-items: center; flex-wrap: wrap; gap: 2px 12px; min-height: 1.4em; }
@@ -632,7 +632,6 @@
   <section id="pane-patterns" class="pane keyed">
     <div class="pane-main">
       <pre id="view" tabindex="0"></pre>
-      <div id="cursor" class="statusbar"></div>
       <div id="view-grip" class="grip" tabindex="0" role="separator" aria-orientation="horizontal" aria-label="Rows shown: drag, or use Up and Down" title="Drag to change how many rows are shown"></div>
     </div>
       <aside class="keys" aria-label="Pattern editor shortcuts"><h3>Shortcuts</h3>
@@ -923,7 +922,7 @@
     </div>
   </section>
 
-  <div id="footer" class="statusbar"><div id="seq-status" class="foot-row"></div><div class="foot-row"><span id="song-info"></span><span id="status">Press Start to create the audio engine.</span><button id="loadcopy" type="button" title="Copy the load line to the clipboard">copy</button><span id="loadmeter" title="Audio load: average, worst block (as a share of the time each block is allowed), blocks that ran late, output latency. Click to reset.">cpu --</span></div></div>
+  <div id="footer" class="statusbar"><div id="cursor" class="statusbar"></div><div id="seq-status" class="foot-row"></div><div class="foot-row"><span id="song-info"></span><span id="status">Press Start to create the audio engine.</span><button id="loadcopy" type="button" title="Copy the load line to the clipboard">copy</button><span id="loadmeter" title="Audio load: average, worst block (as a share of the time each block is allowed), blocks that ran late, output latency. Click to reset.">cpu --</span></div></div>
 
   <script>
     // "build NNN · sha" from version.json (stamped by the Pages workflow, made from git by serve.mjs); without the file the label stays empty

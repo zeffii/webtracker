@@ -401,15 +401,26 @@ if (globalThis.ResizeObserver) new ResizeObserver(() => { const w = $('patch-wra
 }
 attachGrip({ grip: $('patch-grip'), key: 'webtracker.graphHeight', get: () => patcher.height, set: h => patcher.resize(h), step: 20, bigStep: 100, normal: 460 });
 attachGrip({ grip: $('view-grip'), key: 'webtracker.patternRows', get: () => view.rows, set: n => view.setRows(n), unit: () => view.lineHeight(), step: 1, bigStep: 8, normal: 24 });
-// The arrangement fills the window: the rows shown follow the height that is left (Config: seqFit); the drag bar is for when it is off.
+// The pattern editor and the arrangement fill the window: the rows shown follow the height that is left (Config: viewFit, seqFit);
+// the drag bars are for when that is off. The footer's height changes with the tab (the cursor rows), so the page's bottom padding follows it.
 const fitArrangement = () => {
+  const foot = $('footer').offsetHeight;
+  document.body.style.setProperty('--footer-h', `${foot}px`);
   document.body.classList.toggle('seqfit', config.get('seqFit'));
-  if (!config.get('seqFit') || tabs.active !== 'arrange') return;
-  const el = $('seq'), room = innerHeight - el.getBoundingClientRect().top - $('footer').offsetHeight - 12;
-  seqView.setRows(Math.floor(room / 18) - Math.max(0, el.childElementCount - seqView.rows));
+  document.body.classList.toggle('viewfit', config.get('viewFit'));
+  if (config.get('seqFit') && tabs.active === 'arrange') {
+    const el = $('seq'), room = innerHeight - el.getBoundingClientRect().top - foot - 36;
+    seqView.setRows(Math.floor(room / 18) - Math.max(0, el.childElementCount - seqView.rows));
+  }
+  if (config.get('viewFit') && tabs.active === 'patterns') {
+    const el = $('view'), lh = view.lineHeight(), room = innerHeight - el.getBoundingClientRect().bottom - foot - 36;
+    const n = Math.floor(room / lh);
+    if (n !== 0) view.setRows(view.rows + n);   // the view is as tall as its rows: add or take away what is over or missing
+  }
 };
 addEventListener('resize', fitArrangement);
-config.onChange(k => { if (k === 'seqFit') fitArrangement(); });
+if (globalThis.ResizeObserver) new ResizeObserver(() => fitArrangement()).observe($('footer'));
+config.onChange(k => { if (k === 'seqFit' || k === 'viewFit') fitArrangement(); });
 attachGrip({ grip: $('seq-grip'), key: 'webtracker.arrangementRows', get: () => seqView.rows, set: n => seqView.setRows(n), unit: () => 18, step: 1, bigStep: 8, normal: 24 });
 
 // The keyboard shortcuts of the screen in view, in a small floating window: the Shortcuts button opens and closes it, Esc
