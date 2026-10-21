@@ -205,6 +205,12 @@ const view = createTrackerView({
   readParam: slot => engine.registry.values[slot],
   onNote: (instrument, note, on, vel = 1) => { if (!started) return; if (on) engine.noteOn(instrument, note, vel); else engine.noteOff(instrument, note); },
 });
+// The sample lists of the pickers: every normal sample, and the tap slots that hold a take or that an instrument already
+// plays; the other tap slots are left out unless Config says to show them.
+const pickableSamples = () => {
+  const used = new Set(Object.values(project.instruments ?? {}).flatMap(d => Object.values(d.samples ?? {}).flat()));
+  return Object.entries(project.samples).filter(([id, smp]) => !isPool(id) || smp.taken || used.has(id) || config.get('tapSlots')).map(([id]) => id);
+};
 const seqView = createSequenceView({
   follow: () => following,
   el: $('seq'), statusEl: $('seq-status'), listEl: $('seq-list'), transport: engine.transport, onToggle: togglePlay,
@@ -395,7 +401,7 @@ const patcher = createPatcher({
   onData: (id, node, msg) => engine.sendToNode(id, node, msg),
   onScope: (id, node, on) => engine.scope(id, node, on),
   readLive: (id, node, name) => { const a = `${id}.${node}.${name}`; return engine.registry.slots.has(a) ? engine.registry.get(a) : undefined; },
-  getSampleIds: () => Object.keys(project.samples),
+  getSampleIds: () => pickableSamples(),
   getSample: id => { const s = project.samples[id]; return s ? { data: s.right ? Float32Array.from(s.data, (v, i) => (v + s.right[i]) * 0.5) : s.data, rate: s.rate } : null; },
   onParam: (id, node, name, value) => {
     const address = `${id}.${node}.${name}`;
@@ -548,7 +554,7 @@ function refreshProjectUi() {
     if (ids.includes(keep)) select.value = keep;
   };
   renderInstList();
-  fill($('new-inst-sample'), Object.keys(project.samples));
+  fill($('new-inst-sample'), pickableSamples());
 }
 
 // Alt+Left and Alt+Right are the browser's back and forward; they must not leave the page.
