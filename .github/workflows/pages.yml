@@ -1,0 +1,43 @@
+name: Pages
+
+# Every push to master: run the tests, stamp the build, publish the static app to GitHub Pages.
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Test
+        run: npm test
+      - name: Assemble the site
+        run: |
+          mkdir _site
+          cp -r index.html themes.css icon.ico icon.png coi-serviceworker.js src _site/
+      - name: Stamp
+        # version.json: { build: the latest number in CHANGELOG.md, commit: short SHA, date }
+        run: node scripts/stamp.mjs _site
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - id: deployment
+        uses: actions/deploy-pages@v4

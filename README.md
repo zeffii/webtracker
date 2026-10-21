@@ -18,6 +18,8 @@ The page needs cross-origin isolation (SharedArrayBuffer carries the parameters 
 sends the two headers for it; any other static server must send
 `Cross-Origin-Opener-Policy: same-origin` and `Cross-Origin-Embedder-Policy: require-corp`.
 
+Every push to `master` runs the tests and publishes the app to GitHub Pages (`.github/workflows/pages.yml`). Pages cannot send the isolation headers, so `coi-serviceworker.js` adds them there, and the page reloads once on the first visit. `version.json` (the build number, commit and date) is stamped by the workflow; `serve.mjs` makes it from git, with a `+` after the commit while there are uncommitted changes.
+
 `npm test` runs the offline smoke test (nodes, graphs, sequencer, file formats, importers, parts of the UI).
 
 ## The screens

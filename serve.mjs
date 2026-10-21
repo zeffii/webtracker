@@ -4,6 +4,7 @@ import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { extname, join, normalize, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { versionInfo } from './scripts/stamp.mjs';
 
 const root = resolve(fileURLToPath(new URL('.', import.meta.url)));
 const port = Number(process.env.PORT) || 8080;
@@ -28,6 +29,10 @@ const base = {
 createServer(async (req, res) => {
   try {
     const { pathname } = new URL(req.url, 'http://localhost');
+    if (pathname === '/version.json') {   // from git, with a + after the commit while there are uncommitted changes (Pages gets a stamped file instead)
+      res.writeHead(200, { ...base, 'Content-Type': types['.json'] });
+      return res.end(JSON.stringify(versionInfo()));
+    }
     const rel = decodeURIComponent(pathname === '/' ? '/index.html' : pathname);
     const file = resolve(join(root, normalize(rel)));
     if (file !== root && !file.startsWith(root + sep)) {

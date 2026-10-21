@@ -3,8 +3,18 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script>
+    // Static hosting (GitHub Pages) cannot send the cross-origin isolation headers the audio needs: a service worker adds them, and the page
+    // reloads once to come up isolated. serve.mjs sends them itself, so nothing is registered there.
+    if (!window.crossOriginIsolated && 'serviceWorker' in navigator && window.isSecureContext) {
+      navigator.serviceWorker.register('coi-serviceworker.js').then(reg => {
+        if (reg.active && !navigator.serviceWorker.controller) location.reload();
+        else reg.addEventListener('updatefound', () => reg.installing?.addEventListener('statechange', e => { if (e.target.state === 'activated') location.reload(); }));
+      }).catch(() => {});
+    }
+  </script>
   <link rel="stylesheet" href="themes.css">
-  <title>webtracker m284</title>
+  <title>webtracker</title>
   <link rel="icon" href="icon.ico" sizes="any">
   <link rel="icon" type="image/png" href="icon.png">
   <style>
@@ -547,7 +557,7 @@
   <div id="backup-panel" tabindex="-1" hidden role="dialog" aria-label="Backups"></div>
   <div id="header">
     <div class="line">
-      <strong>webtracker</strong>
+      <strong>webtracker</strong><span id="build" style="margin-left:.6em;opacity:.55;font-size:11px;font-weight:400"></span>
       <button id="save" disabled>Save</button>
       <i class="sep"></i>
       <button id="start">Start</button>
@@ -894,6 +904,15 @@
 
   <div id="footer" class="statusbar"><span id="song-info"></span><span id="status">Press Start to create the audio engine.</span><button id="loadcopy" type="button" title="Copy the load line to the clipboard">copy</button><span id="loadmeter" title="Audio load: average, worst block (as a share of the time each block is allowed), blocks that ran late, output latency. Click to reset.">cpu --</span></div>
 
+  <script>
+    // "build NNN · sha" from version.json (stamped by the Pages workflow, made from git by serve.mjs); without the file the label stays empty
+    fetch('version.json', { cache: 'no-store' }).then(r => (r.ok ? r.json() : null)).then(v => {
+      if (!v || !v.build) return;
+      const b = document.getElementById('build');
+      b.textContent = `build ${v.build} · ${v.commit}`; b.title = v.date;
+      document.title = `webtracker ${v.build}`;
+    }).catch(() => {});
+  </script>
   <script type="module" src="src/main.js"></script>
 </body>
 </html>
