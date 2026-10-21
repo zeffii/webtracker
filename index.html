@@ -675,9 +675,12 @@
       <aside class="keys" aria-label="Pattern editor shortcuts"><h3>Shortcuts</h3>
         <dl>
           <dt>Click, Esc</dt><dd>click the grid to start; Esc goes to the arrangement (in <b class="kw">solo-edit</b>, Esc first goes back to the whole song)</dd>
-          <dt>Arrows</dt><dd><b class="kw">move</b>; Left/Right go to the start of the next or previous column (Ctrl+Left/Right: one character inside the cell)</dd>
-          <dt>Tab</dt><dd><b class="kw">next lane</b></dd>
-          <dt>PgUp/PgDn</dt><dd>16 rows</dd>
+          <dt>Up / Down</dt><dd><b class="kw">move</b> a row (in nugget mode, by the nugget step, on the same character)</dd>
+          <dt>Tab, Shift+Tab</dt><dd><b class="kw">next</b> / previous lane (in solo-edit, Tab switches between the pattern alone and the song with the rest locked)</dd>
+          <dt>PgUp/PgDn, Home/End</dt><dd>16 rows; first / last row (of the pattern, in solo-edit)</dd>
+          <dt>Shift+arrows</dt><dd><b class="kw">select</b> cells; Esc drops the selection</dd>
+          <dt>Ctrl+C, X, V, A</dt><dd><b class="kw">copy</b>, cut, paste; select the whole lane. Ctrl+Z undoes, Ctrl+Y or Ctrl+Shift+Z redoes</dd>
+          <dt>Ctrl+B, Ctrl+E, Ctrl+L</dt><dd>start the <b class="kw">loop</b> at this row, end it with this row; Ctrl+L switches it off and on</dd>
           <dt>Space</dt><dd><b class="kw">write</b> the live value of the parameter under the cursor (the node setting, or what the song last set) into this cell, then move down a row; on notes, velocities and commands it does nothing</dd>
           <dt>Enter</dt><dd><b class="kw">insert</b> a pattern</dd>
           <dt>Z–M, Q–P</dt><dd><b class="kw">play</b> notes</dd>
@@ -685,7 +688,7 @@
           <dt>1</dt><dd><b class="kw">note off</b></dd>
           <dt>`</dt><dd><b class="kw">note cut</b></dd>
           <dt>0–9, A–F</dt><dd><b class="kw">overwrite</b> the character under the cursor (an empty cell fills with zeros)</dd>
-          <dt>Delete, &gt;</dt><dd><b class="kw">clear</b> the cell</dd>
+          <dt>Delete, Backspace, &gt;</dt><dd><b class="kw">clear</b> the cell</dd>
           <dt>Ctrl+Delete</dt><dd><b class="kw">delete</b> the selected cells and <b class="kw">pull</b> the rows below up (inside the pattern only)</dd>
           <dt>Ctrl+Alt+P</dt><dd><b class="kw">floating parameters</b>: a window with the cursor lane's exposed sliders, to move with the mouse or a MIDI knob while the song plays (also the <b>params</b> button in the status bar); drag its title to move it</dd>
           <dt>Ctrl+Alt+R</dt><dd><b class="kw">run</b> the song's script on this pattern (its selection, if there is one); Ctrl+Alt+S opens the Script tab</dd>
@@ -708,10 +711,10 @@
           <dt>F9</dt><dd><b class="kw">follow</b> the song: the grid scrolls with the playing row (highlighted). Moving the caret to another row <b class="kw">pauses</b> the following; F9 follows again</dd>
           <dt>Ctrl+Up/Down</dt><dd><b class="kw">transpose</b> the notes in the selection by a semitone (Shift: an <b class="kw">octave</b>)</dd>
           <dt>Ctrl+, / Ctrl+.</dt><dd><b class="kw">lower / raise</b> every other value in the selection by one (Ctrl+&lt; / Ctrl+&gt;: a bigger step); commands keep their id</dd>
-          <dt>Left / Right</dt><dd>to the start of the previous / next column (Config: one character at a time instead)</dd>
+          <dt>Left / Right</dt><dd>to the start of the previous / next column (Config: one character at a time instead; a held key jumps by column)</dd>
           <dt>Ctrl+Left/Right</dt><dd>one character left or right inside the cell, to type into just that digit; after that plain Left/Right stay inside the cell (and Up/Down keep the position) until you step past its edge, which enters the next cell at its first character; Up and Down then move by the nugget step (Config, 1 row by default) on the same character</dd>
           <dt>Ctrl+Shift+H</dt><dd><b class="kw">hide</b> or show the empty columns of the lane the cursor is in (a column with no value at any row; the one under the cursor stays)</dd>
-                    <dt>Ctrl+Space</dt><dd>the same for every parameter column of this row (not notes, velocities or commands)</dd>
+          <dt>Ctrl+Space</dt><dd>the same for every parameter column of this row (not notes, velocities or commands)</dd>
           <dt>Ctrl+I</dt><dd><b class="kw">interpolate</b> along a curve: per column, the first and last filled cell of the selection are the ends and the filled cells between them get values by row position. The popup picks a shape, bends it, lays a wave on it, lets you draw your own or shape a <b class="kw">bezier</b> spline with draggable anchors and handles, and can include empty cells; Enter applies, Esc cancels</dd>
           <dt>Ctrl + − 0, wheel</dt><dd>pattern text size</dd>
         </dl>

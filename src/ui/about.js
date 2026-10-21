@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['313', ['Pattern shortcut list corrected: the doubled Left/Right entry is merged, Tab now mentions what it does in solo-edit, Backspace is listed with Delete, and the missing keys are added (Home/End, Shift+arrows selection, copy/cut/paste/select-all, undo/redo, the loop keys).']],
   ['312', ['Pattern view: on an empty velocity cell the status bar now shows the value that is in effect there, held from the last velocity written above it in that column (or default FF = 100% before any), the same way parameter columns already do.']],
   ['311', ['The loop is now two thin light-red lines running the full width of the pattern and arrangement views, one where it starts and one where it ends, instead of the yellow marks in the tick column. A loop that is switched off keeps its lines, faded.']],
   ['310', ['Sequence editor: Insert pushes the patterns from the caret down by 16 ticks, and Delete on an empty spot pulls the patterns below up towards the caret (16 ticks, or as far as the gap allows). Delete on a pattern still removes it.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['306', ['Blob first screen: a few quiet lights instead of one even glow: a soft warm key from the upper left, a cooler fill from the right, and a faint light from behind and below that shows through the thin parts.']],
   ['305', ['First screen: a slow translucent blob (WebGL metaballs with a subsurface-style shader) drifts behind the Wax wordmark, follows the pointer a little and brightens when you click in. Config > First screen look switches back to the turning logo, which is also used when WebGL is not available; reduced-motion keeps it still.']],
   ['304', ['Graph editor: Insert opens the machine menu, and Ctrl+D (duplicate), Ctrl+X and Delete (remove) work on the selected node wherever the focus is on the instrument screen, not only on the canvas. The Duplicate node and Delete node buttons are gone.']],
-  ['303', ['Graph editor: a node\'s preset row and its Duplicate and Delete buttons now sit in the bar above the graph, beside Add node, instead of under it.']],
 ];
