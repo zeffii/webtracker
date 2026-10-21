@@ -6602,8 +6602,10 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   assert.ok(page.includes('<h2>Scripting quick start</h2>') && !page.includes('<script') && (page.match(/<pre>/g) ?? []).length >= 5);
   {   // every example in the tutorial runs, on a lane with three note columns
     const { execute } = await import('../src/script/lib.js');
-    const columns = [1, 2, 3].flatMap(n => [{ label: `Note${n}`, token: 'note', kind: 'note' }, { label: `Vel${n}`, token: '2hex', kind: 'vel' }]);
-    const rows = Array.from({ length: 32 }, () => ['...', '..', '...', '..', '...', '..']);
+    const columns = [...[1, 2, 3].flatMap(n => [{ label: `Note${n}`, token: 'note', kind: 'note' }, { label: `Vel${n}`, token: '2hex', kind: 'vel' }]),
+      { label: 'Smp', token: '2hex', kind: 'param', param: 'sample', node: 'sampler' }, { label: 'Off', token: '4hex', kind: 'param', param: 'offset', node: 'sampler' },
+      { label: 'Rtg', token: '4hex', kind: 'param', param: 'retrig', node: 'sampler' }, { label: 'Cmd', token: 'cmd', kind: 'cmd' }];
+    const rows = Array.from({ length: 32 }, () => ['...', '..', '...', '..', '...', '..', '..', '....', '....', '......']);
     for (const [, code] of TUTORIAL.matchAll(/```\n([\s\S]*?)```/g)) {
       const r = execute({ code, pattern: { name: 't', lane: 'l', instrument: 'i', columns, rows }, seed: 1 });
       assert.ok(r.ok, `tutorial example fails: ${code.trim()} (${r.error?.message})`);
@@ -6893,5 +6895,28 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   assert.equal(detectOnsets(tone, null, rate, {}).length, 0, 'a steady tone has no onsets');
   assert.ok(detectOnsets(data, null, rate, { from: 0.4 * rate, to: 1.0 * rate }).every(f => f >= 0.4 * rate && f < 1.0 * rate), 'a range keeps to itself');
   console.log('ok: onset detection');
+}
+// 112. scatter: random samples, offsets, retriggers and commands on a sampler lane's columns.
+{
+  const { execute } = await import('../src/script/lib.js');
+  const cols = [
+    { kind: 'note', token: 'note', label: 'Note', key: 'note' }, { kind: 'vel', token: '2hex', label: 'Vel', key: 'vel' },
+    { kind: 'param', token: '2hex', label: 'Smp', key: 'p:sampler.sample:2hex', param: 'sample', node: 'sampler' },
+    { kind: 'param', token: '4hex', label: 'Off', key: 'p:sampler.offset:4hex', param: 'offset', node: 'sampler' },
+    { kind: 'param', token: '4hex', label: 'Rtg', key: 'p:sampler.retrig:4hex', param: 'retrig', node: 'sampler' },
+    { kind: 'cmd', token: 'cmd', label: 'Cmd', key: 'cmd' },
+  ];
+  const rows = Array.from({ length: 32 }, () => ['...', '..', '..', '....', '....', '......']);
+  const code = "scatter({ samples: [3, 5], hits: 10, note: ['C-4', 'E-4'], vel: { min: 64, max: 255 }, offset: { min: 0, max: 65535 }, retrig: [0, 4096], cmd: ['0B0800'], cmdChance: 1 })";
+  const r = execute({ code, seed: 4, pattern: { name: 'p', lane: 'l', instrument: 'i', columns: cols, rows } });
+  assert.ok(r.ok, r.error?.message);
+  const hitRows = [...new Set(r.edits.filter(e => e.col === 0).map(e => e.row))];
+  assert.equal(hitRows.length, 10, 'ten hits');
+  assert.ok(r.edits.filter(e => e.col === 2).every(e => ['03', '05'].includes(e.token)), 'only the listed samples');
+  assert.ok(r.edits.filter(e => e.col === 5).every(e => e.token === '0B0800') && r.edits.filter(e => e.col === 5).length === 10, 'a command on every hit');
+  assert.deepEqual(execute({ code, seed: 4, pattern: { name: 'p', lane: 'l', instrument: 'i', columns: cols, rows } }).edits, r.edits, 'the same seed gives the same pattern');
+  const bad = execute({ code: 'scatter({ samples: [1] })', pattern: { name: 'p', lane: 'l', instrument: 'i', columns: cols.slice(0, 2), rows: rows.map(x => x.slice(0, 2)) } });
+  assert.ok(!bad.ok && /no Smp/.test(bad.error.message), 'a lane without the column says so');
+  console.log('ok: scatter');
 }
 console.log('smoke test passed');

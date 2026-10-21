@@ -47,6 +47,15 @@ A \`?\` in the pattern plays half the time. Use \`seed(5)\` to get the same resu
 tbin('x?x? x?x?', 'F#3')
 \`\`\`
 
+### Scatter samples at random
+\`scatter\` puts hits at random rows of the selection. Every option is a value, a list (one is picked each time), \`{ min, max }\` or a function. In a sampler lane, \`samples\` fills the Smp column, \`offset\` and \`retrig\` the Off and Rtg columns (0 to 65535), and \`cmd\` is a command cell, or a list of them, that goes on some of the hits (\`cmdChance\`).
+
+\`\`\`
+scatter({ samples: [0, 1, 2, 3], density: 0.4, note: ['C-4', 'D#4', 'G-4'], vel: { min: 0x60, max: 0xFF }, offset: { min: 0, max: 0xFFFF }, retrig: [0, 0, 0x0800, 0x1000], cmd: ['0B0800', '0D6000', '2C8020'], cmdChance: 0.3, clear: true })
+\`\`\`
+
+With \`seed(7)\` first you get the same pattern every run; leave it out for a new one each time. Use \`hits: 12\` instead of \`density\` for an exact count, and \`step: 2\` to use only every second row.
+
 ### Other helpers
 - \`pat.col('Vel1').fill(ramp(0x30, 0xFF))\` fills a column with a ramp, for example the velocity.
 - \`pat.set(0, 'Note1', 'C-4')\` writes one cell. \`pat.clear()\` empties the selection.

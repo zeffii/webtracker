@@ -245,8 +245,42 @@ export function execute(req) {
     return hits;
   };
 
+  // scatter({ samples, hits | density, note, vel, offset, retrig, cmd, cmdChance, step, at, to, clear }): puts hits at random rows of the
+  // selection. Each option is a value, a list (one is picked each time), { min, max } (a whole number in between) or a function.
+  // samples go in the sampler's Smp column, offset and retrig in Off and Rtg (numbers 0 to 65535), cmd is a six-digit command cell
+  // or a list of them (cmdChance of the hits get one). It returns the number of hits.
+  const scatter = (o = {}) => {
+    const at = o.at ?? sel.r0, to = Math.min(nrows - 1, o.to ?? sel.r1), step = Math.max(1, Math.round(o.step ?? stepDefault));
+    const slots = [];
+    for (let r = at; r <= to; r += step) slots.push(r);
+    const hits = o.hits === undefined ? Math.round(slots.length * (o.density ?? 0.5)) : Math.min(Math.round(o.hits), slots.length);
+    const chosen = [...slots];
+    for (let i = chosen.length - 1; i > 0; i--) { const j = Math.floor(rand() * (i + 1)); [chosen[i], chosen[j]] = [chosen[j], chosen[i]]; }
+    chosen.length = Math.max(0, hits); chosen.sort((a, b) => a - b);
+    const maybe = (...refs) => { for (const r of refs) { try { return findCol(columns, r); } catch { /* next */ } } return -1; };
+    const val = v => (typeof v === 'function' ? v() : Array.isArray(v) ? v[Math.floor(rand() * v.length)] : v && typeof v === 'object' ? v.min + Math.floor(rand() * (v.max - v.min + 1)) : v);
+    const need = (name, i) => { if (i < 0) throw new Error(`scatter: this lane has no ${name} column`); return i; };
+    const cNote = noteCols.includes(sel.c0) ? sel.c0 : noteCols[0];
+    if (cNote === undefined) throw new Error('this lane has no note column');
+    const cVel = columns[cNote + 1]?.kind === 'vel' ? cNote + 1 : -1;
+    const cSmp = o.samples === undefined ? -1 : need('Smp (sample)', maybe('sampler.sample', 'Smp'));
+    const cOff = o.offset === undefined ? -1 : need('Off (offset)', maybe('sampler.offset', 'Off'));
+    const cRtg = o.retrig === undefined ? -1 : need('Rtg (retrigger)', maybe('sampler.retrig', 'Rtg'));
+    const cCmd = o.cmd === undefined ? -1 : need('Cmd', columns.findIndex(c => c.token === 'cmd'));
+    if (o.clear) for (const c of [cNote, cVel, cSmp, cOff, cRtg, cCmd]) if (c >= 0) for (let r = at; r <= to; r++) put(r, c, KINDS[columns[c].token].blank);
+    for (const r of chosen) {
+      put(r, cNote, cellToken(columns[cNote], val(o.note ?? 'C-4')));
+      if (cVel >= 0 && o.vel !== undefined) put(r, cVel, cellToken(columns[cVel], val(o.vel)));
+      if (cSmp >= 0) put(r, cSmp, cellToken(columns[cSmp], val(o.samples)));
+      if (cOff >= 0) put(r, cOff, cellToken(columns[cOff], val(o.offset)));
+      if (cRtg >= 0) put(r, cRtg, cellToken(columns[cRtg], val(o.retrig)));
+      if (cCmd >= 0 && rand() < (o.cmdChance ?? 0.5)) put(r, cCmd, cellToken(columns[cCmd], val(o.cmd)));
+    }
+    return chosen.length;
+  };
+
   const api = {
-    pat, sel, cursor: { ...cursor },
+    pat, sel, cursor: { ...cursor }, scatter,
     tbin, voices: (...lists) => new Voices(lists.map(voiceList)),
     euclid, bitsOf, rot, inv, rev, both, either, xor,
     ramp: (a, b) => (i, n) => Math.round(n > 1 ? a + ((b - a) * i) / (n - 1) : a),

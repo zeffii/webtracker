@@ -1,7 +1,7 @@
 // Syntax colouring for the script editor: comments, strings, numbers, keywords and the script helpers. A string that is a
 // bit pattern ("x..x ..x.") has its hits and rests coloured, so the rhythm can be read in the code. Returns HTML.
 const KEYWORDS = new Set('const let var function return if else for while do of in new true false null undefined break continue switch case default throw try catch finally typeof this class'.split(' '));
-const HELPERS = new Set('pat sel cursor tbin voices euclid bitsOf rot inv rev both either xor ramp sine scale note midi step seed rnd pick shuffle chance log console'.split(' '));
+const HELPERS = new Set('pat sel cursor tbin scatter voices euclid bitsOf rot inv rev both either xor ramp sine scale note midi step seed rnd pick shuffle chance log console'.split(' '));
 const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 const TOKEN = /(\/\/[^\n]*|\/\*[\s\S]*?(?:\*\/|$))|("(?:[^"\\\n]|\\.)*"?|'(?:[^'\\\n]|\\.)*'?|`(?:[^`\\]|\\[\s\S])*`?)|(\b0[xX][0-9a-fA-F]+\b|\b\d+(?:\.\d+)?\b)|([A-Za-z_$][\w$]*)/g;
 
