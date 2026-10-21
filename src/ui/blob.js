@@ -3,7 +3,7 @@
 // createBlob(canvas) returns null when WebGL is not available, so the caller can fall back to the logo.
 const VS = 'attribute vec2 a;void main(){gl_Position=vec4(a,0.,1.);}';
 const FS = `precision highp float;uniform vec2 R,M;uniform float T,B;uniform vec3 C1,C2;
-float h(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+float h(vec2 p){vec3 q=fract(vec3(p.xyx)*.1031);q+=dot(q,q.yzx+33.33);return fract((q.x+q.y)*q.z);}   // no sin(): its hash shows diagonal patterns on some GPUs
 float smin(float a,float b,float k){float x=max(k-abs(a-b),0.)/k;return min(a,b)-x*x*x*k/6.;}
 vec3 P(int i,float t){float f=float(i);vec3 q=vec3(.75*sin(t*.31+f*2.1)+.2*sin(t*.7+f),.95*sin(t*.27+f*1.3+1.)+.15*cos(t*.5+f*3.),.35*sin(t*.23+f*4.));
 if(i==0)q=mix(q,vec3(M*vec2(.9,1.1),0.),.45);return q;}
@@ -36,7 +36,9 @@ body+=vec3(-.02,.02,.045)*fill*(1.-wrap)*.9;                                    
 body=mix(body,C2*vec3(1.0,.98,.94),pow(back,4.)*clamp(.25+thin,0.,1.)*.22);   // light from behind: shows through the thin parts and rims
 body=mix(body,C2,B*.18);
 col=body;}
-col+=(h(gl_FragCoord.xy+T)-.5)*.03;
+// dither (triangular, about two levels) takes the banding out of the slow gradients, plus a faint grain
+vec2 fc=gl_FragCoord.xy+fract(T*7.3)*91.;
+col+=(h(fc)+h(fc+17.3)-1.)*(2.2/255.)+(h(fc*.77+5.)-.5)*.012;
 gl_FragColor=vec4(col,1.);}`;
 
 export function createBlob(canvas, { colours = [[.30, .74, .80], [.62, .97, .98]] } = {}) {
