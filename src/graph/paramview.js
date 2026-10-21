@@ -128,6 +128,12 @@ export function createParamView({ doc = document, el: host, side = 'right', show
         q.addEventListener('mousedown', e => { e.preventDefault(); e.stopPropagation(); tack.help(); });
         h.append(q);
       }
+      if (tack?.cc) {
+        const c = make('span', `pv-pin pv-cc-toggle${tack.cc.hidden ? '' : ' on'}`, 'cc');
+        c.title = tack.cc.hidden ? 'Show the parameters that a CC command writes' : 'Hide the parameters that a CC command writes';
+        c.addEventListener('mousedown', e => { e.preventDefault(); e.stopPropagation(); tack.cc.toggle(); onFocusBack(); });
+        h.append(c);
+      }
       if (tack) {
         const b = make('span', `pv-pin${tack.on ? ' on' : ''}`);
         b.title = tack.on ? 'Unpin: stop keeping these parameters here' : 'Pin: keep these parameters here when another node is selected';
@@ -143,14 +149,14 @@ export function createParamView({ doc = document, el: host, side = 'right', show
     if (head) host.append(strip(head, pin));
     all().forEach((row, i) => {
       if (starts.has(i)) host.append(starts.get(i));
-      const line = make('div', `pv-row${row.wired ? ' wired' : ''}${row.exposed ? ' ex' : ''}${row.ported ? ' pt' : ''}`);
+      const line = make('div', `pv-row${row.cc !== undefined ? ' cc' : ''}${row.wired ? ' wired' : ''}${row.exposed ? ' ex' : ''}${row.ported ? ' pt' : ''}`);
       const name = make('span', 'pv-name', row.name);   // long names are cut short by the stylesheet, wider panels show more
       name.addEventListener('mouseenter', () => showTip(name, row.hint()));
       name.addEventListener('mouseleave', hideTip);
       const bar = make('div', 'pv-bar');
       const val = make('span', 'pv-val'), hex = make('span', 'pv-hex'), tail = make('span', 'pv-end'), tv = make('span', 'pv-tv');
       tv.title = 'The value in song ticks at this tempo';
-      tail.append(tv, hex);
+      tail.append(...(row.cc !== undefined ? [Object.assign(make('span', 'pv-id', row.cc), { title: `Command ${row.cc} in the Cmd column writes this` })] : []), tv, hex);
       bar.append(val, tail);
       const fromX = e => { const r = bar.getBoundingClientRect(); return (e.clientX - r.left - 1) / Math.max(1, r.width - 2); };
       // a drag lands on a tick line when it is close to one; Alt drags freely

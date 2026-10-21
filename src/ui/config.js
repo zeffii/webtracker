@@ -32,6 +32,7 @@ export const SCHEMA = [
   { key: 'wireStereo', label: 'Wire colour: stereo', hint: 'a left and right pair on one wire', type: 'colour', def: '#b177c5' },
   { key: 'wireParam', label: 'Wire colour: parameter', hint: 'a control signal that drives a parameter port', type: 'colour', def: '#f4857b' },
   { group: 'Editing', key: 'wireStraight', label: 'Graph: wires between close nodes go straight', hint: 'below this distance (in pixels) the wire loses its S-curve and becomes a straight line, easing in up to twice that; 0 keeps every wire curved', type: 'int', min: 0, max: 400, def: 60 },
+  { group: 'Graph', key: 'pvHideCc', label: 'Parameter view: hide command parameters', hint: 'leaves out the parameters that a CC command writes from a pattern (the sampler\'s repeat, filter, vibrato and so on); the cc button in the panel title does the same', type: 'bool', def: false },
   { group: 'Graph', key: 'graphGrid', label: 'Graph: faint grid of dots', hint: 'a very faint dot grid behind the nodes, a brighter dot every few', type: 'bool', def: true },
   { key: 'graphGridSize', label: 'Graph: grid spacing', hint: 'pixels between dots', type: 'int', min: 8, max: 96, def: 24 },
   { key: 'graphGridMajor', label: 'Graph: brighter dot every', hint: 'dots; 0 for none', type: 'int', min: 0, max: 64, def: 12 },

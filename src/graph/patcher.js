@@ -232,6 +232,8 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
   const clamp01 = x => Math.min(1, Math.max(0, x));
 
   // The panel rows of one node: each reads and writes the node's parameter, and carries the row's menu actions.
+  // The rows as shown: with "hide command parameters" on, those that a CC command writes are left out.
+  const shownRows = rows => (config.get('pvHideCc') ? rows.filter(r => r.cc === undefined) : rows);
   function rowsFor(node, type) {
     return type.params.map(spec => {
       const get = () => readLive(instId, node.id, spec.name) ?? node.params?.[spec.name] ?? spec.def;
@@ -251,6 +253,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
       const names = choices(node.type, spec.name);
       return {
         name: spec.name,
+        cc: (() => { const c = (def().commands ?? []).find(k => k.node === node.id && k.param === spec.name); return c ? c.id.toString(16).toUpperCase().padStart(2, '0') : undefined; })(),   // the command that writes it from a pattern
         pos: () => clamp01(toPos(spec, get())),
         setPos: p => apply(toValue(spec, p)),
         display: () => display(node.type, spec, get()),
@@ -387,7 +390,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
     const node = selected?.kind === 'node' ? desc().nodes.find(n => n.id === selected.id) : null;
     const pinnedList = (skip = null) => (instId ? [...pinsOf()] : []).filter(id => id !== skip).flatMap(id => {
       const n = desc().nodes.find(x => x.id === id), t = n && nodeTypes[n.type];
-      return t ? [{ title: `${n.id} · ${n.type}`, rows: rowsFor(n, t), unpin: () => togglePin(id) }] : [];
+      return t ? [{ title: `${n.id} · ${n.type}`, rows: shownRows(rowsFor(n, t)), unpin: () => togglePin(id) }] : [];
     });
     if (!node) {
       if (paramView) {
@@ -402,7 +405,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
     const type = nodeTypes[node.type];
     if (paramView) {
       if (shownNode && shownNode !== node.id) cursorMemo.set(shownNode, paramView.cursor);
-      paramView.show(`${node.id} · ${node.type}`, rowsFor(node, type), shownNode === node.id ? paramView.cursor : cursorMemo.get(node.id) ?? 0, '', { on: pinsOf().has(node.id), toggle: () => togglePin(node.id), help: () => onHelp(node.type) }, pinnedList(node.id));
+      paramView.show(`${node.id} · ${node.type}`, shownRows(rowsFor(node, type)), shownNode === node.id ? paramView.cursor : cursorMemo.get(node.id) ?? 0, '', { on: pinsOf().has(node.id), toggle: () => togglePin(node.id), help: () => onHelp(node.type), cc: def()?.commands?.length ? { hidden: config.get('pvHideCc'), toggle: () => { config.set('pvHideCc', !config.get('pvHideCc')); renderPanel(); } } : null }, pinnedList(node.id));
       shownNode = node.id;
     }
     const items = [];
@@ -1212,7 +1215,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
     // Draws the panel again, for when parameters were changed from outside (a preset).
     refreshPanel() { renderPanel(); dirty = true; },
     // The rows behind the two parameter panels (what they draw), for the tests and for anything that wants the values.
-    paramRows() { const node = selected?.kind === 'node' ? desc().nodes.find(n => n.id === selected.id) : null; return node ? rowsFor(node, nodeTypes[node.type]) : []; },
+    paramRows() { const node = selected?.kind === 'node' ? desc().nodes.find(n => n.id === selected.id) : null; return node ? shownRows(rowsFor(node, nodeTypes[node.type])) : []; },
     exposedRows,
     // Changes the width of the graph area in CSS pixels; the graph is drawn again at once.
     fit(width) {
