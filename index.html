@@ -291,6 +291,48 @@
     .sw.p3 { background: hsl(280 60% 60%); }
     .sw.p4 { background: hsl(0 70% 55%); }
     .sw.p5 { background: hsl(55 70% 50%); }
+    /* the chord palette (Alt+C) */
+    .chord-pop { position: fixed; z-index: 60; width: 720px; max-width: calc(100vw - 16px); max-height: calc(100vh - 16px); overflow: auto; box-sizing: border-box; background: var(--panel); color: var(--fg); border: 1px solid color-mix(in srgb, var(--fg) 40%, transparent); box-shadow: 0 10px 30px rgba(0, 0, 0, .35); padding: 12px 14px; font: 12px/1.35 system-ui, sans-serif; display: flex; flex-direction: column; gap: 10px; outline: none; }
+    .chord-pop button, .chord-pop select { font: inherit; }
+    .cd-head { display: flex; align-items: baseline; gap: 12px; }
+    .cd-name { font-size: 20px; }
+    .cd-sub { font: 12px ui-monospace, Consolas, monospace; opacity: .65; flex: 1; }
+    .cd-ear { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 26px; padding: 0; flex: none; }
+    .cd-ear svg { width: 16px; height: 16px; }
+    .cd-row .cd-ear { margin-left: auto; }
+    .cd-row .cd-tag + .cd-ear { margin-left: 0; }
+    .cd-roll { display: flex; width: max-content; max-width: 100%; border: 1px solid color-mix(in srgb, var(--fg) 45%, transparent); background: #fff; overflow: hidden; flex: none; }
+    .cd-k { width: 16px; height: 34px; box-sizing: border-box; position: relative; display: flex; align-items: flex-end; padding: 0 1px; font: 8px ui-monospace, Consolas, monospace; color: #5d6678; cursor: default; }
+    .cd-k.w { background: #fff; border-right: 1px solid #cfd4de; }
+    .cd-k.b { background: #2c3342; border-right: 1px solid #1d2230; color: #aab2c4; }
+    .cd-k.on { background: #2f66d0; color: #fff; }
+    .cd-k.b.on { background: #1f47a0; }
+    .cd-k.gh { box-shadow: inset 0 0 0 2px #2f66d0; }
+    .cd-k.sc::after { content: ""; position: absolute; left: 50%; top: 4px; width: 4px; height: 4px; margin-left: -2px; border-radius: 50%; background: #9aa3b5; }
+    .cd-k.on.sc::after { background: #cfe0ff; }
+    .cd-k.pick { outline: 2px solid #e0701f; outline-offset: -2px; z-index: 1; }
+    .cd-roll.sm .cd-k { width: 12px; height: 28px; }
+    .cd-roll.tiny .cd-k { width: 10px; height: 20px; }
+    .cd-bar, .cd-tabs, .cd-foot { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .cd-lbl { opacity: .6; font: 10.5px ui-monospace, Consolas, monospace; letter-spacing: .08em; text-transform: uppercase; margin-left: 8px; }
+    .cd-lbl:first-child { margin-left: 0; }
+    .cd-tab.on, .cd-go { background: var(--hi); color: var(--hi-fg); border-color: var(--hi); }
+    .cd-tabs { border-bottom: 1px solid color-mix(in srgb, var(--fg) 25%, transparent); padding-bottom: 6px; }
+    .cd-list { display: flex; flex-direction: column; gap: 4px; max-height: 300px; overflow: auto; }
+    .cd-row { display: flex; align-items: center; gap: 12px; padding: 3px 6px; cursor: pointer; border: 1px solid transparent; }
+    .cd-row:hover { border-color: color-mix(in srgb, var(--fg) 30%, transparent); }
+    .cd-row.on { background: color-mix(in srgb, var(--hi) 18%, transparent); border-color: var(--hi); }
+    .cd-n { display: flex; flex-direction: column; min-width: 150px; line-height: 1.2; }
+    .cd-n span { font: 10.5px ui-monospace, Consolas, monospace; opacity: .65; }
+    .cd-tag { font: 10px ui-monospace, Consolas, monospace; padding: 1px 6px; border-radius: 9px; background: #d6e4ff; color: #1b3f8b; margin-left: auto; white-space: nowrap; }
+    .cd-tag.out { background: #ffe3cc; color: #8a3b00; }
+    .cd-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; max-height: 300px; overflow: auto; }
+    .cd-tile { display: flex; flex-direction: column; gap: 4px; align-items: flex-start; padding: 6px; border: 1px solid color-mix(in srgb, var(--fg) 30%, transparent); cursor: pointer; position: relative; }
+    .cd-tile.on { border-color: var(--hi); box-shadow: 0 0 0 2px color-mix(in srgb, var(--hi) 40%, transparent); }
+    .cd-tile span { font: 10.5px ui-monospace, Consolas, monospace; opacity: .65; }
+    .cd-tile .cd-ear { position: absolute; right: 4px; top: 4px; }
+    .cd-hint { opacity: .65; font-size: 11.5px; }
+    .cd-foot { border-top: 1px solid color-mix(in srgb, var(--fg) 25%, transparent); padding-top: 8px; }
     /* the song's loop: two thin light-red lines across the grid, where it starts and ends */
     .looplines { position: absolute; left: 0; height: 0; border-top: 1px solid hsl(0 85% 78%); pointer-events: none; z-index: 2; }
     .looplines.off { opacity: .4; }
@@ -740,6 +782,7 @@
           <dt>Ctrl+Left/Right</dt><dd>one character left or right inside the cell, to type into just that digit; after that plain Left/Right stay inside the cell (and Up/Down keep the position) until you step past its edge, which enters the next cell at its first character; Up and Down then move by the nugget step (Config, 1 row by default) on the same character</dd>
           <dt>Ctrl+Shift+H</dt><dd><b class="kw">hide</b> or show the empty columns of the lane the cursor is in (a column with no value at any row; the one under the cursor stays)</dd>
           <dt>Ctrl+Space</dt><dd>the same for every parameter column of this row (not notes, velocities or commands)</dd>
+          <dt>Alt + C</dt><dd><b class="kw">chord</b> palette for the notes of the selected row (or the cursor's row): voicings and inversions, change one note in key, another quality, smooth voice-leading over several rows; the ear buttons play a chord for a second. Enter writes, Esc cancels</dd>
           <dt>Ctrl+I</dt><dd><b class="kw">interpolate</b> along a curve: per column, the first and last filled cell of the selection are the ends and the filled cells between them get values by row position. The popup picks a shape, bends it, lays a wave on it, lets you draw your own or shape a <b class="kw">bezier</b> spline with draggable anchors and handles, and can include empty cells; Enter applies, Esc cancels</dd>
           <dt>Ctrl + Plus / Ctrl + Minus, Ctrl + 0, Ctrl + wheel</dt><dd><b class="kw">zoom</b> the pattern text: bigger, smaller, back to normal</dd>
         </dl>

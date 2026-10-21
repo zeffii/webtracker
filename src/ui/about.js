@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['323', ['Chord palette (Alt+C): put the cursor on a row of notes, or select rows, and a palette shows the chord on a small piano roll with its name. Voicings (inversions, drops, spread), One note (change a single voice by a semitone or a scale step, with the interval and the chord it makes), Quality (major, minor, 7ths, sus, dim, aug, 9ths) and Smooth rows (each chord revoiced to move as little as possible from the one above). Every variation has an ear button that plays it for one second. Pick the key and scale so changes stay in key; Enter writes it as one undo step.']],
   ['322', ['The empty tap slots (tap01 to tap16) no longer clutter the sample pickers: a slot shows once it holds a take or an instrument plays it. Config has a switch to show them all again.']],
   ['321', ['Right-click a pattern in the arrangement for a small menu: open it in the pattern editor (or on its own), give it its own copy, slice, remove, and Params, which opens the floating parameters of that lane (Rename is a greyed placeholder). The Open button now sits beside Play, and the params button in the status bar is an icon.']],
   ['320', ['Rail: the divider between the rail and the page is a faint line, and the icon outlines are gone (a soft outline appears on hover, the open screen stays filled).']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['316', ['The Start button is gone from the top bar: the Wax logo on the left is the Start button until the audio is running (click it, or Enter when focused), then it is just the name.']],
   ['315', ['Pattern shortcut list: the zoom keys are written with spaces around the plus (Ctrl + Plus, Ctrl + Minus) so the key and the joining plus can be told apart.']],
   ['314', ['Pattern shortcut list: Ctrl+plus / Ctrl+minus is spelled out as zoom (with Ctrl+0 to reset and Ctrl+wheel), so it is not mistaken for the transpose keys, which are Ctrl+Up / Down and Ctrl+, / Ctrl+.']],
-  ['313', ['Pattern shortcut list corrected: the doubled Left/Right entry is merged, Tab now mentions what it does in solo-edit, Backspace is listed with Delete, and the missing keys are added (Home/End, Shift+arrows selection, copy/cut/paste/select-all, undo/redo, the loop keys).']],
 ];

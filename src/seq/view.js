@@ -10,6 +10,7 @@ import { placementAt } from './edit.js';
 import { showContextMenu } from '../ui/ctxmenu.js';
 import { showCurvePopup } from '../ui/curvepop.js';
 import { newCurve, sampleTable } from './curve.js';
+import { showChordPalette } from '../ui/chordpop.js';
 
 import { LOWER, UPPER } from './piano.js';
 const ROWS = { min: 6, max: 128, normal: 24 };   // rows shown at once
@@ -37,7 +38,7 @@ export function cellAt({ widths, x, line, top, len }) {
 // Keyboard-driven view of every lane side by side. The cursor sits on one character
 // of one cell. Edits go straight into the shared pages, so they are heard on the next
 // tick while the song plays. Call load() with the prepared lanes before drawing.
-export function createTrackerView({ showMenu = (e, items) => showContextMenu(e, items), showCurve = opts => showCurvePopup(opts), random = Math.random, el, statusEl, transport, onToggle, onBack, onMove, onRow = () => {}, onNote = () => {}, onSong = () => {}, readParam = () => undefined, follow = () => false }) {
+export function createTrackerView({ showMenu = (e, items) => showContextMenu(e, items), showCurve = opts => showCurvePopup(opts), showChord = opts => showChordPalette(opts), random = Math.random, el, statusEl, transport, onToggle, onBack, onMove, onRow = () => {}, onNote = () => {}, onSong = () => {}, readParam = () => undefined, follow = () => false }) {
   let lanes = null, len = 0, widths = [], editor = null, song = null;
   // Solo-edit: one placement of one pattern, shown on its own with its rows numbered from 0. Nothing else can be reached.
   // lo..hi is its span of song ticks; hi is the song's length when not in solo-edit and lo is 0.
@@ -443,6 +444,53 @@ export function createTrackerView({ showMenu = (e, items) => showContextMenu(e, 
       : skipped ? 'Out of range.' : `No ${notes ? 'notes' : 'values'} to change (is there a pattern here?).`;
   };
 
+  // The chord palette (Alt+C): the notes of the selected row (or of the cursor's row) as a chord to revoice, change one note
+  // of, give another quality, or lead smoothly from row to row; the ear buttons play it for a second. Written as one edit.
+  let hearing = null;
+  const stopHearing = () => { if (!hearing) return; clearTimeout(hearing.timer); for (const m of hearing.notes) onNote(hearing.instrument, m, false); hearing = null; };
+  const hearChord = (instrument, notes) => {
+    stopHearing();
+    for (const n of notes) onNote(instrument, n + 12, true, 1);   // a written C-4 plays as MIDI 60
+    hearing = { instrument, notes: notes.map(n => n + 12), timer: setTimeout(stopHearing, 1000) };
+  };
+  const chordScale = () => { try { return { key: 0, id: 'major', ...JSON.parse(localStorage.getItem('webtracker.chordScale') ?? '{}') }; } catch { return { key: 0, id: 'major' }; } };
+  const chordPalette = () => {
+    const r = rect(), lane = lanes[r.lane], li = r.lane;
+    const noteCols = lane.columns.map((c, i) => (c.token === 'note' ? i : -1)).filter(i => i >= 0);
+    const fromCol = sel ? r.c0 : 0, toCol = sel ? r.c1 : Infinity;
+    const readCols = noteCols.filter(c => c >= fromCol && c <= toCol), targets = noteCols.filter(c => c >= fromCol);
+    const t0 = sel ? r.t0 : cur.tick, t1 = sel ? r.t1 : cur.tick, rows = [];
+    for (let t = t0; t <= t1; t++) {
+      const n = readCols.map(c => noteSemitones(lane.rows[t]?.[c])).filter(v => v !== null).sort((a, b) => a - b);
+      if (n.length && patternSpan(t)) rows.push({ tick: t, notes: n });
+    }
+    if (!rows.length) { message = 'Put the cursor on a row of notes, or select one, then Alt+C.'; return; }
+    const rowItems = (t, notes) => {
+      const items = [];
+      targets.forEach((c, i) => {
+        if (i < notes.length) items.push({ tick: t, col: c, token: noteToken(notes[i]) });
+        else if (readCols.includes(c) && noteSemitones(lane.rows[t][c]) !== null) items.push({ tick: t, col: c, token: KINDS.note.blank });
+      });
+      return items;
+    };
+    const write = (list, label) => {
+      let items;
+      try { items = list.flatMap(([t, notes]) => rowItems(t, notes)); } catch { message = 'That would go out of the note range.'; return; }
+      const clipped = list.some(([, notes]) => notes.length > targets.length);
+      message = editor.setCells(li, items, label) ? `Chord written${clipped ? `, but the lane has only ${targets.length} note column${targets.length === 1 ? '' : 's'}` : ''}.` : 'No pattern here.';
+    };
+    const box = el.getBoundingClientRect?.() ?? { left: 80, top: 80 };
+    const done = () => { stopHearing(); el.focus?.(); draw(); };
+    showChord({
+      notes: rows[0].notes, rows, scale: chordScale(), anchor: { x: box.left + 60, y: box.top + 30 },
+      preview: notes => hearChord(lane.instrument, notes),
+      onScale: v => { try { localStorage.setItem('webtracker.chordScale', JSON.stringify(v)); } catch { /* not kept */ } },
+      onApply: notes => { write([[rows[0].tick, notes]], 'chord'); done(); },
+      onSmooth: list => { write(rows.map((row, i) => [row.tick, list[i]]), 'smooth chords'); done(); },
+      onCancel: done,
+    });
+  };
+
   // Interpolating (Ctrl+I): per column of the selection the first and the last cell that hold a value are the two ends, and
   // the cells between them get values along a curve from one to the other, by row position (so uneven placeholders get
   // the value that belongs at their row). By default only cells that already have a value are written; the popup can
@@ -631,6 +679,9 @@ export function createTrackerView({ showMenu = (e, items) => showContextMenu(e, 
     if (lanes && e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey && e.code === 'KeyR') {   // Alt+R: roll the randomize again, from the cells as they were before the first roll
       if (roll) rollOnce(); else message = 'Nothing to roll again: use Ctrl+R first.';
       e.preventDefault(); return;
+    }
+    if (lanes && e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey && e.code === 'KeyC') {   // Alt+C: the chord palette
+      chordPalette(); e.preventDefault(); draw(); return;
     }
     if (e.altKey && !e.ctrlKey && !e.metaKey && e.code === 'KeyT') {   // Alt+T: tint the patterns by colour, or not
       const on = !tint; config.set('patternTint', on); message = on ? 'Pattern tint on.' : 'Pattern tint off.';

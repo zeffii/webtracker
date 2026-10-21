@@ -7039,4 +7039,60 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   assert.ok(Math.abs(cross(run({ ...raw, wave1: 3, tuning: 450 }), 8000, 17000) / 220 - 450 / 440) < 0.002, 'tuning sets the pitch of A');
   console.log('ok: fourpole');
 }
+// Chord palette: the chord arithmetic, and Alt+C writing a revoiced chord (and smooth rows) through the editor
+{
+  const { detect, voicings, setQuality, candidates, voiceLead, QUALITIES, scaleSet, spell } = await import('../src/seq/chords.js');
+  assert.equal(detect([48, 52, 55, 59]).name, 'Cmaj7');
+  assert.equal(detect([52, 55, 60]).name, 'C/E', 'an inversion is a slash chord');
+  assert.equal(detect([48, 51, 55, 58]).name, 'Cm7');
+  assert.equal(detect([48, 49]), null);
+  const v = voicings([48, 52, 55]);
+  assert.deepEqual(v.map(x => x.id), ['root', 'inv1', 'inv2', 'spread']);
+  assert.deepEqual(v[1].notes, [52, 55, 60]); assert.deepEqual(v[2].notes, [55, 60, 64]);
+  assert.ok(voicings([48, 52, 55, 59]).some(x => x.id === 'drop2'), 'four notes get drops');
+  assert.deepEqual(setQuality([48, 52, 55], QUALITIES.find(q => q.id === 'min')), [48, 51, 55]);
+  const c = candidates([48, 52, 55], 1, scaleSet(0, 'major'));
+  assert.ok(c.some(x => x.note === 53 && x.inScale) && c.some(x => x.note === 51 && x.inScale === false), 'candidates know the key');
+  assert.deepEqual(voiceLead([48, 52, 55, 59], [45, 48, 52, 55]), [48, 52, 55, 57], 'Cmaj7 to Am7 moves one voice');
+  assert.equal(voiceLead([48, 52, 55], [45, 48, 52, 55]), null);
+  assert.equal(spell(48), 'C-4'); assert.equal(spell(54), 'F#4');
+
+  const registry = new ParamRegistry(), defs = structuredClone(instruments);
+  defs.lead.noteColumns = 3;
+  for (const [id, def] of Object.entries(defs)) compile(def.graph, { instrument: id, nodeTypes: NODE_TYPES, registry });
+  const chordSong = song120([oneLane('lead', 'lead', patternText(16, {}).replace(/^.*$/gm, '... .. ... .. ... ..'))]);
+  const lanes = prepareSong(chordSong, defs, registry), editor = createEditor(lanes, 16);
+  let onKey, run = null; const heard = [];
+  const view = createTrackerView({
+    showChord: opts => { run = opts; }, onNote: (i, m, on) => heard.push([m, on]),
+    el: { addEventListener: (type, f) => { if (type === 'keydown') onKey = f; }, innerHTML: '' }, statusEl: {},
+    transport: new Int32Array(new SharedArrayBuffer(8)), onToggle() {}, onBack() {},
+  });
+  uiConfig.set('arrowStyle', 'cell');
+  view.load({ lanes, song: chordSong, editor });
+  const lane = lanes[0], nc = lane.columns.map((c, i) => (c.token === 'note' ? i : -1)).filter(i => i >= 0);
+  assert.ok(nc.length >= 3, 'the demo lead lane has three note columns');
+  const put = (t, notes) => nc.forEach((c, i) => editor.setCell(0, t, c, i < notes.length ? noteToken(notes[i]) : '...'));
+  const read = t => nc.map(c => lane.rows[t][c]).filter(x => x !== '...').map(noteSemitones);
+  put(2, [48, 52, 55]); put(3, [45, 48, 52]);
+  view.goto(0, 2);
+  onKey({ key: 'c', code: 'KeyC', altKey: true, preventDefault() {} });
+  assert.ok(run, 'Alt+C opens the palette'); assert.deepEqual(run.notes, [48, 52, 55]);
+  run.preview([48, 52, 55]);
+  assert.deepEqual(heard.filter(h => h[1]).map(h => h[0]), [60, 64, 67], 'the ear plays the chord (written C-4 is MIDI 60)');
+  run.onApply([52, 55, 60]);
+  assert.deepEqual(read(2), [52, 55, 60], 'apply writes the new voicing');
+  assert.deepEqual(heard.filter(h => !h[1]).map(h => h[0]), [60, 64, 67], 'and the hold is let go');
+  assert.ok(editor.undo(), 'one undo'); assert.deepEqual(read(2), [48, 52, 55], 'undo puts the chord back');
+  // two selected rows: smooth voice leading
+  view.goto(0, 2); onKey({ key: 'ArrowDown', shiftKey: true, preventDefault() {} });
+  onKey({ key: 'c', code: 'KeyC', altKey: true, preventDefault() {} });
+  assert.equal(run.rows.length, 2);
+  run.onSmooth([[48, 52, 55], [48, 52, 57]]);
+  assert.deepEqual(read(3), [48, 52, 57], 'smooth writes every row'); assert.deepEqual(read(2), [48, 52, 55]);
+  // cancel writes nothing
+  put(2, [48, 52, 55]); view.goto(0, 2); onKey({ key: 'c', code: 'KeyC', altKey: true, preventDefault() {} }); run.onCancel();
+  assert.deepEqual(read(2), [48, 52, 55]);
+  console.log('ok: chord palette');
+}
 console.log('smoke test passed');
