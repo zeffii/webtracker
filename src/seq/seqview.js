@@ -358,7 +358,11 @@ export function createSequenceView({ el, statusEl, listEl, transport, onToggle, 
         if (act('move', moved, 'Moved.')) cur.tick = moved.start;
         break;
       }
-      case 'Delete': case 'Backspace': act('remove', editor.remove(li, t), 'Removed. The pattern stays in the list.'); break;
+      case 'Delete': case 'Backspace':
+        if (here()) act('remove', editor.remove(li, t), 'Removed. The pattern stays in the list.');
+        else act('pull up', editor.shift(li, rowStart(cur.tick), -16), 'Pulled the patterns below up.');   // an empty spot: close the gap, 16 ticks at most
+        break;
+      case 'Insert': act('push down', editor.shift(li, rowStart(cur.tick), 16), 'Pushed the patterns from here down 16 ticks.'); break;
       case 'm': {   // start a mute here; again further down to unmute. Shift+M silences the whole lane.
         if (e.shiftKey) { message = editor.silence(li) ? `${lane().id} silenced.` : `${lane().id} is back on.`; break; }
         const row = rowStart(cur.tick);

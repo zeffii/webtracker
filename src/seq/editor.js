@@ -90,6 +90,7 @@ export function createEditor(lanes, length, { limit = 20 } = {}) {
     }),
     toggleOff: (li, tick) => change('toggle note off', null, () => ops.toggleOff(at(li), length, tick)),
     toggleMute: (li, tick) => change('toggle mute', null, () => ops.toggleMute(at(li), length, tick)),
+    shift: (li, tick, delta) => change(delta > 0 ? 'push patterns' : 'pull patterns', null, () => ops.shiftPlacements(at(li), length, tick, delta)),
     remove: (li, tick) => change('remove pattern', null, () => ops.removePlacement(at(li), length, tick)),
 
     undo: () => step(undoStack, redoStack),

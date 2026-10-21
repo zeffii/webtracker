@@ -483,6 +483,16 @@ const firstSound = x => x.findIndex(v => Math.abs(v) > 1e-9);
   assert.equal(ops.placePattern(lane, 32, 16, ops.puidByIndex(lane, 0)), 16);
   assert.equal(ops.placePattern(lane, 32, 16, ops.puidByIndex(lane, 0)), 0);   // a pattern already starts there
   assert.ok(ops.insertPattern(lane, 32, 20, 16, true));                  // overlay allowed on a covered tick
+
+  // push and pull: later patterns follow the caret
+  lane = fresh();
+  assert.equal(ops.shiftPlacements(lane, 32, 16, 16), 0);                // would fall off the end
+  assert.equal(ops.shiftPlacements(lane, 32, 0, -16), 0);                // nothing to close: the first pattern is at 0
+  assert.ok(ops.removePlacement(lane, 32, 0));
+  assert.equal(ops.shiftPlacements(lane, 32, 0, -32), -16);              // pulled only as far as the gap
+  assert.equal(lane.placements[0].start, 0);
+  assert.equal(ops.shiftPlacements(lane, 32, 0, 8), 8);
+  assert.equal(lane.placements[0].start, 8);
 }
 
 // 23. Undo: edits are reversible, typing in one cell is one entry, the stack is capped, waypoint works.

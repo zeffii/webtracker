@@ -248,6 +248,25 @@ export function removePlacement(lane, length, tick) {
   return true;
 }
 
+// Shifts every placement that starts at or after `from` by delta ticks: positive makes room (refused if the last one
+// would fall off the end), negative pulls them up towards `from` (at most as far as the gap, so none lands on or before
+// the caret or on another). Returns how far they moved, 0 if nothing did.
+export function shiftPlacements(lane, length, from, delta) {
+  const later = lane.placements.filter(p => p.start >= from);
+  if (!later.length || !delta) return 0;
+  if (delta > 0) {
+    if (Math.max(...later.map(p => p.start)) + delta >= length) return 0;
+  } else {
+    const before = lane.placements.filter(p => p.start < from).map(p => p.start + Math.min(p.length, lane.patterns[p.puid].length));
+    const floor = Math.max(from, ...before);
+    delta = -Math.min(-delta, Math.min(...later.map(p => p.start)) - floor);
+    if (!delta) return 0;
+  }
+  for (const p of later) p.start += delta;
+  refresh(lane, length);
+  return delta;
+}
+
 // Copies a pattern (a { name, rows, color } as saved with a copied block) into this lane's pool. Returns its puid, or
 // null if all 256 indices are taken.
 export const adoptPattern = (lane, pattern) => addPattern(lane, copyRows(pattern.rows), pattern.name, pattern.color);
