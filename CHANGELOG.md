@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 298 · 2026-10-21
+
+- Config defaults: Follow mode (the red line) is on, and dragging a graph node far from its chain no longer takes it out (both still switchable on the Config page; a setting you already saved is kept).
+
 ## 297 · 2026-10-21
 
 - New synth node: Fourpole (Synths in the add menu, and an instrument kind). After the design of Fuzzpilz's Buzz machine Orange Kid: two table oscillators with ten waves (sine, triangle, square, saws, three sawoids, two seeded noises), phase, transpose, detune, six mixes (1+2, 1-2, 2-1, 1*2, 1/2, 2/1) and a start/end window on the table; two linear ADSRs, the second a modulation envelope; four resonant lowpass/highpass filters that can slave to filter 1, eight routings, a cutoff limit (fixed Hz or relative to the note) and inertia; vibrato, glide, tuning; envelope amounts for vibrato rate and depth, cutoff, resonance, pitch and amplitude.
