@@ -12,12 +12,13 @@ vec3 nrm(vec3 p){vec2 e=vec2(.003,0);return normalize(vec3(map(p+e.xyy)-map(p-e.
 void main(){vec2 uv=gl_FragCoord.xy/R;vec2 p=(gl_FragCoord.xy-.5*R)/min(R.x,R.y*1.15);
 vec3 bg=mix(vec3(.93,.91,.88),vec3(.78,.81,.85),smoothstep(.45,1.,uv.y));bg=mix(bg,vec3(.95,.93,.9),smoothstep(.5,.0,uv.y)*.5);
 bg*=1.-.16*pow(length(p)*.8,2.);
-vec3 ro=vec3(0.,0.,-8.6),rd=normalize(vec3(p,1.9));float t=0.;bool hit=false;
+vec3 ro=vec3(0.,0.,-5.6),rd=normalize(vec3(p,1.9));float t=0.;bool hit=false;
 for(int i=0;i<72;i++){float d=map(ro+rd*t);if(d<.002){hit=true;break;}t+=d;if(t>9.)break;}
 vec3 col=bg;
 if(hit){vec3 pos=ro+rd*t;vec3 n=nrm(pos);
-float tt=.03;for(int i=0;i<20;i++){float d=-map(pos+rd*tt);if(d<.002)break;tt+=max(d,.02);}float thk=tt;
-float th2=0.;for(int i=1;i<=5;i++){float s=float(i)*.1;th2+=clamp(-map(pos-n*s),0.,s);}
+float jit=h(gl_FragCoord.xy+fract(T)*13.);   // a per-pixel start turns the stepped contours of a short march into fine grain
+float tt=.03+.03*jit;for(int i=0;i<22;i++){float d=-map(pos+rd*tt);if(d<.002)break;tt+=max(d,.02);}float thk=tt;
+float th2=0.;for(int i=1;i<=5;i++){float s=(float(i)-.5+jit)*.1;th2+=clamp(-map(pos-n*s),0.,s);}
 float thin=exp(-th2*4.2),core=exp(-thk*.9);
 // a few quiet lights, not just an even glow: a soft key from the upper left, a cool fill from the right, a warm light from behind and below
 float key=clamp((dot(n,normalize(vec3(-.45,.6,-.65)))+.55)/1.55,0.,1.);

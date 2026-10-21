@@ -35,7 +35,7 @@ export function createSplash({ box, onStart }) {
   card.tabIndex = 0; card.setAttribute('role', 'button'); card.setAttribute('aria-label', 'Enter webtracker'); card.focus({ preventScroll: true });
 
   if (blob) {
-    box.addEventListener('pointermove', e => blob.point(e.clientX / innerWidth * 2 - 1, 1 - e.clientY / innerHeight * 2));
+    box.addEventListener('pointermove', e => { const r = card.getBoundingClientRect(); blob.point(((e.clientX - r.left) / r.width) * 2 - 1, 1 - ((e.clientY - r.top) / r.height) * 2); });
     box.addEventListener('pointerdown', () => blob.excite(true));
   }
   const size = () => { dpr = devicePixelRatio || 1; W = card.clientWidth; H = card.clientHeight; cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); };
