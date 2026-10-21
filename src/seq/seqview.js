@@ -275,6 +275,23 @@ export function createSequenceView({ el, statusEl, listEl, transport, onToggle, 
     row.firstChild.focus();
   };
 
+  // The pattern list's own selection (Ctrl+Up / Down moves it, Space places it): by default the pattern under the cursor.
+  let pickUid = null, pickMoved = false;
+  const listOrder = () => Object.entries(lane().patterns).sort((x, y) => x[1].index - y[1].index).map(([puid]) => puid);
+  const listPick = () => {
+    const order = listOrder();
+    if (pickUid !== null && order.includes(pickUid)) return pickUid;
+    const o = here();
+    return o && order.includes(o.puid) ? o.puid : order[0] ?? null;
+  };
+  const stepList = dir => {
+    const order = listOrder();
+    if (!order.length) { message = 'No patterns in this lane yet.'; return; }
+    pickUid = order[Math.max(0, Math.min(order.length - 1, order.indexOf(listPick()) + dir))]; pickMoved = true;
+    const p = lane().patterns[pickUid];
+    message = `List: ${hex2(p.index)} "${p.name}". Space places it.`;
+  };
+
   el.addEventListener('keydown', e => {
     if (!lanes || e.altKey) return;
     if (dialog) { return; }
@@ -287,6 +304,7 @@ export function createSequenceView({ el, statusEl, listEl, transport, onToggle, 
         e.preventDefault();
         return;
       }
+      if ((e.key === 'ArrowUp' || e.key === 'ArrowDown') && !e.shiftKey) { stepList(e.key === 'ArrowUp' ? -1 : 1); e.preventDefault(); return; }   // Ctrl+Up / Down: through the pattern list
       if (key === 'l' && !e.shiftKey) { message = toggleLoop(song); onSong(); e.preventDefault(); return; }   // Ctrl+L: the loop on or off
       if (key === 'z' || key === 'y') {
         const redo = key === 'y' || e.shiftKey;
@@ -364,6 +382,13 @@ export function createSequenceView({ el, statusEl, listEl, transport, onToggle, 
       case 'Home': cur.tick = 0; typed = ''; break;
       case 'End': cur.tick = rowStart(len - 1); typed = ''; break;
       case 'Escape': typed = ''; message = ''; break;
+      case ' ': {   // Space: place the pattern selected in the list here, and move on to where it ends
+        const puid = listPick();
+        if (puid === null) { message = 'No patterns in this lane yet. Enter makes one.'; break; }
+        const n = editor.placePattern(li, t, puid);
+        if (act('place the pattern', n, 'Placed.')) { const p = lane().patterns[puid]; message = `Placed ${hex2(p.index)} "${p.name}".`; if (t + n < len) cur.tick = rowStart(t + n); }
+        break;
+      }
       case 'Enter':   // open the pattern under the cursor in the grid, or start a new one
         if (here()) onOpen(li, t);
         else act('insert a pattern', editor.insertPattern(li, t), 'Pattern inserted.');
@@ -552,9 +577,10 @@ export function createSequenceView({ el, statusEl, listEl, transport, onToggle, 
       const html = `<div class="ph"><span>${esc(lane().id)}: ${Object.keys(lane().patterns).length} patterns</span><span>len</span></div>${
         Object.entries(lane().patterns).sort((a, b) => a[1].index - b[1].index).map(([puid, p]) => {
           const { cls, style } = colourOf(p);
-          return `<div class="pi${owner && owner.puid === puid ? ' here' : ''}"><span class="sw${cls ? ` ${cls}` : ''}"${style ? ` style="background:${style}"` : ''}> </span><span>${hex2(p.index)}</span><span class="pn">${esc(p.name)}</span><span class="pl">${p.length}</span></div>`;
+          return `<div class="pi${owner && owner.puid === puid ? ' here' : ''}${puid === listPick() ? ' pick' : ''}"><span class="sw${cls ? ` ${cls}` : ''}"${style ? ` style="background:${style}"` : ''}> </span><span>${hex2(p.index)}</span><span class="pn">${esc(p.name)}</span><span class="pl">${p.length}</span></div>`;
         }).join('') || '<div class="pi">none yet</div>'}`;
       if (html !== lastList) { lastList = html; listEl.innerHTML = html; }
+      if (pickMoved) { pickMoved = false; listEl.querySelector?.('.pick')?.scrollIntoView?.({ block: 'nearest' }); }
     }
   };
 

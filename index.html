@@ -226,6 +226,7 @@
     #seq-side .pn { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     #seq-side .pl { text-align: right; }
     #seq-side .pi.here { background: color-mix(in srgb, currentColor 22%, transparent); }
+    #seq-side .pi.pick { outline: 1px solid var(--hi); outline-offset: -1px; }
     #seq-side .sw { width: 11px; height: 11px; margin: 0; }
     #view:focus, #seq:focus { outline: 1px solid; }
     #seq { overflow-x: auto; line-height: 18px; isolation: isolate; }
@@ -989,6 +990,8 @@
           <dt>Enter</dt><dd>open the pattern under the cursor in the grid, or <b class="kw">insert</b> a new one</dd>
           <dt>Ctrl+Enter</dt><dd>open the pattern under the cursor on its own (<b class="kw">solo-edit</b>): nothing else can be edited or pasted into. In the grid, Tab switches between showing only the pattern (rows from 0) and showing the whole song with the rest greyed, hatched and locked; Esc leaves it</dd>
           <dt>I</dt><dd><b class="kw">insert</b> a new pattern on top</dd>
+          <dt>Ctrl+Up/Down</dt><dd>step through the <b class="kw">pattern list</b> (the outlined one)</dd>
+          <dt>Space</dt><dd>place the outlined pattern here and jump to its end</dd>
           <dt>two hex digits</dt><dd>place that pattern (see the list) and jump to its end</dd>
           <dt>H</dt><dd>show or hide the pattern <b class="kw">names</b> in the cells</dd>
           <dt>V</dt><dd>show or hide the pattern <b class="kw">minimaps</b> (small pictures of the notes in each cell)</dd>

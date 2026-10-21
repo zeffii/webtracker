@@ -3747,9 +3747,36 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   view.load({ lanes, song: demoSong, editor: createEditor(lanes, demoSong.length) });
   view.draw();
   assert.match(statusEl.textContent, /^lane 1\/\d+ lead · row 0\/1 · tick 0 · /, 'lane and row of the cursor');
-  assert.match(listEl.innerHTML, /class="pi here"/, 'the pattern under the cursor is marked in the list');
+  assert.match(listEl.innerHTML, /class="pi here/, 'the pattern under the cursor is marked in the list');
   assert.match(listEl.innerHTML, /class="sw/, 'each pattern shows its colour');
   assert.ok(!el.innerHTML.includes('patterns:'), 'the grid no longer carries the list line');
+}
+
+// Arrangement: Ctrl+Up/Down steps through the pattern list, Space places the selected one
+{
+  const registry = new ParamRegistry();
+  for (const [id, def] of Object.entries(instruments)) compile(def.graph, { instrument: id, nodeTypes: NODE_TYPES, registry });
+  const lanes = prepareSong(demoSong, instruments, registry), editor = createEditor(lanes, demoSong.length);
+  let onKey; const statusEl = { textContent: '' }, listEl = { innerHTML: '' };
+  const el = { addEventListener: (type, f) => { if (type === 'keydown') onKey = f; }, innerHTML: '' };
+  const view = createSequenceView({ el, statusEl, listEl, transport: new Int32Array(new SharedArrayBuffer(8)), onToggle() {}, onOpen() {} });
+  view.load({ lanes, song: demoSong, editor });
+  const press = (key, extra = {}) => onKey({ key, preventDefault() {}, ...extra });
+  const lane = lanes[0], order = Object.entries(lane.patterns).sort((a, b) => a[1].index - b[1].index).map(([u]) => u);
+  assert.ok(order.length >= 2);
+  const t = 16; editor.remove(0, t);   // a row (16 ticks) with no pattern starting in it
+  view.goto(0, t); view.draw();
+  press('ArrowDown', { ctrlKey: true }); view.draw();
+  assert.match(listEl.innerHTML, /class="pi pick"|class="pi here pick"/, 'the list shows its selection');
+  const want = order[1];
+  press('ArrowDown', { ctrlKey: true }); press('ArrowUp', { ctrlKey: true }); press('ArrowDown', { ctrlKey: true });
+  const before = lane.placements.length;
+  press(' '); view.draw();
+  const placed = lane.placements.find(p => p.start === t);
+  assert.equal(lane.placements.length, before + 1, 'Space places a pattern');
+  assert.equal(placed?.puid, want, 'the one the list had selected');
+  view.draw(); assert.match(statusEl.textContent, /Placed/);
+  press(' '); assert.equal(lane.placements.length, before + 1, 'not where a pattern already starts');
 }
 
 // 93. Keyjazz from the instrument screen, and panic.
