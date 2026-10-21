@@ -55,7 +55,7 @@ export function buildColumns(instrument, def, registry) {
     columns.push({
       kind: 'cmd', token: 'cmd', label: 'Cmd', key: 'cmd', long: 'Command',
       commands: (def.commands ?? []).map(c => ({
-        id: c.id, log: c.scale === 'log', ...target(c.node, c.param),
+        id: c.id, log: c.scale === 'log', ...(Number.isFinite(c.fixed) ? { fixed: c.fixed } : {}), ...target(c.node, c.param),
         name: `${longName(c.param)}${context ? ` · ${c.node}` : ''}`, type: def.graph.nodes.find(n => n.id === c.node)?.type, param: c.param,
       })),
       presets,

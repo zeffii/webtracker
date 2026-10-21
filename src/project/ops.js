@@ -118,6 +118,15 @@ export const SAMPLE_PROPS = {
 // (what the Off column of a pattern would hold to start there) is its place in the sample from 0000 to FFFF.
 export const sliceHex = (frame, length) => Math.round(frame / Math.max(1, length - 1) * 65535).toString(16).toUpperCase().padStart(4, '0');
 
+// The same place as an absolute frame number in hex: four digits while the sample fits in them, else "hh:hhhh", where hh counts
+// the full 65536-frame blocks passed and hhhh is what is left in the block the frame is in.
+export const frameHex = (frame, length) => {
+  const f = Math.max(0, Math.round(frame)), lo = (f % 65536).toString(16).toUpperCase().padStart(4, '0');
+  return length > 65536 ? `${Math.floor(f / 65536).toString(16).toUpperCase().padStart(2, '0')}:${lo}` : lo;
+};
+// What a marker shows for its place, by Config's "hexMode": relative, absolute or both.
+export const placeHex = (frame, length, mode = 'both') => (mode === 'relative' ? sliceHex(frame, length) : mode === 'absolute' ? frameHex(frame, length) : `${sliceHex(frame, length)} ${frameHex(frame, length)}`);
+
 // Replaces the sample's slice markers. Returns the instruments that play the sample.
 export function setSlices(project, id, frames) {
   const sample = project.samples[id], n = sample.data.length;

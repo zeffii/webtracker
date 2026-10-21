@@ -52,6 +52,7 @@ const HINTS = {
     slide: 'Bends the pitch while a sound plays, in semitones per tick (negative falls). In a pattern, hex 8000 is 0.',
     flip: '1 makes every repeat play the other way round from the one before.',
     prob: 'The chance that a repeat sounds, 0 to 1. The timing carries on, so a missed repeat is a gap. In a pattern, hex FFFF is always.',
+    blockCount: 'Absolute start: below 65535 the Off column is the low four hex digits of a frame number and this is how many full blocks of 65536 frames come before it (command FF); 65535 is the usual fraction of the sample (command F0).',
     subdivide: 'How many subticks make a tick (default 6). The time of the volume slides is counted in subticks, so a bigger number makes the slides shorter and finer.',
     volLin: 'Volume slide: XXYY, a linear slide of the sound to the level YY/40 (hex; 40 is the sound\'s own level, 20 half, 80 double) in XX subticks (six to a tick; 00 is at once). Written while a sound plays it slides that sound; before a note, every sound of the note. 0000 is off.',
     volLog: 'Volume slide: like volLin, but the slide is even in dB, so it sounds like a steady fade. A target of 00 slides to about -80 dB.',

@@ -31,10 +31,11 @@
 const VOICES = 16;
 const LEVEL = 0, ROOT = 1, RELEASE = 2, NNA_FADE = 3, OFFSET = 4, REVERSE = 5, RETRIG = 6, REPEATS = 7, SHIFT = 8, RAMP = 9, SAMPLE = 10, SLICE = 11;
 const VS = 24, VS_KINDS = ['lin', 'log', 'down', 'up', 'fineDown', 'fineUp', 'downMs', 'upMs', 'fineDownMs', 'fineUpMs'];   // volume slides: ten parameters, 24 to 33
+const ABS = 35;     // the `blockCount` parameter: below 65535, Off holds the low four hex digits of a frame number and this the blocks of 65536 frames before it
 const SUBDIV = 34;   // the `subdivide` parameter: subticks per tick, for the times of the slides (UnwieldyTracker's Subdivide, default 6)
 const FLOOR = 1e-6;   // a slide to nothing stops at -120 dB, as UnwieldyTracker's does
 const GRAIN = 12, EDGE = 13, ACCEL = 14, STEP = 15, SLIDE = 16, FLIP = 17, PROB = 18, JOFF = 19, JPITCH = 20, JPAN = 21, JTIME = 22, JLEVEL = 23;
-const DEFAULTS = { [SUBDIV]: 6, [EDGE]: 0.5, [ACCEL]: 1, [PROB]: 1, [RAMP]: 1 };   // for a node whose parameter list is older than these
+const DEFAULTS = { [ABS]: 65535, [SUBDIV]: 6, [EDGE]: 0.5, [ACCEL]: 1, [PROB]: 1, [RAMP]: 1 };   // for a node whose parameter list is older than these
 const PLAYING = 0, RELEASING = 1, FADING = 2, CUTTING = 3;   // voice modes (cutting: the 2 ms fade of a sound a repeat replaces)
 
 export default {
@@ -87,6 +88,7 @@ export default {
     { name: 'volFineDownMs', min: 0, max: 65535, def: 0, int: true },
     { name: 'volFineUpMs', min: 0, max: 65535, def: 0, int: true },
     { name: 'subdivide', min: 1, max: 255, def: 6, int: true },        // subticks in a tick, for the time of the volume slides
+    { name: 'blockCount', min: 0, max: 65535, def: 65535, int: true },   // absolute offset: the 65536-frame block Off counts from (the FF command); 65535 is off, Off is a fraction of the sample (the F0 command)
   ],
   create({ sampleRate, stereo = false, clock }) {
     // The samples this node can play, by slot (the instrument's sample list); a note picks one by the `sample`
@@ -234,7 +236,9 @@ export default {
           if (!bank[si]) { active[v] = 0; continue; }   // no sample in that slot: the note is silent
           const last = bank[si].sample.length - 1;
           const marker = bank[si].slices[Math.floor(params[slots[SLICE]])];   // a slice marker, when the slice command picked one, wins over the offset
-          const off = marker !== undefined ? Math.min(1, marker / Math.max(1, last)) : Math.max(0, Math.min(1, params[slots[OFFSET]]));
+          const block = Math.floor(Number.isFinite(params[slots[ABS]]) ? params[slots[ABS]] : 65535);
+          const frame = block < 65535 ? block * 65536 + Math.round(Math.max(0, Math.min(1, params[slots[OFFSET]])) * 65535) : -1;   // absolute: Off is the low part of the frame number
+          const off = marker !== undefined ? Math.min(1, marker / Math.max(1, last)) : frame >= 0 ? Math.min(1, frame / Math.max(1, last)) : Math.max(0, Math.min(1, params[slots[OFFSET]]));
           const P = i => { const x = params[slots[i]]; return Number.isFinite(x) ? x : DEFAULTS[i] ?? 0; };
           const cfg = {
             shift: P(SHIFT), ramp: P(RAMP), accel: P(ACCEL), step: P(STEP), flip: P(FLIP) >= 1, prob: P(PROB), slide: P(SLIDE),

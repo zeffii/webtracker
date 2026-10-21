@@ -22,7 +22,7 @@ export function shortName(label, width) {
 
 const LONG = {
   grain: 'Grain length', edge: 'Grain edge', accel: 'Repeat speed-up', step: 'Pitch step', slide: 'Pitch slide', flip: 'Flip direction', prob: 'Repeat chance',
-  volLin: 'Volume slide (linear)', volLog: 'Volume slide (log)', volDown: 'Volume slide down (dB)', volUp: 'Volume slide up (dB)', volFineDown: 'Fine volume slide down', volFineUp: 'Fine volume slide up', subdivide: 'Subticks per tick', volDownMs: 'Volume slide down (ms)', volUpMs: 'Volume slide up (ms)', volFineDownMs: 'Fine volume slide down (ms)', volFineUpMs: 'Fine volume slide up (ms)',
+  volLin: 'Volume slide (linear)', volLog: 'Volume slide (log)', volDown: 'Volume slide down (dB)', volUp: 'Volume slide up (dB)', volFineDown: 'Fine volume slide down', volFineUp: 'Fine volume slide up', subdivide: 'Subticks per tick', blockCount: 'Block count (absolute offset)', volDownMs: 'Volume slide down (ms)', volUpMs: 'Volume slide up (ms)', volFineDownMs: 'Fine volume slide down (ms)', volFineUpMs: 'Fine volume slide up (ms)',
   jOffset: 'Offset jitter', jPitch: 'Pitch jitter', jPan: 'Pan jitter', jTime: 'Timing jitter', jLevel: 'Level jitter',
   sample: 'Sample', offset: 'Sample offset', retrig: 'Retrigger interval', repeats: 'Repeats', cutoff: 'Cutoff', resonance: 'Resonance',
   res: 'Resonance', mix: 'Mix', time: 'Time', amount: 'Amount', decay: 'Decay', fenv: 'Filter envelope', detune: 'Detune', drive: 'Drive',

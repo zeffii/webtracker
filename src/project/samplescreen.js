@@ -1,4 +1,5 @@
-import { setLoop, setSampleProps, setSlices, sliceHex, SAMPLE_PROPS, removeSample, renameSample, isPool } from './ops.js';
+import * as config from '../ui/config.js';
+import { setLoop, setSampleProps, setSlices, placeHex, SAMPLE_PROPS, removeSample, renameSample, isPool } from './ops.js';
 import { applyEdit, createHistory, redoEdit, undoEdit } from './sampleedit.js';
 import { LOWER, UPPER } from '../seq/piano.js';
 
@@ -362,7 +363,7 @@ export function createSampleScreen({ el, statusEl, getProject, onChange = () => 
       const sliceLines = d => {
         const sl = d.slices ?? [];
         return [line(` Slices    ${sl.length ? sl.length : 'none'}${sl.length ? '' : '  (Shift+M marks one at the selection start; Alt+click the display)'}`),
-          ...sl.slice(0, 8).map((f, i) => line(`${i === activeSlice ? ' >' : '  '} ${i.toString(16).toUpperCase().padStart(2, '0')}  ${sliceHex(f, d.data.length)}  ${String(f).padStart(8, '0')}  ${(f / d.rate).toFixed(3)}s`)),
+          ...sl.slice(0, 8).map((f, i) => line(`${i === activeSlice ? ' >' : '  '} ${i.toString(16).toUpperCase().padStart(2, '0')}  ${placeHex(f, d.data.length, config.get('hexMode'))}  ${String(f).padStart(8, '0')}  ${(f / d.rate).toFixed(3)}s`)),
           ...(sl.length > 8 ? [line(`   ... ${sl.length - 8} more`)] : [])];
       };
       const numCell = field => fieldCell(field, frameValue(s, field).toString().padStart(8, '0'), 8);

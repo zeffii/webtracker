@@ -116,6 +116,15 @@ export const PAGES = {
         ],
       },
       {
+        title: 'Absolute offsets (FF, F0)',
+        text: [
+          'The Off column is four hex digits, so on its own it can only say where in the sample to start as a fraction, 0000 the start to FFFF the end: on a long sample each step is many frames. Command FF switches this instance of the sampler to absolute offsets: Off then holds a frame number.',
+          'A frame number can be bigger than four digits, so it is written in two parts, hh:hhhh. The last four digits go in Off. The block count, how many full blocks of 65536 frames (0000 to FFFF) have gone by, is the value of FF. The Samples screen shows slice positions the same way.',
+          'Example: Off 0300 and the command FF0002 start the note at frame 2:0300, which is 2 x 65536 + 768 = 131840. Off 0300 with FF0000 is frame 768. Frame 70000 is 1:1170, so FF0001 and Off 1170.',
+          'It stays in force, for this instrument only, until you write F0 (any value; F00000 will do), which puts Off back to a fraction of the sample. A slice marker (command 10) still wins over Off, and reverse still counts from the end. A frame past the end of the sample starts at the end.',
+        ],
+      },
+      {
         title: 'The command list',
         rows: [
           ['Smp', 'column: which sample of the instrument\'s list plays'],
@@ -139,6 +148,8 @@ export const PAGES = {
           ['1A volDown', 'XXYY: slide down by YY dB in XX subticks (1A 0606: 6 dB over one tick)'],
           ['1B volUp', 'XXYY: slide up by YY dB in XX subticks'],
           ['1C / 1D', 'XXYY: fine slide down / up by YY/256 dB (1C 0680: half a dB over one tick)'],
+          ['FF blockCount', 'Off becomes an absolute frame number: the value is the block count, the full 65536-frame blocks before it, and Off the last four hex digits (FF0002 with Off 0300 starts at frame 2:0300)'],
+          ['F0', 'back to relative: Off is a fraction of the sample again (any value, F00000 will do)'],
           ['1E subdivide', 'subticks in a tick, default 6: the unit of the slides\' time (a slide of XX subticks lasts XX/subdivide ticks)'],
           ['90 to 93', 'the same as 1A to 1D, with XX in tens of milliseconds, whatever the tempo (90 0A06: 6 dB down over 100 ms)'],
           ['11 flip', '0001: every repeat plays the other way round'],

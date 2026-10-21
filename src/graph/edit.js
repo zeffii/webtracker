@@ -31,6 +31,47 @@ export function addNode(desc, nodeTypes, type, pos = { x: 20, y: 20 }) {
   return id;
 }
 
+// Swaps a node for one of another type, in the same place. Its wires follow to the ports of the same name (else the port in the
+// same position), parameters with the same name keep their values, and a node that still has the id its type gave it gets a new
+// one to match (the connections follow). Returns { id, renamed } with the new id; `renamed` is the old id if it changed.
+export function replaceNode(desc, nodeTypes, id, type) {
+  const old = desc.nodes.find(n => n.id === id);
+  if (!old) throw new Error(`Unknown node "${id}".`);
+  const od = nodeTypes[old.type], nd = nodeTypes[type];
+  if (!nd) throw new Error(`Unknown node type "${type}".`);
+  if (od.master) throw new Error('The out node cannot be replaced.');
+  if (nd.master) throw new Error('There is already an out node.');
+  if (old.type === type) return { id, renamed: null };
+  let newId = id;
+  if (new RegExp(`^${old.type}\\d+$`).test(id)) {
+    let i = 1;
+    while (desc.nodes.some(n => n.id === `${type}${i}`)) i++;
+    newId = `${type}${i}`;
+  }
+  const params = {};
+  for (const [name, v] of Object.entries(old.params ?? {})) {
+    const spec = nd.params.find(p => p.name === name), was = od.params.find(p => p.name === name);
+    if (spec && was && spec.min === was.min && spec.max === was.max) params[name] = v;
+  }
+  const node = { id: newId, type, x: old.x, y: old.y, ...(Object.keys(params).length ? { params } : {}) };
+  const ports = (old.ports ?? []).filter(n => nd.params.some(p => p.name === n));
+  if (ports.length) node.ports = ports;
+  desc.nodes[desc.nodes.indexOf(old)] = node;
+  const oldIns = inputsOf(old, od), newIns = inputsOf(node, nd);
+  const mapPort = (name, oldList, newList) => (newList.includes(name) ? name : name.startsWith('@') ? null : newList[oldList.indexOf(name)] ?? null);
+  const seen = new Set(), out = [];
+  for (const [from, to] of desc.connections) {
+    let [fa, fp] = splitPort(from), [ta, tp] = splitPort(to);
+    if (fa === id) { fp = mapPort(fp, od.outputs, nd.outputs); fa = newId; }
+    if (ta === id) { tp = mapPort(tp, oldIns, newIns); ta = newId; }
+    if (fp === null || tp === null || fp === undefined || tp === undefined) continue;
+    const key = `${fa}.${fp}>${ta}.${tp}`;
+    if (!seen.has(key)) { seen.add(key); out.push([`${fa}.${fp}`, `${ta}.${tp}`]); }
+  }
+  desc.connections = out;
+  return { id: newId, renamed: newId === id ? null : id };
+}
+
 export function removeNode(desc, nodeTypes, id) {
   const node = desc.nodes.find(n => n.id === id);
   if (!node) return false;

@@ -49,6 +49,13 @@ export function createInsertMenu({ parent, nodeTypes, onPick, doc = document }) 
   parent.appendChild(box);
 
   let shown = [], active = 0, at = { x: 20, y: 30 };
+  let replacing = null;   // { id, type } while the menu is choosing what a node becomes
+  // Replacing an effect, the sources are greyed out, and the other way round: they would have nothing to be wired to.
+  const off = type => {
+    if (!replacing) return false;
+    const was = nodeTypes[replacing.type]?.category, now = nodeTypes[type]?.category;
+    return type === replacing.type || (was === 'Effects' && now === 'Sources') || (was === 'Sources' && now === 'Effects');
+  };
   let sel = [0], depth = 0;   // tree: the row chosen in each column, and the column that has the keys
   let searching = false;      // search: a flat list of what the text matches
 
@@ -84,9 +91,10 @@ export function createInsertMenu({ parent, nodeTypes, onPick, doc = document }) 
   };
 
   const pick = entry => {
-    if (!entry) return;
+    if (!entry || off(entry.type)) return;
+    const was = replacing;
     close();
-    onPick(entry.type, at);
+    onPick(entry.type, at, was);
   };
 
   // The columns for the current choice: the categories, then the children of the chosen row, and so on.
@@ -115,7 +123,7 @@ export function createInsertMenu({ parent, nodeTypes, onPick, doc = document }) 
       active = Math.min(active, Math.max(0, shown.length - 1));
       const q = input.value.trim().toLowerCase();
       const kids = shown.map((entry, i) => {
-        const b = el('div', { className: `mi${i === active ? ' active' : ''}` });
+        const b = el('div', { className: `mi${i === active ? ' active' : ''}${off(entry.type) ? ' off' : ''}` });
         const at0 = q ? entry.type.indexOf(q) : -1;
         if (at0 >= 0) {
           b.appendChild(el('span', { textContent: entry.type.slice(0, at0) }));
@@ -139,7 +147,7 @@ export function createInsertMenu({ parent, nodeTypes, onPick, doc = document }) 
       const keys = hotkeys(rows.map(r => r.label));
       rows.forEach((row, i) => {
         const here = sel[k] === i;
-        const item = el('div', { className: `mi${row.children ? ' has-sub' : ''}${here ? (k === depth ? ' active' : ' trail') : ''}` });
+        const item = el('div', { className: `mi${row.children ? ' has-sub' : ''}${row.type && off(row.type) ? ' off' : ''}${here ? (k === depth ? ' active' : ' trail') : ''}` });
         labelled(item, row.label, keys[i]);
         item.addEventListener('mouseenter', () => {
           if (sel[k] === i) return;   // the row is already the chosen one (a redraw puts the pointer on it again): keep the keys where they are
@@ -222,8 +230,10 @@ export function createInsertMenu({ parent, nodeTypes, onPick, doc = document }) 
     render();
   });
 
-  function open(x, y) {
+  function open(x, y, replace = null) {
     at = { x, y };
+    replacing = replace;
+    input.placeholder = replace ? `Replace ${replace.id} with: letters pick, / searches` : 'Add node: letters pick, / searches';
     const room = (parent.clientWidth || 0) - 3 * 192 - 8;   // keep the three columns inside the graph when there is room
     box.style.left = `${room > 0 ? Math.min(x, room) : x}px`;
     box.style.top = `${y}px`;

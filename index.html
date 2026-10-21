@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="themes.css">
-  <title>webtracker m275</title>
+  <title>webtracker m279</title>
   <link rel="icon" href="icon.ico" sizes="any">
   <link rel="icon" type="image/png" href="icon.png">
   <style>
@@ -498,6 +498,7 @@
     .insert-col.fly { position: absolute; left: calc(100% - 3px); top: -2px; z-index: 1; }
     .insert-col.fly.left { left: auto; right: calc(100% - 3px); }
     .insert-menu .mi { position: relative; display: block; height: 18px; padding: 0 1.5rem 0 .55rem; white-space: nowrap; cursor: default; user-select: none; }
+    .insert-menu .mi.off { opacity: .35; }
     .insert-menu .mi.has-sub::after { content: '\25B8'; position: absolute; right: .4rem; opacity: .7; }
     .insert-menu .mi.trail { background: color-mix(in srgb, var(--fg) 22%, var(--bg)); }
     .insert-menu .mi.active, .insert-menu .insert-list:not(.tiers) .mi:hover { background: var(--hi); color: var(--hi-fg); }
@@ -638,7 +639,7 @@
           <dt>Ctrl+Up/Down</dt><dd><b class="kw">transpose</b> the notes in the selection by a semitone (Shift: an <b class="kw">octave</b>)</dd>
           <dt>Ctrl+, / Ctrl+.</dt><dd><b class="kw">lower / raise</b> every other value in the selection by one (Ctrl+&lt; / Ctrl+&gt;: a bigger step); commands keep their id</dd>
           <dt>Left / Right</dt><dd>to the start of the previous / next column (Config: one character at a time instead)</dd>
-          <dt>Ctrl+Left/Right</dt><dd>one character left or right inside the cell, to type into just that digit; after that plain Left/Right stay inside the cell (and Up/Down keep the position) until you step past its edge, which enters the next cell at its first character</dd>
+          <dt>Ctrl+Left/Right</dt><dd>one character left or right inside the cell, to type into just that digit; after that plain Left/Right stay inside the cell (and Up/Down keep the position) until you step past its edge, which enters the next cell at its first character; Up and Down then move by the nugget step (Config, 1 row by default) on the same character</dd>
           <dt>Ctrl+Shift+H</dt><dd><b class="kw">hide</b> or show the empty columns of the lane the cursor is in (a column with no value at any row; the one under the cursor stays)</dd>
                     <dt>Ctrl+Space</dt><dd>the same for every parameter column of this row (not notes, velocities or commands)</dd>
           <dt>Ctrl+I</dt><dd><b class="kw">interpolate</b> along a curve: per column, the first and last filled cell of the selection are the ends and the filled cells between them get values by row position. The popup picks a shape, bends it, lays a wave on it, lets you draw your own or shape a <b class="kw">bezier</b> spline with draggable anchors and handles, and can include empty cells; Enter applies, Esc cancels</dd>
@@ -691,7 +692,7 @@
       <dt>+ −</dt><dd>in the list: <b class="kw">nudge</b> the current slice marker one frame (Ctrl 100); &lt; and &gt; choose the previous and next marker. The current one is drawn heavier and marked &gt; in the Slices list</dd>
           <dt>Shift+M, Shift+U</dt><dd>mark a <b class="kw">slice</b> at the selection start, unmark the nearest one. The Slices list shows each one's number and hex value; in a pattern, command 10 0000 starts a note at the first, 10 0001 at the second, and so on (10 FFFF gives the Off column back its say)</dd>
           <dt>Alt+click, Alt+drag</dt><dd>on the display: add a <b class="kw">slice marker</b>, move one. Alt+double-click removes the nearest</dd>
-          <dt>Shift+Z, Shift+A, Shift+W</dt><dd><b class="kw">zoom</b> the display to the selection, out one step, to the whole sample. Ctrl+wheel zooms about the mouse; the wheel moves along a zoomed view</dd>
+          <dt>Shift+Z, Shift+A, Shift+W</dt><dd><b class="kw">zoom</b> the display to the selection, out one step, to the whole sample. Ctrl+wheel zooms about the mouse; the wheel, or dragging with the middle button, moves along a zoomed view</dd>
           <dt>Shift+C / T</dt><dd><b class="kw">trim</b></dd>
           <dt>Shift+X</dt><dd><b class="kw">cut</b></dd>
           <dt>Shift+S</dt><dd><b class="kw">silence</b></dd>
@@ -793,6 +794,7 @@
           <dt>Eye above a node</dt><dd>show a <b class="kw">scope</b> of what it puts out, beside it: click wave / spec / xy in its header to change the view, and 200 / 400 for the size</dd>
           <dt>Middle button drag</dt><dd><b class="kw">pan</b> the whole graph</dd>
           <dt>Drag dot</dt><dd>from an output dot (right) to an input dot (left) to <b class="kw">wire</b> them</dd>
+          <dt>Right-click a node</dt><dd><b class="kw">replace</b> it with another type from the same menu (sources and effects are not swapped for each other, so those rows are greyed): it keeps its place, its wires (to the ports of the same name, else the same position) and the parameters the two share</dd>
           <dt>Right-click, double-click</dt><dd>empty space in the graph: <b class="kw">insert</b> a node. In the menu: the underlined letter of a row opens or inserts it, arrows and Enter <b class="kw">move</b> and open, Left or Esc go up a level, / (or clicking the box) searches: type, then Up/Down and Enter</dd>
           <dt>Left/Right</dt><dd>on a slider: change the parameter (Shift for more)</dd>
         </dl>

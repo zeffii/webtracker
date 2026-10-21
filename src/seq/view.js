@@ -740,8 +740,8 @@ export function createTrackerView({ showMenu = (e, items) => showContextMenu(e, 
     if (sel && k === 'Escape') { sel = null; message = ''; e.preventDefault(); return; }
     if (!['Shift', 'Control', 'Alt', 'Meta'].includes(k)) sel = null;
     switch (k) {
-      case 'ArrowUp': moveRow(-1); break;
-      case 'ArrowDown': moveRow(1); break;
+      case 'ArrowUp': moveRow(nugget ? -config.get('nuggetStep') : -1); break;   // in nugget mode: by the nugget step, on the same character
+      case 'ArrowDown': moveRow(nugget ? config.get('nuggetStep') : 1); break;
       case 'ArrowLeft': if (config.get('arrowStyle') === 'cell') { if (nugget) nuggetStep(-1); else moveCell(-1); } else if (e.repeat) moveColumn(-1); else moveChar(-1); break;
       case 'ArrowRight': if (config.get('arrowStyle') === 'cell') { if (nugget) nuggetStep(1); else moveCell(1); } else if (e.repeat) moveColumn(1); else moveChar(1); break;
       case 'Tab':

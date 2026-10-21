@@ -1,7 +1,7 @@
 import * as config from '../ui/config.js';
 import { factoryPresets, userPresets, saveUserPreset, deleteUserPreset, capture, valuesOf, DATA_KEYS } from './nodepresets.js';
 import { MODES, SIZES, scopeBox, headerHit, drawScope } from './scope.js';
-import { addNode, autoLayout, connect, disconnect, duplicateNodes, insertOnWire, pruneDef, pullOut, removeNode, setBits, setExposed, setParam, setPort, nudgeClear } from './edit.js';
+import { addNode, replaceNode, autoLayout, connect, disconnect, duplicateNodes, insertOnWire, pruneDef, pullOut, removeNode, setBits, setExposed, setParam, setPort, nudgeClear } from './edit.js';
 
 // The modular view: a canvas of nodes and wires for one instrument's graph, plus a panel
 // for the selected node's parameters. Drag a node to move it, drag from an output dot to
@@ -722,7 +722,13 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
   // Right-click, or double-click on empty space, asks for the insert menu at that point.
   canvas.addEventListener('contextmenu', e => {
     e.preventDefault();
-    if (instId) onContext({ x: e.offsetX, y: e.offsetY });
+    if (!instId) return;
+    const hit = hitTest(desc(), nodeTypes, e.offsetX, e.offsetY), id = hit?.kind === 'node' ? hit.id : hit?.kind === 'port' ? hit.node : null;
+    const node = id && desc().nodes.find(n => n.id === id);
+    if (node && !nodeTypes[node.type].master) {   // right-click on a node: the menu replaces it
+      selected = { kind: 'node', id }; group.clear(); renderPanel(); dirty = true;
+      onContext({ x: e.offsetX, y: e.offsetY, replace: { id, type: node.type } });
+    } else onContext({ x: e.offsetX, y: e.offsetY });
   });
   canvas.addEventListener('dblclick', e => {
     if (instId && !hitTest(desc(), nodeTypes, e.offsetX, e.offsetY)) onContext({ x: e.offsetX, y: e.offsetY });
@@ -1159,6 +1165,27 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
         if (nodeTypes[type]?.samples && getSampleIds().length) def().samples = { ...def().samples, [id]: getSampleIds()[0] };
         selected = { kind: 'node', id };
         say('');
+        renderPanel();
+        structure();
+      } catch (err) {
+        say(err.message);
+      }
+    },
+    // Swaps a node for one of another type (the right-click menu on a node), keeping its place, wires and shared parameters.
+    replace(id, type) {
+      if (!instId) return;
+      try {
+        const { id: now, renamed } = replaceNode(desc(), nodeTypes, id, type);
+        if (renamed) {   // what pointed at the old id follows it
+          const d = def();
+          d.exposed = (d.exposed ?? []).map(e => (e.node === renamed ? { ...e, node: now } : e));
+          if (d.commands) d.commands = d.commands.map(c => (c.node === renamed ? { ...c, node: now } : c));
+          if (d.samples && renamed in d.samples) { const { [renamed]: smp, ...rest } = d.samples; d.samples = nodeTypes[type]?.samples ? { ...rest, [now]: smp } : rest; }
+        } else if (def().samples?.[now] && !nodeTypes[type]?.samples) { const { [now]: _gone, ...rest } = def().samples; def().samples = rest; }
+        if (nodeTypes[type]?.samples && !def().samples?.[now] && getSampleIds().length) def().samples = { ...def().samples, [now]: getSampleIds()[0] };
+        selected = { kind: 'node', id: now };
+        group.clear();
+        say(`${id} is now a ${type}${renamed ? ` (${now})` : ''}.`);
         renderPanel();
         structure();
       } catch (err) {

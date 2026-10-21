@@ -332,7 +332,7 @@ const patcher = createPatcher({
   onNote: (id, note, on) => { if (!started) return; if (on) engine.noteOn(id, note, 1); else engine.noteOff(id, note); },
   canvas: $('patch'), panel: $('patch-panel'), paramPanel: $('patch-scroll'), exposedDock: $('exposed-scroll'), onEscape: () => $('inst-list').focus(), statusEl: $('patch-status'), nodeTypes: NODE_TYPES,
   onStructure: id => reloadInstrument(id),
-  onContext: ({ x, y }) => menu.open(x, y),
+  onContext: ({ x, y, replace }) => menu.open(x, y, replace),
   onData: (id, node, msg) => engine.sendToNode(id, node, msg),
   onScope: (id, node, on) => engine.scope(id, node, on),
   readLive: (id, node, name) => { const a = `${id}.${node}.${name}`; return engine.registry.slots.has(a) ? engine.registry.get(a) : undefined; },
@@ -411,7 +411,7 @@ attachGrip({ grip: $('seq-grip'), key: 'webtracker.arrangementRows', get: () => 
 })();
 
 // The floating insert menu lives over the patcher canvas.
-const menu = createInsertMenu({ parent: $('patch-wrap'), nodeTypes: NODE_TYPES, onPick: (type, at) => patcher.add(type, at) });
+const menu = createInsertMenu({ parent: $('patch-wrap'), nodeTypes: NODE_TYPES, onPick: (type, at, replacing) => (replacing ? patcher.replace(replacing.id, type) : patcher.add(type, at)) });
 $('patch').addEventListener('mousedown', () => menu.close());
 
 const sendSample = (id, node) => {

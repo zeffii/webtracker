@@ -1,4 +1,5 @@
-import { setLoop, setSlices, sliceHex } from './ops.js';
+import { setLoop, setSlices, placeHex } from './ops.js';
+import * as config from '../ui/config.js';
 import { computeSpectrogram, heat } from './spectrogram.js';
 
 // Min and max of the sample for each pixel column: what the waveform view draws.
@@ -91,8 +92,22 @@ export function createWaveformView({ canvas, statusEl, getProject, onLoop, onSel
     drag = null;
     onMenu(e, Math.min(xToFrame(e.offsetX), frames() - 1));
   });
+  let pan = null;   // a middle-button drag: where it began and the frames the view showed then
+  globalThis.addEventListener?.('mousemove', e => {
+    if (!pan) return;
+    if (!(e.buttons & 4)) { pan = null; return; }
+    const d = -((e.clientX - pan.x) / Math.max(1, W)) * (pan.b - pan.a);
+    setView(pan.a + d, pan.b + d);
+  });
+  globalThis.addEventListener?.('mouseup', e => { if (e.button === 1) pan = null; });
+  canvas.addEventListener('auxclick', e => { if (e.button === 1) e.preventDefault?.(); });
   canvas.addEventListener('mousedown', e => {
     onFocus();   // the keys of the sample screen (Shift+C and the rest) go to it, so a click on the display hands it the focus
+    if (e.button === 1) {   // the middle button: drag the zoomed view along
+      e.preventDefault?.();
+      if (sample() && frames() && vb > 0) pan = { x: e.clientX, a: range()[0], b: range()[1] };
+      return;
+    }
     if ((e.button ?? 0) !== 0) return;
     const s = sample();
     if (!s || !frames()) return;
@@ -241,7 +256,7 @@ export function createWaveformView({ canvas, statusEl, getProject, onLoop, onSel
       ctx.fillRect(xe - 1, 0, 1, H);
     }
     slicesOf(s).forEach((f, i) => {   // the slice markers, numbered in order of position
-      const x = frameToX(f), label = `${(drag?.kind === 'slice' ? [...drag.preview].sort((a, b) => a - b).indexOf(f) : i).toString(16).toUpperCase().padStart(2, '0')} ${sliceHex(f, frames())}`;
+      const x = frameToX(f), label = `${(drag?.kind === 'slice' ? [...drag.preview].sort((a, b) => a - b).indexOf(f) : i).toString(16).toUpperCase().padStart(2, '0')} ${placeHex(f, frames(), config.get('hexMode'))}`;
       const here = drag?.kind !== 'slice' && i === active;
       ctx.fillStyle = '#f0707a';
       ctx.fillRect(x - (here ? 1 : 0), 0, here ? 3 : 1, H);

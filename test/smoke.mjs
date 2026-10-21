@@ -2633,7 +2633,7 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     const def = { ...structuredClone(instruments.lead), noteColumns: 3 };
     const registry = new ParamRegistry();
     const defs = { lead: def };
-    for (const n of ['filter.cutoff', 'filter.resonance', 'delay.mix', 'delay.time', 'delay.feedback', 'sampler.nnaFade', 'sampler.offset', 'sampler.retrig', 'sampler.repeats', 'sampler.shift', 'sampler.ramp', 'sampler.reverse', 'sampler.sample', 'sampler.slice', ...['grain', 'edge', 'accel', 'step', 'slide', 'flip', 'prob', 'jOffset', 'jPitch', 'jPan', 'jTime', 'jLevel', 'volLin', 'volLog', 'volDown', 'volUp', 'volFineDown', 'volFineUp', 'volDownMs', 'volUpMs', 'volFineDownMs', 'volFineUpMs', 'subdivide'].map(k => `sampler.${k}`), ...['grain', 'edge', 'accel', 'step', 'slide', 'flip', 'prob', 'jOffset', 'jPitch', 'jPan', 'jTime', 'jLevel'].map(k => `sampler.${k}`)]) registry.allocate(`lead.${n}`, 0.5, 0, 1000);
+    for (const n of ['filter.cutoff', 'filter.resonance', 'delay.mix', 'delay.time', 'delay.feedback', 'sampler.nnaFade', 'sampler.offset', 'sampler.retrig', 'sampler.repeats', 'sampler.shift', 'sampler.ramp', 'sampler.reverse', 'sampler.sample', 'sampler.slice', ...['grain', 'edge', 'accel', 'step', 'slide', 'flip', 'prob', 'jOffset', 'jPitch', 'jPan', 'jTime', 'jLevel', 'volLin', 'volLog', 'volDown', 'volUp', 'volFineDown', 'volFineUp', 'volDownMs', 'volUpMs', 'volFineDownMs', 'volFineUpMs', 'subdivide', 'blockCount'].map(k => `sampler.${k}`), ...['grain', 'edge', 'accel', 'step', 'slide', 'flip', 'prob', 'jOffset', 'jPitch', 'jPan', 'jTime', 'jLevel'].map(k => `sampler.${k}`)]) registry.allocate(`lead.${n}`, 0.5, 0, 1000);
     const cols = buildColumns('lead', def, registry);
     assert.deepEqual(cols.map(c => c.label), ['N1', 'V1', 'N2', 'V2', 'N3', 'V3', 'Smp', 'Off', 'Rtg', 'Cut', 'Res', 'Mix', 'Time', 'Cmd']);
     assert.deepEqual(cols.slice(0, 2).map(c => c.key), ['note', 'vel'], 'the first pair keeps its keys');
@@ -5986,6 +5986,14 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   press('ArrowRight'); assert.equal(at(), '2:0', 'and the mode is over: whole cells again');
   press('ArrowRight', { ctrlKey: true }); press('ArrowLeft'); press('ArrowLeft');
   assert.equal(at(), '1:0', 'from the first character, Left crosses to the first character of the previous cell');
+  // the nugget step: Up and Down move that many rows and stay on the same character
+  uiConfig.set('nuggetStep', 4);
+  view.goto(0, 0); press('ArrowRight', { ctrlKey: true });
+  const t0 = view.tick, ch0 = view.ch;
+  press('ArrowDown'); assert.equal(view.tick, t0 + 4, 'Down moves by the nugget step');
+  assert.equal(view.ch, ch0, 'on the same character');
+  press('ArrowUp'); assert.equal(view.tick, t0, 'and Up back');
+  uiConfig.set('nuggetStep', 1);
   uiConfig.set('arrowStyle', 'char');
   console.log('ok: nugget mode');
 }
@@ -6668,6 +6676,21 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   // jitter: pitch jitter changes the sound, zero jitter does not; the notes still play
   const j0 = rampRun({ jPitch: 0 }), j1 = rampRun({ jPitch: 6 });
   assert.ok(j0.every((v, i) => v === steady[i]) && j1.some((v, i) => Math.abs(v - steady[i]) > 1e-4), 'jitter only when asked');
+  // absolute offset: Off 0300 with block 1 (FF 0001) starts at frame 1:0300, the same place as the fraction 66304/149999
+  {
+    const long = Float32Array.from({ length: 150000 }, (_, i) => i / 150000);
+    const go = set => {
+      const node = sampler.create({ sampleRate: sr, clock: { tickSamples: 1000 } });
+      node.message({ type: 'sample', data: long, rate: sr });
+      node.note({ type: 'noteOn', note: 60, vel: 1 });
+      const params = defs.map((d, i) => set[names[i]] ?? d), slots = names.map((_, i) => i), o = new Float32Array(block);
+      node.process([], [o], block, params, slots);
+      return o;
+    };
+    const rel = go({ offset: 66304 / 149999 }), abs = go({ offset: 0x0300 / 65535, blockCount: 1 }), plain = go({ offset: 0x0300 / 65535 });
+    assert.ok(Math.max(...rel) > 0.1 && rel.every((v, i) => Math.abs(v - abs[i]) < 1e-3), 'absolute offset lands on the frame');
+    assert.ok(Math.max(...plain) < 0.05, 'without it Off is a fraction of the sample');
+  }
   // volume slides: at the note, and written to a sound that plays
   const slideBase = run({ edge: 0 }, 3000)[2500];
   const dbDown = run({ volDown: 0x0606 }, 3000)[2500], lin = run({ volLin: 0x0620 }, 3000)[2500], logTo = run({ volLog: 0x0601 }, 3000)[2500];
@@ -6751,5 +6774,47 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   uiConfig.set('wireAudio', '#FF0000'); assert.equal(uiConfig.get('wireAudio'), '#ff0000');
   uiConfig.set('wireAudio', 'red'); assert.equal(uiConfig.get('wireAudio'), '#5e94c9', 'a bad colour is the default');
   console.log('ok: wire colours');
+}
+// 105. A lane replaced while it plays (its machine was rewired) still releases the notes it had started.
+{
+  const text = patternText(16, { 0: 'C-4 .. .. .... .... .. .. ..', 12: '=== .. .. .... .... .. .. ..' });
+  const { seq, registry, rt } = songSetup(song120([oneLane('lead', 'lead', text)]));
+  const heard = [], was = rt.note.bind(rt);
+  rt.note = (id, msg) => { heard.push(msg.type); return was(id, msg); };
+  seq.play();
+  render(seq, 0.1);   // the note is on
+  for (const lane of prepareSong(song120([oneLane('lead', 'lead', text)]), instruments, registry)) seq.setLane(lane);
+  render(seq, 2);     // the note ends at tick 12 (1.6 s)
+  assert.ok(heard.includes('noteOff'), 'the replaced lane still sent the note off');
+  console.log('ok: replaced lane keeps its notes');
+}
+// 106. Replacing a node keeps its place and wires; the absolute hex of a frame.
+{
+  const desc = { nodes: [{ id: 'osc', type: 'osc' }, { id: 'distortion1', type: 'distortion', x: 5, y: 7, params: { drive: 0.4 } }, { id: 'out', type: 'out' }], connections: [['osc.out', 'distortion1.in'], ['distortion1.out', 'out.in']] };
+  const r = gedit.replaceNode(desc, NODE_TYPES, 'distortion1', 'crusher');
+  assert.equal(r.id, 'crusher1'); assert.equal(r.renamed, 'distortion1');
+  assert.deepEqual(desc.connections, [['osc.out', 'crusher1.in'], ['crusher1.out', 'out.in']], 'the wires follow');
+  assert.deepEqual([desc.nodes[1].x, desc.nodes[1].y], [5, 7]);
+  compile(desc, { instrument: 'x', nodeTypes: NODE_TYPES, registry: new ParamRegistry() });
+  const kept = gedit.replaceNode({ nodes: [{ id: 'body', type: 'distortion' }], connections: [] }, NODE_TYPES, 'body', 'crusher');
+  assert.equal(kept.id, 'body', 'a name of your own stays');
+  assert.throws(() => gedit.replaceNode(desc, NODE_TYPES, 'out', 'crusher'), /out node/);
+  const { frameHex, placeHex } = await import('../src/project/ops.js');
+  assert.equal(frameHex(0x1234, 5000), '1234', 'short samples: four digits');
+  assert.equal(frameHex(0x31234, 200000), '03:1234', 'long ones: blocks passed, then the rest');
+  assert.equal(placeHex(0, 200000, 'both'), '0000 00:0000');
+  console.log('ok: replace node, absolute hex');
+}
+// 107. The FF and F0 commands of the sampler set and clear the absolute offset block.
+{
+  const row = cmd => `... .. .. .... .... .. .. .. .... ${cmd}`;
+  const { seq, registry } = songSetup(song120([oneLane('lead', 'lead', patternText(16, { 0: row('FF0002'), 4: row('F00000'), 8: row('FF0001'), 12: row('F00000') }))]));
+  const at = () => registry.get('lead.sampler.blockCount');
+  seq.play();
+  render(seq, 0.05); assert.equal(at(), 2, 'FF 0002: block 2');
+  render(seq, 0.7); assert.equal(at(), 65535, 'F0: relative again');
+  render(seq, 0.5); assert.equal(at(), 1, 'FF 0001');
+  render(seq, 0.5); assert.equal(at(), 65535, 'F0 again');
+  console.log('ok: absolute offset commands');
 }
 console.log('smoke test passed');

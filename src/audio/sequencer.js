@@ -10,9 +10,9 @@ export const PAGE_TICKS = 1024;
 function buildCommandTable(commands, presets = []) {
   const t = {
     presets: new Map(presets.map(p => [p.id, p])),   // preset id -> { slots, values, msgs }, recalled by command 00
-    slot: new Int32Array(256).fill(-1), min: new Float64Array(256), max: new Float64Array(256), log: new Uint8Array(256), int: new Uint8Array(256) };
+    slot: new Int32Array(256).fill(-1), min: new Float64Array(256), max: new Float64Array(256), log: new Uint8Array(256), int: new Uint8Array(256), fix: new Float64Array(256).fill(NaN) };   // fix: a command that writes one value whatever its value cell says
   for (const c of commands) {
-    t.slot[c.id] = c.slot; t.min[c.id] = c.min; t.max[c.id] = c.max; t.log[c.id] = c.log ? 1 : 0; t.int[c.id] = c.int ? 1 : 0;
+    t.slot[c.id] = c.slot; t.min[c.id] = c.min; t.max[c.id] = c.max; t.log[c.id] = c.log ? 1 : 0; t.int[c.id] = c.int ? 1 : 0; if (Number.isFinite(c.fixed)) t.fix[c.id] = c.fixed;
   }
   return t;
 }
@@ -74,7 +74,8 @@ export class Sequencer {
   // so that playing a row does not allocate.
   setLane({ id, instrument, columns, pages, mask }) {
     const cols = columns.map(c => ({ ...c, table: c.commands ? buildCommandTable(c.commands, c.presets) : null }));
-    this.lanes.set(id, {
+    const before = this.lanes.get(id);
+    const fresh = {
       instrument, pages,
       mask: mask ?? new Uint8Array(0),   // 1 or 2 for each tick the lane is muted, plus 4 where it lets go of its notes
       muted: false,
@@ -90,7 +91,14 @@ export class Sequencer {
       off: { type: 'noteOff', note: 0, implied: false },
       cut: { type: 'noteCut' },
       all: { type: 'allOff' },
-    });
+    };
+    // A lane that is replaced while it plays (its machine was rewired, a column changed) keeps what it was sounding, so the
+    // note-offs still find their notes; with a different set of note columns everything of that machine is let go instead.
+    if (before && before.instrument === instrument) {
+      if (before.prev.length === fresh.prev.length) { fresh.prev.set(before.prev); fresh.notes.set(before.notes); fresh.vels.set(before.vels); fresh.muted = before.muted; }
+      else if (before.prev.some(n => n >= 0)) this.runtime.note(instrument, before.all);
+    }
+    this.lanes.set(id, fresh);
   }
 
   // Drops every lane, stops, and switches to a new parameter block.
@@ -192,7 +200,8 @@ export class Sequencer {
         // Needs both halves: the command id and its value.
         const value = page[base + col.ch + 1];
         const id = decodeHex2(v), t = col.table;
-        if (value !== EMPTY && t.slot[id] >= 0) {
+        if (t.slot[id] >= 0 && !Number.isNaN(t.fix[id])) { this.params[t.slot[id]] = t.fix[id]; this.touch(t.slot[id]); }   // e.g. F0: back to relative offsets
+        else if (value !== EMPTY && t.slot[id] >= 0) {
           // 0003 is wave 3 for a whole-number target; otherwise the value runs across the range.
           if (t.int[id] === 1) { this.params[t.slot[id]] = Math.min(t.max[id], t.min[id] + decodeHex4(value)); this.touch(t.slot[id]); }
           else this.writeParam(t.slot[id], t.min[id], t.max[id], t.log[id] === 1, decodeHex4(value) / 65535);

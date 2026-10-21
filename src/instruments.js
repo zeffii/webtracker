@@ -47,6 +47,11 @@ export const samplerCommands = [
   { id: 0x1C, node: 'sampler', param: 'volFineDown' },
   { id: 0x1D, node: 'sampler', param: 'volFineUp' },
   { id: 0x1E, node: 'sampler', param: 'subdivide' },   // subticks in a tick (default 6), for the time of the slides
+  // FF absolute offset: the Off column then holds the low four hex digits of a frame number and the value of FF the number of full
+  // 65536-frame blocks before it (the hh of hh:hhhh): Off 0300 with FF 0002 starts at frame 2:0300. It stays until F0 (any value)
+  // puts Off back to a fraction of the sample.
+  { id: 0xFF, node: 'sampler', param: 'blockCount' },
+  { id: 0xF0, node: 'sampler', param: 'blockCount', fixed: 65535 },
   { id: 0x90, node: 'sampler', param: 'volDownMs' },
   { id: 0x91, node: 'sampler', param: 'volUpMs' },
   { id: 0x92, node: 'sampler', param: 'volFineDownMs' },
