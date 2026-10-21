@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['287', ['Arrangement side panel: a one-row draggable line between the pattern list and the lane controls sets the list\'s height (Up/Down on the line when it has focus, double-click for automatic). It is remembered.']],
   ['286', ['Arrangement: the lane, insert-silence and add-lane controls moved under the pattern list, the lane\'s status line is now a row of its own above the status bar, and the arrangement fills the window height (Config: arrangement fills the window height; off brings the drag bar back).']],
   ['285', ['Hosted on GitHub Pages: every push to master runs the tests and publishes the app. A service worker supplies the cross-origin isolation headers there, and the header shows "build NNN · commit" (version.json, made from git by serve.mjs, with a + for uncommitted changes).']],
   ['284', ['Fixed: m283 did not start (a stray quote in the About text). The smoke test now loads that file.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['280', ['Sampler commands 20 to 2A: pitch slides (20 to 23, XX semitones over YY subticks), glide to the next note (24), shortest and longest repeat time (25, 26) and a repeat time curve (27), cut after and release after n ticks (28, 29) with a per-repeat scale (2A). See the Sampler help.', 'Sequence editor: H hides the pattern names in the cells (Config: show pattern names); the statusbar gives the name of the pattern under the cursor and how many times it is placed in the lane, so you can clone it (N) before editing.']],
   ['279', ['The absolute offset parameter is called blockCount (the number of full 65536-frame blocks before the frame in Off). The sampler\'s About page has a section on FF and F0 with examples.']],
   ['278', ['Sampler: command FF makes the Off column absolute. Off holds the low four hex digits of a frame number and the value of FF the number of full 65536-frame blocks before it (the hh of hh:hhhh): Off 0300 with FF0002 starts at frame 2:0300. It stays until F0 (any value, F00000 will do) puts Off back to a fraction of the sample. Each sampler instrument has its own state. Saved sampler instruments get both commands on loading.']],
-  ['277', ['Sample display: drag with the middle mouse button to move along a zoomed view. Slice markers show their place two ways (Config, Sample: Slice markers hex value): relative, from 0000 to FFFF across the whole sample as before, and absolute, the frame number in hex, as hh:hhhh for samples longer than 65536 frames (hh is how many full blocks of 0000 to FFFF were passed). Graph: right-click a node to replace it with another type; wires and shared parameters carry over, and sources and effects are not offered for each other.']],
 ];

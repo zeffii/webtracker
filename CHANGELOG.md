@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 287 · 2026-10-21
+
+- Arrangement side panel: a one-row draggable line between the pattern list and the lane controls sets the list's height (Up/Down on the line when it has focus, double-click for automatic). It is remembered.
+
 ## 286 · 2026-10-21
 
 - Arrangement: the lane, insert-silence and add-lane controls moved under the pattern list, the lane's status line is now a row of its own above the status bar, and the arrangement fills the window height (Config: arrangement fills the window height; off brings the drag bar back).

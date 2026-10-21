@@ -76,6 +76,11 @@
     body:has(#pane-arrange:not([hidden])) { padding-bottom: 3.5rem; }
     body.seqfit #seq-grip { display: none; }
     /* the lane and silence controls under the pattern list */
+    #seq-side.sized { height: var(--list-h); max-height: none; }
+    #list-grip { height: 17px; margin: 0; cursor: row-resize; position: relative; touch-action: none; }   /* one row of space between the list and the lane controls, to drag */
+    #list-grip::before { content: ''; position: absolute; left: 0; right: 0; top: 8px; height: 1px; background: color-mix(in srgb, currentColor 30%, transparent); }
+    #list-grip::after { content: ''; position: absolute; left: calc(50% - 14px); top: 5px; width: 28px; height: 7px; border-radius: 4px; background: var(--bg, #fff); border: 1px solid color-mix(in srgb, currentColor 40%, transparent); box-sizing: border-box; }
+    #list-grip:hover::before, #list-grip.dragging::before, #list-grip:focus-visible::before { background: color-mix(in srgb, currentColor 65%, transparent); }
     #seq-tools { margin: 0 0 .7rem; font-size: 12px; }
     #seq-tools .manage { display: flex; flex-wrap: wrap; gap: .25rem; align-items: center; margin: .3rem 0; }
     #seq-tools .help { flex: 1 0 100%; opacity: .7; }
@@ -157,7 +162,7 @@
     #cursor .pval { font-weight: 700; font-variant-numeric: tabular-nums; }
     #cursor .prng { opacity: .65; }
     .statusbar { margin: 0; padding: 1px 6px; font: 12px/1.5 ui-monospace, Consolas, monospace; min-height: 1.5em; background: color-mix(in srgb, var(--panel) 80%, var(--fg)); white-space: pre-wrap; }
-        #seq-side { box-sizing: border-box; width: 100%; margin-bottom: .7rem; max-height: 361px; overflow-x: hidden; overflow-y: auto; scrollbar-width: thin; font: 12px/17px ui-monospace, Consolas, monospace; padding: 2px 0; white-space: pre; }
+        #seq-side { box-sizing: border-box; width: 100%; margin-bottom: 0; max-height: 361px; overflow-x: hidden; overflow-y: auto; scrollbar-width: thin; font: 12px/17px ui-monospace, Consolas, monospace; padding: 2px 0; white-space: pre; }
     /* its own height: room for the header and 20 patterns, then (only then) it scrolls */
     #lane-name { width: 14ch; flex: none; }
     #seq-side .ph, #seq-side .pi { height: 17px; overflow: hidden; }
@@ -310,7 +315,7 @@
     body.nokeys .keys:not(.md) { display: none; }   /* the shortcuts live in the floating window (Shortcuts button); the script tutorial stays */
     body.nokeys #pane-script:not([hidden]) { grid-template-columns: minmax(0, 1fr) 20rem; }
     body.nokeys #pane-arrange .keys { display: block; }   /* in the arrangement the pattern list stays; only the shortcuts go */
-    body.nokeys #pane-arrange .keys > :not(#seq-side):not(#seq-tools) { display: none; }
+    body.nokeys #pane-arrange .keys > :not(#seq-side):not(#seq-tools):not(#list-grip) { display: none; }
     body.nokeys .pane.keyed:not([hidden]) { grid-template-columns: minmax(0, 1fr); }
     #pane-arrange { --side-w: 20rem; position: relative; }
     body.nokeys #pane-arrange:not([hidden]), #pane-arrange.keyed:not([hidden]) { grid-template-columns: minmax(0, 1fr) var(--side-w); }
@@ -837,6 +842,7 @@
     </div>
       <aside class="keys" aria-label="Arrangement patterns and shortcuts">
         <div id="seq-side"><div id="seq-list"></div></div>
+        <div id="list-grip" tabindex="0" role="separator" aria-orientation="horizontal" aria-label="Height of the pattern list: drag, or use Up and Down; double-click for the automatic height" title="Drag to change the height of the pattern list; double-click for the automatic height"></div>
         <div id="seq-tools">
         <div class="manage row">
           <span class="help">Lane under the cursor</span>

@@ -374,6 +374,31 @@ if (globalThis.ResizeObserver) new ResizeObserver(() => { const w = $('patch-wra
   });
   apply(w);
 }
+// The line between the pattern list and the lane controls below it: drag to give the list more or less height (double-click: automatic).
+{
+  const list = $('seq-side'), grip = $('list-grip');
+  let h = null;
+  try { const n = localStorage.getItem('webtracker.listHeight'); if (n !== null) h = Number(n); } catch {}
+  const apply = n => {
+    h = n === null ? null : Math.max(34, Math.min(900, Math.round(n)));
+    list.classList.toggle('sized', h !== null);
+    if (h !== null) list.style.setProperty('--list-h', `${h}px`);
+    try { if (h === null) localStorage.removeItem('webtracker.listHeight'); else localStorage.setItem('webtracker.listHeight', String(h)); } catch {}
+  };
+  grip.addEventListener('pointerdown', e => {
+    grip.setPointerCapture?.(e.pointerId); grip.classList.add('dragging'); e.preventDefault();
+    const top = list.getBoundingClientRect().top;
+    const move = ev => apply(ev.clientY - top - 8);
+    const up = () => { grip.classList.remove('dragging'); grip.removeEventListener('pointermove', move); grip.removeEventListener('pointerup', up); grip.removeEventListener('pointercancel', up); };
+    grip.addEventListener('pointermove', move); grip.addEventListener('pointerup', up); grip.addEventListener('pointercancel', up);
+  });
+  grip.addEventListener('dblclick', () => apply(null));
+  grip.addEventListener('keydown', e => {
+    const d = { ArrowUp: -1, ArrowDown: 1 }[e.key]; if (!d) return;
+    apply((h ?? list.getBoundingClientRect().height) + d * (e.shiftKey ? 85 : 17)); e.preventDefault();
+  });
+  apply(h);
+}
 attachGrip({ grip: $('patch-grip'), key: 'webtracker.graphHeight', get: () => patcher.height, set: h => patcher.resize(h), step: 20, bigStep: 100, normal: 460 });
 attachGrip({ grip: $('view-grip'), key: 'webtracker.patternRows', get: () => view.rows, set: n => view.setRows(n), unit: () => view.lineHeight(), step: 1, bigStep: 8, normal: 24 });
 // The arrangement fills the window: the rows shown follow the height that is left (Config: seqFit); the drag bar is for when it is off.
