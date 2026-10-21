@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 301 · 2026-10-21
+
+- Script help: Euclidean rhythms explained in plain words with pictures: a ring and step row for an example, a builder with hits / steps / shift sliders and a button that puts the tbin line in the try-a-line box, and a gallery of twelve traditional rhythms to click. The help text can now carry such pictures (a line like ::euclid 5 8:: draws one).
+
 ## 300 · 2026-10-21
 
 - The app is now called Wax (the page title, header, About and README); the repository, web address and your saved settings keep the webtracker name.

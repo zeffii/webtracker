@@ -29,7 +29,7 @@ export function findPatterns(code) {
 const NS = 'http://www.w3.org/2000/svg';
 
 // A ring: the steps round a circle from the top, clockwise, hits filled and joined by a polygon.
-function ring(bits) {
+export function ring(bits) {
   const n = bits.length, R = 30, C = 36;
   const svg = document.createElementNS(NS, 'svg');
   svg.setAttribute('viewBox', `0 0 ${C * 2} ${C * 2}`); svg.setAttribute('width', 56); svg.setAttribute('height', 56);
@@ -54,7 +54,7 @@ function ring(bits) {
 }
 
 // The row of steps: a box per step, hits lit, a heavier edge every four steps.
-function strip(bits) {
+export function strip(bits) {
   const row = document.createElement('div');
   row.className = 'ev-steps';
   [...bits].forEach((c, i) => {

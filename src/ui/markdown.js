@@ -1,5 +1,5 @@
 // A small markdown renderer for the built-in help texts: headings (#, ##, ###), paragraphs, bullet and numbered lists,
-// fenced code blocks, and inline **bold**, *emphasis* and `code`. Everything is escaped first, so the text cannot add markup.
+// fenced code blocks, ::widget args:: lines (placeholders filled in by the page), and inline **bold**, *emphasis* and `code`. Everything is escaped first, so the text cannot add markup.
 const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 const inline = s => esc(s)
   .replace(/`([^`]+)`/g, '<code>$1</code>')
@@ -19,6 +19,8 @@ export function renderMarkdown(text) {
       out.push(`<pre><code>${esc(code.join('\n'))}</code></pre>`);
       continue;
     }
+    const w = /^::([a-z-]+)(?:\s+([^:]*))?::\s*$/.exec(l.trim());   // ::euclid 5 8:: and friends: a placeholder the page fills in with a picture or a widget
+    if (w) { out.push(`<div class="md-widget" data-widget="${esc(w[1])}" data-args="${esc((w[2] ?? '').trim())}"></div>`); i++; continue; }
     const h = /^(#{1,3})\s+(.*)$/.exec(l);
     if (h) { out.push(`<h${h[1].length}>${inline(h[2])}</h${h[1].length}>`); i++; continue; }
     const list = /^(\s*)([-*]|\d+\.)\s+/.exec(l);

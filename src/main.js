@@ -28,6 +28,7 @@ import { buildInstrument, fitTail } from './project/ptr.js';
 import { ABOUT, CHANGELOG } from './ui/about.js';
 import { renderMarkdown } from './ui/markdown.js';
 import { TUTORIAL } from './script/tutorial.js';
+import { mountWidgets } from './script/euclidhelp.js';
 import { createMidiInput } from './ui/midiin.js';
 import { createMidiWriter } from './seq/midiwrite.js';
 import { createMarkerRegionView } from './project/markerregion.js';
@@ -886,6 +887,7 @@ showTheme(config.get('theme'));
 {
   const tut = $('script-tut');
   tut.innerHTML = renderMarkdown(TUTORIAL);
+  mountWidgets(tut, { put: text => { const l = $('script-line'); l.value = text; l.focus(); } });
   for (const code of tut.querySelectorAll('pre code')) {
     code.title = 'Click to put this in the box below the output, to try it';
     code.addEventListener('click', () => { const l = $('script-line'); l.value = code.textContent.trim().split('\n')[0]; l.focus(); });

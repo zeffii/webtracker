@@ -25,6 +25,23 @@ tbin('x.x. ..x. x..x ..x.', scale('minor', 'A', 3), { vel: [0xC0, 0x80] })
 
 Under the editor, every \`euclid(hits, steps, rotate)\` written with plain numbers, and every \`'x..x'\` string, is drawn as a ring and a row of steps as you type, before anything runs; the one on the caret's line is outlined.
 
+### Euclidean rhythms, in plain words
+Pick how many **hits** you want and how many **steps** (rows) to spread them over. A Euclidean rhythm puts the hits as evenly apart as it can. Five hits in eight steps comes out as:
+
+::euclid 5 8::
+
+The ring is the pattern as a clock: the top is step one, and the dots are the hits. The row of boxes is the same thing laid out in time, in groups of four steps. Hits are filled in.
+
+**Shift** slides the whole pattern along without changing it, so one pair of numbers gives you a family of related grooves. Try it here, and press the button to put it in the try-a-line box:
+
+::euclid-lab::
+
+Many traditional rhythms are Euclidean. Click one to load it into the builder above:
+
+::euclid-gallery::
+
+Ideas to try: kick on 4 of 16, hat on 7 of 16, and a percussion lane on 5 of 12. Because the lengths do not line up, the layers drift in and out of phase.
+
 A Euclidean rhythm of 5 hits in 16 steps, rotated by 2, every step 2 rows long:
 
 \`\`\`
