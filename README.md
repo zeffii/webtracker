@@ -1,4 +1,4 @@
-# webtracker
+# Wax (webtracker)
 
 A tracker that runs in the browser: patterns you type on a grid, played by instruments you build from a graph of
 nodes. The audio runs in an AudioWorklet (with WASM kernels for the heavy parts), the interface is plain JavaScript

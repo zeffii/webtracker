@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 300 · 2026-10-21
+
+- The app is now called Wax (the page title, header, About and README); the repository, web address and your saved settings keep the webtracker name.
+
 ## 299 · 2026-10-21
 
 - Nugget mode now stays in nugget mode when you type: after the last character of a cell (an octave, say) the cursor goes down a row on that same character and keeps the mode, instead of jumping to the first character of the next cell.

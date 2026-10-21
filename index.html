@@ -14,7 +14,7 @@
     }
   </script>
   <link rel="stylesheet" href="themes.css">
-  <title>webtracker</title>
+  <title>Wax</title>
   <link rel="icon" href="icon.ico" sizes="any">
   <link rel="icon" type="image/png" href="icon.png">
   <style>
@@ -582,7 +582,7 @@
   <div id="splash" hidden>
     <div class="s-card">
       <canvas></canvas>
-      <p class="s-word">webtracker</p>
+      <p class="s-word">Wax</p>
       <div class="s-go">click anywhere to enter</div>
       <div class="s-log" aria-live="polite"></div>
     </div>
@@ -593,7 +593,7 @@
   <div id="backup-panel" tabindex="-1" hidden role="dialog" aria-label="Backups"></div>
   <div id="header">
     <div class="line">
-      <strong>webtracker</strong><span id="build" style="margin-left:.6em;opacity:.55;font-size:11px;font-weight:400"></span>
+      <strong>Wax</strong><span id="build" style="margin-left:.6em;opacity:.55;font-size:11px;font-weight:400"></span>
       <button id="save" disabled>Save</button>
       <i class="sep"></i>
       <button id="start">Start</button>
@@ -634,13 +634,13 @@
         <button id="tab-info">F10 Info</button>
       </nav>
       <select id="theme" style="margin-left:auto" title="Colour theme"><option value="system">system</option><option value="dark">dark</option><option value="black">black</option><option value="bright">bright</option><option value="neon">neon</option><option value="amber">amber</option><option value="phosphor">phosphor</option><option value="ice">ice</option><option value="synthwave">synthwave</option></select>
-      <button id="about-open" title="About webtracker, and what changed in each build">About</button>
+      <button id="about-open" title="About Wax, and what changed in each build">About</button>
       <button id="keys-toggle" title="Show the keyboard shortcuts of this screen in a small window (Esc closes it)" aria-pressed="false">Shortcuts</button>
       <button id="tab-config" class="gear" title="Config (F11)" aria-label="Config"><svg class="ico" viewBox="0 0 16 16"><path fill="currentColor" fill-rule="evenodd" d="M7 .8h2l.4 1.9c.4.1.8.3 1.2.5l1.6-1 1.4 1.4-1 1.6c.2.4.4.8.5 1.2l1.9.4v2l-1.9.4c-.1.4-.3.8-.5 1.2l1 1.6-1.4 1.4-1.6-1c-.4.2-.8.4-1.2.5L9 15.2H7l-.4-1.9c-.4-.1-.8-.3-1.2-.5l-1.6 1-1.4-1.4 1-1.6c-.2-.4-.4-.8-.5-1.2L.9 9V7l1.9-.4c.1-.4.3-.8.5-1.2l-1-1.6 1.4-1.4 1.6 1c.4-.2.8-.4 1.2-.5L7 .8ZM8 5.4a2.6 2.6 0 1 0 0 5.2 2.6 2.6 0 0 0 0-5.2Z"/></svg></button>
     </div>
   </div>
 
-  <dialog id="about" aria-label="About webtracker">
+  <dialog id="about" aria-label="About Wax">
     <form method="dialog" class="about-x"><button aria-label="Close" title="Close (Esc)">&times;</button></form>
     <div id="about-body"></div>
     <form method="dialog"><button>Close</button></form>
@@ -953,7 +953,7 @@
       if (!v || !v.build) return;
       const b = document.getElementById('build');
       b.textContent = `build ${v.build} · ${v.commit}`; b.title = v.date;
-      document.title = `webtracker ${v.build}`;
+      document.title = `Wax ${v.build}`;
     }).catch(() => {});
   </script>
   <script type="module" src="src/main.js"></script>

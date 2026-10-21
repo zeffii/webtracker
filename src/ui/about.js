@@ -1,12 +1,13 @@
 // The About box: how this came about, and what changed in each build, newest first.
 export const ABOUT = [
-  'webtracker is a tracker that lives in the browser: patterns you type on a grid, played by instruments you build out of a graph of nodes. It is the successor of ztracker, a tracker built in Max/MSP, and it grew up looking at the machines that made tracking worth doing: the grid and the speed of the old trackers, the machines-and-wires thinking of Buzz and Buze, and the patching of modular synths and Reaktor.',
+  'Wax is a tracker that lives in the browser: patterns you type on a grid, played by instruments you build out of a graph of nodes. It is the successor of ztracker, a tracker built in Max/MSP, and it grew up looking at the machines that made tracking worth doing: the grid and the speed of the old trackers, the machines-and-wires thinking of Buzz and Buze, and the patching of modular synths and Reaktor.',
   'It is made in conversation. One of us has the ear and the ideas, tries each build in the browser and says what is wrong or missing; the other writes the code, checks it against a test suite and sends the next build back. Big features are talked through first, with no code until the idea is right; small polish goes round in minutes. Most of these features come from the author\'s longstanding wish-list, but some emerged in conversation and in reflection after implementation.',
   'It is meant for making real music, techno especially, and it is experimental on purpose.',
   'I think you\'ll like it.',
 ];
 
 export const CHANGELOG = [
+  ['300', ['The app is now called Wax (the page title, header, About and README); the repository, web address and your saved settings keep the webtracker name.']],
   ['299', ['Nugget mode now stays in nugget mode when you type: after the last character of a cell (an octave, say) the cursor goes down a row on that same character and keeps the mode, instead of jumping to the first character of the next cell.']],
   ['298', ['Config defaults: Follow mode (the red line) is on, and dragging a graph node far from its chain no longer takes it out (both still switchable on the Config page; a setting you already saved is kept).']],
   ['297', ['New synth node: Fourpole (Synths in the add menu, and an instrument kind). After the design of Fuzzpilz\'s Buzz machine Orange Kid: two table oscillators with ten waves (sine, triangle, square, saws, three sawoids, two seeded noises), phase, transpose, detune, six mixes (1+2, 1-2, 2-1, 1*2, 1/2, 2/1) and a start/end window on the table; two linear ADSRs, the second a modulation envelope; four resonant lowpass/highpass filters that can slave to filter 1, eight routings, a cutoff limit (fixed Hz or relative to the note) and inertia; vibrato, glide, tuning; envelope amounts for vibrato rate and depth, cutoff, resonance, pitch and amplitude.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['293', ['Recording sliders: with Rec armed (Ctrl+Shift+R) and the song playing, moving a slider in the floating window, the graph\'s exposed dock or the node panel writes its value into the lane on the nearest tick: into the parameter\'s own column, else into the Cmd column as CCXXYY. The last value of a tick stays, a take is one undo step, and Config (Recording sliders) can write only every 2nd, 4th... row.']],
   ['292', ['Floating parameter window: Ctrl+Alt+P (or the params button in the status bar) shows the exposed sliders of the cursor lane\'s machine over the pattern editor and the arrangement. Drag its title to move it; the sliders work with the mouse or a MIDI knob while the song plays. Position and on/off are remembered.']],
   ['291', ['Script: scatter({ samples, density or hits, note, vel, offset, retrig, cmd, cmdChance, step, clear }) writes a random pattern from a collection of samples: each option is a value, a list to pick from, { min, max } or a function. Documented in the Script tab\'s quick start.']],
-  ['290', ['Samples: Shift+E auto-slices: a marker on every hit of the sample (or of the selection), found by spectral-flux onset detection. Sensitivity and the shortest gap are in Config (Sample).']],
 ];
