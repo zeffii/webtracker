@@ -3410,8 +3410,7 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     assert.equal(pat().color, undefined);
     key('k'); assert.equal(pat().color, 0);
     view.draw(); assert.ok(/class="L c0/.test(el.innerHTML));
-    assert.ok(el.innerHTML.includes('<span class="sw c0"> </span>'), 'the cell under the cursor shows a swatch of the pattern colour');
-    assert.equal(el.innerHTML.split('class="sw ').length - 1, 1, 'and only that cell');
+    assert.ok(!el.innerHTML.includes('class="sw '), 'the cursor cell carries no swatch: the pattern list shows the colour');
     for (let i = 0; i < 15; i++) key('k');
     assert.equal(pat().color, 15);
     key('k'); assert.equal(pat().color, undefined, 'after the last preset comes automatic again');
@@ -3424,7 +3423,7 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     const copy = pops.duplicateLane({ lanes, song: { length: 32 } }, 'lead');
     assert.equal(Object.values(copy.patterns).find(p => p.color !== undefined).color, 1, 'a duplicated lane keeps its colours');
     pat().color = '#aa3355'; view.draw();
-    assert.ok(el.innerHTML.includes('style="background:#aa3355"'), 'a custom colour is drawn');
+    assert.ok(el.innerHTML.includes('--c:#aa3355'), 'a custom colour is drawn');
     pat().color = 'red; x'; view.draw(); assert.ok(!el.innerHTML.includes('red; x'), 'anything but #rrggbb is ignored');
   }
 }

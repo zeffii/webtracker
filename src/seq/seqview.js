@@ -569,12 +569,10 @@ export function createSequenceView({ el, statusEl, listEl, transport, onToggle, 
           return `<i class="L${cls ? ` ${cls}` : ''}${edges}" style="${css}"></i>`;
         }).join('');
         let text = muted && !pl ? '·'.repeat(COLW) : ' '.repeat(COLW);
-        let swatch = null;
         if (pl) {
           const pat = l.patterns[pl.puid];
           text = (pl.start >= t ? (config.get('seqNames') ? `${hex2(pat.index)} ${pat.name}` : hex2(pat.index)) : '').slice(0, COLW).padEnd(COLW);
           if (pl.more) text = `${text.slice(0, COLW - 1)}+`;
-          swatch = colourOf(pat);
         }
         // a mute marker is a labelled cell: <mute> from here down, <play> where the lane comes back. The label sits at
         // the right when a pattern starts in the row, so the pattern's name still shows.
@@ -582,14 +580,9 @@ export function createSequenceView({ el, statusEl, listEl, transport, onToggle, 
         const room = COLW - label.length - 1;   // the cell's last character is hidden by the text's left padding
         if (label) text = `${(pl && pl.start >= t ? text.slice(0, room - 1).trimEnd() : '').padEnd(room)}${label} `;
         const classes = ['cell', level === 2 ? 'silenced' : muted && 'muted', isCur && 'cur', picked && li >= picked.l0 && li <= picked.l1 && t >= picked.t0 && t <= picked.t1 && 'sel'].filter(Boolean).join(' ');
-        // The cell under the cursor is drawn in the selection colour, which hides the pattern's own;
-        // a small swatch of it is drawn on top so a colour change can be seen.
         let inner = esc(text);
         if (label) {
           inner = `${esc(text.slice(0, room))}<span class="mk ${muted ? 'mm' : 'mu'}">${esc(label)}</span> `;
-        } else if (isCur && swatch) {
-          const at = COLW - 2, style = swatch.style ? ` style="background:${swatch.style}"` : '';
-          inner = `${esc(text.slice(0, at))}<span class="sw ${swatch.cls}"${style}> </span>${esc(text.slice(at + 1))}`;
         }
         return `<span class="${classes}"${dim ? ` style="${dim}"` : ''}>${layers}${isCur ? '<i class="cb"></i>' : ''}<span class="t">${inner}</span></span>`;
       });
