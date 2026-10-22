@@ -244,5 +244,6 @@ export function createLane(id, instrumentId, instruments, registry, length) {
   lane.pages = buildPages(lane.rows, columns);
   writeMask(lane, length);
   lane.auto = [];
+  buildAutomation(lane, registry, length);   // so the lane lists the parameters a curve can move (right-click, Add automation curve) from the start, not only after the project is reloaded
   return lane;
 }

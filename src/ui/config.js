@@ -19,6 +19,7 @@ export const GROUPS = {
   Backup: 'Automatic copies of the project kept in this browser, and optional backup files.',
   Export: 'Rendering the song to a sound file.',
   Arrangement: 'The small pictures of each pattern in the arrangement.',
+  Visual: 'A small live picture driven by what the lanes play (Ctrl+Alt+V, or the button in the status bar). It is 300 x 300, the size of a video frame. The picture is a GLSL fragment shader; see the notes in the box below.',
   Meters: 'The meter band along the bottom of the window (Ctrl+Alt+M). Choose the panels here.',
   Script: 'Limits for the Script tab.',
   'De-normal diagnostics': 'Switches for tracking down clicks and crackle at very quiet levels. Both are off unless you need them.',
@@ -91,6 +92,9 @@ export const SCHEMA = [
   { key: 'minimapLengths', label: 'Minimaps: note lengths', hint: 'a thin line from each note to the next note, note off or note cut', type: 'bool', def: true },
   { key: 'minimapCaps', label: 'Minimaps: note off and note cut', hint: 'cyan for ===, magenta for ^^^', type: 'bool', def: true },
   { key: 'minimapParams', label: 'Minimaps: parameters', hint: 'one narrow column each at the right edge, darker the higher the value', type: 'bool', def: true },
+  { group: 'Visual', key: 'visualOn', label: 'Live picture', hint: 'a 300 x 300 picture in the corner (Ctrl+Alt+V, or the button in the status bar)', type: 'bool', def: false },
+  { key: 'visualDecay', label: 'Picture: hit fade (ms)', hint: 'how long a lane\'s hit takes to fade from 1 (about a third of it is left after this long)', type: 'int', min: 50, max: 1000, def: 220 },
+  { key: 'visualGlsl', label: 'Picture: your own shader', hint: 'GLSL ES 1.00, a whole main(). Empty uses the built-in metaballs. Ready to use: uniforms R (size), T (seconds), BEAT (beats), HITS (all hits, 0 to 1), C1 and C2 (colours), LANE[16]; and the look-ups hit("kick"), pitch("acid"), vel(2), held("pad") by lane name or number from 0, and hits(). A mistake in it shows as a line at the foot of the picture and the built-in picture keeps running.', type: 'code', def: '' },
   { group: 'Meters', key: 'meterOn', label: 'Meter band', hint: 'a strip along the bottom of the window (Ctrl+Alt+M, or the Meters button)', type: 'bool', def: false },
   { key: 'meterHeight', label: 'Meter band: height (px)', type: 'int', min: 100, max: 500, def: 190 },
   { key: 'meterSpectrum', label: 'Meters: spectrum', type: 'bool', def: true },
@@ -135,6 +139,7 @@ const clean = (s, v) => {
   if (s.type === 'colour') return typeof v === 'string' && /^#[0-9a-f]{6}$/i.test(v) ? v.toLowerCase() : s.def;
   if (s.type === 'rules') return typeof v === 'string' && v.length <= 8000 ? v : s.def;
   if (s.type === 'image') return typeof v === 'string' && v.length <= 400000 && (v === '' || /^data:image\/(jpeg|png|webp);base64,/.test(v)) ? v : s.def;
+  if (s.type === 'code') return typeof v === 'string' && v.length <= 20000 ? v : s.def;
   if (s.type === 'int') { const n = Math.round(Number(v)); return Number.isFinite(n) ? Math.max(s.min, Math.min(s.max, n)) : s.def; }
   return s.options.includes(v) ? v : s.def;
 };

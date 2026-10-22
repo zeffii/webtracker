@@ -14,6 +14,8 @@ import { createInsertMenu } from './graph/menu.js';
 import { createSynthwaveProject } from './project/synthwave.js';
 import { createArpDemoProject } from './project/arpdemo.js';
 import { artCanvas, encodeMp4 } from './audio/mp4.js';
+import { createVisData } from './ui/visdata.js';
+import { createVisual } from './ui/visual.js';
 import * as ops from './project/ops.js';
 import { importMidi, parseMidi } from './project/midi.js';
 import { modToProject, parseMod } from './project/mod.js';
@@ -148,6 +150,7 @@ document.addEventListener('keydown', e => {
   const here = () => (tabs.active === 'arrange' ? seqView : view).tick;   // the row the cursor is on
   // Ctrl+Shift+R arms and disarms MIDI recording; Alt+V switches MIDI velocity on and off.
   if (e.ctrlKey && e.altKey && !e.shiftKey && !e.metaKey && e.code === 'KeyM') { e.preventDefault(); toggleMeters(); return; }
+  if (e.ctrlKey && e.altKey && !e.shiftKey && !e.metaKey && e.code === 'KeyV') { e.preventDefault(); toggleViz(); return; }
   if (e.ctrlKey && e.altKey && !e.shiftKey && !e.metaKey && e.code === 'KeyO') { e.preventDefault(); toggleScope(); return; }
   if (e.ctrlKey && e.altKey && !e.shiftKey && !e.metaKey && e.code === 'KeyH') { e.preventDefault(); toggleHelp(); return; }
   if (e.ctrlKey && e.shiftKey && !e.altKey && !e.metaKey && e.code === 'KeyR' && project) { e.preventDefault(); setRecording(!recording); return; }
@@ -916,6 +919,11 @@ $('inst-file').addEventListener('change', async e => {
         for (const o of s.options) input.append(Object.assign(document.createElement('option'), { value: o, textContent: s.labels?.[o] ?? o }));
         input.value = config.get(s.key);
         input.addEventListener('change', () => config.set(s.key, input.value));
+      } else if (s.type === 'code') {   // a text box for a shader: kept when you leave it
+        input = Object.assign(document.createElement('textarea'), { value: config.get(s.key), spellcheck: false, rows: 14, ariaLabel: s.label });
+        input.style.cssText = 'width:100%;font:12px ui-monospace,Consolas,monospace;white-space:pre;tab-size:2';
+        input.addEventListener('change', () => config.set(s.key, input.value));
+        input.addEventListener('keydown', e => { if (e.key === 'Tab' && !e.shiftKey) { e.preventDefault(); input.setRangeText('  ', input.selectionStart, input.selectionEnd, 'end'); } });
       } else if (s.type === 'image') {   // a picture kept in the settings, cropped square and scaled down so it stays small
         const holder = document.createElement('span'), thumb = Object.assign(document.createElement('img'), { width: 48, height: 48, alt: '' }), pick = Object.assign(document.createElement('button'), { type: 'button', textContent: 'Choose...' }), clear = Object.assign(document.createElement('button'), { type: 'button', textContent: 'Clear' }), file = Object.assign(document.createElement('input'), { type: 'file', accept: 'image/*', hidden: true });
         const show = () => { const v = config.get(s.key); thumb.hidden = !v; if (v) thumb.src = v; clear.hidden = !v; };
@@ -1418,6 +1426,24 @@ const placeMeters = () => {
 };
 const showMeters = on => { if (on) meters.show(); else meters.hide(); $('meters-btn').setAttribute('aria-pressed', String(on)); placeMeters(); };
 const toggleMeters = () => config.set('meterOn', !meters.open);
+
+// The live picture: a 300 x 300 shader in the corner, fed by what the lanes play (ui/visdata.js, ui/visual.js).
+const vizBox = $('viz'), vizErr = $('viz-err');
+const visdata = createVisData({ lanes: () => project?.lanes ?? [], transport: engine.transport, song: () => project?.song, decayMs: () => config.get('visualDecay') });
+let visual = null, vizOn = false;
+const placeViz = () => { vizBox.style.bottom = `${$('footer').offsetHeight + (meters.open ? config.get('meterHeight') : 0) + 14}px`; };
+const showViz = on => {
+  vizOn = on;
+  if (on && !visual) {
+    visual = createVisual($('viz-canvas'), { onError: text => { vizErr.hidden = !text; vizErr.textContent = text; } });
+    if (!visual) { vizOn = false; $('status').textContent = 'The live picture needs WebGL, which this browser does not have.'; }
+    else visual.setSource(config.get('visualGlsl'));
+  }
+  vizBox.hidden = !vizOn; $('viz-btn').setAttribute('aria-pressed', String(vizOn)); placeViz();
+};
+const toggleViz = () => config.set('visualOn', !vizOn);
+$('viz-btn').addEventListener('click', toggleViz);
+addEventListener('resize', placeViz);
 // Ctrl+Alt+O: the vectorscope panel of the meter band on or off (the band opens if it is closed)
 const toggleScope = () => { if (!meters.open) { config.set('meterScope', true); config.set('meterOn', true); } else config.set('meterScope', !config.get('meterScope')); };
 
@@ -1467,10 +1493,11 @@ document.addEventListener('keydown', e => {
   if (/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName ?? '')) return;
   e.preventDefault(); e.stopPropagation(); openCmd();
 }, true);
-config.onChange((k, v) => { if (k === 'meterOn') showMeters(v); else if (k.startsWith('meter')) { meters.rebuild(); placeMeters(); } });
+config.onChange((k, v) => { if (k === 'visualOn') showViz(v); else if (k === 'visualGlsl') visual?.setSource(v); else if (k === 'meterOn') { showMeters(v); placeViz(); } else if (k.startsWith('meter')) { meters.rebuild(); placeMeters(); } });
 $('meters-btn').addEventListener('click', toggleMeters);
 addEventListener('resize', placeMeters);
 showMeters(config.get('meterOn'));
+showViz(config.get('visualOn'));
 
 // Export: the whole song, once, offline, as a WAV file. Pressing the button again while it renders cancels.
 let exporting = null;
@@ -1824,8 +1851,9 @@ $('start').addEventListener('click', async () => {
     $('status').textContent =
       `Running at ${engine.ctx.sampleRate} Hz, base latency ${(engine.ctx.baseLatency * 1000).toFixed(1)} ms`;
     // Only the screen that is showing is drawn: a hidden one has nothing to measure or paint, and its work would only delay the one you are using.
-    const frame = () => {
+    const frame = now => {
       const tab = tabs.active;
+      if (vizOn && visual) visual.draw(visdata.frame(now ?? performance.now()));
       songInfo(); syncLaneName();
       if (tab === 'arrange' || !tab) seqView.draw();
       if (tab === 'patterns' || !tab) view.draw();

@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['370', ['A live picture driven by the lanes (Ctrl+Alt+V; your own GLSL in Config). Fix: a lane added in the session can have automation at once.']],
   ['369', ['Export to MP4: your album art as a 300 x 300 picture with the song as stereo AAC (Config, Export).']],
   ['368', ['The Arp node shows its step mask and settings on the node itself, selected or not.']],
   ['367', ['New Arp node: 21 modes, rate, gate, swing, octaves, hold, retrigger, seeded random and a 16-step velocity mask; open ?demo=arp for a demo song.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['363', ['Script tab: the script and the scratch grid sit side by side with a draggable splitter, and the help column is resizable; widths are remembered.']],
   ['362', ['Scratch pattern: a template menu of rhythm starting points (techno, house, breakbeat, trap, clave, bossa, dembow, reggae) to edit from.']],
   ['361', ['Script tab: a scratch pattern, a grid to fill with triggers and look at (and play) before anything is written to a real pattern; it reads from and writes back to the script.']],
-  ['360', ['First screen: the click-anywhere line sits halfway between its two earlier heights (40 px above the original).']],
 ];

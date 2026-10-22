@@ -40,6 +40,7 @@ import * as presetOps from '../src/project/presets.js';
 import { parseInstrument, serializeInstrument } from '../src/project/file.js';
 import { createSynthwaveProject } from '../src/project/synthwave.js';
 import { createArpDemoProject } from '../src/project/arpdemo.js';
+import { createVisData, preprocess, visibleLanes } from '../src/ui/visdata.js';
 import * as lib from '../src/project/library.js';
 import { compileDsp } from '../src/audio/wasm/load.js';
 
@@ -3338,6 +3339,43 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     assert.ok(peak(left) > 0.2 && peak(left) < 1.5, `arp demo peak ${peak(left)}`);
     assert.ok(ons.trance > 10 && ons.stab > 3 && ons.acid > 10, `the arps play notes ${JSON.stringify(ons)}`);
     parseProject(serializeProject({ ...p, lanes }));
+  }
+
+  // a lane added in the session can be given automation at once: it lists its curve targets without a reload
+  {
+    const p = createArpDemoProject();
+    const registry = new ParamRegistry();
+    for (const [id, def] of Object.entries(p.instruments)) compile(def.graph, { instrument: id, nodeTypes: NODE_TYPES, registry });
+    const lane = pops.addLane({ ...p, lanes: [], song: p.song }, registry, 'bass');
+    assert.ok(lane.targets?.some(t => t.id === 'out.gain'), 'a new lane lists Volume as a curve target');
+    assert.ok(lane.targets.length >= 1);
+  }
+
+  // the live picture's numbers: hits from the cells the playhead passes, held until a note off, and the look-ups in a shader
+  {
+    const p = createArpDemoProject();
+    const registry = new ParamRegistry();
+    for (const [id, def] of Object.entries(p.instruments)) compile(def.graph, { instrument: id, nodeTypes: NODE_TYPES, registry });
+    const lanes = prepareSong(p.song, p.instruments, registry);
+    const transport = new Int32Array(new SharedArrayBuffer(16));
+    const data = createVisData({ lanes: () => lanes, transport, song: () => p.song });
+    transport[1] = 1; transport[0] = 0;
+    let out = data.frame(1000);
+    const names = out.names.map(n => n[0]);
+    assert.deepEqual(names.slice(0, 4), ['kick', 'hat', 'clap', 'bass'], 'lanes in order, the master lane left out');
+    assert.equal(out.lane[names.indexOf('kick') * 4], 1, 'the kick hits on the first row');
+    assert.ok(out.lane[names.indexOf('bass') * 4] === 0, 'the bass has nothing on row 0');
+    transport[0] = 2; out = data.frame(1100);
+    assert.ok(out.lane[names.indexOf('bass') * 4] > 0.9, 'the bass hits on row 2');
+    assert.ok(out.lane[names.indexOf('bass') * 4 + 1] > 0 && out.lane[names.indexOf('bass') * 4 + 1] < 1, 'with a pitch');
+    assert.ok(out.lane[names.indexOf('kick') * 4] < 1 && out.lane[names.indexOf('kick') * 4] > 0, 'the kick fades');
+    transport[0] = 4; out = data.frame(1200);
+    assert.equal(out.lane[names.indexOf('kick') * 4 + 2] > 0, true, 'velocity is kept');
+    transport[1] = 0; out = data.frame(1300);
+    assert.equal(out.lane[names.indexOf('bass') * 4 + 3], 0, 'nothing is held while stopped');
+    assert.equal(visibleLanes(lanes).length, 7);
+    const src = preprocess('float a=hit("kick")+pitch(\'bass\')+vel(2)+held(i)+hit("nothing")+hits();', out.names);
+    assert.equal(src, 'float a=LANE[0].x+LANE[3].y+LANE[2].z+LANE[i].w+0.0+HITS;', 'names become LANE look-ups');
   }
 
   // mute: m starts it, m again ends it; muted ticks play no notes but a held note is let go

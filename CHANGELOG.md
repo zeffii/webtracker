@@ -2,6 +2,11 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 370 · 2026-10-22
+
+- Fix: a lane added in the session ("Add lane for", for example for a cloned instrument) said "this lane lists no parameters" when you right-clicked it for an automation curve, until the project was saved and reloaded. New lanes now list their curve targets (Volume and the exposed parameters) at once.
+- New: a live picture driven by what the lanes play. Ctrl+Alt+V or the button in the status bar opens a 300 x 300 picture in the corner (the size of a video frame). It is a WebGL shader that is told, for every lane, when a note hits (a value that jumps to 1 and fades), the pitch and velocity of the last note, and whether a note is held. These come from the pattern cells themselves, so they are exact. The built-in picture is the metaballs of the first screen, one for each of the first four lanes. Config, Visual: the fade time, and a box for your own GLSL (a whole `main`, with R, T, BEAT, HITS, C1, C2 and LANE[16] ready, and look-ups by lane name or number: hit("kick"), pitch("acid"), vel(2), held("pad"), hits()). A mistake in it shows with its line number under the picture and the built-in one keeps running.
+
 ## 369 · 2026-10-22
 
 - Export to MP4: Config, Export, "file type" MP4. The file has your album art (Config, "album art": pick any picture; it is cropped square and scaled to 300 x 300; with none, a card with the project name) as its picture and the song as stereo AAC (H.264 for the picture). A browser without an AAC or H.264 encoder gets Opus and VP9 instead, which most players read. The picture costs almost nothing, so the file is about the size of the audio. Uses the browser's own encoders and the vendored mp4-muxer (MIT).
