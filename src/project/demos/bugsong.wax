@@ -8,8 +8,8 @@
   "length": 1552,
   "swing": 0.52,
   "loop": {
-   "start": 1024,
-   "end": 1248
+   "start": 0,
+   "end": 1296
   },
   "script": "tbin('x... x... x... x...', 'C-2')"
  },

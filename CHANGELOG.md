@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 373 · 2026-10-22
+
+- Demo: bugsong replaced with the version that has no accidental loop.
+
 ## 372 · 2026-10-22
 
 - Demo: "bugsong" (273 bpm, 15 lanes, 7 samples) is now one of the demos. Open the page with ?demo=bugsong. Any saved project placed in src/project/demos/NAME.wax can be opened the same way, with ?demo=NAME.
