@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['373', ['The bugsong demo no longer has a stray loop set.']],
   ['372', ['New demo: bugsong. Open the page with ?demo=bugsong (and ?demo=arp for the arp demo).']],
   ['371', ['The live picture shows a skeleton of the patterns around the playhead, with lane names, in one muted blue; cell(\'kick\', dx) reads it from your own shader.']],
   ['370', ['A live picture driven by the lanes (Ctrl+Alt+V; your own GLSL in Config). Fix: a lane added in the session can have automation at once.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['366', ['Patcher: control and parameter wires are dashed (a Config option, on by default).']],
   ['365', ['Header: a project name field and a * for unsaved changes; Ctrl+S saves from any field.']],
   ['364', ['Ctrl+S saves as: a save dialog for name and folder where the browser has one, otherwise a download.']],
-  ['363', ['Script tab: the script and the scratch grid sit side by side with a draggable splitter, and the help column is resizable; widths are remembered.']],
 ];
