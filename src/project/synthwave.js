@@ -7,14 +7,14 @@ import { kickGraph, synthKinds } from '../instruments.js';
 const TPB = 4, BAR = 16, BARS = 8;
 
 // A subtractive synth instrument: the synth, its voices node, then the effect nodes in order.
-const synth = (params, fx = [], { voices = 4, gain = 0.5 } = {}) => {
+export const synth = (params, fx = [], { voices = 4, gain = 0.5 } = {}) => {
   const base = synthKinds.subtractive.make();
   const chain = [{ id: 'synth', type: 'subsynth', params }, { id: 'poly', type: 'voices' }, ...fx, { id: 'out', type: 'out', params: { gain } }];
   base.graph = { nodes: chain, connections: chain.slice(0, -1).map((n, i) => [`${n.id}.out`, `${chain[i + 1].id}.in`]), voices };
   return base;
 };
 
-const instruments = {
+export const instruments = {
   kick: {
     graph: { ...kickGraph, nodes: kickGraph.nodes.map(n => (n.id === 'out' ? { ...n, params: { gain: 0.42 } } : n)) },
     exposed: [

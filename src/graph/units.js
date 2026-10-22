@@ -1,6 +1,7 @@
 // How a parameter's value is shown in real units: "200 ms", "1.2 kHz", "+7 st", "triangle". A unit is looked up by
 // node type and parameter name, then by the name alone; a parameter with named choices shows the name instead.
 import { ALGORITHMS } from '../audio/nodes/fmsynth.js';
+import { MODES as ARP_MODES, RATE_NAMES as ARP_RATES, RETRIGGER as ARP_RETRIG } from '../audio/nodes/arp.js';
 
 const UNIT = {
   attack: 'ms', decay: 'ms', release: 'ms', atk: 'ms', dec: 'ms', rel: 'ms', fatk: 'ms', fdec: 'ms', frel: 'ms', patk: 'ms', pdec: 'ms', prel: 'ms',
@@ -45,6 +46,7 @@ const TYPE_UNIT = {
   dvii: { tune: 'st', speed: 'x' },
   blur: { time: 'ms' },
   gater: { smooth: 'ms', depth: '%' },
+  arp: { rate: '', gate: '%', swing: '', transpose: 'st', cycle1: 'st', cycle2: 'st', humanize: '%', level: '' },
   freqshift: { shift: 'Hz' },
   specpan: { lowMono: 'Hz', rotate: '', spread: '%', mix: '%', rate: 'Hz', sweep: '', wave: ['sine', 'triangle', 'saw', 'square'] },
 };
@@ -66,6 +68,7 @@ const NAMES = {
   waveshaper: { oversample: ['1x', '2x', '4x'] },
   follower: { mode: ['peak', 'rms'], invert: ONOFF },
   notetrig: { legato: ONOFF },
+  arp: { mode: ARP_MODES, rate: ARP_RATES, retrigger: ARP_RETRIG, veltype: ['played', 'fixed'], hold: ONOFF, thru: ONOFF },
   sampler: { reverse: ONOFF },
   fourpole: {
     wave1: ['sine', 'triangle', 'square', 'upsaw', 'downsaw', 'sawoid 1', 'sawoid 2', 'sawoid 3', 'noise 1', 'noise 2'],

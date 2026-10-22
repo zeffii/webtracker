@@ -39,6 +39,7 @@ import { createTabs } from '../src/ui/tabs.js';
 import * as presetOps from '../src/project/presets.js';
 import { parseInstrument, serializeInstrument } from '../src/project/file.js';
 import { createSynthwaveProject } from '../src/project/synthwave.js';
+import { createArpDemoProject } from '../src/project/arpdemo.js';
 import * as lib from '../src/project/library.js';
 import { compileDsp } from '../src/audio/wasm/load.js';
 
@@ -3319,6 +3320,26 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     assert.equal(roundTrip.song.length, 128);
   }
 
+  // the arp demo: loads, the arp lanes make notes, and it stays inside full scale
+  {
+    const p = createArpDemoProject();
+    const registry = new ParamRegistry();
+    const rt = new GraphRuntime({ sampleRate: sr, params: registry.values });
+    const seq = new Sequencer({ sampleRate: sr, runtime: rt, params: registry.values, transport: new Int32Array(new SharedArrayBuffer(8)) });
+    for (const [id, def] of Object.entries(p.instruments)) rt.load(compile(def.graph, { instrument: id, nodeTypes: NODE_TYPES, registry }));
+    seq.setSong(p.song);
+    const lanes = prepareSong(p.song, p.instruments, registry);
+    for (const lane of lanes) seq.setLane(lane);
+    const ons = { trance: 0, stab: 0, acid: 0 }, real = rt.deliver.bind(rt);
+    rt.deliver = (id, msg) => { if (msg.type === 'noteOn' && id in ons) ons[id]++; real(id, msg); };
+    seq.play(24 * 16);   // bar 24 on, where every arp is playing
+    const { left, right } = render(seq, 8);
+    assert.ok(![...left, ...right].some(Number.isNaN));
+    assert.ok(peak(left) > 0.2 && peak(left) < 1.5, `arp demo peak ${peak(left)}`);
+    assert.ok(ons.trance > 10 && ons.stab > 3 && ons.acid > 10, `the arps play notes ${JSON.stringify(ons)}`);
+    parseProject(serializeProject({ ...p, lanes }));
+  }
+
   // mute: m starts it, m again ends it; muted ticks play no notes but a held note is let go
   {
     const registry = new ParamRegistry();
@@ -5576,6 +5597,61 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   legato.note('a', { type: 'noteOn', note: 60, vel: 1 }); run(legato, 200);
   legato.note('a', { type: 'noteOn', note: 64, vel: 1 });
   assert.ok(run(legato, 10) < 0.02, 'with legato an overlapping note does not fire it again');
+}
+
+// 122b. Arpeggiator: held notes become a stepped pattern, in the order the mode gives, with rests, repeats, hold and a seed.
+{
+  const build = (params, voices = 0) => {
+    const registry = new ParamRegistry(), rt = new GraphRuntime({ sampleRate: sr, params: registry.values });
+    const nodes = [{ id: 'osc', type: 'osc', params: { freq: 220 } }, ...(voices ? [{ id: 'poly', type: 'voices' }] : []), { id: 'arp', type: 'arp', params }, { id: 'out', type: 'out' }];
+    rt.load(compile({ nodes, connections: voices ? [['osc.out', 'poly.in'], ['poly.out', 'out.in']] : [['osc.out', 'out.in']], ...(voices ? { voices } : {}) }, { instrument: 'a', nodeTypes: NODE_TYPES, registry }));
+    const events = [], real = rt.deliver.bind(rt);
+    rt.deliver = (id, msg) => { events.push(msg); real(id, msg); };
+    return { rt, events };
+  };
+  const stepBlocks = Math.ceil((sr * 60) / (120 * 4) / block);   // blocks in one tick at the starting tempo
+  const play = (rt, blocks) => { const l = new Float32Array(block), r = new Float32Array(block); let peak = 0; for (let i = 0; i < blocks; i++) { rt.process(l, r, block); for (const v of l) peak = Math.max(peak, Math.abs(v)); } return peak; };
+  const ons = (events, n) => events.filter(e => e.type === 'noteOn').map(e => e.note).slice(0, n);
+  const chord = rt => { for (const note of [64, 60, 67]) rt.note('a', { type: 'noteOn', note, vel: 1 }); };
+  const order = (mode, n = 8, extra = {}) => { const { rt, events } = build({ mode, ...extra }); chord(rt); play(rt, stepBlocks * (n + 2)); return ons(events, n); };
+
+  assert.deepEqual(order(0, 6), [60, 64, 67, 60, 64, 67], 'up');
+  assert.deepEqual(order(1, 6), [67, 64, 60, 67, 64, 60], 'down');
+  assert.deepEqual(order(2, 8), [60, 64, 67, 64, 60, 64, 67, 64], 'up/down plays the ends once');
+  assert.deepEqual(order(4, 8), [60, 64, 67, 67, 64, 60, 60, 64], 'up/down+ plays the ends twice');
+  assert.deepEqual(order(6, 6), [60, 67, 64, 60, 67, 64], 'converge');
+  assert.deepEqual(order(7, 6), [64, 67, 60, 64, 67, 60], 'diverge');
+  assert.deepEqual(order(9, 6), [64, 60, 67, 64, 60, 67], 'as played');
+  assert.deepEqual(order(0, 6, { octaves: 2 }), [60, 64, 67, 72, 76, 79], 'octaves');
+  assert.deepEqual(order(0, 3, { transpose: 12 }), [72, 76, 79], 'transpose');
+  assert.deepEqual(order(14, 6), [60, 60, 64, 64, 67, 67], 'repeat x2');
+  assert.deepEqual(order(16, 6), [60, 67, 64, 67, 60, 67], 'pinky up');
+  assert.deepEqual(order(18, 4), [60, 64, 60, 67], 'thumb up');
+  { const { rt, events } = build({ mode: 20, cycle1: 4, cycle2: 7 }); rt.note('a', { type: 'noteOn', note: 60, vel: 1 }); play(rt, stepBlocks * 6); assert.deepEqual(ons(events, 6), [60, 64, 67, 60, 64, 67], 'interval cycle is the tracker arpeggio'); }
+  { const { rt, events } = build({ mode: 13 }); chord(rt); play(rt, stepBlocks * 2); const first = events.filter(e => e.type === 'noteOn').slice(0, 3).map(e => e.note).sort(); assert.deepEqual(first, [60, 64, 67], 'chord plays all notes at once'); }
+
+  // random: the same seed gives the same line, another seed another
+  const a1 = order(10, 12, { seed: 5 }), a2 = order(10, 12, { seed: 5 }), a3 = order(10, 12, { seed: 6 });
+  assert.deepEqual(a1, a2, 'random is repeatable for a seed');
+  assert.notDeepEqual(a1, a3, 'another seed gives another line');
+  const other = order(11, 6, { seed: 3 });
+  assert.deepEqual([...other.slice(0, 3)].sort(), [60, 64, 67], 'random other plays every note before repeating');
+
+  // the mask: rests make no note
+  { const { rt, events } = build({ mode: 0, steps: 4 }); rt.message('a', 'arp', { type: 'gate', points: [1, 0, 1, 0, ...Array(12).fill(1)] }); chord(rt); play(rt, stepBlocks * 9); assert.ok(events.filter(e => e.type === 'noteOn').length <= 5, 'rests are not played'); assert.equal(events.filter(e => e.type === 'noteOn').length > 0, true); }
+  // repeats stop the arp after the passes
+  { const { rt, events } = build({ mode: 0, repeats: 1 }); chord(rt); play(rt, stepBlocks * 12); assert.equal(events.filter(e => e.type === 'noteOn').length, 3, 'one pass, then silence'); }
+  // gate: every note on is followed by its note off
+  { const { rt, events } = build({ mode: 0, gate: 0.5 }); chord(rt); play(rt, stepBlocks * 6); const on = events.filter(e => e.type === 'noteOn').length, off = events.filter(e => e.type === 'noteOff').length; assert.ok(off >= on - 1 && off > 0, 'notes end'); }
+  // hold: the arp outlives the keys until hold is turned off
+  { const { rt, events } = build({ mode: 0, hold: 1 }); chord(rt); play(rt, stepBlocks * 2); for (const note of [60, 64, 67]) rt.note('a', { type: 'noteOff', note }); const n0 = events.filter(e => e.type === 'noteOn').length; play(rt, stepBlocks * 6); assert.ok(events.filter(e => e.type === 'noteOn').length > n0 + 3, 'hold keeps the arp going after the keys are up'); }
+  // with no hold, letting go stops it
+  { const { rt, events } = build({ mode: 0 }); chord(rt); play(rt, stepBlocks * 2); for (const note of [60, 64, 67]) rt.note('a', { type: 'noteOff', note }); const n0 = events.filter(e => e.type === 'noteOn').length; play(rt, stepBlocks * 6); assert.equal(events.filter(e => e.type === 'noteOn').length, n0, 'letting go stops the arp'); }
+  // thru: the played key sounds as well
+  { const { rt, events } = build({ mode: 0, thru: 1 }); rt.note('a', { type: 'noteOn', note: 48, vel: 1 }); assert.equal(events[0]?.note, 48, 'thru passes the key'); }
+  // it makes sound through the voices, and the rate sets the step
+  for (const voices of [0, 4]) { const { rt } = build({ mode: 0, rate: 4 }, voices); chord(rt); assert.ok(play(rt, stepBlocks * 6) > 0.05, `the arp sounds (voices ${voices})`); }
+  { const slow = build({ mode: 0, rate: 8 }), fast = build({ mode: 0, rate: 2 }); for (const x of [slow, fast]) { chord(x.rt); play(x.rt, stepBlocks * 12); } assert.ok(fast.events.filter(e => e.type === 'noteOn').length > 3 * slow.events.filter(e => e.type === 'noteOn').length, 'a shorter rate makes more steps'); }
 }
 
 // 123. An envelope after the voices node still hears the notes.

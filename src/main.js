@@ -12,6 +12,7 @@ import { pruneDef } from './graph/edit.js';
 import { createPatcher } from './graph/patcher.js';
 import { createInsertMenu } from './graph/menu.js';
 import { createSynthwaveProject } from './project/synthwave.js';
+import { createArpDemoProject } from './project/arpdemo.js';
 import * as ops from './project/ops.js';
 import { importMidi, parseMidi } from './project/midi.js';
 import { modToProject, parseMod } from './project/mod.js';
@@ -1774,13 +1775,16 @@ $('start').addEventListener('click', async () => {
     engine.onFault = id => projStatus(`Instrument "${id}" produced invalid audio and was reset. If you can repeat it, note what you changed.`);
     started = true;
     // the demo song is a saved project shipped beside the code; the generated one is the fallback
-    try {
-      const reply = await fetch(new URL('./project/demo.wax', import.meta.url));
-      if (!reply.ok) throw new Error(`demo.wax: ${reply.status}`);
-      openProject(parseProject(await reply.text()));
-    } catch (err) {
-      console.warn(err);
-      openProject(createSynthwaveProject());
+    if (new URLSearchParams(location.search).get('demo') === 'arp') openProject(createArpDemoProject());   // ?demo=arp opens the arpeggiator demo instead
+    else {
+      try {
+        const reply = await fetch(new URL('./project/demo.wax', import.meta.url));
+        if (!reply.ok) throw new Error(`demo.wax: ${reply.status}`);
+        openProject(parseProject(await reply.text()));
+      } catch (err) {
+        console.warn(err);
+        openProject(createSynthwaveProject());
+      }
     }
     splash?.say(`project  ${project?.song?.name ?? 'untitled'}  ${Object.keys(project?.instruments ?? {}).length} instruments`);
     backups.start();

@@ -56,7 +56,7 @@ export class GraphRuntime {
     const fresh = () => Array.from({ length: compiled.bufferCount }, () => new Float32Array(this.maxBlock));
     const resolver = buffers => ref => (Array.isArray(ref) ? ref.map(b => buffers[b]) : buffers[ref]);   // stereo ports are [left, right]
     const make = (n, resolve) => {
-      const create = () => NODE_TYPES[n.type].create({ sampleRate: this.sampleRate, maxBlock: this.maxBlock, connected: n.connected, wasm: this.wasm, data: n.data, init: n.init, stereo: n.stereo === true, clock: this.clock, source: n.source, tap: id => this.tap(id), emit: (msg, transfer) => this.onEmit?.(compiled.instrument, n.id, msg, transfer) });
+      const create = () => NODE_TYPES[n.type].create({ sampleRate: this.sampleRate, maxBlock: this.maxBlock, connected: n.connected, wasm: this.wasm, data: n.data, init: n.init, stereo: n.stereo === true, clock: this.clock, notes: msg => this.deliver(compiled.instrument, msg), source: n.source, tap: id => this.tap(id), emit: (msg, transfer) => this.onEmit?.(compiled.instrument, n.id, msg, transfer) });
       const node = { id: n.id, instance: create(), slots: Int32Array.from(n.slots), inputs: n.inputs.map(resolve), outputs: n.outputs.map(resolve) };
       if (n.dual) {   // a mono node on a stereo signal: one copy per channel over the same parameters
         const left = node.instance, right = create();
@@ -182,6 +182,18 @@ export class GraphRuntime {
   // takes a silent voice, else the one that was released longest ago, else the oldest; a note
   // off releases the newest voice playing that note; all-off releases them all; a cut stops them.
   note(instrument, msg) {
+    const inst = this.instruments.get(instrument);
+    if (!inst) return;
+    if (inst.arp === undefined) {   // an arp node takes the notes first and plays what it makes (see deliver)
+      const id = this.graphs.get(instrument)?.nodes.find(n => NODE_TYPES[n.type]?.noteFilter)?.id;
+      inst.arp = id !== undefined ? inst.byId.get(id)?.[0] ?? null : null;
+    }
+    if (inst.arp && (msg.type === 'noteOn' || msg.type === 'noteOff' || msg.type === 'allOff' || msg.type === 'noteCut')) { inst.arp.instance.input(msg, this.params, inst.arp.slots); return; }
+    this.deliver(instrument, msg);
+  }
+
+  // The notes as the voices get them: a note on takes a silent voice, and so on (see note).
+  deliver(instrument, msg) {
     const inst = this.instruments.get(instrument);
     if (!inst) return;
     if (inst.sets.length > 0) {   // nodes outside the voices (the note trigger, and an envelope that works on the mixed sound) hear every note once, not per voice

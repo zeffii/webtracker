@@ -184,6 +184,11 @@ export const GLYPHS = {
     line(ctx, [[x(0), y(0.35)], [x(0.12), y(0.35)], [x(0.12), y(0.8)], [x(0.3), y(0.8)], [x(0.3), y(0.35)], [x(0.42), y(0.35)], [x(0.42), y(0.8)], [x(0.6), y(0.8)], [x(0.6), y(0.35)], [x(1), y(0.35)]]);
     curve(ctx, cx, cy + h * 0.3, w, h * 0.3, t => 0.8 - 1.6 * Math.exp(-Math.pow((t - 0.5) / 0.14, 2)) , 40);
   },
+  arp: (ctx, cx, cy, w, h) => {   // a rising staircase of notes: the arp climbing a chord
+    const x = f => cx - w / 2 + f * w, y = f => cy + h / 2 - f * h;
+    [[0, 0.1], [0.25, 0.35], [0.5, 0.6], [0.75, 0.85]].forEach(([f, v]) => line(ctx, [[x(f), y(v)], [x(f + 0.18), y(v)]]));
+    line(ctx, [[x(0.18), y(0.1)], [x(0.25), y(0.35)]]); line(ctx, [[x(0.43), y(0.35)], [x(0.5), y(0.6)]]); line(ctx, [[x(0.68), y(0.6)], [x(0.75), y(0.85)]]);
+  },
   notetrig: (ctx, cx, cy, w, h) => {   // a note's block, and the spike it fires
     const x = f => cx - w / 2 + f * w, y = f => cy + h / 2 - f * h;
     line(ctx, [[x(0), y(0.08)], [x(0.15), y(0.08)], [x(0.15), y(0.45)], [x(0.7), y(0.45)], [x(0.7), y(0.08)], [x(1), y(0.08)]]);

@@ -194,6 +194,75 @@ export const PAGES = {
     best: ['Use it on a send, with mix partly open, to turn a sound into a pad.', 'Freeze holds the moment, so the sound hangs in the air until you release it.'],
     limits: ['It works in frames, so it adds delay (bigger size, more delay), and attacks are smeared whatever you do.'],
   },
+  arp: {
+    summary: 'An arpeggiator. Put it in an instrument\'s graph (it has no wires) and the instrument no longer sounds held notes together: they become a pool, and the arp plays them one at a time, one step at a time, in the order the mode gives, locked to the song\'s tempo. It takes notes from patterns, the keyboard and MIDI alike.',
+    best: [
+      'Write a chord into one note column (or play one) and the arp does the rest. A single note repeats at the rate; two or three notes make the classic trance or acid pattern.',
+      'Draw the step mask. The bars set each step\'s velocity and an empty bar is a rest, so a plain up arp becomes a gated, accented, offbeat line. Steps below 16 make the mask a different length from the bar, which gives rolling polyrhythms.',
+      'Retrigger every new key for played parts. Retrigger every 16 steps keeps a long random or up/down pattern in step with the bar, whatever you play.',
+      'Random modes follow the seed: change seed for a new line, and the same seed gives the same line every time. Random once with retrigger every 16 steps gives a different but repeating phrase per seed.',
+      'interval cycle with one held note is the tracker 0xy arpeggio: note, +cycle1, +cycle2, on a fast rate with a short gate for a chiptune shimmer.',
+      'Short gate with a plucky instrument is staccato; a gate above 100% with a slow envelope gives overlapping, legato notes. Octaves 2 or 3 with up/down+ is the big sweeping trance arp.',
+      'Every parameter can be written from a pattern column or driven by a wire, so mode, rate, octaves and the transpose can change during the song: drop the rate for a build, switch to chord for the drop.',
+      'Hold keeps the arp playing after you let go, so you can play it live and use both hands elsewhere. Pressing keys after letting go starts a new chord; turn hold off to stop.',
+      'thru lets the played key sound too. Played on a low note with a high chord held it makes a bass note under an arp, though the arp instrument plays both, so for a separate bass use another instrument.',
+    ],
+    limits: [
+      'It arpeggiates the notes of its own instrument. It cannot send notes to another instrument, and one arp only is used per instrument (the first).',
+      'Events are made once per audio block (about 3 ms), so a step may sit a few ms off its ideal place. It never drifts, but it is not sample-accurate.',
+      'With the song stopped, the arp runs on its own clock at the song\'s tempo, so it cannot be in step with a song that starts later; start the song and it snaps to the song\'s grid.',
+      'The velocity of the played key is one value for the whole chord (the last key pressed), not one per note.',
+      'A tempo or rate change makes the steps re-align to the grid at the next block; a pattern may skip or repeat a step there.',
+      'The notes it makes are limited to the 0 to 127 range, so a high chord with 4 octaves stops at the top.',
+    ],
+    sections: [
+      {
+        title: 'Modes',
+        text: ['The pool is the held notes, repeated over the octaves. A mode is the order the pool is played in; the list repeats, so a pattern is as long as the order says. With a mask shorter or longer than the pattern the two drift against each other, which is useful.'],
+        rows: [
+          ['up, down', 'Low to high, or high to low.'],
+          ['up/down, down/up', 'Up then back down. The top and bottom notes play once: C E G E, C E G E...'],
+          ['up/down+, down/up+', 'The same, but the top and bottom notes play twice at each turn: C E G G E C.'],
+          ['converge', 'From the outside in: lowest, highest, next lowest, next highest, until it meets in the middle.'],
+          ['diverge', 'The reverse: from the middle outward.'],
+          ['converge/diverge', 'In, then back out, without playing the ends twice.'],
+          ['as played', 'The order the keys went down, not the pitch order.'],
+          ['random', 'A free pick every step. Notes may repeat.'],
+          ['random other', 'Every note once in a random order, then a new order. No repeats until all have played.'],
+          ['random once', 'One random order, kept until the held notes change or the pattern restarts, then repeated.'],
+          ['chord', 'All the notes at once on every step. The step mask and rate make a rhythmic chord stab.'],
+          ['repeat x2, repeat x4', 'Each note, ascending, twice or four times before the next.'],
+          ['pinky up', 'The highest note between every note of an ascending line: C G, E G, (C G E G...). Bright and bouncy.'],
+          ['pinky up/down', 'The same, ascending and then back down.'],
+          ['thumb up', 'The lowest note between every note of an ascending line, so a bass pulse runs under the melody.'],
+          ['thumb up/down', 'The same, ascending and then back down.'],
+          ['interval cycle', 'Each held note, then it plus cycle1 semitones, then it plus cycle2. With one held note it is the tracker 0xy arpeggio.'],
+        ],
+      },
+      {
+        title: 'Time',
+        text: [
+          'A step is `rate` ticks long. With the usual 4 ticks to the beat, 1 tick is a sixteenth note, 2 ticks an eighth, 4 ticks a quarter, and 1/2 tick a thirty-second. 2/3 and 1/3 tick make triplet-like grids. The arp reads the song\'s tempo and ticks per beat every block, so a tempo change in the master lane changes the arp too.',
+          'The arp restarts at the start of the pattern in the cases `retrigger` lists. A new chord begins on the next step, so a key pressed between steps waits for the step: this keeps the arp tight. Swing delays every second step like the song\'s own swing.',
+        ],
+      },
+      {
+        title: 'The step mask',
+        text: ['Click and drag in the bars under the node. A full bar is a step at full velocity, a half bar is half as loud, no bar is a rest. The steps use the arp\'s step count, beginning at the start of the song, so a mask like offbeat (..x...x...x...x.) plays the arp on the off-beat sixteenths and nothing else. The presets under the bars set common masks; random draws one.'],
+      },
+      {
+        title: 'Recipes',
+        rows: [
+          ['Trance arp', 'Mode up/down+, rate 1 tick, octaves 3, gate 70%, mask 16ths, retrigger every note. Hold three notes (a minor chord) and bring in a long reverb.'],
+          ['Acid line', 'One held note per bar, mode up with octaves 2, mask gallop, gate 40%, a squelch instrument, retrigger every 16 steps.'],
+          ['Offbeat stab', 'Mode chord, rate 2 ticks, mask offbeat, gate 30%.'],
+          ['Chiptune shimmer', 'Mode interval cycle with cycle1 3 and cycle2 7 (minor), rate 1/2 tick, gate 80%.'],
+          ['Strum', 'Mode up, repeats 1, rate 1/4 tick, gate 100%+. One pass at speed, then silence until the next chord.'],
+          ['Slow pad ripple', 'Mode random other, rate 4 ticks, gate 150%, octaves 2, humanize 0.3.'],
+        ],
+      },
+    ],
+  },
 };
 
 const esc = t => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
