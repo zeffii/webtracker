@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['365', ['Header: a project name field and a * for unsaved changes; Ctrl+S saves from any field.']],
   ['364', ['Ctrl+S saves as: a save dialog for name and folder where the browser has one, otherwise a download.']],
   ['363', ['Script tab: the script and the scratch grid sit side by side with a draggable splitter, and the help column is resizable; widths are remembered.']],
   ['362', ['Scratch pattern: a template menu of rhythm starting points (techno, house, breakbeat, trap, clave, bossa, dembow, reggae) to edit from.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['358', ['First screen: the click-anywhere line unrolls from its first letter and is a little lighter.']],
   ['357', ['Config tab tidied: every group is now one card (the same description was repeated beside most settings), settings sit in the card they belong to (First screen look under Look, the graph ones under Graph, the vectorscope ones under Meters, the recording latency under MIDI, resynthesis in its own card), the group name is dropped from labels that began with it, every group has a short description, and the settings-file buttons at the bottom are headed Settings file instead of a second Backup.']],
   ['356', ['Script help, when the script panel is docked beside the pattern editor, now opens the tutorial as a column to the right of the script editor (the dock widens to make room) instead of squeezing it in below.']],
-  ['355', ['The shortcut window no longer lets a long key list squeeze the descriptions out of view: the key column wraps and the descriptions keep their width, with no sideways scrolling.']],
 ];

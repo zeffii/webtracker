@@ -5,7 +5,7 @@
 // changed, whenever you Save, whenever the tab is hidden, and before anything that replaces the project (a load, a clear,
 // a restore). A snapshot that is identical to the newest one is not stored. Only the newest `keep` are kept.
 
-const hashOf = text => {   // FNV-1a over the text: enough to tell "unchanged" from "changed"
+export const hashOf = text => {   // FNV-1a over the text: enough to tell "unchanged" from "changed"
   let h = 0x811c9dc5;
   for (let i = 0; i < text.length; i++) { h ^= text.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; }
   return `${text.length}:${h.toString(16)}`;

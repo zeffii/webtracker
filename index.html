@@ -78,6 +78,8 @@
     #new-menu { position: absolute; left: 0; top: 100%; z-index: 5; display: flex; flex-direction: column; min-width: 16rem; background: var(--bg); border: 1px solid; padding: 2px; }
     #new-menu button { font: inherit; text-align: left; padding: .25rem .5rem; border: 0; background: transparent; color: inherit; cursor: pointer; }
     #new-menu button:hover, #new-menu button:focus { background: var(--hi); color: var(--hi-fg); }
+    #pname { box-sizing: border-box; width: 11rem; height: 1.8rem; font: 12px ui-monospace, Consolas, monospace; padding: 0 .4rem; }
+    #dirty { font: 700 16px ui-monospace, Consolas, monospace; color: var(--accent); margin-left: -.2rem; }
     #header .line + .line { margin-top: .3rem; }
     .grow { flex: 1; }
     #foot-tools { flex: none; display: inline-flex; align-items: center; gap: .35rem; margin-left: .5rem; }
@@ -826,6 +828,7 @@
       </div>
       <i class="sep"></i>
       <button id="save" disabled title="Save the project (.wax)" aria-label="Save"><svg class="ri" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 3h11l3 3v15H5z M8 3v6h8V3 M8 21v-7h8v7"/></svg></button>
+      <input id="pname" type="text" spellcheck="false" autocomplete="off" disabled placeholder="untitled" aria-label="Project name" title="The project name: it is the file name when you save"><span id="dirty" hidden title="Changed since the last save" aria-label="Unsaved changes">*</span>
       <button id="export" disabled title="Export: render the whole song to a WAV file, with a tail after the end (length and format in Config)" aria-label="Export"><svg class="ri" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12 M7 8l5-5 5 5 M4 15v5h16v-5"/></svg></button>
       <button id="backups" disabled title="Backups: the automatic snapshots, and the backup folder" aria-label="Backups"><svg class="ri" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12a8 8 0 1 0 3-6.2 M4 4v5h5 M12 8v5l3 2"/></svg></button>
       <span id="new-wrap"><button id="new" disabled title="New: clear the arrangement, the patterns, or everything" aria-label="New" aria-haspopup="menu" aria-expanded="false"><svg class="ri" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h8l4 4v14H6z M14 3v4h4 M12 11v6 M9 14h6"/></svg><span class="caret">▾</span></button>

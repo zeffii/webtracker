@@ -6,7 +6,7 @@ import { createMachineHelp } from './ui/machinehelp.js';
 import { parseRules, analyse, resolve, stepsOf, label as stepLabel, describe as describeRule, noteUnknown, unknownTyped, clearUnknown, ACTIONS } from './ui/console.js';
 import { NODE_TYPES } from './audio/nodes/index.js';
 import { helpPage } from './graph/help.js';
-import { createBackups, idbStore, memoryStore, stamp } from './project/backup.js';
+import { createBackups, hashOf, idbStore, memoryStore, stamp } from './project/backup.js';
 import { createBackupPanel } from './ui/backuppanel.js';
 import { pruneDef } from './graph/edit.js';
 import { createPatcher } from './graph/patcher.js';
@@ -142,7 +142,6 @@ const tabs = createTabs({
 document.addEventListener('keydown', e => {
   if (e.key === 'F1' && !e.ctrlKey && !e.altKey && !e.metaKey && !e.shiftKey && tabs.active === 'instruments' && (!nodeHelp.hidden ? (hideHelp(), true) : patcher.helpSelected())) { e.preventDefault(); return; }   // F1 on the instrument screen shows or hides the help of the selected node
   if (e.ctrlKey && e.altKey && !e.metaKey && !e.shiftKey && e.code === 'KeyD') { e.preventDefault(); toggleDock(); return; }
-  if ((e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey && e.code === 'KeyS') { e.preventDefault(); if (project) saveProject(); return; }   // Ctrl+S: Save as
   if (tabs.handleKey(e)) return;
   const here = () => (tabs.active === 'arrange' ? seqView : view).tick;   // the row the cursor is on
   // Ctrl+Shift+R arms and disarms MIDI recording; Alt+V switches MIDI velocity on and off.
@@ -1060,7 +1059,7 @@ config.onChange((k, v) => { if (k === 'insertCut') $('ins-cut').checked = v; els
 $('ins-go').addEventListener('click', () => insertSilence($('ins-n').value));
 $('ins-n').addEventListener('keydown', e => { if (e.key === 'Enter') insertSilence($('ins-n').value); });
 for (const b of document.querySelectorAll('.ins-pre')) { b.disabled = false; b.addEventListener('click', () => { $('ins-n').value = b.dataset.n; insertSilence(b.dataset.n); }); }
-for (const id of ['length', 'ins-n', 'bpm', 'swing', 'bar']) $(id).addEventListener('keydown', e => e.stopPropagation());
+for (const id of ['length', 'ins-n', 'bpm', 'swing', 'bar', 'pname']) $(id).addEventListener('keydown', e => e.stopPropagation());
 
 $('inst-rename').addEventListener('click', () => {
   const id = patcher.instrument;
@@ -1306,6 +1305,8 @@ function openProject({ song, instruments, samples }, { stay = false, instrument 
   $('bpm').value = song.bpm;
   $('swing').value = Math.round((song.swing ?? 0.5) * 100);
   $('bar').value = song.beatsPerBar ?? 4;
+  $('pname').value = song.name ?? 'untitled'; $('pname').disabled = false;
+  if (!stay) markSaved(); else scheduleCheck();
   if (!stay) { tabs.show('arrange'); backups.baselineDownload?.(); }
 }
 
@@ -1473,6 +1474,31 @@ $('export').addEventListener('click', async () => {
   button.textContent = 'Export';
 });
 
+// The project name in the header, and a * after it once the project differs from what was last saved or opened. The check
+// serializes the project, so it runs at most every second or so after the user does something, and stops once it is dirty.
+let savedHash = null, dirty = false, checkTimer = null, checkCost = 0;
+const setDirty = d => { dirty = d; $('dirty').hidden = !d; };
+function markSaved() { savedHash = project ? hashOf(serializeProject(project)) : null; setDirty(false); }
+function checkDirty() {
+  checkTimer = null;
+  if (!project || savedHash === null) return;
+  const t0 = performance.now(), h = hashOf(serializeProject(project));
+  checkCost = performance.now() - t0;
+  setDirty(h !== savedHash);
+}
+function scheduleCheck() { if (checkTimer || dirty || !project) return; checkTimer = setTimeout(checkDirty, Math.max(1000, checkCost * 40)); }
+for (const ev of ['keydown', 'pointerup', 'change', 'input', 'drop']) document.addEventListener(ev, scheduleCheck, true);
+setInterval(scheduleCheck, 4000);   // MIDI recording and the like change the project with no key or click
+$('pname').addEventListener('change', () => {
+  if (!project) return;
+  project.song.name = $('pname').value.trim() || 'untitled';
+  $('pname').value = project.song.name;
+  checkDirty();
+});
+// Ctrl+S: Save as, from anywhere (the capture phase, so even a number field that swallows keys lets it through)
+document.addEventListener('keydown', e => { if ((e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey && e.code === 'KeyS') { e.preventDefault(); e.stopPropagation(); if (project) saveProject(); } }, true);
+$('pname').addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === 'Escape') $('pname').blur(); });
+
 // Save as (the Save button and Ctrl+S): the browser's own save dialog, for a name and a folder, where it has one;
 // otherwise a plain download.
 async function saveProject() {
@@ -1480,10 +1506,13 @@ async function saveProject() {
   try {
     if (window.showSaveFilePicker) {
       const handle = await window.showSaveFilePicker({ suggestedName: name, types: [{ description: 'Wax project', accept: { 'application/json': [FILE_EXT] } }] });
+      const chosen = handle.name.replace(/\.[^.]*$/, '');
+      if (chosen && chosen !== project.song.name) { project.song.name = chosen; $('pname').value = chosen; }   // the file name becomes the project name
       const w = await handle.createWritable();
-      await w.write(text);
+      await w.write(serializeProject(project));
       await w.close();
       backups.snapshot('save');
+      markSaved();
       $('status').textContent = `Saved ${handle.name}.`;
       return;
     }
@@ -1492,6 +1521,7 @@ async function saveProject() {
   }
   download(name, text);
   backups.snapshot('save');
+  markSaved();
   $('status').textContent = 'Saved.';
 }
 $('save').addEventListener('click', () => { saveProject(); });

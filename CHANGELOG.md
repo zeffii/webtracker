@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 365 · 2026-10-22
+
+- Header: a project name field beside Save (it is the file name), and a * after it as soon as the project differs from what was last saved or opened. Ctrl+S works from any field, and when the browser's save dialog is used, the file name you pick becomes the project name.
+
 ## 364 · 2026-10-22
 
 - Ctrl+S saves (Save as): the browser's save dialog opens for a name and a folder where it has one, otherwise the file downloads as before. The Save button does the same.
