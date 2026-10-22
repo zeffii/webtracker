@@ -508,8 +508,26 @@ attachGrip({ grip: $('seq-grip'), key: 'webtracker.arrangementRows', get: () => 
     if (!aside) { body.append(Object.assign(document.createElement('p'), { textContent: 'This screen has no shortcut list of its own.' })); return; }
     for (const n of aside.children) if (!['seq-side', 'seq-tools', 'list-grip'].includes(n.id) && n.tagName !== 'H3') body.append(n.cloneNode(true));
     $('keys-float-title').textContent = `Shortcuts: ${id === 'arrange' ? 'arrangement' : id}`;
+    narrow();
   };
-  const open = id => { fill(id); box.hidden = false; button.setAttribute('aria-pressed', 'true'); };
+  // The find box: a shortcut stays when its key and its text together hold every word typed (as whole or partial words).
+  const find = $('keys-find');
+  const narrow = () => {
+    const words = find.value.toLowerCase().split(/\s+/).filter(Boolean);
+    body.querySelector('.none')?.remove();
+    let shown = 0;
+    for (const dl of body.querySelectorAll('dl')) {
+      const kids = [...dl.children];
+      for (let i = 0; i < kids.length; i += 2) {
+        const text = `${kids[i].textContent} ${kids[i + 1]?.textContent ?? ''}`.toLowerCase(), keep = words.every(w => text.includes(w));
+        kids[i].hidden = !keep; if (kids[i + 1]) kids[i + 1].hidden = !keep;
+        if (keep) shown++;
+      }
+    }
+    if (words.length && !shown) body.append(Object.assign(document.createElement('p'), { className: 'none', textContent: 'No shortcut has all of those words.' }));
+  };
+  find.addEventListener('input', narrow);
+  const open = id => { fill(id); box.hidden = false; button.setAttribute('aria-pressed', 'true'); };   // 
   const close = () => { if (box.hidden) return false; box.hidden = true; button.setAttribute('aria-pressed', 'false'); return true; };
   button.addEventListener('click', () => { if (box.hidden) open(tabs.active); else close(); button.blur(); });
   $('keys-float-close').addEventListener('click', close);

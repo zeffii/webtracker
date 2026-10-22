@@ -220,7 +220,7 @@ export function createSequenceView({ el, statusEl, listEl, transport, onToggle, 
     const items = targets.slice(0, 12).map(t => {
       const idx = (l.curves ?? []).findIndex(c => c.target === t.id);
       return {
-        label: `${idx >= 0 ? '✓ ' : ''}Curve: ${t.label}`,
+        label: idx >= 0 ? `✓ Automation curve: ${t.label}` : `Add automation curve: ${t.label}`,
         run: () => {
           if (idx >= 0) { l.shown = idx; message = `Showing the ${t.label} curve.`; draw(); return; }
           const shape = editor.curve(li, 'new curve', null, lane => {
@@ -240,6 +240,7 @@ export function createSequenceView({ el, statusEl, listEl, transport, onToggle, 
         },
       };
     });
+    if (!targets.length) items.push({ label: 'Add automation curve (this lane lists no parameters)', disabled: true });
     if (shown) {
       const ci = l.curves.indexOf(shown), pl = placementAt(l, row), pat = pl && l.patterns[pl.puid];
       items.push({ separator: true });

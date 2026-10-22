@@ -144,6 +144,8 @@
     #keys-float header { display: flex; align-items: center; gap: .5rem; padding: .3rem .5rem; cursor: move; user-select: none; border-bottom: 1px solid color-mix(in srgb, var(--fg) 20%, transparent); }
     #keys-float header b { flex: 1; font-weight: normal; opacity: .7; }
     #keys-float header button { font: inherit; padding: 0 .45rem; cursor: pointer; }
+    #keys-find { margin: .35rem .5rem 0; font: inherit; padding: .2rem .4rem; min-width: 0; }
+    #keys-float-body .none { opacity: .7; margin: .3rem 0; }
     #keys-float-body { overflow-y: auto; padding: .5rem .7rem; }
     #keys-float-body dl { display: grid; grid-template-columns: max-content 1fr; gap: .2rem .8rem; margin: 0; }
     #keys-float-body dt { color: #f0707a; }
@@ -772,7 +774,7 @@
     <form method="dialog"><button>Close</button></form>
   </dialog>
 
-  <div id="keys-float" role="dialog" aria-label="Keyboard shortcuts" hidden><header><b id="keys-float-title">Shortcuts</b><button id="keys-float-close" type="button" title="Close (Esc)" aria-label="Close">&times;</button></header><div id="keys-float-body" tabindex="0"></div></div>
+  <div id="keys-float" role="dialog" aria-label="Keyboard shortcuts" hidden><header><b id="keys-float-title">Shortcuts</b><button id="keys-float-close" type="button" title="Close (Esc)" aria-label="Close">&times;</button></header><input id="keys-find" type="search" placeholder="find a shortcut: type words or parts of words" aria-label="Find a shortcut" autocomplete="off" spellcheck="false"><div id="keys-float-body" tabindex="0"></div></div>
   <div id="split">
   <section id="pane-patterns" class="pane keyed">
     <div class="pane-main">
@@ -1028,6 +1030,9 @@
           <dt>I</dt><dd><b class="kw">insert</b> a new pattern on top</dd>
           <dt>Ctrl+Up/Down</dt><dd>step through the <b class="kw">pattern list</b> (the outlined one)</dd>
           <dt>Space</dt><dd>place the outlined pattern here and jump to its end</dd>
+          <dt>Right-click</dt><dd>a lane's menu, with <b class="kw">Add automation curve</b>: the lane's volume or any parameter in its Params list, over time</dd>
+          <dt>Click a curve line</dt><dd>switches that segment on: C <b class="kw">curve</b>, L straight line, G gap. Double-click the line to add an anchor</dd>
+          <dt>Click a curve anchor</dt><dd>selects it: E <b class="kw">extends</b> over the next pattern, Shift+E skips one, B breaks or joins, [ and ] move between anchors, Left/Right change the value, Delete removes it, Esc lets go</dd>
           <dt>two hex digits</dt><dd>place that pattern (see the list) and jump to its end</dd>
           <dt>H</dt><dd>show or hide the pattern <b class="kw">names</b> in the cells</dd>
           <dt>V</dt><dd>show or hide the pattern <b class="kw">minimaps</b> (small pictures of the notes in each cell)</dd>
