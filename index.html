@@ -197,6 +197,23 @@
     .eh-gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr)); gap: .4rem; margin: .5rem 0; }
     .eh-card { display: flex; flex-direction: column; align-items: flex-start; gap: .15rem; padding: .4rem; text-align: left; min-width: 0; }
     .eh-card span { opacity: .65; font-size: 11.5px; } .eh-card b { font: 600 12px ui-monospace, Consolas, monospace; }
+    .ev-bar { flex: 0 0 100%; display: flex; gap: .25rem; align-items: center; }
+    .ev-bar button { font: 11px ui-monospace, Consolas, monospace; padding: .05rem .45rem; background: var(--panel); color: var(--fg); border: 1px solid var(--line); cursor: pointer; }
+    .ev-bar button[aria-pressed="true"] { background: var(--hi); color: var(--hi-fg); border-color: var(--hi); }
+    .eg { display: flex; gap: .3rem; align-items: flex-start; font: 10px ui-monospace, Consolas, monospace; max-width: 100%; overflow-x: auto; padding-bottom: .2rem; }
+    .eg-rows, .eg-col { display: flex; flex-direction: column; gap: 2px; }
+    .eg b { height: 1.4em; font-weight: 600; opacity: .8; text-align: center; }
+    .eg-rows i { font-style: normal; height: 16px; line-height: 16px; opacity: .45; text-align: right; padding-right: 2px; }
+    .eg-rows i.beat { opacity: .9; }
+    .eg-col u { display: block; width: 16px; height: 16px; box-sizing: border-box; text-decoration: none; text-align: center; line-height: 16px; background: color-mix(in srgb, var(--fg) 9%, transparent); color: var(--bg); }
+    .eg-col u.beat { box-shadow: inset 0 2px 0 color-mix(in srgb, var(--fg) 22%, transparent); }
+    .eg-col.cur b { color: var(--accent); opacity: 1; }
+    .eg .v0 u.on, .eg i.v0 { background: #e9a24a; } .eg .v1 u.on, .eg i.v1 { background: #6fb7c9; } .eg .v2 u.on, .eg i.v2 { background: #b98ad6; }
+    .eg .v3 u.on, .eg i.v3 { background: #8fcf8a; } .eg .v4 u.on, .eg i.v4 { background: #e07a8a; } .eg .v5 u.on, .eg i.v5 { background: #d9d27a; }
+    .eg .tg u.on { background: var(--fg); }
+    .eg-key { display: flex; flex-direction: column; gap: 2px; padding-left: .4rem; min-width: 0; }
+    .eg-key div { display: flex; gap: .35rem; align-items: center; } .eg-key i { width: 9px; height: 9px; display: inline-block; flex: none; }
+    .eg-key code { opacity: .75; white-space: nowrap; }
     .ev-more { align-self: center; opacity: .6; font: 12px ui-monospace, Consolas, monospace; }
     #script-out { box-sizing: border-box; width: 100%; max-width: 110ch; height: 9em; margin: .3rem 0; padding: .3rem .6rem; overflow: auto; font: 12px/1.45 ui-monospace, Consolas, monospace; background: color-mix(in srgb, var(--panel) 85%, var(--fg)); white-space: pre-wrap; }
     #script-out .err { color: #e0405a; }

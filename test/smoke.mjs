@@ -6995,6 +6995,12 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   assert.equal(found[0].hits, 3); assert.equal(found[0].steps, 8);
   assert.equal(found[2].steps, 16); assert.equal(found[2].hits, 5);
   assert.deepEqual(findPatterns('euclid(3, 0)'), [], 'no steps: nothing to draw');
+  const lib = await import('../src/script/lib.js');
+  const nested = findPatterns("tbin(inv(euclid(3, 8)), 'C-2')\nrot(euclid(2, 16), 4)\nboth('x.x.x.x.', euclid(4, 8))\ninv(euclid(k, 8))");
+  assert.deepEqual(nested.map(f => [f.line, f.label, f.bits]), [[1, 'inv(euclid(3, 8))', lib.inv(euclidOf(3, 8))], [2, 'rot(euclid(2, 16), 4)', lib.rot(euclidOf(2, 16), 4)], [3, "both('x.x.x.x.', euclid(4, 8))", lib.both('x.x.x.x.', euclidOf(4, 8))]], 'the outermost helper calls with plain arguments are drawn; variables are skipped');
+  const { gridModel } = await import('../src/script/euclidviz.js');
+  const gm = gridModel(findPatterns("euclid(3, 8)\ninv(euclid(3, 8))"), 16);
+  assert.equal(gm.cols.length, 2); assert.ok(gm.together.every(n => n === 1), 'a pattern and its anti-pattern play every row exactly once');
   console.log('ok: euclid preview');
 }
 
