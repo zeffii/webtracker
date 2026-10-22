@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 375 · 2026-10-22
+
+- MP4 export always has AAC-LC sound now, which is what X and most sites require. Browsers without an AAC encoder (Brave has none, so the export used Opus) use a built-in one: the Fraunhofer FDK AAC encoder as WebAssembly (src/vendor/fdk-aac.mjs, about 480 KB, loaded only when needed). The status line says "AAC (built-in encoder)" when it was used.
+
 ## 374 · 2026-10-22
 
 - Export shows a progress bar at the right end of the status bar (the render is the first half of an MP4 export, the encoding the second). Pressing Export again still cancels. The button keeps its icon afterwards, and its tooltip now mentions MP4.

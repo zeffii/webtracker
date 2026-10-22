@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['375', ['MP4 export always uses AAC sound (a built-in encoder where the browser has none), so X accepts it.']],
   ['374', ['Export shows a progress bar at the right of the status bar.']],
   ['373', ['The bugsong demo no longer has a stray loop set.']],
   ['372', ['New demo: bugsong. Open the page with ?demo=bugsong (and ?demo=arp for the arp demo).']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['368', ['The Arp node shows its step mask and settings on the node itself, selected or not.']],
   ['367', ['New Arp node: 21 modes, rate, gate, swing, octaves, hold, retrigger, seeded random and a 16-step velocity mask; open ?demo=arp for a demo song.']],
   ['366', ['Patcher: control and parameter wires are dashed (a Config option, on by default).']],
-  ['365', ['Header: a project name field and a * for unsaved changes; Ctrl+S saves from any field.']],
 ];
