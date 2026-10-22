@@ -146,7 +146,9 @@
     body.sdock #split > #pane-script:not([hidden]) { flex: 0 0 var(--dock-w, 32rem); min-width: 0; display: block; border-left: 1px solid var(--line); }
     body.sdock #pane-script .keys, body.sdock #pane-script .help { display: none; }
     body.sdock.shelp #pane-script .keys, body.sdock.shelp #pane-script .help { display: block; }
-    body.sdock.shelp #pane-script .keys { height: auto; max-height: 45vh; margin-top: .5rem; }
+    body.sdock.shelp #split > #pane-script:not([hidden]) { flex-basis: calc(var(--dock-w, 32rem) + 21rem); display: grid; grid-template-columns: minmax(0, 1fr) 20rem; }   /* the help opens as a column to the right of the editor */
+    body.sdock.shelp #pane-script .keys { height: auto; max-height: none; margin: 0; align-self: stretch; overflow-y: auto; border-left: 1px solid var(--line); }
+    body.sdock.shelp #pane-script .pane-main { min-width: 0; }
     #script-help { display: none; margin: .3rem 0; }
     body.sdock #script-help { display: inline-block; }
     body.sdock #pane-script.keyed:not([hidden]) { grid-template-columns: minmax(0, 1fr); }
