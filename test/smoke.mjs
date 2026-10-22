@@ -4075,6 +4075,10 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
 // 103. The shipped demo song loads like any saved project and renders.
 {
   const { readFileSync } = await import('node:fs');
+  for (const name of ['bugsong']) {
+    const demo = parseProject(readFileSync(new URL(`../src/project/demos/${name}.wax`, import.meta.url), 'utf8'));
+    assert.ok(demo.song.length > 0 && demo.song.lanes.length > 1, `the ${name} demo loads`);
+  }
   const loaded = parseProject(readFileSync(new URL('../src/project/demo.wax', import.meta.url), 'utf8'));
   assert.ok(loaded.song.lanes.length >= 5 && Object.keys(loaded.instruments).length >= 5, 'the demo has its instruments and lanes');
   const registry = new ParamRegistry();

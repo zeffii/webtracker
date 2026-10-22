@@ -1830,11 +1830,14 @@ $('start').addEventListener('click', async () => {
     engine.onFault = id => projStatus(`Instrument "${id}" produced invalid audio and was reset. If you can repeat it, note what you changed.`);
     started = true;
     // the demo song is a saved project shipped beside the code; the generated one is the fallback
-    if (new URLSearchParams(location.search).get('demo') === 'arp') openProject(createArpDemoProject());   // ?demo=arp opens the arpeggiator demo instead
+    // ?demo=arp opens the arpeggiator demo, ?demo=NAME the saved project demos/NAME.wax; anything else the usual demo song
+    const wanted = new URLSearchParams(location.search).get('demo') ?? '';
+    if (wanted === 'arp') openProject(createArpDemoProject());
     else {
       try {
-        const reply = await fetch(new URL('./project/demo.wax', import.meta.url));
-        if (!reply.ok) throw new Error(`demo.wax: ${reply.status}`);
+        const file = /^[a-z0-9_-]{1,40}$/i.test(wanted) ? `./project/demos/${wanted}.wax` : './project/demo.wax';
+        const reply = await fetch(new URL(file, import.meta.url));
+        if (!reply.ok) throw new Error(`${file}: ${reply.status}`);
         openProject(parseProject(await reply.text()));
       } catch (err) {
         console.warn(err);
