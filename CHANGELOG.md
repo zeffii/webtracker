@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 364 · 2026-10-22
+
+- Ctrl+S saves (Save as): the browser's save dialog opens for a name and a folder where it has one, otherwise the file downloads as before. The Save button does the same.
+
 ## 363 · 2026-10-22
 
 - Script tab: the script and the scratch grid sit side by side (stacked when the script is docked), with a draggable splitter between them (default about 84 characters wide), and the tutorial column can be dragged wider or narrower too. Both widths are remembered.

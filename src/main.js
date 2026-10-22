@@ -142,6 +142,7 @@ const tabs = createTabs({
 document.addEventListener('keydown', e => {
   if (e.key === 'F1' && !e.ctrlKey && !e.altKey && !e.metaKey && !e.shiftKey && tabs.active === 'instruments' && (!nodeHelp.hidden ? (hideHelp(), true) : patcher.helpSelected())) { e.preventDefault(); return; }   // F1 on the instrument screen shows or hides the help of the selected node
   if (e.ctrlKey && e.altKey && !e.metaKey && !e.shiftKey && e.code === 'KeyD') { e.preventDefault(); toggleDock(); return; }
+  if ((e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey && e.code === 'KeyS') { e.preventDefault(); if (project) saveProject(); return; }   // Ctrl+S: Save as
   if (tabs.handleKey(e)) return;
   const here = () => (tabs.active === 'arrange' ? seqView : view).tick;   // the row the cursor is on
   // Ctrl+Shift+R arms and disarms MIDI recording; Alt+V switches MIDI velocity on and off.
@@ -1472,11 +1473,28 @@ $('export').addEventListener('click', async () => {
   button.textContent = 'Export';
 });
 
-$('save').addEventListener('click', () => {
-  download(`${project.song.name ?? 'untitled'}${FILE_EXT}`, serializeProject(project));
+// Save as (the Save button and Ctrl+S): the browser's own save dialog, for a name and a folder, where it has one;
+// otherwise a plain download.
+async function saveProject() {
+  const text = serializeProject(project), name = `${project.song.name ?? 'untitled'}${FILE_EXT}`;
+  try {
+    if (window.showSaveFilePicker) {
+      const handle = await window.showSaveFilePicker({ suggestedName: name, types: [{ description: 'Wax project', accept: { 'application/json': [FILE_EXT] } }] });
+      const w = await handle.createWritable();
+      await w.write(text);
+      await w.close();
+      backups.snapshot('save');
+      $('status').textContent = `Saved ${handle.name}.`;
+      return;
+    }
+  } catch (err) {
+    if (err?.name === 'AbortError') { $('status').textContent = 'Save cancelled.'; return; }   // closed the dialog
+  }
+  download(name, text);
   backups.snapshot('save');
   $('status').textContent = 'Saved.';
-});
+}
+$('save').addEventListener('click', () => { saveProject(); });
 $('load').addEventListener('click', () => $('file').click());
 $('file').addEventListener('change', async e => {
   const [file] = e.target.files;

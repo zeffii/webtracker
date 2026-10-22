@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['364', ['Ctrl+S saves as: a save dialog for name and folder where the browser has one, otherwise a download.']],
   ['363', ['Script tab: the script and the scratch grid sit side by side with a draggable splitter, and the help column is resizable; widths are remembered.']],
   ['362', ['Scratch pattern: a template menu of rhythm starting points (techno, house, breakbeat, trap, clave, bossa, dembow, reggae) to edit from.']],
   ['361', ['Script tab: a scratch pattern, a grid to fill with triggers and look at (and play) before anything is written to a real pattern; it reads from and writes back to the script.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['357', ['Config tab tidied: every group is now one card (the same description was repeated beside most settings), settings sit in the card they belong to (First screen look under Look, the graph ones under Graph, the vectorscope ones under Meters, the recording latency under MIDI, resynthesis in its own card), the group name is dropped from labels that began with it, every group has a short description, and the settings-file buttons at the bottom are headed Settings file instead of a second Backup.']],
   ['356', ['Script help, when the script panel is docked beside the pattern editor, now opens the tutorial as a column to the right of the script editor (the dock widens to make room) instead of squeezing it in below.']],
   ['355', ['The shortcut window no longer lets a long key list squeeze the descriptions out of view: the key column wraps and the descriptions keep their width, with no sideways scrolling.']],
-  ['354', ['Sampler: a new note now cuts the one-shot its own column was still playing (over the 06 nnaFade time; 0000 cuts at once), with no extra command needed. 1F nnaAll is on by default; write 1F 0000 to let one-shots ring on over the next note as before. Chords and other columns are left alone. The sampler help says so.']],
 ];
