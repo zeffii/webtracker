@@ -296,7 +296,8 @@ export class Sequencer {
         if (Math.abs(cur - want) < 1e-4) cur = want;
         if (cur === lane.autoCur[k]) continue;
         lane.autoCur[k] = cur;
-        const e = a.taper === 1 ? cur : cur ** a.taper;
+        let e = a.taper === 1 ? cur : cur ** a.taper;
+        if (a.amp && e < 0.003) e = 0.003;   // a Volume curve never closes the channel completely (-50 dB): some output devices pop when waking from silence
         this.params[a.slot] = a.log ? a.min * (a.max / a.min) ** e : a.min + e * (a.max - a.min);
       }
     }
