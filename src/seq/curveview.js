@@ -3,8 +3,10 @@
 //   hover a segment  -> a small box "bezier" with a tick (ticked: bezier, unticked: straight)
 //   drag an anchor   -> snaps to pattern edges and rows (Alt: free); landing on an edge pins it
 //   press on the line -> a new anchor there
-//   right-click an anchor -> pin, unpin, delete
-import { pathOf, midOf, snapTick, addPoint, removePoint, movePoint, edgesOf, targetsOf } from './automation.js';
+//   right-click an anchor -> pin, unpin, break, delete
+//   a selected anchor (click it): E extends over the next pattern, Shift+E skips one and starts a new section after it,
+//   B breaks or joins the segment after it, [ and ] move between anchors, Left/Right change its value, Delete removes it, Esc lets go
+import { pathOf, midOf, snapTick, addPoint, removePoint, movePoint, edgesOf, targetsOf, sections, extend, skip, toggleGap, normalise } from './automation.js';
 
 const PAD = 5;     // pixels between a lane column's edge and the value 0 or 1
 const SNAP = 5;    // ticks: how near an anchor must come to a pattern edge to be pulled onto it
@@ -14,7 +16,7 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;',
 // The curve a lane shows: lane.shown picks one of its curves.
 export const shownCurve = lane => (lane.curves?.length ? lane.curves[Math.min(lane.shown ?? 0, lane.curves.length - 1)] : null);
 
-const sub = (curve, i) => ({ pts: [curve.pts[i], curve.pts[i + 1]], kinds: [curve.kinds[i] ?? 'c'] });
+const sub = (curve, i) => ({ pts: [curve.pts[i], curve.pts[i + 1]], kinds: [curve.kinds[i] === 'g' ? 'l' : curve.kinds[i] ?? 'c'] });
 
 // The markup for every lane's curve. geo = { hb, rowH, cols: [{ x, w }] }; state = { hover, drag, badge }.
 export function curveMarkup({ lanes, geo, top, CELL, state = {} }) {
@@ -27,14 +29,19 @@ export function curveMarkup({ lanes, geo, top, CELL, state = {} }) {
     const on = c.on !== false, ci = lane.curves.indexOf(c);
     if (!on) { out += `<path class="ln off" d="${pathOf(c, x, y)}"/>`; return; }
     const d = pathOf(c, x, y);
-    out += `<path class="veil" d="${d} L${x(0)} ${y(c.pts[c.pts.length - 1].t)} L${x(0)} ${y(c.pts[0].t)}Z"/>`;
+    for (const [a, b] of sections(c)) {
+      if (b === a) continue;
+      const part = { pts: c.pts.slice(a, b + 1), kinds: c.kinds.slice(a, b) };
+      out += `<path class="veil" d="${pathOf(part, x, y)} L${x(0)} ${y(c.pts[b].t)} L${x(0)} ${y(c.pts[a].t)}Z"/>`;
+    }
+    for (let i = 0; i < c.pts.length - 1; i++) if (c.kinds[i] === 'g') out += `<path class="gap" d="${pathOf(sub(c, i), x, y)}"/>`;
     if (state.hover && state.hover.li === li && state.hover.seg < c.pts.length - 1) out += `<path class="hov" d="${pathOf(sub(c, state.hover.seg), x, y)}"/>`;
     out += `<path class="ln" d="${d}"/>`;
     for (let i = 0; i < c.pts.length - 1; i++) out += `<path class="hit" data-li="${li}" data-ci="${ci}" data-seg="${i}" d="${pathOf(sub(c, i), x, y)}"/>`;
     if (state.drag?.li === li && state.drag.guide !== undefined) out += `<path class="guide" d="M${col.x} ${y(state.drag.guide)}H${col.x + col.w}"/>`;
     c.pts.forEach((p, i) => {
       const px = x(p.v), py = y(p.t), corner = (i > 0 && c.kinds[i - 1] === 'l') || (i < c.pts.length - 1 && c.kinds[i] === 'l') || i === 0 || i === c.pts.length - 1;
-      const attrs = `class="pt${p.pin ? ' pin' : ''}${state.drag?.li === li && state.drag.i === i ? ' sel' : ''}" data-li="${li}" data-ci="${ci}" data-i="${i}"`;
+      const attrs = `class="pt${p.pin ? ' pin' : ''}${(state.drag?.li === li && state.drag.i === i) || (state.sel?.li === li && state.sel.ci === ci && state.sel.i === i) ? ' sel' : ''}" data-li="${li}" data-ci="${ci}" data-i="${i}"`;
       out += p.pin ? `<path ${attrs} d="M${px} ${py - 5.5}l5.5 5.5l-5.5 5.5l-5.5 -5.5z"/>`
         : corner ? `<rect ${attrs} x="${px - 3.6}" y="${py - 3.6}" width="7.2" height="7.2"/>`
           : `<circle ${attrs} cx="${px}" cy="${py}" r="3.6"/>`;
@@ -42,8 +49,8 @@ export function curveMarkup({ lanes, geo, top, CELL, state = {} }) {
     if (state.badge?.li === li) out += `<g class="badge"><rect x="${x(c.pts.find(p => p.t === state.badge.t)?.v ?? 0.5) + 10}" y="${y(state.badge.t) - 9}" width="${state.badge.text.length * 6.4 + 10}" height="16"/><text x="${x(c.pts.find(p => p.t === state.badge.t)?.v ?? 0.5) + 15}" y="${y(state.badge.t) + 3}">${esc(state.badge.text)}</text></g>`;
     if (state.hover && state.hover.li === li && state.hover.seg < c.pts.length - 1) {
       const m = midOf(c, state.hover.seg), bx = Math.min(x(m.v) + 12, col.x + col.w - 60), by = y(m.t) - 8;
-      const bez = (c.kinds[state.hover.seg] ?? 'c') === 'c';
-      out += `<g class="tb" data-li="${li}" data-ci="${ci}" data-seg="${state.hover.seg}"><rect class="box" x="${bx}" y="${by}" width="56" height="16"/><rect class="chk" x="${bx + 3}" y="${by + 3}" width="10" height="10"/>${bez ? `<path class="tick" d="M${bx + 5} ${by + 8}l2.4 2.6l4 -5.4"/>` : ''}<text x="${bx + 17}" y="${by + 12}">bezier</text></g>`;
+      const kind = c.kinds[state.hover.seg] ?? 'c', bez = kind === 'c';
+      out += `<g class="tb" data-li="${li}" data-ci="${ci}" data-seg="${state.hover.seg}"><rect class="box" x="${bx}" y="${by}" width="56" height="16"/><rect class="chk" x="${bx + 3}" y="${by + 3}" width="10" height="10"/>${bez ? `<path class="tick" d="M${bx + 5} ${by + 8}l2.4 2.6l4 -5.4"/>` : ''}<text x="${bx + 17}" y="${by + 12}">${kind === 'g' ? 'gap' : 'bezier'}</text></g>`;
     }
   });
   return out;
@@ -54,10 +61,10 @@ export const headMark = lane => { const c = shownCurve(lane); return c ? (c.on =
 
 // The wiring to the arrangement. host = { el, lanes(), top(), CELL(), len(), editor, say(msg), redraw(), shape(li), menu(e, items) }.
 export function createCurveView(host) {
-  if (typeof document === 'undefined') return { paint() {} };
+  if (typeof document === 'undefined') return { paint() {}, key: () => false, select() {} };
   const svg = document.createElementNS(NS, 'svg');
   svg.setAttribute('class', 'cv');
-  const state = { hover: null, drag: null, badge: null };
+  const state = { hover: null, drag: null, badge: null, sel: null };
   let hideTimer = 0, dragId = 0;
 
   const geometry = () => {
@@ -105,7 +112,7 @@ export function createCurveView(host) {
         after = c.pts.indexOf(pt);
         return true;
       });
-      if (after !== null && after >= 0) state.drag.i = after;
+      if (after !== null && after >= 0) { state.drag.i = after; if (state.sel) state.sel.i = after; }
       const c = host.lanes()[li].curves[ci];
       const pl = snap.pin && lane.placements.find(q => (snap.pin === 'start' ? q.start : q.start + Math.min(q.length, lane.patterns[q.puid]?.length ?? q.length)) === t);
       state.badge = pl ? { li, t, text: `${snap.pin} of ${String(lane.patterns[pl.puid].index).padStart(2, '0')} ${lane.patterns[pl.puid].name} · ${String(t).padStart(4, '0')}` } : null;
@@ -128,7 +135,7 @@ export function createCurveView(host) {
       host.say(`That part of the curve is now ${host.lanes()[+li].curves[+ci].kinds[+seg] === 'c' ? 'a bezier' : 'a straight line'}.`);
       return;
     }
-    if (pt) { begin(e, +pt.dataset.li, +pt.dataset.ci, +pt.dataset.i); return; }
+    if (pt) { state.sel = { li: +pt.dataset.li, ci: +pt.dataset.ci, i: +pt.dataset.i }; begin(e, +pt.dataset.li, +pt.dataset.ci, +pt.dataset.i); return; }
     // on the line: a new anchor there, which is then dragged
     const li = +hit.dataset.li, ci = +hit.dataset.ci, p = at(e, li);
     let made = -1;
@@ -152,7 +159,10 @@ export function createCurveView(host) {
   });
 
   // A click anywhere else, or the pointer leaving the grid, puts the tick box away.
-  const away = e => { if (state.hover && !state.drag && !e.target.closest?.('.cv .hit, .cv .tb')) { clearTimeout(hideTimer); state.hover = null; paint(); } };
+  const away = e => {
+    if (state.drag || e.target.closest?.('.cv .hit, .cv .tb, .cv .pt')) return;
+    if (state.hover || state.sel) { clearTimeout(hideTimer); state.hover = null; state.sel = null; paint(); }
+  };
   document.addEventListener('mousedown', away, true);
   host.el.addEventListener('mouseleave', away);
 
@@ -168,8 +178,41 @@ export function createCurveView(host) {
       items.push({ label: `Pin to ${near.edge} of ${String(pat.index).padStart(2, '0')} ${pat.name}`, run: () => { edit(li, ci, 'pin curve anchor', null, k => { k.pts[i].t = near.t; k.pts[i].pin = near.edge; return true; }); host.say('Pinned: it follows the pattern.'); } });
     }
     if (p.pin) items.push({ label: 'Unpin', run: () => { edit(li, ci, 'unpin curve anchor', null, k => { delete k.pts[i].pin; return true; }); host.say('Not pinned: it stays where it is.'); } });
+    if (i < c.pts.length - 1) items.push({ label: c.kinds[i] === 'g' ? 'Join to the next anchor' : 'Break after this anchor (a gap)', run: () => edit(li, ci, 'curve gap', null, k => toggleGap(k, i)) });
+    const tg = target(lane, c);
+    if (tg) items.push({ label: 'Rest value: this anchor\'s', run: () => { const shape = host.editor.curve(li, 'curve rest value', null, l => { l.curves[ci].rest = l.curves[ci].pts[i].v; return true; }); if (shape === true) host.shape(li); host.say('Between sections the parameter glides back to this value.'); } });
     items.push({ separator: true }, { label: 'Delete anchor', run: () => { edit(li, ci, 'delete curve anchor', null, k => (k.pts.length > 1 ? removePoint(k, i) : false)); } });
     host.menu(e, items);
   });
-  return { paint, targetsOf };
+
+  // Keys for the selected anchor. Returns true when it used the key.
+  const key = e => {
+    const sel = state.sel, lanes = host.lanes();
+    if (!sel || e.ctrlKey || e.metaKey || e.altKey) return false;
+    const lane = lanes?.[sel.li], c = lane?.curves?.[sel.ci];
+    if (!c || !c.pts[sel.i]) { state.sel = null; return false; }
+    const k = e.key, last = c.pts.length - 1;
+    const pick = i => { state.sel = { ...sel, i }; host.say(`${label(lane, c)} anchor ${i + 1}/${c.pts.length}: ${Math.round(c.pts[i].v * 100)}% at tick ${c.pts[i].t}${c.pts[i].pin ? ` (${c.pts[i].pin} of a pattern)` : ''}`); paint(); };
+    if (k === 'e' || k === 'E') {
+      let made = -1;
+      const fn = e.shiftKey ? skip : extend;
+      edit(sel.li, sel.ci, e.shiftKey ? 'curve skip a pattern' : 'extend curve', null, kc => { made = fn(lane, kc, sel.i, host.len()); return made >= 0; });
+      if (made < 0) host.say(sel.i !== last ? 'E works on the last anchor of the curve: ] gets there.' : e.shiftKey ? 'No pattern further on to start a new section on.' : 'No pattern end further on.');
+      else { pick(made); host.say(e.shiftKey ? 'Skipped a pattern: a gap, then a new section over the next one.' : 'Extended to the end of the next pattern.'); }
+      return true;
+    }
+    if (k === 'b' || k === 'B') { const ok = edit(sel.li, sel.ci, 'curve gap', null, kc => toggleGap(kc, sel.i)); host.say(ok === null ? 'Nothing after this anchor to break.' : c.kinds[sel.i] === 'g' ? 'A gap after this anchor: the curve is not there.' : 'Joined to the next anchor.'); return true; }
+    if (k === ']') { if (sel.i < last) pick(sel.i + 1); return true; }
+    if (k === '[') { if (sel.i > 0) pick(sel.i - 1); return true; }
+    if (k === 'ArrowLeft' || k === 'ArrowRight') {
+      const d = (k === 'ArrowRight' ? 1 : -1) * (e.shiftKey ? 0.1 : 0.02), i = sel.i;
+      edit(sel.li, sel.ci, 'nudge curve anchor', `nudge:${sel.li}:${sel.ci}:${i}`, kc => { kc.pts[i].v = Math.min(1, Math.max(0, kc.pts[i].v + d)); return true; });
+      pick(i);
+      return true;
+    }
+    if (k === 'Delete' || k === 'Backspace') { if (c.pts.length > 1) { edit(sel.li, sel.ci, 'delete curve anchor', null, kc => removePoint(kc, sel.i)); state.sel = { ...sel, i: Math.min(sel.i, c.pts.length - 1) }; paint(); } return true; }
+    if (k === 'Escape') { state.sel = null; paint(); return true; }
+    return false;
+  };
+  return { paint, key, select: (li, ci, i) => { state.sel = { li, ci, i }; }, targetsOf, normalise };
 }

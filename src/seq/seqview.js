@@ -7,7 +7,7 @@ import { setLoopPoint, toggleLoop } from './loop.js';
 import { showContextMenu } from '../ui/ctxmenu.js';
 import { createMinimap } from './minimap.js';
 import { createCurveView, headMark, shownCurve } from './curveview.js';
-import { newCurve } from './automation.js';
+import { newCurve, normalise, addSection, removeSection } from './automation.js';
 
 const ROWS = { min: 6, max: 128, normal: 24 };   // rows shown at once
 let CELL = 16;      // ticks in one row: a bar by default (the beats in a bar times the ticks in a beat); Ctrl+wheel halves it down to a beat and back
@@ -227,21 +227,28 @@ export function createSequenceView({ el, statusEl, listEl, transport, onToggle, 
             // over the pattern under the cursor, pinned to both its edges; else four rows from here
             const pl = placementAt(lane, row), pat = pl && lane.patterns[pl.puid], v = t.id === 'out.gain' ? 0.8 : 0.5;
             const t0 = pl ? pl.start : row, t1 = pl ? pl.start + Math.min(pl.length, pat.length) : Math.min(len, row + 4 * CELL);
-            const c = newCurve(t.id, t0, v);
+            const c = newCurve(t.id, t0, v, Number.isFinite(t.dflt) ? normalise(t, t.dflt) : undefined);
             if (pl) c.pts[0].pin = 'start';
             c.pts.push({ t: t1, v, ...(pl ? { pin: 'end' } : {}) }); c.kinds.push('c');
             (lane.curves ??= []).push(c); lane.shown = lane.curves.length - 1;
             return true;
           });
           if (shape === true) onShape(li);
-          message = `New ${t.label} curve from this row: press on the line to add anchors, drag them to shape it.`;
+          curves.select(li, l.curves.length - 1, l.curves[l.curves.length - 1].pts.length - 1);
+          message = `New ${t.label} curve. Its last anchor is selected: E extends it over the next pattern, Shift+E skips one, B breaks it; or drag the anchors.`;
           draw();
         },
       };
     });
     if (shown) {
-      const ci = l.curves.indexOf(shown);
-      items.push({ separator: true },
+      const ci = l.curves.indexOf(shown), pl = placementAt(l, row), pat = pl && l.patterns[pl.puid];
+      items.push({ separator: true });
+      if (pl) {
+        const t0 = pl.start, t1 = pl.start + Math.min(pl.length, pat.length), inside = shown.pts.some(p => p.t >= t0 && p.t <= t1);
+        if (!inside) items.push({ label: 'Curve over this pattern', run: () => { const shape = editor.curve(li, 'curve over a pattern', null, () => addSection(shown, t0, t1, shown.pts[shown.pts.length - 1]?.v ?? 0.5)); if (shape === true) onShape(li); message = 'A section over this pattern, pinned to its edges.'; draw(); } });
+        else items.push({ label: 'Remove the curve over this pattern', run: () => { const shape = editor.curve(li, 'remove curve section', null, () => removeSection(shown, t0, t1)); if (shape === true) onShape(li); message = shape ? 'The curve is gone from this pattern (a gap).' : 'Cannot remove the last anchors of a curve: delete the curve instead.'; draw(); } });
+      }
+      items.push(
         { label: shown.on === false ? 'Switch the curve on' : 'Switch the curve off', run: () => { const shape = editor.curve(li, 'curve on or off', null, () => { shown.on = shown.on === false; return true; }); if (shape === true) onShape(li); message = shown.on === false ? 'Curve off: the parameter is left alone.' : 'Curve on.'; draw(); } },
         { label: 'Delete this curve', run: () => { const shape = editor.curve(li, 'delete curve', null, lane => { lane.curves.splice(ci, 1); lane.shown = 0; return true; }); if (shape === true) onShape(li); message = 'Curve deleted.'; draw(); } });
     }
@@ -333,6 +340,7 @@ export function createSequenceView({ el, statusEl, listEl, transport, onToggle, 
   el.addEventListener('keydown', e => {
     if (!lanes || e.altKey) return;
     if (dialog) { return; }
+    if (curves.key(e)) { e.preventDefault(); e.stopPropagation(); draw(); return; }   // an anchor of a lane curve is selected: E, Shift+E, B, [ ], Left/Right, Delete, Esc
     if (e.ctrlKey || e.metaKey) {
       const key = e.key.toLowerCase(), li0 = cur.lane, tick0 = cur.tick;
       if ((key === 'b' || key === 'e') && !e.shiftKey) {   // the loop: Ctrl+B starts it at this row, Ctrl+E ends it where this row starts (this row is not in the loop)

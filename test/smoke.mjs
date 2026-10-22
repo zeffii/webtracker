@@ -7160,7 +7160,8 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   const line = { pts: [{ t: 0, v: 0 }, { t: 16, v: 1 }], kinds: ['l'] };
   assert.ok(Math.abs(A.valueAt(line, 8) - 0.5) < 1e-9, 'a straight segment is linear');
   assert.ok(Number.isNaN(A.valueAt({ pts: [{ t: 4, v: 1 }], kinds: [] }, 2)), 'nothing before the first anchor');
-  assert.equal(A.valueAt(line, 99), 1, 'the last value is held');
+  assert.ok(Number.isNaN(A.valueAt(line, 99)) && A.valueAt(line, 16) === 1, 'the curve ends at its last anchor');
+  assert.ok(Number.isNaN(A.valueAt({ pts: [{ t: 0, v: 1 }, { t: 8, v: 1 }], kinds: ['g'] }, 4)), 'a gap is not there');
   const bez = { pts: [{ t: 0, v: 0 }, { t: 16, v: 1 }], kinds: ['c'] };
   assert.ok(Math.abs(A.valueAt(bez, 8) - 0.5) < 1e-6 && A.valueAt(bez, 3) < 3 / 16, 'a bezier eases in and out');
   let prev = -1; for (let t = 0; t <= 16; t += 0.5) { const v = A.valueAt(bez, t); assert.ok(v >= prev - 1e-9, 'monotonic'); prev = v; }
@@ -7217,5 +7218,52 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   render(seq, 0.2);
   assert.ok(Math.abs(registry.values[slot] - (min + 0.25 * (max - min))) < 1e-4, `volume follows the curve (taper 2): ${registry.values[slot]}`);
   console.log('ok: lane curves');
+}
+
+// Lane curves with gaps: extending over patterns, skipping one, sections, and the glide back to rest
+{
+  const A = await import('../src/seq/automation.js');
+  const pat = { length: 16 };
+  const lane = { patterns: { a: pat, b: pat, c: pat, d: pat }, placements: ['a', 'b', 'c', 'd'].map((puid, k) => ({ puid, start: k * 16, length: 16 })) };
+  const c = { target: 'x', on: true, pts: [{ t: 0, v: 0.5, pin: 'start' }, { t: 16, v: 0.5, pin: 'end' }], kinds: ['c'] };
+  assert.equal(A.extend(lane, c, 1, 64), 2, 'E adds an anchor at the end of the next pattern');
+  assert.deepEqual(c.pts.map(p => p.t), [0, 16, 32]);
+  assert.equal(A.extend(lane, c, 0, 64), -1, 'only the last anchor extends');
+  assert.equal(A.skip(lane, c, 2, 64), 4, 'Shift+E leaves a pattern alone and starts over the one after');
+  assert.deepEqual(c.pts.map(p => p.t), [0, 16, 32, 48, 64]);
+  assert.deepEqual(c.kinds, ['c', 'c', 'g', 'c']);
+  assert.ok(Number.isNaN(A.valueAt(c, 40)) && Math.abs(A.valueAt(c, 56) - 0.5) < 1e-9 && Math.abs(A.valueAt(c, 20) - 0.5) < 1e-9, 'curve, gap, curve');
+  assert.deepEqual(A.sections(c), [[0, 2], [3, 4]]);
+  assert.equal(A.extend(lane, c, 4, 64), -1, 'no pattern end past the song');
+  assert.ok(A.toggleGap(c, 0) && c.kinds[0] === 'g' && A.toggleGap(c, 0) && c.kinds[0] === 'c');
+  // a section over a pattern, between sections that are there
+  const d = { target: 'x', on: true, pts: [{ t: 0, v: 1 }, { t: 16, v: 1 }, { t: 48, v: 0 }, { t: 64, v: 0 }], kinds: ['c', 'g', 'c'] };
+  assert.equal(A.addSection(d, 8, 24, 0.3), false, 'not on top of anchors');
+  const e = { target: 'x', on: true, pts: [{ t: 0, v: 1 }, { t: 16, v: 1 }, { t: 48, v: 0 }, { t: 64, v: 0 }], kinds: ['c', 'g', 'c'] };
+  assert.ok(A.addSection(e, 24, 40, 0.3));
+  assert.deepEqual(e.kinds, ['c', 'g', 'c', 'g', 'c'], 'gaps either side of the new section');
+  assert.ok(A.removeSection(e, 24, 40));
+  assert.deepEqual(e.kinds, ['c', 'g', 'c'], 'and gone again');
+  assert.deepEqual(A.normalise({ min: 0, max: 1, taper: 2 }, 0.25), 0.5);
+
+  // the engine: inside a section the parameter follows the curve, then glides to the rest value
+  const registry = new ParamRegistry();
+  for (const [id, def] of Object.entries(instruments)) compile(def.graph, { instrument: id, nodeTypes: NODE_TYPES, registry });
+  const src = { id: 'g', instrument: 'lead', patterns: { a: { text: patternText(16, {}) } }, placements: [{ puid: 'a', start: 0, length: 16 }],
+    curves: [{ target: 'out.gain', on: true, rest: 1, pts: [{ t: 0, v: 0.2 }, { t: 16, v: 0.2 }], kinds: ['c'] }] };
+  const song = { ...demoSong, length: 256, lanes: [src] };
+  const [lane2] = prepareSong(song, instruments, registry);
+  const rt = new GraphRuntime({ sampleRate: sr, params: registry.values });
+  const seq = new Sequencer({ sampleRate: sr, runtime: rt, params: registry.values, transport: new Int32Array(new SharedArrayBuffer(8)) });
+  for (const [id, def] of Object.entries(instruments)) rt.load(compile(def.graph, { instrument: id, nodeTypes: NODE_TYPES, registry }));
+  seq.setSong({ ...song, ticksPerBeat: 4, bpm: 960 });
+  seq.setLane(lane2);
+  const slot = lane2.auto[0].slot, { min, max } = registry.meta[slot];
+  seq.play();
+  render(seq, 0.2);
+  assert.ok(Math.abs(registry.values[slot] - (min + 0.04 * (max - min))) < 1e-3, `inside the section: ${registry.values[slot]}`);
+  render(seq, 1.2);   // 16 ticks at 960 bpm is 0.25 s: the section is over
+  assert.ok(Math.abs(registry.values[slot] - max) < 1e-3 * (max - min), `back at rest: ${registry.values[slot]}`);
+  console.log('ok: lane curve gaps');
 }
 console.log('smoke test passed');

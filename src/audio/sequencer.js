@@ -82,7 +82,7 @@ export class Sequencer {
       mask: mask ?? new Uint8Array(0),   // 1 or 2 for each tick the lane is muted, plus 4 where it lets go of its notes
       muted: false,
       auto: auto ?? [],   // lane curves: { slot, min, max, log, taper, table } with the value (0..1) at RES samples a tick, NaN where there is none
-      autoLast: new Float32Array(auto?.length ?? 0).fill(NaN),
+      autoCur: new Float32Array(auto?.length ?? 0).fill(NaN),   // where each curve's parameter is (0..1), NaN before it has acted
       columns: cols,
       channels: cols.reduce((n, c) => Math.max(n, c.ch + (c.kind === 'cmd' ? 2 : 1)), 0),
       noteCols: cols.reduce((n, c) => (c.kind === 'note' ? n + 1 : n), 0),
@@ -122,6 +122,7 @@ export class Sequencer {
     this.preview = 0;
     this.tick = from !== null && from >= 0 && from < this.song.length ? from : this.song.loop ? loopRange(this.song).start : 0;
     this.songPos = this.tick;
+    for (const lane of this.lanes.values()) lane.autoCur.fill(NaN);
     this.countdown = 0;
     this.playing = true;
     this.transport[1] = 1;
@@ -269,19 +270,26 @@ export class Sequencer {
     }
   }
 
-  // The lane curves at the song position: a parameter is written when its curve has moved since the last write, so a value a
-  // pattern wrote stays until the curve changes again.
-  applyCurves() {
+  // The lane curves at the song position, eased: a parameter follows its curve with a short lag (so a steep stretch does not
+  // click), and when a section ends it glides back to the curve's rest value, if it has one. A value a pattern wrote stays
+  // until the curve moves it again.
+  applyCurves(span) {
     const p = this.songPos * RES, i = Math.floor(p);
+    const follow = 1 - Math.exp(-span / (this.sampleRate * 0.02)), release = 1 - Math.exp(-span / (this.sampleRate * 0.12));
     for (const lane of this.lanes.values()) {
       for (let k = 0; k < lane.auto.length; k++) {
         const a = lane.auto[k], tab = a.table;
-        if (i < 0 || i >= tab.length - 1) continue;
-        const v0 = tab[i], v1 = tab[i + 1];
-        const x = Number.isNaN(v1) ? v0 : v0 + (v1 - v0) * (p - i);
-        if (Number.isNaN(x) || x === lane.autoLast[k]) continue;
-        lane.autoLast[k] = x;
-        const e = a.taper === 1 ? x : x ** a.taper;
+        let x = NaN;
+        if (i >= 0 && i < tab.length - 1) { const v0 = tab[i], v1 = tab[i + 1]; x = Number.isNaN(v1) ? v0 : v0 + (v1 - v0) * (p - i); }
+        let cur = lane.autoCur[k], want, rate;
+        if (!Number.isNaN(x)) { want = x; rate = follow; }
+        else if (a.rest !== null && !Number.isNaN(cur) && cur !== a.rest) { want = a.rest; rate = release; }
+        else continue;
+        cur = Number.isNaN(cur) ? want : cur + (want - cur) * rate;
+        if (Math.abs(cur - want) < 1e-4) cur = want;
+        if (cur === lane.autoCur[k]) continue;
+        lane.autoCur[k] = cur;
+        const e = a.taper === 1 ? cur : cur ** a.taper;
         this.params[a.slot] = a.log ? a.min * (a.max / a.min) ** e : a.min + e * (a.max - a.min);
       }
     }
@@ -324,7 +332,7 @@ export class Sequencer {
       }
       const clock = this.runtime.clock;
       if (clock) { clock.playing = this.playing; clock.songPos = this.songPos; clock.tickSamples = samplesPerTick; }
-      if (this.playing) this.applyCurves();
+      if (this.playing) this.applyCurves(span);
       this.runtime.process(this.scratchL, this.scratchR, span);
       const m = this.song.master;
       if (m) {   // the master volume, eased across the span

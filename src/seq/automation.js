@@ -3,17 +3,21 @@
 //
 // curve = { target: 'node.param', on: true, pts: [{ t, v, pin? }], kinds: ['c' | 'l', ...] }
 //   t: tick (may fall between rows), v: 0..1 along the parameter's own scale, pin: 'start' | 'end' of the pattern it sits on.
-//   kinds[i] is the segment from pts[i] to pts[i + 1]: 'c' a bezier with vertical handles (an S between the two values), 'l' a straight line.
+//   kinds[i] is the segment from pts[i] to pts[i + 1]: 'c' a bezier with vertical handles (an S between the two values), 'l' a straight line,
+//   'g' a gap: the curve is not there, so a curve can run over some patterns and leave others alone.
+//   rest: where the parameter goes back to (0..1) when a section ends; absent, it stays where the curve left it.
+//   The curve acts from its first anchor to its last; a gap, or the time before and after, leaves the parameter alone.
 
 export const RES = 8;            // baked samples per tick
 const K = 0.42;                  // handle length of a bezier segment, as a fraction of its time span
 
-export const newCurve = (target, at = 0, v = 0.5) => ({ target, on: true, pts: [{ t: at, v }], kinds: [] });
+export const newCurve = (target, at = 0, v = 0.5, rest) => ({ target, on: true, pts: [{ t: at, v }], kinds: [], ...(rest !== undefined ? { rest } : {}) });
 
 const clamp01 = x => Math.min(1, Math.max(0, x));
 
 // The value of one segment at fraction u of its time, a bezier whose handles keep the value flat at both ends.
 function segmentValue(a, b, kind, tt) {
+  if (kind === 'g') return NaN;
   if (b.t <= a.t) return b.v;
   const x = (tt - a.t) / (b.t - a.t);
   if (kind === 'l') return a.v + (b.v - a.v) * x;
@@ -29,11 +33,11 @@ function segmentValue(a, b, kind, tt) {
   return a.v * (m * m * m + 3 * m * m * u) + b.v * (3 * m * u * u + u * u * u);   // y control points a.v, a.v, b.v, b.v
 }
 
-// The curve's value (0..1) at tick t: NaN before the first anchor, the last value held after the last one.
+// The curve's value (0..1) at tick t: NaN before the first anchor, in a gap and after the last anchor.
 export function valueAt(curve, t) {
   const p = curve.pts;
   if (!p.length || t < p[0].t) return NaN;
-  if (t >= p[p.length - 1].t) return p[p.length - 1].v;
+  if (t >= p[p.length - 1].t) return t === p[p.length - 1].t ? p[p.length - 1].v : NaN;
   let i = 0;
   while (p[i + 1].t <= t) i++;
   return segmentValue(p[i], p[i + 1], curve.kinds[i] ?? 'c', t);
@@ -47,12 +51,12 @@ export function bake(curve, table) {
 // The parameters of a lane that a curve can move: its parameter columns, plus the machine's output gain (Volume).
 export function targetsOf(lane, registry) {
   const list = lane.columns.filter(c => c.kind === 'param' && c.slot !== undefined).map(c => ({
-    id: `${c.node}.${c.param}`, label: c.long ?? c.label, slot: c.slot, min: c.min, max: c.max, log: c.log === true || (c.min > 0 && c.max / c.min >= 50), taper: c.node === 'out' && c.param === 'gain' ? 2 : 1,
+    id: `${c.node}.${c.param}`, label: c.long ?? c.label, slot: c.slot, dflt: c.dflt, min: c.min, max: c.max, log: c.log === true || (c.min > 0 && c.max / c.min >= 50), taper: c.node === 'out' && c.param === 'gain' ? 2 : 1,
   }));
   const gain = registry?.slots.get(`${lane.instrument}.out.gain`);
   if (gain !== undefined && !list.some(t => t.id === 'out.gain')) {
     const { min, max } = registry.meta[gain];
-    list.unshift({ id: 'out.gain', label: 'Volume', slot: gain, min, max, log: false, taper: 2 });
+    list.unshift({ id: 'out.gain', label: 'Volume', slot: gain, min, max, log: false, taper: 2, dflt: registry.values[gain] });
   } else {
     const v = list.find(t => t.id === 'out.gain');
     if (v) v.label = 'Volume';
@@ -64,6 +68,12 @@ export function targetsOf(lane, registry) {
 export function scaled(target, x) {
   const e = clamp01(x) ** (target.taper ?? 1);
   return target.log ? target.min * (target.max / target.min) ** e : target.min + e * (target.max - target.min);
+}
+
+// The position (0..1) along the parameter's scale of a value on its own scale: the inverse of scaled().
+export function normalise(target, value) {
+  const e = target.log ? Math.log(Math.max(value, target.min) / target.min) / Math.log(target.max / target.min) : (value - target.min) / ((target.max - target.min) || 1);
+  return clamp01(clamp01(e) ** (1 / (target.taper ?? 1)));
 }
 
 // For the audio thread: every working curve of a lane as { slot, min, max, log, taper, table }. The tables are shared
@@ -78,7 +88,7 @@ export function buildAutomation(lane, registry, length) {
     const reuse = old?.find(a => a.id === c.target && a.table.length === length * RES + 1);
     const table = reuse?.table ?? new Float32Array(new SharedArrayBuffer((length * RES + 1) * 4));
     bake(c, table);
-    out.push({ id: c.target, slot: t.slot, min: t.min, max: t.max, log: t.log, taper: t.taper, table });
+    out.push({ id: c.target, slot: t.slot, min: t.min, max: t.max, log: t.log, taper: t.taper, rest: Number.isFinite(c.rest) ? c.rest : null, table });
   }
   lane.auto = out;
   return out;
@@ -92,7 +102,7 @@ export function rebake(lane, length) {
   return autoKey(lane.auto) !== before;
 }
 
-export const autoKey = auto => (auto ?? []).map(a => `${a.id}:${a.slot}`).join('|');
+export const autoKey = auto => (auto ?? []).map(a => `${a.id}:${a.slot}:${a.rest}`).join('|');
 
 // ---- editing -------------------------------------------------------------------------------------------------------
 
@@ -192,7 +202,9 @@ export function pathOf(curve, x, y) {
   let d = `M${f(x(p[0].v))} ${f(y(p[0].t))}`;
   for (let i = 0; i < p.length - 1; i++) {
     const a = p[i], b = p[i + 1], ya = y(a.t), yb = y(b.t);
-    if ((curve.kinds[i] ?? 'c') === 'l') d += ` L${f(x(b.v))} ${f(yb)}`;
+    const kind = curve.kinds[i] ?? 'c';
+    if (kind === 'g') d += ` M${f(x(b.v))} ${f(yb)}`;
+    else if (kind === 'l') d += ` L${f(x(b.v))} ${f(yb)}`;
     else d += ` C${f(x(a.v))} ${f(ya + (yb - ya) * K)} ${f(x(b.v))} ${f(yb - (yb - ya) * K)} ${f(x(b.v))} ${f(yb)}`;
   }
   return d;
@@ -212,4 +224,78 @@ export function clipCurves(curves, length) {
     c.pts = c.pts.filter(p => p.t <= length);
     c.kinds.length = Math.max(0, c.pts.length - 1);
   }
+}
+
+// ---- sections (a curve with gaps) and the keys that grow it ---------------------------------------------------------
+
+// The runs of anchors that are joined: [[first, last], ...] by index. A single anchor on its own is a run of one.
+export function sections(curve) {
+  const runs = [];
+  let from = 0;
+  for (let i = 0; i < curve.pts.length; i++) {
+    if (i === curve.pts.length - 1 || (curve.kinds[i] ?? 'c') === 'g') { runs.push([from, i]); from = i + 1; }
+  }
+  return runs;
+}
+
+// New kinds for a changed list of anchors: two that were neighbours keep their segment, any other pair is a gap.
+function reknit(curve, oldPts, oldKinds, pts) {
+  const kinds = [];
+  for (let i = 0; i < pts.length - 1; i++) {
+    const a = oldPts.indexOf(pts[i]), b = oldPts.indexOf(pts[i + 1]);
+    kinds.push(a >= 0 && b === a + 1 ? (oldKinds[a] ?? 'c') : 'g');
+  }
+  curve.pts = pts;
+  curve.kinds = kinds;
+}
+
+// A section over [t0, t1] with both ends pinned, put in between the anchors that are there. False when anchors are already inside.
+export function addSection(curve, t0, t1, v) {
+  if (curve.pts.some(p => p.t >= t0 && p.t <= t1)) return false;
+  const oldPts = curve.pts, oldKinds = curve.kinds, a = { t: t0, v, pin: 'start' }, b = { t: t1, v, pin: 'end' };
+  const pts = [...oldPts.filter(p => p.t < t0), a, b, ...oldPts.filter(p => p.t > t1)];
+  reknit(curve, oldPts, oldKinds, pts);
+  curve.kinds[pts.indexOf(a)] = 'c';
+  return true;
+}
+
+// Takes the anchors in [t0, t1] away; what was joined across them becomes a gap.
+export function removeSection(curve, t0, t1) {
+  const oldPts = curve.pts, pts = oldPts.filter(p => p.t < t0 || p.t > t1);
+  if (pts.length === oldPts.length || !pts.length) return false;
+  reknit(curve, oldPts, curve.kinds, pts);
+  return true;
+}
+
+// E on the last anchor: another anchor at the same value at the end of the next pattern, the section carries on over it.
+// Returns the new anchor's index, or -1 when there is no pattern end further on.
+export function extend(lane, curve, i, length) {
+  const p = curve.pts[i];
+  if (!p || i !== curve.pts.length - 1) return -1;
+  const ends = edgesOf(lane).filter(e => e.edge === 'end' && e.t > p.t && e.t <= length).sort((a, b) => a.t - b.t);
+  if (!ends.length) return -1;
+  curve.pts.push({ t: ends[0].t, v: p.v, pin: 'end' });
+  curve.kinds.push('c');
+  return curve.pts.length - 1;
+}
+
+// Shift+E on the last anchor: the next pattern is left alone (a gap) and a new section starts over the one after it.
+// Returns the index of the new section's last anchor, or -1.
+export function skip(lane, curve, i, length) {
+  const p = curve.pts[i];
+  if (!p || i !== curve.pts.length - 1) return -1;
+  const starts = [...lane.placements].filter(pl => pl.start >= p.t && pl.start < length).sort((a, b) => a.start - b.start);
+  const next = starts[1];
+  if (!next) return -1;
+  const end = Math.min(length, next.start + Math.min(next.length, lane.patterns[next.puid]?.length ?? next.length));
+  curve.pts.push({ t: next.start, v: p.v, pin: 'start' }, { t: end, v: p.v, pin: 'end' });
+  curve.kinds.push('g', 'c');
+  return curve.pts.length - 1;
+}
+
+// B: the segment after anchor i is joined or left as a gap.
+export function toggleGap(curve, i) {
+  if (i < 0 || i >= curve.pts.length - 1) return false;
+  curve.kinds[i] = (curve.kinds[i] ?? 'c') === 'g' ? 'c' : 'g';
+  return true;
 }
