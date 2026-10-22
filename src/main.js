@@ -46,8 +46,8 @@ import { createScriptScreen } from './script/screen.js';
 import { placementAt } from './seq/edit.js';
 
 const engine = new Engine();
-engine.dither = config.get('dither');
-config.onChange((k, v) => { if (k === 'dither') engine.setDither(v); });
+engine.dither = config.get('dither'); engine.volFloor = config.get('volFloor');
+config.onChange((k, v) => { if (k === 'dither') engine.setDither(v); else if (k === 'volFloor') engine.setVolFloor(v); });
 const $ = id => document.getElementById(id);
 let started = false, playing = false, project = null, recording = false;
 

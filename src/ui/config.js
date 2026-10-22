@@ -8,6 +8,7 @@ export const THEMES = ['system', 'dark', 'black', 'bright', 'neon', 'amber', 'ph
 
 // What each group is for, shown beside its card on the Config tab.
 export const GROUPS = {
+  'De-normal diagnostics': 'switches for tracking down clicks and crackle at very quiet levels; both are off unless you need them',
   Look: 'Colours and sizes. Applied at once.',
   Playing: 'How the grids behave while the song runs.',
   Graph: 'The colours of the wires and ports in the graph view, by what they carry. Hover a wire to see its kind in the status line under the graph.',
@@ -23,13 +24,12 @@ export const SCHEMA = [
   { key: 'splash', label: 'First screen', hint: 'only a "click to initialize" button at first, then the tracker (off: the tracker with its Start button)', type: 'bool', def: true },
   { key: 'patternTint', label: 'Tint patterns by colour', hint: 'a faint patchwork behind each pattern in the pattern editor (Alt+T)', type: 'bool', def: false },
   { key: 'fontSize', label: 'Pattern editor font size', type: 'int', min: 8, max: 40, def: 13, legacy: ['patternFontSize', v => Number(v)] },
-  { group: 'Playing', key: 'dither', label: 'Output dither', hint: 'adds a whisper of noise (-96 dB) so very quiet sound, such as a slow fade-in, does not crackle; switch off for bit-exact output', type: 'bool', def: true },
   { group: 'Playing', key: 'follow', label: 'Follow mode', hint: 'the grids scroll with the playing row', type: 'bool', def: true, legacy: ['webtracker.follow', v => v === '1'] },
   { key: 'splashStyle', label: 'First screen look', hint: 'a drifting translucent blob (needs WebGL), or the turning wireframe logo', type: 'choice', options: ['blob', 'logo'], labels: { blob: 'a slow translucent blob', logo: 'the turning logo' }, def: 'blob' },
   { key: 'followRoam', label: 'Allow the caret to roam while following', hint: 'moving the caret to another row pauses the following until F9 or the Follow button', type: 'bool', def: true },
   { key: 'playhead', label: 'Playhead', type: 'choice', options: ['marker', 'line', 'band'], labels: { marker: 'a > in the tick column and a bold row', line: 'a thin red line across the grid', band: 'a faint band across the row' }, def: 'band' },
   { key: 'tapSlots', label: 'Show the empty tap slots in sample lists', hint: 'tap01 to tap16 in the sampler pickers even before a take is in them (a slot with a take, or one an instrument plays, always shows)', type: 'bool', def: false },
-  { key: 'notePreview', label: 'Note preview', hint: 'typed notes sound in the pattern editor', type: 'bool', def: true, legacy: ['patternPreview', v => v === '1'] },
+  { key: 'notePreview', label: 'Note preview', hint: 'typed notes sound in the pattern editor', type: 'bool', def: true },
   { group: 'Graph', key: 'wireAudio', label: 'Wire colour: audio', hint: 'a mono audio signal', type: 'colour', def: '#5e94c9' },
   { key: 'wireControl', label: 'Wire colour: control', hint: 'envelopes, lfos and triggers', type: 'colour', def: '#e09429' },
   { key: 'wireStereo', label: 'Wire colour: stereo', hint: 'a left and right pair on one wire', type: 'colour', def: '#b177c5' },
@@ -96,6 +96,8 @@ export const SCHEMA = [
   { key: 'ptrTolerance', label: 'Resynthesis: tolerance (%)', hint: 'a new branch must explain at least this much of the tail; lower is closer and uses more branches', type: 'int', min: 1, max: 30, def: 5 },
   { key: 'ptrTransient', label: 'Resynthesis: attack kept (ms)', hint: '0 finds it from the sound', type: 'int', min: 0, max: 80, def: 0 },
   { key: 'midiLatency', label: 'Recording: latency offset', hint: 'in ms, added to what the browser reports; raise it if recorded notes land late', type: 'int', min: -200, max: 400, def: 0 },
+  { group: 'De-normal diagnostics', key: 'dither', label: 'Output dither', hint: 'adds a whisper of noise (-96 dB) to the output: a test for clicks or crackle at very quiet levels (off: bit-exact output)', type: 'bool', def: false },
+  { group: 'De-normal diagnostics', key: 'volFloor', label: 'Volume curve floor', hint: 'a Volume curve never goes below 0.003 (-50 dB): a test for clicks when a fade starts from silence (some sound devices pop when they wake from it)', type: 'bool', def: false },
 ];
 const byKey = Object.fromEntries(SCHEMA.map(s => [s.key, s]));
 
@@ -114,6 +116,8 @@ const listeners = new Set();
 {
   let saved = null;
   try { saved = JSON.parse(read(KEY)); } catch { /* none, or damaged */ }
+  // Note preview is on by default: a stored "off" from the older single-purpose setting is lifted once.
+  if (saved && typeof saved === 'object' && saved.notePreview === false && read('webtracker.previewOn') === null) { saved.notePreview = true; try { localStorage.setItem('webtracker.previewOn', '1'); } catch { /* no matter */ } }
   for (const s of SCHEMA) {
     let v = saved && typeof saved === 'object' ? saved[s.key] : undefined;
     if (v === undefined && s.legacy) { const old = read(s.legacy[0]); if (old !== null) v = s.legacy[1](old); }

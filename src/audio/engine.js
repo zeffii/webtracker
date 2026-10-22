@@ -15,7 +15,8 @@ export class Engine {
   ctx = null;
   wasmModule = null;
   node = null;
-  dither = true;   // a whisper of noise on the output (see the worklet), so very quiet sound does not crackle
+  dither = false;   // a whisper of noise on the output (see the worklet): a diagnostic for crackle at very quiet levels
+  volFloor = false; // a Volume curve never closes completely (the sequencer): a diagnostic for pops when waking from silence
   watching = new Set();   // nodes whose output is being watched (replayed when the audio thread starts)
   onFault = null;   // called with an instrument id when the audio thread had to rebuild it
   registry = new ParamRegistry();
@@ -45,6 +46,7 @@ export class Engine {
       else if (data.type === 'emit') this.onEmit?.(data);
     };
     this.node.port.postMessage({ type: 'dither', on: this.dither });
+    this.node.port.postMessage({ type: 'volfloor', on: this.volFloor });
     if (this.laneIds.length) this.node.port.postMessage({ type: 'lanetaps', ids: this.laneIds });
     for (const key of this.watching) { const [instrument, node] = key.split('\u0000'); this.node.port.postMessage({ type: 'scope', instrument, node, on: true }); }
     this.node.connect(this.ctx.destination);
@@ -52,6 +54,7 @@ export class Engine {
   }
 
   // Which instrument each slot of the per-instrument rings follows.
+  setVolFloor(on) { this.volFloor = on; this.node?.port.postMessage({ type: 'volfloor', on }); }
   setDither(on) { this.dither = on; this.node?.port.postMessage({ type: 'dither', on }); }
   setLaneTaps(ids) { this.laneIds = ids; this.node?.port.postMessage({ type: 'lanetaps', ids }); }
 

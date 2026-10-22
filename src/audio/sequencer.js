@@ -280,6 +280,7 @@ export class Sequencer {
   // The lane curves at the song position, eased: a parameter follows its curve with a short lag (so a steep stretch does not
   // click), and when a section ends it glides back to the curve's rest value, if it has one. A value a pattern wrote stays
   // until the curve moves it again.
+  volFloor = 0;
   applyCurves(span) {
     const p = this.songPos * RES, i = Math.floor(p);
     const follow = 1 - Math.exp(-span / (this.sampleRate * 0.02)), release = 1 - Math.exp(-span / (this.sampleRate * 0.12));
@@ -297,7 +298,7 @@ export class Sequencer {
         if (cur === lane.autoCur[k]) continue;
         lane.autoCur[k] = cur;
         let e = a.taper === 1 ? cur : cur ** a.taper;
-        if (a.amp && e < 0.003) e = 0.003;   // a Volume curve never closes the channel completely (-50 dB): some output devices pop when waking from silence
+        if (a.amp && e < this.volFloor) e = this.volFloor;   // Config, De-normal diagnostics: a Volume curve never closes the channel completely
         this.params[a.slot] = a.log ? a.min * (a.max / a.min) ** e : a.min + e * (a.max - a.min);
       }
     }

@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 349 · 2026-10-22
+
+- Config: new card De-normal diagnostics with two switches, both off by default: Output dither (a whisper of noise on the output) and Volume curve floor (a Volume curve never goes below 0.003). Note preview is on by default (an older stored off is lifted once).
+
 ## 348 · 2026-10-22
 
 - First screen: the start-up report text is lighter still and a tenth smaller.

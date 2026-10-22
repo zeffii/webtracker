@@ -7,7 +7,7 @@ class TrackerEngine extends AudioWorkletProcessor {
     super();
     const { sab, transport, wasm, vring, lring } = options.processorOptions;
     this.vring = ringWriter(vring);
-    this.dither = true; this.noise = 2463534242 | 0;
+    this.dither = false; this.noise = 2463534242 | 0;
     const lanes = this.lanes = laneWriter(lring), slotOf = new Map();
     this.setLaneIds = ids => { slotOf.clear(); ids.forEach((id, k) => slotOf.set(id, k)); };
     const params = new Float32Array(sab);
@@ -30,6 +30,7 @@ class TrackerEngine extends AudioWorkletProcessor {
       else if (data.type === 'cut') { this.rt.panic(); this.seq.stop(); this.halted = true; }
       else if (data.type === 'panic') this.rt.panic();
       else if (data.type === 'dither') this.dither = data.on;
+      else if (data.type === 'volfloor') this.seq.volFloor = data.on ? 0.003 : 0;
       else if (data.type === 'lanetaps') this.setLaneIds(data.ids);
       else if (data.type === 'reset') {
         const fresh = new Float32Array(data.sab);
