@@ -581,7 +581,9 @@
     #splash.blob .s-word { left: 50%; top: 40%; transform: translate(-50%, -50%); width: 44cqw; line-height: 0; color: #ffffffd0; filter: drop-shadow(0 2px 20px #2a6f7a60); }
     .s-glyph { width: 100%; height: auto; display: block; }
     #splash.blob .s-go { left: 50%; top: 66%; transform: translateX(-50%); color: #2d4a52; font-size: max(10px, 1.6cqw); }
-    #splash.blob .s-log { left: 2.4cqw; top: auto; bottom: 2cqw; text-align: left; color: #2d4a52; font-size: clamp(10px, 1.5cqw, 13px); }
+    #splash.blob .s-log { left: 2.4cqw; top: auto; bottom: 2cqw; text-align: left; color: #4a6a72; font-size: clamp(10px, 1.5cqw, 13px); }
+    .s-build { position: absolute; right: 1.6cqw; top: 1.4cqw; font: max(9px, 1.15cqw)/1 ui-monospace, Consolas, monospace; letter-spacing: .04em; color: #b3b5ba; pointer-events: none; user-select: none; }
+    #splash.blob .s-build { color: #f4f1ea; }
     #splash.leaving .s-card { opacity: 0; transform: scale(1.03); }
     #splash.leaving { opacity: 0; }
     .s-card canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
@@ -726,6 +728,7 @@
       <canvas></canvas>
       <p class="s-word"><svg class="s-glyph" xmlns="http://www.w3.org/2000/svg" viewBox="70 90 2320 820" fill="currentColor" fill-rule="evenodd" role="img" aria-label="Wax"><path transform="translate(280)" d="M40 850 L280 640 L310 800 L460 800 L850 130 L420 530 L380 360 L110 590 L-20 300 L-210 250 Z"/><path transform="translate(910)" d="M-140 800 L250 310 L454.7 311.2 L630 800 L440 800 L410 680 L130 720 L60 800 Z M200 610 L390 580 L347 414.8 Z"/><path transform="translate(1580)" d="M-20 650 L100 570 L-80 470 L-150 280 L230 480 L810 90 L630 400 L390 570 L540 650 L730 910 L240 650 L30 800 Z"/></svg></p>
       <div class="s-go">click anywhere to enter</div>
+      <div class="s-build"></div>
       <div class="s-log" aria-live="polite"></div>
     </div>
   </div>
@@ -1105,6 +1108,7 @@
       if (!v || !v.build) return;
       const b = document.getElementById('build');
       b.textContent = `build ${v.build} · ${v.commit}`; b.title = v.date;
+      document.querySelector('.s-build').textContent = `build ${v.build} · ${v.commit}`;
       document.title = `Wax ${v.build}`;
     }).catch(() => {});
   </script>

@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 347 · 2026-10-22
+
+- First screen: the build and revision show small in off-white at the top right of the card, and the start-up report text is a little lighter.
+
 ## 346 · 2026-10-22
 
 - A Volume curve now never goes below 0.003 (about -50 dB), so a fade-in from 0 no longer holds the output at digital silence, where some sound devices click as they wake.
