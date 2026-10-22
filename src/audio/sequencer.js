@@ -84,8 +84,6 @@ export class Sequencer {
       muted: false,
       auto: auto ?? [],   // lane curves: { slot, min, max, log, taper, table } with the value (0..1) at RES samples a tick, NaN where there is none
       autoCur: new Float32Array(auto?.length ?? 0).fill(NaN),   // where each curve's parameter is (0..1), NaN before it has acted
-      autoBase: new Float32Array(auto?.length ?? 0).fill(NaN),   // for a Volume curve: the level the machine is set to (the curve scales it)
-      autoOut: new Float32Array(auto?.length ?? 0).fill(NaN),    // ...and the value last written, to notice when the setting is changed meanwhile
       columns: cols,
       channels: cols.reduce((n, c) => Math.max(n, c.ch + (c.kind === 'cmd' ? 2 : 1)), 0),
       noteCols: cols.reduce((n, c) => (c.kind === 'note' ? n + 1 : n), 0),
@@ -132,13 +130,9 @@ export class Sequencer {
   }
 
   // Stopping lets every voice fade out over its release time.
-  // A Volume curve leaves the level where the machine was set (not wherever the curve stopped).
+  // A Volume curve leaves the machine at its own level (the channel stage back at 1), not wherever the curve stopped.
   restoreAmp(lane) {
-    for (let k = 0; k < lane.auto.length; k++) {
-      const a = lane.auto[k];
-      if (a.amp && !Number.isNaN(lane.autoOut[k]) && this.params[a.slot] === lane.autoOut[k]) this.params[a.slot] = lane.autoBase[k];
-      lane.autoOut[k] = lane.autoBase[k] = NaN;
-    }
+    for (let k = 0; k < lane.auto.length; k++) if (lane.auto[k].amp && !Number.isNaN(lane.autoCur[k])) this.params[lane.auto[k].slot] = 1;
   }
 
   stop() {
@@ -300,15 +294,9 @@ export class Sequencer {
         else continue;
         cur = Number.isNaN(cur) ? want : cur + (want - cur) * rate;
         if (Math.abs(cur - want) < 1e-4) cur = want;
-        const moved = a.amp && this.params[a.slot] !== lane.autoOut[k];   // the machine's own level was changed meanwhile
-        if (cur === lane.autoCur[k] && !moved) continue;
+        if (cur === lane.autoCur[k]) continue;
         lane.autoCur[k] = cur;
         const e = a.taper === 1 ? cur : cur ** a.taper;
-        if (a.amp) {
-          if (moved || Number.isNaN(lane.autoOut[k])) lane.autoBase[k] = this.params[a.slot];
-          this.params[a.slot] = lane.autoOut[k] = lane.autoBase[k] * e;
-          continue;
-        }
         this.params[a.slot] = a.log ? a.min * (a.max / a.min) ** e : a.min + e * (a.max - a.min);
       }
     }

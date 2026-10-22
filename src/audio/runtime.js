@@ -102,7 +102,7 @@ export class GraphRuntime {
       return node;
     };
     const buffers0 = fresh(), resolve0 = resolver(buffers0);
-    const inst = { nodes: [], sets: [], byId: new Map(), left: null, right: null };
+    const inst = { nodes: [], sets: [], byId: new Map(), left: null, right: null, amp: compiled.amp, ampPrev: 1 };
     const register = (node, at) => { const list = inst.byId.get(node.id) ?? []; list[at] = node; inst.byId.set(node.id, list); };
     this.instruments.set(compiled.instrument, inst);
 
@@ -268,6 +268,11 @@ export class GraphRuntime {
       }
       for (const node of inst.nodes) {
         node.instance.process(node.inputs, node.outputs, n, this.params, node.slots);
+      }
+      if (inst.amp !== undefined) {   // the channel stage: the level eased across the block, one multiply per sample
+        const to = this.params[inst.amp], from = inst.ampPrev;
+        if (from !== 1 || to !== 1) for (let i = 0; i < n; i++) { const g = from + (to - from) * (i + 1) / n; inst.left[i] *= g; inst.right[i] *= g; }
+        inst.ampPrev = to;
       }
       let sum = 0;
       for (let i = 0; i < n; i++) sum += inst.left[i] + inst.right[i];

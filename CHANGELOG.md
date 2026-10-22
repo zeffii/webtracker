@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 344 · 2026-10-22
+
+- Volume curves now drive a hidden channel stage after each machine's output node: a 0 to 1 level (1 is the machine as it is set) applied smoothly to every sample, instead of moving the output node's gain. The output node's own gain setting is left alone, and stopping returns the stage to 1. The parameter block is four times larger (your FINALLY8 song was within a few slots of the old limit).
+
 ## 343 · 2026-10-22
 
 - With the first screen on, the tracker is hidden from the very first paint, so it is no longer seen for a moment before the splash.

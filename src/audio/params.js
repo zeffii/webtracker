@@ -1,7 +1,7 @@
 // Parameter registry. One slot per parameter in a shared block of 32-bit floats.
 // The graph compiler allocates slots; the UI and sequencer write them; the
 // audio thread reads them once per block.
-export const PARAM_CAPACITY = 1024;
+export const PARAM_CAPACITY = 4096;
 
 export class ParamRegistry {
   slots = new Map();

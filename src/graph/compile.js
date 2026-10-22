@@ -117,5 +117,7 @@ export function compile(desc, { instrument, nodeTypes, registry }) {
   if (masters.length !== 1) throw new Error(`expected exactly one master node, found ${masters.length}`);
   const voices = desc.voices ?? 1;
   if (!Number.isInteger(voices) || voices < 1 || voices > 16) throw new Error(`voices must be a whole number from 1 to 16, not ${voices}`);
-  return { instrument, nodes, bufferCount: nextBuf, master: outBufs.get(masters[0]), voices };
+  // The hidden channel stage after the output node: a level (0..1) the sequencer's Volume curve moves, applied smoothly to the whole machine.
+  const amp = registry.allocate(`${instrument}.mix.amp`, 1, 0, 1);
+  return { instrument, nodes, bufferCount: nextBuf, master: outBufs.get(masters[0]), voices, amp };
 }

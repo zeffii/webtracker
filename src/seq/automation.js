@@ -53,17 +53,12 @@ export function targetsOf(lane, registry) {
   const list = lane.columns.filter(c => c.kind === 'param' && c.slot !== undefined).map(c => ({
     id: `${c.node}.${c.param}`, label: c.long ?? c.label, slot: c.slot, dflt: c.dflt, min: c.min, max: c.max, log: c.log === true || (c.min > 0 && c.max / c.min >= 50), taper: c.node === 'out' && c.param === 'gain' ? 2 : 1,
   }));
-  const gain = registry?.slots.get(`${lane.instrument}.out.gain`);
-  if (gain !== undefined && !list.some(t => t.id === 'out.gain')) {
-    const { min, max } = registry.meta[gain];
-    list.unshift({ id: 'out.gain', label: 'Volume', slot: gain, min, max, log: false, taper: 2, dflt: registry.values[gain] });
-  } else {
-    const v = list.find(t => t.id === 'out.gain');
-    if (v) v.label = 'Volume';
-  }
-  // Volume is a final amplifier: the curve (0..1) multiplies the level the machine is set to, so 1 is as set and it never goes louder.
-  const vol = list.find(t => t.id === 'out.gain');
-  if (vol) { vol.amp = true; vol.dflt = 1; vol.min = 0; vol.max = 1; vol.log = false; }
+  // Volume is the machine's hidden channel stage (after its output node): a 0..1 level, 1 being the machine as it is set.
+  const amp = registry?.slots.get(`${lane.instrument}.mix.amp`);
+  const old = list.findIndex(t => t.id === 'out.gain');
+  if (old >= 0) list.splice(old, 1);
+  if (amp !== undefined) list.unshift({ id: 'out.gain', label: 'Volume', slot: amp, min: 0, max: 1, log: false, taper: 2, dflt: 1, amp: true });
+  else if (lane.targets?.find(t => t.id === 'out.gain')) list.unshift(lane.targets.find(t => t.id === 'out.gain'));
   return list;
 }
 
