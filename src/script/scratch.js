@@ -3,8 +3,12 @@
 // the script's), it can be turned back into tbin(...) lines, played through the instrument under the pattern cursor, and
 // sent to the pattern editor when it is right. Nothing here touches the song.
 import { noteSemitones } from '../seq/cells.js';
+import { TEMPLATES } from './templates.js';
 
 export const MAX_COLS = 8;
+
+// A template as grid columns.
+export const fromTemplate = t => t.cols.slice(0, 8).map(([note, bits]) => ({ note, on: [...bits].map(c => c === 'x'), src: Array(bits.length).fill(false) }));
 export const LENGTHS = [8, 12, 16, 24, 32, 48, 64];
 
 const blankCol = (rows, note = 'C-3') => ({ note, on: Array(rows).fill(false), src: Array(rows).fill(false) });
@@ -69,8 +73,21 @@ export function createScratch({ el, run, getCode, insert, send, voice, say = () 
   const lenSel = mk('select'); lenSel.title = 'Rows in the grid'; lenSel.setAttribute('aria-label', 'Scratch rows');
   for (const n of LENGTHS) lenSel.append(Object.assign(mk('option', '', `${n} rows`), { value: n, selected: n === rows }));
   lenSel.addEventListener('change', () => { resize(Number(lenSel.value)); draw(); });
+  const tplSel = mk('select'); tplSel.title = 'Start from a rhythm'; tplSel.setAttribute('aria-label', 'Rhythm template');
+  tplSel.append(Object.assign(mk('option', '', 'template\u2026'), { value: '' }));
+  for (const g of [...new Set(TEMPLATES.map(t => t.group))]) {
+    const og = mk('optgroup'); og.label = g;
+    TEMPLATES.forEach((t, i) => { if (t.group === g) og.append(Object.assign(mk('option', '', t.name), { value: i })); });
+    tplSel.append(og);
+  }
+  tplSel.addEventListener('change', () => {
+    const t = TEMPLATES[Number(tplSel.value)]; tplSel.value = '';
+    if (!t) return;
+    const c = fromTemplate(t); resize(c[0].on.length); cols = c; sel = -1; lenSel.value = rows; draw();
+    say(`${t.name}: ${cols.length} columns. Change it however you like.`);
+  });
   const edit = fn => () => { for (const c of targets()) fn(c); draw(); };
-  bar.append(playBtn,
+  bar.append(playBtn, tplSel,
     btn('clear', 'Empty the grid (or the selected column)', edit(ops.clear)),
     btn('invert', 'Swap hits and rests: the anti-pattern', edit(ops.invert)),
     btn('rot →', 'Rotate down one row', edit(c => ops.rotate(c, -1))),

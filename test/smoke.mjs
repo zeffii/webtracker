@@ -6332,6 +6332,10 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     const sent = sendEdits(grid, [0, 2, 4], 2, 6);
     assert.ok(sent.edits.every(e => e.row >= 2 && e.row < 6) && sent.edits.some(e => e.col === 4 && e.token === 'F#2'), 'send writes from the start row, clipped to the pattern');
     assert.ok(sendEdits(grid, [0, 2], 0, 8).error, 'more columns than the lane has is refused');
+    const { TEMPLATES } = await import('../src/script/templates.js');
+    const { fromTemplate } = await import('../src/script/scratch.js');
+    assert.ok(TEMPLATES.length >= 8 && TEMPLATES.every(t => t.cols.length <= 8 && t.cols.every(([n, b]) => /^[A-G][-#]\d$/.test(n) && /^[x.]{16}$/.test(b))), 'every rhythm template is 16 steps of x and .');
+    assert.equal(fromTemplate(TEMPLATES[0])[0].on.filter(Boolean).length, 4, 'four on the floor has four kicks');
     assert.ok(!execute({ code: "tbin('x', 'C-2')", pattern: { name: 's', lane: 's', instrument: '', columns: [{ kind: 'note', token: 'note', label: 'N1', key: 'n' }], rows: [['...']] }, scratch: true }).error, 'one column is enough for one tbin');
   }
 
