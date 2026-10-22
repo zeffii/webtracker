@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 329 · 2026-10-22
+
+- Pattern editor: right-click offers cut, copy, paste, clear, transpose, interpolate, randomize and the chord palette, plus what does this command do? on a Cmd cell. New machine help window (Ctrl+Alt+H, or from that menu): small and floating, it follows the cursor lane and lists its columns and its commands with ranges and plain descriptions (every sampler command, cc14 included), with a find box. Click a command in it to type it into the Cmd cell under the cursor.
+
 ## 328 · 2026-10-22
 
 - Arrangement: typing a pattern number (or pressing Space on the selected pattern) where a pattern already starts now replaces it with the other pattern, instead of refusing. The old pattern stays in the list; typing the same pattern again does nothing.

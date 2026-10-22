@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['329', ['Pattern editor: right-click offers cut, copy, paste, clear, transpose, interpolate, randomize and the chord palette, plus what does this command do? on a Cmd cell. New machine help window (Ctrl+Alt+H, or from that menu): small and floating, it follows the cursor lane and lists its columns and its commands with ranges and plain descriptions (every sampler command, cc14 included), with a find box. Click a command in it to type it into the Cmd cell under the cursor.']],
   ['328', ['Arrangement: typing a pattern number (or pressing Space on the selected pattern) where a pattern already starts now replaces it with the other pattern, instead of refusing. The old pattern stays in the list; typing the same pattern again does nothing.']],
   ['327', ['The vectorscope is now a panel of the meter band, a square the height of the band at its right end (Ctrl+Alt+O, or Config, Meters), instead of a floating overlay; the Scope button and the overlay\'s size and corner settings are gone. The spectrum colour option\'s description is short enough to fit its panel.']],
   ['326', ['Arrangement: Ctrl+Up / Down steps through the pattern list (the selected one is outlined), and Space places the selected pattern at the cursor and moves on to where it ends.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['322', ['The empty tap slots (tap01 to tap16) no longer clutter the sample pickers: a slot shows once it holds a take or an instrument plays it. Config has a switch to show them all again.']],
   ['321', ['Right-click a pattern in the arrangement for a small menu: open it in the pattern editor (or on its own), give it its own copy, slice, remove, and Params, which opens the floating parameters of that lane (Rename is a greyed placeholder). The Open button now sits beside Play, and the params button in the status bar is an icon.']],
   ['320', ['Rail: the divider between the rail and the page is a faint line, and the icon outlines are gone (a soft outline appears on hover, the open screen stays filled).']],
-  ['319', ['Header tidy: the file icons (save, open, export, backups, new) sit next to the song display, and the meters, scope, cut and panic buttons, the build number and the theme moved to the right end of the bottom status bar. The Arrangement icon now shows vertical lanes.']],
 ];

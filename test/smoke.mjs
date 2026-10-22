@@ -7124,4 +7124,34 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   assert.deepEqual(read(2), [48, 52, 55]);
   console.log('ok: chord palette');
 }
+// Machine help: every sampler command has a description, the resets share a row, and a command can be typed into the Cmd cell
+{
+  const { commandRows } = await import('../src/seq/cmdhelp.js');
+  const { rangeText } = await import('../src/seq/describe.js');
+  const registry = new ParamRegistry(), defs = structuredClone(instruments);
+  for (const [id, def] of Object.entries(defs)) compile(def.graph, { instrument: id, nodeTypes: NODE_TYPES, registry });
+  const lanes = prepareSong(demoSong, defs, registry), editor = createEditor(lanes, 32);
+  const li = lanes.findIndex(l => l.columns.some(c => c.kind === 'cmd' && c.commands.some(k => k.param === 'repeats')));
+  assert.ok(li >= 0, 'a sampler lane in the demo');
+  const cmdCol = lanes[li].columns.find(c => c.kind === 'cmd');
+  const rows = commandRows(cmdCol, rangeText);
+  assert.deepEqual(rows.filter(r => !r.help).map(r => r.hex), [], 'every command of the sampler says what it does');
+  assert.equal(rows.filter(r => r.hex === 'A0–AF').length, 1, 'the sixteen resets are one row');
+  assert.ok(rows.some(r => r.hex === '14' && /pitch/i.test(r.help)), 'cc14 is the pitch jitter');
+  assert.deepEqual(rows.map(r => r.id), rows.map(r => r.id).sort((a, b) => a - b), 'sorted by command number');
+  let onKey;
+  const view = createTrackerView({ el: { addEventListener: (type, f) => { if (type === 'keydown') onKey = f; }, innerHTML: '' }, statusEl: {}, transport: new Int32Array(new SharedArrayBuffer(8)), onToggle() {}, onBack() {} });
+  view.load({ lanes, song: demoSong, editor });
+  view.goto(li, 2);
+  assert.equal(view.typeCommand(0x14), false, 'not in the Cmd column: nothing written');
+  const ci = lanes[li].columns.findIndex(c => c.kind === 'cmd');
+  uiConfig.set('arrowStyle', 'cell');
+  let guard = 0; while (view.col !== ci && guard++ < 60) onKey({ key: 'ArrowRight', preventDefault() {} });
+  assert.equal(view.col, ci);
+  assert.equal(view.typeCommand(0x14), true);
+  assert.equal(lanes[li].rows[2][ci], '140000', 'the command with a zero value');
+  lanes[li].rows[2][ci] = '14A000'; assert.equal(view.typeCommand(0x12), true);
+  assert.equal(lanes[li].rows[2][ci], '12A000', 'an existing value is kept');
+  console.log('ok: machine help');
+}
 console.log('smoke test passed');

@@ -38,7 +38,7 @@ export function cellAt({ widths, x, line, top, len }) {
 // Keyboard-driven view of every lane side by side. The cursor sits on one character
 // of one cell. Edits go straight into the shared pages, so they are heard on the next
 // tick while the song plays. Call load() with the prepared lanes before drawing.
-export function createTrackerView({ showMenu = (e, items) => showContextMenu(e, items), showCurve = opts => showCurvePopup(opts), showChord = opts => showChordPalette(opts), random = Math.random, el, statusEl, transport, onToggle, onBack, onMove, onRow = () => {}, onNote = () => {}, onSong = () => {}, readParam = () => undefined, follow = () => false }) {
+export function createTrackerView({ showMenu = (e, items) => showContextMenu(e, items), showCurve = opts => showCurvePopup(opts), showChord = opts => showChordPalette(opts), random = Math.random, el, statusEl, transport, onToggle, onBack, onMove, onRow = () => {}, onHelp = () => {}, onNote = () => {}, onSong = () => {}, readParam = () => undefined, follow = () => false }) {
   let lanes = null, len = 0, widths = [], editor = null, song = null;
   // Solo-edit: one placement of one pattern, shown on its own with its rows numbered from 0. Nothing else can be reached.
   // lo..hi is its span of song ticks; hi is the song's length when not in solo-edit and lo is 0.
@@ -664,6 +664,37 @@ export function createTrackerView({ showMenu = (e, items) => showContextMenu(e, 
     sel = { ...dragging };
     Object.assign(cur, { lane: dragging.lane, tick: hit.tick, col, ch: 0 });
   });
+  // Right-click: the cursor goes to the cell (a selection the click is inside stays), and a menu offers the usual things.
+  el.addEventListener('contextmenu', e => {
+    if (!lanes) return;
+    const hit = pointed(e);
+    if (!hit) return;
+    e.preventDefault();
+    const inside = sel && (() => { const r = rect(); return hit.lane === r.lane && hit.tick >= r.t0 && hit.tick <= r.t1 && hit.col >= r.c0 && hit.col <= r.c1; })();
+    if (!inside) { const was = [cur.lane, cur.tick]; Object.assign(cur, hit); sel = null; nugget = false; message = ''; if (onMove && (cur.lane !== was[0] || cur.tick !== was[1])) onMove(cur.lane, cur.tick); }
+    el.focus?.(); draw();
+    const r = rect(), lane = lanes[r.lane], hasNotes = lane.columns.slice(r.c0, r.c1 + 1).some(c => c.token === 'note');
+    const go = f => () => { f(); draw(); };
+    const cell = lane.rows[cur.tick]?.[cur.col], cmdCol = lane.columns[cur.col]?.kind === 'cmd' && !isBlank(cell) ? lane.columns[cur.col] : null;
+    const cmdId = cmdCol ? parseInt(cell.slice(0, 2), 16) : null;
+    showMenu(e, [
+      { label: 'Cut', hint: 'Ctrl+X', run: go(() => { const b = copy(); editor.setCells(b.lane, blankAll(b), 'cut'); message = `Cut ${size(b)} cells.`; }) },
+      { label: 'Copy', hint: 'Ctrl+C', run: go(() => { message = `Copied ${size(copy())} cells.`; }) },
+      { label: 'Paste', hint: 'Ctrl+V', disabled: !clipboard, run: go(paste) },
+      { label: 'Clear', hint: 'Delete', run: go(() => { editor.setCells(r.lane, blankAll(r), 'clear cells'); message = `Cleared ${size(r)} cells.`; }) },
+      { separator: true },
+      { label: hasNotes ? 'Transpose up' : 'Values up', hint: 'Ctrl+Up', run: go(() => transpose(hasNotes, 1, false)) },
+      { label: hasNotes ? 'Transpose down' : 'Values down', hint: 'Ctrl+Down', run: go(() => transpose(hasNotes, -1, false)) },
+      ...(hasNotes ? [{ label: 'Up an octave', hint: 'Ctrl+Shift+Up', run: go(() => transpose(true, 1, true)) }, { label: 'Down an octave', hint: 'Ctrl+Shift+Down', run: go(() => transpose(true, -1, true)) }] : []),
+      { separator: true },
+      { label: 'Interpolate…', hint: 'Ctrl+I', run: go(interpolate) },
+      { label: 'Randomize…', hint: 'Ctrl+R', run: go(randomMenu) },
+      ...(hasNotes ? [{ label: 'Chord palette…', hint: 'Alt+C', run: go(chordPalette) }] : []),
+      { separator: true },
+      ...(cmdId !== null ? [{ label: `What does ${cell.slice(0, 2)} do?`, run: () => onHelp(r.lane, cmdId) }] : []),
+      { label: 'Machine help', hint: 'Ctrl+Alt+H', run: () => onHelp(r.lane, null) },
+    ]);
+  });
   const stopDrag = () => { dragging = null; };
   el.addEventListener('mouseup', stopDrag);
   el.addEventListener('mouseleave', stopDrag);
@@ -990,6 +1021,14 @@ export function createTrackerView({ showMenu = (e, items) => showContextMenu(e, 
     return true;
   };
 
+  // Types a command into the Cmd cell under the cursor (from the machine help panel), keeping the value it already has.
+  const typeCommand = id => {
+    const lane = lanes?.[cur.lane], c = lane?.columns[cur.col];
+    if (!c || c.kind !== 'cmd') { message = 'Move to the Cmd column first.'; draw(); return false; }
+    const old = lane.rows[cur.tick]?.[cur.col], value = isBlank(old) ? '0000' : old.slice(2), hex = id.toString(16).toUpperCase().padStart(2, '0');
+    message = editor.setCell(cur.lane, cur.tick, cur.col, `${hex}${value}`) ? `Command ${hex} written.` : 'No pattern here.';
+    draw(); return true;
+  };
   const setRows = n => { rowCount = Math.max(ROWS.min, Math.min(ROWS.max, Math.round(n))); draw(); return rowCount; };
   const lineHeight = () => (lanes ? metrics().lh : 18);
   // What the command console calls: each returns the status line it left.
@@ -1002,5 +1041,5 @@ export function createTrackerView({ showMenu = (e, items) => showContextMenu(e, 
       sel = null; draw(); return message;
     },
   };
-  return { commands, draw, load, goto, enterSolo, relayout, say: m => { message = m; }, setSize, setRows, lineHeight, get rows() { return rowCount; }, get fontPx() { return fontPx; }, get tick() { return cur.tick; }, get lane() { return cur.lane; }, get col() { return cur.col; }, get ch() { return cur.ch; }, stepRows: n => { moveRow(n); }, resume() { const was = paused; paused = false; lastAuto = null; return was; }, get preview() { return preview; }, get selection() { return sel ? rect() : null; }, get rect() { return rect(); } };
+  return { commands, typeCommand, draw, load, goto, enterSolo, relayout, say: m => { message = m; }, setSize, setRows, lineHeight, get rows() { return rowCount; }, get fontPx() { return fontPx; }, get tick() { return cur.tick; }, get lane() { return cur.lane; }, get col() { return cur.col; }, get ch() { return cur.ch; }, stepRows: n => { moveRow(n); }, resume() { const was = paused; paused = false; lastAuto = null; return was; }, get preview() { return preview; }, get selection() { return sel ? rect() : null; }, get rect() { return rect(); } };
 }

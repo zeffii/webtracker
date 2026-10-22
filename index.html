@@ -335,6 +335,24 @@
     .cd-tile .cd-ear { position: absolute; right: 4px; top: 4px; }
     .cd-hint { opacity: .65; font-size: 11.5px; }
     .cd-foot { border-top: 1px solid color-mix(in srgb, var(--fg) 25%, transparent); padding-top: 8px; }
+    /* the machine help panel: a small floating window with what a lane's columns and commands do */
+    .mh { position: fixed; top: 110px; right: 24px; width: 330px; max-height: 62vh; display: flex; flex-direction: column; z-index: 30; background: color-mix(in srgb, var(--bg) 96%, transparent); color: var(--fg); border: 1px solid color-mix(in srgb, var(--fg) 55%, transparent); box-shadow: 0 6px 24px -8px #0006; font: 11px/1.4 ui-monospace, Consolas, monospace; }
+    .mh[hidden] { display: none; }
+    .mh-bar { display: flex; align-items: center; gap: .4rem; padding: 2px 4px; cursor: move; border-bottom: 1px solid color-mix(in srgb, var(--fg) 40%, transparent); background: color-mix(in srgb, currentColor 12%, transparent); touch-action: none; }
+    .mh-title { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .mh-find { width: 7rem; font: inherit; padding: 0 4px; }
+    .mh-bar button { all: unset; cursor: pointer; padding: 0 5px; }
+    .mh-body { overflow-y: auto; padding: 2px 0 6px; }
+    .mh h6 { margin: 8px 6px 2px; font: 600 9px ui-monospace, Consolas, monospace; letter-spacing: .1em; opacity: .6; }
+    .mh-row { display: grid; grid-template-columns: 4.2ch minmax(0, 1fr); column-gap: 8px; padding: 1px 6px; }
+    .mh-row b { grid-row: 1; }
+    .mh-name { grid-column: 2; }
+    .mh-note { grid-column: 2; opacity: .65; }
+    .mh-help { grid-column: 2; margin: 1px 0 3px; font: 11px/1.35 system-ui, sans-serif; opacity: .9; }
+    .mh-row.cmd { cursor: pointer; }
+    .mh-row.cmd:hover { background: color-mix(in srgb, currentColor 10%, transparent); }
+    .mh-row.on { background: color-mix(in srgb, var(--hi) 22%, transparent); }
+    .mh-none { margin: 6px; opacity: .65; }
     /* the song's loop: two thin light-red lines across the grid, where it starts and ends */
     .looplines { position: absolute; left: 0; height: 0; border-top: 1px solid hsl(0 85% 78%); pointer-events: none; z-index: 2; }
     .looplines.off { opacity: .4; }
@@ -782,6 +800,7 @@
           <dt>Ctrl+Left/Right</dt><dd>one character left or right inside the cell, to type into just that digit; after that plain Left/Right stay inside the cell (and Up/Down keep the position) until you step past its edge, which enters the next cell at its first character; Up and Down then move by the nugget step (Config, 1 row by default) on the same character</dd>
           <dt>Ctrl+Shift+H</dt><dd><b class="kw">hide</b> or show the empty columns of the lane the cursor is in (a column with no value at any row; the one under the cursor stays)</dd>
           <dt>Ctrl+Space</dt><dd>the same for every parameter column of this row (not notes, velocities or commands)</dd>
+          <dt>Ctrl+Alt+H</dt><dd>the <b class="kw">machine help</b> window: what the cursor lane's columns and commands do (cc14 and the rest); click a command to type it into the Cmd cell. Right-click in the grid has it too</dd>
           <dt>Alt + C</dt><dd><b class="kw">chord</b> palette for the notes of the selected row (or the cursor's row): voicings and inversions, change one note in key, another quality, smooth voice-leading over several rows; the ear buttons play a chord for a second. Enter writes, Esc cancels</dd>
           <dt>Ctrl+I</dt><dd><b class="kw">interpolate</b> along a curve: per column, the first and last filled cell of the selection are the ends and the filled cells between them get values by row position. The popup picks a shape, bends it, lays a wave on it, lets you draw your own or shape a <b class="kw">bezier</b> spline with draggable anchors and handles, and can include empty cells; Enter applies, Esc cancels</dd>
           <dt>Ctrl + Plus / Ctrl + Minus, Ctrl + 0, Ctrl + wheel</dt><dd><b class="kw">zoom</b> the pattern text: bigger, smaller, back to normal</dd>

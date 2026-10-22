@@ -19,7 +19,7 @@ export const unscale = (c, denom, v) => {
 };
 
 // The range of a parameter as text: "20 Hz to 20 kHz (log)".
-const rangeText = c => `${display(c.type, spec(c), c.min)} to ${display(c.type, spec(c), c.max)}${c.log ? ' (log)' : ''}`;
+export const rangeText = c => `${display(c.type, spec(c), c.min)} to ${display(c.type, spec(c), c.max)}${c.log ? ' (log)' : ''}`;
 
 // The same, in parts for the status bar: { name, details: [text], value: the real value as text or null, frac: where the
 // value sits in its range (0 to 1) or null }.

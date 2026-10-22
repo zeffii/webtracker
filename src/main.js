@@ -2,6 +2,7 @@ import { Engine } from './audio/engine.js';
 import { encodeWav, renderSong } from './audio/export.js';
 import { createMeters } from './ui/meters.js';
 import { createSplash } from './ui/splash.js';
+import { createMachineHelp } from './ui/machinehelp.js';
 import { parseRules, analyse, resolve, stepsOf, label as stepLabel, describe as describeRule, noteUnknown, unknownTyped, clearUnknown, ACTIONS } from './ui/console.js';
 import { NODE_TYPES } from './audio/nodes/index.js';
 import { helpPage } from './graph/help.js';
@@ -115,6 +116,7 @@ document.addEventListener('keydown', e => {
   // Ctrl+Shift+R arms and disarms MIDI recording; Alt+V switches MIDI velocity on and off.
   if (e.ctrlKey && e.altKey && !e.shiftKey && !e.metaKey && e.code === 'KeyM') { e.preventDefault(); toggleMeters(); return; }
   if (e.ctrlKey && e.altKey && !e.shiftKey && !e.metaKey && e.code === 'KeyO') { e.preventDefault(); toggleScope(); return; }
+  if (e.ctrlKey && e.altKey && !e.shiftKey && !e.metaKey && e.code === 'KeyH') { e.preventDefault(); toggleHelp(); return; }
   if (e.ctrlKey && e.shiftKey && !e.altKey && !e.metaKey && e.code === 'KeyR' && project) { e.preventDefault(); setRecording(!recording); return; }
   if (e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey && e.code === 'KeyV' && project) {
     e.preventDefault();
@@ -194,12 +196,16 @@ function followLane(laneIdx) {
   if (floatWanted) syncFloat();
 }
 
+// The machine help panel (Ctrl+Alt+H, or the pattern editor's right-click menu): what the cursor lane's columns and commands do.
+const help = createMachineHelp({ onInsert: id => view.typeCommand(id) });
+const toggleHelp = () => { if (project) help.toggle(project.lanes[view.lane]); };
 const view = createTrackerView({
   follow: () => following,
   el: $('view'), statusEl: $('cursor'), transport: engine.transport, onToggle: togglePlay,
   onBack: () => tabs.show('arrange'),
   onRow: tick => { if (started) engine.playRow(tick); },
-  onMove: (lane, tick) => { seqView.goto(lane, tick); followLane(lane); },
+  onMove: (lane, tick) => { seqView.goto(lane, tick); followLane(lane); help.update(project?.lanes?.[lane]); },
+  onHelp: (lane, id) => help.show(project.lanes[lane], id),
   onSong: () => songChanged(),
   readParam: slot => engine.registry.values[slot],
   onNote: (instrument, note, on, vel = 1) => { if (!started) return; if (on) engine.noteOn(instrument, note, vel); else engine.noteOff(instrument, note); },
@@ -214,7 +220,7 @@ const seqView = createSequenceView({
   follow: () => following,
   el: $('seq'), statusEl: $('seq-status'), listEl: $('seq-list'), transport: engine.transport, onToggle: togglePlay,
   onOpen: (lane, tick, { solo = false } = {}) => { if (!solo || !view.enterSolo(lane, tick)) view.goto(lane, tick); tabs.show('patterns'); },
-  onMove: (lane, tick) => { view.goto(lane, tick); followLane(lane); },
+  onMove: (lane, tick) => { view.goto(lane, tick); followLane(lane); help.update(project?.lanes?.[lane]); },
   onParams: () => setFloat(true),
   onSeek: tick => { if (!started) return; if (playing) engine.play(tick); else setPlaying(true, tick); },
   onSong: () => songChanged(),
