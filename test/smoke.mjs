@@ -6316,6 +6316,25 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   // the colouring marks bit patterns
   assert.match(highlight("tbin('x.', 1) // hi"), /tk-h">x<.*tk-r">\.<.*tk-n">1<.*tk-c">\/\/ hi/);
 
+  // the scratch pattern: each tbin of a scratch run goes to the next note column, and the grid reads back as tbin lines
+  {
+    const { fromEdits, toScript, ops, sendEdits } = await import('../src/script/scratch.js');
+    const sc = execute({ code: "tbin('x...', 'C-2')\ntbin('..x.', 'D-2')\ntbin(euclid(3, 8), 'F#2')", scratch: true, pattern: { name: 's', lane: 's', instrument: '', columns: Array.from({ length: 8 }, (_, i) => ({ kind: 'note', token: 'note', label: `N${i + 1}`, key: `n${i}` })), rows: Array.from({ length: 8 }, () => Array(8).fill('...')) } });
+    assert.ok(sc.ok, 'a scratch run works');
+    const grid = fromEdits(sc.edits, 8);
+    assert.equal(grid.length, 3, 'three tbin calls fill three columns');
+    assert.deepEqual(grid.map(c => c.note), ['C-2', 'D-2', 'F#2']);
+    assert.equal(toScript(grid).split('\n')[0], "tbin('x...', 'C-2')", 'a repeating column is written short');
+    ops.invert(grid[0]);
+    assert.equal(toScript([grid[0]]), "tbin('.xxx', 'C-2')");
+    ops.rotate(grid[0], 1); ops.reverse(grid[0]);
+    assert.equal(grid[0].on.filter(Boolean).length, 6, 'rotate and reverse keep the hits');
+    const sent = sendEdits(grid, [0, 2, 4], 2, 6);
+    assert.ok(sent.edits.every(e => e.row >= 2 && e.row < 6) && sent.edits.some(e => e.col === 4 && e.token === 'F#2'), 'send writes from the start row, clipped to the pattern');
+    assert.ok(sendEdits(grid, [0, 2], 0, 8).error, 'more columns than the lane has is refused');
+    assert.ok(!execute({ code: "tbin('x', 'C-2')", pattern: { name: 's', lane: 's', instrument: '', columns: [{ kind: 'note', token: 'note', label: 'N1', key: 'n' }], rows: [['...']] }, scratch: true }).error, 'one column is enough for one tbin');
+  }
+
   // the kill switch: a script that never ends is stopped and the runner is usable again
   const { Worker: NodeWorker } = await import('node:worker_threads');
   const libUrl = new URL('../src/script/lib.js', import.meta.url).href;

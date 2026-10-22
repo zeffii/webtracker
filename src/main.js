@@ -43,6 +43,7 @@ import { createTrackerView } from './seq/view.js';
 import { createTabs } from './ui/tabs.js';
 import { createScriptRunner } from './script/client.js';
 import { createScriptScreen } from './script/screen.js';
+import { createScratch, sendEdits } from './script/scratch.js';
 import { placementAt } from './seq/edit.js';
 
 const engine = new Engine();
@@ -55,6 +56,7 @@ const PLAY_ICON = '<svg class="ico" viewBox="0 0 12 12"><path d="M2.5 1 L10.5 6 
 const STOP_ICON = '<svg class="ico" viewBox="0 0 12 12"><rect x="2" y="2" width="8" height="8" fill="currentColor"/></svg>';
 const setPlaying = (value, from = null) => {
   playing = value;
+  if (playing) scratch?.stop?.();
   if (playing) engine.play(from); else engine.stop();
   $('play').innerHTML = playing ? STOP_ICON : PLAY_ICON;
   $('play').title = playing ? 'Stop (F8)' : 'Play (F5)';
@@ -248,13 +250,43 @@ const scriptTarget = () => {
     label: `${lane.id} ${pat.name}${shared > 1 ? ` (used ${shared} times)` : ''}`,
   };
 };
+const scriptRunner = createScriptRunner({ limit: () => config.get('scriptLimit') });
 const scriptScreen = createScriptScreen({
   area: $('script'), hl: $('script-hl'), viz: $('script-viz'), runButton: $('script-run'), status: $('script-status'), out: $('script-out'), line: $('script-line'),
-  runner: createScriptRunner({ limit: () => config.get('scriptLimit') }),
+  runner: scriptRunner,
   target: scriptTarget,
   onText: text => { if (project) { if (text) project.song.script = text; else delete project.song.script; } },
   midi: () => ({ window: config.get('midiWindow'), order: config.get('midiOrder') }),
 });
+// The scratch pattern: a grid to explore triggers in before anything is written to a pattern. The script fills it
+// (each tbin goes to the next column), and 'send to pattern' writes it into the pattern under the cursor.
+const scratch = createScratch({
+  el: $('scratch'),
+  run: (code, rows) => scriptRunner.run({
+    code, scratch: true, selection: null,
+    pattern: { name: 'scratch', lane: 'scratch', instrument: '', columns: Array.from({ length: 8 }, (_, i) => ({ kind: 'note', token: 'note', label: `N${i + 1}`, key: `note:${i}` })), rows: Array.from({ length: rows }, () => Array(8).fill('...')) },
+  }),
+  getCode: () => scriptScreen.text,
+  insert: text => scriptScreen.insert(text),
+  say: text => scriptScreen.say(text),
+  send: cols => {
+    const t = scriptTarget();
+    if (t.error) return t.error;
+    const { columns, rows } = t.request.pattern, sel = t.request.selection;
+    const noteCols = columns.flatMap((c, i) => (c.token === 'note' ? [i] : []));
+    const res = sendEdits(cols, noteCols, sel ? sel.r0 : 0, rows.length);
+    if (res.error) return `Not sent: ${res.error}.`;
+    const n = t.apply(res.edits);
+    return `${t.label}: ${n} cell${n === 1 ? '' : 's'} written from the scratch pattern.`;
+  },
+  voice: () => {
+    if (!started) return { error: 'Click the first screen to start the audio first.' };
+    const id = project?.lanes?.[view.lane]?.instrument;
+    if (!id || id === 'master') return { error: 'Put the pattern cursor in a lane with an instrument (pattern editor) to hear the grid.' };
+    return { on: m => engine.noteOn(id, m, 1), off: m => engine.noteOff(id, m), tickMs: () => 60000 / (project.song.bpm * project.song.ticksPerBeat) };
+  },
+});
+
 // Ctrl+Alt+R in the pattern editor: run the whole script on the pattern there.
 document.addEventListener('keydown', e => {
   if (!(e.ctrlKey && e.altKey && !e.metaKey && !e.shiftKey && e.code === 'KeyR') || tabs.active !== 'patterns') return;

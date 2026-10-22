@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['361', ['Script tab: a scratch pattern, a grid to fill with triggers and look at (and play) before anything is written to a real pattern; it reads from and writes back to the script.']],
   ['360', ['First screen: the click-anywhere line sits halfway between its two earlier heights (40 px above the original).']],
   ['359', ['First screen: the click-anywhere line unrolls a fifth faster and sits 80 px higher.']],
   ['358', ['First screen: the click-anywhere line unrolls from its first letter and is a little lighter.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['354', ['Sampler: a new note now cuts the one-shot its own column was still playing (over the 06 nnaFade time; 0000 cuts at once), with no extra command needed. 1F nnaAll is on by default; write 1F 0000 to let one-shots ring on over the next note as before. Chords and other columns are left alone. The sampler help says so.']],
   ['353', ['Sampler help: a new section, Making a new note cut the old one, says what to write (1F nnaAll 0001 and the 06 nnaFade time), and the command list explains 06 and 1F in full.']],
   ['352', ["Sample screen: every slice marker can be reached. The slice column is now a small scroll box as tall as the sample's fields; it keeps its place when the screen redraws and scrolls to the active slice."]],
-  ['351', ["Sample screen: the slice markers now stand in their own column at the right of the sample's fields, so they no longer push the page down, and up to 24 are listed at once (the list follows the active slice) instead of 8 and '... 5 more'."]],
 ];

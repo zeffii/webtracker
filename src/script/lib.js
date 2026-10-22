@@ -163,7 +163,7 @@ export function execute(req) {
   const sel = selection ? { ...selection } : { r0: 0, r1: nrows - 1, c0: 0, c1: columns.length - 1 };
   sel.r0 = Math.max(0, sel.r0); sel.r1 = Math.min(nrows - 1, sel.r1);
   sel.rows = sel.r1 - sel.r0 + 1; sel.cols = sel.c1 - sel.c0 + 1; sel.any = !!selection;
-  let seedNow = seed, rand = makeRandom(seedNow), stepDefault = 1;
+  let seedNow = seed, rand = makeRandom(seedNow), stepDefault = 1, scratchNext = 0;   // scratch: each tbin goes to the next note column
 
   const put = (row, col, token) => { rows[row][col] = token; written.add(`${row}:${col}`); };
   const checkRow = row => {
@@ -210,8 +210,8 @@ export function execute(req) {
     if (!steps.length) throw new Error('tbin needs at least one step');
     const step = Math.max(1, Math.round(o.step ?? stepDefault)), at = o.at ?? sel.r0, to = Math.min(nrows - 1, o.to ?? sel.r1), loop = o.loop ?? true;
     // the note column the first note goes into: the selected one, or the first of the lane
-    let start = noteCols.includes(sel.c0) ? sel.c0 : columns[sel.c0]?.kind === 'vel' && noteCols.includes(sel.c0 - 1) ? sel.c0 - 1 : noteCols[0];
-    if (start === undefined) throw new Error('this lane has no note column');
+    let start = req.scratch ? noteCols[scratchNext] : noteCols.includes(sel.c0) ? sel.c0 : columns[sel.c0]?.kind === 'vel' && noteCols.includes(sel.c0 - 1) ? sel.c0 - 1 : noteCols[0];
+    if (start === undefined) throw new Error(req.scratch ? 'the scratch pattern has no free column left (8 at most)' : 'this lane has no note column');
     const slot = noteCols.indexOf(start);
     let voices = null, chords = null;
     if (notes instanceof Voices) voices = notes.lists;
@@ -219,6 +219,7 @@ export function execute(req) {
     const width = voices ? voices.length : Math.max(...chords.map(c => c.length));
     if (slot + width > noteCols.length) throw new Error(`${width} note columns are needed from ${columns[start].label}, and the lane has ${noteCols.length - slot}`);
     const used = Array.from({ length: width }, (_, k) => noteCols[slot + k]);
+    if (req.scratch) scratchNext += width;
     const velOf = i => (columns[i + 1]?.kind === 'vel' ? i + 1 : -1);
     if (o.clear) for (let r = at; r <= to; r++) for (const i of used) { put(r, i, KINDS.note.blank); if (velOf(i) >= 0) put(r, velOf(i), KINDS['2hex'].blank); }
     const vels = o.vel === undefined ? null : [].concat(o.vel);

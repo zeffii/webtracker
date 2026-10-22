@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 361 · 2026-10-22
+
+- Script tab: a scratch pattern. A small grid (time down, a column per voice) to explore triggers in before anything goes near a real pattern: click or drag cells, invert, rotate, reverse, clear, 8 to 64 rows, up to 8 columns. "script → grid" runs the script into it (each tbin fills the next column; hatched cells are the script's), "to script" writes the grid back as tbin lines, "play" loops it on the instrument under the pattern cursor, and "send to pattern" is the only thing that writes to a pattern.
+
 ## 360 · 2026-10-22
 
 - First screen: the click-anywhere line moved down to 40 px above its original spot (halfway between the two).

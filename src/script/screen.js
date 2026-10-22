@@ -132,6 +132,8 @@ export function createScriptScreen({ area, hl, viz = null, runButton, status, ou
     run: () => run(area.value),
     runText,
     midiNote,
+    insert,
+    say: text => show([text]),
     focus: () => area.focus(),
     get text() { return area.value; },
     load(text) { loaded = false; area.value = text ?? ''; paint(); info(); scanViz(); loaded = true; out.replaceChildren(); },

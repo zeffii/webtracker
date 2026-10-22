@@ -179,6 +179,28 @@
     .tk-k { color: var(--accent); } .tk-b { font-weight: 700; } .tk-h { color: var(--accent); font-weight: 700; } .tk-r { opacity: .5; }
     #script-viz { display: flex; flex-wrap: wrap; gap: .4rem; max-width: 110ch; margin: .3rem 0; }
     #script-viz[hidden] { display: none; }
+    #scratch { max-width: 110ch; margin: .3rem 0; padding: .35rem .5rem; background: var(--panel); border: 1px solid var(--line); font: 11px ui-monospace, Consolas, monospace; }
+    #scratch .sc-bar, #scratch .sc-foot { display: flex; flex-wrap: wrap; gap: .25rem; align-items: center; }
+    #scratch .sc-foot { margin-top: .35rem; }
+    #scratch button, #scratch select { font: 11px ui-monospace, Consolas, monospace; padding: .05rem .45rem; background: var(--bg); color: var(--fg); border: 1px solid var(--line); cursor: pointer; }
+    #scratch button:hover, #scratch button.hot, #scratch .sc-play { border-color: var(--accent); }
+    #scratch .sc-grid { display: flex; gap: 4px; margin: .4rem 0; max-height: 22rem; overflow: auto; align-items: flex-start; }
+    #scratch .sc-rows, #scratch .sc-col { display: flex; flex-direction: column; gap: 2px; flex: none; }
+    #scratch .sc-rows b, #scratch .sc-col b { height: 14px; line-height: 14px; font-size: 10px; text-align: center; font-weight: 600; opacity: .8; }
+    #scratch .sc-col b { cursor: pointer; } #scratch .sc-col.sel b { color: var(--accent); opacity: 1; }
+    #scratch .sc-rows u { height: 18px; }
+    #scratch .sc-rows i { height: 16px; line-height: 16px; font-style: normal; font-size: 10px; opacity: .45; text-align: right; padding-right: 3px; }
+    #scratch .sc-rows i.beat { opacity: .95; }
+    #scratch .sc-col { width: 54px; }
+    #scratch .sc-col input { width: 100%; box-sizing: border-box; height: 18px; font: 10px ui-monospace, Consolas, monospace; text-align: center; padding: 0; background: transparent; color: var(--fg); border: 1px solid transparent; opacity: .75; }
+    #scratch .sc-col input:focus { border-color: var(--accent); opacity: 1; }
+    #scratch .sc-col i { display: block; height: 16px; border-radius: 1px; cursor: pointer; background: color-mix(in srgb, var(--fg) 8%, transparent); user-select: none; touch-action: none; }
+    #scratch .sc-col i.beat { background: color-mix(in srgb, var(--fg) 16%, transparent); }
+    #scratch .sc-col i.on { background: var(--accent); }
+    #scratch .sc-col i.on.src { background: repeating-linear-gradient(45deg, var(--accent) 0 3px, color-mix(in srgb, var(--accent) 35%, transparent) 3px 6px); outline: 1px dashed var(--accent); outline-offset: -1px; }
+    #scratch .sc-col i.play { box-shadow: 0 0 0 1px var(--fg) inset; }
+    #scratch .sc-code { margin: 0; padding: .2rem .4rem; background: var(--bg); border: 1px solid var(--line); white-space: pre; overflow: auto; max-height: 7rem; min-height: 1.2em; }
+    #scratch .sc-hint, #scratch .sc-empty { opacity: .6; margin-top: .3rem; }
     .ev-card { display: flex; gap: .5rem; align-items: center; padding: .25rem .5rem; background: var(--panel); border: 1px solid var(--line); font: 12px/1.35 ui-monospace, Consolas, monospace; min-width: 0; }
     .ev-card.cur { border-color: var(--accent); }
     .ev-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
@@ -873,6 +895,7 @@
       <div class="help">Scripts write pattern data into the pattern under the cursor in the pattern editor (or its selection). They run in their own thread, only when you ask, and change nothing if they fail or take too long. <b>Ctrl+Enter</b> runs the selected code, or all of it; <b>Ctrl+Alt+R</b> in the pattern editor runs the whole script on the pattern there. Saved with the project. <button id="script-run" type="button">Run</button></div>
       <div id="script-box"><pre id="script-hl" aria-hidden="true"></pre><textarea id="script" spellcheck="false" wrap="off" autocapitalize="off" autocomplete="off" aria-label="Script"></textarea></div>
       <div id="script-viz" hidden aria-label="Preview of the Euclidean and x.. patterns in the script"></div>
+      <div id="scratch" aria-label="Scratch pattern"></div>
       <div id="script-status" class="statusbar"></div>
       <button id="script-help" type="button" aria-pressed="false" title="Show or hide the scripting help and tutorial beside the docked panel">Script help</button>
       <pre id="script-out" tabindex="0" aria-label="Script output" aria-live="polite"></pre>
