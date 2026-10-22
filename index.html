@@ -43,6 +43,9 @@
     #rec-take.live { background: #d03040; color: #fff; }
     /* the list and the fields are split by one continuous, dim line, as in the instrument screen */
     #smp .lc { display: inline-block; width: 38ch; height: 1.35em; vertical-align: top; overflow: hidden; border-right: 1px solid color-mix(in srgb, currentColor 25%, transparent); }
+    #smp { position: relative; }
+    #smp .slbox { position: absolute; top: 0; overflow-y: auto; white-space: pre; padding: 0 .6ch 0 0; scrollbar-width: thin; }
+    #smp .sl-act { background: var(--hi); color: var(--hi-fg); }
     #smp .sf { background: rgba(128, 128, 128, .22); }
     #smp .sf.on { background: var(--hi); color: var(--hi-fg); }
     #smp .sf.ed { outline: 1px solid currentColor; }
