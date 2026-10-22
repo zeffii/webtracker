@@ -73,7 +73,8 @@ export function createSplash({ box, onStart }) {
   function say(text, tag = 'ok') {
     const row = document.createElement('div'); log.append(row);
     const start = Math.max(performance.now(), nextAt); nextAt = start + 55;
-    const line = tag === '' ? text : `${text} `.padEnd(40, '.') + ` ${tag === 'ready' ? 'ready' : tag}`;
+    const label = text.length > 42 ? text.slice(0, 41) + '…' : text;   // every status word starts in the same column
+    const line = tag === '' ? text : `${label} `.padEnd(44, '.') + ` ${tag.padEnd(5)}`.trimEnd();
     const job = (async () => {
       await wait(start - performance.now());
       for (let i = 0; i < line.length; i += 9) { row.textContent = line.slice(0, i + 9); await frame(); }
