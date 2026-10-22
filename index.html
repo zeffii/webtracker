@@ -635,6 +635,7 @@
     #viz { position: fixed; right: 14px; z-index: 3; width: 300px; height: 300px; border-radius: 8px; overflow: hidden; box-shadow: 0 6px 24px rgba(0,0,0,.35); background: #111; }
     #viz[hidden] { display: none; }
     #viz canvas { width: 300px; height: 300px; display: block; }
+    #viz #viz-text { position: absolute; left: 0; top: 0; pointer-events: none; }
     #viz-err { position: absolute; left: 0; right: 0; bottom: 0; padding: 3px 8px; font: 11px ui-monospace, Consolas, monospace; color: #ffd9d4; background: rgba(120,20,10,.85); }
     #viz-btn[aria-pressed="true"] { background: var(--hi); color: var(--hi-fg); }
     /* the first screen */
@@ -798,7 +799,7 @@
     </div>
   </div>
   <div id="meters" hidden></div>
-  <div id="viz" hidden><canvas id="viz-canvas" width="300" height="300"></canvas><div id="viz-err" hidden></div></div>
+  <div id="viz" hidden><canvas id="viz-canvas" width="300" height="300"></canvas><canvas id="viz-text" width="300" height="300"></canvas><div id="viz-err" hidden></div></div>
   <div id="cmdbar" hidden><label for="cmd">|</label><input id="cmd" type="text" autocomplete="off" spellcheck="false" aria-label="Command"><span id="cmd-hint"></span></div>
   <div id="backup-panel" tabindex="-1" hidden role="dialog" aria-label="Backups"></div>
   <nav id="rail" aria-label="Screens">

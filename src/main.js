@@ -15,7 +15,7 @@ import { createSynthwaveProject } from './project/synthwave.js';
 import { createArpDemoProject } from './project/arpdemo.js';
 import { artCanvas, encodeMp4 } from './audio/mp4.js';
 import { createVisData } from './ui/visdata.js';
-import { createVisual } from './ui/visual.js';
+import { createVisual, createLabels } from './ui/visual.js';
 import * as ops from './project/ops.js';
 import { importMidi, parseMidi } from './project/midi.js';
 import { modToProject, parseMod } from './project/mod.js';
@@ -1430,14 +1430,14 @@ const toggleMeters = () => config.set('meterOn', !meters.open);
 // The live picture: a 300 x 300 shader in the corner, fed by what the lanes play (ui/visdata.js, ui/visual.js).
 const vizBox = $('viz'), vizErr = $('viz-err');
 const visdata = createVisData({ lanes: () => project?.lanes ?? [], transport: engine.transport, song: () => project?.song, decayMs: () => config.get('visualDecay') });
-let visual = null, vizOn = false;
+let visual = null, labels = null, vizOn = false;
 const placeViz = () => { vizBox.style.bottom = `${$('footer').offsetHeight + (meters.open ? config.get('meterHeight') : 0) + 14}px`; };
 const showViz = on => {
   vizOn = on;
   if (on && !visual) {
     visual = createVisual($('viz-canvas'), { onError: text => { vizErr.hidden = !text; vizErr.textContent = text; } });
     if (!visual) { vizOn = false; $('status').textContent = 'The live picture needs WebGL, which this browser does not have.'; }
-    else visual.setSource(config.get('visualGlsl'));
+    else { visual.setSource(config.get('visualGlsl')); labels = createLabels($('viz-text')); }
   }
   vizBox.hidden = !vizOn; $('viz-btn').setAttribute('aria-pressed', String(vizOn)); placeViz();
 };
@@ -1853,7 +1853,7 @@ $('start').addEventListener('click', async () => {
     // Only the screen that is showing is drawn: a hidden one has nothing to measure or paint, and its work would only delay the one you are using.
     const frame = now => {
       const tab = tabs.active;
-      if (vizOn && visual) visual.draw(visdata.frame(now ?? performance.now()));
+      if (vizOn && visual) { const d = visdata.frame(now ?? performance.now()); d.skeleton = config.get('visualSkeleton'); visual.draw(d); labels?.update(d.names, d.skeleton); }
       songInfo(); syncLaneName();
       if (tab === 'arrange' || !tab) seqView.draw();
       if (tab === 'patterns' || !tab) view.draw();

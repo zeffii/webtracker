@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 371 · 2026-10-22
+
+- Live picture: a pattern skeleton over it. Every lane is a thin row of its notes around the playhead (8 ticks behind, 23 ahead), scrolling past a fixed line; pitch is the height of a tick and velocity its strength, and a note off is a small dash. The lane names stand down the left edge. Everything the skeleton draws, text included, is one muted blue, the colour of the first screen's text; nothing cycles through colours. Config, Visual: "pattern skeleton" switches it off. For your own shader: `cell("kick", dx)` gives the row dx ticks from the playhead (note starts, pitch, velocity, note off), `NL` is the lane count and `SKEL` is 1 when the skeleton is on.
+
 ## 370 · 2026-10-22
 
 - Fix: a lane added in the session ("Add lane for", for example for a cloned instrument) said "this lane lists no parameters" when you right-clicked it for an automation curve, until the project was saved and reloaded. New lanes now list their curve targets (Volume and the exposed parameters) at once.

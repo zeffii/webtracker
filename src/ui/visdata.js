@@ -11,6 +11,7 @@ import { MASTER } from '../instruments.js';
 import { EMPTY, CUT, OFF, decodeNote, decodeHex1, decodeHex2 } from '../seq/cells.js';
 
 export const MAX_LANES = 16;
+export const WIN = 32, BEHIND = 8;   // the pattern window a shader can read: WIN ticks across, the playhead BEHIND ticks from the left edge
 
 // The lanes a picture can see: every lane but the master lane, in order, at most MAX_LANES.
 export const visibleLanes = lanes => (lanes ?? []).filter(l => l.instrument !== MASTER).slice(0, MAX_LANES);
@@ -40,10 +41,28 @@ export function readTick(lane, state, tick) {
   return hit;
 }
 
+// What one row of a lane holds, without touching any state: [note starts (0 or 1), pitch 0..1, velocity 0..1, note off or cut (0 or 1)].
+export function peek(lane, tick) {
+  const page = lane.pages?.[(tick / PAGE_TICKS) | 0];
+  if (!page || tick < 0) return null;
+  const channels = lane.channels ?? lane.columns.reduce((n, c) => Math.max(n, c.ch + (c.kind === 'cmd' ? 2 : 1)), 0);
+  const base = (tick % PAGE_TICKS) * channels;
+  let hit = 0, pitch = 0, vel = 1, off = 0, any = false;
+  for (const col of lane.columns) {
+    const v = page[base + col.ch];
+    if (v === EMPTY) continue;
+    if (col.kind === 'vel') vel = decodeHex2(v) / 255;
+    else if (col.kind === 'trig') { if (decodeHex1(v) > 0) { hit = 1; pitch = Math.max(pitch, (col.note ?? 60) / 127); vel = decodeHex1(v) / 15; any = true; } }
+    else if (col.kind === 'note') { any = true; if (v === CUT || v === OFF) off = 1; else { hit = 1; pitch = Math.max(pitch, decodeNote(v) / 127); } }
+  }
+  return any ? [hit, Math.min(1, pitch), Math.min(1, vel), off] : null;
+}
+
 // transport: the Int32Array the sequencer fills ([tick, playing, fraction of the tick in 1/65536]); song: { ticksPerBeat }.
 export function createVisData({ lanes, transport, song, decayMs = () => 220 }) {
   let states = [], key = '', lastTick = -1, last = 0, time = 0;
-  const out = { T: 0, BEAT: 0, HITS: 0, lane: new Float32Array(MAX_LANES * 4), names: [] };
+  const out = { T: 0, BEAT: 0, HITS: 0, NL: 1, lane: new Float32Array(MAX_LANES * 4), names: [], pat: new Uint8Array(WIN * MAX_LANES * 4) };
+  let patTick = -2, patKey = '';
   const sync = () => {
     const list = visibleLanes(lanes()), k = list.map(l => `${l.id}\u0000${l.instrument}`).join('\u0001');
     if (k !== key) { key = k; states = list.map(() => ({ hit: 0, pitch: 0.5, vel: 0, held: 0 })); out.names = list.map(l => [l.id, l.instrument]); lastTick = -1; }
@@ -68,6 +87,17 @@ export function createVisData({ lanes, transport, song, decayMs = () => 220 }) {
       states.forEach((s, i) => { out.lane.set([s.hit, s.pitch, s.vel, s.held], i * 4); sum += s.hit; });
       out.lane.fill(0, states.length * 4);
       out.HITS = Math.min(1, sum / 2);
+      // the window of rows around the playhead, rebuilt when the playhead moves or the lanes change
+      if (tick !== patTick || patKey !== key) {
+        patTick = tick; patKey = key; out.pat.fill(0);
+        list.forEach((lane, i) => {
+          for (let c = 0; c < WIN; c++) {
+            const cell = peek(lane, tick + c - BEHIND);
+            if (cell) out.pat.set([cell[0] * 255, cell[1] * 255, cell[2] * 255, cell[3] * 255], (i * WIN + c) * 4);
+          }
+        });
+      }
+      out.NL = Math.max(1, states.length);
       out.T = time;
       out.BEAT = ((tick + frac) / Math.max(1, song()?.ticksPerBeat ?? 4));
       return out;
@@ -82,6 +112,7 @@ export function preprocess(source, names) {
   const comp = { hit: 'x', pitch: 'y', vel: 'z', held: 'w' };
   return String(source)
     .replace(/\bhits\s*\(\s*\)/g, 'HITS')
+    .replace(/\bcell\s*\(\s*(?:"([^"]*)"|'([^']*)')\s*,/g, (m, a, b) => { const i = at(a ?? b); return i >= 0 ? `cell(${i}.,` : `cell(-1.,`; })
     .replace(/\b(hit|pitch|vel|held)\s*\(\s*(?:"([^"]*)"|'([^']*)'|([^()]*?))\s*\)/g, (_, fn, a, b, expr) => {
       if (expr !== undefined) return expr.trim() === '' ? _ : `LANE[${expr.trim()}].${comp[fn]}`;
       const i = at(a ?? b);

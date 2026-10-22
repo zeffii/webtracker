@@ -5,13 +5,19 @@
 //   float BEAT    beats since the song's start  float HITS   every lane's hit added together, 0 to 1
 //   vec3  C1, C2  two colours (deep and light)  vec4  LANE[16]   (hit, pitch, vel, held) of each lane, in lane order
 // and these look-ups, which are rewritten before it is compiled:  hit("kick")  pitch("acid")  vel(2)  held("pad")  hits()
+// The pattern around the playhead: cell("kick", dx) is (note starts, pitch, velocity, note off) of the row dx ticks from the playhead (negative
+// is behind it, up to -8; ahead goes to +23); the lane may also be a number. NL is how many lanes the song has, SKEL is 1 when the skeleton is on.
 // A lane is named by its id or its instrument's name, or numbered from 0 (the first lane after the master lane). hit is 1 on a note and
 // fades; pitch and vel are of the last note, 0 to 1; held is 1 while the note is held. A name that is not in the song reads 0.
 import { preprocess } from './visdata.js';
 
 const VS = 'attribute vec2 a;void main(){gl_Position=vec4(a,0.,1.);}';
 const PREAMBLE = `precision highp float;
-uniform vec2 R;uniform float T,BEAT,HITS;uniform vec3 C1,C2;uniform vec4 LANE[16];
+uniform vec2 R;uniform float T,BEAT,HITS,NL,SKEL;uniform vec3 C1,C2;uniform vec4 LANE[16];
+uniform sampler2D PAT;
+const float WIN=32.,BEHIND=8.;
+vec4 cell(float lane,float dx){if(lane<0.||dx<-BEHIND||dx>=WIN-BEHIND)return vec4(0.);return texture2D(PAT,vec2((dx+BEHIND+.5)/WIN,(lane+.5)/16.));}
+vec4 cell(int lane,float dx){return cell(float(lane),dx);}
 `;
 const PRE_LINES = PREAMBLE.split('\n').length - 1;
 
@@ -53,9 +59,39 @@ body+=vec3(-.02,.02,.045)*fill*(1.-wrap)*.9;
 body=mix(body,C2*vec3(1.0,.98,.94),pow(back,4.)*clamp(.25+thin,0.,1.)*.22);
 body=mix(body,C2,hits()*.22);
 col=body;}
+// the skeleton: every lane a thin row of the pattern around the playhead, scrolling past a fixed line; one colour, pitch as height, velocity as strength
+if(SKEL>.5){float rows=max(NL,1.);float row=floor((1.-uv.y)*rows);float ry=fract((1.-uv.y)*rows);
+  float cx=uv.x*WIN;float dx=floor(cx)-BEHIND;float fx=fract(cx);
+  vec4 c=cell(row,dx);float a=0.;
+  if(c.x>.5){float py=1.-clamp((c.y-.15)/.65,0.,1.);float bar=step(abs(ry-py*.8-.1),.09)*step(.12,fx)*step(fx,.88);
+    float ahead=dx>=0.?1.:.45;a=bar*(.2+.6*c.z)*ahead;}
+  if(c.w>.5)a=max(a,step(abs(ry-.5),.05)*step(.35,fx)*step(fx,.65)*.35);
+  float line=smoothstep(.006,.0,abs(uv.x-BEHIND/WIN));a=max(a,line*.35);
+  float flare=step(abs(dx),.5)*c.x*(1.-fx*.6);
+  vec3 ink=mix(vec3(.365,.482,.514),vec3(1.),flare);col=mix(col,ink,clamp(a,0.,1.)*(.75));}
 vec2 fc=gl_FragCoord.xy+fract(T*7.3)*91.;
 col+=(h(fc)+h(fc+17.3)-1.)*(2.2/255.)+(h(fc*.77+5.)-.5)*.012;
 gl_FragColor=vec4(col,1.);}`;
+
+// The names of the lanes, written down the left edge beside the skeleton's rows on a transparent 2D canvas laid over the picture (a shader
+// cannot print text). They are the colour of the first screen's text, #5d7b83. Draws again only when the names or the switch change.
+export const TEXT_COLOUR = '#5d7b83';
+export function createLabels(canvas, size = 300) {
+  canvas.width = size; canvas.height = size;
+  const g = canvas.getContext('2d');
+  let sig = '';
+  return {
+    update(names, on) {
+      const key = `${on}|${names.map(n => n[0]).join('\u0001')}`;
+      if (key === sig) return;
+      sig = key; g.clearRect(0, 0, size, size);
+      if (!on || !names.length) return;
+      const rowH = size / Math.max(1, names.length), px = Math.max(6, Math.min(10, rowH * 0.62));
+      g.font = `${px}px ui-monospace, Consolas, monospace`; g.fillStyle = TEXT_COLOUR; g.textBaseline = 'middle'; g.textAlign = 'left';
+      names.forEach(([id], i) => g.fillText(String(id).slice(0, 10), 4, (i + 0.5) * rowH, size * 0.22));
+    },
+  };
+}
 
 // canvas: a canvas (its size is set here); data: createVisData's out object, read every draw; onError(text) hears compile errors (and ''
 // when the shader is fine). Returns null without WebGL.
@@ -67,6 +103,10 @@ export function createVisual(canvas, { size = 300, colours = [[.30, .74, .80], [
   gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
   let program = null, names = [], source = '', locs = {};
+  const tex = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, tex);
+  for (const [k, v] of [[gl.TEXTURE_MIN_FILTER, gl.NEAREST], [gl.TEXTURE_MAG_FILTER, gl.NEAREST], [gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE], [gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE]]) gl.texParameteri(gl.TEXTURE_2D, k, v);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 32, 16, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array(32 * 16 * 4));
   const compile = (type, text) => {
     const s = gl.createShader(type); gl.shaderSource(s, text); gl.compileShader(s);
     return gl.getShaderParameter(s, gl.COMPILE_STATUS) ? { s } : { error: gl.getShaderInfoLog(s) ?? 'the shader did not compile' };
@@ -81,7 +121,7 @@ export function createVisual(canvas, { size = 300, colours = [[.30, .74, .80], [
     if (program) gl.deleteProgram(program);
     program = pr; gl.useProgram(pr);
     const at = gl.getAttribLocation(pr, 'a'); gl.enableVertexAttribArray(at); gl.vertexAttribPointer(at, 2, gl.FLOAT, false, 0, 0);
-    locs = { R: gl.getUniformLocation(pr, 'R'), T: gl.getUniformLocation(pr, 'T'), BEAT: gl.getUniformLocation(pr, 'BEAT'), HITS: gl.getUniformLocation(pr, 'HITS'), LANE: gl.getUniformLocation(pr, 'LANE') };
+    locs = { NL: gl.getUniformLocation(pr, 'NL'), SKEL: gl.getUniformLocation(pr, 'SKEL'), PAT: gl.getUniformLocation(pr, 'PAT'), R: gl.getUniformLocation(pr, 'R'), T: gl.getUniformLocation(pr, 'T'), BEAT: gl.getUniformLocation(pr, 'BEAT'), HITS: gl.getUniformLocation(pr, 'HITS'), LANE: gl.getUniformLocation(pr, 'LANE') };
     gl.uniform3fv(gl.getUniformLocation(pr, 'C1'), colours[0]); gl.uniform3fv(gl.getUniformLocation(pr, 'C2'), colours[1]);
     return '';
   }
@@ -101,6 +141,10 @@ export function createVisual(canvas, { size = 300, colours = [[.30, .74, .80], [
       if (!program) return;
       gl.uniform2f(locs.R, size, size); gl.uniform1f(locs.T, data.T); gl.uniform1f(locs.BEAT, data.BEAT); gl.uniform1f(locs.HITS, data.HITS);
       gl.uniform4fv(locs.LANE, data.lane);
+      gl.uniform1f(locs.NL, data.NL); gl.uniform1f(locs.SKEL, data.skeleton ? 1 : 0);
+      gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, tex);
+      gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, 32, 16, gl.RGBA, gl.UNSIGNED_BYTE, data.pat);
+      gl.uniform1i(locs.PAT, 0);
       gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     },
     get fallback() { return fallback; },
