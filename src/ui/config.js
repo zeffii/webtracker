@@ -44,6 +44,7 @@ export const SCHEMA = [
   { key: 'wireControl', label: 'Wire colour: control', hint: 'envelopes, lfos and triggers', type: 'colour', def: '#e09429' },
   { key: 'wireStereo', label: 'Wire colour: stereo', hint: 'a left and right pair on one wire', type: 'colour', def: '#b177c5' },
   { key: 'wireParam', label: 'Wire colour: parameter', hint: 'a control signal that drives a parameter port', type: 'colour', def: '#f4857b' },
+  { key: 'wireDashed', label: 'Control wires are dashed', hint: 'control and parameter wires are drawn dashed, so they read apart from audio at a glance (colour alone is the other way)', type: 'bool', def: true },
   { group: 'Editing', key: 'wireStraight', label: 'Graph: wires between close nodes go straight', hint: 'below this distance (in pixels) the wire loses its S-curve and becomes a straight line, easing in up to twice that; 0 keeps every wire curved', type: 'int', min: 0, max: 400, def: 60 },
   { group: 'Graph', key: 'pvHideCc', label: 'Parameter view: hide command parameters', hint: 'leaves out the parameters that a CC command writes from a pattern (the sampler\'s repeat, filter, vibrato and so on); the cc button in the panel title does the same', type: 'bool', def: false },
   { group: 'Graph', key: 'graphGrid', label: 'Graph: faint grid of dots', hint: 'a very faint dot grid behind the nodes, a brighter dot every few', type: 'bool', def: true },

@@ -1023,9 +1023,11 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
       ctx.beginPath();
       ctx.strokeStyle = chosen ? accent : kindColour(kind);
       ctx.lineWidth = hot ? 5 : chosen ? 3.5 : kind === 'stereo' ? 3 : 1.75;   // a stereo pair is drawn heavier
+      ctx.setLineDash((kind === 'control' || kind === 'param') && config.get('wireDashed') ? [7, 5] : []);   // control wires dashed
       ctx.moveTo(a.x, a.y);
       { const k = arm(a, b); ctx.bezierCurveTo(a.x + k, a.y, b.x - k, b.y, b.x, b.y); }
       ctx.stroke();
+      ctx.setLineDash([]);
     });
     if (drag?.kind === 'move' && drag.pull && drag.inline) {   // where the neighbours would be joined
       ctx.save();

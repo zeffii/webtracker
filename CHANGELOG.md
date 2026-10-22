@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 366 · 2026-10-22
+
+- Patcher: control and parameter wires are drawn dashed, audio and stereo wires stay solid (Config, Graph: "Control wires are dashed", on by default).
+
 ## 365 · 2026-10-22
 
 - Header: a project name field beside Save (it is the file name), and a * after it as soon as the project differs from what was last saved or opened. Ctrl+S works from any field, and when the browser's save dialog is used, the file name you pick becomes the project name.
