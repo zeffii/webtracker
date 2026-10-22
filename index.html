@@ -54,6 +54,7 @@
     #about form { margin-top: .75rem; text-align: right; }
     #about form.about-x { position: sticky; top: 0; height: 0; margin: 0; z-index: 1; }   /* a close button at the top right that stays there while the text scrolls */
     #about .about-x button { position: absolute; right: -.5rem; top: -.5rem; font-size: 1.1rem; line-height: 1; padding: 0 .45rem; }
+    #loopbtn[aria-pressed="false"] { opacity: .55; }
     .ico { width: 1em; height: 1em; vertical-align: -.12em; }
     #rec[aria-pressed=true] .ico circle { fill: #fff; }
     #rec[aria-pressed=true] { background: #c0303a; border-color: #c0303a; color: #fff; }
@@ -421,7 +422,7 @@
     #view .now { background: rgba(90, 150, 255, .22); }
     #seq .r.now { position: relative; }
     #seq .r.now::after { content: ""; position: absolute; inset: 0; background: rgba(90, 150, 255, .22); pointer-events: none; }
-    #follow[aria-pressed="true"], #meters-btn[aria-pressed="true"] { background: var(--hi); color: var(--hi-fg); }
+    #follow[aria-pressed="true"], #loopbtn[aria-pressed="true"], #meters-btn[aria-pressed="true"] { background: var(--hi); color: var(--hi-fg); }
     #seq .cell.sel::after { content: ""; position: absolute; inset: 0; background: color-mix(in srgb, var(--hi) 40%, transparent); pointer-events: none; }
     #view .sel { background: color-mix(in srgb, var(--hi) 40%, transparent); }
     #view .cur { background: var(--hi); color: var(--hi-fg); }
@@ -746,6 +747,7 @@
       <button id="play" disabled title="Play (F5), stop (F8)" aria-label="Play"><svg class="ico" viewBox="0 0 12 12"><path d="M2.5 1 L10.5 6 L2.5 11 Z" fill="currentColor"/></svg></button>
       <button id="rec" aria-pressed="false" title="Record MIDI notes into the pattern under the playhead while the song plays (Ctrl+Shift+R)" aria-label="Record"><svg class="ico" viewBox="0 0 12 12"><circle cx="6" cy="6" r="4.5" fill="#d8323f"/></svg></button>
       <button id="follow" aria-pressed="false" title="Follow the song (F9): the grids scroll with the playing row instead of the row marker moving" aria-label="Follow"><svg class="ri" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 8a4 4 0 1 0 0 8a4 4 0 1 0 0-8z M12 2v4 M12 18v4 M2 12h4 M18 12h4"/></svg></button>
+      <button id="loopbtn" aria-pressed="false" title="The song loop: on or off (Ctrl+L). Ctrl+B and Ctrl+E set its start and end" aria-label="Loop"><svg class="ri" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 12c-2-2.5-3.5-4-5.5-4a4 4 0 0 0 0 8c2 0 3.5-1.5 5.5-4s3.5-4 5.5-4a4 4 0 0 1 0 8c-2 0-3.5-1.5-5.5-4z"/></svg></button>
       <i class="sep"></i>
       <div id="lcd" role="group" aria-label="Song settings">
         <label title="Song <span>len</span> in ticks; 16 ticks is one row of the arrangement"><span>len</span> <input id="length" type="number" min="16" max="65536" step="16" style="width:4.5em" disabled></label>

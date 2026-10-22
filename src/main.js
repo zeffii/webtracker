@@ -34,6 +34,7 @@ import { createMidiWriter } from './seq/midiwrite.js';
 import { createMarkerRegionView } from './project/markerregion.js';
 import { FILE_EXT, INSTRUMENT_EXT, parseInstrument, parseProject, serializeInstrument, serializeProject } from './project/file.js';
 import { createEditor } from './seq/editor.js';
+import { toggleLoop } from './seq/loop.js';
 import { prepareSong, rebuildInstrumentLanes } from './seq/lane.js';
 import * as config from './ui/config.js';
 import { createSequenceView } from './seq/seqview.js';
@@ -563,6 +564,8 @@ const sendSamples = id => { for (const node of Object.keys(project.instruments[i
 // Song name, tempo and position, shown in the header on every screen.
 const songInfo = () => {
   if (!project) return;
+  const looping = String(!!project.song.loop && !project.song.loop.off);
+  if ($('loopbtn').getAttribute('aria-pressed') !== looping) $('loopbtn').setAttribute('aria-pressed', looping);
   const { name, length } = project.song;
   const tick = Atomics.load(engine.transport, 0);
   $('song-info').textContent = `${name ?? 'untitled'} · row ${String(tick).padStart(2, '0')}/${length}`;
@@ -941,6 +944,7 @@ showTheme(config.get('theme'));
 }
 
 // ---- tempo and swing ----
+$('loopbtn').addEventListener('click', () => { if (!project) return; const m = toggleLoop(project.song); songChanged(); (tabs.active === 'arrange' ? seqView : view).say?.(m); (tabs.active === 'arrange' ? seqView : view).draw?.(); $('loopbtn').blur(); });
 const songChanged = () => { engine.setSong(project.song); songInfo(); };
 $('bpm').addEventListener('change', () => {
   project.song.bpm = Math.max(20, Math.min(400, Math.round(Number($('bpm').value)) || project.song.bpm));
