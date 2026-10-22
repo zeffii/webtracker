@@ -2,7 +2,7 @@
 //
 // A new note never interrupts a sample that is playing to its end, so percussion can
 // ring over the next hit. A looping sample cannot end by itself, so a new note fades
-// the looping voices out over nnaFade ms (0 cuts them at once); with nnaAll on, one-shots fade too. Note off releases
+// the looping voices out over nnaFade ms (0 cuts them at once); with nnaAll on (the default), a one-shot is faded by the next note in its own column too. Note off releases
 // looping voices over release ms and leaves one-shots to finish; all-off (transport
 // stop) releases everything; note cut stops everything immediately. A note off that the
 // sequencer implies by playing a new note (msg.implied) is ignored here: the new note's
@@ -131,7 +131,7 @@ export default {
     { name: 'lfoPhase', min: 0, max: 65535, def: 65535, int: true },
     { name: 'vibSync', min: 0, max: 65535, def: 0, int: true },         // set the vibrato phase now
     { name: 'lfoSync', min: 0, max: 65535, def: 0, int: true },
-    { name: 'nnaAll', min: 0, max: 1, def: 0, int: true },               // 1: a new note fades one-shots too, not only looping samples (over nnaFade ms)
+    { name: 'nnaAll', min: 0, max: 1, def: 1, int: true },               // 1 (the default): a new note fades one-shots too, not only looping samples (over nnaFade ms); 0 lets them ring on
   ],
   create({ sampleRate, stereo = false, clock }) {
     // The samples this node can play, by slot (the instrument's sample list); a note picks one by the `sample`
@@ -318,7 +318,7 @@ export default {
               continue;
             }
           }
-          for (let k = 0; k < VOICES; k++) if (k !== v && active[k] && mode[k] === PLAYING && !fresh[k] && age[k] < age[v] && (loopy[k] || choke[v] || P(NNAALL) >= 0.5)) mode[k] = FADING;
+          for (let k = 0; k < VOICES; k++) if (k !== v && active[k] && mode[k] === PLAYING && !fresh[k] && age[k] < age[v] && (loopy[k] || choke[v] || (P(NNAALL) >= 0.5 && from[v] >= 0 && note[k] === from[v]))) mode[k] = FADING;   // a one-shot is cut by the next note of its own column, not by other columns' notes
           const si = Math.max(0, Math.min(255, Math.floor(params[slots[SAMPLE]]) || 0));
           if (!bank[si]) { active[v] = 0; continue; }   // no sample in that slot: the note is silent
           const last = bank[si].sample.length - 1;

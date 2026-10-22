@@ -84,14 +84,14 @@ export const PAGES = {
         title: 'How a note plays',
         text: [
           'A note starts a sound at the start position (the Off column, or a slice marker if the 10 slice command points at one) and plays it forward, or backward when 0A reverse is 1. The sample\'s own loops apply: a looping sample plays on until the note ends, a one-shot plays to its end.',
-          'A new note fades out looping voices over nnaFade ms (new-note action). One-shots are left to ring, unless nnaAll is 1.',
+          'A new note fades out what its column was still playing over nnaFade ms (new-note action), so a new hit cuts the one before it. Write 1F nnaAll 0000 to let one-shots ring on instead.',
         ],
       },
       {
-        title: 'Making a new note cut the old one',
+        title: 'Making a new note cut the old one (or not)',
         text: [
-          'Two commands, written in a command column of the sampler\'s lane (on the first row is enough, they stay until changed): 1F nnaAll 0001 turns it on for one-shots too, and 06 nnaFade sets how long the old sound takes to fade out, in ms (0000 cuts it at once, 0014 is the default 20 ms).',
-          'Looping samples fade out on a new note without nnaAll. One-shots (drums, hits) keep ringing over the next note unless 1F nnaAll is 1. Write 1F 0000 to let them ring again.',
+          'By default a new note cuts the note its own column was still playing, over the 06 nnaFade time in ms (0000 cuts it at once, 0014 is the default 20 ms). Notes in other columns, and chords, are left alone.',
+          'To let one-shots (drums, hits) ring on over the next note instead, write 1F nnaAll 0000 in a command column of the sampler\'s lane (on the first row is enough, it stays until changed); 1F 0001 turns the cutting back on. Looping samples always fade out.',
         ],
       },
       {
@@ -139,8 +139,8 @@ export const PAGES = {
           ['Rtg', 'column: ticks between repeats, 1000 is one tick, 0000 no repeats'],
           ['01 / 02', 'filter cutoff / resonance'],
           ['03, 04, 05', 'delay time / feedback / mix'],
-          ['06 nnaFade', 'ms for the old sound to fade out when a new note starts (looping samples always; one-shots when 1F nnaAll is 1); 0000 cuts it at once'],
-          ['1F nnaAll', '0001: a new note also cuts a one-shot that is still playing (over the 06 nnaFade time), so hits choke each other; 0000: they ring on'],
+          ['06 nnaFade', 'ms for the old sound to fade out when a new note starts in its column (looping samples always; one-shots when 1F nnaAll is 1, the default); 0000 cuts it at once'],
+          ['1F nnaAll', '0001 (the default): a new note cuts the one-shot its column was still playing (over the 06 nnaFade time), so hits choke each other; 0000: they ring on'],
           ['07 repeats', 'how many repeats (0000 until the note ends)'],
           ['08 shift', 'the start moves this far along the sample per repeat; 8000 none, above goes forward, below back'],
           ['09 ramp', 'each repeat\'s volume is multiplied by this; C000 is x1, 8000 halves it'],

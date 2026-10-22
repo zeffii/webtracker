@@ -36,7 +36,7 @@ const HINTS = {
     level: 'Output level of the sampler.',
     root: 'The note (0 to 127, 60 is middle C) at which the sample plays at its own pitch. Notes above or below speed it up or slow it down from here.',
     release: 'Fade-out in ms when a note ends, for looping samples (one-shots play to their end).',
-    nnaFade: 'New-note action: when a new note starts, looping voices fade out over this many ms (0 cuts them at once). One-shots ring on unless nnaAll is 1, then they fade over the same time.',
+    nnaFade: 'New-note action: when a new note starts in a column, the note that column was playing fades out over this many ms (0 cuts it at once). Looping samples always fade; one-shots too unless nnaAll is 0.',
     offset: 'Where the note starts in the sample, as a fraction of its length (0 start, 1 end). With reverse on it is measured from the end.',
     reverse: '1 plays the sample backwards.',
     retrig: 'Repeats the note every this many ticks (0 is no repeats). In a pattern, hex 1000 is one tick.',

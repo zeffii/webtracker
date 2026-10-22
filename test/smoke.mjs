@@ -602,11 +602,12 @@ const firstSound = x => x.findIndex(v => Math.abs(v) > 1e-9);
   assert.equal(moves.length, 3);
 }
 
-// 26. New-note action, one-shots: a hit that is still playing is not cut by the next one.
+// 26. New-note action, one-shots: with nnaAll off a hit that is still playing is not cut by the next one (on is the default).
 {
-  const run = cells => {
+  const run = (cells, all = 0) => {
     const rows = {}; cells.forEach(([tick, cell]) => { rows[tick] = cell; });
-    const { seq } = songSetup(song120([oneLane('bass', 'bass', patternText(16, rows))]));
+    const { seq, registry } = songSetup(song120([oneLane('bass', 'bass', patternText(16, rows))]));
+    registry.set('bass.sampler.nnaAll', all);
     seq.play();
     return render(seq, 1).left;
   };
@@ -614,6 +615,9 @@ const firstSound = x => x.findIndex(v => Math.abs(v) > 1e-9);
   const both = run([[0, 'C-3 .. .. .... .... .. .. ..'], [2, 'E-3 .. .. .... .... .. .. ..']]);
   assert.ok(peak(a) > 0.05 && peak(b) > 0.05);
   assert.ok(both.every((v, i) => Math.abs(v - (a[i] + b[i])) < 1e-5), 'the second hit cut the first');
+  const cut = run([[0, 'C-3 .. .. .... .... .. .. ..'], [2, 'E-3 .. .. .... .... .. .. ..']], 1);
+  assert.ok(!cut.every((v, i) => Math.abs(v - (a[i] + b[i])) < 1e-5), 'by default the second hit cuts the first');
+  assert.equal(new ParamRegistry().allocate('x', 1, 0, 1) >= 0, true);
   // note off leaves a one-shot alone
   const withOff = run([[0, 'C-3 .. .. .... .... .. .. ..'], [4, '=== .. .. .... .... .. .. ..']]);
   assert.ok(withOff.every((v, i) => Math.abs(v - a[i]) < 1e-9), 'note off cut a one-shot');
