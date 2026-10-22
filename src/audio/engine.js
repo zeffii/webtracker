@@ -15,6 +15,7 @@ export class Engine {
   ctx = null;
   wasmModule = null;
   node = null;
+  dither = true;   // a whisper of noise on the output (see the worklet), so very quiet sound does not crackle
   watching = new Set();   // nodes whose output is being watched (replayed when the audio thread starts)
   onFault = null;   // called with an instrument id when the audio thread had to rebuild it
   registry = new ParamRegistry();
@@ -43,6 +44,7 @@ export class Engine {
       else if (data.type === 'scope') this.onScope?.(data);
       else if (data.type === 'emit') this.onEmit?.(data);
     };
+    this.node.port.postMessage({ type: 'dither', on: this.dither });
     if (this.laneIds.length) this.node.port.postMessage({ type: 'lanetaps', ids: this.laneIds });
     for (const key of this.watching) { const [instrument, node] = key.split('\u0000'); this.node.port.postMessage({ type: 'scope', instrument, node, on: true }); }
     this.node.connect(this.ctx.destination);
@@ -50,6 +52,7 @@ export class Engine {
   }
 
   // Which instrument each slot of the per-instrument rings follows.
+  setDither(on) { this.dither = on; this.node?.port.postMessage({ type: 'dither', on }); }
   setLaneTaps(ids) { this.laneIds = ids; this.node?.port.postMessage({ type: 'lanetaps', ids }); }
 
   // Where the audio stack says we stand: output latency in ms and, where the browser reports it, how many times it

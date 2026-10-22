@@ -7,6 +7,7 @@ class TrackerEngine extends AudioWorkletProcessor {
     super();
     const { sab, transport, wasm, vring, lring } = options.processorOptions;
     this.vring = ringWriter(vring);
+    this.dither = true; this.noise = 2463534242 | 0;
     const lanes = this.lanes = laneWriter(lring), slotOf = new Map();
     this.setLaneIds = ids => { slotOf.clear(); ids.forEach((id, k) => slotOf.set(id, k)); };
     const params = new Float32Array(sab);
@@ -28,6 +29,7 @@ class TrackerEngine extends AudioWorkletProcessor {
       else if (data.type === 'scope') this.rt.setScope(data.instrument, data.node, data.on);
       else if (data.type === 'cut') { this.rt.panic(); this.seq.stop(); this.halted = true; }
       else if (data.type === 'panic') this.rt.panic();
+      else if (data.type === 'dither') this.dither = data.on;
       else if (data.type === 'lanetaps') this.setLaneIds(data.ids);
       else if (data.type === 'reset') {
         const fresh = new Float32Array(data.sab);
@@ -55,6 +57,15 @@ class TrackerEngine extends AudioWorkletProcessor {
     }
     const t0 = Date.now();
     this.seq.process(out[0], out[1], out[0].length);
+    if (this.dither) {   // triangular noise of one 16-bit step (-96 dB): very quiet sound, fading in or out, is otherwise rounded by the sound card into crackle
+      let z = this.noise, n = out[0].length;
+      for (let c = 0; c < 2; c++) for (let i = 0; i < n; i++) {
+        z ^= z << 13; z ^= z >>> 17; z ^= z << 5; const a = (z >>> 0) / 4294967296;
+        z ^= z << 13; z ^= z >>> 17; z ^= z << 5; const b = (z >>> 0) / 4294967296;
+        out[c][i] += (a + b - 1) / 32768;
+      }
+      this.noise = z;
+    }
     if (this.vring.on) this.vring.write(out[0], out[1], out[0].length);
     const ms = Date.now() - t0;
     this.sumMs += ms; this.blocks++; this.seen++;

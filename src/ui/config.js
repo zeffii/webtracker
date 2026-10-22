@@ -23,6 +23,7 @@ export const SCHEMA = [
   { key: 'splash', label: 'First screen', hint: 'only a "click to initialize" button at first, then the tracker (off: the tracker with its Start button)', type: 'bool', def: true },
   { key: 'patternTint', label: 'Tint patterns by colour', hint: 'a faint patchwork behind each pattern in the pattern editor (Alt+T)', type: 'bool', def: false },
   { key: 'fontSize', label: 'Pattern editor font size', type: 'int', min: 8, max: 40, def: 13, legacy: ['patternFontSize', v => Number(v)] },
+  { group: 'Playing', key: 'dither', label: 'Output dither', hint: 'adds a whisper of noise (-96 dB) so very quiet sound, such as a slow fade-in, does not crackle; switch off for bit-exact output', type: 'bool', def: true },
   { group: 'Playing', key: 'follow', label: 'Follow mode', hint: 'the grids scroll with the playing row', type: 'bool', def: true, legacy: ['webtracker.follow', v => v === '1'] },
   { key: 'splashStyle', label: 'First screen look', hint: 'a drifting translucent blob (needs WebGL), or the turning wireframe logo', type: 'choice', options: ['blob', 'logo'], labels: { blob: 'a slow translucent blob', logo: 'the turning logo' }, def: 'blob' },
   { key: 'followRoam', label: 'Allow the caret to roam while following', hint: 'moving the caret to another row pauses the following until F9 or the Follow button', type: 'bool', def: true },

@@ -46,6 +46,8 @@ import { createScriptScreen } from './script/screen.js';
 import { placementAt } from './seq/edit.js';
 
 const engine = new Engine();
+engine.dither = config.get('dither');
+config.onChange((k, v) => { if (k === 'dither') engine.setDither(v); });
 const $ = id => document.getElementById(id);
 let started = false, playing = false, project = null, recording = false;
 

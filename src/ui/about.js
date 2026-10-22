@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['345', ['Config: Output dither (on by default) adds a whisper of noise (about -96 dB) to the sound going out, so very quiet sound, like the start of a slow fade-in, is not rounded into crackle by the sound card. Exports are unchanged.']],
   ['344', ["Volume curves now drive a hidden channel stage after each machine's output node: a 0 to 1 level (1 is the machine as it is set) applied smoothly to every sample, instead of moving the output node's gain. The output node's own gain setting is left alone, and stopping returns the stage to 1. The parameter block is four times larger (a big song was within a few slots of the old limit)."]],
   ['343', ['With the first screen on, the tracker is hidden from the very first paint, so it is no longer seen for a moment before the splash.']],
   ['342', ['A small infinity symbol in the header shows whether the song loop is on (lit) or off (dim), and clicking it switches the loop, like Ctrl+L.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['338', ['Sampler: new command 1F nnaAll. At 1, a new note also fades out a one-shot sample that is still playing (over the 06 nnaFade time, 0 cuts it), so hits cut each other; at 0, one-shots ring on over the next note as before (nnaFade has only ever acted on looping samples). The command help now says so.']],
   ['337', ['The arrangement cursor no longer carries the small pattern colour swatch: the pattern list shows the colour.']],
   ['336', ['The shortcut window has a find box: type words or parts of words and only the shortcuts that contain all of them stay (the window title says which screen). The lane menu in the arrangement now says Add automation curve: Volume (or another parameter), and the arrangement shortcut list describes the curve keys.']],
-  ['335', ['Lane curves: click a line to switch that segment on, then C, L or G make it a curve, a straight line or a gap (with an anchor selected the keys act on the segment after it). Double-click the line to add an anchor; Esc lets go. The icon box still cycles the three.']],
 ];
