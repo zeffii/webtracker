@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 348 · 2026-10-22
+
+- First screen: the start-up report text is lighter still and a tenth smaller.
+
 ## 347 · 2026-10-22
 
 - First screen: the build and revision show small in off-white at the top right of the card, and the start-up report text is a little lighter.

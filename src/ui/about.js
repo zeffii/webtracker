@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['348', ['First screen: the start-up report text is lighter still and a tenth smaller.']],
   ['347', ['First screen: the build and revision show small in off-white at the top right of the card, and the start-up report text is a little lighter.']],
   ['346', ['A Volume curve now never goes below 0.003 (about -50 dB), so a fade-in from 0 no longer holds the output at digital silence, where some sound devices click as they wake.']],
   ['345', ['Config: Output dither (on by default) adds a whisper of noise (about -96 dB) to the sound going out, so very quiet sound, like the start of a slow fade-in, is not rounded into crackle by the sound card. Exports are unchanged.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['341', ['Opening a project (a file, the demo, or a new one) now lands on the arrangement (sequencer) screen instead of the pattern editor.']],
   ['340', ['Volume curves are now a final amplifier: the curve (0 to 1) multiplies the level the machine is set to, so 1 is exactly as set and a curve can never make it louder (before, 1 meant the gain\'s maximum, three times a 0.5 setting, which could overload the sound). Stopping puts the machine back at its own level, and changing that level while playing still works. Existing Volume curves will sound quieter.']],
   ['339', ['First screen: the start-up report now sits inside the card, growing up from its bottom-left corner, and the status words (ok, ready) all line up in one column.']],
-  ['338', ['Sampler: new command 1F nnaAll. At 1, a new note also fades out a one-shot sample that is still playing (over the 06 nnaFade time, 0 cuts it), so hits cut each other; at 0, one-shots ring on over the next note as before (nnaFade has only ever acted on looping samples). The command help now says so.']],
 ];
