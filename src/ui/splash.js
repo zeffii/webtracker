@@ -45,10 +45,10 @@ export function createSplash({ box, onStart }) {
   {
     const full = go.textContent;
     const roll = async () => {
-      await wait(450);
+      await wait(360);
       for (let i = 1; i <= full.length && !busy; i++) {
         go.replaceChildren(document.createTextNode(full.slice(0, i)), Object.assign(document.createElement('span'), { textContent: full.slice(i), style: 'opacity:0' }));
-        await wait(38);
+        await wait(30);
       }
       if (!busy) go.textContent = full;
     };

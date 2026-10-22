@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 359 · 2026-10-22
+
+- First screen: the click-anywhere line unrolls a fifth faster and sits 80 px higher.
+
 ## 358 · 2026-10-22
 
 - First screen: the click-anywhere line unrolls from its first letter and is a little lighter.
