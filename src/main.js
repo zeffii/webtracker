@@ -1,6 +1,5 @@
 import { Engine } from './audio/engine.js';
 import { encodeWav, renderSong } from './audio/export.js';
-import { createVectorscope } from './ui/vectorscope.js';
 import { createMeters } from './ui/meters.js';
 import { createSplash } from './ui/splash.js';
 import { parseRules, analyse, resolve, stepsOf, label as stepLabel, describe as describeRule, noteUnknown, unknownTyped, clearUnknown, ACTIONS } from './ui/console.js';
@@ -1295,62 +1294,11 @@ function startDownloads() {
   }, Math.max(1, config.get('backupDownloadMinutes')) * 60000);
 }
 
-// Vectorscope overlay: Ctrl+Alt+O or the Scope button. Size, corner and look are in Config.
-const vscopeBox = $('vscope');
-const vscope = createVectorscope({ box: vscopeBox, canvas: $('vscope-canvas'), sab: engine.vring, options: () => ({ linger: config.get('vscopeLinger'), glow: config.get('vscopeGlow') }) });
-// Where it sits: the corner from Config until it is dragged; then where it was left (kept as a share of the free room, so it stays put when the window changes size).
-const SCOPE_MARGIN = 28, POS_KEY = 'webtracker.vscopePos';
-let scopePos = null;
-try { scopePos = JSON.parse(localStorage.getItem(POS_KEY)); } catch { /* none kept */ }
-const saveScopePos = () => { try { if (scopePos) localStorage.setItem(POS_KEY, JSON.stringify(scopePos)); else localStorage.removeItem(POS_KEY); } catch { /* not kept */ } };
-const placeScope = () => {
-  vscopeBox.style.setProperty('--vs', config.get('vscopeSize'));
-  const w = vscopeBox.offsetWidth || Math.min(innerWidth, innerHeight) * config.get('vscopeSize') / 100, s = vscopeBox.style;
-  s.top = s.bottom = s.left = s.right = 'auto';
-  if (scopePos && Number.isFinite(scopePos.x) && Number.isFinite(scopePos.y)) {
-    s.left = `${Math.round(Math.max(0, Math.min(1, scopePos.x)) * Math.max(0, innerWidth - w))}px`;
-    s.top = `${Math.round(Math.max(0, Math.min(1, scopePos.y)) * Math.max(0, innerHeight - w))}px`;
-    return;
-  }
-  const c = config.get('vscopeCorner');
-  s[c[0] === 't' ? 'top' : 'bottom'] = `${SCOPE_MARGIN}px`; s[c[1] === 'l' ? 'left' : 'right'] = `${SCOPE_MARGIN}px`;
-};
-{
-  let drag = null;
-  vscopeBox.addEventListener('pointerdown', e => {
-    if (e.button !== 0) return;
-    const r = vscopeBox.getBoundingClientRect();
-    drag = { resize: e.target === $('vscope-grip'), dx: e.clientX - r.left, dy: e.clientY - r.top, left: r.left, top: r.top };
-    vscopeBox.setPointerCapture(e.pointerId); e.preventDefault();
-  });
-  vscopeBox.addEventListener('pointermove', e => {
-    if (!drag) return;
-    if (drag.resize) {
-      const side = Math.max(e.clientX - drag.left, e.clientY - drag.top);
-      config.set('vscopeSize', Math.round(100 * side / Math.min(innerWidth, innerHeight)));
-      placeScope();
-    } else {
-      const w = vscopeBox.offsetWidth, room = { x: Math.max(1, innerWidth - w), y: Math.max(1, innerHeight - w) };
-      scopePos = { x: Math.max(0, Math.min(1, (e.clientX - drag.dx) / room.x)), y: Math.max(0, Math.min(1, (e.clientY - drag.dy) / room.y)) };
-      placeScope();
-    }
-  });
-  const end = () => { if (drag && !drag.resize) saveScopePos(); drag = null; };
-  vscopeBox.addEventListener('pointerup', end); vscopeBox.addEventListener('pointercancel', end);
-  vscopeBox.addEventListener('dblclick', () => { scopePos = null; saveScopePos(); placeScope(); });
-  addEventListener('resize', () => { if (vscope.open) placeScope(); });
-}
-const showScope = on => { if (on) vscope.show(); else vscope.hide(); $('scope').setAttribute('aria-pressed', String(on)); placeScope(); };
-const toggleScope = () => config.set('vscopeOn', !vscope.open);
-config.onChange((k, v) => { if (k === 'vscopeOn') showScope(v); else if (k.startsWith('vscope')) placeScope(); });
-$('scope').addEventListener('click', toggleScope);
-showScope(config.get('vscopeOn'));
-
 // Meter band: Ctrl+Alt+M or the Meters button. It sits above the status bar, and the page gets room under it.
 const metersBox = $('meters');
 const meters = createMeters({
   box: metersBox, sab: engine.vring, lsab: engine.lring, lanes: () => project?.lanes ?? [], setTaps: ids => engine.setLaneTaps(ids), sampleRate: () => engine.ctx?.sampleRate ?? 44100,
-  options: () => ({ spectrum: config.get('meterSpectrum'), level: config.get('meterLevel'), corr: config.get('meterCorr'), width: config.get('meterWidth'), sgram: config.get('meterSgram'), layers: config.get('meterLayers'), colour: config.get('meterColour') }),
+  options: () => ({ spectrum: config.get('meterSpectrum'), level: config.get('meterLevel'), corr: config.get('meterCorr'), width: config.get('meterWidth'), sgram: config.get('meterSgram'), layers: config.get('meterLayers'), colour: config.get('meterColour'), vscope: config.get('meterScope'), linger: config.get('vscopeLinger'), glow: config.get('vscopeGlow') }),
 });
 const placeMeters = () => {
   const foot = $('footer').offsetHeight, h = config.get('meterHeight');
@@ -1359,6 +1307,8 @@ const placeMeters = () => {
 };
 const showMeters = on => { if (on) meters.show(); else meters.hide(); $('meters-btn').setAttribute('aria-pressed', String(on)); placeMeters(); };
 const toggleMeters = () => config.set('meterOn', !meters.open);
+// Ctrl+Alt+O: the vectorscope panel of the meter band on or off (the band opens if it is closed)
+const toggleScope = () => { if (!meters.open) { config.set('meterScope', true); config.set('meterOn', true); } else config.set('meterScope', !config.get('meterScope')); };
 
 // ---- the command console: | opens a one-line box that runs a rule from the list in Config on the selection ----
 const cmdbar = $('cmdbar'), cmd = $('cmd'), cmdHint = $('cmd-hint');

@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 327 · 2026-10-22
+
+- The vectorscope is now a panel of the meter band, a square the height of the band at its right end (Ctrl+Alt+O, or Config, Meters), instead of a floating overlay; the Scope button and the overlay's size and corner settings are gone. The spectrum colour option's description is short enough to fit its panel.
+
 ## 326 · 2026-10-21
 
 - Arrangement: Ctrl+Up / Down steps through the pattern list (the selected one is outlined), and Space places the selected pattern at the cursor and moves on to where it ends.

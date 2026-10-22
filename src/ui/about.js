@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['327', ['The vectorscope is now a panel of the meter band, a square the height of the band at its right end (Ctrl+Alt+O, or Config, Meters), instead of a floating overlay; the Scope button and the overlay\'s size and corner settings are gone. The spectrum colour option\'s description is short enough to fit its panel.']],
   ['326', ['Arrangement: Ctrl+Up / Down steps through the pattern list (the selected one is outlined), and Space places the selected pattern at the cursor and moves on to where it ends.']],
   ['325', ['The WAX logo: your glyphs are now the logo on the start screen and at the top of the rail (still the Start button until the audio runs). They take the theme\'s text colour.']],
   ['324', ['The start screen\'s report no longer jumps around as lines are typed: it is left-aligned from a fixed edge instead of centred.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['320', ['Rail: the divider between the rail and the page is a faint line, and the icon outlines are gone (a soft outline appears on hover, the open screen stays filled).']],
   ['319', ['Header tidy: the file icons (save, open, export, backups, new) sit next to the song display, and the meters, scope, cut and panic buttons, the build number and the theme moved to the right end of the bottom status bar. The Arrangement icon now shows vertical lanes.']],
   ['318', ['New top layout: a slim icon rail down the left edge holds the logo (still the Start button), one icon per screen (Patterns, Samples, Instruments, Arrangement, Script, Dock, Info; hover for the name and key) and Shortcuts, About and Config at the foot. The top bar is one row: transport, the song numbers (len, bpm, swing, bar) as a dark green display you edit in place, then file and tool icons, then the theme.']],
-  ['317', ['Note preview is on by default: typed notes in the pattern editor sound while the key is held (Insert or \\ still switches it off; a choice you already made is kept).']],
 ];

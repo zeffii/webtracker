@@ -1,5 +1,5 @@
 // The meter band: a strip along the bottom of the window with a spectrum, level and loudness meters, a correlation bar, the
-// stereo width of the spectral panner's ten bands and a spectrogram. It reads the ring of output samples once per frame and
+// stereo width of the spectral panner's ten bands, a spectrogram and a vectorscope (a square the height of the band). It reads the ring of output samples once per frame and
 // does nothing while hidden. Which panels show, and how tall the band is, come from `options()`.
 import { RING, ringReader, laneReader, LANE_SLOTS } from '../audio/vring.js';
 import { BANDS, SPEC_N, WIDTH_BANDS, createAnalyser, createCorrelation, createLoudness } from './meterdsp.js';
@@ -50,19 +50,19 @@ export function createMeters({ box, sab, lsab, sampleRate, options, lanes = () =
     host.append(lbox);
   }
   let raf = 0, open = false, fs = 44100, panels = [], signature = '', analyser, loud, corr;
-  const state = { l: 0, r: 0, pl: 0, pr: 0, hl: 0, hr: 0, spec: new Float32Array(BANDS).fill(-120), peak: new Float32Array(BANDS).fill(-120), width: new Float32Array(WIDTH_BANDS), hist: [], last: 0 };
+  const state = { l: 0, r: 0, pl: 0, pr: 0, hl: 0, hr: 0, spec: new Float32Array(BANDS).fill(-120), peak: new Float32Array(BANDS).fill(-120), width: new Float32Array(WIDTH_BANDS), hist: [], last: 0, n: 0 };
 
   const KINDS = {
-    spectrum: ['SPECTRUM', 3], level: ['LEVEL', 1.35], corr: ['CORRELATION', 0.9], width: ['STEREO WIDTH BY BAND', 1.5], sgram: ['SPECTROGRAM', 2.4],
+    spectrum: ['SPECTRUM', 3], level: ['LEVEL', 1.35], corr: ['CORRELATION', 0.9], width: ['STEREO WIDTH BY BAND', 1.5], sgram: ['SPECTROGRAM', 2.4], vscope: ['XY MASTER', 0],
   };
   function build() {
-    const o = options(), kinds = ['sgram', 'spectrum', 'width', 'level', 'corr'].filter(k => o[k]);
+    const o = options(), kinds = ['sgram', 'spectrum', 'width', 'level', 'corr', 'vscope'].filter(k => o[k]);
     const sig = `${kinds.join()}|${layersOn()}`, changed = syncLayers();
     if (sig === signature && !changed) return;
     signature = sig; box.textContent = ''; panels = []; lbox = null;
     for (const k of kinds) {
       const d = document.createElement('div'), h = document.createElement('h6'), c = document.createElement('canvas');
-      d.className = 'meter-pan'; d.style.flex = `${KINDS[k][1]} 1 0`; h.textContent = KINDS[k][0]; d.append(h, c); box.append(d);
+      d.className = 'meter-pan'; if (k === 'vscope') d.classList.add('square'); else d.style.flex = `${KINDS[k][1]} 1 0`; h.textContent = KINDS[k][0]; d.append(h, c); box.append(d);
       panels.push({ kind: k, canvas: c });
       if (k === 'spectrum') buildButtons(d);
     }
@@ -139,6 +139,35 @@ export function createMeters({ box, sab, lsab, sampleRate, options, lanes = () =
       }
       g.fillStyle = TXT; g.font = FONT(9); g.fillText('mono', 10, h - 4); g.fillText('wide', w - 30, h - 4); g.fillText('low → high', w / 2 - 26, h - 4);
     },
+    vscope(c) {   // left against right, turned 45 degrees: a mono sound is a vertical line, a wide one spreads sideways; a glowing line that fades
+      const dpr = devicePixelRatio || 1, w = c.clientWidth, h = c.clientHeight;
+      if (c.width !== Math.round(w * dpr) || c.height !== Math.round(h * dpr)) { c.width = Math.round(w * dpr); c.height = Math.round(h * dpr); }
+      const g = c.getContext('2d'), S = Math.min(w, h), ox = (w - S) / 2, oy = (h - S) / 2, { linger = 12, glow = 55 } = options(), glowK = glow / 100;
+      g.setTransform(dpr, 0, 0, dpr, 0, 0); g.globalCompositeOperation = 'source-over';
+      g.fillStyle = `rgba(11,12,15,${Math.max(.04, .5 - linger / 100 * 1.5)})`; g.fillRect(0, 0, w, h);
+      g.save(); g.translate(ox, oy);
+      g.strokeStyle = 'rgba(255,255,255,.08)'; g.lineWidth = 1; g.beginPath();
+      g.moveTo(S / 2, S * .06); g.lineTo(S / 2, S * .94); g.moveTo(S * .06, S / 2); g.lineTo(S * .94, S / 2); g.stroke();
+      g.strokeStyle = 'rgba(255,255,255,.05)'; g.beginPath();
+      g.moveTo(S * .14, S * .14); g.lineTo(S * .86, S * .86); g.moveTo(S * .86, S * .14); g.lineTo(S * .14, S * .86); g.stroke();
+      g.beginPath(); g.arc(S / 2, S / 2, S * .38, 0, Math.PI * 2); g.stroke();
+      g.fillStyle = 'rgba(255,255,255,.3)'; g.font = FONT(9);
+      g.fillText('M', S / 2 + 4, S * .06 + 8); g.fillText('L', S * .1, S * .1 + 4); g.fillText('R', S * .9 - 8, S * .1 + 4);
+      const n = state.n;
+      if (n > 0) {
+        g.globalCompositeOperation = 'lighter'; g.lineWidth = 1.2; g.strokeStyle = `rgba(120,255,170,${.35 + .4 * glowK})`;
+        g.shadowColor = 'rgba(80,255,150,.9)'; g.shadowBlur = (2 + 10 * glowK) * dpr;
+        g.beginPath();
+        const step = n > 1500 ? 2 : 1, R = S * .38;   // a long gap (a slow frame) is thinned rather than drawn in full
+        for (let i = 0; i < n; i += step) {
+          const l = lBlock[i], r = rBlock[i];
+          const x = S / 2 + Math.max(-1.2, Math.min(1.2, (l - r) * .7071)) * R, y = S / 2 - Math.max(-1.2, Math.min(1.2, (l + r) * .7071)) * R;
+          if (i === 0) g.moveTo(x, y); else g.lineTo(x, y);
+        }
+        g.stroke(); g.shadowBlur = 0;
+      }
+      g.restore();
+    },
     sgram(c) {
       const [g, w, h] = ctxOf(c), n = state.hist.length, cw = Math.max(1, w / 400);
       for (let k = 0; k < n; k++) {
@@ -154,7 +183,7 @@ export function createMeters({ box, sab, lsab, sampleRate, options, lanes = () =
   function frame(now) {
     if (!open) return;
     build();
-    const n = reader.read(buf), dt = Math.min(.1, (now - (state.last || now)) / 1000); state.last = now;
+    const n = reader.read(buf), dt = Math.min(.1, (now - (state.last || now)) / 1000); state.last = now; state.n = n;
     if (n > 0) {
       for (let i = 0; i < n; i++) { lBlock[i] = buf[i * 2]; rBlock[i] = buf[i * 2 + 1]; }
       loud.push(lBlock, rBlock, n); corr.push(lBlock, rBlock, n);
