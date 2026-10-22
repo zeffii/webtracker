@@ -88,6 +88,13 @@ export const PAGES = {
         ],
       },
       {
+        title: 'Making a new note cut the old one',
+        text: [
+          'Two commands, written in a command column of the sampler\'s lane (on the first row is enough, they stay until changed): 1F nnaAll 0001 turns it on for one-shots too, and 06 nnaFade sets how long the old sound takes to fade out, in ms (0000 cuts it at once, 0014 is the default 20 ms).',
+          'Looping samples fade out on a new note without nnaAll. One-shots (drums, hits) keep ringing over the next note unless 1F nnaAll is 1. Write 1F 0000 to let them ring again.',
+        ],
+      },
+      {
         title: 'Repeats: how a note becomes a chain',
         text: [
           'Give the note an interval in the Rtg column and it repeats. The interval is in ticks, written as four hex digits: 1000 is one tick, 0800 half a tick, 0400 a quarter, 2000 two ticks.',
@@ -132,8 +139,8 @@ export const PAGES = {
           ['Rtg', 'column: ticks between repeats, 1000 is one tick, 0000 no repeats'],
           ['01 / 02', 'filter cutoff / resonance'],
           ['03, 04, 05', 'delay time / feedback / mix'],
-          ['06 nnaFade', 'ms for looping voices to fade when a new note starts'],
-          ['1F nnaAll', '1: one-shots fade too when a new note starts'],
+          ['06 nnaFade', 'ms for the old sound to fade out when a new note starts (looping samples always; one-shots when 1F nnaAll is 1); 0000 cuts it at once'],
+          ['1F nnaAll', '0001: a new note also cuts a one-shot that is still playing (over the 06 nnaFade time), so hits choke each other; 0000: they ring on'],
           ['07 repeats', 'how many repeats (0000 until the note ends)'],
           ['08 shift', 'the start moves this far along the sample per repeat; 8000 none, above goes forward, below back'],
           ['09 ramp', 'each repeat\'s volume is multiplied by this; C000 is x1, 8000 halves it'],
