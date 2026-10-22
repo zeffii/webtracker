@@ -151,6 +151,11 @@ export function createCurveView(host) {
     hideTimer = setTimeout(() => { state.hover = null; paint(); }, 250);
   });
 
+  // A click anywhere else, or the pointer leaving the grid, puts the tick box away.
+  const away = e => { if (state.hover && !state.drag && !e.target.closest?.('.cv .hit, .cv .tb')) { clearTimeout(hideTimer); state.hover = null; paint(); } };
+  document.addEventListener('mousedown', away, true);
+  host.el.addEventListener('mouseleave', away);
+
   svg.addEventListener('contextmenu', e => {
     const pt = e.target.closest?.('.pt');
     if (!pt) return;
