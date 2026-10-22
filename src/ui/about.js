@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['334', ['Lane curves: the hover box on a segment is now one small icon box showing what the segment is (a curve, a straight line, or dots for a gap); a click goes round curve, line, gap. No words.']],
   ['333', ['Lane curves can now be intermittent. A curve acts only from its first to its last anchor and can have gaps, drawn dotted, where it leaves the parameter alone; when a section ends the parameter glides back to the curve\'s rest value (the parameter\'s normal value when the curve was made; right-click an anchor, Rest value, to change it). Click an anchor to select it, then: E extends the curve over the next pattern (an anchor at its end, pinned), Shift+E skips the next pattern and starts a new section over the one after, B breaks or joins the segment after the anchor, [ and ] move between anchors, Left and Right change its value (Shift for bigger steps), Delete removes it, Esc lets go. Right-click a pattern: Curve over this pattern, or Remove the curve over this pattern. The hover box on a gap says gap; tick it to join. Curves also ease into a section so steep parts do not click.']],
   ['332', ['Lane curves: anchors keep the normal mouse pointer and fill with the highlight colour under it instead of showing a hand.']],
   ['331', ['Lane curves: the hover tick box now goes away when you click elsewhere or leave the grid.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['327', ['The vectorscope is now a panel of the meter band, a square the height of the band at its right end (Ctrl+Alt+O, or Config, Meters), instead of a floating overlay; the Scope button and the overlay\'s size and corner settings are gone. The spectrum colour option\'s description is short enough to fit its panel.']],
   ['326', ['Arrangement: Ctrl+Up / Down steps through the pattern list (the selected one is outlined), and Space places the selected pattern at the cursor and moves on to where it ends.']],
   ['325', ['The WAX logo: your glyphs are now the logo on the start screen and at the top of the rail (still the Start button until the audio runs). They take the theme\'s text colour.']],
-  ['324', ['The start screen\'s report no longer jumps around as lines are typed: it is left-aligned from a fixed edge instead of centred.']],
 ];

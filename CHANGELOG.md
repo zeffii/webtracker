@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 334 · 2026-10-22
+
+- Lane curves: the hover box on a segment is now one small icon box showing what the segment is (a curve, a straight line, or dots for a gap); a click goes round curve, line, gap. No words.
+
 ## 333 · 2026-10-22
 
 - Lane curves can now be intermittent. A curve acts only from its first to its last anchor and can have gaps, drawn dotted, where it leaves the parameter alone; when a section ends the parameter glides back to the curve's rest value (the parameter's normal value when the curve was made; right-click an anchor, Rest value, to change it). Click an anchor to select it, then: E extends the curve over the next pattern (an anchor at its end, pinned), Shift+E skips the next pattern and starts a new section over the one after, B breaks or joins the segment after the anchor, [ and ] move between anchors, Left and Right change its value (Shift for bigger steps), Delete removes it, Esc lets go. Right-click a pattern: Curve over this pattern, or Remove the curve over this pattern. The hover box on a gap says gap; tick it to join. Curves also ease into a section so steep parts do not click.

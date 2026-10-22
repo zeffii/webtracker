@@ -1,6 +1,6 @@
 // Lane curves drawn over the arrangement: a hairline down each lane that has one, with its anchors. Time runs down the
 // page like the grid, the value runs across the lane. The SVG sits inside the grid element (put back after every redraw).
-//   hover a segment  -> a small box "bezier" with a tick (ticked: bezier, unticked: straight)
+//   hover a segment  -> a small box with an icon of what it is (curve, straight, gap); a click goes to the next
 //   drag an anchor   -> snaps to pattern edges and rows (Alt: free); landing on an edge pins it
 //   press on the line -> a new anchor there
 //   right-click an anchor -> pin, unpin, break, delete
@@ -48,9 +48,12 @@ export function curveMarkup({ lanes, geo, top, CELL, state = {} }) {
     });
     if (state.badge?.li === li) out += `<g class="badge"><rect x="${x(c.pts.find(p => p.t === state.badge.t)?.v ?? 0.5) + 10}" y="${y(state.badge.t) - 9}" width="${state.badge.text.length * 6.4 + 10}" height="16"/><text x="${x(c.pts.find(p => p.t === state.badge.t)?.v ?? 0.5) + 15}" y="${y(state.badge.t) + 3}">${esc(state.badge.text)}</text></g>`;
     if (state.hover && state.hover.li === li && state.hover.seg < c.pts.length - 1) {
-      const m = midOf(c, state.hover.seg), bx = Math.min(x(m.v) + 12, col.x + col.w - 60), by = y(m.t) - 8;
-      const kind = c.kinds[state.hover.seg] ?? 'c', bez = kind === 'c';
-      out += `<g class="tb" data-li="${li}" data-ci="${ci}" data-seg="${state.hover.seg}"><rect class="box" x="${bx}" y="${by}" width="56" height="16"/><rect class="chk" x="${bx + 3}" y="${by + 3}" width="10" height="10"/>${bez ? `<path class="tick" d="M${bx + 5} ${by + 8}l2.4 2.6l4 -5.4"/>` : ''}<text x="${bx + 17}" y="${by + 12}">${kind === 'g' ? 'gap' : 'bezier'}</text></g>`;
+      const m = midOf(c, state.hover.seg), kind = c.kinds[state.hover.seg] ?? 'c', bx = Math.min(x(m.v) + 12, col.x + col.w - 24), by = y(m.t) - 8, ox = bx + 2;
+      // the box shows what the segment is: a curve, a straight line, or a gap (dots); a click goes to the next
+      const glyph = kind === 'c' ? `M${ox + 3} ${by + 2}C${ox + 3} ${by + 8} ${ox + 11} ${by + 6} ${ox + 11} ${by + 12}`
+        : kind === 'l' ? `M${ox + 3} ${by + 2}L${ox + 11} ${by + 12}`
+          : `M${ox + 7} ${by + 2.5}h.01M${ox + 7} ${by + 6}h.01M${ox + 7} ${by + 9.5}h.01M${ox + 7} ${by + 13}h.01`;
+      out += `<g class="tb" data-li="${li}" data-ci="${ci}" data-seg="${state.hover.seg}"><title>${kind === 'c' ? 'curve: click for a straight line' : kind === 'l' ? 'straight: click for a gap' : 'gap: click to join with a curve'}</title><rect class="box" x="${bx}" y="${by}" width="18" height="16"/><path class="glyph" d="${glyph}"/></g>`;
     }
   });
   return out;
@@ -131,8 +134,8 @@ export function createCurveView(host) {
     e.preventDefault(); e.stopPropagation();
     if (tb) {
       const { li, ci, seg } = tb.dataset;
-      edit(+li, +ci, 'curve segment', null, c => { c.kinds[+seg] = (c.kinds[+seg] ?? 'c') === 'c' ? 'l' : 'c'; return true; });
-      host.say(`That part of the curve is now ${host.lanes()[+li].curves[+ci].kinds[+seg] === 'c' ? 'a bezier' : 'a straight line'}.`);
+      edit(+li, +ci, 'curve segment', null, c => { const k = c.kinds[+seg] ?? 'c'; c.kinds[+seg] = k === 'c' ? 'l' : k === 'l' ? 'g' : 'c'; return true; });
+      host.say({ c: 'That part of the curve is a bezier.', l: 'That part of the curve is a straight line.', g: 'A gap: the curve is not there.' }[host.lanes()[+li].curves[+ci].kinds[+seg]]);
       return;
     }
     if (pt) { state.sel = { li: +pt.dataset.li, ci: +pt.dataset.ci, i: +pt.dataset.i }; begin(e, +pt.dataset.li, +pt.dataset.ci, +pt.dataset.i); return; }

@@ -214,8 +214,8 @@ export function pathOf(curve, x, y) {
 export function midOf(curve, i) {
   const a = curve.pts[i], b = curve.pts[i + 1];
   if (!b) return null;
-  const t = (a.t + b.t) / 2;
-  return { t, v: valueAt(curve, t) };
+  const t = (a.t + b.t) / 2, v = valueAt(curve, t);
+  return { t, v: Number.isNaN(v) ? (a.v + b.v) / 2 : v };
 }
 
 // Prunes anchors and pins to a song length (after the song is shortened).
