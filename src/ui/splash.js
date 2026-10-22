@@ -29,7 +29,7 @@ export function createSplash({ box, onStart }) {
   box.classList.toggle('blob', !!blob);
   if (!blob && bcv) bcv.hidden = true;
   const g = blob ? null : cv.getContext('2d');
-  let W = 0, H = 0, dpr = 1, boost = 0, boostTo = 0, running = true, typing = [], nextAt = 0;
+  let W = 0, H = 0, dpr = 1, boost = 0, boostTo = 0, running = true, typing = [], nextAt = 0, busy = false;
   document.body.classList.add('splashing');
   box.hidden = false;
   card.tabIndex = 0; card.setAttribute('role', 'button'); card.setAttribute('aria-label', 'Enter webtracker'); card.focus({ preventScroll: true });
@@ -40,6 +40,21 @@ export function createSplash({ box, onStart }) {
   }
   const size = () => { dpr = devicePixelRatio || 1; W = card.clientWidth; H = card.clientHeight; cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); };
   new ResizeObserver(size).observe(card); size();
+
+  // "click anywhere to enter" unrolls from its first letter; the unwritten rest keeps its width, so the line does not drift.
+  {
+    const full = go.textContent;
+    const roll = async () => {
+      await wait(450);
+      for (let i = 1; i <= full.length && !busy; i++) {
+        go.replaceChildren(document.createTextNode(full.slice(0, i)), Object.assign(document.createElement('span'), { textContent: full.slice(i), style: 'opacity:0' }));
+        await wait(38);
+      }
+      if (!busy) go.textContent = full;
+    };
+    go.replaceChildren(Object.assign(document.createElement('span'), { textContent: full, style: 'opacity:0' }));
+    roll();
+  }
 
   const t0 = performance.now();
   const draw = now => {
@@ -84,7 +99,6 @@ export function createSplash({ box, onStart }) {
     return job;
   }
 
-  let busy = false;
   const enter = () => {
     if (busy) return;
     busy = true; go.hidden = true; card.classList.add('busy'); boostTo = .7; blob?.excite(true);
