@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 351 · 2026-10-22
+
+- Sample screen: the slice markers now stand in their own column at the right of the sample's fields, so they no longer push the page down, and up to 24 are listed at once (the list follows the active slice) instead of 8 and '... 5 more'.
+
 ## 350 · 2026-10-22
 
 - Script tab: the Euclidean preview under the editor now has a grid view (next to cards): time runs down in square cells, one column per pattern, with a column marking the rows where two or more patterns hit together; 16, 32 or 64 virtual rows. It also draws inv(), rot(), rev(), both(), either() and xor() calls with plain arguments, such as inv(euclid(3, 8)), so an anti-pattern can be seen before it runs.

@@ -372,11 +372,14 @@ export function createSampleScreen({ el, statusEl, getProject, onChange = () => 
       }
       // Slice markers: number, the hex value an Off cell would hold, the frame and the time. The slice command
       // (10 0000 is the first) starts a note at one.
+      const SHOWN = 24;   // slice rows in the third column; the window follows the active slice
       const sliceLines = d => {
         const sl = d.slices ?? [];
-        return [line(` Slices    ${sl.length ? sl.length : 'none'}${sl.length ? '' : '  (Shift+M marks one at the selection start; Alt+click the display)'}`),
-          ...sl.slice(0, 8).map((f, i) => line(`${i === activeSlice ? ' >' : '  '} ${i.toString(16).toUpperCase().padStart(2, '0')}  ${placeHex(f, d.data.length, config.get('hexMode'))}  ${String(f).padStart(8, '0')}  ${(f / d.rate).toFixed(3)}s`)),
-          ...(sl.length > 8 ? [line(`   ... ${sl.length - 8} more`)] : [])];
+        const from = sl.length > SHOWN ? Math.max(0, Math.min(sl.length - SHOWN, (activeSlice >= 0 ? activeSlice : 0) - Math.floor(SHOWN / 2))) : 0;
+        return [line(` Slices    ${sl.length ? sl.length : 'none'}${sl.length ? '' : '  (Shift+M marks one at the selection start;'}`), ...(sl.length ? [] : [line('           Alt+click the display)')]),
+          ...(from > 0 ? [line(`   ... ${from} before`)] : []),
+          ...sl.slice(from, from + SHOWN).map((f, k) => { const i = from + k; return line(`${i === activeSlice ? ' >' : '  '} ${i.toString(16).toUpperCase().padStart(2, '0')}  ${placeHex(f, d.data.length, config.get('hexMode'))}  ${String(f).padStart(8, '0')}  ${(f / d.rate).toFixed(3)}s`); }),
+          ...(from + SHOWN < sl.length ? [line(`   ... ${sl.length - from - SHOWN} more`)] : [])];
       };
       const numCell = field => fieldCell(field, frameValue(s, field).toString().padStart(8, '0'), 8);
       const loopLine = (label, p, onField, begField, endField, xfField) => line(
@@ -394,13 +397,13 @@ export function createSampleScreen({ el, statusEl, getProject, onChange = () => 
         line(' Levels'),
         ...Object.keys(SLIDERS).map(f => line(' ', slider(f))),
         line(''),
-        ...sliceLines(s),
-        line(''),
         line(' Display   ', seg(' Waveform ', mode === 'wave' ? `sf${focus === 'view' ? ' on' : ''}` : '', ' data-f="view" data-mode="wave"'), ' ', seg(' Spectrum ', mode === 'spec' ? `sf${focus === 'view' ? ' on' : ''}` : '', ' data-f="view" data-mode="spec"')),
       ];
-      const rows = Math.max(left.length, right.length);
+      // The slice markers stand in a third column, to the right of the sample's fields, so they never push the page down.
+      const marks = sliceLines(s), RIGHTW = 74;
+      const rows = Math.max(left.length, right.length, marks.length);
       const out = [];
-      for (let i = 0; i < rows; i++) out.push(`<span class="lc">${i < left.length ? padTo(left[i], LEFT) : ' '.repeat(LEFT)}</span> ${i < right.length ? right[i].h : ''}`);   // the divider is the border of the left column
+      for (let i = 0; i < rows; i++) out.push(`<span class="lc">${i < left.length ? padTo(left[i], LEFT) : ' '.repeat(LEFT)}</span> ${i < right.length ? padTo(right[i], RIGHTW) : ' '.repeat(RIGHTW)}${i < marks.length ? marks[i].h : ''}`);   // the divider is the border of the left column
       html = out.join('\n');
     }
     if (html !== last) { last = html; el.innerHTML = html; }
