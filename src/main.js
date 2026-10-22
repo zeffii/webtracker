@@ -808,15 +808,14 @@ $('inst-file').addEventListener('change', async e => {
   const render = () => {
     const sections = [];
     let card = null;
-    for (const s of config.SCHEMA) {
-      if (s.group) {
-        const sec = document.createElement('div'), head = document.createElement('div');
-        sec.className = 'cfg-sec';
-        head.append(Object.assign(document.createElement('h2'), { textContent: s.group }), Object.assign(document.createElement('p'), { textContent: config.GROUPS[s.group] ?? '' }));
-        card = Object.assign(document.createElement('div'), { className: 'cfg-card' });
-        sec.append(head, card);
-        sections.push(sec);
-      }
+    for (const { group, items } of config.grouped()) {
+      const sec = document.createElement('div'), head = document.createElement('div');
+      sec.className = 'cfg-sec';
+      head.append(Object.assign(document.createElement('h2'), { textContent: group }), Object.assign(document.createElement('p'), { textContent: config.GROUPS[group] ?? '' }));
+      card = Object.assign(document.createElement('div'), { className: 'cfg-card' });
+      sec.append(head, card);
+      sections.push(sec);
+      for (const s of items) {
       if (s.type === 'rules') {
         const box = Object.assign(document.createElement('div'), { className: 'cfg-rules' }), ta = Object.assign(document.createElement('textarea'), { className: 'rules-ta', value: config.get(s.key), spellcheck: false, ariaLabel: s.label }), state = Object.assign(document.createElement('ul'), { className: 'rules-state' });
         box.style.cssText = 'display:block;padding:6px 12px;border-top:1px solid color-mix(in srgb, var(--fg) 12%, transparent)';
@@ -870,12 +869,13 @@ $('inst-file').addEventListener('change', async e => {
       input.addEventListener('keydown', e => { if (e.key !== 'Tab' && !/^F\d+$/.test(e.key)) e.stopPropagation(); });
       label.append(text, input);
       card.append(label);
+      }
     }
     // the backup section holds the buttons
     const backup = document.createElement('div');
     backup.className = 'cfg-sec';
     const bhead = document.createElement('div');
-    bhead.append(Object.assign(document.createElement('h2'), { textContent: 'Backup' }), Object.assign(document.createElement('p'), { textContent: 'Keep a copy of your settings or send them to someone.' }));
+    bhead.append(Object.assign(document.createElement('h2'), { textContent: 'Settings file' }), Object.assign(document.createElement('p'), { textContent: 'Keep a copy of your settings or send them to someone.' }));
     const bcard = Object.assign(document.createElement('div'), { className: 'cfg-card' });
     const brow = Object.assign(document.createElement('div'), { className: 'cfg-row' });
     const btext = document.createElement('span');

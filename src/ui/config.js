@@ -8,15 +8,25 @@ export const THEMES = ['system', 'dark', 'black', 'bright', 'neon', 'amber', 'ph
 
 // What each group is for, shown beside its card on the Config tab.
 export const GROUPS = {
-  'De-normal diagnostics': 'switches for tracking down clicks and crackle at very quiet levels; both are off unless you need them',
   Look: 'Colours and sizes. Applied at once.',
-  Playing: 'How the grids behave while the song runs.',
-  Graph: 'The colours of the wires and ports in the graph view, by what they carry. Hover a wire to see its kind in the status line under the graph.',
-  Editing: 'Defaults for solo-edit, lanes and inserting silence.',
-  Sample: 'Post-transient resynthesis (right click in the sample display): the attack stays a real sample and the rest is rebuilt from synth branches.',
+  Playing: 'How the screens behave while the song runs.',
+  Graph: 'The graph view: wire colours (hover a wire to see its kind in the status line), grid and dragging.',
+  Editing: 'Solo-edit, cursor keys, time sliders and inserting silence.',
+  Sample: 'Auto-slice and slice markers in the sample display.',
+  Resynthesis: 'Post-transient resynthesis (right click in the sample display): the attack stays a real sample and the rest is rebuilt from synth branches.',
   Console: 'Press | in the pattern editor or the arrangement for a one-line command box. Each rule says what you type and what it does; a rule that is wrong, or that could match the same typing as another, is switched off until you fix it.',
   MIDI: 'A MIDI keyboard plays the machine under the cursor, enters notes in the pattern editor and records into patterns while the song plays (Rec, Ctrl+Shift+R). Chrome and Edge only.',
+  Backup: 'Automatic copies of the project kept in this browser, and optional backup files.',
+  Export: 'Rendering the song to a sound file.',
+  Arrangement: 'The small pictures of each pattern in the arrangement.',
+  Meters: 'The meter band along the bottom of the window (Ctrl+Alt+M). Choose the panels here.',
+  Script: 'Limits for the Script tab.',
+  'De-normal diagnostics': 'Switches for tracking down clicks and crackle at very quiet levels. Both are off unless you need them.',
 };
+
+// Settings that sit in a different card from the one the list below puts them in, by key.
+const MOVED = { splashStyle: 'Look', wireStraight: 'Graph', graphPullOut: 'Graph', vscopeLinger: 'Meters', vscopeGlow: 'Meters', midiLatency: 'MIDI', ptrMax: 'Resynthesis', ptrTolerance: 'Resynthesis', ptrTransient: 'Resynthesis' };
+
 
 // type: bool | int | choice | colour (a #rrggbb string) | rules. `legacy` is the older single-purpose localStorage key, read once to carry settings over.
 export const SCHEMA = [
@@ -100,6 +110,21 @@ export const SCHEMA = [
   { group: 'De-normal diagnostics', key: 'volFloor', label: 'Volume curve floor', hint: 'a Volume curve never goes below 0.003 (-50 dB): a test for clicks when a fade starts from silence (some sound devices pop when they wake from it)', type: 'bool', def: false },
 ];
 const byKey = Object.fromEntries(SCHEMA.map(s => [s.key, s]));
+
+// The settings in cards: one card per group, in the order the groups first appear (a setting without a group goes with the one
+// before it), with the group's name taken off the front of a label that starts with it ("Meters: spectrum" under Meters).
+export function grouped() {
+  const order = [], map = new Map();
+  let group = '';
+  for (const s of SCHEMA) {
+    if (s.group) group = s.group;
+    const g = MOVED[s.key] ?? group;
+    if (!map.has(g)) { map.set(g, []); order.push(g); }
+    const prefix = `${g}: `;
+    map.get(g).push(s.label && s.label.startsWith(prefix) ? { ...s, label: s.label[prefix.length].toUpperCase() + s.label.slice(prefix.length + 1) } : s);
+  }
+  return order.map(g => ({ group: g, items: map.get(g) }));
+}
 
 // Turns anything into a valid value for the setting, or its default.
 const clean = (s, v) => {
