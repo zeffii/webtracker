@@ -7213,9 +7213,12 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   lane.curves[0].pts = [{ t: 0, v: 0.5 }, { t: 60, v: 0.5 }]; lane.curves[0].kinds = ['c'];
   const fresh = prepareSong({ ...song, lanes: [{ ...src, curves: lane.curves }] }, instruments, registry)[0];
   seq.setLane(fresh);
+  const level = registry.values[slot];
   seq.play();
   render(seq, 0.2);
-  assert.ok(Math.abs(registry.values[slot] - (min + 0.25 * (max - min))) < 1e-4, `volume follows the curve (taper 2): ${registry.values[slot]}`);
+  assert.ok(Math.abs(registry.values[slot] - 0.25 * level) < 1e-4, `volume scales the machine's own level (taper 2): ${registry.values[slot]}`);
+  seq.stop();
+  assert.equal(registry.values[slot], level, 'stopping puts the machine back at its own level');
   console.log('ok: lane curves');
 }
 
@@ -7257,12 +7260,12 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   for (const [id, def] of Object.entries(instruments)) rt.load(compile(def.graph, { instrument: id, nodeTypes: NODE_TYPES, registry }));
   seq.setSong({ ...song, ticksPerBeat: 4, bpm: 960 });
   seq.setLane(lane2);
-  const slot = lane2.auto[0].slot, { min, max } = registry.meta[slot];
+  const slot = lane2.auto[0].slot, level = registry.values[slot];
   seq.play();
   render(seq, 0.2);
-  assert.ok(Math.abs(registry.values[slot] - (min + 0.04 * (max - min))) < 1e-3, `inside the section: ${registry.values[slot]}`);
+  assert.ok(Math.abs(registry.values[slot] - 0.04 * level) < 1e-3, `inside the section: ${registry.values[slot]}`);
   render(seq, 1.2);   // 16 ticks at 960 bpm is 0.25 s: the section is over
-  assert.ok(Math.abs(registry.values[slot] - max) < 1e-3 * (max - min), `back at rest: ${registry.values[slot]}`);
+  assert.ok(Math.abs(registry.values[slot] - level) < 1e-3, `back at rest, the machine's own level: ${registry.values[slot]}`);
   console.log('ok: lane curve gaps');
 }
 

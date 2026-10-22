@@ -61,6 +61,9 @@ export function targetsOf(lane, registry) {
     const v = list.find(t => t.id === 'out.gain');
     if (v) v.label = 'Volume';
   }
+  // Volume is a final amplifier: the curve (0..1) multiplies the level the machine is set to, so 1 is as set and it never goes louder.
+  const vol = list.find(t => t.id === 'out.gain');
+  if (vol) { vol.amp = true; vol.dflt = 1; vol.min = 0; vol.max = 1; vol.log = false; }
   return list;
 }
 
@@ -88,7 +91,7 @@ export function buildAutomation(lane, registry, length) {
     const reuse = old?.find(a => a.id === c.target && a.table.length === length * RES + 1);
     const table = reuse?.table ?? new Float32Array(new SharedArrayBuffer((length * RES + 1) * 4));
     bake(c, table);
-    out.push({ id: c.target, slot: t.slot, min: t.min, max: t.max, log: t.log, taper: t.taper, rest: Number.isFinite(c.rest) ? c.rest : null, table });
+    out.push({ id: c.target, slot: t.slot, min: t.min, max: t.max, log: t.log, taper: t.taper, amp: !!t.amp, rest: Number.isFinite(c.rest) ? c.rest : null, table });
   }
   lane.auto = out;
   return out;
