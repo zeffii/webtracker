@@ -1241,7 +1241,7 @@ function openProject({ song, instruments, samples }, { stay = false, instrument 
   $('bpm').value = song.bpm;
   $('swing').value = Math.round((song.swing ?? 0.5) * 100);
   $('bar').value = song.beatsPerBar ?? 4;
-  if (!stay) { tabs.show('patterns'); backups.baselineDownload?.(); }
+  if (!stay) { tabs.show('arrange'); backups.baselineDownload?.(); }
 }
 
 const download = (name, text) => {

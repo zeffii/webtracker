@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['341', ['Opening a project (a file, the demo, or a new one) now lands on the arrangement (sequencer) screen instead of the pattern editor.']],
   ['340', ['Volume curves are now a final amplifier: the curve (0 to 1) multiplies the level the machine is set to, so 1 is exactly as set and a curve can never make it louder (before, 1 meant the gain\'s maximum, three times a 0.5 setting, which could overload the sound). Stopping puts the machine back at its own level, and changing that level while playing still works. Existing Volume curves will sound quieter.']],
   ['339', ['First screen: the start-up report now sits inside the card, growing up from its bottom-left corner, and the status words (ok, ready) all line up in one column.']],
   ['338', ['Sampler: new command 1F nnaAll. At 1, a new note also fades out a one-shot sample that is still playing (over the 06 nnaFade time, 0 cuts it), so hits cut each other; at 0, one-shots ring on over the next note as before (nnaFade has only ever acted on looping samples). The command help now says so.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['334', ['Lane curves: the hover box on a segment is now one small icon box showing what the segment is (a curve, a straight line, or dots for a gap); a click goes round curve, line, gap. No words.']],
   ['333', ['Lane curves can now be intermittent. A curve acts only from its first to its last anchor and can have gaps, drawn dotted, where it leaves the parameter alone; when a section ends the parameter glides back to the curve\'s rest value (the parameter\'s normal value when the curve was made; right-click an anchor, Rest value, to change it). Click an anchor to select it, then: E extends the curve over the next pattern (an anchor at its end, pinned), Shift+E skips the next pattern and starts a new section over the one after, B breaks or joins the segment after the anchor, [ and ] move between anchors, Left and Right change its value (Shift for bigger steps), Delete removes it, Esc lets go. Right-click a pattern: Curve over this pattern, or Remove the curve over this pattern. The hover box on a gap says gap; tick it to join. Curves also ease into a section so steep parts do not click.']],
   ['332', ['Lane curves: anchors keep the normal mouse pointer and fill with the highlight colour under it instead of showing a hand.']],
-  ['331', ['Lane curves: the hover tick box now goes away when you click elsewhere or leave the grid.']],
 ];
