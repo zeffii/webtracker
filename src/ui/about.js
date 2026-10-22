@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['355', ['The shortcut window no longer lets a long key list squeeze the descriptions out of view: the key column wraps and the descriptions keep their width, with no sideways scrolling.']],
   ['354', ['Sampler: a new note now cuts the one-shot its own column was still playing (over the 06 nnaFade time; 0000 cuts at once), with no extra command needed. 1F nnaAll is on by default; write 1F 0000 to let one-shots ring on over the next note as before. Chords and other columns are left alone. The sampler help says so.']],
   ['353', ['Sampler help: a new section, Making a new note cut the old one, says what to write (1F nnaAll 0001 and the 06 nnaFade time), and the command list explains 06 and 1F in full.']],
   ['352', ["Sample screen: every slice marker can be reached. The slice column is now a small scroll box as tall as the sample's fields; it keeps its place when the screen redraws and scrolls to the active slice."]],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['348', ['First screen: the start-up report text is lighter still and a tenth smaller.']],
   ['347', ['First screen: the build and revision show small in off-white at the top right of the card, and the start-up report text is a little lighter.']],
   ['346', ['A Volume curve now never goes below 0.003 (about -50 dB), so a fade-in from 0 no longer holds the output at digital silence, where some sound devices click as they wake.']],
-  ['345', ['Config: Output dither (on by default) adds a whisper of noise (about -96 dB) to the sound going out, so very quiet sound, like the start of a slow fade-in, is not rounded into crackle by the sound card. Exports are unchanged.']],
 ];
