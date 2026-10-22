@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['374', ['Export shows a progress bar at the right of the status bar.']],
   ['373', ['The bugsong demo no longer has a stray loop set.']],
   ['372', ['New demo: bugsong. Open the page with ?demo=bugsong (and ?demo=arp for the arp demo).']],
   ['371', ['The live picture shows a skeleton of the patterns around the playhead, with lane names, in one muted blue; cell(\'kick\', dx) reads it from your own shader.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['367', ['New Arp node: 21 modes, rate, gate, swing, octaves, hold, retrigger, seeded random and a 16-step velocity mask; open ?demo=arp for a demo song.']],
   ['366', ['Patcher: control and parameter wires are dashed (a Config option, on by default).']],
   ['365', ['Header: a project name field and a * for unsaved changes; Ctrl+S saves from any field.']],
-  ['364', ['Ctrl+S saves as: a save dialog for name and folder where the browser has one, otherwise a download.']],
 ];

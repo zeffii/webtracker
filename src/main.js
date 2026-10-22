@@ -1505,15 +1505,18 @@ $('export').addEventListener('click', async () => {
   if (exporting) { exporting.on = true; return; }
   if (!project || !engine.node) return;
   const cancel = exporting = { on: false }, button = $('export'), say = text => { $('status').textContent = text; };
-  button.textContent = 'Cancel export';
+  const mp4 = config.get('exportFormat') === 'mp4', bar = $('xprog'), icon = button.innerHTML;
+  const show = f => { bar.hidden = false; bar.firstElementChild.style.width = `${Math.round(Math.min(1, Math.max(0, f)) * 100)}%`; };
+  show(0);
+  button.title = 'Cancel the export';
   try {
     engine.stop();
-    const out = await renderSong(engine.exportState(), { tail: config.get('exportTail'), cancel, onProgress: f => say(`Rendering the song: ${Math.round(f * 100)}%`) });
+    const out = await renderSong(engine.exportState(), { tail: config.get('exportTail'), cancel, onProgress: f => { show(mp4 ? f / 2 : f); say(`Rendering the song: ${Math.round(f * 100)}%`); } });
     if (!out) say('Export cancelled.');
     else if (config.get('exportFormat') === 'mp4') {
       const name = project.song.name ?? 'untitled', saved = config.get('exportArt');
       const art = await artCanvas(saved ? await (await fetch(saved)).blob() : null, { size: 300, title: name });
-      const file = await encodeMp4(out, { art, cancel, onProgress: f => say(`Encoding the MP4: ${Math.round(f * 100)}%`) });
+      const file = await encodeMp4(out, { art, cancel, onProgress: f => { show(.5 + f / 2); say(`Encoding the MP4: ${Math.round(f * 100)}%`); } });
       if (!file) say('Export cancelled.');
       else {
         download(`${name}.mp4`, file.blob);
@@ -1527,7 +1530,9 @@ $('export').addEventListener('click', async () => {
     }
   } catch (e) { say(`Export failed: ${e.message}`); }
   exporting = null;
-  button.textContent = 'Export';
+  bar.hidden = true;
+  button.innerHTML = icon;
+  button.title = 'Export: render the whole song to a WAV or MP4 file, with a tail after the end (type and length in Config); press again while it runs to cancel';
 });
 
 // The project name in the header, and a * after it once the project differs from what was last saved or opened. The check

@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 374 · 2026-10-22
+
+- Export shows a progress bar at the right end of the status bar (the render is the first half of an MP4 export, the encoding the second). Pressing Export again still cancels. The button keeps its icon afterwards, and its tooltip now mentions MP4.
+
 ## 373 · 2026-10-22
 
 - Demo: bugsong replaced with the version that has no accidental loop.
