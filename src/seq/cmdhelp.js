@@ -80,7 +80,8 @@ export const HELP = {
   jumpTicksBack: 'Jump back by XXYY ticks of the sample\'s own time.',
   jumpTicksAheadRel: 'Jump forward by XXYY ticks at the speed the sound is playing.',
   jumpTicksBackRel: 'Jump back by XXYY ticks at the speed the sound is playing.',
-  nnaFade: 'How long an old note takes to fade out when a new one starts in its column. 0 cuts it at once.',
+  nnaFade: 'How long an old sound takes to fade out when a new note starts: looping samples always, one-shots only when 1F nnaAll is 1. 0 cuts it at once.',
+  nnaAll: '1: a new note also fades out a one-shot sample that is still playing (over the 06 nnaFade time), so hits cut each other like a choked hi-hat. 0: one-shots ring on over the next note.',
 };
 
 // The commands that are not parameters: the reset family, saving and loading the settings.

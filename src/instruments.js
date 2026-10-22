@@ -34,6 +34,7 @@ export const samplerCommands = [
   { id: 0x04, node: 'delay', param: 'feedback' },
   { id: 0x05, node: 'delay', param: 'mix' },
   { id: 0x06, node: 'sampler', param: 'nnaFade' },
+  { id: 0x1F, node: 'sampler', param: 'nnaAll' },   // 1F: 1 makes a new note fade out a one-shot that is still playing too (over the nnaFade time); 0 leaves one-shots to ring, as they always did
   // Repeats (Off and Rtg are columns); each stays set until written again. 07 repeats: how many (a count;
   // 0 until the note ends). 08 shift: how far each repeat's start moves (8000 none, above goes forward, below
   // back). 09 ramp: each repeat's volume multiplier (C000 is x1, 8000 halves it). 0A reverse: 1 plays backwards,

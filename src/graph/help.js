@@ -84,7 +84,7 @@ export const PAGES = {
         title: 'How a note plays',
         text: [
           'A note starts a sound at the start position (the Off column, or a slice marker if the 10 slice command points at one) and plays it forward, or backward when 0A reverse is 1. The sample\'s own loops apply: a looping sample plays on until the note ends, a one-shot plays to its end.',
-          'A new note fades out looping voices over nnaFade ms (new-note action). One-shots are left to ring.',
+          'A new note fades out looping voices over nnaFade ms (new-note action). One-shots are left to ring, unless nnaAll is 1.',
         ],
       },
       {
@@ -133,6 +133,7 @@ export const PAGES = {
           ['01 / 02', 'filter cutoff / resonance'],
           ['03, 04, 05', 'delay time / feedback / mix'],
           ['06 nnaFade', 'ms for looping voices to fade when a new note starts'],
+          ['1F nnaAll', '1: one-shots fade too when a new note starts'],
           ['07 repeats', 'how many repeats (0000 until the note ends)'],
           ['08 shift', 'the start moves this far along the sample per repeat; 8000 none, above goes forward, below back'],
           ['09 ramp', 'each repeat\'s volume is multiplied by this; C000 is x1, 8000 halves it'],

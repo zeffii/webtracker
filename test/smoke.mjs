@@ -2655,7 +2655,7 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     const def = { ...structuredClone(instruments.lead), noteColumns: 3 };
     const registry = new ParamRegistry();
     const defs = { lead: def };
-    for (const n of ['filter.cutoff', 'filter.resonance', 'delay.mix', 'delay.time', 'delay.feedback', 'sampler.nnaFade', 'sampler.offset', 'sampler.retrig', 'sampler.repeats', 'sampler.shift', 'sampler.ramp', 'sampler.reverse', 'sampler.sample', 'sampler.slice', ...['grain', 'edge', 'accel', 'step', 'slide', 'flip', 'prob', 'jOffset', 'jPitch', 'jPan', 'jTime', 'jLevel', 'volLin', 'volLog', 'volDown', 'volUp', 'volFineDown', 'volFineUp', 'volDownMs', 'volUpMs', 'volFineDownMs', 'volFineUpMs', 'subdivide', 'blockCount', 'portDown', 'portUp', 'portFineDown', 'portFineUp', 'portTo', 'retrigMin', 'retrigMax', 'retrigPow', 'cutAfter', 'releaseAfter', 'cutScale', 'stretchSub', 'stretchTicks', 'stretchKeep', 'filterType', 'filterCutoff', 'filterRes', 'cutDown', 'cutUp', 'cutStep', 'jCutoff', 'jTimeSub', 'vibSpeed', 'vibDepth', 'vibWave', 'lfoSpeed', 'lfoDepth', 'lfoWave', 'vibSync', 'vibPhase', 'lfoSync', 'lfoPhase', 'jumpAhead', 'jumpBack', 'jumpAheadRel', 'jumpBackRel', 'jumpTicksAhead', 'jumpTicksBack', 'jumpTicksAheadRel', 'jumpTicksBackRel'].map(k => `sampler.${k}`), ...['grain', 'edge', 'accel', 'step', 'slide', 'flip', 'prob', 'jOffset', 'jPitch', 'jPan', 'jTime', 'jLevel'].map(k => `sampler.${k}`)]) registry.allocate(`lead.${n}`, 0.5, 0, 1000);
+    for (const n of ['filter.cutoff', 'filter.resonance', 'delay.mix', 'delay.time', 'delay.feedback', 'sampler.nnaFade', 'sampler.nnaAll', 'sampler.offset', 'sampler.retrig', 'sampler.repeats', 'sampler.shift', 'sampler.ramp', 'sampler.reverse', 'sampler.sample', 'sampler.slice', ...['grain', 'edge', 'accel', 'step', 'slide', 'flip', 'prob', 'jOffset', 'jPitch', 'jPan', 'jTime', 'jLevel', 'volLin', 'volLog', 'volDown', 'volUp', 'volFineDown', 'volFineUp', 'volDownMs', 'volUpMs', 'volFineDownMs', 'volFineUpMs', 'subdivide', 'blockCount', 'portDown', 'portUp', 'portFineDown', 'portFineUp', 'portTo', 'retrigMin', 'retrigMax', 'retrigPow', 'cutAfter', 'releaseAfter', 'cutScale', 'stretchSub', 'stretchTicks', 'stretchKeep', 'filterType', 'filterCutoff', 'filterRes', 'cutDown', 'cutUp', 'cutStep', 'jCutoff', 'jTimeSub', 'vibSpeed', 'vibDepth', 'vibWave', 'lfoSpeed', 'lfoDepth', 'lfoWave', 'vibSync', 'vibPhase', 'lfoSync', 'lfoPhase', 'jumpAhead', 'jumpBack', 'jumpAheadRel', 'jumpBackRel', 'jumpTicksAhead', 'jumpTicksBack', 'jumpTicksAheadRel', 'jumpTicksBackRel'].map(k => `sampler.${k}`), ...['grain', 'edge', 'accel', 'step', 'slide', 'flip', 'prob', 'jOffset', 'jPitch', 'jPan', 'jTime', 'jLevel'].map(k => `sampler.${k}`)]) registry.allocate(`lead.${n}`, 0.5, 0, 1000);
     const cols = buildColumns('lead', def, registry);
     assert.deepEqual(cols.map(c => c.label), ['N1', 'V1', 'N2', 'V2', 'N3', 'V3', 'Smp', 'Off', 'Rtg', 'Cut', 'Res', 'Mix', 'Time', 'Cmd']);
     assert.deepEqual(cols.slice(0, 2).map(c => c.key), ['note', 'vel'], 'the first pair keeps its keys');
@@ -7264,5 +7264,32 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   render(seq, 1.2);   // 16 ticks at 960 bpm is 0.25 s: the section is over
   assert.ok(Math.abs(registry.values[slot] - max) < 1e-3 * (max - min), `back at rest: ${registry.values[slot]}`);
   console.log('ok: lane curve gaps');
+}
+
+// nnaAll: a new note fades out a one-shot that is still playing, when asked to; otherwise it rings over the next
+{
+  const level = all => {
+    const registry = new ParamRegistry();
+    const rt = new GraphRuntime({ sampleRate: sr, params: registry.values });
+    const seq = new Sequencer({ sampleRate: sr, runtime: rt, params: registry.values, transport: new Int32Array(new SharedArrayBuffer(8)) });
+    for (const [id, def] of Object.entries(instruments)) {
+      rt.load(compile(def.graph, { instrument: id, nodeTypes: NODE_TYPES, registry }));
+      rt.message(id, 'sampler', { type: 'sample', data: Float32Array.from({ length: sr * 3 }, (_, i) => 0.4 * Math.sin(2 * Math.PI * 220 * i / sr)), rate: sr });
+    }
+    registry.set('lead.sampler.nnaAll', all);
+    registry.set('lead.sampler.nnaFade', 5);
+    const song = song120([oneLane('lead', 'lead', patternText(16, { 0: 'C-4 .. .. .... .... .. .. ..', 4: 'C-4 .. .. .... .... .. .. ..' }))]);
+    seq.setSong(song);
+    const [lane] = prepareSong(song, instruments, registry);
+    seq.setLane(lane);
+    seq.play();
+    const out = render(seq, 1.2).left;
+    let t = 0; const a = Math.round(sr * 0.8), b = Math.round(sr * 1.1);
+    for (let i = a; i < b; i++) t += out[i] * out[i];
+    return Math.sqrt(t / (b - a));
+  };
+  const ring = level(0), fade = level(1);
+  assert.ok(ring > 1.6 * fade, `with nnaAll off the first hit rings over the second (${ring}); on, it is faded out (${fade})`);
+  console.log('ok: nnaAll');
 }
 console.log('smoke test passed');

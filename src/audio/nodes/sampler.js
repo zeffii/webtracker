@@ -2,7 +2,7 @@
 //
 // A new note never interrupts a sample that is playing to its end, so percussion can
 // ring over the next hit. A looping sample cannot end by itself, so a new note fades
-// the looping voices out over nnaFade ms (0 cuts them at once). Note off releases
+// the looping voices out over nnaFade ms (0 cuts them at once); with nnaAll on, one-shots fade too. Note off releases
 // looping voices over release ms and leaves one-shots to finish; all-off (transport
 // stop) releases everything; note cut stops everything immediately. A note off that the
 // sequencer implies by playing a new note (msg.implied) is ignored here: the new note's
@@ -37,6 +37,7 @@ const PORTTO = 40, RMIN = 41, RMAX = 42, RPOW = 43, CUTAFTER = 44, RELAFTER = 45
 const STRETCH = 47, JUMP = 50;   // stretch (subticks, ticks, ticks with the length kept: three parameters, 47 to 49); jumps in the wave (eight, 50 to 57)
 const FTYPE = 58, FCUT = 59, FRES = 60, CSD = 61, CSU = 62, CSTEP = 63, JCUT = 64, JTSUB = 65;   // the voice filter, its cutoff slides and per-repeat step, and the humanizing of cutoff and timing
 const VIBS = 66, VIBD = 67, VIBW = 68, LFOS = 69, LFOD = 70, LFOW = 71, VIBPH = 72, LFOPH = 73, VIBNOW = 74, LFONOW = 75;   // vibrato and cutoff LFO, and their phase syncs
+const NNAALL = 76;   // the `nnaAll` parameter, the last one
 const SUBDIV = 34;   // the `subdivide` parameter: subticks per tick, for the times of the slides (UnwieldyTracker's Subdivide, default 6)
 const FLOOR = 1e-6;   // a slide to nothing stops at -120 dB, as UnwieldyTracker's does
 const GRAIN = 12, EDGE = 13, ACCEL = 14, STEP = 15, SLIDE = 16, FLIP = 17, PROB = 18, JOFF = 19, JPITCH = 20, JPAN = 21, JTIME = 22, JLEVEL = 23;
@@ -130,6 +131,7 @@ export default {
     { name: 'lfoPhase', min: 0, max: 65535, def: 65535, int: true },
     { name: 'vibSync', min: 0, max: 65535, def: 0, int: true },         // set the vibrato phase now
     { name: 'lfoSync', min: 0, max: 65535, def: 0, int: true },
+    { name: 'nnaAll', min: 0, max: 1, def: 0, int: true },               // 1: a new note fades one-shots too, not only looping samples (over nnaFade ms)
   ],
   create({ sampleRate, stereo = false, clock }) {
     // The samples this node can play, by slot (the instrument's sample list); a note picks one by the `sample`
@@ -316,7 +318,7 @@ export default {
               continue;
             }
           }
-          for (let k = 0; k < VOICES; k++) if (k !== v && active[k] && mode[k] === PLAYING && !fresh[k] && age[k] < age[v] && (loopy[k] || choke[v])) mode[k] = FADING;
+          for (let k = 0; k < VOICES; k++) if (k !== v && active[k] && mode[k] === PLAYING && !fresh[k] && age[k] < age[v] && (loopy[k] || choke[v] || P(NNAALL) >= 0.5)) mode[k] = FADING;
           const si = Math.max(0, Math.min(255, Math.floor(params[slots[SAMPLE]]) || 0));
           if (!bank[si]) { active[v] = 0; continue; }   // no sample in that slot: the note is silent
           const last = bank[si].sample.length - 1;
