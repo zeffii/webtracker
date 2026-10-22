@@ -4,7 +4,7 @@ Full history, newest first. The About page shows only the latest 10 builds.
 
 ## 358 · 2026-10-22
 
-- First screen: "click anywhere to enter" unrolls from its first letter and is a little lighter.
+- First screen: the click-anywhere line unrolls from its first letter and is a little lighter.
 
 ## 357 · 2026-10-22
 
