@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['343', ['With the first screen on, the tracker is hidden from the very first paint, so it is no longer seen for a moment before the splash.']],
   ['342', ['A small infinity symbol in the header shows whether the song loop is on (lit) or off (dim), and clicking it switches the loop, like Ctrl+L.']],
   ['341', ['Opening a project (a file, the demo, or a new one) now lands on the arrangement (sequencer) screen instead of the pattern editor.']],
   ['340', ['Volume curves are now a final amplifier: the curve (0 to 1) multiplies the level the machine is set to, so 1 is exactly as set and a curve can never make it louder (before, 1 meant the gain\'s maximum, three times a 0.5 setting, which could overload the sound). Stopping puts the machine back at its own level, and changing that level while playing still works. Existing Volume curves will sound quieter.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['336', ['The shortcut window has a find box: type words or parts of words and only the shortcuts that contain all of them stay (the window title says which screen). The lane menu in the arrangement now says Add automation curve: Volume (or another parameter), and the arrangement shortcut list describes the curve keys.']],
   ['335', ['Lane curves: click a line to switch that segment on, then C, L or G make it a curve, a straight line or a gap (with an anchor selected the keys act on the segment after it). Double-click the line to add an anchor; Esc lets go. The icon box still cycles the three.']],
   ['334', ['Lane curves: the hover box on a segment is now one small icon box showing what the segment is (a curve, a straight line, or dots for a gap); a click goes round curve, line, gap. No words.']],
-  ['333', ['Lane curves can now be intermittent. A curve acts only from its first to its last anchor and can have gaps, drawn dotted, where it leaves the parameter alone; when a section ends the parameter glides back to the curve\'s rest value (the parameter\'s normal value when the curve was made; right-click an anchor, Rest value, to change it). Click an anchor to select it, then: E extends the curve over the next pattern (an anchor at its end, pinned), Shift+E skips the next pattern and starts a new section over the one after, B breaks or joins the segment after the anchor, [ and ] move between anchors, Left and Right change its value (Shift for bigger steps), Delete removes it, Esc lets go. Right-click a pattern: Curve over this pattern, or Remove the curve over this pattern. The hover box on a gap says gap; tick it to join. Curves also ease into a section so steep parts do not click.']],
 ];

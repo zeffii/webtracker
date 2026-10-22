@@ -4,6 +4,14 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <script>
+    // With the first screen on (the default), the tracker stays hidden from the first paint, so it is never seen before the splash.
+    try { if ((JSON.parse(localStorage.getItem('webtracker.config')) || {}).splash !== false) document.documentElement.classList.add('pre-splash'); } catch { document.documentElement.classList.add('pre-splash'); }
+  </script>
+  <style>
+    html.pre-splash body > *:not(#splash) { visibility: hidden; }
+    html.pre-splash #splash[hidden] { display: grid; }
+  </style>
+  <script>
     // Static hosting (GitHub Pages) cannot send the cross-origin isolation headers the audio needs: a service worker adds them, and the page
     // reloads once to come up isolated. serve.mjs sends them itself, so nothing is registered there.
     if (!window.crossOriginIsolated && 'serviceWorker' in navigator && window.isSecureContext) {

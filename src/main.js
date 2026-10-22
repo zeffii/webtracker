@@ -1636,6 +1636,7 @@ document.addEventListener('keydown', e => {
   logo.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); } });
 }
 const splash = config.get('splash') ? createSplash({ box: $('splash'), onStart: () => $('start').click() }) : null;
+document.documentElement.classList.remove('pre-splash');   // the first screen (if any) now covers the page itself
 $('start').addEventListener('click', async () => {
   try {
     splash?.say('checking cross-origin isolation', crossOriginIsolated ? 'ok' : 'no');

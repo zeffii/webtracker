@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 343 · 2026-10-22
+
+- With the first screen on, the tracker is hidden from the very first paint, so it is no longer seen for a moment before the splash.
+
 ## 342 · 2026-10-22
 
 - A small infinity symbol in the header shows whether the song loop is on (lit) or off (dim), and clicking it switches the loop, like Ctrl+L.
