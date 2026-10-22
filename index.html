@@ -146,9 +146,22 @@
     body.sdock #split > #pane-script:not([hidden]) { flex: 0 0 var(--dock-w, 32rem); min-width: 0; display: block; border-left: 1px solid var(--line); }
     body.sdock #pane-script .keys, body.sdock #pane-script .help { display: none; }
     body.sdock.shelp #pane-script .keys, body.sdock.shelp #pane-script .help { display: block; }
-    body.sdock.shelp #split > #pane-script:not([hidden]) { flex-basis: calc(var(--dock-w, 32rem) + 21rem); display: grid; grid-template-columns: minmax(0, 1fr) 20rem; }   /* the help opens as a column to the right of the editor */
+    body.sdock.shelp #split > #pane-script:not([hidden]) { flex-basis: calc(var(--dock-w, 32rem) + var(--keys-w, 20rem) + 1rem); display: grid; grid-template-columns: minmax(0, 1fr) var(--keys-w, 20rem); }   /* the help opens as a column to the right of the editor */
     body.sdock.shelp #pane-script .keys { height: auto; max-height: none; margin: 0; align-self: stretch; overflow-y: auto; border-left: 1px solid var(--line); }
     body.sdock.shelp #pane-script .pane-main { min-width: 0; }
+    /* the script and the scratch grid side by side (stacked when docked), with a splitter; the help column is resizable too */
+    body:not(.sdock) #pane-script .pane-main { display: grid; grid-template-columns: var(--script-w, 84ch) 7px minmax(18rem, 1fr); gap: 0; align-items: start; overflow-x: hidden; }
+    body:not(.sdock) #pane-script #script-left { min-width: 0; }
+    body:not(.sdock) #pane-script #script-left > * { max-width: none; }
+    body:not(.sdock) #pane-script #script-right { min-width: 0; padding-left: 4px; }
+    body:not(.sdock) #pane-script #scratch { max-width: none; }
+    #script-split { display: none; }
+    body:not(.sdock) #script-split { display: block; align-self: stretch; cursor: col-resize; margin: .3rem 0; background: linear-gradient(var(--line), var(--line)) center / 1px 100% no-repeat; }
+    body:not(.sdock) #script-split:hover { background: linear-gradient(var(--accent), var(--accent)) center / 3px 100% no-repeat; }
+    #keys-grip { display: none; position: absolute; top: 0; bottom: 0; width: 7px; cursor: col-resize; z-index: 2; right: calc(var(--keys-w, 20rem) + .5rem - 3px); }
+    #keys-grip:hover { background: linear-gradient(var(--accent), var(--accent)) center / 3px 100% no-repeat; }
+    body:not(.sdock):not(.nokeys) #pane-script:not([hidden]) #keys-grip, body:not(.sdock).nokeys #pane-script:not([hidden]) #keys-grip { display: block; }
+    body.sdock.shelp #pane-script:not([hidden]) #keys-grip { display: block; right: calc(var(--keys-w, 20rem) - 3px); }
     #script-help { display: none; margin: .3rem 0; }
     body.sdock #script-help { display: inline-block; }
     body.sdock #pane-script.keyed:not([hidden]) { grid-template-columns: minmax(0, 1fr); }
@@ -184,6 +197,7 @@
     #scratch .sc-foot { margin-top: .35rem; }
     #scratch button, #scratch select { font: 11px ui-monospace, Consolas, monospace; padding: .05rem .45rem; background: var(--bg); color: var(--fg); border: 1px solid var(--line); cursor: pointer; }
     #scratch button:hover, #scratch button.hot, #scratch .sc-play { border-color: var(--accent); }
+    #scratch select { max-width: 11rem; }
     #scratch .sc-grid { display: flex; gap: 4px; margin: .4rem 0; max-height: 22rem; overflow: auto; align-items: flex-start; }
     #scratch .sc-rows, #scratch .sc-col { display: flex; flex-direction: column; gap: 2px; flex: none; }
     #scratch .sc-rows b, #scratch .sc-col b { height: 14px; line-height: 14px; font-size: 10px; text-align: center; font-weight: 600; opacity: .8; }
@@ -502,14 +516,14 @@
     #cfg:focus { outline: none; }
     #info-view a { color: inherit; text-decoration: underline; }
     #info { display: block; box-sizing: border-box; width: 100%; max-width: 100ch; min-height: 60vh; margin: .3rem 0; padding: .5rem .6rem; font: 13px/1.4 ui-monospace, Consolas, monospace; background: var(--panel); color: var(--fg); border: 1px solid color-mix(in srgb, var(--fg) 30%, transparent); resize: vertical; tab-size: 4; }
-    .pane.keyed:not([hidden]) { display: grid; grid-template-columns: minmax(0, 1fr) 20rem; gap: 1rem; align-items: start; }
+    .pane.keyed:not([hidden]) { display: grid; grid-template-columns: minmax(0, 1fr) var(--keys-w, 20rem); gap: 1rem; align-items: start; }
     .pane-main { min-width: 0; overflow-x: auto; position: relative; }
     .keys { background: var(--panel); font: 11px/1.45 ui-monospace, Consolas, monospace; padding: .5rem .7rem; align-self: stretch; height: 0; min-height: 100%; overflow-y: auto; box-sizing: border-box; }   /* never taller than the main part beside it: it scrolls instead */
     .keys h3 { margin: 0 0 .4rem; font: inherit; opacity: .6; display: flex; justify-content: space-between; align-items: center; }
     .keys h3 button { font: inherit; font-size: 10px; padding: 0 .35rem; }
     /* hidden: the main part of each screen takes the whole width */
     body.nokeys .keys:not(.md) { display: none; }   /* the shortcuts live in the floating window (Shortcuts button); the script tutorial stays */
-    body.nokeys #pane-script:not([hidden]) { grid-template-columns: minmax(0, 1fr) 20rem; }
+    body.nokeys #pane-script:not([hidden]) { grid-template-columns: minmax(0, 1fr) var(--keys-w, 20rem); }
     body.nokeys #pane-arrange .keys { display: block; }   /* in the arrangement the pattern list stays; only the shortcuts go */
     body.nokeys #pane-arrange .keys > :not(#seq-side):not(#seq-tools):not(#list-grip) { display: none; }
     body.nokeys .pane.keyed:not([hidden]) { grid-template-columns: minmax(0, 1fr); }
@@ -891,15 +905,19 @@
   </section>
   <section id="pane-script" class="pane keyed" hidden style="position:relative">
     <div id="dock-grip" title="Drag to resize"></div>
+    <div id="keys-grip" title="Drag to resize the help"></div>
     <div class="pane-main">
+     <div id="script-left">
       <div class="help">Scripts write pattern data into the pattern under the cursor in the pattern editor (or its selection). They run in their own thread, only when you ask, and change nothing if they fail or take too long. <b>Ctrl+Enter</b> runs the selected code, or all of it; <b>Ctrl+Alt+R</b> in the pattern editor runs the whole script on the pattern there. Saved with the project. <button id="script-run" type="button">Run</button></div>
       <div id="script-box"><pre id="script-hl" aria-hidden="true"></pre><textarea id="script" spellcheck="false" wrap="off" autocapitalize="off" autocomplete="off" aria-label="Script"></textarea></div>
       <div id="script-viz" hidden aria-label="Preview of the Euclidean and x.. patterns in the script"></div>
-      <div id="scratch" aria-label="Scratch pattern"></div>
       <div id="script-status" class="statusbar"></div>
       <button id="script-help" type="button" aria-pressed="false" title="Show or hide the scripting help and tutorial beside the docked panel">Script help</button>
       <pre id="script-out" tabindex="0" aria-label="Script output" aria-live="polite"></pre>
       <input id="script-line" type="text" spellcheck="false" autocomplete="off" aria-label="Try a line of script" placeholder="try a line here and press Enter, for example: scale('minor', 'A', 2)">
+     </div>
+     <div id="script-split" title="Drag to resize the script"></div>
+     <div id="script-right"><div id="scratch" aria-label="Scratch pattern"></div></div>
     </div>
     <aside class="keys md" aria-label="Scripting tutorial"><h3>Tutorial</h3><div id="script-tut"></div></aside>
   </section>

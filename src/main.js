@@ -99,6 +99,32 @@ $('dock-grip').addEventListener('mousedown', e => {
   const up = () => { removeEventListener('mousemove', move); removeEventListener('mouseup', up); try { localStorage.setItem('webtracker.scriptDockW', String(dockW)); } catch {} };
   addEventListener('mousemove', move); addEventListener('mouseup', up);
 });
+// The script / scratch splitter and the help column's width: dragged, remembered.
+{
+  const root = document.body, num = k => { try { return Number(localStorage.getItem(k)) || 0; } catch { return 0; } };
+  const save = (k, v) => { try { localStorage.setItem(k, String(v)); } catch {} };
+  const sw = num('webtracker.scriptW'), kw = num('webtracker.keysW');
+  if (sw) root.style.setProperty('--script-w', `${sw}px`);
+  if (kw) root.style.setProperty('--keys-w', `${kw}px`);
+  const drag = (grip, onMove, key) => grip.addEventListener('mousedown', e => {
+    e.preventDefault();
+    let v = 0;
+    const move = m => { v = onMove(m); },
+      up = () => { removeEventListener('mousemove', move); removeEventListener('mouseup', up); if (v) save(key, v); };
+    addEventListener('mousemove', move); addEventListener('mouseup', up);
+  });
+  drag($('script-split'), m => {
+    const left = $('script-left').getBoundingClientRect().left, room = $('pane-script').querySelector('.pane-main').getBoundingClientRect().width;
+    const w = Math.round(Math.max(280, Math.min(room - 300, m.clientX - left)));
+    root.style.setProperty('--script-w', `${w}px`);
+    return w;
+  }, 'webtracker.scriptW');
+  drag($('keys-grip'), m => {
+    const w = Math.round(Math.max(200, Math.min(window.innerWidth - 400, window.innerWidth - m.clientX - (root.classList.contains('sdock') ? 0 : 8))));
+    root.style.setProperty('--keys-w', `${w}px`);
+    return w;
+  }, 'webtracker.keysW');
+}
 // Full-screen panes. Switching with an F-key or a click focuses the pane's main element.
 let tabBefore = 'patterns', tabNow = 'patterns';   // where the Info close button goes back to
 const tabs = createTabs({
