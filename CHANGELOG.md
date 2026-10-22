@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 369 · 2026-10-22
+
+- Export to MP4: Config, Export, "file type" MP4. The file has your album art (Config, "album art": pick any picture; it is cropped square and scaled to 300 x 300; with none, a card with the project name) as its picture and the song as stereo AAC (H.264 for the picture). A browser without an AAC or H.264 encoder gets Opus and VP9 instead, which most players read. The picture costs almost nothing, so the file is about the size of the audio. Uses the browser's own encoders and the vendored mp4-muxer (MIT).
+
 ## 368 · 2026-10-22
 
 - Arp: the node now shows its 16-step mask, mode, rate, octaves, hold and transpose on its own face, so you can read it without selecting it (it follows the settings live). The demo's arps are placed clear of the other nodes.

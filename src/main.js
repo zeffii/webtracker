@@ -13,6 +13,7 @@ import { createPatcher } from './graph/patcher.js';
 import { createInsertMenu } from './graph/menu.js';
 import { createSynthwaveProject } from './project/synthwave.js';
 import { createArpDemoProject } from './project/arpdemo.js';
+import { artCanvas, encodeMp4 } from './audio/mp4.js';
 import * as ops from './project/ops.js';
 import { importMidi, parseMidi } from './project/midi.js';
 import { modToProject, parseMod } from './project/mod.js';
@@ -915,6 +916,24 @@ $('inst-file').addEventListener('change', async e => {
         for (const o of s.options) input.append(Object.assign(document.createElement('option'), { value: o, textContent: s.labels?.[o] ?? o }));
         input.value = config.get(s.key);
         input.addEventListener('change', () => config.set(s.key, input.value));
+      } else if (s.type === 'image') {   // a picture kept in the settings, cropped square and scaled down so it stays small
+        const holder = document.createElement('span'), thumb = Object.assign(document.createElement('img'), { width: 48, height: 48, alt: '' }), pick = Object.assign(document.createElement('button'), { type: 'button', textContent: 'Choose...' }), clear = Object.assign(document.createElement('button'), { type: 'button', textContent: 'Clear' }), file = Object.assign(document.createElement('input'), { type: 'file', accept: 'image/*', hidden: true });
+        const show = () => { const v = config.get(s.key); thumb.hidden = !v; if (v) thumb.src = v; clear.hidden = !v; };
+        pick.addEventListener('click', () => file.click());
+        clear.addEventListener('click', () => { config.set(s.key, ''); show(); });
+        file.addEventListener('change', async () => {
+          const f = file.files?.[0]; file.value = '';
+          if (!f) return;
+          try {
+            const c = await artCanvas(f, { size: 300 }), blob = await c.convertToBlob({ type: 'image/jpeg', quality: 0.92 });
+            const url = await new Promise((ok, no) => { const r = new FileReader(); r.onload = () => ok(r.result); r.onerror = no; r.readAsDataURL(blob); });
+            config.set(s.key, url); show();
+          } catch (err) { $('status').textContent = `That picture could not be read: ${err.message}`; }
+        });
+        holder.append(thumb, pick, clear, file);
+        holder.style.cssText = 'display:inline-flex;gap:8px;align-items:center';
+        show();
+        input = holder;
       } else if (s.type === 'colour') {
         input = Object.assign(document.createElement('input'), { type: 'color', value: config.get(s.key) });
         input.addEventListener('input', () => config.set(s.key, input.value));
@@ -1464,7 +1483,16 @@ $('export').addEventListener('click', async () => {
     engine.stop();
     const out = await renderSong(engine.exportState(), { tail: config.get('exportTail'), cancel, onProgress: f => say(`Rendering the song: ${Math.round(f * 100)}%`) });
     if (!out) say('Export cancelled.');
-    else {
+    else if (config.get('exportFormat') === 'mp4') {
+      const name = project.song.name ?? 'untitled', saved = config.get('exportArt');
+      const art = await artCanvas(saved ? await (await fetch(saved)).blob() : null, { size: 300, title: name });
+      const file = await encodeMp4(out, { art, cancel, onProgress: f => say(`Encoding the MP4: ${Math.round(f * 100)}%`) });
+      if (!file) say('Export cancelled.');
+      else {
+        download(`${name}.mp4`, file.blob);
+        say(`Exported ${Math.floor(out.seconds / 60)}:${String(Math.round(out.seconds % 60)).padStart(2, '0')} to MP4 (${file.video} picture, ${file.audio} sound, ${(file.blob.size / 1048576).toFixed(1)} MB).`);
+      }
+    } else {
       const bits = Number(config.get('exportBits'));
       download(`${project.song.name ?? 'untitled'}.wav`, encodeWav(out, bits));
       const db = out.peak > 0 ? 20 * Math.log10(out.peak) : -Infinity;

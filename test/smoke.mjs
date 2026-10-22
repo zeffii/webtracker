@@ -5599,6 +5599,16 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   assert.ok(run(legato, 10) < 0.02, 'with legato an overlapping note does not fire it again');
 }
 
+// 122a. Export settings: the file type defaults to WAV, and the album art only takes a small embedded image.
+{
+  assert.equal(uiConfig.get('exportFormat'), 'wav');
+  assert.equal(uiConfig.set('exportFormat', 'mp4'), 'mp4');
+  assert.equal(uiConfig.set('exportFormat', 'flac'), 'wav', 'an unknown type falls back to the default');
+  assert.equal(uiConfig.set('exportArt', 'data:image/jpeg;base64,AAAA'), 'data:image/jpeg;base64,AAAA');
+  assert.equal(uiConfig.set('exportArt', 'https://example.com/a.jpg'), '', 'only an embedded image is kept');
+  assert.equal(uiConfig.set('exportArt', `data:image/png;base64,${'A'.repeat(500000)}`), '', 'a large one is refused');
+}
+
 // 122b. Arpeggiator: held notes become a stepped pattern, in the order the mode gives, with rests, repeats, hold and a seed.
 {
   const build = (params, voices = 0) => {
