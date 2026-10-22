@@ -1,3 +1,4 @@
+import { MODES as ARP_MODES, RATE_NAMES as ARP_RATES } from '../audio/nodes/arp.js';
 // Small fixed pictures for the inside of a node, drawn with canvas paths. Each takes
 // (ctx, cx, cy, w, h) and strokes in the current stroke style. Together with the node's
 // shape they say what the node does: sources are rounded with a waveform, processors are
@@ -295,3 +296,27 @@ export const GLYPHS = {
     ctx.stroke();
   },
 };
+
+// A node's face: its state drawn on the node, so it can be read without selecting it. The arp shows its 16-step mask (the bars
+// beyond `steps` dimmed) over a line of its settings.
+const FACES = {
+  arp: (ctx, x, y, w, h, { node, live, ink }) => {
+    const mask = Array.isArray(node.data?.gate) && node.data.gate.length === 16 ? node.data.gate : Array(16).fill(1);
+    const steps = Math.round(live('steps')), pad = 10, top = y + 8, barH = h - 38, bw = (w - 2 * pad) / 16;
+    ctx.save();
+    for (let i = 0; i < 16; i++) {
+      const bx = x + pad + i * bw, on = i < steps;
+      ctx.globalAlpha = 0.18; ctx.fillStyle = ink; ctx.fillRect(bx + 1, top, bw - 2, barH);
+      ctx.globalAlpha = on ? 1 : 0.3; ctx.fillStyle = i % 4 === 0 ? 'hsl(35 85% 52%)' : 'hsl(35 70% 62%)';
+      const v = Math.max(0, Math.min(1, mask[i] ?? 0)) * barH;
+      ctx.fillRect(bx + 1, top + barH - v, bw - 2, v);
+    }
+    ctx.globalAlpha = 0.85; ctx.fillStyle = ink;
+    ctx.font = '10px ui-monospace, Consolas, monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+    const mode = ARP_MODES[Math.round(live('mode'))] ?? '?', rate = ARP_RATES[Math.round(live('rate'))] ?? '?', oct = Math.round(live('octaves'));
+    const bits = [mode, rate, ...(oct > 1 ? [`${oct} oct`] : []), ...(live('hold') >= 0.5 ? ['hold'] : []), ...(Math.round(live('transpose')) ? [`${Math.round(live('transpose')) > 0 ? '+' : ''}${Math.round(live('transpose'))} st`] : [])];
+    ctx.fillText(bits.join(' \u00b7 '), x + w / 2, y + h - 8, w - 12);
+    ctx.restore();
+  },
+};
+export const drawFace = (ctx, name, x, y, w, h, state) => FACES[name]?.(ctx, x, y, w, h, state);

@@ -11,7 +11,7 @@ const text = cells => Array.from({ length: BAR }, (_, i) => cells[i] ?? '... ..'
 
 // An instrument with an arp in its graph: the arp has no wires, it only needs to be there.
 const withArp = (def, arp, mask) => {
-  def.graph = { ...def.graph, nodes: [...def.graph.nodes.slice(0, -1), { id: 'arp', type: 'arp', params: arp, data: { gate: mask } }, def.graph.nodes.at(-1)] };
+  def.graph = { ...def.graph, nodes: [...def.graph.nodes.slice(0, -1), { id: 'arp', type: 'arp', x: 330, y: 170, params: arp, data: { gate: mask } }, def.graph.nodes.at(-1)] };
   return def;
 };
 

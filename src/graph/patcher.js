@@ -8,7 +8,7 @@ import { addNode, replaceNode, autoLayout, connect, disconnect, duplicateNodes, 
 // an input dot to wire them, click a wire or node and press Delete to remove it. A change
 // to the wiring or the exposed parameters calls onStructure so the instrument is rebuilt
 // and swapped in; a parameter change calls onParam and is heard at once.
-import { GLYPHS } from './glyphs.js';
+import { GLYPHS, drawFace } from './glyphs.js';
 import { LOWER, UPPER } from '../seq/piano.js';
 import { inputsOf, portKind, resolveKinds } from './kinds.js';
 import { eligibleSources } from './sidechain.js';
@@ -61,6 +61,7 @@ export const hexOf = (spec, entry, value) => {
 export const MIN_HEIGHT = 160, MAX_HEIGHT = 1600;   // the graph area, in pixels
 const SHAPE_W = { box: 112, rounded: 100, speaker: 100 };
 export const nodeBox = (def, node) => {
+  if (def.size) return { ...def.size };   // a node that draws its own face (the arp's step mask)
   const rows = Math.max(inputsOf(node, def).length, def.outputs.length, 1);
   const h = Math.max(rows * ROW + 10, def.shape === 'circle' ? 44 : 0);
   return { w: def.shape === 'circle' ? h : SHAPE_W[def.shape ?? 'box'], h };
@@ -1079,7 +1080,11 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
       if (node.type === 'tap') { const slot = Math.round(node.params?.smp ?? type.params.find(q => q.name === 'smp').def), copy = Math.round(node.params?.copy ?? 0); ctx.fillText(slot >= 1 && slot <= 16 ? `\u2192 tap${String(slot).padStart(2, '0')}${copy ? `, copy ${copy}` : ''}` : '\u2192 (off)', node.x + w / 2, node.y + h + 12); }   // where it writes
       if (node.type === 'sidechain') { ctx.fillText(node.source ? `\u2190 ${node.source}` : '\u2190 (none)', node.x + w / 2, node.y + h + 12); }   // where it listens to
 
-      const glyph = GLYPHS[type.glyph];
+      if (type.face) {   // the node shows its own state on its face, selected or not
+        const live = name => readLive(instId, node.id, name) ?? node.params?.[name] ?? type.params.find(q => q.name === name)?.def ?? 0;
+        drawFace(ctx, type.face, node.x, node.y, w, h, { node, live, ink });
+      }
+      const glyph = type.face ? null : GLYPHS[type.glyph];
       if (glyph) {
         ctx.strokeStyle = ink;
         ctx.globalAlpha = 0.85;

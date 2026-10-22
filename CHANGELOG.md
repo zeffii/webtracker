@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 368 · 2026-10-22
+
+- Arp: the node now shows its 16-step mask, mode, rate, octaves, hold and transpose on its own face, so you can read it without selecting it (it follows the settings live). The demo's arps are placed clear of the other nodes.
+
 ## 367 · 2026-10-22
 
 - New node: Arp (Control). An arpeggiator for an instrument: held notes, from patterns, keyboard or MIDI, become a stepped pattern locked to the song's tempo. 21 modes (up, down, up/down and down/up with and without repeated ends, converge, diverge, converge/diverge, as played, random, random other, random once, chord, repeat x2 and x4, pinky and thumb up and up/down, and the tracker-style interval cycle), rate from 1/4 tick to 16 ticks, gate, swing, octaves, transpose, hold, retrigger (never, every note, every 4/8/16 steps), offset, repeats, a seed for the random modes, played or fixed velocity with humanize, and a "thru" switch. The 16-bar step mask under the node sets the velocity of each step; no bar is a rest. Every setting can be written from a pattern column or driven by a wire. A full help page (F1) covers the modes, timing, mask and recipes.

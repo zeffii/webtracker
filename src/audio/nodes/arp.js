@@ -77,6 +77,8 @@ export default {
   editor: 'gate',     // the step mask: the same 16-bar drawing as the trance gate
   shape: 'rounded',
   glyph: 'arp',
+  face: 'arp',        // the patcher draws the step mask and the settings on the node itself
+  size: { w: 236, h: 92 },
   params: [
     { name: 'mode', min: 0, max: MODES.length - 1, def: 0, int: true },
     { name: 'rate', min: 0, max: RATES.length - 1, def: 4, int: true },    // index into RATES, in ticks

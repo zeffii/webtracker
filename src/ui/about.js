@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['368', ['The Arp node shows its step mask and settings on the node itself, selected or not.']],
   ['367', ['New Arp node: 21 modes, rate, gate, swing, octaves, hold, retrigger, seeded random and a 16-step velocity mask; open ?demo=arp for a demo song.']],
   ['366', ['Patcher: control and parameter wires are dashed (a Config option, on by default).']],
   ['365', ['Header: a project name field and a * for unsaved changes; Ctrl+S saves from any field.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['361', ['Script tab: a scratch pattern, a grid to fill with triggers and look at (and play) before anything is written to a real pattern; it reads from and writes back to the script.']],
   ['360', ['First screen: the click-anywhere line sits halfway between its two earlier heights (40 px above the original).']],
   ['359', ['First screen: the click-anywhere line unrolls a fifth faster and sits 80 px higher.']],
-  ['358', ['First screen: the click-anywhere line unrolls from its first letter and is a little lighter.']],
 ];
