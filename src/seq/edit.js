@@ -119,11 +119,14 @@ export function insertPattern(lane, length, tick, rowCount = 16, overlay = false
   return puid;
 }
 
-// Places an existing pattern. Returns the placement length, or 0 if it does not fit.
+// Places an existing pattern. Returns the placement length, or 0 if it does not fit. Where a pattern already starts, the
+// new one takes its place (a different pattern; the old one stays in the list).
 export function placePattern(lane, length, tick, puid) {
   const n = Math.min(lane.patterns[puid].length, length - tick);
-  if (startsAt(lane, tick) || n < 1) return 0;
-  lane.placements.push({ puid, start: tick, length: n });
+  if (n < 1) return 0;
+  const here = lane.placements.find(p => p.start === tick);
+  if (here) { if (here.puid === puid) return 0; here.puid = puid; here.length = n; }
+  else lane.placements.push({ puid, start: tick, length: n });
   refresh(lane, length);
   return n;
 }

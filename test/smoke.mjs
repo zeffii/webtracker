@@ -481,7 +481,9 @@ const firstSound = x => x.findIndex(v => Math.abs(v) > 1e-9);
   assert.equal(placementAt(lane, 20), null);
   assert.equal(Object.keys(lane.patterns).length, 2);
   assert.equal(ops.placePattern(lane, 32, 16, ops.puidByIndex(lane, 0)), 16);
-  assert.equal(ops.placePattern(lane, 32, 16, ops.puidByIndex(lane, 0)), 0);   // a pattern already starts there
+  assert.equal(ops.placePattern(lane, 32, 16, ops.puidByIndex(lane, 0)), 0);   // the same pattern already starts there
+  assert.equal(ops.placePattern(lane, 32, 16, ops.puidByIndex(lane, 1)) > 0 && placementAt(lane, 16).puid, ops.puidByIndex(lane, 1), 'another one replaces it');
+  assert.equal(lane.placements.filter(p => p.start === 16).length, 1, 'still one pattern per start');
   assert.ok(ops.insertPattern(lane, 32, 20, 16, true));                  // overlay allowed on a covered tick
 
   // push and pull: later patterns follow the caret
@@ -3776,7 +3778,7 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   assert.equal(lane.placements.length, before + 1, 'Space places a pattern');
   assert.equal(placed?.puid, want, 'the one the list had selected');
   view.draw(); assert.match(statusEl.textContent, /Placed/);
-  press(' '); assert.equal(lane.placements.length, before + 1, 'not where a pattern already starts');
+  press(' '); assert.equal(lane.placements.length, before + 1, 'the same pattern is not placed twice at one start');
 }
 
 // 93. Keyjazz from the instrument screen, and panic.

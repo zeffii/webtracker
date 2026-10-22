@@ -71,10 +71,10 @@ export function createSequenceView({ el, statusEl, listEl, transport, onToggle, 
   const place = index => {
     const puid = puidByIndex(lane(), index);
     if (puid === undefined) { message = `No pattern ${hex2(index)} in ${lane().id}.`; return; }
-    if (startsAt(lane(), cur.tick)) { message = 'A pattern already starts here.'; return; }
+    const replacing = startsAt(lane(), cur.tick);
     const placed = editor.placePattern(cur.lane, cur.tick, puid);
-    if (!placed) { message = 'It does not fit here.'; return; }
-    message = `Placed ${lane().patterns[puid].name}.`;
+    if (!placed) { message = replacing ? 'That pattern is already here.' : 'It does not fit here.'; return; }
+    message = `${replacing ? 'Replaced with' : 'Placed'} ${lane().patterns[puid].name}.`;
     cur.tick = rowStart(Math.min(len - 1, cur.tick + placed));
   };
 
@@ -385,8 +385,8 @@ export function createSequenceView({ el, statusEl, listEl, transport, onToggle, 
       case ' ': {   // Space: place the pattern selected in the list here, and move on to where it ends
         const puid = listPick();
         if (puid === null) { message = 'No patterns in this lane yet. Enter makes one.'; break; }
-        const n = editor.placePattern(li, t, puid);
-        if (act('place the pattern', n, 'Placed.')) { const p = lane().patterns[puid]; message = `Placed ${hex2(p.index)} "${p.name}".`; if (t + n < len) cur.tick = rowStart(t + n); }
+        const at = rowStart(cur.tick), replacing = startsAt(lane(), at), n = editor.placePattern(li, at, puid);
+        if (act('place the pattern', n, 'Placed.')) { const p = lane().patterns[puid]; message = `${replacing ? 'Replaced with' : 'Placed'} ${hex2(p.index)} "${p.name}".`; if (at + n < len) cur.tick = rowStart(at + n); }
         break;
       }
       case 'Enter':   // open the pattern under the cursor in the grid, or start a new one
