@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 332 · 2026-10-22
+
+- Lane curves: anchors keep the normal mouse pointer and fill with the highlight colour under it instead of showing a hand.
+
 ## 331 · 2026-10-22
 
 - Lane curves: the hover tick box now goes away when you click elsewhere or leave the grid.
