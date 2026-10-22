@@ -7154,4 +7154,68 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   assert.equal(lanes[li].rows[2][ci], '12A000', 'an existing value is kept');
   console.log('ok: machine help');
 }
+// Lane curves: the maths, pins following their patterns, saving, and the sequencer moving a parameter
+{
+  const A = await import('../src/seq/automation.js');
+  const line = { pts: [{ t: 0, v: 0 }, { t: 16, v: 1 }], kinds: ['l'] };
+  assert.ok(Math.abs(A.valueAt(line, 8) - 0.5) < 1e-9, 'a straight segment is linear');
+  assert.ok(Number.isNaN(A.valueAt({ pts: [{ t: 4, v: 1 }], kinds: [] }, 2)), 'nothing before the first anchor');
+  assert.equal(A.valueAt(line, 99), 1, 'the last value is held');
+  const bez = { pts: [{ t: 0, v: 0 }, { t: 16, v: 1 }], kinds: ['c'] };
+  assert.ok(Math.abs(A.valueAt(bez, 8) - 0.5) < 1e-6 && A.valueAt(bez, 3) < 3 / 16, 'a bezier eases in and out');
+  let prev = -1; for (let t = 0; t <= 16; t += 0.5) { const v = A.valueAt(bez, t); assert.ok(v >= prev - 1e-9, 'monotonic'); prev = v; }
+
+  const registry = new ParamRegistry();
+  for (const [id, def] of Object.entries(instruments)) compile(def.graph, { instrument: id, nodeTypes: NODE_TYPES, registry });
+  const src = { id: 'g', instrument: 'lead', patterns: { a: { text: patternText(16, {}) }, b: { text: patternText(16, {}) } }, placements: [{ puid: 'a', start: 0, length: 16 }, { puid: 'b', start: 16, length: 16 }],
+    curves: [{ target: 'out.gain', on: true, pts: [{ t: 0, v: 0.5 }, { t: 16, v: 0.5, pin: 'start' }, { t: 32, v: 1, pin: 'end' }], kinds: ['c', 'l'] }] };
+  const song = { ...demoSong, length: 64, lanes: [src] };
+  const lanes = prepareSong(song, instruments, registry);
+  const lane = lanes[0];
+  assert.equal(lane.auto.length, 1, 'the curve runs');
+  assert.equal(lane.auto[0].table.length, 64 * A.RES + 1);
+  assert.equal(lane.auto[0].table[16 * A.RES], 0.5);
+
+  // snapping: near a pattern edge it is pulled onto it and pinned; far from one it goes to the row
+  assert.deepEqual(A.snapTick(lane, 18, { edges: true, rows: 16, reach: 5, length: 64 }), { t: 16, pin: 'start' });
+  assert.deepEqual(A.snapTick(lane, 24, { edges: true, rows: 8, reach: 5, length: 64 }), { t: 24, pin: null });
+
+  // pins follow: moving the second pattern later moves the anchors with it; removing it lets them go
+  const editor = createEditor(lanes, 64);
+  assert.ok(editor.move(0, 16, 16), 'the second pattern moves one row later');
+  assert.deepEqual(lane.curves[0].pts.map(p => p.t), [0, 32, 48], 'the pinned anchors went with it');
+  assert.equal(lane.auto[0].table[32 * A.RES], 0.5, 'and the table was baked again');
+  assert.equal(editor.undo() !== null, true);
+  assert.deepEqual(lane.curves[0].pts.map(p => p.t), [0, 16, 32], 'undo puts them back');
+  assert.ok(editor.remove(0, 16));
+  assert.equal(editor.freed, 2, 'both pins let go');
+  assert.deepEqual(lane.curves[0].pts.map(p => [p.t, !!p.pin]), [[0, false], [16, false], [32, false]], 'the curve itself is unchanged');
+  editor.undo();
+
+  // editing through the editor: a new curve is a shape change, moving an anchor is not
+  assert.equal(editor.curve(0, 'move', null, l => { l.curves[0].pts[0].v = 0.25; return true; }), 'same');
+  assert.equal(lane.auto[0].table[0], 0.25);
+  assert.equal(editor.curve(0, 'delete', null, l => { l.curves = []; return true; }), true);
+  assert.equal(lane.auto.length, 0);
+  editor.undo(); editor.undo();
+  assert.equal(lane.auto.length, 1, 'undo brings the curve back');
+
+  // saved and loaded
+  const text = serializeProject({ song, instruments: {}, samples: {}, lanes });
+  assert.deepEqual(JSON.parse(text).lanes[0].curves, lane.curves);
+
+  // the sequencer moves the parameter while playing
+  const rt = new GraphRuntime({ sampleRate: sr, params: registry.values });
+  const seq = new Sequencer({ sampleRate: sr, runtime: rt, params: registry.values, transport: new Int32Array(new SharedArrayBuffer(8)) });
+  for (const [id, def] of Object.entries(instruments)) rt.load(compile(def.graph, { instrument: id, nodeTypes: NODE_TYPES, registry }));
+  seq.setSong({ ...song, ticksPerBeat: 4, bpm: 120 });
+  const slot = lane.auto[0].slot, { min, max } = registry.meta[slot];
+  lane.curves[0].pts = [{ t: 0, v: 0.5 }, { t: 60, v: 0.5 }]; lane.curves[0].kinds = ['c'];
+  const fresh = prepareSong({ ...song, lanes: [{ ...src, curves: lane.curves }] }, instruments, registry)[0];
+  seq.setLane(fresh);
+  seq.play();
+  render(seq, 0.2);
+  assert.ok(Math.abs(registry.values[slot] - (min + 0.25 * (max - min))) < 1e-4, `volume follows the curve (taper 2): ${registry.values[slot]}`);
+  console.log('ok: lane curves');
+}
 console.log('smoke test passed');

@@ -1,4 +1,5 @@
 import * as ops from './edit.js';
+import { followPins, rebake, spans } from './automation.js';
 
 // Every change to patterns and placements goes through the editor, which keeps a
 // capped undo stack of labelled entries (it doubles as a recent-changes log) and one
@@ -13,21 +14,29 @@ export function createEditor(lanes, length, { limit = 20 } = {}) {
   const undoStack = [], redoStack = [];
   let waypoint = null, lastKey = null;
 
-  const snapshot = () => lanes.map(l => structuredClone({ patterns: l.patterns, placements: l.placements, mutes: l.mutes ?? [], offs: l.offs ?? [] }));
+  const snapshot = () => lanes.map(l => structuredClone({ patterns: l.patterns, placements: l.placements, mutes: l.mutes ?? [], offs: l.offs ?? [], curves: l.curves ?? [] }));
   const restore = state => state.forEach((s, i) => {
     lanes[i].patterns = structuredClone(s.patterns);
     lanes[i].placements = structuredClone(s.placements);
     lanes[i].mutes = [...s.mutes];
     lanes[i].offs = [...(s.offs ?? [])];
+    lanes[i].curves = structuredClone(s.curves ?? []);
     ops.refresh(lanes[i], length);
   });
 
   // Runs an edit; records an undo entry only if it changed something. Repeated edits
   // with the same key (typing into one cell) share one entry.
   const change = (label, key, fn) => {
-    const before = snapshot();
+    const before = snapshot(), was = lanes.map(spans);
     const result = fn();
     if (!result) return result;
+    // anchors pinned to a pattern edge go with it; the ones whose pattern is gone let go (the curve itself does not change)
+    api.freed = 0;
+    lanes.forEach((l, i) => {
+      if (!l.curves?.some(c => c.pts.some(p => p.pin))) return;
+      api.freed += followPins(l.curves, was[i], spans(l));
+      rebake(l, length);
+    });
     if (key === null || key !== lastKey) {
       undoStack.push({ label, state: before });
       if (undoStack.length > limit) undoStack.shift();
@@ -47,7 +56,15 @@ export function createEditor(lanes, length, { limit = 20 } = {}) {
   };
 
   const at = li => lanes[li];
-  return {
+  const api = {
+    freed: 0,   // how many curve pins the last edit let go of
+    // A change to one lane's curves: fn(lane) edits lane.curves and returns whether it changed anything. Returns whether the
+    // set of running curves changed (then the audio thread needs the lane again), or null.
+    curve: (li, label, key, fn) => {
+      let shape = false;
+      const done = change(label, key, () => { const r = fn(at(li)); if (r) shape = rebake(at(li), length) || 'same'; return r; });
+      return done ? shape : null;
+    },
     setCell: (li, tick, col, token) => change('edit cell', `${li}:${tick}:${col}`, () => ops.setCell(at(li), length, tick, col, token)),
     setCells: (li, items, label = 'edit cells', key = null) => change(label, key, () => ops.setCells(at(li), length, items)),
     insertPattern: (li, tick, { overlay = false } = {}) => change('insert pattern', null, () => ops.insertPattern(at(li), length, snap(tick), 16, overlay)),
@@ -113,4 +130,5 @@ export function createEditor(lanes, length, { limit = 20 } = {}) {
     // Most recent first.
     log: () => undoStack.map(e => e.label).reverse(),
   };
+  return api;
 }

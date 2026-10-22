@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 330 · 2026-10-22
+
+- Lane curves: a hairline curve per lane that moves one of the machine's parameters over time, across patterns, without being pattern data: the lane's volume or any parameter in its Params list (a filter cutoff over many repeating patterns, say). Right-click in the arrangement: Curve: Volume (or another parameter) draws one over the pattern under the cursor, both ends pinned to its edges. Press on the line to add an anchor, drag anchors (they snap to pattern edges and rows; Alt moves them freely; landing on an edge pins them so they follow the pattern when it moves or is replaced, and let go when it is deleted). Hover a segment for a small tick box: ticked is a bezier, unticked a straight line. Right-click an anchor to pin, unpin or delete it; right-click a lane to switch the curve off or delete it. Curves are saved in the .wax file, undoable, and played smoothly by the engine.
+
 ## 329 · 2026-10-22
 
 - Pattern editor: right-click offers cut, copy, paste, clear, transpose, interpolate, randomize and the chord palette, plus what does this command do? on a Cmd cell. New machine help window (Ctrl+Alt+H, or from that menu): small and floating, it follows the cursor lane and lists its columns and its commands with ranges and plain descriptions (every sampler command, cc14 included), with a find box. Click a command in it to type it into the Cmd cell under the cursor.

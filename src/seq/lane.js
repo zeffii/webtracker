@@ -1,6 +1,7 @@
 import { PAGE_TICKS } from '../audio/sequencer.js';
 import { EMPTY, KINDS, encodeCell } from './cells.js';
 import { longName, shortName } from './names.js';
+import { buildAutomation } from './automation.js';
 
 // An instrument's pattern columns: note and velocity (repeated for each note column), then one column per exposed
 // parameter (2hex, 4hex with bits: 16, or 1hex with bits: 4), then one CCXXYY column if the instrument
@@ -185,10 +186,12 @@ export function prepareSong(song, instruments, registry) {
       mutes: [...(src.mutes ?? [])].filter(t => t < song.length).sort((a, b) => a - b),
       offs: [...(src.offs ?? [])].filter(t => t < song.length).sort((a, b) => a - b),
       silenced: src.silenced === true,
+      curves: structuredClone(src.curves ?? []),
     };
     lane.rows = flattenLane(lane, columns, song.length);
     lane.pages = buildPages(lane.rows, columns);
     writeMask(lane, song.length);
+    buildAutomation(lane, registry, song.length);
     return lane;
   });
 }
@@ -227,6 +230,7 @@ export function rebuildInstrumentLanes(lanes, song, instruments, registry, instr
     lane.columns = columns;
     lane.rows = flattenLane(lane, columns, song.length);
     lane.pages = buildPages(lane.rows, columns);
+    buildAutomation(lane, registry, song.length);
     changed.push(lane);
   }
   return changed;
@@ -235,9 +239,10 @@ export function rebuildInstrumentLanes(lanes, song, instruments, registry, instr
 // A new empty lane for an instrument (which must already be compiled).
 export function createLane(id, instrumentId, instruments, registry, length) {
   const columns = buildColumns(instrumentId, instruments[instrumentId], registry);
-  const lane = { id, instrument: instrumentId, columns, patterns: {}, placements: [], mutes: [], offs: [] };
+  const lane = { id, instrument: instrumentId, columns, patterns: {}, placements: [], mutes: [], offs: [], curves: [] };
   lane.rows = flattenLane(lane, columns, length);
   lane.pages = buildPages(lane.rows, columns);
   writeMask(lane, length);
+  lane.auto = [];
   return lane;
 }

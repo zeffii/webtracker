@@ -6,6 +6,8 @@ import { placementAt, puidByIndex, startsAt } from './edit.js';
 import { setLoopPoint, toggleLoop } from './loop.js';
 import { showContextMenu } from '../ui/ctxmenu.js';
 import { createMinimap } from './minimap.js';
+import { createCurveView, headMark, shownCurve } from './curveview.js';
+import { newCurve } from './automation.js';
 
 const ROWS = { min: 6, max: 128, normal: 24 };   // rows shown at once
 let CELL = 16;      // ticks in one row: a bar by default (the beats in a bar times the ticks in a beat); Ctrl+wheel halves it down to a beat and back
@@ -17,7 +19,7 @@ const hex2 = n => n.toString(16).toUpperCase().padStart(2, '0');
 // column. The cursor sits on a row; edits happen at the row's start, or at the start of a
 // pattern that begins inside it. A pattern is a block that starts with its index and name; a later
 // pattern covers the ones under it. Keyboard-driven.
-export function createSequenceView({ el, statusEl, listEl, transport, onToggle, onOpen, onMove, onSeek, onParams = () => {}, onSong = () => {}, follow = () => false }) {
+export function createSequenceView({ el, statusEl, listEl, transport, onToggle, onOpen, onMove, onSeek, onParams = () => {}, onSong = () => {}, onShape = () => {}, follow = () => false }) {
   let lanes = null, len = 0, editor = null, song = null;
   const cur = { lane: 0, tick: 0 };
   let typed = '', message = '';
@@ -211,6 +213,40 @@ export function createSequenceView({ el, statusEl, listEl, transport, onToggle, 
     if (!lanes || e.button !== 0 || !pointed(e)) return;
     if (here()) onOpen(cur.lane, editTick(), { solo: e.ctrlKey || e.metaKey });
   });
+  // The lane's curve items for the right-click menu: one entry per parameter that can have a curve (a tick where it has one),
+  // and for the curve on show, switching it off and deleting it.
+  const curveItems = li => {
+    const l = lanes[li], targets = l.targets ?? [], shown = shownCurve(l), row = rowStart(cur.tick);
+    const items = targets.slice(0, 12).map(t => {
+      const idx = (l.curves ?? []).findIndex(c => c.target === t.id);
+      return {
+        label: `${idx >= 0 ? '✓ ' : ''}Curve: ${t.label}`,
+        run: () => {
+          if (idx >= 0) { l.shown = idx; message = `Showing the ${t.label} curve.`; draw(); return; }
+          const shape = editor.curve(li, 'new curve', null, lane => {
+            // over the pattern under the cursor, pinned to both its edges; else four rows from here
+            const pl = placementAt(lane, row), pat = pl && lane.patterns[pl.puid], v = t.id === 'out.gain' ? 0.8 : 0.5;
+            const t0 = pl ? pl.start : row, t1 = pl ? pl.start + Math.min(pl.length, pat.length) : Math.min(len, row + 4 * CELL);
+            const c = newCurve(t.id, t0, v);
+            if (pl) c.pts[0].pin = 'start';
+            c.pts.push({ t: t1, v, ...(pl ? { pin: 'end' } : {}) }); c.kinds.push('c');
+            (lane.curves ??= []).push(c); lane.shown = lane.curves.length - 1;
+            return true;
+          });
+          if (shape === true) onShape(li);
+          message = `New ${t.label} curve from this row: press on the line to add anchors, drag them to shape it.`;
+          draw();
+        },
+      };
+    });
+    if (shown) {
+      const ci = l.curves.indexOf(shown);
+      items.push({ separator: true },
+        { label: shown.on === false ? 'Switch the curve on' : 'Switch the curve off', run: () => { const shape = editor.curve(li, 'curve on or off', null, () => { shown.on = shown.on === false; return true; }); if (shape === true) onShape(li); message = shown.on === false ? 'Curve off: the parameter is left alone.' : 'Curve on.'; draw(); } },
+        { label: 'Delete this curve', run: () => { const shape = editor.curve(li, 'delete curve', null, lane => { lane.curves.splice(ci, 1); lane.shown = 0; return true; }); if (shape === true) onShape(li); message = 'Curve deleted.'; draw(); } });
+    }
+    return items;
+  };
   // Right-click a pattern: the cursor goes there and a small menu offers what the keys do, and the parameters of its lane.
   el.addEventListener('contextmenu', e => {
     if (!lanes) return;
@@ -220,8 +256,8 @@ export function createSequenceView({ el, statusEl, listEl, transport, onToggle, 
     Object.assign(cur, hit); sel = null; typed = ''; message = '';
     onMove?.(cur.lane, cur.tick);
     draw();
-    if (!here()) return;
     const li = cur.lane, t = editTick(), go = (label, result, ok) => { act(label, result, ok); draw(); };
+    if (!here()) { showContextMenu(e, curveItems(li)); return; }
     showContextMenu(e, [
       { label: 'Open in the pattern editor', hint: 'Enter', run: () => onOpen(li, t) },
       { label: 'Open on its own', hint: 'Ctrl+double-click', run: () => onOpen(li, t, { solo: true }) },
@@ -232,6 +268,8 @@ export function createSequenceView({ el, statusEl, listEl, transport, onToggle, 
       { separator: true },
       { label: 'Rename… (not yet)', disabled: true },
       { label: 'Params', hint: 'Ctrl+Alt+P', run: () => { onParams(li); draw(); } },
+      { separator: true },
+      ...curveItems(li),
     ]);
   });
   const stopDrag = () => { dragging = null; };
@@ -245,7 +283,7 @@ export function createSequenceView({ el, statusEl, listEl, transport, onToggle, 
   };
 
   // Each edit reports through the message line.
-  const act = (label, result, ok) => { message = result ? ok : `Can't ${label} here.`; return result; };
+  const act = (label, result, ok) => { message = result ? ok : `Can't ${label} here.`; if (result && editor.freed) message += ` ${editor.freed} curve pin${editor.freed > 1 ? 's' : ''} let go (the curve is unchanged).`; return result; };
 
   // A small question over the grid: Y or Enter is yes, N is no, Esc cancels. `answer(true | false)` runs on yes or no.
   let dialog = null;
@@ -453,6 +491,10 @@ export function createSequenceView({ el, statusEl, listEl, transport, onToggle, 
   };
 
   const playline = createPlayline(el), looplines = createLoopLines(el), minimap = createMinimap(el);
+  const curves = createCurveView({
+    el, lanes: () => lanes, top: () => top, CELL: () => CELL, len: () => len, get editor() { return editor; },
+    say: m => { message = m; statusEl.textContent = m; }, shape: li => onShape(li), menu: (e, items) => showContextMenu(e, items),
+  });
   let lineMode = config.get('playhead') === 'line';
   config.onChange(k => { if (k === 'playhead') { lineMode = config.get('playhead') === 'line'; draw(); } });
   let top = 0;                  // the first row on screen
@@ -499,7 +541,7 @@ export function createSequenceView({ el, statusEl, listEl, transport, onToggle, 
     if (syncCell()) top = 0;   // the bar changed under us: the row size follows it
     const bar = barTicks(), num = t => { const s = String(t).padStart(4, '0'); return t % (bar * 4) ? `${s} ` : `<span class="gn ${t % (bar * 16) ? 'g2' : 'g1'}">${s} </span>`; };
     const lines = [row(`      ${lanes.map((l, li) => {
-      const head = `${li === cur.lane ? '>' : ' '}${esc(l.id.slice(0, COLW - 1).padEnd(COLW - 1))}`;
+      const mark = headMark(l), head = `${li === cur.lane ? '>' : ' '}${esc(l.id.slice(0, COLW - (mark === ' ' ? 1 : 3)).padEnd(COLW - 1 - (mark === ' ' ? 0 : 2)))}${mark === ' ' ? '' : ` ${mark}`}`;
       const dim = dimFilter(dimLevel(l));
       return l.silenced ? `<span class="silenced">${head}</span>` : dim ? `<span style="${dim}">${head}</span>` : head;
     }).join('')}`)];
@@ -560,6 +602,7 @@ export function createSequenceView({ el, statusEl, listEl, transport, onToggle, 
       const lp = song.loop, yOf = t => head && t / CELL >= top && t / CELL <= Math.min(rows, top + rowCount) ? head.offsetTop + head.offsetHeight * (1 + t / CELL - top) : null;
       looplines.show(lp ? [yOf(lp.start), yOf(lp.end)] : null, !!lp?.off);
     }
+    curves.paint();
 
     if (config.get('minimapOn')) minimap.paint({ lanes, first: top, last: Math.min(rows, top + rowCount), CELL, html, opts: { lengths: config.get('minimapLengths'), caps: config.get('minimapCaps'), params: config.get('minimapParams') } });
     else minimap.hide();
@@ -570,6 +613,7 @@ export function createSequenceView({ el, statusEl, listEl, transport, onToggle, 
       `lane ${cur.lane + 1}/${lanes.length} ${lane().id}`, `row ${curRow}/${rows - 1}`, `tick ${editTick()}`,
       ownerPat ? `${hex2(ownerPat.index)} "${ownerPat.name}" used ${lane().placements.filter(p => p.puid === owner.puid).length}x in this lane` : 'no pattern',
       lane().silenced ? 'silenced' : lane().soloMuted ? 'quiet: another lane is soloed' : lane().solo ? 'solo' : (lane().mask?.[rowStart(cur.tick)] & 3) && 'muted',
+      shownCurve(lane()) && `curve ${(lane().targets ?? []).find(t => t.id === shownCurve(lane()).target)?.label ?? shownCurve(lane()).target}${shownCurve(lane()).on === false ? ' (off)' : ''}`,
       picked && `selected ${picked.l1 - picked.l0 + 1}x${(picked.t1 - picked.t0) / CELL + 1}`, typed && `typing ${typed}`, message,
     ].filter(Boolean).join(' · ');
     if (listEl) {

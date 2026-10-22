@@ -1,5 +1,6 @@
 import { KINDS } from './cells.js';
 import { flattenLane, writeMask, writePages } from './lane.js';
+import { rebake } from './automation.js';
 
 let counter = 0;
 // Pattern ids: unix time plus a tiebreak counter.
@@ -44,6 +45,7 @@ export function refresh(lane, length) {
   lane.rows = flattenLane(lane, lane.columns, length);
   writePages(lane.rows, lane.columns, lane.pages);
   writeMask(lane, length);
+  rebake(lane, length);
 }
 
 export const refreshMask = (lane, length) => writeMask(lane, length);

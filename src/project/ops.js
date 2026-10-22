@@ -303,6 +303,7 @@ export function duplicateLane(project, id, length = project.song.length) {
     mutes: [...(lane.mutes ?? [])],
     offs: [...(lane.offs ?? [])],
     silenced: lane.silenced === true,
+    curves: structuredClone(lane.curves ?? []),
   };
   copy.rows = flattenLane(copy, copy.columns, length);
   copy.pages = buildPages(copy.rows, copy.columns);
@@ -364,6 +365,7 @@ export function projectData(project) {
     ...(l.mutes?.length ? { mutes: [...l.mutes] } : {}),
     ...(l.offs?.length ? { offs: [...l.offs] } : {}),
     ...(l.silenced ? { silenced: true } : {}),
+    ...(l.curves?.length ? { curves: structuredClone(l.curves) } : {}),
   }));
   return { song: { ...project.song, lanes }, instruments: project.instruments, samples: project.samples };
 }

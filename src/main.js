@@ -224,6 +224,7 @@ const seqView = createSequenceView({
   onParams: () => setFloat(true),
   onSeek: tick => { if (!started) return; if (playing) engine.play(tick); else setPlaying(true, tick); },
   onSong: () => songChanged(),
+  onShape: li => { const l = project?.lanes?.[li]; if (l) engine.setLane({ id: l.id, instrument: l.instrument, columns: l.columns, pages: l.pages, mask: l.mask, auto: l.auto }); },
 });
 
 // ---- Scripts ----
@@ -949,7 +950,7 @@ $('length').addEventListener('change', () => {
     const at = { lane: seqView.lane, tick: seqView.tick, vTick: view.tick };
     const lanes = prepareSong(data.song, project.instruments, engine.registry);
     engine.setSong(data.song);
-    for (const { id, instrument, columns, pages, mask } of lanes) engine.setLane({ id, instrument, columns, pages, mask });
+    for (const { id, instrument, columns, pages, mask, auto } of lanes) engine.setLane({ id, instrument, columns, pages, mask, auto });
     const editor = createEditor(lanes, data.song.length);
     project = { song: data.song, instruments: project.instruments, samples: project.samples, lanes, editor };
     seqView.load({ lanes, song: data.song, editor });
@@ -1158,7 +1159,7 @@ function resynthesize() {
 
 function addLaneFor(instrumentId) {
   const lane = addLane(project, engine.registry, instrumentId);
-  engine.setLane({ id: lane.id, instrument: lane.instrument, columns: lane.columns, pages: lane.pages, mask: lane.mask });
+  engine.setLane({ id: lane.id, instrument: lane.instrument, columns: lane.columns, pages: lane.pages, mask: lane.mask, auto: lane.auto });
   project.editor.clear();
   view.relayout();
   return lane;
@@ -1167,8 +1168,8 @@ function addLaneFor(instrumentId) {
 // The columns of an instrument's lanes need rebuilding (its exposed parameters or presets changed).
 // Cells follow their column; undo history is cleared.
 function refreshLanes(id) {
-  for (const { id: laneId, instrument, columns, pages, mask } of rebuildInstrumentLanes(project.lanes, project.song, project.instruments, engine.registry, id)) {
-    engine.setLane({ id: laneId, instrument, columns, pages, mask });
+  for (const { id: laneId, instrument, columns, pages, mask, auto } of rebuildInstrumentLanes(project.lanes, project.song, project.instruments, engine.registry, id)) {
+    engine.setLane({ id: laneId, instrument, columns, pages, mask, auto });
   }
   project.editor.clear();
   view.relayout();
@@ -1203,7 +1204,7 @@ function openProject({ song, instruments, samples }, { stay = false, instrument 
   }
   const lanes = prepareSong(song, instruments, engine.registry);
   engine.setSong(song);
-  for (const { id, instrument, columns, pages, mask } of lanes) engine.setLane({ id, instrument, columns, pages, mask });
+  for (const { id, instrument, columns, pages, mask, auto } of lanes) engine.setLane({ id, instrument, columns, pages, mask, auto });
   const editor = createEditor(lanes, song.length);
   project = { song, instruments, samples, lanes, editor };
   patcher.load({ instruments });

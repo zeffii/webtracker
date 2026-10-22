@@ -1,5 +1,6 @@
 import { EMPTY, CUT, OFF, decodeNote, decodeHex1, decodeHex2, decodeHex4 } from '../seq/cells.js';
 import { loopRange } from '../seq/loop.js';
+import { RES } from '../seq/automation.js';
 
 // The sequence lives in fixed-size pages of ticks. Each lane has one buffer per
 // page, with one float channel per cell channel (see KINDS in cells.js).
@@ -73,13 +74,15 @@ export class Sequencer {
 
   // lane = { id, instrument, columns, pages }. Messages are preallocated per lane
   // so that playing a row does not allocate.
-  setLane({ id, instrument, columns, pages, mask }) {
+  setLane({ id, instrument, columns, pages, mask, auto }) {
     const cols = columns.map(c => ({ ...c, table: c.commands ? buildCommandTable(c.commands, c.presets, c.groups) : null }));
     const before = this.lanes.get(id);
     const fresh = {
       instrument, pages,
       mask: mask ?? new Uint8Array(0),   // 1 or 2 for each tick the lane is muted, plus 4 where it lets go of its notes
       muted: false,
+      auto: auto ?? [],   // lane curves: { slot, min, max, log, taper, table } with the value (0..1) at RES samples a tick, NaN where there is none
+      autoLast: new Float32Array(auto?.length ?? 0).fill(NaN),
       columns: cols,
       channels: cols.reduce((n, c) => Math.max(n, c.ch + (c.kind === 'cmd' ? 2 : 1)), 0),
       noteCols: cols.reduce((n, c) => (c.kind === 'note' ? n + 1 : n), 0),
@@ -266,6 +269,24 @@ export class Sequencer {
     }
   }
 
+  // The lane curves at the song position: a parameter is written when its curve has moved since the last write, so a value a
+  // pattern wrote stays until the curve changes again.
+  applyCurves() {
+    const p = this.songPos * RES, i = Math.floor(p);
+    for (const lane of this.lanes.values()) {
+      for (let k = 0; k < lane.auto.length; k++) {
+        const a = lane.auto[k], tab = a.table;
+        if (i < 0 || i >= tab.length - 1) continue;
+        const v0 = tab[i], v1 = tab[i + 1];
+        const x = Number.isNaN(v1) ? v0 : v0 + (v1 - v0) * (p - i);
+        if (Number.isNaN(x) || x === lane.autoLast[k]) continue;
+        lane.autoLast[k] = x;
+        const e = a.taper === 1 ? x : x ** a.taper;
+        this.params[a.slot] = a.log ? a.min * (a.max / a.min) ** e : a.min + e * (a.max - a.min);
+      }
+    }
+  }
+
   fireTick() {
     const clock = this.runtime.clock;
     if (clock) clock.tickId = (clock.tickId | 0) + 1;   // nodes that count song ticks (the MOD channel) watch this
@@ -303,6 +324,7 @@ export class Sequencer {
       }
       const clock = this.runtime.clock;
       if (clock) { clock.playing = this.playing; clock.songPos = this.songPos; clock.tickSamples = samplesPerTick; }
+      if (this.playing) this.applyCurves();
       this.runtime.process(this.scratchL, this.scratchR, span);
       const m = this.song.master;
       if (m) {   // the master volume, eased across the span

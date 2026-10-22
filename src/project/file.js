@@ -15,6 +15,7 @@ import { SAMPLE_KEYS, isPool, ensurePool } from './ops.js';
 //   lanes: [{ id, instrument, patterns: { puid: { name, index, rows: ['C-4 .. 70', ...] } },
 //             placements: [{ puid, start, length }],
 //             mutes?: [tick, ...],
+//             curves?: [{ target, on, pts: [{ t, v, pin? }], kinds: ['c' | 'l', ...] }],   lane curves (see seq/automation.js)
 //             offs?: [tick, ...],   // ticks where the lane lets go of its notes
 //             silenced?: true }],   (the whole lane is muted, whatever the flips say)   (the lane is muted from the 1st tick to the 2nd, from the 3rd to the 4th, ...)
 // }
@@ -81,6 +82,7 @@ export function serializeProject({ song, instruments, samples, lanes }, { sample
       ...(l.mutes?.length ? { mutes: l.mutes } : {}),
       ...(l.offs?.length ? { offs: l.offs } : {}),
       ...(l.silenced ? { silenced: true } : {}),
+      ...(l.curves?.length ? { curves: l.curves } : {}),
     })),
   }, null, 1);
 }
@@ -172,6 +174,7 @@ export function parseProject(text) {
       ...(l.mutes?.length ? { mutes: l.mutes } : {}),
       ...(l.offs?.length ? { offs: l.offs } : {}),
       ...(l.silenced ? { silenced: true } : {}),
+      ...(l.curves?.length ? { curves: l.curves } : {}),
     };
   });
   return { song: { ...data.song, lanes }, instruments: data.instruments, samples };
