@@ -2,7 +2,7 @@
 // page like the grid, the value runs across the lane. The SVG sits inside the grid element (put back after every redraw).
 //   hover a segment  -> a small box with an icon of what it is (curve, straight, gap); a click goes to the next
 //   drag an anchor   -> snaps to pattern edges and rows (Alt: free); landing on an edge pins it
-//   press on the line -> a new anchor there
+//   click the line   -> the segment is on: C curve, L straight line, G gap (Esc lets go); double-click the line: a new anchor there
 //   right-click an anchor -> pin, unpin, break, delete
 //   a selected anchor (click it): E extends over the next pattern, Shift+E skips one and starts a new section after it,
 //   B breaks or joins the segment after it, [ and ] move between anchors, Left/Right change its value, Delete removes it, Esc lets go
@@ -35,7 +35,8 @@ export function curveMarkup({ lanes, geo, top, CELL, state = {} }) {
       out += `<path class="veil" d="${pathOf(part, x, y)} L${x(0)} ${y(c.pts[b].t)} L${x(0)} ${y(c.pts[a].t)}Z"/>`;
     }
     for (let i = 0; i < c.pts.length - 1; i++) if (c.kinds[i] === 'g') out += `<path class="gap" d="${pathOf(sub(c, i), x, y)}"/>`;
-    if (state.hover && state.hover.li === li && state.hover.seg < c.pts.length - 1) out += `<path class="hov" d="${pathOf(sub(c, state.hover.seg), x, y)}"/>`;
+    const act = state.seg ?? state.hover;
+    if (act && act.li === li && act.seg < c.pts.length - 1) out += `<path class="hov${state.seg ? ' on' : ''}" d="${pathOf(sub(c, act.seg), x, y)}"/>`;
     out += `<path class="ln" d="${d}"/>`;
     for (let i = 0; i < c.pts.length - 1; i++) out += `<path class="hit" data-li="${li}" data-ci="${ci}" data-seg="${i}" d="${pathOf(sub(c, i), x, y)}"/>`;
     if (state.drag?.li === li && state.drag.guide !== undefined) out += `<path class="guide" d="M${col.x} ${y(state.drag.guide)}H${col.x + col.w}"/>`;
@@ -47,13 +48,13 @@ export function curveMarkup({ lanes, geo, top, CELL, state = {} }) {
           : `<circle ${attrs} cx="${px}" cy="${py}" r="3.6"/>`;
     });
     if (state.badge?.li === li) out += `<g class="badge"><rect x="${x(c.pts.find(p => p.t === state.badge.t)?.v ?? 0.5) + 10}" y="${y(state.badge.t) - 9}" width="${state.badge.text.length * 6.4 + 10}" height="16"/><text x="${x(c.pts.find(p => p.t === state.badge.t)?.v ?? 0.5) + 15}" y="${y(state.badge.t) + 3}">${esc(state.badge.text)}</text></g>`;
-    if (state.hover && state.hover.li === li && state.hover.seg < c.pts.length - 1) {
-      const m = midOf(c, state.hover.seg), kind = c.kinds[state.hover.seg] ?? 'c', bx = Math.min(x(m.v) + 12, col.x + col.w - 24), by = y(m.t) - 8, ox = bx + 2;
+    if (act && act.li === li && act.seg < c.pts.length - 1) {
+      const m = midOf(c, act.seg), kind = c.kinds[act.seg] ?? 'c', bx = Math.min(x(m.v) + 12, col.x + col.w - 24), by = y(m.t) - 8, ox = bx + 2;
       // the box shows what the segment is: a curve, a straight line, or a gap (dots); a click goes to the next
       const glyph = kind === 'c' ? `M${ox + 3} ${by + 2}C${ox + 3} ${by + 8} ${ox + 11} ${by + 6} ${ox + 11} ${by + 12}`
         : kind === 'l' ? `M${ox + 3} ${by + 2}L${ox + 11} ${by + 12}`
           : `M${ox + 7} ${by + 2.5}h.01M${ox + 7} ${by + 6}h.01M${ox + 7} ${by + 9.5}h.01M${ox + 7} ${by + 13}h.01`;
-      out += `<g class="tb" data-li="${li}" data-ci="${ci}" data-seg="${state.hover.seg}"><title>${kind === 'c' ? 'curve: click for a straight line' : kind === 'l' ? 'straight: click for a gap' : 'gap: click to join with a curve'}</title><rect class="box" x="${bx}" y="${by}" width="18" height="16"/><path class="glyph" d="${glyph}"/></g>`;
+      out += `<g class="tb" data-li="${li}" data-ci="${ci}" data-seg="${act.seg}"><title>${kind === 'c' ? 'curve: click for a straight line' : kind === 'l' ? 'straight: click for a gap' : 'gap: click to join with a curve'}</title><rect class="box" x="${bx}" y="${by}" width="18" height="16"/><path class="glyph" d="${glyph}"/></g>`;
     }
   });
   return out;
@@ -67,8 +68,8 @@ export function createCurveView(host) {
   if (typeof document === 'undefined') return { paint() {}, key: () => false, select() {} };
   const svg = document.createElementNS(NS, 'svg');
   svg.setAttribute('class', 'cv');
-  const state = { hover: null, drag: null, badge: null, sel: null };
-  let hideTimer = 0, dragId = 0;
+  const state = { hover: null, drag: null, badge: null, sel: null, seg: null };   // seg: the segment that is on (clicked)
+  let hideTimer = 0, dragId = 0, last = null;
 
   const geometry = () => {
     const el = host.el, head = el.firstElementChild, first = el.children[1];
@@ -139,23 +140,37 @@ export function createCurveView(host) {
       return;
     }
     if (pt) { state.sel = { li: +pt.dataset.li, ci: +pt.dataset.ci, i: +pt.dataset.i }; begin(e, +pt.dataset.li, +pt.dataset.ci, +pt.dataset.i); return; }
-    // on the line: a new anchor there, which is then dragged
-    const li = +hit.dataset.li, ci = +hit.dataset.ci, p = at(e, li);
-    let made = -1;
-    edit(li, ci, 'add curve anchor', null, c => { made = addPoint(c, Math.round(Math.max(0, Math.min(host.len(), p.t))), p.v); return true; });
-    begin(e, li, ci, made);
+    // on the line: the segment is on. C, L or G (or the icon) change what it is; a double-click adds an anchor.
+    const li = +hit.dataset.li, ci = +hit.dataset.ci, seg = +hit.dataset.seg, now = Date.now();
+    // a second press in the same place at once adds an anchor there (the first press redrew the line, so the browser's own
+    // double-click would not see one element pressed twice)
+    if (last && now - last.at < 450 && Math.hypot(e.clientX - last.x, e.clientY - last.y) < 6 && last.li === li) {
+      last = null;
+      const p = at(e, li);
+      let made = -1;
+      edit(li, ci, 'add curve anchor', null, c => { made = addPoint(c, Math.round(Math.max(0, Math.min(host.len(), p.t))), p.v); return true; });
+      state.seg = null; state.sel = { li, ci, i: made };
+      host.say('Anchor added: drag it, or use the keys (E, B, [ ], Left/Right, Delete).');
+      paint();
+      return;
+    }
+    last = { at: now, x: e.clientX, y: e.clientY, li };
+    if (state.seg?.li === li && state.seg.ci === ci && state.seg.seg === seg) return;
+    state.seg = { li, ci, seg }; state.sel = null;
+    host.say('Segment on: C curve, L straight line, G gap (or click the icon); double-click the line to add an anchor.');
+    paint();
   });
 
   svg.addEventListener('mouseover', e => {
     const hit = e.target.closest?.('.hit'), tb = e.target.closest?.('.tb');
     const el = hit ?? tb;
-    if (!el) return;
+    if (!el || state.seg) return;
     clearTimeout(hideTimer);
     const next = { li: +el.dataset.li, seg: +el.dataset.seg };
     if (state.hover?.li !== next.li || state.hover?.seg !== next.seg) { state.hover = next; paint(); }
   });
   svg.addEventListener('mouseout', e => {
-    if (!state.hover || state.drag) return;
+    if (!state.hover || state.drag || state.seg) return;
     if (e.relatedTarget?.closest?.('.hit, .tb')) return;
     clearTimeout(hideTimer);
     hideTimer = setTimeout(() => { state.hover = null; paint(); }, 250);
@@ -164,7 +179,7 @@ export function createCurveView(host) {
   // A click anywhere else, or the pointer leaving the grid, puts the tick box away.
   const away = e => {
     if (state.drag || e.target.closest?.('.cv .hit, .cv .tb, .cv .pt')) return;
-    if (state.hover || state.sel) { clearTimeout(hideTimer); state.hover = null; state.sel = null; paint(); }
+    if (state.hover || state.sel || state.seg) { clearTimeout(hideTimer); state.hover = null; state.sel = null; state.seg = null; paint(); }
   };
   document.addEventListener('mousedown', away, true);
   host.el.addEventListener('mouseleave', away);
@@ -191,7 +206,17 @@ export function createCurveView(host) {
   // Keys for the selected anchor. Returns true when it used the key.
   const key = e => {
     const sel = state.sel, lanes = host.lanes();
-    if (!sel || e.ctrlKey || e.metaKey || e.altKey) return false;
+    if (e.ctrlKey || e.metaKey || e.altKey) return false;
+    const kind = { c: 'c', l: 'l', g: 'g' }[e.key.toLowerCase()];
+    // a segment that is on: C, L, G (what it is); Esc lets go
+    if (!sel && state.seg) {
+      const { li, ci, seg } = state.seg, c0 = lanes?.[li]?.curves?.[ci];
+      if (!c0 || seg >= c0.pts.length - 1) { state.seg = null; return false; }
+      if (kind) { edit(li, ci, 'curve segment', null, c => { c.kinds[seg] = kind; return true; }); host.say({ c: 'That part of the curve is a bezier.', l: 'That part of the curve is a straight line.', g: 'A gap: the curve is not there.' }[kind]); return true; }
+      if (e.key === 'Escape') { state.seg = null; paint(); return true; }
+      return false;
+    }
+    if (!sel) return false;
     const lane = lanes?.[sel.li], c = lane?.curves?.[sel.ci];
     if (!c || !c.pts[sel.i]) { state.sel = null; return false; }
     const k = e.key, last = c.pts.length - 1;
@@ -204,6 +229,7 @@ export function createCurveView(host) {
       else { pick(made); host.say(e.shiftKey ? 'Skipped a pattern: a gap, then a new section over the next one.' : 'Extended to the end of the next pattern.'); }
       return true;
     }
+    if (kind && sel.i < last) { edit(sel.li, sel.ci, 'curve segment', null, kc => { kc.pts.length && (kc.kinds[sel.i] = kind); return true; }); host.say({ c: 'The segment after this anchor is a bezier.', l: 'The segment after this anchor is a straight line.', g: 'A gap after this anchor: the curve is not there.' }[kind]); return true; }
     if (k === 'b' || k === 'B') { const ok = edit(sel.li, sel.ci, 'curve gap', null, kc => toggleGap(kc, sel.i)); host.say(ok === null ? 'Nothing after this anchor to break.' : c.kinds[sel.i] === 'g' ? 'A gap after this anchor: the curve is not there.' : 'Joined to the next anchor.'); return true; }
     if (k === ']') { if (sel.i < last) pick(sel.i + 1); return true; }
     if (k === '[') { if (sel.i > 0) pick(sel.i - 1); return true; }

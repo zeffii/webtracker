@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 335 · 2026-10-22
+
+- Lane curves: click a line to switch that segment on, then C, L or G make it a curve, a straight line or a gap (with an anchor selected the keys act on the segment after it). Double-click the line to add an anchor; Esc lets go. The icon box still cycles the three.
+
 ## 334 · 2026-10-22
 
 - Lane curves: the hover box on a segment is now one small icon box showing what the segment is (a curve, a straight line, or dots for a gap); a click goes round curve, line, gap. No words.
