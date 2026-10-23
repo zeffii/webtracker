@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 401 · 2026-10-23
+
+- Granular: every note now starts the cloud at Position. Before, a note that arrived while the instrument's last note was still sounding or fading (a voice reused during its release) carried on from wherever Scan had moved the cloud, so where it started was hard to predict. The Position hint now says what it is: where the cloud starts when a note starts. Scan moves it on from there and Spray scatters the grains around it.
+
 ## 400 · 2026-10-23
 
 - In the graph view, when a selected node shows both its envelope box and a scope, the two now sit side by side, level at their middles, a few pixels apart (the scope used to start at the node and could hide behind the envelope box).

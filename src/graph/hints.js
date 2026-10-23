@@ -486,7 +486,7 @@ const HINTS = {
     lfoDepth: 'How far the LFO wobbles the position (or mix).',
   },
   granular: {
-    position: 'Where in the sample each grain starts, from 0 (start) to 1 (end).',
+    position: 'Where in the sample the cloud starts when a note starts, from 0 (start) to 1 (end). Scan then moves it on from there; spray scatters the grains around it.',
     spray: 'Random scatter of the start positions. Higher is a cloudier, less focused sound.',
     scan: 'Moves the position along the sample over time, as a fraction of it per second. Negative goes backwards.',
     size: 'Length of each grain in ms. Short grains are buzzy and pitched; long ones keep the source recognisable.',

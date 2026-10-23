@@ -100,7 +100,8 @@ export default {
       },
       note(msg) {
         if (msg.type === 'noteOn') {
-          if (env.idle) { scanned = 0; clock = 1; }
+          if (env.idle) clock = 1;
+          scanned = 0;   // every note starts the cloud at `position`, even one that retriggers a voice still sounding
           note = msg.note; velocity = msg.vel ?? 1;
           env.on();
         } else if (msg.type === 'noteOff' || msg.type === 'allOff') env.off();

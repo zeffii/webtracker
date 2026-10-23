@@ -7640,4 +7640,24 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   assert.deepEqual(modesFor('osc'), ['wave', 'spec', 'xy', 'vu']);
   console.log('ok: granular scopes');
 }
+{
+  // granular: every note starts the cloud at `position`, also one that retriggers a note still sounding
+  const type = NODE_TYPES.granular;
+  const slots = type.params.map((_, i) => i);
+  const sent = [];
+  const node = type.create({ sampleRate: sr, emit: m => sent.push(m) });
+  node.message({ type: 'sample', slot: 0, data: Float32Array.from({ length: 96000 }, (_, i) => Math.sin(i / 20)), rate: sr });
+  node.message({ type: 'watch', on: true });
+  const values = type.params.map(p => (p.name === 'scan' ? 0.5 : p.name === 'position' ? 0.25 : p.def));
+  const play = blocks => { for (let b = 0; b < blocks; b++) node.process([], [[new Float32Array(block), new Float32Array(block)]], block, values, slots); };
+  node.note({ type: 'noteOn', note: 60, vel: 1 });
+  play(300);
+  const drifted = sent.at(-1).head;
+  assert.ok(Math.abs(drifted - 0.25) > 0.1, 'with scan the cloud has moved on from the start');
+  sent.length = 0;
+  node.note({ type: 'noteOn', note: 62, vel: 1 });
+  play(12);
+  assert.ok(Math.abs(sent[0].head - 0.25) < 0.02, `a new note, even while the first sounds, starts at position (${sent[0].head})`);
+  console.log('ok: granular start');
+}
 console.log('smoke test passed');
