@@ -1446,7 +1446,7 @@ const showViz = on => {
   if (on && !visual) {
     visual = createVisual($('viz-canvas'), { onError: text => { vizErr.hidden = !text; vizErr.textContent = text; shaderView?.error(text); } });
     if (!visual) { vizOn = false; $('status').textContent = 'The live picture needs WebGL, which this browser does not have.'; }
-    else { visual.setSource(config.get('visualGlsl')); labels = createLabels($('viz-text')); }
+    else { visual.resize(Number(config.get('visualSize'))); visual.setSource(config.get('visualGlsl')); labels = createLabels($('viz-text'), Number(config.get('visualSize'))); }
   }
   if (!vizOn && pip) pip.close();
   vizBox.hidden = !vizOn; $('viz-btn').setAttribute('aria-pressed', String(vizOn)); placeViz();
@@ -1535,7 +1535,7 @@ document.addEventListener('keydown', e => {
   if (/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName ?? '')) return;
   e.preventDefault(); e.stopPropagation(); openCmd();
 }, true);
-config.onChange((k, v) => { if (k === 'visualOn') showViz(v); else if (k === 'visualGlsl') visual?.setSource(v); else if (k === 'meterOn') { showMeters(v); placeViz(); } else if (k.startsWith('meter')) { meters.rebuild(); placeMeters(); } });
+config.onChange((k, v) => { if (k === 'visualOn') showViz(v); else if (k === 'visualGlsl') visual?.setSource(v); else if (k === 'visualSize') { visual?.resize(Number(v)); labels?.resize(Number(v)); } else if (k === 'meterOn') { showMeters(v); placeViz(); } else if (k.startsWith('meter')) { meters.rebuild(); placeMeters(); } });
 $('meters-btn').addEventListener('click', toggleMeters);
 addEventListener('resize', placeMeters);
 showMeters(config.get('meterOn'));

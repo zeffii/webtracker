@@ -1,5 +1,5 @@
 // A small live picture driven by the song (see visdata.js). One WebGL fragment shader on a square canvas, 300 x 300 by default, the size
-// of a video frame, so what you see is what an MP4 export would show. The shader is plain GLSL ES 1.00 written as a whole `main`, with
+// of a video frame, so what you see is what an MP4 export would show (Config sets other sizes, up to 1080). The shader is plain GLSL ES 1.00 written as a whole `main`, with
 // these uniforms already declared:
 //   vec2  R       the size in pixels            float T      seconds since the picture opened
 //   float BEAT    beats since the song's start  float HITS   every lane's hit added together, 0 to 1
@@ -81,12 +81,13 @@ export function createLabels(canvas, size = 300) {
   const g = canvas.getContext('2d');
   let sig = '';
   return {
+    resize(s) { if (s === size) return; size = s; canvas.width = s; canvas.height = s; sig = ''; },
     update(names, on) {
-      const key = `${on}|${names.map(n => n[0]).join('\u0001')}`;
+      const key = `${size}|${on}|${names.map(n => n[0]).join('\u0001')}`;
       if (key === sig) return;
       sig = key; g.clearRect(0, 0, size, size);
       if (!on || !names.length) return;
-      const rowH = size / Math.max(1, names.length), px = Math.max(6, Math.min(10, rowH * 0.62));
+      const rowH = size / Math.max(1, names.length), px = Math.max(6, Math.min(10, rowH * 0.62 * 300 / size)) * size / 300;
       g.font = `${px}px ui-monospace, Consolas, monospace`; g.fillStyle = TEXT_COLOUR; g.textBaseline = 'middle'; g.textAlign = 'left';
       names.forEach(([id], i) => g.fillText(String(id).slice(0, 10), 4, (i + 0.5) * rowH, size * 0.22));
     },
@@ -147,6 +148,9 @@ export function createVisual(canvas, { size = 300, colours = [[.30, .74, .80], [
       gl.uniform1i(locs.PAT, 0);
       gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     },
+    // the resolution, in pixels each way; the picture keeps its box on the page (CSS sets that) and just has more or fewer pixels in it
+    resize(s) { if (s === size) return; size = s; canvas.width = s; canvas.height = s; gl.viewport(0, 0, s, s); },
+    get size() { return size; },
     get fallback() { return fallback; },
     lose() { gl.getExtension('WEBGL_lose_context')?.loseContext(); },
   };

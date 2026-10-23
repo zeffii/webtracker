@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 380 · 2026-10-23
+
+- Live picture: Config > Visual > "Picture: resolution" (300, 480, 720 or 1080 pixels each way). The shader sees it as R, and the lane names scale with it. The picture keeps its 300 px box on the page; the pop-out window shows the extra pixels, so it stays sharp when enlarged.
+
 ## 379 · 2026-10-23
 
 - Shader template "Flock": birds that follow a leader's path, each a little later than the one before, facing the way the path goes and swaying apart; three birds per lane, flung out and lit by that lane's hits. It is a closed-form flock, since a picture shader keeps nothing from one frame to the next.

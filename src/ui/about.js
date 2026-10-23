@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['380', ['Live picture: choose its resolution, up to 1080 x 1080 (Config > Visual).']],
   ['379', ['New shader template: Flock.']],
   ['378', ['Shader view (Ctrl+Alt+G): the picture\'s GLSL in an editor of its own, with syntax colours and the failing line marked.']],
   ['377', ['Live picture: pop it out into its own always-on-top window; four more shader templates.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['373', ['The bugsong demo no longer has a stray loop set.']],
   ['372', ['New demo: bugsong. Open the page with ?demo=bugsong (and ?demo=arp for the arp demo).']],
   ['371', ['The live picture shows a skeleton of the patterns around the playhead, with lane names, in one muted blue; cell(\'kick\', dx) reads it from your own shader.']],
-  ['370', ['A live picture driven by the lanes (Ctrl+Alt+V; your own GLSL in Config). Fix: a lane added in the session can have automation at once.']],
 ];
