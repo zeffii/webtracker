@@ -175,9 +175,9 @@ export function createSequenceView({ el, statusEl, listEl, transport, onToggle, 
   // when the song is stopped.
   const tickAt = e => {
     const rowEl = e.target?.closest?.('.r');
-    if (!rowEl || e.target.closest('.cell')) return null;
-    const ri = Array.prototype.indexOf.call(el.children, rowEl) - 1, first = rowEl.querySelector('.cell');
-    if (ri < 0 || !first || e.clientX >= first.getBoundingClientRect().left || (top + ri) * CELL >= len) return null;
+    if (!rowEl || !e.target.closest('.sg')) return null;   // the tick column is the sticky box at the row's left, wherever the lanes are scrolled to
+    const ri = Array.prototype.indexOf.call(el.children, rowEl) - 1;
+    if (ri < 0 || (top + ri) * CELL >= len) return null;
     const box = rowEl.getBoundingClientRect(), f = Math.min(0.999, Math.max(0, (e.clientY - box.top) / box.height));
     return Math.min(len - 1, (top + ri) * CELL + Math.floor(f * CELL));
   };

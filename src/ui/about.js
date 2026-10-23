@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['387', ['Clicking the tick column sets the playhead when scrolled sideways too.']],
   ['386', ['The sequence editor\'s tick column stays in view when scrolled sideways.']],
   ['385', ['Several shaders per song: the shader lane\'s Shd column switches between them.']],
   ['384', ['The picture\'s shader is saved with the project.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['380', ['Live picture: choose its resolution, up to 1080 x 1080 (Config > Visual).']],
   ['379', ['New shader template: Flock.']],
   ['378', ['Shader view (Ctrl+Alt+G): the picture\'s GLSL in an editor of its own, with syntax colours and the failing line marked.']],
-  ['377', ['Live picture: pop it out into its own always-on-top window; four more shader templates.']],
 ];

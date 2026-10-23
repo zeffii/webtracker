@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 387 · 2026-10-23
+
+- Clicking the tick column to set the playhead works with the sticky tick column too, however far the lanes are scrolled sideways.
+
 ## 386 · 2026-10-23
 
 - The tick column of the sequence editor stays at the left edge when you scroll the lanes sideways (as the pattern editor's already did).
