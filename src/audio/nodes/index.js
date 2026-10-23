@@ -58,12 +58,13 @@ import fmsynth from './fmsynth.js';
 import dvii from './dvii.js';
 import wavetable from './wavetable.js';
 import granular from './granular.js';
+import woodblock from './woodblock.js';
 import ctrl from './ctrl.js';
 import voices from './voices.js';
 import arp from './arp.js';
 
 // Node type registry. Adding a node type means adding a module and listing it here.
-const TYPES = { sampler, osc, noise, env, lfo, gain, mix, pan, filter, filterpro, vocoder, tap, delay, chorus, phaser, flanger, distortion, multitap, shiva, blur, gater, freqshift, specpan, waveshaper, dcblock, exciter, transient, split, compressor, gate, envfx, eq, crusher, ctrl, notetrig, arp, follower, sidechain, hall, plate, shimmer, subsynth, fourpole, oberheim, piano, addsynth, fmsynth, dvii, wavetable, granular, specsynth, string, hat808, combperc, squelch, modchan, voices, tempo, glsl, out, sum, sumst, fold };
+const TYPES = { sampler, osc, noise, env, lfo, gain, mix, pan, filter, filterpro, vocoder, tap, delay, chorus, phaser, flanger, distortion, multitap, shiva, blur, gater, freqshift, specpan, waveshaper, dcblock, exciter, transient, split, compressor, gate, envfx, eq, crusher, ctrl, notetrig, arp, follower, sidechain, hall, plate, shimmer, subsynth, fourpole, oberheim, piano, addsynth, fmsynth, dvii, wavetable, granular, woodblock, specsynth, string, hat808, combperc, squelch, modchan, voices, tempo, glsl, out, sum, sumst, fold };
 
 // Every effect gets a hard bypass switch as its last parameter (the runtime passes the input straight through while it is on).
 export const NODE_TYPES = TYPES;

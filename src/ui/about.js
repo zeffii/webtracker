@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['398', ['A woodblock synth: struck modes that lose energy as they ring, with drawn volume and pitch envelopes.']],
   ['397', ['DSP tab: diode icon; the parameter panel runs down the window\'s right edge and the source fills the rest.']],
   ['396', ['The DSP view folds code: gutter arrows, Fold all and Unfold all.']],
   ['395', ['A DSP view (Ctrl+Alt+I): read the code of an instrument\'s nodes, with live parameters.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['391', ['Auto-slice previews the hits on the waveform as you move its settings; Slice makes them real markers.']],
   ['390', ['Auto-slice is a dialog with a live count of the hits it finds.']],
   ['389', ['Auto-slice settings now sit in a line above the status bar on the Sample screen.']],
-  ['388', ['Picture settings in the Shader view, auto-slice settings beside the sample list.']],
 ];

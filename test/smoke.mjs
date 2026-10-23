@@ -7587,4 +7587,33 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   assert.ok(ring > 1.6 * fade, `with nnaAll off the first hit rings over the second (${ring}); on, it is faded out (${fade})`);
   console.log('ok: nnaAll');
 }
+{
+  // woodblock: sounds on a hit, stays finite, dies away, the pitch envelope raises the start, loss dulls the tail
+  const type = NODE_TYPES.woodblock;
+  const slots = type.params.map((_, i) => i);
+  const hit = (set = {}, blocks = 600) => {
+    const node = type.create({ sampleRate: sr });
+    const values = type.params.map(p => set[p.name] ?? p.def);
+    node.note({ type: 'noteOn', note: 60, vel: 1 });
+    const out = [];
+    for (let b = 0; b < blocks; b++) {
+      const L = new Float32Array(block), R = new Float32Array(block);
+      node.process([], [[L, R]], block, values, slots);
+      assert.ok(L.every(Number.isFinite), 'the woodblock stays finite');
+      out.push(...L);
+    }
+    return out;
+  };
+  const rms = (a, from, to) => Math.sqrt(a.slice(from, to).reduce((s, x) => s + x * x, 0) / (to - from));
+  const crossings = (a, from, to) => { let c = 0; for (let i = from + 1; i < to; i++) if (a[i - 1] < 0 && a[i] >= 0) c++; return c; };
+  const plain = hit({ bend: 0 });
+  assert.ok(rms(plain, 0, 2400) > 0.01, 'a hit sounds');
+  assert.ok(rms(plain, 60000, 76800) < rms(plain, 0, 2400) * 0.02, 'and has died away by a second');
+  const bent = hit({ bend: 12 });
+  assert.ok(crossings(bent, 0, 960) > crossings(plain, 0, 960), 'the pitch envelope raises the start of the sound');
+  assert.ok(Math.abs(crossings(bent, 20000, 40000) - crossings(plain, 20000, 40000)) <= 4, 'and it has fallen back later');
+  const brightTail = hit({ loss: 0, hardness: 1 }), dullTail = hit({ loss: 1, hardness: 1 });
+  assert.ok(crossings(dullTail, 4800, 9600) < crossings(brightTail, 4800, 9600), 'more loss makes the tail duller');
+  console.log('ok: woodblock');
+}
 console.log('smoke test passed');

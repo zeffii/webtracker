@@ -228,6 +228,10 @@ export const GLYPHS = {
     }
     line(ctx, pts);
   },
+  woodblock: (ctx, cx, cy, w, h) => {   // a block with a ringing, falling trace over it
+    ctx.strokeRect(cx - w * 0.4, cy + h * 0.05, w * 0.8, h * 0.32);
+    ctx.beginPath(); for (let i = 0; i <= 16; i++) { const t = i / 16, X = cx - w * 0.4 + t * w * 0.8, Y = cy - h * 0.2 + Math.sin(t * 38) * Math.exp(-t * 4) * h * 0.28; i ? ctx.lineTo(X, Y) : ctx.moveTo(X, Y); } ctx.stroke();
+  },
   hat808: (ctx, cx, cy, w, h) => {   // two bursts of noise: a short one and a longer, ringing one
     const x = f => cx - w / 2 + f * w, y = f => cy + h / 2 - f * h;
     const burst = (from, len, amp) => { const pts = []; for (let i = 0; i <= 14; i++) { const t = i / 14; pts.push([x(from + t * len), y(0.5 + (i % 2 ? 1 : -1) * amp * Math.exp(-t * (len > 0.3 ? 3 : 6)) * 0.5)]); } return pts; };

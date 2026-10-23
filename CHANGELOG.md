@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 398 · 2026-10-23
+
+- A woodblock synth (Sources > Synths, and in the new-instrument list). A noise strike rings four inharmonic modes whose energy leaks away as they sound: `damping` is how long the lowest mode lasts, `loss` makes the higher modes die faster so a click turns into a knock, `hardness` is the stick (velocity adds to it) and `inharm` spreads the modes. Two ADSRs are drawn beside the node, volume and pitch; the pitch one moves every mode by `bend` semitones and falls back. Pitch follows the note when `keytrack` is on. The instrument has three voices, one note column and Ton, Har, Dmp, Los and Bnd columns.
+
 ## 397 · 2026-10-23
 
 - The DSP tab has a diode icon instead of the word. The Parameters, Ports and Kernel panel now runs down the right edge of the whole window, and the source area fills the space that is left, in width and height.

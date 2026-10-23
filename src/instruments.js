@@ -524,6 +524,28 @@ export const synthKinds = {
       ],
     }),
   },
+  woodblock: {
+    label: 'Woodblock (struck wood, energy loss)',
+    make: () => ({
+      graph: { nodes: [{ id: 'synth', type: 'woodblock' }, { id: 'poly', type: 'voices' }, { id: 'out', type: 'out', params: { gain: 0.6 } }], connections: [['synth.out', 'poly.in'], ['poly.out', 'out.in']], voices: 3 },
+      noteColumns: 1,
+      exposed: [
+        { node: 'synth', param: 'tone', label: 'Ton' },
+        { node: 'synth', param: 'hardness', label: 'Har' },
+        { node: 'synth', param: 'damping', label: 'Dmp' },
+        { node: 'synth', param: 'loss', label: 'Los' },
+        { node: 'synth', param: 'bend', label: 'Bnd' },
+      ],
+      commands: [
+        { id: 0x01, node: 'synth', param: 'tone' },
+        { id: 0x02, node: 'synth', param: 'hardness' },
+        { id: 0x03, node: 'synth', param: 'damping' },
+        { id: 0x04, node: 'synth', param: 'loss' },
+        { id: 0x05, node: 'synth', param: 'bend' },
+        { id: 0x06, node: 'synth', param: 'inharm' },
+      ],
+    }),
+  },
   spectral: {
     label: 'Spectral synth',
     needsSample: true,   // takes its timbre from the project's samples: the first one is listed when it is added
