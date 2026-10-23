@@ -7616,4 +7616,28 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   assert.ok(crossings(dullTail, 4800, 9600) < crossings(brightTail, 4800, 9600), 'more loss makes the tail duller');
   console.log('ok: woodblock');
 }
+{
+  // granular scopes: a watched node tells the page about its grains; others stay quiet
+  const type = NODE_TYPES.granular;
+  const slots = type.params.map((_, i) => i);
+  const run = watch => {
+    const sent = [];
+    const node = type.create({ sampleRate: sr, emit: m => sent.push(m) });
+    node.message({ type: 'sample', slot: 0, data: Float32Array.from({ length: 48000 }, (_, i) => Math.sin(i / 20)), rate: sr });
+    if (watch) node.message({ type: 'watch', on: true });
+    node.note({ type: 'noteOn', note: 60, vel: 1 });
+    const values = type.params.map(p => p.def);
+    for (let b = 0; b < 200; b++) node.process([], [[new Float32Array(block), new Float32Array(block)]], block, values, slots);
+    return sent;
+  };
+  assert.equal(run(false).length, 0, 'a granular node nobody watches sends nothing');
+  const sent = run(true);
+  assert.ok(sent.length > 0 && sent.every(m => m.type === 'cloud' && m.head >= 0 && m.head < 1), 'a watched one sends where it reads');
+  const grains = sent.flatMap(m => m.grains);
+  assert.ok(grains.length > 5 && grains.every(g => g.length === 4 && g[2] > 0), 'and each new grain: start, step, length and shape');
+  const { modesFor } = await import('../src/graph/scope.js');
+  assert.deepEqual(modesFor('granular'), ['wave', 'cloud', 'grain', 'spec']);
+  assert.deepEqual(modesFor('osc'), ['wave', 'spec', 'xy', 'vu']);
+  console.log('ok: granular scopes');
+}
 console.log('smoke test passed');

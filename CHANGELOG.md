@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 399 · 2026-10-23
+
+- Two new scopes for the granular node (click its eye, then pick them in the scope header, which now reads wave, cloud, grain, spec): **cloud** draws the sample it reads, the position line, the spray band and a bracket for each grain that is sounding, with a dot where it is reading now; **grain** lays the last 14 grains over each other, aligned at their start, inside the window they share (so size, shape, pitch scatter and reverse show directly). The grains are reported by the node only while a scope is open on it, so a granular node nobody watches costs nothing extra. The wave scope is the same triggered trace as before.
+
 ## 398 · 2026-10-23
 
 - A woodblock synth (Sources > Synths, and in the new-instrument list). A noise strike rings four inharmonic modes whose energy leaks away as they sound: `damping` is how long the lowest mode lasts, `loss` makes the higher modes die faster so a click turns into a knock, `hardness` is the stick (velocity adds to it) and `inharm` spreads the modes. Two ADSRs are drawn beside the node, volume and pitch; the pitch one moves every mode by `bend` semitones and falls back. Pitch follows the note when `keytrack` is on. The instrument has three voices, one note column and Ton, Har, Dmp, Los and Bnd columns.

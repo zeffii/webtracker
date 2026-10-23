@@ -1,6 +1,6 @@
 import * as config from '../ui/config.js';
 import { factoryPresets, userPresets, saveUserPreset, deleteUserPreset, capture, valuesOf, DATA_KEYS } from './nodepresets.js';
-import { MODES, SIZES, scopeBox, headerHit, drawScope } from './scope.js';
+import { MODES, SIZES, scopeBox, headerHit, drawScope, modesFor } from './scope.js';
 import { addNode, replaceNode, autoLayout, connect, disconnect, duplicateNodes, insertOnWire, pruneDef, pullOut, removeNode, setBits, setExposed, setParam, setPort, nudgeClear } from './edit.js';
 
 // The modular view: a canvas of nodes and wires for one instrument's graph, plus a panel
@@ -147,7 +147,7 @@ const toValue = (spec, pos) => {
 const toPos = (spec, v) => (isLog(spec) ? Math.log(v / spec.min) / Math.log(spec.max / spec.min) : (v - spec.min) / (spec.max - spec.min));
 const fmt = v => String(Number(v.toPrecision(4)));
 
-export function createPatcher({ getTiming = () => null, onHelp = () => {}, canvas, panel, toolsEl = null, paramPanel = null, exposedDock = null, floatDock = null, onScope = () => {}, onEscape = () => {}, statusEl, doc = document, nodeTypes, onStructure, onParam, onData = () => {}, onContext = () => {}, onNote = () => {}, getSampleIds = () => [], getSample = () => null, readLive = () => undefined }) {
+export function createPatcher({ getTiming = () => null, onHelp = () => {}, canvas, panel, toolsEl = null, paramPanel = null, exposedDock = null, floatDock = null, onScope = () => {}, onEscape = () => {}, statusEl, doc = document, nodeTypes, onStructure, onParam, onData = () => {}, onContext = () => {}, onNote = () => {}, getSampleIds = () => [], getSample = () => null, getGrainSource = () => null, readLive = () => undefined }) {
   let gateEditor = null;    // the step pattern of a trance gate, redrawn when its length moves
   let dxView = null;        // the bank loader and algorithm view of a DVIIloader
   let specView = null;      // the pan-against-frequency view of a spectral panner, redrawn when its parameters move
@@ -159,6 +159,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
   // The scopes: an eye on a node shows what it puts out (a scope beside it: wave, spectrum or xy, 200 or 400 pixels).
   // The choice lives on the node as node.scope = { mode, size }; the samples arrive from the audio side.
   const scopeData = new Map();   // node id -> { l, r, sr }
+  const cloudData = new Map();   // granular node id -> { head, t, sr, gain, grains: [{ at, step, len, shape, t }] }: its grains, as they started
   const eyeRect = node => { const { w, h } = nodeBox(nodeTypes[node.type], node); return { x: node.x + w / 2 - 10, y: node.y + h + 3, w: 20, h: 14 }; };   // under the node, clear of its name
   const scopeRectOf = node => { const { w, h } = nodeBox(nodeTypes[node.type], node); return scopeBox(node, w, h, node.scope.size, node.scope.mode); };
   const inside = (r, x, y, w = r.w, h = r.h) => x >= r.x && x <= r.x + w && y >= r.y && y <= r.y + h;
@@ -175,7 +176,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
       if (!nodeTypes[node.type].outputs.length) continue;
       if (inside(eyeRect(node), x, y)) { setScope(node, !node.scope); return true; }
       if (!node.scope) continue;
-      const box = scopeRectOf(node), part = headerHit(box, x, y, node.scope.mode);
+      const box = scopeRectOf(node), part = headerHit(box, x, y, node.scope.mode, modesFor(node.type));
       if (part === 'eye') { setScope(node, false); return true; }
       if (part === 'size') node.scope.size = SIZES[(SIZES.indexOf(node.scope.size) + 1) % SIZES.length];
       else if (part) node.scope.mode = part;
@@ -1126,7 +1127,15 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
       ctx.restore();
     }
     let moving = false;
-    for (const node of desc().nodes) if (node.scope) moving = drawScope(ctx, scopeRectOf(node), node.scope, scopeData.get(node.id), ink) || moving;
+    for (const node of desc().nodes) {
+      if (!node.scope) continue;
+      let data = scopeData.get(node.id);
+      if (node.type === 'granular' && (node.scope.mode === 'cloud' || node.scope.mode === 'grain')) {   // what the grain scopes draw from
+        const type = nodeTypes.granular;
+        data = { cloud: cloudData.get(node.id), src: getGrainSource(instId, node.id), param: name => readLive(instId, node.id, name) ?? node.params?.[name] ?? type.params.find(q => q.name === name)?.def ?? 0 };
+      }
+      moving = drawScope(ctx, scopeRectOf(node), node.scope, data, ink, modesFor(node.type)) || moving;
+    }
     if (moving) dirty = true;   // a level meter still falling
     if (drag?.kind === 'move' && drag.hover != null) {   // the wire the node would go into, over the nodes so it shows
       const { a, b } = linkEnds(desc(), nodeTypes, desc().connections[drag.hover]);
@@ -1175,13 +1184,24 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
     },
     // the audio side's latest samples for the watched instrument
     repaint() { dirty = true; if (instId && def()) renderPanel(); },   // the colours changed: the editors in the panel draw themselves again
+    // a granular node's new grains (and where it is reading), when one of its scopes is open
+    feedCloud(id, node, msg, sr) {
+      if (id !== instId) return;
+      const now = performance.now();
+      let c = cloudData.get(node);
+      if (!c) cloudData.set(node, c = { head: 0, t: now, sr, gain: 1, grains: [] });
+      c.head = msg.head; c.t = now; c.sr = sr;
+      for (const [at, step, len, shape] of msg.grains) c.grains.push({ at, step, len, shape, t: now });
+      if (c.grains.length > 40) c.grains.splice(0, c.grains.length - 40);
+      dirty = true;
+    },
     feedScope(id, node, l, r, sr) { if (id === instId) { scopeData.set(node, { l, r, sr }); dirty = true; } },
     show(id) {
       if (instId && instId !== id && def()) for (const n of desc().nodes) if (n.scope) onScope(instId, n.id, false);   // (the old instrument may be gone from a newly loaded project)
       if (instId && selected?.kind === 'node') lastSelected.set(instId, selected.id);   // coming back to an instrument finds the node you left selected
       const same = id === instId, kept = same && selected?.kind === 'node' ? selected.id : null;
       instId = id;
-      scopeData.clear();
+      scopeData.clear(); cloudData.clear();
       if (id) for (const n of desc().nodes) if (n.scope) onScope(id, n.id, true);
       // The node that should take the keyjazz: the one selected last time here, else the first generator (an oscillator, a
       // sampler, a synth), so the piano keys play the instrument at once.

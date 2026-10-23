@@ -4,8 +4,13 @@
 //   xy    left against right, turned 45 degrees: a mono sound is a vertical line, a wide one fills the box
 //   vu    a level meter for each channel: the bar is the average level (rms) with a slow fall, the line above it the
 //         highest peak, held for a moment; -60 dB to +6 dB, 0 dB being full scale
+// A granular node has two more, in place of spec's neighbours (its modes are wave, cloud, grain, spec):
+//   cloud  the sample it reads, the position and spray band, and a bracket for each grain that is sounding
+//   grain  the last grains laid over each other, aligned at their start, inside the window they share
 // The patcher keeps each scope's state ({ mode, size }) on its node, and hands in the samples as they arrive.
 export const MODES = ['wave', 'spec', 'xy', 'vu'];
+const GRAIN_MODES = ['wave', 'cloud', 'grain', 'spec'];
+export const modesFor = type => (type === 'granular' ? GRAIN_MODES : MODES);
 export const SIZES = [200, 400];
 const HEAD = 14, SHOWN = 1024, N = 2048, DB_LOW = -90;
 
@@ -18,14 +23,44 @@ export const scopeBox = (node, w, h, size, mode = 'wave') => {
 };
 
 // which header button a point is on: a mode name, 'eye' (hide), 'size', or null (the rest of the header or the picture)
-export function headerHit(box, x, y, mode = 'wave') {
+export function headerHit(box, x, y, mode = 'wave', modes = MODES) {
   const W = box.w ?? box.size;
   if (x < box.x || x > box.x + W || y < box.y || y > box.y + HEAD) return null;
   if (mode === 'vu') return x > box.x + W - 26 ? 'eye' : x > box.x + 26 ? 'wave' : null;   // the slim header: vu, wave (back), the eye
   const i = Math.floor((x - box.x - 2) / 34);
   if (x > box.x + box.size - 36) return 'size';
   if (x > box.x + box.size - 58) return 'eye';
-  return MODES[i] ?? null;
+  return modes[i] ?? null;
+}
+
+// the sample a granular node reads, as the lowest and highest value in each column (kept for each sample and width)
+const peaks = new WeakMap();
+function peaksOf(a, cols) {
+  let m = peaks.get(a);
+  if (!m) peaks.set(a, m = new Map());
+  let p = m.get(cols);
+  if (!p) {
+    p = new Float32Array(cols * 2);
+    for (let c = 0; c < cols; c++) {
+      const i0 = Math.floor(c / cols * a.length), i1 = Math.max(i0 + 1, Math.floor((c + 1) / cols * a.length));
+      let lo = 0, hi = 0;
+      for (let i = i0; i < i1; i++) { const v = a[i]; if (v < lo) lo = v; if (v > hi) hi = v; }
+      p[c * 2] = lo; p[c * 2 + 1] = hi;
+    }
+    m.set(cols, p);
+  }
+  return p;
+}
+// what one grain is: 120 points of the sample from its start, read at its step, through the window it was given
+function grainPoints(a, g) {
+  const out = new Float32Array(120), last = a.length - 1, taper = Math.max(0.02, g.shape);
+  for (let k = 0; k < 120; k++) {
+    const u = k / 119, pos = Math.max(0, Math.min(last, g.at * last)) + g.step * u * g.len;
+    if (pos < 0 || pos >= last) continue;
+    const j = pos | 0, f = pos - j;
+    out[k] = (a[j] * (1 - f) + a[j + 1] * f) * (0.5 - 0.5 * Math.cos(Math.PI * Math.min(1, (u < 0.5 ? u : 1 - u) * 2 / taper)));
+  }
+  return out;
 }
 
 // the spectrum of 2048 samples: dB per bin, 0 dB for a full-scale sine
@@ -83,20 +118,21 @@ function meterOf(state, data, now) {
   return m;
 }
 
-export function drawScope(ctx, box, state, data, ink) {
+export function drawScope(ctx, box, state, data, ink, modes = MODES) {
+  const mode = modes.includes(state.mode) ? state.mode : 'wave';
   const { x, y, size } = box, W = box.w ?? size, top = y + HEAD, area = size - HEAD, mid = top + area / 2, amp = area / 2 * 0.9;
   ctx.save();
   ctx.fillStyle = '#10161b'; ctx.fillRect(x, y, W, size);
   ctx.font = '10px ui-monospace, Consolas, monospace'; ctx.textBaseline = 'top'; ctx.textAlign = 'left';
   // the header: three view buttons and the size
   ctx.fillStyle = '#1b2630'; ctx.fillRect(x, y, W, HEAD);
-  if (state.mode === 'vu') {
+  if (mode === 'vu') {
     ctx.fillStyle = '#7fd4ff'; ctx.fillText('vu', x + 5, y + 2);
     ctx.fillStyle = '#789'; ctx.fillText('wave', x + 30, y + 2);
-  } else MODES.forEach((m, i) => { ctx.fillStyle = m === state.mode ? '#7fd4ff' : '#789'; ctx.fillText(m, x + 5 + i * 34, y + 2); });
-  if (state.mode !== 'vu') { ctx.fillStyle = '#789'; ctx.textAlign = 'right'; ctx.fillText(String(size), x + size - 5, y + 2); ctx.textAlign = 'left'; }
+  } else modes.forEach((m, i) => { ctx.fillStyle = m === mode ? '#7fd4ff' : '#789'; ctx.fillText(m, x + 5 + i * 34, y + 2); });
+  if (mode !== 'vu') { ctx.fillStyle = '#789'; ctx.textAlign = 'right'; ctx.fillText(String(size), x + size - 5, y + 2); ctx.textAlign = 'left'; }
   {   // the eye that hides the scope
-    const cx = state.mode === 'vu' ? x + W - 14 : x + size - 47, cy = y + HEAD / 2;
+    const cx = mode === 'vu' ? x + W - 14 : x + size - 47, cy = y + HEAD / 2;
     ctx.strokeStyle = ctx.fillStyle = '#7fd4ff'; ctx.lineWidth = 1.25;
     ctx.beginPath(); ctx.moveTo(cx - 6, cy); ctx.quadraticCurveTo(cx, cy - 7, cx + 6, cy); ctx.quadraticCurveTo(cx, cy + 7, cx - 6, cy); ctx.stroke();
     ctx.beginPath(); ctx.arc(cx, cy, 2, 0, 2 * Math.PI); ctx.fill();
@@ -107,7 +143,7 @@ export function drawScope(ctx, box, state, data, ink) {
   const sr = data?.sr ?? 44100;
   let moving = false;
 
-  if (state.mode === 'wave') {
+  if (mode === 'wave') {
     ctx.beginPath();
     for (const f of [-1, -0.5, 0, 0.5, 1]) line(x, mid - f * amp, x + size, mid - f * amp);
     for (let i = 1; i < 8; i++) line(x + i * size / 8, top, x + i * size / 8, top + area);
@@ -129,7 +165,7 @@ export function drawScope(ctx, box, state, data, ink) {
       }
       ctx.fillStyle = '#8aa'; ctx.textAlign = 'right'; ctx.fillText(`peak ${peak > 1e-4 ? (20 * Math.log10(peak)).toFixed(1) : '-inf'} dB`, x + size - 5, top + 3);
     }
-  } else if (state.mode === 'spec') {
+  } else if (mode === 'spec') {
     ctx.beginPath();
     for (const d of [-30, -60]) line(x, top + area * (-d / -DB_LOW), x + size, top + area * (-d / -DB_LOW));
     const fx = f => x + size * Math.log(f / 20) / Math.log(1000);
@@ -154,7 +190,7 @@ export function drawScope(ctx, box, state, data, ink) {
       ctx.fillStyle = 'hsl(190 60% 45% / 0.35)'; ctx.fill();
       ctx.strokeStyle = '#4fd1c5'; ctx.lineWidth = 1.25; ctx.stroke();
     }
-  } else if (state.mode === 'vu') {
+  } else if (mode === 'vu') {
     const m = meterOf(state, data, performance.now());
     const left = 30, gap = 6, bw = (W - left - gap - 8) / 2, y0 = top + 8, hh = area - 30;
     const yOf = d => y0 + hh * (DB_TOP - Math.max(DB_BOT, Math.min(DB_TOP, d))) / (DB_TOP - DB_BOT);
@@ -175,6 +211,52 @@ export function drawScope(ctx, box, state, data, ink) {
       ctx.fillText(m.peak[c] > DB_BOT ? Math.round(m.peak[c]) : '-inf', bx + bw / 2, y0 + hh + 5);
     }
     moving = m.bar[0] > DB_BOT || m.bar[1] > DB_BOT || m.peak[0] > DB_BOT || m.peak[1] > DB_BOT;
+  } else if (mode === 'cloud' || mode === 'grain') {
+    const cs = data?.cloud, src = data?.src, pv = data?.param ?? (() => 0), now = performance.now(), srate = cs?.sr ?? 44100;
+    ctx.beginPath(); line(x, mid, x + size, mid); ctx.stroke();
+    ctx.fillStyle = '#789'; ctx.textAlign = 'left';
+    const recent = cs ? cs.grains.slice(-14) : [];
+    if (!src) { ctx.fillText('no sample', x + 6, top + 6); }
+    else if (mode === 'cloud') {
+      const pk = peaksOf(src, size), pos = cs ? cs.head : pv('position'), spray = pv('spray');
+      ctx.fillStyle = 'hsl(160 55% 45% / 0.2)';   // the spray band, wrapping round the ends
+      const a = pos - spray, b = pos + spray;
+      ctx.fillRect(x + size * Math.max(0, a), top, size * (Math.min(1, b) - Math.max(0, a)), area);
+      if (a < 0) ctx.fillRect(x + size * (1 + a), top, size * -a, area);
+      if (b > 1) ctx.fillRect(x, top, size * (b - 1), area);
+      ctx.strokeStyle = '#4a6c80'; ctx.lineWidth = 1; ctx.beginPath();
+      for (let c = 0; c < size; c++) { line(x + c, mid - pk[c * 2 + 1] * amp, x + c, mid - pk[c * 2] * amp); }
+      ctx.stroke();
+      let row = 0;
+      ctx.lineWidth = 2;
+      for (const g of recent) {
+        const u = (now - g.t) / 1000 * srate / g.len;
+        if (u >= 1) continue;
+        const span = g.step * g.len / (src.length - 1), y0 = top + 6 + (row++ % 6) * 5;
+        const A = x + size * Math.max(0, Math.min(1, g.at)), B = x + size * Math.max(0, Math.min(1, g.at + span)), C = x + size * Math.max(0, Math.min(1, g.at + span * u));
+        ctx.globalAlpha = 1 - u * 0.6; ctx.strokeStyle = '#4fd1c5'; ctx.beginPath(); ctx.moveTo(A, y0); ctx.lineTo(B, y0); ctx.stroke();
+        ctx.fillStyle = '#f6ad55'; ctx.beginPath(); ctx.arc(C, y0, 2.5, 0, 7); ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+      ctx.strokeStyle = '#f6ad55'; ctx.lineWidth = 1.25; ctx.beginPath(); line(x + size * pos, top, x + size * pos, top + area); ctx.stroke();
+      moving = !!cs && now - cs.t < 400;
+    } else {
+      const shape = Math.max(0.02, pv('shape')), win = u => 0.5 - 0.5 * Math.cos(Math.PI * Math.min(1, (u < 0.5 ? u : 1 - u) * 2 / shape));
+      let top2 = 0.05;
+      for (const g of recent) { g.pts ??= grainPoints(src, g); for (const v of g.pts) if (Math.abs(v) > top2) top2 = Math.abs(v); }
+      if (cs) cs.gain += (0.95 / top2 - cs.gain) * 0.2;
+      const k = cs ? cs.gain : 1;
+      recent.forEach((g, i) => {
+        ctx.globalAlpha = 0.15 + 0.6 * (i + 1) / recent.length; ctx.strokeStyle = '#4fd1c5'; ctx.lineWidth = i === recent.length - 1 ? 1.5 : 1; ctx.beginPath();
+        g.pts.forEach((v, j) => { const px = x + size * j / (g.pts.length - 1), py = mid - v * k * amp; if (j) ctx.lineTo(px, py); else ctx.moveTo(px, py); });
+        ctx.stroke();
+      });
+      ctx.globalAlpha = 1; ctx.strokeStyle = '#f6ad55'; ctx.lineWidth = 1; ctx.setLineDash([4, 3]);
+      for (const sg of [1, -1]) { ctx.beginPath(); for (let c = 0; c <= size; c += 2) { const py = mid - sg * win(c / size) * amp; if (c) ctx.lineTo(x + c, py); else ctx.moveTo(x + c, py); } ctx.stroke(); }
+      ctx.setLineDash([]);
+      ctx.fillStyle = '#789'; ctx.textAlign = 'left'; ctx.fillText('0', x + 4, top + area - 12); ctx.textAlign = 'right'; ctx.fillText(`${Math.round(pv('size'))} ms`, x + size - 4, top + area - 12);
+      moving = !!cs && now - cs.t < 400;
+    }
   } else {   // xy
     ctx.beginPath();
     line(x + size / 2, top, x + size / 2, top + area); line(x, mid, x + size, mid);

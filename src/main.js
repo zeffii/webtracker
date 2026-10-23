@@ -480,6 +480,7 @@ function showHelp(type) {
 function hideHelp() { if (nodeHelp.hidden) return false; nodeHelp.hidden = true; $('patch').focus(); return true; }
 nodeHelp.addEventListener('keydown', e => { if (e.key === 'Escape' || e.key === 'F1') { e.preventDefault(); e.stopPropagation(); hideHelp(); } });
 $('node-help-close').addEventListener('click', hideHelp);
+const monoOf = new WeakMap();   // a stereo sample's one-channel mix, for the granular scope
 const patcher = createPatcher({
   onHelp: showHelp,
   // the song's tick, for the lines on time and rate sliders: how long it is, how many make a beat, whether to show them and snap to them
@@ -489,7 +490,21 @@ const patcher = createPatcher({
   onStructure: id => reloadInstrument(id),
   onContext: ({ x, y, replace }) => menu.open(x, y, replace),
   onData: (id, node, msg) => engine.sendToNode(id, node, msg),
-  onScope: (id, node, on) => engine.scope(id, node, on),
+  onScope: (id, node, on) => {
+    engine.scope(id, node, on);
+    if (project?.instruments[id]?.graph.nodes.some(n => n.id === node && n.type === 'granular')) engine.sendToNode(id, node, { type: 'watch', on });   // a granular scope draws its grains
+  },
+  getGrainSource: (id, node) => {   // the sample a granular node reads, as one channel
+    const inst = project?.instruments[id], n = inst?.graph.nodes.find(q => q.id === node);
+    if (!n) return null;
+    const a = `${id}.${node}.sample`, pick = Math.max(0, Math.floor(engine.registry.slots.has(a) ? engine.registry.get(a) : n.params?.sample ?? 0));
+    const s = project.samples[slotsOf(inst.samples?.[node])[pick]];
+    if (!s) return null;
+    if (!s.right) return s.data;
+    let m = monoOf.get(s.data);
+    if (!m) monoOf.set(s.data, m = Float32Array.from(s.data, (v, i) => (v + s.right[i]) * 0.5));
+    return m;
+  },
   readLive: (id, node, name) => { const a = `${id}.${node}.${name}`; return engine.registry.slots.has(a) ? engine.registry.get(a) : undefined; },
   getSampleIds: () => pickableSamples(),
   getSample: id => { const s = project.samples[id]; return s ? { data: s.right ? Float32Array.from(s.data, (v, i) => (v + s.right[i]) * 0.5) : s.data, rate: s.rate } : null; },
@@ -1909,6 +1924,7 @@ async function loadSampleFiles(files) {
     projStatus(`${said}.`);
   };
   engine.onEmit = ({ instrument, node, msg }) => {
+    if (msg.type === 'cloud') { patcher.feedCloud(instrument, node, msg, engine.ctx.sampleRate); return; }
     const key = `${instrument}\u0000${node}`;
     if (msg.phase === 'start') { takes.set(key, { ...msg, node, ls: [], rs: [] }); projStatus(`Tap ${node}: recording into ${poolId(msg.smp)}…`); return; }
     const t = takes.get(key);

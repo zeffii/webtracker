@@ -48,7 +48,7 @@ export default {
   glyph: 'granular',
   kinds: { out: 'stereo' },
   params: SPEC,
-  create({ sampleRate, maxBlock = 512 }) {
+  create({ sampleRate, maxBlock = 512, emit }) {
     const bank = [];
     const env = new Adsr(sampleRate);
     // grain state, in parallel arrays
@@ -62,6 +62,7 @@ export default {
     let nAct = 0;
     const gOff = new Int32Array(MAX_GRAINS);   // the sample of the block a new grain starts at
     let mixL = new Float64Array(maxBlock), mixR = new Float64Array(maxBlock);
+    let watch = false, batch = [], quiet = 0;   // a scope on the node asks for its grains: 'cloud' messages for the page's drawing
     let seed = 0x2545f491, clock = 1, scanned = 0, note = 60, velocity = 1;
     const rand = () => { seed ^= seed << 13; seed ^= seed >>> 17; seed ^= seed << 5; return (seed >>> 0) / 4294967296; };
 
@@ -85,6 +86,7 @@ export default {
       const pan = (rand() * 2 - 1) * g('spread');
       const a = (pan + 1) * Math.PI / 4;
       gL[k] = Math.cos(a); gR[k] = Math.sin(a);
+      if (watch && batch.length < 24) batch.push([at, step, len, taper]);
       if (!live[k]) act[nAct++] = k;   // a replaced grain is already in the list
       live[k] = 1;
       return k;
@@ -92,6 +94,7 @@ export default {
 
     return {
       message(msg) {
+        if (msg.type === 'watch') { watch = !!msg.on; batch = []; return; }
         if (msg.type !== 'sample') return;
         bank[msg.slot | 0] = { data: msg.data, right: msg.right ?? null, ratio: msg.rate / sampleRate, gain: (msg.volume ?? 1) * (msg.globalVolume ?? 1) };
       },
@@ -126,6 +129,12 @@ export default {
           }
         }
         scanned = scanned0 + scanStep * n;
+        if (watch && emit && (batch.length || ++quiet >= 8)) {   // the new grains, and now and then where the read position is
+          quiet = 0;
+          const head = g('position') + scanned;
+          emit({ type: 'cloud', head: head - Math.floor(head), grains: batch });
+          batch = [];
+        }
         mixL.fill(0, 0, n); mixR.fill(0, 0, n);
         for (let q = 0; q < nAct; q++) {
           const k = act[q];
