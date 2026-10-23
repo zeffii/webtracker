@@ -166,4 +166,37 @@ void main(){
   gl_FragColor = vec4(col, 1.);
 }`,
   },
+  flock: {
+    label: 'Flock: birds that follow a leader',
+    source: `// a flock without any stored state: every bird follows the leader's path a little later than the one before (cohesion), faces where
+// the path is going (alignment) and sways to the side on its own beat (separation). Each lane brings three birds; a hit flings its
+// birds outwards and lights them, a held note keeps them bright. (A true boids flock needs each bird's position kept from one frame
+// to the next, which a picture shader cannot do; this is the closed-form version of the same look.)
+vec2 path(float t){
+  return vec2(.30 * sin(t * .37 + 1.7 * sin(t * .11)), .24 * sin(t * .29 + 2. * sin(t * .13)));
+}
+void main(){
+  vec2 p = (gl_FragCoord.xy - .5 * R) / min(R.x, R.y);
+  vec3 col = mix(C1 * .3, C1 * .1, clamp(length(p) * 1.3, 0., 1.));
+  for (int l = 0; l < 16; l++) {
+    if (float(l) >= NL) break;
+    vec4 L = LANE[l];
+    for (int j = 0; j < 3; j++) {
+      float f = float(l * 3 + j);
+      float tt = T * 1.1 - f * .16;
+      vec2 pos = path(tt);
+      vec2 h = normalize(path(tt + .05) - pos + 1e-5);
+      vec2 n = vec2(-h.y, h.x);
+      pos += n * sin(f * 5.1 + T * .6) * .1 + h * sin(f * 3.7 + T * .45) * .05;
+      pos += vec2(cos(f * 2.4), sin(f * 2.4)) * .09 * L.x;
+      vec2 q = p - pos;
+      float x = dot(q, h), y = dot(q, n);
+      float body = smoothstep(1., .55, length(vec2(x / .03, y / .011)));
+      float tail = step(x, 0.) * exp(x * 22.) * smoothstep(.005, 0., abs(y)) * .4;
+      col += mix(C1, C2, .35 + .65 * L.x) * (body + tail) * (.55 + .5 * L.x + .25 * L.w);
+    }
+  }
+  gl_FragColor = vec4(col, 1.);
+}`,
+  },
 };

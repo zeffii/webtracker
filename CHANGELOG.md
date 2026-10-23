@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 379 · 2026-10-23
+
+- Shader template "Flock": birds that follow a leader's path, each a little later than the one before, facing the way the path goes and swaying apart; three birds per lane, flung out and lit by that lane's hits. It is a closed-form flock, since a picture shader keeps nothing from one frame to the next.
+
 ## 378 · 2026-10-23
 
 - A Shader view of its own (the cube tab, or Ctrl+Alt+G) for the live picture's GLSL: colours for keywords, types, built-in functions, Wax's own look-ups and uniforms, numbers, strings and comments; line numbers with the failing line marked in red; the picture follows a moment after you stop typing. Tab indents (Shift+Tab outdents a selection), Enter keeps the indent, and undo works. The template list and the pop-out button are there too, and the built-in picture's source is shown to start from. The Config box for the shader stays, pointing to the new view.
