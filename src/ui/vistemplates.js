@@ -86,4 +86,84 @@ void main(){
   gl_FragColor = vec4(mix(C1 * .4, C2, k) * (.65 + .35 * HITS), 1.);
 }`,
   },
+  leds: {
+    label: 'LEDs: a lamp matrix of the pattern',
+    source: `// a grid of round lamps: a row for each lane, a column for each tick of the pattern around the playhead (the lit column is now)
+void main(){
+  vec2 uv = gl_FragCoord.xy / R;
+  uv.y = 1. - uv.y;
+  float rows = max(NL, 1.);
+  vec2 g = vec2(uv.x * WIN, uv.y * rows);
+  vec2 id = floor(g), f = fract(g) - .5;
+  float dx = id.x - BEHIND;
+  vec4 c = cell(id.y, dx);
+  float on = c.x + .5 * c.w;
+  vec2 cs = vec2(R.x / WIN, R.y / rows);
+  float d = length(f * cs) / min(cs.x, cs.y);
+  float lamp = smoothstep(.42, .32, d);
+  vec3 col = C1 * .1;
+  col += mix(C1 * .35, C2, clamp(on * (.4 + .6 * c.z), 0., 1.)) * lamp * (dx < 0. ? .5 : 1.);
+  col += C2 * .25 * step(abs(dx), .5) * lamp;
+  gl_FragColor = vec4(col, 1.);
+}`,
+  },
+  kaleido: {
+    label: 'Kaleidoscope: mirrored shards',
+    source: `// the plane folded into eight mirrored wedges; hits spin it and open the shapes
+void main(){
+  vec2 p = (gl_FragCoord.xy - .5 * R) / min(R.x, R.y) * 2.;
+  float a = atan(p.y, p.x), r = length(p);
+  float seg = 3.14159265 / 4.;
+  a = abs(mod(a + BEAT * .08, 2. * seg) - seg);
+  p = r * vec2(cos(a), sin(a));
+  float v = sin(p.x * 6. + T * .6 + hit(0) * 4.) * sin(p.y * 6. - T * .5) + sin(r * 8. - T * 1.2 - HITS * 5.);
+  float k = smoothstep(-.2, .8, v);
+  vec3 col = mix(C1 * .3, C2, k) * (1. - .45 * r);
+  col += C2 * .3 * HITS * smoothstep(.5, 0., r);
+  gl_FragColor = vec4(col, 1.);
+}`,
+  },
+  stars: {
+    label: 'Stars: a starfield that speeds up',
+    source: `// stars flying out of the middle; the more is playing, the faster they fly
+float rnd(vec2 p){return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453);}
+void main(){
+  vec2 p = (gl_FragCoord.xy - .5 * R) / min(R.x, R.y);
+  float r = length(p) + 1e-3, a = atan(p.y, p.x);
+  vec3 col = C1 * .12;
+  float speed = T * .25 + BEAT * .02 + HITS * .05;
+  for (int layer = 0; layer < 3; layer++) {
+    float l = float(layer);
+    float cells = 30. + l * 22.;
+    float z = fract(speed * (.5 + l * .4) + l * .37);
+    float rr = r / (.15 + z * 1.6);
+    float aa = a / 6.2831853 * cells;
+    float id = floor(aa), fa = fract(aa) - .5;
+    float h = rnd(vec2(id, l + floor(rr * 3.)));
+    float star = step(.82, h) * smoothstep(.5, 0., abs(fa) * r * cells * .3) * smoothstep(.0, .12, z) * (1. - z);
+    col += mix(C1, C2, h) * star * (.8 + HITS);
+  }
+  gl_FragColor = vec4(col, 1.);
+}`,
+  },
+  lava: {
+    label: 'Lava: soft blobs, one per lane',
+    source: `// a flat lava lamp: each lane is a soft blob; a hit swells it, the pitch of its last note moves it up or down
+void main(){
+  vec2 p = (gl_FragCoord.xy - .5 * R) / min(R.x, R.y);
+  float field = 0.;
+  for (int i = 0; i < 16; i++) {
+    if (float(i) >= NL) break;
+    float f = float(i) + 1.;
+    vec2 c = vec2(.34 * sin(T * .21 * f + f * 1.7), .3 * sin(T * .17 * f + f * 2.3) + .2 * (LANE[i].y - .5));
+    float r = .06 + .05 * LANE[i].x + .02 * LANE[i].w;
+    field += r * r / (dot(p - c, p - c) + .002);
+  }
+  float edge = smoothstep(.9, 1.1, field);
+  vec3 col = mix(C1 * .25, C1 * .12, gl_FragCoord.y / R.y);
+  col = mix(col, mix(C1, C2, clamp(field * .35, 0., 1.)), edge);
+  col += C2 * .35 * smoothstep(.8, .9, field) * (1. - edge);
+  gl_FragColor = vec4(col, 1.);
+}`,
+  },
 };

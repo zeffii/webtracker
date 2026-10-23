@@ -1432,7 +1432,7 @@ const toggleMeters = () => config.set('meterOn', !meters.open);
 const vizBox = $('viz'), vizErr = $('viz-err');
 const visdata = createVisData({ lanes: () => project?.lanes ?? [], transport: engine.transport, song: () => project?.song, decayMs: () => config.get('visualDecay') });
 let visual = null, labels = null, vizOn = false;
-const placeViz = () => { vizBox.style.bottom = `${$('footer').offsetHeight + (meters.open ? config.get('meterHeight') : 0) + 14}px`; };
+const placeViz = () => { if (pip) return; vizBox.style.bottom = `${$('footer').offsetHeight + (meters.open ? config.get('meterHeight') : 0) + 14}px`; };
 const showViz = on => {
   vizOn = on;
   if (on && !visual) {
@@ -1440,8 +1440,41 @@ const showViz = on => {
     if (!visual) { vizOn = false; $('status').textContent = 'The live picture needs WebGL, which this browser does not have.'; }
     else { visual.setSource(config.get('visualGlsl')); labels = createLabels($('viz-text')); }
   }
+  if (!vizOn && pip) pip.close();
   vizBox.hidden = !vizOn; $('viz-btn').setAttribute('aria-pressed', String(vizOn)); placeViz();
 };
+const drawViz = now => { const d = visdata.frame(now ?? performance.now()); d.skeleton = config.get('visualSkeleton'); visual.draw(d); labels?.update(d.names, d.skeleton); };
+// The picture in a window of its own: Document Picture-in-Picture (Chrome, Edge, Brave), an always-on-top window that can go to any
+// screen. The picture's box moves into it and is drawn from that window's own frame loop, which keeps running when this window is
+// covered by other programs. Closing the window, or the button again, brings the box back.
+let pip = null;
+const popStyle = `html,body{margin:0;height:100%;background:#111;overflow:hidden}
+#viz{position:fixed;inset:0;width:auto;height:auto;border-radius:0;box-shadow:none;background:#111}
+#viz canvas{position:absolute;left:50%;top:50%;width:100vmin;height:100vmin;transform:translate(-50%,-50%);display:block}
+#viz-text{pointer-events:none}
+#viz-pop{position:absolute;right:6px;top:6px;width:26px;height:26px;padding:0;opacity:0;transition:opacity .15s;background:rgba(0,0,0,.55);color:#cfe3e7;border:0;border-radius:4px;cursor:pointer}
+#viz:hover #viz-pop{opacity:1}
+#viz-err{position:absolute;left:0;right:0;bottom:0;padding:3px 8px;font:11px ui-monospace,Consolas,monospace;color:#ffd9d4;background:rgba(120,20,10,.85)}
+#viz-err[hidden]{display:none}`;
+const popOut = async () => {
+  if (pip) { pip.close(); return; }
+  if (!vizOn || !visual) return;
+  if (!('documentPictureInPicture' in window)) { $('status').textContent = 'This browser has no floating windows (Document Picture-in-Picture: Chrome, Edge and Brave have it).'; return; }
+  try {
+    const w = await documentPictureInPicture.requestWindow({ width: 340, height: 340 });
+    pip = w;
+    w.document.head.append(Object.assign(w.document.createElement('style'), { textContent: popStyle }));
+    w.document.title = 'Wax picture';
+    vizBox.style.bottom = '';
+    w.document.body.append(w.document.adoptNode(vizBox));
+    $('viz-btn').setAttribute('aria-pressed', 'true');
+    const loop = now => { if (pip !== w) return; if (vizOn && visual) drawViz(performance.now()); w.requestAnimationFrame(loop); };
+    w.requestAnimationFrame(loop);
+    w.addEventListener('pagehide', () => { if (pip === w) { pip = null; document.body.append(document.adoptNode(vizBox)); vizBox.hidden = !vizOn; placeViz(); } });
+    w.document.getElementById('viz-pop').addEventListener('click', () => w.close());
+  } catch (e) { $('status').textContent = `Could not open the floating window: ${e.message}`; }
+};
+$('viz-pop').addEventListener('click', popOut);
 const toggleViz = () => config.set('visualOn', !vizOn);
 $('viz-btn').addEventListener('click', toggleViz);
 addEventListener('resize', placeViz);
@@ -1862,7 +1895,7 @@ $('start').addEventListener('click', async () => {
     // Only the screen that is showing is drawn: a hidden one has nothing to measure or paint, and its work would only delay the one you are using.
     const frame = now => {
       const tab = tabs.active;
-      if (vizOn && visual) { const d = visdata.frame(now ?? performance.now()); d.skeleton = config.get('visualSkeleton'); visual.draw(d); labels?.update(d.names, d.skeleton); }
+      if (vizOn && visual && !pip) drawViz(now);
       songInfo(); syncLaneName();
       if (tab === 'arrange' || !tab) seqView.draw();
       if (tab === 'patterns' || !tab) view.draw();

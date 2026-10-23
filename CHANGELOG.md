@@ -2,6 +2,11 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 377 · 2026-10-23
+
+- Live picture: a pop-out button (the arrow at the picture's top right, shown on hover) moves it into its own always-on-top window (Document Picture-in-Picture: Chrome, Edge, Brave) that can go to any screen. It keeps animating while Wax is covered by other programs. The button again, or closing the window, brings it back.
+- Four more shader templates: LEDs (a lamp matrix of the pattern), Kaleidoscope, Stars and Lava.
+
 ## 376 · 2026-10-23
 
 - Live picture: five shader templates (rings, bars, tunnel, piano roll, plasma). Config > Visual > "Picture: start from a template" copies one into the shader box for editing; "Built-in metaballs" empties the box again. Choosing one replaces the box's text.
