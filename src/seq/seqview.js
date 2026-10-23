@@ -296,7 +296,7 @@ export function createSequenceView({ el, statusEl, listEl, transport, onToggle, 
   });
   const stopDrag = () => { dragging = null; };
   el.addEventListener('mouseup', stopDrag);
-  document.addEventListener('mouseup', stopDrag);   // leaving the grid (the side menu, say) does not end the drag: coming back carries on
+  el.ownerDocument?.addEventListener?.('mouseup', stopDrag);   // leaving the grid (the side menu, say) does not end the drag: coming back carries on
 
   // A note-off marker on this row: the lane lets go of what is sounding there.
   const noteOffMark = () => {
