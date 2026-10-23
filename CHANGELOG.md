@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 400 · 2026-10-23
+
+- In the graph view, when a selected node shows both its envelope box and a scope, the two now sit side by side, level at their middles, a few pixels apart (the scope used to start at the node and could hide behind the envelope box).
+
 ## 399 · 2026-10-23
 
 - Two new scopes for the granular node (click its eye, then pick them in the scope header, which now reads wave, cloud, grain, spec): **cloud** draws the sample it reads, the position line, the spray band and a bracket for each grain that is sounding, with a dot where it is reading now; **grain** lays the last 14 grains over each other, aligned at their start, inside the window they share (so size, shape, pitch scatter and reverse show directly). The grains are reported by the node only while a scope is open on it, so a granular node nobody watches costs nothing extra. The wave scope is the same triggered trace as before.

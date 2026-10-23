@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['400', ['A node\'s envelope box and its scope sit side by side, level at the middle.']],
   ['399', ['Granular scopes: cloud (where the grains read) and grain (the grains laid over each other).']],
   ['398', ['A woodblock synth: struck modes that lose energy as they ring, with drawn volume and pitch envelopes.']],
   ['397', ['DSP tab: diode icon; the parameter panel runs down the window\'s right edge and the source fills the rest.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['393', ['Waveform: drag selects, Alt+drag sets the loop, Ctrl+drag the sustain loop; hide switches on the Loop lines.']],
   ['392', ['Sample screen: Space over the waveform plays from the start, Alt+Space from the slice marker left of the mouse.']],
   ['391', ['Auto-slice previews the hits on the waveform as you move its settings; Slice makes them real markers.']],
-  ['390', ['Auto-slice is a dialog with a live count of the hits it finds.']],
 ];

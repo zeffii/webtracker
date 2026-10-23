@@ -161,7 +161,14 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
   const scopeData = new Map();   // node id -> { l, r, sr }
   const cloudData = new Map();   // granular node id -> { head, t, sr, gain, grains: [{ at, step, len, shape, t }] }: its grains, as they started
   const eyeRect = node => { const { w, h } = nodeBox(nodeTypes[node.type], node); return { x: node.x + w / 2 - 10, y: node.y + h + 3, w: 20, h: 14 }; };   // under the node, clear of its name
-  const scopeRectOf = node => { const { w, h } = nodeBox(nodeTypes[node.type], node); return scopeBox(node, w, h, node.scope.size, node.scope.mode); };
+  const scopeRectOf = node => {
+    const { w, h } = nodeBox(nodeTypes[node.type], node), b = scopeBox(node, w, h, node.scope.size, node.scope.mode);
+    if (selected?.kind === 'node' && selected.id === node.id && nodeTypes[node.type].adsr?.length) {   // its envelope box is open: the scope sits beside it, level with its middle
+      const e = envRect({ x: node.x, y: node.y, w, h });
+      b.x = e.x + e.w + 8; b.y = Math.max(2, e.y + e.h / 2 - b.size / 2);
+    }
+    return b;
+  };
   const inside = (r, x, y, w = r.w, h = r.h) => x >= r.x && x <= r.x + w && y >= r.y && y <= r.y + h;
   function setScope(node, on) {
     // a gain node opens as a level meter
@@ -825,15 +832,18 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
   // part that matters (down to 1%) and a sustain stage of a quarter of the whole length.
   const GROUP_COLOUR = ['hsl(35 85% 52%)', 'hsl(200 70% 50%)', 'hsl(145 55% 42%)', 'hsl(300 50% 55%)'];
   const ENV_W = 230, ENV_H = 134;
+  // below the node, where the row of the graph leaves room (above it when the node is low in the graph)
+  function envRect(box) {
+    const x = Math.min(Math.max(4, box.x + box.w / 2 - ENV_W / 2), Math.max(4, W - ENV_W - 4));
+    const below = box.y + box.h + 16;
+    return { x, y: below + ENV_H <= H - 4 ? below : Math.max(4, box.y - ENV_H - 22), w: ENV_W, h: ENV_H };
+  }
   function drawEnvelopes(node, type, box, ink) {
     const value = name => node.params?.[name] ?? type.params.find(p => p.name === name)?.def ?? 0;
     const groups = type.adsr.map(g => ({ a: value(g.atk), d: value(g.dec), s: value(g.sus), r: value(g.rel) }));
     const widest = Math.max(...groups.map(g => g.a + g.d * 0.67 + g.r * 0.67));
     const total = widest * 1.33, hold = total * 0.25;   // the sustain stage is drawn a quarter as long as the rest
-    // below the node, where the row of the graph leaves room (above it when the node is low in the graph)
-    const x0 = Math.min(Math.max(4, box.x + box.w / 2 - ENV_W / 2), Math.max(4, W - ENV_W - 4));
-    const below = box.y + box.h + 16;
-    const y0 = below + ENV_H <= H - 4 ? below : Math.max(4, box.y - ENV_H - 22);
+    const { x: x0, y: y0 } = envRect(box);
     const px = x0 + 10, pw = ENV_W - 20, py = y0 + 18, ph = ENV_H - 56;
     ctx.save();
     ctx.fillStyle = (typeof getComputedStyle === 'function' && getComputedStyle(canvas).backgroundColor) || '#d9dae0';   // opaque, so the wires behind it do not show through
