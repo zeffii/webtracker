@@ -6192,6 +6192,25 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     assert.ok(glide.every(Number.isFinite), 'the glide stays finite');
     assert.ok(diff(jump.subarray(sr * 0.3 | 0), glide.subarray(sr * 0.3 | 0)) > 1e-3, 'a column glides from its own last note');
   }
+  // a note started while the last is still sounding or dying does not step the level
+  {
+    const registry = new ParamRegistry();
+    const graph = JSON.parse(JSON.stringify(def.graph));
+    graph.voices = 1;
+    Object.assign(graph.nodes[0], { params: { egtype: 1, cutoff: 8000, decay: 600, attack: 4, vco2wave: 0, mix2: 0, drive: 0, egint: 0 } });
+    const c = compile(graph, { instrument: 'du', nodeTypes: NODE_TYPES, registry });
+    const rt = new GraphRuntime({ sampleRate: sr, params: registry.values });
+    rt.load(c);
+    rt.note('du', { type: 'noteOn', note: 81, vel: 1, from: -1 });
+    const a = render(rt, 0.3).left;
+    rt.note('du', { type: 'noteOff', note: 81 });
+    rt.note('du', { type: 'noteOn', note: 81, vel: 1, from: -1 });
+    const b = render(rt, 0.1).left;
+    const all = Float32Array.from([...a, ...b]);
+    const win = (from, len) => Math.sqrt(all.slice(from, from + len).reduce((s, v) => s + v * v, 0) / len);
+    const edge = a.length, len = Math.round(sr * 0.003);
+    assert.ok(win(edge, len) > 0.8 * win(edge - len, len), `a retrigger does not drop the level to zero (${win(edge, len).toFixed(4)} after, ${win(edge - len, len).toFixed(4)} before)`);
+  }
   console.log('ok: duette');
 }
 

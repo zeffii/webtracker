@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 419 · 2026-10-23
+
+- Duette: fixed clicks. A note started while the last one was still sounding or dying (a column's next note, a note after a `===` that was still fading, a stolen voice) sent the envelope back to zero in one step, which clicks. The envelope now starts again from where it is. A note cut (all notes off) fades over a few ms instead of stopping dead.
+
 ## 418 · 2026-10-23
 
 - **Tape** effect (Effects > Distortion > "Tape", or the `tape` node): what a recording on tape does to a sound, in six qualities (`type`): studio reel, chrome cassette, ferric cassette, worn cassette, dictaphone and dubbed copy, each with its own brightness, low cut, head bump, hiss, wobble and dropout habits. `age` wears any of them: darker, more wobble, more hiss, more dropouts. `drive` is the tape saturation (squashes loud parts, adds warm harmonics), `wow` is the slow pitch drift (shared by both channels) and `flutter` the fast shiver (a little different in each), `hiss` and `dropouts` (short dips in level and brightness, each channel on its own) scale those, `tone` moves the loss of highs, and `mix` blends with the clean sound, which is delayed by 4.5 ms to match.

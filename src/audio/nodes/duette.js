@@ -73,14 +73,14 @@ export default {
   create({ sampleRate, clock }) {
     const sr = sampleRate, stamps = clock?.stamps ?? new Uint32Array(1024);
     let ph1 = 0, ph2 = 0, pitch = 48, target = 48, note = 48, gate = false, active = false, pend = null, velocity = 1, stage = IDLE, eg = 0, vca = 0, gateEnv = 0;
-    let lfoPh = 0, lfoDone = false, lfoOn = 0, s1 = 0, s2 = 0, dc = 0, dcx = 0, seed = 22222, nz = 0, lastS = -1, hadNote = false;
+    let lfoPh = 0, lfoDone = false, lfoOn = 0, s1 = 0, s2 = 0, dc = 0, dcx = 0, seed = 22222, nz = 0, lastS = -1, hadNote = false, cutting = false;
     const rnd = () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 2147483648 - 1; };
     return {
       note(msg) {
         if (msg.type === 'noteOn') pend = { note: msg.note, vel: Math.max(0, Math.min(1, msg.vel ?? 1)) };
         else if (msg.type === 'noteOff') { if (!msg.implied && gate) { gate = false; if (stage !== IDLE) stage = DECAY; } }
         else if (msg.type === 'allOff') { if (gate) { gate = false; if (stage !== IDLE) stage = DECAY; } }
-        else if (msg.type === 'noteCut') { gate = false; active = false; pend = null; vca = eg = gateEnv = 0; stage = IDLE; s1 = s2 = dc = dcx = 0; }
+        else if (msg.type === 'noteCut') { gate = false; pend = null; cutting = true; if (stage !== IDLE) stage = DECAY; }   // a quick fade, not a step
       },
       process(inputs, outputs, n, params, slots) {
         const [outL, outR] = outputs[0];
@@ -94,7 +94,7 @@ export default {
           note = pend.note; velocity = pend.vel;
           const glide = slideFlag && legato ? g('slide') : port > 0 && (portAlways || legato) ? port : 0;
           if (glide > 0) target = note; else { pitch = target = note; }
-          if (!(slideFlag && legato)) { stage = ATTACK; if (egtype !== 1 || !legato) eg = Math.min(eg, 0.0); if (lfoOn === 0 || g('lfomode') === 2) { lfoPh = 0; lfoDone = false; } }
+          if (!(slideFlag && legato)) { stage = ATTACK; cutting = false; if (lfoOn === 0 || g('lfomode') === 2) { lfoPh = 0; lfoDone = false; } }
           lfoOn = 1; gate = true; active = true; hadNote = true; pend = null;
           this.glideMs = glide;
         }
@@ -105,7 +105,7 @@ export default {
         const egint = g('egint'), egtarget = g('egtarget') | 0, egOct = Math.sign(egint) * egint * egint * 5;
         const lwave = g('lfowave') | 0, lmode = g('lfomode') | 0, lint = g('lfoint'), ltarget = g('lfotarget') | 0;
         const [r0, r1] = lmode === 0 ? FAST : SLOW, lfoHz = r0 * Math.pow(r1 / r0, g('lforate'));
-        const atk = Math.max(1e-4, g('attack') * 0.001 * sr), decCoef = Math.exp(-6.9078 / (sr * g('decay') * 0.001));
+        const atk = Math.max(1e-4, g('attack') * 0.001 * sr), decCoef = Math.exp(-6.9078 / (sr * (cutting ? 4 : g('decay')) * 0.001));
         const glideCoef = (this.glideMs ?? 0) > 0 ? 1 - Math.exp(-3 / (sr * this.glideMs * 0.001)) : 1;
         const tune = g('tune') + (g('vco2pitch') / 100) * 0, key = g('keytrack'), cutvel = g('cutvel'), ampvel = g('ampvel');
         const velGain = 1 - ampvel + ampvel * velocity, driveGain = 1 + drive * 9;

@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['419', ['Duette: no more clicks when a note starts over the last one; note cuts fade.']],
   ['418', ['Tape effect: six tape qualities, age, wow and flutter, saturation, hiss and dropouts.']],
   ['417', ['Duette is polyphonic: a note column keeps one voice, so glide and slide work per column.']],
   ['416', ['Duette: a two-oscillator mono lead voice with sync, ring, one envelope and one LFO. Waveform redraws after Normalise and the other in-place edits.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['412', ['Insert lane: New instrument and Instruments without a lane.']],
   ['411', ['Insert lane: New instrument and Unassigned instruments entries.']],
   ['410', ['The arrangement selection drag survives the pointer leaving the grid.']],
-  ['409', ['Resizing the graph view redraws it at once instead of flashing blank.']],
 ];
