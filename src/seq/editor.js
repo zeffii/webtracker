@@ -69,6 +69,14 @@ export function createEditor(lanes, length, { limit = 20 } = {}) {
     setCells: (li, items, label = 'edit cells', key = null) => change(label, key, () => ops.setCells(at(li), length, items)),
     insertPattern: (li, tick, { overlay = false } = {}) => change('insert pattern', null, () => ops.insertPattern(at(li), length, snap(tick), 16, overlay)),
     placePattern: (li, tick, puid) => change('place pattern', null, () => ops.placePattern(at(li), length, snap(tick), puid)),
+    // A new pattern of `rows` rows at the tick (snapped to a row of the arrangement) with cells written into it: items are
+    // { tick, col, token } with the tick counted from the pattern's start. Returns the pattern's puid, or null when one already starts there.
+    transcribe: (li, tick, rows, items, label = 'detect chords') => change(label, null, () => {
+      const base = snap(tick), puid = ops.insertPattern(at(li), length, base, rows);
+      if (puid === null) return null;
+      ops.setCells(at(li), length, items.map(i => ({ ...i, tick: i.tick + base })));
+      return puid;
+    }),
     clone: (li, tick) => change('clone pattern', null, () => ops.clonePlacement(at(li), length, tick)),
     slice: (li, tick) => change('slice pattern', null, () => ops.slicePlacement(at(li), length, tick)),
     resize: (li, tick, delta) => change(delta > 0 ? 'extend pattern' : 'shrink pattern', null, () => ops.resizePlacement(at(li), length, tick, delta)),

@@ -40,6 +40,8 @@ import { mountWidgets } from './script/euclidhelp.js';
 import { createMidiInput } from './ui/midiin.js';
 import { createOscClient } from './ui/oscclient.js';
 import { noteMessage } from './osc.js';
+import { scanChords, patternFrom } from './project/chordscan.js';
+import { noteToken } from './seq/cells.js';
 import { createMidiWriter } from './seq/midiwrite.js';
 import { createMarkerRegionView } from './project/markerregion.js';
 import { FILE_EXT, INSTRUMENT_EXT, parseInstrument, parseProject, serializeInstrument, serializeProject } from './project/file.js';
@@ -1288,6 +1290,7 @@ let waveX = null;
   window.addEventListener('blur', () => sampleScreen.release('wave-space'));
 }
 let autoSliceOpen = () => {};
+let chordScanOpen = () => {};
 const sampleScreen = createSampleScreen({
   el: $('smp'), statusEl: $('proj-status'), getProject: () => project,
   onChange: users => { sendLoop(users); auditionDirty = true; },   // loops, levels and edits change what the sample plays
@@ -1299,6 +1302,7 @@ const sampleScreen = createSampleScreen({
   onSlice: i => waveform.setActiveSlice(i),
   onZoom: kind => waveform.zoom(kind),
   onAutoSlice: () => autoSliceOpen(),
+  onChords: () => chordScanOpen(),
   onLoad: () => $('sample-file').click(),
   onKeep: id => {   // K: copy the sample under the cursor into a new normal sample
     const s = project.samples[id];
@@ -1603,6 +1607,66 @@ mountConfig($('as-cfg'), config, [['sliceSensitivity', 'Sensitivity (%)', 'range
   dlg.addEventListener('close', () => { waveform.setGhost(null); $('smp').focus(); });
   $('autoslice-open').addEventListener('click', open);
   autoSliceOpen = open;
+}
+// Detect chords: the notes of each chord in the sample (or its selection) as a preview, and a button that writes them into a new pattern
+{
+  const dlg = $('chordscan'), list = $('cs-list'), count = $('cs-count'), laneSel = $('cs-lane'), tickIn = $('cs-tick');
+  let result = null, timer = 0;
+  const names = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+  const noteName = m => `${names[m % 12]}${Math.floor(m / 12) - 1}`;
+  const noteCols = lane => lane.columns.flatMap((c, i) => (c.token === 'note' ? [i] : []));
+  const fillLanes = () => {
+    const keep = laneSel.value;
+    laneSel.replaceChildren(...project.lanes.map((l, i) => (noteCols(l).length ? Object.assign(document.createElement('option'), { value: String(i), textContent: `${l.id} (${noteCols(l).length} note column${noteCols(l).length === 1 ? '' : 's'})` }) : null)).filter(Boolean));
+    const want = [keep, String(seqView.lane)].find(v => v !== undefined && [...laneSel.options].some(o => o.value === v));
+    if (want !== undefined) laneSel.value = want;
+  };
+  const bpm = () => config.get('chordBpm') || project.song.bpm;
+  const scan = () => {
+    const name = sampleScreen.selected, s = name ? project.samples[name] : null;
+    result = null;
+    if (!s) { list.textContent = ''; count.textContent = 'Pick a sample first.'; $('cs-go').disabled = true; return; }
+    let [from, to] = sampleScreen.selection;
+    if (!(to > from)) { from = 0; to = s.data.length; }
+    const split = config.get('chordSplit');
+    const r = scanChords(s.data, s.right, s.rate, { from, to, split: split === 'onsets' ? 'onsets' : Number(split), bpm: bpm(), maxNotes: config.get('chordMaxNotes'), threshold: config.get('chordThreshold') / 100 });
+    result = { ...r, rate: s.rate };
+    const t = f => `${Math.floor(f / s.rate / 60)}:${(f / s.rate % 60).toFixed(2).padStart(5, '0')}`;
+    list.textContent = r.segments.map(g => `${t(g.frame0)}  ${g.name.padEnd(10)} ${g.notes.map(noteName).join(' ')}`).join('\n');
+    count.textContent = r.segments.length ? `${r.segments.length} chord${r.segments.length === 1 ? '' : 's'} found${to - from < s.data.length ? ' in the selection' : ''}.` : 'No notes found: pick a part of the sample that sounds, or lower the weakest-note setting.';
+    $('cs-go').disabled = !r.segments.length || !laneSel.options.length;
+  };
+  const later = () => { clearTimeout(timer); timer = setTimeout(() => { if (dlg.open) scan(); }, 150); };
+  const open = () => {
+    if (!started) return;
+    if (!sampleScreen.selected) { $('proj-status').textContent = 'Pick a sample first.'; return; }
+    fillLanes();
+    tickIn.value = String(Math.floor(seqView.tick / 16) * 16);
+    dlg.showModal();
+    scan();
+  };
+  mountConfig($('cs-cfg'), config, [['chordSplit', 'Cut the recording'], ['chordMaxNotes', 'Most notes in a chord'], ['chordThreshold', 'Weakest note kept (%)'], ['chordBpm', 'Tempo of the recording (0: the song\'s)']]);
+  config.onChange(k => { if (k.startsWith('chord')) later(); });
+  dlg.addEventListener('keydown', e => e.stopPropagation());
+  $('cs-go').addEventListener('click', () => {
+    const li = Number(laneSel.value), lane = project.lanes[li], at = Math.max(0, Math.round(Number(tickIn.value) || 0));
+    if (!result?.segments.length || !lane) return;
+    const cols = noteCols(lane), tps = bpm() / 60 * (project.song.ticksPerBeat ?? 4);
+    const { rows, items } = patternFrom(result.segments, result.rate, { tps, cols: cols.length, noteToken });
+    const base = Math.floor(at / 16) * 16;
+    const clash = lane.placements.find(p => p.start < base + rows && p.start + p.length > base);
+    if (clash) { count.textContent = `A pattern of ${lane.id} is in the way (it is at tick ${clash.start}): pick a later start or another lane.`; return; }
+    const puid = project.editor.transcribe(li, base, rows, items.map(i => ({ ...i, col: cols[i.col] })));
+    if (puid === null || puid === undefined) { count.textContent = 'Could not make a pattern there.'; return; }
+    engine.setLane({ id: lane.id, instrument: lane.instrument, columns: lane.columns, pages: lane.pages, mask: lane.mask, auto: lane.auto });
+    songChanged();
+    dlg.close();
+    $('proj-status').textContent = `Wrote ${result.segments.length} chord${result.segments.length === 1 ? '' : 's'} into ${lane.id} at tick ${base}, ${rows} rows. Open the Arrangement to hear it.`;
+  });
+  $('cs-cancel').addEventListener('click', () => dlg.close());
+  dlg.addEventListener('close', () => $('smp').focus());
+  $('chordscan-open').addEventListener('click', open);
+  chordScanOpen = open;
 }
 const placeViz = () => { if (pip) return; vizBox.style.bottom = `${$('footer').offsetHeight + (meters.open ? config.get('meterHeight') : 0) + 14}px`; };
 const showViz = on => {

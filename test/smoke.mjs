@@ -7830,4 +7830,42 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   } finally { relay.kill(); udp.close(); }
   console.log('ok: osc');
 }
+
+{
+  // detect chords: piano-like chords (decaying partials, a little inharmonic) come out as the right notes and names, and become pattern cells
+  const { scanChords, patternFrom, chordName } = await import('../src/project/chordscan.js');
+  const { noteToken } = await import('../src/seq/cells.js');
+  const sr = 48000, out = new Float32Array(sr * 7);
+  const note = (midi, t0, dur) => { const f = 440 * 2 ** ((midi - 69) / 12); for (let i = 0; i < dur * sr; i++) { const t = i / sr; let v = 0; for (let h = 1; h <= 8; h++) v += Math.sin(2 * Math.PI * f * h * Math.sqrt(1 + 0.0004 * h * h) * t) * Math.exp(-t * (1.5 + h * 0.9)) / h ** 0.9; const j = Math.round(t0 * sr) + i; if (j < out.length) out[j] += v * 0.3 * Math.min(1, t * 400); } };
+  const chords = [[48, 52, 55, 60], [53, 57, 60, 65], [55, 59, 62, 67], [57, 60, 64, 69]];
+  chords.forEach((c, i) => c.forEach(m => note(m, 0.3 + i * 1.5, 1.4)));
+  const r = scanChords(out, null, sr, { split: 'onsets' });
+  assert.deepEqual(r.segments.map(g => g.name), ['C', 'F', 'G', 'Am'], 'the chords are named');
+  assert.deepEqual(r.segments.map(g => g.notes), chords, 'and their notes found, octave doublings too');
+  assert.ok(Math.abs(r.segments[1].frame0 / sr - 1.8) < 0.1, 'each starts where the chord was played');
+  const g = scanChords(out, null, sr, { from: Math.round(0.3 * sr), split: 2, bpm: 80 });   // a grid of two beats at 80 BPM is 1.5 s, from where the playing starts
+  assert.deepEqual(g.segments.slice(0, 4).map(x => x.name), ['C', 'F', 'G', 'Am'], 'a grid of beats finds them too');
+  assert.equal(chordName([60, 64, 67]), 'C');
+  assert.equal(chordName([57, 60, 64]), 'Am');
+  const { rows, items } = patternFrom(r.segments, sr, { tps: 8, cols: 3, noteToken });
+  assert.deepEqual(items.filter(i => i.tick === 0).map(i => i.token), ['C-3', 'E-3', 'G-3'], 'the first chord at tick 0, three of its four notes');
+  assert.ok(items.some(i => i.token === '===' && i.tick > 0), 'notes are released');
+  assert.ok(rows > 30 && rows < 60, 'the pattern is as long as the recording at that tempo');
+  // the editor writes it as one undoable pattern
+  const { createEditor } = await import('../src/seq/editor.js');
+  const registry = new ParamRegistry();
+  const demo = createArpDemoProject();
+  for (const [id, def] of Object.entries(demo.instruments)) compile(def.graph, { instrument: id, nodeTypes: NODE_TYPES, registry });
+  const lanes = prepareSong(demo.song, demo.instruments, registry);
+  const lane = lanes.find(l => l.columns.filter(c => c.token === 'note').length >= 3);
+  const ed = createEditor(lanes, 512);
+  const li = lanes.indexOf(lane), cols = lane.columns.flatMap((c, i) => (c.token === 'note' ? [i] : []));
+  lane.placements = []; lane.patterns = {};
+  const free = 0;
+  const puid = ed.transcribe(li, free, rows, items.map(i => ({ ...i, col: cols[i.col] })));
+  assert.ok(puid, 'a pattern was made');
+  assert.equal(lane.rows[free][cols[0]] !== undefined, true);
+  assert.equal(ed.log()[0], 'detect chords', 'one undo entry');
+  console.log('ok: detect chords');
+}
 console.log('smoke test passed');

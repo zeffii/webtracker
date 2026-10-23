@@ -33,7 +33,7 @@ const EDITS = { C: 'crop', T: 'crop', X: 'cut', S: 'silence', R: 'reverse', N: '
 const ROOT = 60;
 const round2 = v => Math.round(v * 100) / 100;
 
-export function createSampleScreen({ el, statusEl, getProject, onChange = () => {}, onSelect = () => {}, onRemove = () => {}, onRename = () => {}, onNote = () => {}, onLoad = () => {}, onKeep = () => {}, onView = () => {}, onSelection = () => {}, onSlice = () => {}, onZoom = () => '', onAutoSlice = null }) {
+export function createSampleScreen({ el, statusEl, getProject, onChange = () => {}, onSelect = () => {}, onRemove = () => {}, onRename = () => {}, onNote = () => {}, onLoad = () => {}, onKeep = () => {}, onView = () => {}, onSelection = () => {}, onSlice = () => {}, onZoom = () => '', onAutoSlice = null, onChords = null }) {
   let sel = null, focus = 'list', edit = null, mode = 'wave', announced = null, last = null, top = 0;
   let selFrom = 0, selTo = 0, octave = 5, activeSlice = -1;   // the slice marker + and - move
   const held = new Map();   // key -> note it is playing
@@ -229,6 +229,7 @@ export function createSampleScreen({ el, statusEl, getProject, onChange = () => 
       return eat();
     }
     if (e.shiftKey && focus !== 'name' && k === 'E') { if (onAutoSlice) onAutoSlice(); else say(autoSlice.apply()); return eat(); }   // auto-slice: the dialog (main.js) asks for the settings, or it just runs
+    if (e.shiftKey && focus !== 'name' && k === 'H' && onChords) { onChords(); return eat(); }   // detect chords: the dialog (main.js)
     if (e.shiftKey && focus !== 'name' && (k === 'Z' || k === 'A' || k === 'W')) { say(onZoom(k === 'Z' ? 'selection' : k === 'A' ? 'out' : 'all') ?? ''); return eat(); }   // zoom the display: to the selection, out, whole sample
     if ((k === '[' || k === ']') && focus !== 'name') {
       octave = Math.min(9, Math.max(0, octave + (k === ']' ? 1 : -1)));

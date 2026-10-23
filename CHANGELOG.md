@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 415 · 2026-10-23
+
+- **Detect chords** (Samples screen: the "Detect chords…" button in the bottom line, or Shift+H): listens to the sample, or the selection, and finds the notes of each chord, made for a piano playing chords. The recording is cut at every onset (or into steps of 1, 2 or 4 beats at the recording's tempo), and in each part the notes are found from the spectrum by their harmonics (the hammer's first 40 ms are skipped, and a note's partials are not counted again as notes of their own). The dialog lists the chords with their names and notes (C, Am, G7 ... named as the chord palette names them) before anything is written; the settings are the most notes in a chord, the weakest note kept, and the recording's tempo (0 is the song's), which decides where the chords land. **Write to pattern** makes a new pattern in the lane you pick, at a tick you pick: the notes of each chord go across the lane's note columns, with note-offs where each chord ends. It is one undo step; if a pattern is in the way it says so and writes nothing. Octave doublings are found when the octave's own partial is clearly there. A mix with drums, or a single-note line, will not come out well.
+
 ## 414 · 2026-10-23
 
 - **OSC out**, a machine that sends the notes of its lane as Open Sound Control (Sources > Synths > "OSC out (Renoise, Max, ...)", or the `oscout` node). It makes no sound: it sends `/renoise/trigger/note_on` (instrument, track, note, velocity) and `note_off` with Renoise's own numbering, so Wax can play a Renoise song's instruments (switch on Renoise's OSC server in Preferences > OSC, UDP). Parameters: `instrument`, `track` (-1 is the current track) and `transpose`; `mode` 1 sends Wax's own `/wax/NAME/note_on` and `note_off` (MIDI note, velocity) for Max, SuperCollider and the like. The computer keys play it in the graph view like any other machine.

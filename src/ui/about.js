@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['415', ['Detect chords: the notes of a recording written into a pattern (Samples, Shift+H).']],
   ['414', ['OSC out machine: notes as OSC, Renoise addresses, with a relay script.']],
   ['413', ['Insert lane goes left or right of the lane; New instrument lists kinds with default names.']],
   ['412', ['Insert lane: New instrument and Instruments without a lane.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['408', ['A clap synth: burst train and tail through a band-pass.']],
   ['407', ['urugraVerb: the Arguru-inspired reverb, ported from your gendsp.']],
   ['406', ['An impulse-response reverb (convolver): any sample is the response, with a list of free IR sources in its help.']],
-  ['405', ['Arrangement view: right-click > Insert lane… adds a lane for an instrument at the end.']],
 ];
