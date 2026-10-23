@@ -35,6 +35,15 @@
     .mono, #seq, #view, #header, #smp { font: 13px/1.35 ui-monospace, Consolas, monospace; }
     [hidden] { display: none !important; }
     #smp { margin: .5rem 0; outline: none; white-space: pre; }
+    #smp-row { display: flex; gap: 1rem; align-items: flex-start; }
+    #smp-row #smp { flex: 1 1 auto; min-width: 0; }
+    .qcs { display: flex; flex-wrap: wrap; gap: .3rem .9rem; align-items: center; margin: .3rem 0; font-size: 12px; }
+    .qcs.col { flex: none; flex-direction: column; align-items: stretch; flex-wrap: nowrap; gap: .45rem; margin: .5rem 0; padding: .4rem .6rem; width: 17rem; box-sizing: border-box; border: 1px solid color-mix(in srgb, var(--fg) 25%, transparent); background: var(--panel); }
+    .qcs.col b { opacity: .75; }
+    .qc { display: flex; gap: .4rem; align-items: center; }
+    .qcs.col .qc { justify-content: space-between; }
+    .qc input[type="number"] { width: 5ch; }
+    .qc select { max-width: 11rem; }
     #panic { display: inline-flex; align-items: center; padding: .1rem .4rem; }
     #panic svg { display: block; }
     #panic:not(:disabled):hover { color: #d03040; }
@@ -994,7 +1003,7 @@
     <div class="pane-main">
       <div id="wave-row"><canvas id="wave" width="900" height="160"></canvas><canvas id="region" width="60" height="160" title="marker region"></canvas></div>
       <div id="wave-grip" class="grip" tabindex="0" role="separator" aria-orientation="horizontal" aria-label="Waveform height: drag, or use Up and Down" title="Drag to change the height of the waveform"></div>
-      <pre id="smp" tabindex="0"></pre>
+      <div id="smp-row"><pre id="smp" tabindex="0"></pre><div id="smp-cfg" class="qcs col" aria-label="Sample editing settings"><b>Auto-slice (Shift+E)</b></div></div>
       <p><button id="load-samples" disabled>Load samples…</button>
         <input id="sample-file" type="file" accept="audio/*" multiple hidden>
         <span id="proj-status"></span></p>
@@ -1210,6 +1219,7 @@
       <div class="help">The live picture's shader: GLSL ES 1.00, a whole <code>main()</code> that sets <code>gl_FragColor</code>. It runs a moment after you stop typing, and a mistake shows below with its line marked, while the built-in picture keeps running.
         <span class="ref">Uniforms: <b>R</b> size, <b>T</b> seconds, <b>BEAT</b> beats, <b>HITS</b> all hits 0..1, <b>NL</b> lanes, <b>C1</b> <b>C2</b> colours, <b>LANE[16]</b> (hit, pitch, vel, held). Look-ups: <b>hit("kick")</b> <b>pitch("acid")</b> <b>vel(2)</b> <b>held("pad")</b> <b>hits()</b> by lane name or number from 0; <b>cell("kick", dx)</b> the pattern dx ticks from the playhead (-8 to +23). <b>kn("name", start, low, high)</b> is a number the patterns can move: press <b>expose</b> on a number in the Knobs panel and it becomes one, with a column of that name in the hatched shader lane (0 is <i>low</i>, FF is <i>high</i>).</span></div>
       <div id="shader-bar"><select id="shader-pick" aria-label="Shader to edit" title="The project's shaders. A Shd cell in the shader lane switches the picture between them"></select> <button id="shader-add" type="button" title="A new shader, starting as a copy of this one">+</button> <button id="shader-dup" type="button" title="Copy this shader">Copy</button> <button id="shader-rename" type="button">Name</button> <button id="shader-del" type="button" title="Delete this shader">Delete</button> <select id="shader-templates" aria-label="Shader template"></select> <button id="shader-reset" type="button" title="Go back to the built-in metaballs">Built-in</button> <label class="tk"><input id="shader-sliders" type="checkbox" checked> Number sliders</label> <label class="tk"><input id="shader-knobs-on" type="checkbox"> Knobs</label> <button id="shader-pop" type="button" title="Pop the picture out into its own always-on-top window">Pop out picture</button></div>
+      <div id="shader-cfg" class="qcs" aria-label="Picture settings"><b>Picture</b></div>
       <div id="shader-main"><div id="shader-box"><div id="shader-gutter" aria-hidden="true"></div><div id="shader-clip"><pre id="shader-paint" aria-hidden="true"></pre><textarea id="shader-input" spellcheck="false" autocomplete="off" autocapitalize="off" wrap="off" aria-label="Shader source"></textarea></div></div><div id="shader-knobs" hidden aria-label="Knobs"></div></div>
       <div id="shader-status" class="statusbar"></div>
     </div>

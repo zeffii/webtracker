@@ -165,6 +165,7 @@ const listeners = new Set();
 const persist = () => { try { localStorage.setItem(KEY, JSON.stringify(values)); } catch { /* not remembered */ } };
 
 export const get = key => values[key];
+export const schemaOf = key => byKey[key];
 // Sets one setting (the value is checked); listeners hear about it only if it changed.
 export function set(key, value) {
   const s = byKey[key];

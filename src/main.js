@@ -18,6 +18,7 @@ import { createVisData } from './ui/visdata.js';
 import { createVisual, createLabels, DEFAULT_GLSL } from './ui/visual.js';
 import { TEMPLATES } from './ui/vistemplates.js';
 import { createShaderView } from './ui/shaderview.js';
+import { mountConfig } from './ui/quickconfig.js';
 import * as ops from './project/ops.js';
 import { importMidi, parseMidi } from './project/midi.js';
 import { modToProject, parseMod } from './project/mod.js';
@@ -1511,6 +1512,8 @@ shaderView = createShaderView({
   config, store: shaderStore, defaultSource: DEFAULT_GLSL, templates: TEMPLATES, machine: shaderMachine,
 });
 $('shader-pop').addEventListener('click', () => popOut());
+mountConfig($('shader-cfg'), config, [['visualSize', 'Resolution'], ['visualDecay', 'Hit fade (ms)'], ['visualSkeleton', 'Pattern skeleton']]);
+mountConfig($('smp-cfg'), config, [['sliceSensitivity', 'Sensitivity (%)'], ['sliceMinGap', 'Shortest gap (ms)'], ['hexMode', 'Marker hex value'], ['ptrMax', 'Resynthesis branches']]);
 const placeViz = () => { if (pip) return; vizBox.style.bottom = `${$('footer').offsetHeight + (meters.open ? config.get('meterHeight') : 0) + 14}px`; };
 const showViz = on => {
   vizOn = on;

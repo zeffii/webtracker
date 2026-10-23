@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 388 · 2026-10-23
+
+- Settings where you use them. The Shader view has a Picture row under its toolbar (resolution, hit fade, pattern skeleton), and the Sample screen has an Auto-slice column beside the sample list (sensitivity, shortest gap, marker hex value, resynthesis branches). They are the Config settings themselves, so changing one in either place changes it in both.
+
 ## 387 · 2026-10-23
 
 - Clicking the tick column to set the playhead works with the sticky tick column too, however far the lanes are scrolled sideways.
