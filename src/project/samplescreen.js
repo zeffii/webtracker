@@ -415,18 +415,21 @@ export function createSampleScreen({ el, statusEl, getProject, onChange = () => 
   // Auto-slice: a marker on every hit of the sample, or of the selection (markers inside it are replaced). preview finds them without
   // touching the sample, so a dialog can show how many a setting gives; apply puts the markers in. Both take sensitivity (0 to 100) and gap (ms).
   const autoSlice = {
-    preview({ sensitivity = config.get('sliceSensitivity'), gap = config.get('sliceMinGap') } = {}) {
+    preview({ sensitivity = config.get('sliceSensitivity'), gap = config.get('sliceMinGap'), replace = config.get('sliceReplace') } = {}) {
       const s = sample();
-      if (!s) return { hits: [], whole: true, name: '' };
+      if (!s) return { hits: [], marks: [], whole: true, name: '' };
       const whole = selTo <= selFrom, from = whole ? 0 : selFrom, to = whole ? s.data.length : selTo;
-      return { hits: detectOnsets(s.data, s.right, s.rate, { from, to, sensitivity: sensitivity / 100, minGapMs: gap }), whole, from, to, name: sel, length: s.data.length / s.rate };
+      const hits = detectOnsets(s.data, s.right, s.rate, { from, to, sensitivity: sensitivity / 100, minGapMs: gap });
+      // the markers it would add: one on each hit, and one at the start of the range when the first hit is well after it
+      const marks = hits.length ? [...(hits[0] - from > Math.round(0.02 * s.rate) ? [from] : []), ...hits] : [];
+      return { hits, marks, whole, from, to, replace, name: sel, length: s.data.length / s.rate };
     },
     apply(opts) {
-      const s = sample(), { hits, whole, from, to } = autoSlice.preview(opts);
+      const s = sample(), { hits, marks: added, whole, from, to, replace } = autoSlice.preview(opts);
       if (!s) return 'Pick a sample first.';
       if (!hits.length) return 'No onsets found: try a higher sensitivity.';
-      const keep = (s.slices ?? []).filter(f => f < from || f >= to);   // markers outside the range stay; inside it they are replaced
-      const marks = [...new Set([...keep, ...(hits[0] - from > Math.round(0.02 * s.rate) ? [from] : []), ...hits])];
+      const keep = (s.slices ?? []).filter(f => !replace || f < from || f >= to);   // markers outside the range stay; inside it they are replaced, if asked
+      const marks = [...new Set([...keep, ...added])];
       if (!attempt(() => setSlices(getProject(), sel, marks))) return '';
       setActive(-1);
       return `Found ${hits.length} onsets${whole ? '' : ' in the selection'}: ${sample().slices.length} slice markers now.`;

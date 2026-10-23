@@ -1515,7 +1515,7 @@ shaderView = createShaderView({
 });
 $('shader-pop').addEventListener('click', () => popOut());
 mountConfig($('shader-cfg'), config, [['visualSize', 'Resolution'], ['visualDecay', 'Hit fade (ms)'], ['visualSkeleton', 'Pattern skeleton']]);
-mountConfig($('as-cfg'), config, [['sliceSensitivity', 'Sensitivity (%)', 'range'], ['sliceMinGap', 'Shortest gap (ms)']]);
+mountConfig($('as-cfg'), config, [['sliceSensitivity', 'Sensitivity (%)', 'range'], ['sliceMinGap', 'Shortest gap (ms)'], ['sliceReplace', 'Replace the markers in range']]);
 // Auto-slice: a dialog with its two settings and a live count of the hits they find, so a setting can be tried before it is applied
 {
   const dlg = $('autoslice'), count = $('as-count');
@@ -1523,14 +1523,15 @@ mountConfig($('as-cfg'), config, [['sliceSensitivity', 'Sensitivity (%)', 'range
     if (!dlg.open) return;
     const r = sampleScreen.autoSlice.preview();
     $('as-go').disabled = !r.hits.length;
+    waveform.setGhost(r.marks, r.replace ? { from: r.from, to: r.to } : null);
     count.textContent = !r.name ? 'Pick a sample first.' : r.hits.length ? `${r.hits.length} hits found${r.whole ? '' : ' in the selection'}.` : `No hits found${r.whole ? '' : ' in the selection'}: raise the sensitivity or shorten the gap.`;
   };
   const open = () => { if (!started) return; if (!sampleScreen.selected) { $('proj-status').textContent = 'Pick a sample first.'; return; } dlg.showModal(); refresh(); $('as-cfg').querySelector('input')?.focus(); };
-  config.onChange(k => { if (k === 'sliceSensitivity' || k === 'sliceMinGap') refresh(); });
+  config.onChange(k => { if (k === 'sliceSensitivity' || k === 'sliceMinGap' || k === 'sliceReplace') refresh(); });
   dlg.addEventListener('keydown', e => e.stopPropagation());
   $('as-go').addEventListener('click', () => { const msg = sampleScreen.autoSlice.apply(); dlg.close(); $('proj-status').textContent = msg; $('smp').focus(); });
   $('as-cancel').addEventListener('click', () => { dlg.close(); $('smp').focus(); });
-  dlg.addEventListener('close', () => $('smp').focus());
+  dlg.addEventListener('close', () => { waveform.setGhost(null); $('smp').focus(); });
   $('autoslice-open').addEventListener('click', open);
   autoSliceOpen = open;
 }

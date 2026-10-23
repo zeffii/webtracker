@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 391 · 2026-10-23
+
+- Auto-slice shows what it would do before it does it: the hits are drawn on the waveform as dashed teal lines (a preview only, nothing is stored) and follow the sensitivity and gap while you change them. Slice turns them into real markers. With no selection it works on the whole sample; with one, only on that part. A new tick box, Replace the markers in range (on by default), decides whether the markers already inside that range are replaced (they are drawn faint in the preview) or kept with the new ones added; markers outside the range always stay.
+
 ## 390 · 2026-10-23
 
 - Auto-slice is a dialog now (Shift+E, or the Auto-slice button above the status bar on the Sample screen). It holds the sensitivity (slider) and shortest gap, shows how many hits those find as you change them, and Slice puts the markers in. Before, a result such as "No onsets found" only appeared as a short line at the foot of the screen, which made it look as if nothing had happened. The other sample settings stay in Config.

@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['391', ['Auto-slice previews the hits on the waveform as you move its settings; Slice makes them real markers.']],
   ['390', ['Auto-slice is a dialog with a live count of the hits it finds.']],
   ['389', ['Auto-slice settings now sit in a line above the status bar on the Sample screen.']],
   ['388', ['Picture settings in the Shader view, auto-slice settings beside the sample list.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['384', ['The picture\'s shader is saved with the project.']],
   ['383', ['Expose a shader number from the Knobs panel: the shader machine gets a hatched lane with a pattern column for it, so patterns can animate the picture.']],
   ['382', ['A Pause button (and the Pause key): stop in place, carry on from the same row.']],
-  ['381', ['Shader view: sliders for the numbers (hover or caret, or drag a number) and a Knobs panel.']],
 ];

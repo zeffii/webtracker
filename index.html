@@ -42,6 +42,7 @@
     #autoslice h3 { margin: 0 0 .4rem; }
     #autoslice .qcs.as { flex-direction: column; align-items: stretch; gap: .5rem; font-size: 13px; }
     #autoslice .qc { justify-content: space-between; white-space: nowrap; }
+    #autoslice .qc.bool { justify-content: flex-start; }
     #autoslice .qc input[type="range"] { flex: 1 1 auto; min-width: 8rem; }
     #as-count { min-height: 1.5em; font-weight: 600; }
     .as-btns { display: flex; gap: .5rem; justify-content: flex-end; }
@@ -921,7 +922,7 @@
 
   <dialog id="autoslice" aria-label="Auto-slice">
     <h3>Auto-slice</h3>
-    <p class="help">Puts a slice marker on every hit of the sample, or of the selection (markers inside it are replaced). Higher sensitivity finds smaller or softer hits.</p>
+    <p class="help">Puts a slice marker on every hit of the sample, or of the selection (markers inside it are replaced). Higher sensitivity finds smaller or softer hits. The teal dashed lines on the waveform are a preview: nothing is stored until you press Slice. With a selection set, only that part is sliced.</p>
     <div id="as-cfg" class="qcs as"></div>
     <p id="as-count" aria-live="polite"></p>
     <div class="as-btns"><button id="as-go" type="button">Slice</button> <button id="as-cancel" type="button">Cancel</button></div>

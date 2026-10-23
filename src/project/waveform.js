@@ -39,6 +39,7 @@ export function createWaveformView({ canvas, statusEl, getProject, onLoop, onSel
     ctx.scale(dpr, dpr);
   }
 
+  let ghost = null;   // the auto-slice preview (see setGhost)
   let active = -1;   // the slice marker the keys nudge, drawn brighter
   let settled = true, settleTimer = null;   // while the size is being dragged the spectrogram is the old picture stretched; it is computed afresh once the size has rested
   const SETTLE_MS = 250;
@@ -180,7 +181,7 @@ export function createWaveformView({ canvas, statusEl, getProject, onLoop, onSel
     const { start, end } = s ? (drag?.kind === 'select' ? { start: s.loopStart ?? 0, end: s.loopEnd ?? 0 } : loopOf(s)) : { start: 0, end: 0 };
     const pick = drag?.kind === 'select' && drag.preview ? { from: drag.preview.start, to: drag.preview.end } : selection;
     const [va0, vb0] = s ? range() : [0, 0];
-    const key = s ? `${va0}-${vb0}:${id}:${mode}:${s.data.length}:${start}:${end}:${LOOPS.slice(1).map(l => `${s[l.start]}.${s[l.end]}.${s[l.on]}`).join()}:${s.loopOn}:${s.loopXfade}:${s.susXfade}:${pick.from}-${pick.to}:${slicesOf(s).join(',')}:${active}:${W}:${H}:${settled}:${typeof getComputedStyle === 'function' ? getComputedStyle(canvas).color : ''}` : 'none';
+    const key = s ? `${va0}-${vb0}:${id}:${mode}:${s.data.length}:${start}:${end}:${LOOPS.slice(1).map(l => `${s[l.start]}.${s[l.end]}.${s[l.on]}`).join()}:${s.loopOn}:${s.loopXfade}:${s.susXfade}:${pick.from}-${pick.to}:${slicesOf(s).join(',')}:${active}:${ghost ? `${ghost.frames.join(',')}/${ghost.replaced?.from}-${ghost.replaced?.to}` : ''}:${W}:${H}:${settled}:${typeof getComputedStyle === 'function' ? getComputedStyle(canvas).color : ''}` : 'none';
     if (key === lastKey) return;
     lastKey = key;
     ctx.clearRect(0, 0, W, H);
@@ -260,6 +261,8 @@ export function createWaveformView({ canvas, statusEl, getProject, onLoop, onSel
       const x = frameToX(f), label = hexMode === 'absolute' ? num : `${num} ${sliceHex(f, frames())}`;   // the number and the relative hex at the top
       const here = drag?.kind !== 'slice' && i === active;
       ctx.fillStyle = '#f0707a';
+      const going = ghost?.replaced && f >= ghost.replaced.from && f < ghost.replaced.to;   // the preview would replace this one: drawn faint
+      if (going) ctx.globalAlpha = 0.3;
       ctx.fillRect(x - (here ? 1 : 0), 0, here ? 3 : 1, H);
       ctx.textBaseline = 'top';
       const right = x > W - 70;
@@ -274,7 +277,19 @@ export function createWaveformView({ canvas, statusEl, getProject, onLoop, onSel
         ctx.textAlign = 'left';
         ctx.fillText(abs, bx + 3, y + 7);
       }
+      ctx.globalAlpha = 1;
     });
+    if (ghost) {   // the auto-slice preview: dashed teal lines with a small flag, never stored
+      ctx.save();
+      ctx.strokeStyle = ctx.fillStyle = '#17b3a3'; ctx.lineWidth = 1; ctx.setLineDash([4, 3]);
+      ghost.frames.forEach(f => {
+        const x = Math.round(frameToX(f)) + 0.5;
+        if (x < -1 || x > W + 1) return;
+        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
+        ctx.setLineDash([]); ctx.fillRect(x - 3, 0, 7, 4); ctx.setLineDash([4, 3]);
+      });
+      ctx.restore();
+    }
     ctx.fillStyle = mode === 'spec' ? '#fff' : ink;
     ctx.textBaseline = 'bottom';
     ctx.textAlign = 'left';
@@ -322,6 +337,8 @@ export function createWaveformView({ canvas, statusEl, getProject, onLoop, onSel
     },
     get height() { return H; },
     setActiveSlice(i) { active = i; lastKey = null; },
+    // markers drawn as a preview only (auto-slice): frames, and the range whose own markers they would replace ({ from, to }, or null); nothing is stored
+    setGhost(frames, replaced = null) { ghost = frames?.length ? { frames: [...frames], replaced } : null; lastKey = null; },
     activeFrame() { const s = sample(); return s && active >= 0 ? slicesOf(s)[active] ?? -1 : -1; },
     sample,
     setSelection(from, to) { selection = { from, to }; lastKey = null; },
