@@ -82,6 +82,14 @@ export const GLYPHS = {
     ctx.moveTo(x(0.62), y(0.1)); ctx.quadraticCurveTo(x(0.78), y(0.22), x(0.95), y(0.1));
     ctx.stroke();
   },
+  clap: (ctx, cx, cy, w, h) => {   // three quick spikes and a longer tail
+    const x = f => cx - w / 2 + f * w, y = f => cy + h / 2 - f * h;
+    ctx.beginPath();
+    [0.06, 0.16, 0.26].forEach(f => { ctx.moveTo(x(f), y(0.1)); ctx.lineTo(x(f), y(0.8)); });
+    ctx.moveTo(x(0.36), y(0.1)); ctx.lineTo(x(0.36), y(0.9));
+    ctx.quadraticCurveTo(x(0.5), y(0.3), x(0.95), y(0.1));
+    ctx.stroke();
+  },
   comb: (ctx, cx, cy, w, h) => {   // evenly spaced teeth that fall away to the right
     line(ctx, [[cx - w / 2, cy + h * 0.35], [cx + w / 2, cy + h * 0.35]]);
     ctx.beginPath();

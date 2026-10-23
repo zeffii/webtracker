@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 408 · 2026-10-23
+
+- A clap synth (Sources > Synths, and in the new-instrument list as "Clap (burst noise)"): noise through a band-pass, shaped by a run of quick bursts (the hands: `bursts`, `spacing`, `burstDecay`) and a longer tail (`tailDecay`, `tailLevel`) that starts with the last one, in the 808 and 909 manner. `tone` and `q` set the band-pass, `spread` gives the two channels different noise for width, `drive` rounds the peaks. Like the hat it has no notes: the Cl column triggers it and the digit is the velocity. The instrument has Ton, Tai, Bur and Spc columns and ten commands.
+
 ## 407 · 2026-10-23
 
 - **urugraVerb** (Effects > Reverb): your ArguruInspiredReverb3Opto gendsp, ported as it is. Four damped feedback combs per channel (the right channel read a little further back), six all-pass diffusers in series, a gentle low-pass and a mid/side width stage, with the very slow 0.11 Hz modulation of the delay times and the pre-delay inside the comb loops. Parameters keep the names and defaults of the gendsp: predelay, size, decay, damp, mod, dry, wet, width. Two small differences: the delay times glide for 10 ms when a parameter moves, so turning size or predelay does not click, and the buffers grow with the sample rate so the longest delay plus pre-delay always fits.

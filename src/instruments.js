@@ -387,6 +387,32 @@ export const synthKinds = {
     label: 'Comb resonator tom (tuned, zapping)',
     make: () => combPercKind({ spread: 0.1, decay: 380, sweep: 2, sdec: 45, damp: 0.5, click: 3, bright: 0.45, drive: 0.15 }),
   },
+  clap: {
+    label: 'Clap (burst noise)',
+    make: () => ({
+      graph: { nodes: [{ id: 'clap', type: 'clap' }, { id: 'out', type: 'out', params: { gain: 0.5 } }], connections: [['clap.out', 'out.in']] },
+      noteColumns: 0,   // no notes: the Cl column triggers a clap
+      triggers: [{ label: 'Cl', note: 0 }],
+      exposed: [
+        { node: 'clap', param: 'tone', label: 'Ton', scale: 'log' },
+        { node: 'clap', param: 'tailDecay', label: 'Tai', scale: 'log' },
+        { node: 'clap', param: 'bursts', label: 'Bur' },
+        { node: 'clap', param: 'spacing', label: 'Spc' },
+      ],
+      commands: [
+        { id: 0x01, node: 'clap', param: 'tone', scale: 'log' },
+        { id: 0x02, node: 'clap', param: 'q' },
+        { id: 0x03, node: 'clap', param: 'bursts' },
+        { id: 0x04, node: 'clap', param: 'spacing' },
+        { id: 0x05, node: 'clap', param: 'burstDecay' },
+        { id: 0x06, node: 'clap', param: 'tailDecay', scale: 'log' },
+        { id: 0x07, node: 'clap', param: 'tailLevel' },
+        { id: 0x08, node: 'clap', param: 'spread' },
+        { id: 0x09, node: 'clap', param: 'drive' },
+        { id: 0x0A, node: 'clap', param: 'level' },
+      ],
+    }),
+  },
   hat808: {
     label: '808 hi-hat (closed + open)',
     make: () => ({

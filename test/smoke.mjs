@@ -7745,4 +7745,30 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   assert.ok(sum(long, 300, 400) < sum(long, 20, 120), 'and the tail dies away');
   console.log('ok: urugraVerb');
 }
+{
+  // clap: a hit makes a short burst train and a tail, then goes quiet; a hit at the same time restarts it
+  const type = NODE_TYPES.clap;
+  const slots = type.params.map((_, i) => i);
+  const render = (set, blocks = 400) => {
+    const node = type.create({ sampleRate: sr });
+    const values = type.params.map(p => set[p.name] ?? p.def);
+    node.note({ type: 'noteOn', note: 0, vel: 1 });
+    const out = [];
+    for (let b = 0; b < blocks; b++) {
+      const L = new Float32Array(block), R = new Float32Array(block);
+      node.process([], [[L, R]], block, values, slots);
+      assert.ok(L.every(Number.isFinite) && R.every(Number.isFinite), 'the clap stays finite');
+      out.push(...L);
+    }
+    return out;
+  };
+  const rms = (a, from, to) => Math.sqrt(a.slice(from, to).reduce((s, x) => s + x * x, 0) / (to - from));
+  const y = render({});
+  assert.ok(rms(y, 0, 2400) > 0.02, 'a hit sounds');
+  assert.ok(rms(y, 48000, 51200) < rms(y, 0, 2400) * 0.02, 'and is gone after a second');
+  const gaps = render({ bursts: 4, spacing: 20, tailLevel: 0, burstDecay: 1 });
+  const slice = i => rms(gaps, Math.round(i * 0.020 * sr) + 20, Math.round(i * 0.020 * sr) + 60);   // just after burst i starts
+  assert.ok(slice(1) > rms(gaps, Math.round(0.014 * sr), Math.round(0.019 * sr)) * 3, 'each burst stands out from the quiet before it');
+  console.log('ok: clap');
+}
 console.log('smoke test passed');

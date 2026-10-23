@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['408', ['A clap synth: burst train and tail through a band-pass.']],
   ['407', ['urugraVerb: the Arguru-inspired reverb, ported from your gendsp.']],
   ['406', ['An impulse-response reverb (convolver): any sample is the response, with a list of free IR sources in its help.']],
   ['405', ['Arrangement view: right-click > Insert lane… adds a lane for an instrument at the end.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['401', ['Granular: every note starts the cloud at Position.']],
   ['400', ['A node\'s envelope box and its scope sit side by side, level at the middle.']],
   ['399', ['Granular scopes: cloud (where the grains read) and grain (the grains laid over each other).']],
-  ['398', ['A woodblock synth: struck modes that lose energy as they ring, with drawn volume and pitch envelopes.']],
 ];

@@ -12,6 +12,7 @@ const TYPE_UNIT = {
   chorus: { depth: 'ms', delay: 'ms' },
   flanger: { depth: 'ms', delay: 'ms' },
   comb: { freq: 'Hz', spread: 'ct' },
+  clap: { tone: 'Hz', spacing: 'ms', burstDecay: 'ms', tailDecay: 'ms', spread: '%', drive: '%' },
   urugraVerb: { predelay: 'ms', decay: '' },
   convolver: { decay: 's', predelay: 'ms', lowcut: 'Hz', highcut: 'Hz', level: 'dB' },
   phaser: { depth: 'oct' },
