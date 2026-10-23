@@ -1436,7 +1436,7 @@ const vizBox = $('viz'), vizErr = $('viz-err');
 const visdata = createVisData({ lanes: () => project?.lanes ?? [], transport: engine.transport, song: () => project?.song, decayMs: () => config.get('visualDecay') });
 let visual = null, labels = null, vizOn = false;
 shaderView = createShaderView({
-  parts: { input: $('shader-input'), paint: $('shader-paint'), gutter: $('shader-gutter'), status: $('shader-status'), templates: $('shader-templates'), reset: $('shader-reset') },
+  parts: { input: $('shader-input'), paint: $('shader-paint'), gutter: $('shader-gutter'), status: $('shader-status'), templates: $('shader-templates'), reset: $('shader-reset'), clip: $('shader-clip'), slidersOn: $('shader-sliders'), knobs: $('shader-knobs'), knobsOn: $('shader-knobs-on') },
   config, defaultSource: DEFAULT_GLSL, templates: TEMPLATES,
 });
 $('shader-pop').addEventListener('click', () => popOut());

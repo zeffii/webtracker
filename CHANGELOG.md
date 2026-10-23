@@ -2,6 +2,11 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 381 · 2026-10-23
+
+- Shader view: numbers are drawn on a faint chip (orange for floats, green for ints). Hover one, or put the caret in it, and a small slider appears just above it that writes straight into the text; drag a number sideways to slide it without opening anything (Shift: a tenth as fast). Floats keep their point and ints stay whole; "±" lets the range go negative (written as (-.3) so it can follow a minus), and unticking "live" puts the number back as it was. One Ctrl+Z undoes a whole slide. The "Number sliders" tick box switches all of this off.
+- Shader view: a Knobs panel (tick box "Knobs") lists every number in the shader with its own slider, tick box and reset; hovering a row marks the number in the code.
+
 ## 380 · 2026-10-23
 
 - Live picture: Config > Visual > "Picture: resolution" (300, 480, 720 or 1080 pixels each way). The shader sees it as R, and the lane names scale with it. The picture keeps its 300 px box on the page; the pop-out window shows the extra pixels, so it stays sharp when enlarged.

@@ -14,32 +14,70 @@ const TOKEN = /(\/\/[^\n]*|\/\*[\s\S]*?(?:\*\/|$))|("[^"\n]*"?)|(#[^\n]*)|((?:\d
 
 // The text as HTML, each word in a span whose class says what it is: c comment, s string, p preprocessor line, n number, k keyword,
 // t type, f built-in function, w one of Wax's own names, g gl_ variable. Everything else is left as it is.
-export function highlight(text) {
+export function highlight(text, mark = -1) {
   let out = '';
   for (const m of text.matchAll(TOKEN)) {
     const [all, comment, string, pre, num, word] = m;
-    const cls = comment ? 'c' : string ? 's' : pre ? 'p' : num ? 'n'
+    const cls = comment ? 'c' : string ? 's' : pre ? 'p' : num ? `${/^\d+$/.test(num) ? 'i' : 'n'}${m.index === mark ? ' on' : ''}`
       : word ? (KEYWORDS.has(word) ? 'k' : TYPES.has(word) ? 't' : WAX.has(word) ? 'w' : BUILTINS.has(word) ? 'f' : SPECIAL.has(word) ? 'g' : '') : '';
     out += cls ? `<span class="${cls}">${esc(all)}</span>` : esc(all);
   }
   return out;
 }
 
+// Every plain number in the text, with where it sits: { start, end } the characters a new value replaces (a negative one is written as
+// (-.3), so it can follow a minus sign), { numStart, numEnd } the digits, kind 'int' or 'float', value signed. Numbers in comments,
+// strings and #lines, written with an exponent, or stuck to a letter (0x1F) are left out.
+export function numbers(text) {
+  const out = [];
+  for (const m of text.matchAll(TOKEN)) {
+    const t = m[4];
+    if (!t || /[eE]/.test(t) || /\w/.test(text[m.index + t.length] ?? '')) continue;
+    let start = m.index, end = m.index + t.length, neg = false;
+    if (text[start - 1] === '-' && text[start - 2] === '(' && text[end] === ')') { start -= 2; end += 1; neg = true; }
+    out.push({ start, end, numStart: m.index, numEnd: m.index + t.length, text: t, kind: /^\d+$/.test(t) ? 'int' : 'float', neg, value: (neg ? -1 : 1) * parseFloat(t) });
+  }
+  return out;
+}
+const ceilNice = v => { const e = 10 ** Math.floor(Math.log10(v)), n = v / e; return (n <= 1 ? 1 : n <= 2 ? 2 : n <= 5 ? 5 : 10) * e; };
+// The slider's range for a number: from 0 (unsigned) or from minus the top (signed) up to about four times the number. Ints go in whole steps.
+export function sliderSpec(kind, value, signed) {
+  const mag = Math.abs(value);
+  if (kind === 'int') { const hi = Math.max(8, ceilNice(mag * 4)); return { lo: signed ? -hi : 0, hi, step: 1, decimals: 0 }; }
+  const hi = mag ? ceilNice(mag * 4) : 1, step = ceilNice(hi / 400);
+  return { lo: signed ? -hi : 0, hi, step, decimals: Math.max(0, -Math.floor(Math.log10(step) + 1e-9)) };
+}
+// The text for a value: floats always keep their point (2 would be an int), a leading zero follows how the number was first written, and a
+// negative one is wrapped in brackets.
+export function formatValue(kind, v, { decimals = 0, bare = false } = {}) {
+  let s;
+  if (kind === 'int') s = String(Math.abs(Math.round(v)));
+  else {
+    s = Math.abs(v).toFixed(decimals);
+    s = s.includes('.') ? s.replace(/0+$/, '') : `${s}.`;
+    if (bare && /^0\.\d/.test(s)) s = s.slice(1);
+  }
+  const zero = /^[0.]*$/.test(s);
+  return v < 0 && !zero ? `(-${s})` : s;
+}
+
 // parts: { box, input, paint, gutter, status, templates (a select), reset (a button) }; config; defaultSource; templates: { id: { label, source } }
+// sliders: parts.clip (the box the popup sits in) and parts.slidersOn (the tick box that switches the number chips and sliders on or off)
 export function createShaderView({ parts, config, defaultSource, templates }) {
   const { input, paint, gutter, status } = parts;
-  let timer = null, errorLine = 0, shown = '';
+  let timer = null, errorLine = 0, shown = '', slider = null, hoverMark = -1;
   const stored = () => config.get('visualGlsl');
   const lineCount = () => input.value.split('\n').length;
   const draw = () => {
-    paint.innerHTML = `${highlight(input.value)}\n`;
+    paint.innerHTML = `${highlight(input.value, hoverMark >= 0 ? hoverMark : slider ? slider.numStart : -1)}\n`;
     const n = lineCount();
     gutter.innerHTML = Array.from({ length: n }, (_, i) => `<span${i + 1 === errorLine ? ' class="bad"' : ''}>${i + 1}</span>`).join('');
     sync();
   };
   const sync = () => { paint.style.transform = `translate(${-input.scrollLeft}px, ${-input.scrollTop}px)`; gutter.style.transform = `translateY(${-input.scrollTop}px)`; };
   const apply = () => { timer = null; shown = input.value; config.set('visualGlsl', input.value === defaultSource ? '' : input.value); };
-  const change = () => { errorLine = 0; draw(); clearTimeout(timer); timer = setTimeout(apply, 350); };
+  const change = () => { if (sliding) return; closeSlider(false); errorLine = 0; draw(); clearTimeout(timer); timer = setTimeout(apply, 350); };
+  let sliding = false;
   input.addEventListener('input', change);
   input.addEventListener('scroll', sync);
   input.addEventListener('keydown', e => {
@@ -60,11 +98,197 @@ export function createShaderView({ parts, config, defaultSource, templates }) {
       document.execCommand('insertText', false, `\n${indent}${more}`);
     }
   });
+  // ---- number sliders: numbers are drawn on a faint chip; click one (or drag it sideways) for a slider that writes into the text ----
+  const clip = parts.clip, signedPref = { int: false, float: false };
+  const pop = document.createElement('div');
+  pop.id = 'shader-pop-slider'; pop.hidden = true;
+  pop.innerHTML = '<label title="Untick to put the number back as it was and close"><input type="checkbox" checked> live</label><input type="range" aria-label="Value"><output></output><label title="Allow negative values"><input type="checkbox"> &plusmn;</label><button type="button" aria-label="Close" title="Close, keeping the value">&#x2715;</button>';
+  clip.append(pop);
+  const [liveBox, range, out, signBox] = [...pop.querySelectorAll('input'), pop.querySelector('output')].filter(Boolean).reduce((a, el) => (el.tagName === 'OUTPUT' ? [a[0], a[1], el, a[3]] : a[0] ? (a[1] ? [a[0], a[1], a[2], el] : [a[0], el, a[2], a[3]]) : [el, a[1], a[2], a[3]]), [null, null, null, null]);
+  const closeBtn = pop.querySelector('button');
+  const enabled = () => parts.slidersOn.checked;
+  const metrics = () => {   // one character's width, a line's height, the text's offset inside the box
+    const cs = getComputedStyle(input), probe = Object.assign(document.createElement('span'), { textContent: 'M'.repeat(40) });
+    probe.style.cssText = 'position:absolute;visibility:hidden;white-space:pre;font:inherit';
+    input.parentNode.append(probe); const cw = probe.getBoundingClientRect().width / 40; probe.remove();
+    return { cw, lh: parseFloat(cs.lineHeight) || 19, px: parseFloat(cs.paddingLeft), py: parseFloat(cs.paddingTop) };
+  };
+  const numberAtEvent = e => {
+    if (!enabled()) return null;
+    const r = input.getBoundingClientRect(), { cw, lh, px, py } = metrics();
+    const x = e.clientX - r.left + input.scrollLeft - px, y = e.clientY - r.top + input.scrollTop - py;
+    if (x < 0 || y < 0) return null;
+    const lines = input.value.split('\n'), row = Math.floor(y / lh), col = x / cw;
+    if (row >= lines.length) return null;
+    let at = 0; for (let i = 0; i < row; i++) at += lines[i].length + 1;
+    if (col > lines[row].length) return null;
+    const offset = at + Math.floor(col);
+    return { n: numbers(input.value).find(n => offset >= n.start && offset < n.end) ?? null, caret: at + Math.min(lines[row].length, Math.round(col)), row, col: Math.floor(col), lh, cw, px, py };
+  };
+  let frame = 0;
+  const write = v => {   // a new value into the text, at the number the slider is on
+    const s = slider, text = formatValue(s.kind, v, { decimals: s.spec.decimals, bare: s.bare });
+    sliding = true;
+    input.setRangeText(text, s.start, s.end, 'preserve');
+    sliding = false;
+    s.end = s.start + text.length; s.numStart = s.start + (text.startsWith('(') ? 2 : 0);
+    out.textContent = text.replace(/^\(|\)$/g, ''); range.value = String(v);
+    draw();
+    if (!frame) frame = requestAnimationFrame(() => { frame = 0; clearTimeout(timer); apply(); });
+  };
+  const place = () => {
+    const { cw, lh, px, py } = metrics(), lines = input.value.slice(0, slider.start).split('\n');
+    const x = px + lines[lines.length - 1].length * cw - input.scrollLeft, line = py + (lines.length - 1) * lh - input.scrollTop;
+    // just above the number; below it when the number is on the top line
+    pop.style.left = `${Math.max(0, Math.min(x - 8, clip.clientWidth - pop.offsetWidth - 4))}px`;
+    pop.style.top = `${line - pop.offsetHeight - 1 >= 0 ? line - pop.offsetHeight - 1 : line + lh + 1}px`;
+  };
+  function openSlider(n) {
+    if (slider && slider.start === n.start) return;
+    closeSlider(true);
+    const signed = signedPref[n.kind] || n.value < 0, spec = sliderSpec(n.kind, n.value, signed);
+    slider = { ...n, was: input.value.slice(n.start, n.end), spec, bare: /^\./.test(n.text), signed };
+    liveBox.checked = true; signBox.checked = signed;
+    range.min = spec.lo; range.max = spec.hi; range.step = spec.step; range.value = String(n.value);
+    out.textContent = n.text; pop.hidden = false; place(); draw();
+  }
+  // One undo step for a whole slide: the old text is put back, then the new typed over it.
+  function commit(start, end, was) {
+    const now = input.value.slice(start, end);
+    if (now === was) return;
+    const at = input.selectionStart, active = document.activeElement;
+    sliding = true;
+    input.setRangeText(was, start, end, 'end');
+    input.focus({ preventScroll: true }); input.setSelectionRange(start, start + was.length);
+    document.execCommand('insertText', false, now);
+    input.setSelectionRange(Math.min(at, input.value.length), Math.min(at, input.value.length));
+    if (active && active !== input) active.focus?.({ preventScroll: true });
+    sliding = false;
+  }
+  // keep = true: leave the value in the text, as one step for undo; false (untick): put the number back as it was
+  function closeSlider(keep) {
+    if (!slider) return;
+    const s = slider; slider = null; pop.hidden = true;
+    if (!keep) { sliding = true; input.setRangeText(s.was, s.start, s.end, 'preserve'); sliding = false; }
+    else commit(s.start, s.end, s.was);
+    clearTimeout(timer); apply(); draw();
+  }
+  range.addEventListener('input', () => { if (slider) write(Number(range.value)); });
+  liveBox.addEventListener('change', () => { if (!liveBox.checked) { closeSlider(false); input.focus({ preventScroll: true }); } });
+  signBox.addEventListener('change', () => {
+    if (!slider) return;
+    signedPref[slider.kind] = signBox.checked; slider.signed = signBox.checked;
+    const v = Number(range.value); slider.spec = sliderSpec(slider.kind, v, signBox.checked);
+    range.min = slider.spec.lo; range.max = slider.spec.hi; range.step = slider.spec.step; range.value = String(Math.max(slider.spec.lo, v));
+    write(Number(range.value));
+  });
+  closeBtn.addEventListener('click', () => { closeSlider(true); input.focus({ preventScroll: true }); });
+  pop.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Escape') { closeSlider(true); input.focus({ preventScroll: true }); } });
+  // the slider shows while the mouse is over a number or the caret is in one, and goes a moment after both have left
+  let hoverTimer = 0, overPop = false, overNumber = false;
+  const caretNumber = () => (input.selectionStart === input.selectionEnd && document.activeElement === input ? numbers(input.value).find(n => input.selectionStart >= n.numStart && input.selectionStart <= n.numEnd) : null);
+  const settle = () => {   // close it if neither the mouse nor the caret is on it
+    clearTimeout(hoverTimer);
+    hoverTimer = setTimeout(() => { if (slider && !overPop && !overNumber && !drag && !caretNumber() && document.activeElement !== range) closeSlider(true); }, 280);
+  };
+  pop.addEventListener('mouseenter', () => { overPop = true; clearTimeout(hoverTimer); });
+  pop.addEventListener('mouseleave', () => { overPop = false; settle(); });
+  input.addEventListener('mousemove', e => {
+    if (drag) return;
+    const hit = numberAtEvent(e);
+    input.style.cursor = hit?.n ? 'ew-resize' : '';
+    overNumber = !!hit?.n;
+    if (hit?.n) { clearTimeout(hoverTimer); if (!slider || slider.start !== hit.n.start) hoverTimer = setTimeout(() => { if (overNumber && !drag) openSlider(hit.n); }, 140); }
+    else settle();
+  });
+  input.addEventListener('mouseleave', () => { input.style.cursor = ''; overNumber = false; settle(); });
+  const onCaret = () => { if (!enabled() || drag || sliding) return; const n = caretNumber(); if (n) openSlider(n); else settle(); };
+  input.addEventListener('keyup', onCaret);
+  input.addEventListener('focus', onCaret);
+  input.addEventListener('blur', () => { setTimeout(() => { if (slider && !pop.contains(document.activeElement) && !overPop) closeSlider(true); }, 0); });
+  input.addEventListener('keydown', e => { if (e.key === 'Escape' && slider) { e.preventDefault(); closeSlider(true); } });
+  input.addEventListener('scroll', () => { if (slider) place(); });
+  // a plain click on a number opens its slider; dragging sideways slides it straight away (Shift: a tenth as fast)
+  let drag = null;
+  input.addEventListener('mousedown', e => {
+    if (e.button !== 0 || e.detail > 1 || e.ctrlKey || e.metaKey || e.altKey) return;
+    const hit = numberAtEvent(e);
+    if (!hit?.n) { closeSlider(true); return; }
+    e.preventDefault(); input.focus({ preventScroll: true });
+    drag = { x: e.clientX, hit, moved: false, base: hit.n.value };
+  });
+  addEventListener('mousemove', e => {
+    if (!drag) return;
+    if (!drag.moved && Math.abs(e.clientX - drag.x) < 4) return;
+    if (!drag.moved) { drag.moved = true; openSlider(drag.hit.n); drag.base = slider.kind === 'int' ? Number(range.value) : Number(range.value); drag.x = e.clientX; }
+    const span = slider.spec.hi - slider.spec.lo, per = span / 300 * (e.shiftKey ? .1 : 1);
+    drag.base = Math.min(slider.spec.hi, Math.max(slider.spec.lo, drag.base + (e.clientX - drag.x) * per)); drag.x = e.clientX;
+    write(slider.kind === 'int' ? Math.round(drag.base) : Math.round(drag.base / slider.spec.step) * slider.spec.step);
+    e.preventDefault();
+  });
+  addEventListener('mouseup', e => {
+    if (!drag) return;
+    const d = drag; drag = null;
+    if (!d.moved) { input.setSelectionRange(d.hit.caret, d.hit.caret); openSlider(d.hit.n); }
+    overNumber = true; settle();
+  });
+  parts.slidersOn.addEventListener('change', () => { config.set('shaderSliders', parts.slidersOn.checked); if (!parts.slidersOn.checked) closeSlider(true); rebuildKnobs(); paint.classList.toggle('plain', !parts.slidersOn.checked); });
+  parts.slidersOn.checked = config.get('shaderSliders'); paint.classList.toggle('plain', !parts.slidersOn.checked);
+
+  // ---- the knobs panel: every number in the text with a slider of its own ----
+  const knobsEl = parts.knobs, rows = [];
+  let knobTimer = 0;
+  const nth = i => numbers(input.value)[i];
+  const rebuildKnobs = () => {
+    knobsEl.hidden = !parts.knobsOn.checked || !enabled();
+    if (knobsEl.hidden) return;
+    knobsEl.textContent = ''; rows.length = 0;
+    const list = numbers(input.value).slice(0, 150), text = input.value;
+    if (!list.length) { knobsEl.append(Object.assign(document.createElement('div'), { className: 'empty', textContent: 'No numbers in the shader.' })); return; }
+    list.forEach((n, i) => {
+      const row = { i, orig: null, undoText: null, spec: sliderSpec(n.kind, n.value, n.value < 0 || signedPref[n.kind]), bare: /^\./.test(n.text), kind: n.kind };
+      const el = document.createElement('div'); el.className = `knob off ${n.kind}`;
+      const tick = Object.assign(document.createElement('input'), { type: 'checkbox', title: 'Ticked: the knob sets the number. Untick: it goes back to the text as it was' });
+      const r = Object.assign(document.createElement('input'), { type: 'range', min: row.spec.lo, max: row.spec.hi, step: row.spec.step, value: n.value });
+      const val = Object.assign(document.createElement('span'), { className: 'val', textContent: n.text.replace(/^\(|\)$/g, '') });
+      const reset = Object.assign(document.createElement('button'), { type: 'button', textContent: 'reset', title: 'Back to the number as it was' });
+      const ls = text.lastIndexOf('\n', n.start - 1) + 1, le = text.indexOf('\n', n.end), line = text.slice(ls, le < 0 ? text.length : le);
+      const ctx = document.createElement('div'); ctx.className = 'ctx';
+      const a = line.slice(Math.max(0, n.start - ls - 22), n.start - ls), z = line.slice(n.end - ls, n.end - ls + 14);
+      ctx.append(document.createTextNode(`${a.trimStart()}`), Object.assign(document.createElement('b'), { textContent: text.slice(n.start, n.end) }), document.createTextNode(z));
+      const touch = () => { const cur = nth(i), now = input.value.slice(cur.start, cur.end); if (row.orig === null) row.orig = now; row.undoText = now; tick.checked = true; el.classList.remove('off'); };
+      const put = v => {
+        closeSlider(true);
+        const cur = nth(i); if (!cur) return;
+        sliding = true; input.setRangeText(formatValue(row.kind, v, { decimals: row.spec.decimals, bare: row.bare }), cur.start, cur.end, 'preserve'); sliding = false;
+        val.textContent = formatValue(row.kind, v, { decimals: row.spec.decimals, bare: row.bare }).replace(/^\(|\)$/g, '');
+        draw(); if (!frame) frame = requestAnimationFrame(() => { frame = 0; clearTimeout(timer); apply(); });
+      };
+      const back = () => {
+        if (row.orig === null) return;
+        const cur = nth(i); sliding = true; input.setRangeText(row.orig, cur.start, cur.end, 'preserve'); sliding = false;
+        const now = nth(i); r.value = now.value; val.textContent = now.text.replace(/^\(|\)$/g, '');
+        row.orig = null; tick.checked = false; el.classList.add('off'); draw(); clearTimeout(timer); apply();
+      };
+      r.addEventListener('input', () => { if (row.orig === null || !tick.checked) touch(); put(Number(r.value)); });
+      r.addEventListener('change', () => { const cur = nth(i); if (cur && row.undoText !== null) { commit(cur.start, cur.end, row.undoText); row.undoText = input.value.slice(nth(i).start, nth(i).end); } });
+      tick.addEventListener('change', () => { if (tick.checked) touch(); else back(); });
+      reset.addEventListener('click', back);
+      el.addEventListener('mouseenter', () => { hoverMark = nth(i)?.numStart ?? -1; draw(); });
+      el.addEventListener('mouseleave', () => { hoverMark = -1; draw(); });
+      el.append(tick, r, val, reset, ctx); knobsEl.append(el); rows.push(row);
+    });
+  };
+  const queueKnobs = () => { clearTimeout(knobTimer); knobTimer = setTimeout(rebuildKnobs, 250); };
+  parts.knobsOn.addEventListener('change', () => { config.set('shaderKnobs', parts.knobsOn.checked); rebuildKnobs(); });
+  parts.knobsOn.checked = config.get('shaderKnobs');
+  input.addEventListener('input', () => { if (!sliding) queueKnobs(); });
+
   // what the settings hold, shown when they change from outside (a template, an imported settings file)
   const load = () => {
     const v = stored() || defaultSource;
     if (v === shown && input.value === v) return;
-    shown = input.value = v; errorLine = 0; draw();
+    shown = input.value = v; errorLine = 0; draw(); queueKnobs();
   };
   parts.templates.append(Object.assign(document.createElement('option'), { value: '', textContent: 'Start from a template…' }),
     ...Object.entries(templates).map(([id, t]) => Object.assign(document.createElement('option'), { value: id, textContent: t.label })),
@@ -78,7 +302,7 @@ export function createShaderView({ parts, config, defaultSource, templates }) {
   });
   parts.reset.addEventListener('click', () => { clearTimeout(timer); timer = null; config.set('visualGlsl', ''); load(); });
   config.onChange(k => { if (k === 'visualGlsl' && timer === null) load(); });
-  load();
+  load(); rebuildKnobs();
   return {
     load,
     // the picture's compile error, or '' when it is fine; the failing line is marked in the gutter

@@ -41,7 +41,7 @@ import { parseInstrument, serializeInstrument } from '../src/project/file.js';
 import { createSynthwaveProject } from '../src/project/synthwave.js';
 import { createArpDemoProject } from '../src/project/arpdemo.js';
 import { createVisData, preprocess, visibleLanes } from '../src/ui/visdata.js';
-import { highlight } from '../src/ui/shaderview.js';
+import { highlight, numbers, sliderSpec, formatValue } from '../src/ui/shaderview.js';
 import * as lib from '../src/project/library.js';
 import { compileDsp } from '../src/audio/wasm/load.js';
 
@@ -4083,6 +4083,22 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     assert.ok(html.includes('<span class="n">0.5</span>') && html.includes('<span class="n">.25</span>') && html.includes('<span class="f">mix</span>'));
     assert.ok(html.includes('<span class="c">// a &lt; b</span>'));
     assert.equal(html.replace(/<[^>]+>/g, '').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&'), src);
+  }
+  {   // the shader editor's number sliders
+    const t = 'float a = .35 * (-1.5) + 16.; // 7\nint n = 3; vec2 v = vec2(0x1F, 2e3); float b = x - .5;';
+    const ns = numbers(t);
+    assert.deepEqual(ns.map(n => n.text), ['.35', '1.5', '16.', '3', '.5'], 'comments, hex and exponent numbers are left out');
+    assert.equal(ns[1].neg, true); assert.equal(ns[1].value, -1.5); assert.equal(t.slice(ns[1].start, ns[1].end), '(-1.5)');
+    assert.equal(ns[3].kind, 'int'); assert.equal(ns[0].kind, 'float');
+    assert.deepEqual(sliderSpec('int', 3, false), { lo: 0, hi: 20, step: 1, decimals: 0 });
+    assert.equal(sliderSpec('int', 3, true).lo, -20);
+    assert.equal(sliderSpec('float', .4, false).hi, 2);
+    assert.equal(formatValue('float', 2, { decimals: 2 }), '2.', 'a float keeps its point');
+    assert.equal(formatValue('float', .35, { decimals: 3, bare: true }), '.35');
+    assert.equal(formatValue('float', -.35, { decimals: 3 }), '(-0.35)');
+    assert.equal(formatValue('float', 0, { decimals: 3, bare: true }), '0.');
+    assert.equal(formatValue('int', -4), '(-4)');
+    assert.ok(highlight('int i = 3; float f = 1.5;').includes('<span class="i">3</span>'));
   }
   for (const name of ['bugsong']) {
     const demo = parseProject(readFileSync(new URL(`../src/project/demos/${name}.wax`, import.meta.url), 'utf8'));
