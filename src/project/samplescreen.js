@@ -33,7 +33,7 @@ const EDITS = { C: 'crop', T: 'crop', X: 'cut', S: 'silence', R: 'reverse', N: '
 const ROOT = 60;
 const round2 = v => Math.round(v * 100) / 100;
 
-export function createSampleScreen({ el, statusEl, getProject, onChange = () => {}, onSelect = () => {}, onRemove = () => {}, onRename = () => {}, onNote = () => {}, onLoad = () => {}, onKeep = () => {}, onView = () => {}, onSelection = () => {}, onSlice = () => {}, onZoom = () => '', onAutoSlice = null, onChords = null }) {
+export function createSampleScreen({ el, statusEl, getProject, onChange = () => {}, onSelect = () => {}, onRemove = () => {}, onRename = () => {}, onNote = () => {}, onLoad = () => {}, onKeep = () => {}, onView = () => {}, onSelection = () => {}, onSlice = () => {}, onZoom = () => '', onAutoSlice = null, onChords = null, onEdited = () => {} }) {
   let sel = null, focus = 'list', edit = null, mode = 'wave', announced = null, last = null, top = 0;
   let selFrom = 0, selTo = 0, octave = 5, activeSlice = -1;   // the slice marker + and - move
   const held = new Map();   // key -> note it is playing
@@ -110,6 +110,7 @@ export function createSampleScreen({ el, statusEl, getProject, onChange = () => 
   function runEdit(tool) {
     const range = selTo > selFrom ? { from: selFrom, to: selTo } : null;
     if (attempt(() => applyEdit(getProject(), sel, history, tool, range))) {
+      onEdited();
       if (tool === 'crop' || tool === 'cut') setSelection(0, 0);
       else if (selTo > sample().data.length) setSelection(0, 0);
     }
@@ -117,7 +118,10 @@ export function createSampleScreen({ el, statusEl, getProject, onChange = () => 
 
   // The edit menu on the waveform (right click) calls these.
   const undoRedo = redo => {
-    if (sel && attempt(() => (redo ? redoEdit : undoEdit)(getProject(), sel, history)) && selTo > sample().data.length) setSelection(0, 0);
+    if (sel && attempt(() => (redo ? redoEdit : undoEdit)(getProject(), sel, history))) {
+      onEdited();
+      if (selTo > sample().data.length) setSelection(0, 0);
+    }
   };
   const markSlice = at => {
     const s = sample();

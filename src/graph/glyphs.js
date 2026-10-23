@@ -277,6 +277,14 @@ export const GLYPHS = {
     const curve = []; for (let i = 0; i <= 24; i++) { const t = i / 24; curve.push([x(0.5 + t * 0.45), y(0.78 - 0.45 * t * t + 0.28 * Math.exp(-Math.pow((t - 0.55) / 0.08, 2)))]); }
     line(ctx, curve);
   },
+  duette: (ctx, cx, cy, w, h) => {   // two saw teeth, one a little higher, over a filter slope
+    const x = f => cx - w / 2 + f * w, y = f => cy + h / 2 - f * h;
+    const saw = (x0, n, d, lo, hi) => { const a = []; for (let i = 0; i < n; i++) a.push([x(x0 + i * d), y(lo)], [x(x0 + i * d + d * 0.92), y(hi)]); return a; };
+    line(ctx, saw(0.05, 3, 0.15, 0.5, 0.9));
+    line(ctx, saw(0.05, 4, 0.11, 0.1, 0.4));
+    const curve = []; for (let i = 0; i <= 12; i++) { const t = i / 12; curve.push([x(0.62 + t * 0.33), y(0.9 - 0.7 * t * t)]); }
+    line(ctx, curve);
+  },
   noise: (ctx, cx, cy, w, h) => {   // a jagged random line
     const pts = []; let s = 7;
     for (let i = 0; i <= 28; i++) { s = (s * 9301 + 49297) % 233280; pts.push([cx - w / 2 + (i / 28) * w, cy + (s / 233280 - 0.5) * h * 0.85]); }

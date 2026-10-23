@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['416', ['Duette: a two-oscillator mono lead voice with sync, ring, one envelope and one LFO. Waveform redraws after Normalise and the other in-place edits.']],
   ['415', ['Detect chords: the notes of a recording written into a pattern (Samples, Shift+H).']],
   ['414', ['OSC out machine: notes as OSC, Renoise addresses, with a relay script.']],
   ['413', ['Insert lane goes left or right of the lane; New instrument lists kinds with default names.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['409', ['Resizing the graph view redraws it at once instead of flashing blank.']],
   ['408', ['A clap synth: burst train and tail through a band-pass.']],
   ['407', ['urugraVerb: the Arguru-inspired reverb, ported from your gendsp.']],
-  ['406', ['An impulse-response reverb (convolver): any sample is the response, with a list of free IR sources in its help.']],
 ];

@@ -325,6 +325,8 @@ export function createWaveformView({ canvas, statusEl, getProject, onLoop, onSel
     },
     get view() { return range(); },
     // The width follows the space the view has (CSS pixels); the picture is drawn again at once.
+    // The audio changed in place (normalise, fades, reverse...): the length and the array are the same, so drop the pictures.
+    invalidate() { cache = null; lastKey = null; },
     fit(width) {
       const w = Math.round(Math.max(300, width));
       if (w === W) return W;

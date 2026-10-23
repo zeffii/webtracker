@@ -1312,6 +1312,7 @@ const sampleScreen = createSampleScreen({
     refreshProjectUi(); sampleScreen.select(copy); projStatus(`Copied ${id} to ${copy}.`);
   },
   onView: mode => waveform.setMode(mode),
+  onEdited: () => waveform.invalidate(),
 });
 
 // A new empty lane for an instrument that is already loaded in the engine.

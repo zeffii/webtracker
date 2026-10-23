@@ -6108,6 +6108,37 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   console.log('ok: squelch');
 }
 
+// Duette: the two-oscillator mono voice
+{
+  const def = synthKinds.duette.make();
+  const run = over => {
+    const registry = new ParamRegistry();
+    const graph = JSON.parse(JSON.stringify(def.graph));
+    Object.assign(graph.nodes[0], { params: over });
+    compile(graph, { instrument: 'du', nodeTypes: NODE_TYPES, registry });
+    const rt = new GraphRuntime({ sampleRate: sr, params: registry.values });
+    rt.load(compile(graph, { instrument: 'du', nodeTypes: NODE_TYPES, registry }));
+    const seq = new Sequencer({ sampleRate: sr, runtime: rt, params: registry.values, transport: new Int32Array(new SharedArrayBuffer(16)) });
+    const cols = buildColumns('du', def, registry);
+    const t = Array.from({ length: 16 }, (_, i) => cols.map(c => (i === 0 && c.label === 'Note' ? 'C-3' : KINDS[c.token].blank)).join(' ')).join('\n');
+    const song = song120([oneLane('du', 'du', t, 16)]);
+    seq.setSong(song);
+    for (const lane of prepareSong(song, { du: def }, registry)) seq.setLane(lane);
+    seq.play();
+    return render(seq, 0.8).left;
+  };
+  const energy = a => Math.sqrt(a.reduce((s, v) => s + v * v, 0) / a.length);
+  const base = run({});
+  assert.ok(base.every(Number.isFinite) && peak(base) < 1.5 && energy(base) > 0.005, 'a note sounds, finite and in range');
+  const diff = (a, b) => { let d = 0; for (let i = 0; i < a.length; i++) d += Math.abs(a[i] - b[i]); return d / a.length; };
+  for (const [name, over] of Object.entries({ sync: { mod: 1, vco2pitch: 500 }, ring: { mod: 2 }, noise: { vco2wave: 2 }, shape: { vco1shape: 0.8 }, ag: { egtype: 1 }, gate: { egtype: 2 }, lfo: { lfoint: 0.8, lfotarget: 0, lforate: 0.8 } })) {
+    const o = run(over);
+    assert.ok(o.every(Number.isFinite) && peak(o) < 2, `${name}: finite and in range`);
+    assert.ok(diff(base, o) > 1e-3, `${name} changes the sound`);
+  }
+  console.log('ok: duette');
+}
+
 // filterPro: every voicing is finite and shaped right, resonance 1 sings, mod and mix work
 {
   const fp = NODE_TYPES.filterpro, sr = 48000, N = 24064;
