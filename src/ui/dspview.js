@@ -67,11 +67,38 @@ export function sampleLoops(text) {
   return out;
 }
 
+// The places that can be folded: [{ s, e, depth }], a line that opens a bracket the line it is on does not close (s) and the line where it
+// is closed (e), with depth counting the regions around it (0 for the outermost). Strings and comments are skipped.
+export function foldRegions(text) {
+  const lines = text.split('\n'), stack = [], best = new Map();
+  let inBlock = false;
+  for (let li = 0; li < lines.length; li++) {
+    const line = lines[li];
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (inBlock) { if (ch === '*' && line[i + 1] === '/') { inBlock = false; i++; } continue; }
+      if (ch === '/' && line[i + 1] === '/') break;
+      if (ch === '/' && line[i + 1] === '*') { inBlock = true; i++; continue; }
+      if (ch === "'" || ch === '"' || ch === '`') { for (i++; i < line.length && line[i] !== ch; i++) if (line[i] === '\\') i++; continue; }
+      if (ch === '{' || ch === '[' || ch === '(') stack.push(li);
+      else if (ch === '}' || ch === ']' || ch === ')') {
+        const from = stack.pop();
+        if (from !== undefined && from < li) best.set(from, Math.max(best.get(from) ?? -1, li));
+      }
+    }
+  }
+  const regions = [...best].map(([s, e]) => ({ s, e })).sort((a, b) => a.s - b.s || b.e - a.e);
+  for (const r of regions) r.depth = regions.filter(o => o !== r && o.s <= r.s && o.e >= r.e && (o.s < r.s || o.e > r.e)).length;
+  return regions;
+}
+
 // parts: { inst (select), chain, gut, src, prm, ports, kern, foot, empty }; getProject(); nodeTypes: the registry of node types;
 // value(instrument, node, param): the live value of a parameter, or undefined.
 export function createDspView({ parts, getProject, nodeTypes, value = () => undefined }) {
   const cache = new Map();   // node type -> source text, or null when there is none
   let current = null, nodeId = null, rows = [], token = 0;
+  const folds = new Map();   // node type -> the lines folded in it (kept while the page is open)
+  let shown = null;          // the file on show: { type, text, lines, loops, regions, closed }
 
   const load = async type => {
     if (cache.has(type)) return cache.get(type);
@@ -128,7 +155,7 @@ export function createDspView({ parts, getProject, nodeTypes, value = () => unde
     parts.ports.textContent = '';
     for (const n of def?.inputs ?? []) parts.ports.append(Object.assign(document.createElement('span'), { textContent: `${n}${def.kinds?.[n] ? ` · ${def.kinds[n]}` : ''}` }));
     for (const n of def?.outputs ?? []) parts.ports.append(Object.assign(document.createElement('span'), { className: 'out', textContent: `→ ${n}${def.kinds?.[n] ? ` · ${def.kinds[n]}` : ''}` }));
-    parts.src.textContent = 'Loading…'; parts.gut.textContent = '';
+    parts.src.textContent = 'Loading…'; parts.gut.textContent = ''; shown = null;
     live();
     const text = await load(node.type);
     if (mine !== token) return;   // another node was picked meanwhile
@@ -137,15 +164,54 @@ export function createDspView({ parts, getProject, nodeTypes, value = () => unde
       parts.kern.textContent = ''; parts.foot.textContent = '';
       return;
     }
-    const lines = highlightJs(text), loops = sampleLoops(text);
-    const inLoop = i => loops.some(([a, b]) => i >= a && i <= b);
-    parts.src.innerHTML = lines.map((h, i) => (inLoop(i) ? `<span class="loop">${h || ' '}</span>` : h || ' ')).join('\n');
-    parts.gut.innerHTML = lines.map((_, i) => (inLoop(i) ? `<b>${i + 1}</b>` : String(i + 1))).join('\n');
+    const lines = highlightJs(text), loops = sampleLoops(text), regions = foldRegions(text);
+    if (!folds.has(node.type)) folds.set(node.type, new Set());
+    shown = { type: node.type, lines, loops, regions, closed: folds.get(node.type) };
+    render();
     const wasm = /instantiateDsp/.test(text);
     parts.kern.innerHTML = wasm ? '<b>WASM</b> kernel, with the JavaScript here as its reference and fallback' : 'JavaScript only';
     parts.foot.innerHTML = `<span>src/audio/nodes/${esc(node.type)}.js</span><span>${lines.length} lines</span><span>${loops.length} per-sample loop${loops.length === 1 ? '' : 's'} (marked)</span><span>${wasm ? '<b>WASM kernel</b>' : 'JS'}</span><span>read only</span>`;
     parts.src.scrollTop = 0;
   }
+
+
+  // The file as lines, a folded region shown as its first line, a note and its closing bracket.
+  function render() {
+    if (!shown) return;
+    const { lines, loops, regions, closed } = shown;
+    const inLoop = i => loops.some(([a, b]) => i >= a && i <= b);
+    const starts = new Map(regions.map(r => [r.s, r]));
+    const src = [], gut = [];
+    for (let i = 0; i < lines.length; i++) {
+      const r = starts.get(i), folded = r && closed.has(i);
+      const mark = r ? `<a class="fo" data-l="${i}" title="${folded ? 'Unfold' : 'Fold'} (${r.e - r.s} lines)">${folded ? '▸' : '▾'}</a>` : '<a class="fo"> </a>';
+      gut.push(`${mark}${inLoop(i) ? `<b>${i + 1}</b>` : i + 1}`);
+      let h = lines[i] || ' ';
+      if (folded) {
+        const hasLoop = loops.some(([a, b]) => a > r.s && b <= r.e);
+        h += `<span class="fold" data-l="${i}" title="Unfold">… ${r.e - r.s - 1} lines${hasLoop ? ', per-sample loop' : ''} …</span>${lines[r.e].replace(/^\s+/, '')}`;
+      }
+      src.push(inLoop(i) ? `<span class="loop">${h}</span>` : h);
+      if (folded) i = r.e;
+    }
+    parts.src.innerHTML = src.join('\n');
+    parts.gut.innerHTML = gut.join('\n');
+  }
+  const toggle = l => {
+    if (!shown || !shown.regions.some(r => r.s === l)) return;
+    if (shown.closed.has(l)) shown.closed.delete(l); else shown.closed.add(l);
+    render();
+  };
+  parts.gut.addEventListener('click', e => { const a = e.target.closest?.('[data-l]'); if (a) toggle(Number(a.dataset.l)); });
+  parts.src.addEventListener('click', e => { const a = e.target.closest?.('.fold'); if (a) toggle(Number(a.dataset.l)); });
+  // Fold all: the regions one step inside the outermost one (the parameter list, each method); Unfold all: everything open
+  parts.foldAll?.addEventListener('click', () => {
+    if (!shown) return;
+    const top = shown.regions.some(r => r.depth === 1) ? 1 : 0;
+    for (const r of shown.regions) if (r.depth === top) shown.closed.add(r.s);
+    render();
+  });
+  parts.unfoldAll?.addEventListener('click', () => { if (shown) { shown.closed.clear(); render(); } });
 
   // the parameters' live values, from the engine (the strip of bars on the right)
   function live() {

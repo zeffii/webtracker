@@ -1538,7 +1538,7 @@ shaderView = createShaderView({
 });
 $('shader-pop').addEventListener('click', () => popOut());
 dspView = createDspView({
-  parts: { inst: $('dsp-inst'), chain: $('dsp-chain'), gut: $('dsp-gut'), src: $('dsp-src'), prm: $('dsp-prm'), ports: $('dsp-ports'), kern: $('dsp-kern'), foot: $('dsp-foot') },
+  parts: { inst: $('dsp-inst'), chain: $('dsp-chain'), gut: $('dsp-gut'), src: $('dsp-src'), prm: $('dsp-prm'), ports: $('dsp-ports'), kern: $('dsp-kern'), foot: $('dsp-foot'), foldAll: $('dsp-fold'), unfoldAll: $('dsp-unfold') },
   getProject: () => project, nodeTypes: NODE_TYPES,
   value: (inst, node, param) => { const slot = engine.registry.slots.get(`${inst}.${node}.${param}`); return slot === undefined ? undefined : engine.registry.values[slot]; },
 });

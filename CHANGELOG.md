@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 396 · 2026-10-23
+
+- The DSP view folds code: a small arrow in the gutter closes or opens a block (the params list, the create function with its per-sample loop, and anything nested), leaving a grey "… 35 lines, per-sample loop …" marker you can click to open again. "Fold all" closes the top-level blocks so a big node reads as an outline; "Unfold all" opens everything. Folds are remembered per node while the page is open.
+
 ## 395 · 2026-10-23
 
 - A DSP view (Ctrl+Alt+I, the pixel "DSP" icon in the rail): the code behind the sound, read only. A strip across the top lists an instrument's nodes in the order they run; picking one shows its own source file (fetched from the site, so it is exactly what runs), highlighted for keywords, calls, strings, numbers, operators and punctuation, with each per-sample loop shaded and numbered in the gutter. At the right: its parameters with their live values, its ports, and whether it has a WASM kernel. It opens on the instrument the Instruments screen is on.

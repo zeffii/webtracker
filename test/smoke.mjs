@@ -41,7 +41,7 @@ import { parseInstrument, serializeInstrument } from '../src/project/file.js';
 import { createSynthwaveProject } from '../src/project/synthwave.js';
 import { createArpDemoProject } from '../src/project/arpdemo.js';
 import { createVisData, preprocess, shaderAt, visibleLanes } from '../src/ui/visdata.js';
-import { runningOrder, highlightJs, sampleLoops } from '../src/ui/dspview.js';
+import { runningOrder, highlightJs, sampleLoops, foldRegions } from '../src/ui/dspview.js';
 import { highlight, numbers, sliderSpec, formatValue } from '../src/ui/shaderview.js';
 import { knobCalls } from '../src/ui/visdata.js';
 import { addShaderKnob, removeShaderKnob } from '../src/project/ops.js';
@@ -4203,6 +4203,8 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     assert.deepEqual(sampleLoops(src), [[2, 5]]);
     const dc = (await import('node:fs')).readFileSync(new URL('../src/audio/nodes/dcblock.js', import.meta.url), 'utf8');
     assert.equal(sampleLoops(dc).length, 1, 'the DC blocker has one loop');
+    const fr = foldRegions("export default {\n  params: [\n    { name: 'a' },\n  ],\n  create({ x }) {\n    // a { in a comment\n    const s = '}';\n    return {\n      process() {\n      },\n    };\n  },\n};");
+    assert.deepEqual(fr.map(r => [r.s, r.e, r.depth]), [[0, 12, 0], [1, 3, 1], [4, 11, 1], [7, 10, 2], [8, 9, 3]], 'brackets in strings and comments do not count, and regions know their depth');
   }
   for (const name of ['bugsong']) {
     const demo = parseProject(readFileSync(new URL(`../src/project/demos/${name}.wax`, import.meta.url), 'utf8'));

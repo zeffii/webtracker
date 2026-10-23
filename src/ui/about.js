@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['396', ['The DSP view folds code: gutter arrows, Fold all and Unfold all.']],
   ['395', ['A DSP view (Ctrl+Alt+I): read the code of an instrument\'s nodes, with live parameters.']],
   ['394', ['Sample screen: a hide / show switch for the selection as well.']],
   ['393', ['Waveform: drag selects, Alt+drag sets the loop, Ctrl+drag the sustain loop; hide switches on the Loop lines.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['389', ['Auto-slice settings now sit in a line above the status bar on the Sample screen.']],
   ['388', ['Picture settings in the Shader view, auto-slice settings beside the sample list.']],
   ['387', ['Clicking the tick column sets the playhead when scrolled sideways too.']],
-  ['386', ['The sequence editor\'s tick column stays in view when scrolled sideways.']],
 ];
