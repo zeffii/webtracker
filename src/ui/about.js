@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['382', ['A Pause button (and the Pause key): stop in place, carry on from the same row.']],
   ['381', ['Shader view: sliders for the numbers (hover or caret, or drag a number) and a Knobs panel.']],
   ['380', ['Live picture: choose its resolution, up to 1080 x 1080 (Config > Visual).']],
   ['379', ['New shader template: Flock.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['375', ['MP4 export always uses AAC sound (a built-in encoder where the browser has none), so X accepts it.']],
   ['374', ['Export shows a progress bar at the right of the status bar.']],
   ['373', ['The bugsong demo no longer has a stray loop set.']],
-  ['372', ['New demo: bugsong. Open the page with ?demo=bugsong (and ?demo=arp for the arp demo).']],
 ];

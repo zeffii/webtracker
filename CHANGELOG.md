@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 382 · 2026-10-23
+
+- A Pause button next to Play (also the Pause key). It stops where the song is and keeps the place; Pause again, or Play, carries on from that row. Stop (F8) still stops for good, and Play from the cursor (F6) starts from the cursor as before. Notes held across a pause start again from the row.
+
 ## 381 · 2026-10-23
 
 - Shader view: numbers are drawn on a faint chip (orange for floats, green for ints). Hover one, or put the caret in it, and a small slider appears just above it that writes straight into the text; drag a number sideways to slide it without opening anything (Shift: a tenth as fast). Floats keep their point and ints stay whole; "±" lets the range go negative (written as (-.3) so it can follow a minus), and unticking "live" puts the number back as it was. One Ctrl+Z undoes a whole slide. The "Number sliders" tick box switches all of this off.

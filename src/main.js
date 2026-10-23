@@ -60,16 +60,27 @@ let started = false, playing = false, project = null, recording = false;
 
 const PLAY_ICON = '<svg class="ico" viewBox="0 0 12 12"><path d="M2.5 1 L10.5 6 L2.5 11 Z" fill="currentColor"/></svg>';
 const STOP_ICON = '<svg class="ico" viewBox="0 0 12 12"><rect x="2" y="2" width="8" height="8" fill="currentColor"/></svg>';
+let pausedAt = null;   // the tick a pause stopped at; Play carries on from there
+const setPaused = tick => { pausedAt = tick; $('pause').setAttribute('aria-pressed', String(tick !== null)); };
 const setPlaying = (value, from = null) => {
+  if (value && from === null && pausedAt !== null) from = pausedAt;   // after a pause, Play resumes
+  setPaused(null);
   playing = value;
   if (playing) scratch?.stop?.();
   if (playing) engine.play(from); else engine.stop();
   $('play').innerHTML = playing ? STOP_ICON : PLAY_ICON;
-  $('play').title = playing ? 'Stop (F8)' : 'Play (F5)';
+  $('play').title = playing ? 'Stop (F8)' : pausedAt !== null ? 'Play: carry on from the pause' : 'Play (F5)';
   $('play').setAttribute('aria-label', playing ? 'Stop' : 'Play');
   if (recording) { if (playing) writer.beginPass(); else writer.endPass(); }   // each run of the song is its own undo step
 };
 const togglePlay = () => setPlaying(!playing);
+// Pause stops where the song is and keeps the place; Pause again, or Play, carries on from there (notes held across the pause start again).
+const togglePause = () => {
+  if (!started) return;
+  if (pausedAt !== null) { const at = pausedAt; setPlaying(true); $('status').textContent = `Carrying on from row ${at}.`; }
+  else if (playing) { const at = Math.floor(engine.position); setPlaying(false); setPaused(at); $('play').title = 'Play: carry on from the pause'; $('status').textContent = `Paused at row ${at}. Play carries on from here.`; }
+};
+$('pause').addEventListener('click', e => { togglePause(); e.currentTarget.blur(); });
 // Panic: every sounding note stops, and held keyjazz keys are let go.
 $('cut').addEventListener('click', e => { if (playing) setPlaying(false); engine.cut(); patcher.releaseKeys(); e.currentTarget.blur(); });
 $('panic').addEventListener('click', e => { engine.panic(); patcher.releaseKeys(); e.currentTarget.blur(); });
@@ -179,7 +190,7 @@ document.addEventListener('keydown', e => {
     seqView.say(text); view.say(text);
     return;
   }
-  const fKeys = { F5: () => setPlaying(true), F6: () => setPlaying(true, here()), F7: () => engine.playRow(here()), F8: () => setPlaying(false), F9: toggleFollow };
+  const fKeys = { F5: () => setPlaying(true), F6: () => setPlaying(true, here()), F7: () => engine.playRow(here()), F8: () => setPlaying(false), F9: toggleFollow, Pause: togglePause };
   if (!e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey && fKeys[e.key]) {
     e.preventDefault();
     if (started || e.key === 'F9') fKeys[e.key]();
@@ -1897,7 +1908,7 @@ $('start').addEventListener('click', async () => {
     navigator.storage?.persist?.();   // ask the browser not to clear the snapshots when it is short of space
     for (const id of ['start']) $(id).disabled = true;
     $('logo').classList.remove('idle'); $('logo').removeAttribute('title'); $('logo').removeAttribute('role'); $('logo').removeAttribute('tabindex');
-    for (const id of ['play', 'panic', 'cut', 'new', 'save', 'load', 'backups', 'export', 'patch-add', 'load-samples', 'rec-take', 'rec-source', 'add-inst', 'add-lane', 'add-lane-inst', 'inst-voices', 'inst-notecols', 'inst-name', 'inst-rename', 'inst-up', 'inst-down', 'inst-dup', 'inst-remove', 'lane-name', 'lane-rename', 'lane-left', 'lane-right', 'lane-dup', 'lane-remove', 'lane-remove-all', 'length', 'ins-n', 'ins-go', 'bpm', 'swing', 'bar', 'preset-name', 'preset-save', 'preset-over', 'preset-rename', 'preset-remove', 'inst-export', 'inst-import', 'lib-load', 'lib-add', 'lib-save']) $(id).disabled = false;
+    for (const id of ['play', 'pause', 'panic', 'cut', 'new', 'save', 'load', 'backups', 'export', 'patch-add', 'load-samples', 'rec-take', 'rec-source', 'add-inst', 'add-lane', 'add-lane-inst', 'inst-voices', 'inst-notecols', 'inst-name', 'inst-rename', 'inst-up', 'inst-down', 'inst-dup', 'inst-remove', 'lane-name', 'lane-rename', 'lane-left', 'lane-right', 'lane-dup', 'lane-remove', 'lane-remove-all', 'length', 'ins-n', 'ins-go', 'bpm', 'swing', 'bar', 'preset-name', 'preset-save', 'preset-over', 'preset-rename', 'preset-remove', 'inst-export', 'inst-import', 'lib-load', 'lib-add', 'lib-save']) $(id).disabled = false;
     $('status').textContent =
       `Running at ${engine.ctx.sampleRate} Hz, base latency ${(engine.ctx.baseLatency * 1000).toFixed(1)} ms`;
     // Only the screen that is showing is drawn: a hidden one has nothing to measure or paint, and its work would only delay the one you are using.
