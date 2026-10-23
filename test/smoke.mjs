@@ -573,7 +573,8 @@ const firstSound = x => x.findIndex(v => Math.abs(v) > 1e-9);
   view.draw();
   const rows = el.innerHTML.split('<div class="r">').slice(1);
   assert.ok(rows[0].includes('&lt;b&gt;x&lt;/b&gt;'), 'lane names are the column headers');
-  assert.ok(/^ (<span[^>]*>)?0000/.test(rows[1]) && rows[2].startsWith(' 0016'), 'one row per 16 ticks, counting down');
+  assert.ok(/^<span class="sg"> (<span[^>]*>)?0000/.test(rows[1]) && rows[2].startsWith('<span class="sg"> 0016'), 'one row per 16 ticks, counting down');
+  assert.ok(rows[0].startsWith('<span class="sg">'), 'the tick column is its own sticky box, so it stays in view when scrolled sideways');
   assert.ok(rows[1].includes('gn g1'), 'a bar start has the darker number shade');
   assert.ok(rows.slice(1, 3).some(r => /class="L[^"]* st/.test(r)), 'blocks start on their row');
   press('ArrowDown'); press('ArrowDown');                                // time moves down the rows

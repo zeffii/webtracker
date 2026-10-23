@@ -550,7 +550,7 @@ export function createSequenceView({ el, statusEl, listEl, transport, onToggle, 
     // the tick numbers: every four bars a subtle shade, a darker one every sixteen
     if (syncCell()) top = 0;   // the bar changed under us: the row size follows it
     const bar = barTicks(), num = t => { const s = String(t).padStart(4, '0'); return t % (bar * 4) ? `${s} ` : `<span class="gn ${t % (bar * 16) ? 'g2' : 'g1'}">${s} </span>`; };
-    const lines = [row(`      ${lanes.map((l, li) => {
+    const lines = [row(`<span class="sg">      </span>${lanes.map((l, li) => {
       const mark = headMark(l), head = `${li === cur.lane ? '>' : ' '}${esc(l.id.slice(0, COLW - (mark === ' ' ? 1 : 3)).padEnd(COLW - 1 - (mark === ' ' ? 0 : 2)))}${mark === ' ' ? '' : ` ${mark}`}`;
       const dim = dimFilter(dimLevel(l));
       return l.silenced ? `<span class="silenced">${head}</span>` : dim ? `<span style="${dim}">${head}</span>` : head;
@@ -587,7 +587,7 @@ export function createSequenceView({ el, statusEl, listEl, transport, onToggle, 
         }
         return `<span class="${classes}"${dim ? ` style="${dim}"` : ''}>${layers}${isCur ? '<i class="cb"></i>' : ''}<span class="t">${inner}</span></span>`;
       });
-      lines.push(row(`${playing && playTick >= t && playTick < t + CELL && !lineMode ? '>' : ' '}${num(t)}${cells.join('')}`, r === nowRow ? ' now' : ''));
+      lines.push(row(`<span class="sg">${playing && playTick >= t && playTick < t + CELL && !lineMode ? '>' : ' '}${num(t)}</span>${cells.join('')}`, r === nowRow ? ' now' : ''));
     }
 
     // the rect is always rowCount rows tall, so the drag bar works even when the song has fewer rows

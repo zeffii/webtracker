@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 386 · 2026-10-23
+
+- The tick column of the sequence editor stays at the left edge when you scroll the lanes sideways (as the pattern editor's already did).
+
 ## 385 · 2026-10-23
 
 - A song can have several shaders (up to 16, 0 to F). The Shader view has a picker with + (new, a copy of the current one), Copy, Name and Delete. The shader lane gets a permanent Shd column: the digit you write there switches the picture to that shader from that row on, until the next Shd cell. Starting or jumping into the middle of a song looks back up the lane for the last Shd value, so the right shader shows. Exposed inputs are matched by name across shaders (each shader uses its own low and high; unused names are ignored), and an input only counts as unused when no shader uses it. Each shader is built once and kept, so switching is instant. While the Shader screen is open the picture shows the shader being edited. Older projects with a shader lane get the Shd column.

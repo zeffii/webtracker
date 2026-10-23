@@ -304,8 +304,9 @@
     #view:focus, #seq:focus { outline: 1px solid; }
     #seq { overflow-x: auto; line-height: 18px; isolation: isolate; }
     #seq .t { position: relative; z-index: 2; }
+    #seq .sg { position: sticky; left: 0; z-index: 4; display: inline-block; background: var(--panel); }   /* the tick numbers stay put when the lanes are scrolled sideways */
     #seq .minimap { position: absolute; left: 0; top: 0; pointer-events: none; z-index: 1; }
-    #seq .r { height: 18px; white-space: pre; }
+    #seq .r { height: 18px; white-space: pre; width: max-content; min-width: 100%; }   /* as wide as the lanes, so the sticky tick column has room to stay in view */
     #seq .cell { position: relative; display: inline-block; width: 14ch; height: 18px; vertical-align: top; overflow: hidden; }
     #seq .cell > i { position: absolute; top: 0; bottom: 0; left: 0; right: 0; display: block; }
     /* a pattern is one rect from its first row to its last; opaque, so one placed over another hides it */
