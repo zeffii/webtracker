@@ -103,7 +103,7 @@ export function createVisual(canvas, { size = 300, colours = [[.30, .74, .80], [
   gl.viewport(0, 0, size, size);
   gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
-  let program = null, names = [], source = '', locs = {}, knobDefs = [];
+  const entries = new Map();   // shader number -> its built program; each shader is built once and kept, so switching is instant
   const knobValues = new Float32Array(16);
   const tex = gl.createTexture();
   gl.bindTexture(gl.TEXTURE_2D, tex);
@@ -113,38 +113,48 @@ export function createVisual(canvas, { size = 300, colours = [[.30, .74, .80], [
     const s = gl.createShader(type); gl.shaderSource(s, text); gl.compileShader(s);
     return gl.getShaderParameter(s, gl.COMPILE_STATUS) ? { s } : { error: gl.getShaderInfoLog(s) ?? 'the shader did not compile' };
   };
-  // Builds the program for `src` (the user's text) with the lane names as they are now. Returns '' or the error text, with line numbers
-  // counted in the user's own text.
+  // Builds the program for `src` (the user's text) with the lane names as they are now. Returns { error } or the program and what it needs.
+  // Line numbers in errors are counted in the user's own text.
   function build(src, laneNames) {
     const knobs = [], vs = compile(gl.VERTEX_SHADER, VS), fs = compile(gl.FRAGMENT_SHADER, PREAMBLE + preprocess(src, laneNames, knobs));
-    if (fs.error || vs.error) return String(fs.error ?? vs.error).replace(/ERROR: (\d+):(\d+)/g, (_, f, l) => `line ${Math.max(1, Number(l) - PRE_LINES)}`).trim().split('\n')[0];
+    if (fs.error || vs.error) return { error: String(fs.error ?? vs.error).replace(/ERROR: (\d+):(\d+)/g, (_, f, l) => `line ${Math.max(1, Number(l) - PRE_LINES)}`).trim().split('\n')[0] };
     const pr = gl.createProgram(); gl.attachShader(pr, vs.s); gl.attachShader(pr, fs.s); gl.linkProgram(pr);
-    if (!gl.getProgramParameter(pr, gl.LINK_STATUS)) return gl.getProgramInfoLog(pr) ?? 'the shader did not link';
-    if (program) gl.deleteProgram(program);
-    program = pr; knobDefs = knobs; gl.useProgram(pr);
-    const at = gl.getAttribLocation(pr, 'a'); gl.enableVertexAttribArray(at); gl.vertexAttribPointer(at, 2, gl.FLOAT, false, 0, 0);
-    locs = { NL: gl.getUniformLocation(pr, 'NL'), SKEL: gl.getUniformLocation(pr, 'SKEL'), PAT: gl.getUniformLocation(pr, 'PAT'), R: gl.getUniformLocation(pr, 'R'), T: gl.getUniformLocation(pr, 'T'), BEAT: gl.getUniformLocation(pr, 'BEAT'), HITS: gl.getUniformLocation(pr, 'HITS'), LANE: gl.getUniformLocation(pr, 'LANE'), KN: gl.getUniformLocation(pr, 'KN[0]') };
+    if (!gl.getProgramParameter(pr, gl.LINK_STATUS)) return { error: gl.getProgramInfoLog(pr) ?? 'the shader did not link' };
+    gl.useProgram(pr);
     gl.uniform3fv(gl.getUniformLocation(pr, 'C1'), colours[0]); gl.uniform3fv(gl.getUniformLocation(pr, 'C2'), colours[1]);
-    return '';
+    const u = n => gl.getUniformLocation(pr, n);
+    return { pr, knobDefs: knobs, locs: { NL: u('NL'), SKEL: u('SKEL'), PAT: u('PAT'), R: u('R'), T: u('T'), BEAT: u('BEAT'), HITS: u('HITS'), LANE: u('LANE'), KN: u('KN[0]') }, at: gl.getAttribLocation(pr, 'a') };
   }
   const sameNames = (a, b) => a.length === b.length && a.every((x, i) => x[0] === b[i][0] && x[1] === b[i][1]);
-  let wanted = DEFAULT_GLSL, fallback = false;
-  const tryBuild = laneNames => {
-    let err = build(wanted, laneNames);
-    if (err && wanted !== DEFAULT_GLSL) { onError(err); fallback = true; err = build(DEFAULT_GLSL, laneNames); }
-    else { fallback = false; onError(err); }
-    names = laneNames; source = wanted;
+  let sources = [DEFAULT_GLSL], fallback = false, shown = null;
+  const entryFor = (i, laneNames) => {
+    let e = entries.get(i);
+    if (e && sameNames(e.names, laneNames)) return e;
+    if (e?.pr) gl.deleteProgram(e.pr);
+    let r = build(sources[i], laneNames), err = r.error ?? '', fell = false;
+    if (r.error && sources[i] !== DEFAULT_GLSL) { r = build(DEFAULT_GLSL, laneNames); fell = true; }
+    e = { ...r, err, fell, names: laneNames };
+    entries.set(i, e);
+    return e;
   };
   return {
-    // The shader text to use (empty for the built-in one). Takes effect at the next draw.
-    setSource(text) { wanted = text && text.trim() ? text : DEFAULT_GLSL; source = null; },
+    // The shader texts to use, one per shader (an empty one is the built-in picture). Takes effect at the next draw; only changed ones are built again.
+    setSources(list) {
+      const next = (list.length ? list : ['']).map(t => (t && t.trim() ? t : DEFAULT_GLSL));
+      for (const [i, e] of [...entries]) if (next[i] !== sources[i]) { if (e.pr) gl.deleteProgram(e.pr); entries.delete(i); }
+      sources = next; shown = null;
+    },
+    setSource(text) { this.setSources([text]); },
     draw(data) {
-      if (source !== wanted || !sameNames(names, data.names)) tryBuild(data.names.map(n => [...n]));
-      if (!program) return;
+      const e = entryFor(Math.max(0, Math.min(sources.length - 1, Math.floor(data.shader ?? 0))), data.names.map(n => [...n]));
+      if (shown !== e) { shown = e; fallback = e.fell; onError(e.err); }
+      if (!e.pr) return;
+      const { locs } = e;
+      gl.useProgram(e.pr); gl.enableVertexAttribArray(e.at); gl.vertexAttribPointer(e.at, 2, gl.FLOAT, false, 0, 0);
       gl.uniform2f(locs.R, size, size); gl.uniform1f(locs.T, data.T); gl.uniform1f(locs.BEAT, data.BEAT); gl.uniform1f(locs.HITS, data.HITS);
       gl.uniform4fv(locs.LANE, data.lane);
       if (locs.KN) {   // exposed numbers: what the shader machine holds (0 to 1) stretched to the range the call gave, or the number it started as
-        knobDefs.forEach((k, j) => { const v = data.knob?.(k.name); knobValues[j] = v === undefined ? k.d : k.lo + (k.hi - k.lo) * v; });
+        e.knobDefs.forEach((k, j) => { const v = data.knob?.(k.name); knobValues[j] = v === undefined ? k.d : k.lo + (k.hi - k.lo) * v; });
         gl.uniform1fv(locs.KN, knobValues);
       }
       gl.uniform1f(locs.NL, data.NL); gl.uniform1f(locs.SKEL, data.skeleton ? 1 : 0);

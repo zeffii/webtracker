@@ -69,7 +69,8 @@ export function formatValue(kind, v, { decimals = 0, bare = false } = {}) {
 
 // parts: { box, input, paint, gutter, status, templates (a select), reset (a button) }; config; defaultSource; templates: { id: { label, source } }
 // sliders: parts.clip (the box the popup sits in) and parts.slidersOn (the tick box that switches the number chips and sliders on or off)
-// store: { get(), set(text) } holds the source ('' for the built-in picture): the project's shader, with the Config text as a default
+// store: { get(), set(text), texts(), list(), index, select(i), add(), duplicate(), rename(i, name), remove(i) } holds the sources ('' for the built-in
+// picture): the project's shaders, with the Config text as a default for the first; get and set are the one being edited
 export function createShaderView({ parts, config, store, defaultSource, templates, machine = null }) {
   const { input, paint, gutter, status } = parts;
   parts.machine = machine;
@@ -356,7 +357,8 @@ export function createShaderView({ parts, config, store, defaultSource, template
       knobsEl.append(el); rows.push(row);
     }
     // inputs the machine has that no kn() call uses any more
-    if (machine) for (const name of machine.names().filter(nm => !calls.some(c => c.name === nm))) {
+    const used = new Set(store.texts().flatMap(t => knobCalls(t).map(c => c.name)));   // a name any of the shaders uses is in use
+    if (machine) for (const name of machine.names().filter(nm => !used.has(nm))) {
       const el = document.createElement('div'); el.className = 'knob orphan';
       const btn = Object.assign(document.createElement('button'), { type: 'button', textContent: 'remove', title: 'Delete this input and its pattern column' });
       btn.addEventListener('click', () => { try { machine.remove(name); rebuildKnobs(); } catch (err) { status.textContent = err.message; } });
@@ -387,9 +389,34 @@ export function createShaderView({ parts, config, store, defaultSource, template
     load();
   });
   parts.reset.addEventListener('click', () => { clearTimeout(timer); timer = null; store.set(''); load(); });
-  load(); rebuildKnobs();
+  // the shaders of the project: pick the one to edit (the picture shows it while this screen is open; a pattern's Shd column picks it while playing)
+  const pick = parts.pick;
+  const fillPick = () => {
+    if (!pick) return;
+    const names = store.list();
+    pick.textContent = '';
+    names.forEach((s, i) => pick.append(Object.assign(document.createElement('option'), { value: i, textContent: `${i.toString(16).toUpperCase()}  ${s.name}` })));
+    pick.value = store.index;
+    parts.del && (parts.del.disabled = names.length < 2);
+    parts.add && (parts.add.disabled = names.length >= 16);
+  };
+  const flush = () => { if (timer) { clearTimeout(timer); apply(); } };
+  const switched = () => { fillPick(); shown = ''; load(); rebuildKnobs(); };
+  pick?.addEventListener('change', () => { flush(); store.select(Number(pick.value)); switched(); });
+  parts.add?.addEventListener('click', () => { flush(); try { store.add(); switched(); status.textContent = `Shader ${store.index.toString(16).toUpperCase()} is new: it starts as a copy of the one before. A Shd cell with that digit in the shader lane switches to it.`; } catch (err) { status.textContent = err.message; } });
+  parts.dup?.addEventListener('click', () => { flush(); try { store.duplicate(); switched(); } catch (err) { status.textContent = err.message; } });
+  parts.rename?.addEventListener('click', () => {
+    const name = window.prompt('Name for this shader:', store.list()[store.index]?.name ?? '');
+    if (name !== null && name.trim()) { store.rename(store.index, name.trim().slice(0, 24)); fillPick(); }
+  });
+  parts.del?.addEventListener('click', () => {
+    if (!window.confirm(`Delete shader ${store.index.toString(16).toUpperCase()}? Shd cells that point at it or at the ones after it will show a different shader.`)) return;
+    clearTimeout(timer); timer = null;
+    try { store.remove(store.index); switched(); } catch (err) { status.textContent = err.message; }
+  });
+  fillPick(); load(); rebuildKnobs();
   return {
-    load,
+    load() { fillPick(); load(); rebuildKnobs(); },
     // the picture's compile error, or '' when it is fine; the failing line is marked in the gutter
     error(text) {
       status.textContent = text ? `${text}${text.includes('built-in') ? '' : ' (the built-in picture keeps running)'}` : 'The picture is running this shader.';

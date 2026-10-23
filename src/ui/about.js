@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['385', ['Several shaders per song: the shader lane\'s Shd column switches between them.']],
   ['384', ['The picture\'s shader is saved with the project.']],
   ['383', ['Expose a shader number from the Knobs panel: the shader machine gets a hatched lane with a pattern column for it, so patterns can animate the picture.']],
   ['382', ['A Pause button (and the Pause key): stop in place, carry on from the same row.']],

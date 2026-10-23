@@ -40,7 +40,7 @@ import * as presetOps from '../src/project/presets.js';
 import { parseInstrument, serializeInstrument } from '../src/project/file.js';
 import { createSynthwaveProject } from '../src/project/synthwave.js';
 import { createArpDemoProject } from '../src/project/arpdemo.js';
-import { createVisData, preprocess, visibleLanes } from '../src/ui/visdata.js';
+import { createVisData, preprocess, shaderAt, visibleLanes } from '../src/ui/visdata.js';
 import { highlight, numbers, sliderSpec, formatValue } from '../src/ui/shaderview.js';
 import { knobCalls } from '../src/ui/visdata.js';
 import { addShaderKnob, removeShaderKnob } from '../src/project/ops.js';
@@ -3353,7 +3353,7 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     assert.ok(!('shaders' in JSON.parse(serializeProject({ ...p, lanes })).song));
     p.song.shaders = [{ name: 'main', glsl: 'void main(){gl_FragColor=vec4(1.);}' }, { name: 'empty', glsl: '' }];
     const back = parseProject(serializeProject({ ...p, lanes }));
-    assert.deepEqual(back.song.shaders, [{ name: 'main', glsl: 'void main(){gl_FragColor=vec4(1.);}' }]);
+    assert.deepEqual(back.song.shaders, [{ name: 'main', glsl: 'void main(){gl_FragColor=vec4(1.);}' }, { name: 'empty', glsl: '' }], 'several shaders keep their places, empty ones too');
   }
 
   // a number exposed to the patterns is a column of the shader lane, and a value written there reaches the registry the picture reads
@@ -3368,10 +3368,10 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     seq.setSong(p.song);
     for (const lane of prepareSong(p.song, p.instruments, registry)) seq.setLane(lane);
     const lane = pops.addLane({ ...p, lanes: [] , song: p.song }, registry, SHADER);
-    assert.equal(lane.columns.length, 1); assert.equal(lane.columns[0].label, 'rad'); assert.equal(lane.columns[0].kind, 'param');
+    assert.equal(lane.columns.length, 2); assert.equal(lane.columns[0].label, 'Shd'); assert.equal(lane.columns[0].token, '1hex'); assert.equal(lane.columns[1].label, 'rad'); assert.equal(lane.columns[1].kind, 'param');
     const slot = registry.slots.get(`${SHADER}.g.k1`);
     assert.ok(Math.abs(registry.values[slot] - 0.2) < 1e-6, 'it starts at the number it was exposed with');
-    lane.rows[0][0] = 'C0';
+    lane.rows[0][1] = 'C0';
     lane.pages = buildPages(lane.rows, lane.columns);
     lane.placements.push({ start: 0, length: 16, puid: 'x' });
     seq.setLane({ ...lane, mask: lane.mask });
@@ -4152,12 +4152,20 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     const a = addShaderKnob(proj, 'rad', .3), b = addShaderKnob(proj, 'rad', .6);
     assert.equal(a.first, true); assert.equal(b.first, false);
     assert.deepEqual([a.name, a.param, b.name, b.param], ['rad', 'k1', 'rad2', 'k2']);
-    assert.deepEqual(proj.instruments[SHADER].exposed.map(e => e.label), ['rad', 'rad2']);
+    assert.deepEqual(proj.instruments[SHADER].exposed.map(e => e.label), ['Shd', 'rad', 'rad2']);
     assert.equal(proj.instruments[SHADER].graph.nodes[0].params.k2, .6);
     removeShaderKnob(proj, 'rad');
     assert.equal(addShaderKnob(proj, 'glow', .1).param, 'k1', 'the freed input is used again');
     for (let i = 0; i < 14; i++) addShaderKnob(proj, `n${i}`, 0);
     assert.throws(() => addShaderKnob(proj, 'one more', 0), /16 inputs/);
+    assert.throws(() => removeShaderKnob(proj, 'Shd'), /stays/);
+    // the Shd column: the last value at or before the playhead, 0 before any
+    const col = { kind: 'param', param: 'shader', ch: 0 };
+    const cells = new Float32Array(PAGE_TICKS).fill(EMPTY), later = new Float32Array(PAGE_TICKS).fill(EMPTY);
+    cells[10] = 2 / 15; later[3] = 1 / 15;
+    const sl = { columns: [col], channels: 1, pages: [cells, undefined, later] };
+    assert.equal(shaderAt(sl, 5), 0); assert.equal(shaderAt(sl, 10), 2); assert.equal(shaderAt(sl, PAGE_TICKS + 4), 2, 'an empty page is looked past');
+    assert.equal(shaderAt(sl, 2 * PAGE_TICKS + 3), 1); assert.equal(shaderAt({ columns: [], pages: [] }, 9), 0);
   }
   for (const name of ['bugsong']) {
     const demo = parseProject(readFileSync(new URL(`../src/project/demos/${name}.wax`, import.meta.url), 'utf8'));

@@ -16,6 +16,21 @@ export const WIN = 32, BEHIND = 8;   // the pattern window a shader can read: WI
 // The lanes a picture can see: every lane but the master lane, in order, at most MAX_LANES.
 export const visibleLanes = lanes => (lanes ?? []).filter(l => l.instrument !== MASTER && l.instrument !== SHADER).slice(0, MAX_LANES);
 
+// The shader the picture shows at `tick`: the last Shd value the shader lane holds at or before it (0 when it holds none yet), so
+// starting or jumping into the middle of a song shows the right shader. The lane is the shader machine's; col is its Shd column.
+export function shaderAt(lane, tick) {
+  const col = lane?.columns?.find(c => c.kind === 'param' && c.param === 'shader');
+  if (!col || !lane.pages) return 0;
+  const channels = lane.channels ?? lane.columns.reduce((n, c) => Math.max(n, c.ch + (c.kind === 'cmd' ? 2 : 1)), 0);
+  for (let t = Math.min(tick, lane.pages.length * PAGE_TICKS - 1); t >= 0; t--) {
+    const page = lane.pages[(t / PAGE_TICKS) | 0];
+    if (!page) { t = ((t / PAGE_TICKS) | 0) * PAGE_TICKS; continue; }   // an empty page: on to the one before
+    const v = page[(t % PAGE_TICKS) * channels + col.ch];
+    if (v !== EMPTY) return decodeHex1(v);
+  }
+  return 0;
+}
+
 // Reads one lane's cells at one tick into the state { hit, pitch, vel, held }. Returns true when it started something.
 export function readTick(lane, state, tick) {
   const page = lane.pages?.[(tick / PAGE_TICKS) | 0];
@@ -97,6 +112,7 @@ export function createVisData({ lanes, transport, song, decayMs = () => 220, kno
           }
         });
       }
+      out.shader = shaderAt(lanes().find(l => l.instrument === SHADER), tick);
       out.NL = Math.max(1, states.length);
       out.T = time;
       out.BEAT = ((tick + frac) / Math.max(1, song()?.ticksPerBeat ?? 4));

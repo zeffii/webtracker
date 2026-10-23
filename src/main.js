@@ -1340,7 +1340,7 @@ function openProject({ song, instruments, samples }, { stay = false, instrument 
   const at = Math.max(lanes.length > 1 ? 1 : 0, lanes.findIndex(l => l.id === lane));   // not the master lane, to start with
   view.goto(at, 0); seqView.goto(at, 0);
   scriptScreen.load(song.script);
-  visual?.setSource(shaderStore.get()); shaderView?.load();
+  shaderStore.index = 0; pushShaders(); shaderView?.load();
   $('info').value = song.info ?? '';
   infoStatus();
   if (song.info) { renderInfo(); $('info').hidden = true; $('info-view').hidden = false; $('info-edit').textContent = 'Edit'; }
@@ -1447,7 +1447,7 @@ const toggleMeters = () => config.set('meterOn', !meters.open);
 const vizBox = $('viz'), vizErr = $('viz-err');
 // The shader machine: numbers the shader exposes as pattern columns (see addShaderKnob). get gives a number's value, 0 to 1.
 const shaderMachine = {
-  names: () => (project?.instruments[SHADER]?.exposed ?? []).map(e => e.label),
+  names: () => (project?.instruments[SHADER]?.exposed ?? []).filter(e => e.param !== 'shader').map(e => e.label),
   entry: name => project?.instruments[SHADER]?.exposed.find(e => e.label === name),
   get(name) { const e = this.entry(name), slot = e && engine.registry.slots.get(`${SHADER}.${e.node}.${e.param}`); return slot === undefined ? undefined : engine.registry.values[slot]; },
   set(name, value) {   // from a slider: the engine's value and the project's, so it is saved
@@ -1463,21 +1463,51 @@ const shaderMachine = {
     return r.name;
   },
   remove(name) { ops.removeShaderKnob(project, name); reloadInstrument(SHADER); },
+  ensure() {   // a song with several shaders needs the lane that holds the Shd column
+    if (ops.ensureShaderMachine(project)) { loadInst(SHADER); addLaneFor(SHADER); patcher.load({ instruments: project.instruments }); refreshProjectUi(); }
+  },
 };
-// The picture's shader lives in the project (song.shaders, a list so that later a song can have several); a project with none uses the text in Config.
+// The picture's shaders live in the project (song.shaders, up to 16; the shader lane's Shd column picks one, 0 to F); a project with none uses the
+// text in Config. `index` is the one being edited, which the picture shows while the Shader screen is open.
+const shaderList = () => project?.song.shaders ?? [];
+const shaderText = i => shaderList()[i]?.glsl || (i === 0 ? config.get('visualGlsl') : '');
+const shaderCount = () => Math.max(1, shaderList().length);
+const pushShaders = () => visual?.setSources(Array.from({ length: shaderCount() }, (_, i) => shaderText(i)));
 const shaderStore = {
-  get: () => project?.song.shaders?.[0]?.glsl || config.get('visualGlsl'),
+  index: 0,
+  get: () => shaderText(shaderStore.index),
   set(text) {
     if (!project) return;
-    if (text) project.song.shaders = [{ name: project.song.shaders?.[0]?.name ?? 'main', glsl: text }]; else delete project.song.shaders;
-    visual?.setSource(this.get());
-    scheduleCheck();
+    const list = project.song.shaders ??= [{ name: 'main', glsl: '' }];
+    (list[this.index] ??= { name: String(this.index), glsl: '' }).glsl = text;
+    if (list.length === 1 && !list[0].glsl) delete project.song.shaders;
+    pushShaders(); scheduleCheck();
+  },
+  texts: () => Array.from({ length: shaderCount() }, (_, i) => shaderText(i)),
+  list: () => Array.from({ length: shaderCount() }, (_, i) => ({ name: shaderList()[i]?.name ?? 'main' })),
+  select(i) { this.index = Math.max(0, Math.min(shaderCount() - 1, i)); },
+  insert(at, glsl, name) {
+    if (!project) throw new Error('Open a project first.');
+    if (shaderCount() >= 16) throw new Error('A song can have 16 shaders (0 to F).');
+    const list = project.song.shaders ??= [{ name: 'main', glsl: shaderText(0) }];
+    list.splice(at, 0, { name, glsl });
+    shaderMachine.ensure();
+    this.index = at; pushShaders(); scheduleCheck();
+  },
+  add() { this.insert(shaderCount(), shaderText(this.index), `shader ${shaderCount().toString(16).toUpperCase()}`); },
+  duplicate() { this.insert(this.index + 1, shaderText(this.index), `${this.list()[this.index].name} copy`.slice(0, 24)); },
+  rename(i, name) { if (project?.song.shaders?.[i]) { project.song.shaders[i].name = name; scheduleCheck(); } else if (project) { project.song.shaders = [{ name, glsl: shaderText(0) }]; scheduleCheck(); } },
+  remove(i) {
+    if (shaderCount() < 2) throw new Error('A song keeps at least one shader. Use Built-in to clear it.');
+    project.song.shaders.splice(i, 1);
+    if (project.song.shaders.length === 1 && !project.song.shaders[0].glsl) delete project.song.shaders;
+    this.index = Math.min(this.index, shaderCount() - 1); pushShaders(); scheduleCheck();
   },
 };
 const visdata = createVisData({ lanes: () => project?.lanes ?? [], transport: engine.transport, song: () => project?.song, decayMs: () => config.get('visualDecay'), knob: name => shaderMachine.get(name) });
 let visual = null, labels = null, vizOn = false;
 shaderView = createShaderView({
-  parts: { input: $('shader-input'), paint: $('shader-paint'), gutter: $('shader-gutter'), status: $('shader-status'), templates: $('shader-templates'), reset: $('shader-reset'), clip: $('shader-clip'), slidersOn: $('shader-sliders'), knobs: $('shader-knobs'), knobsOn: $('shader-knobs-on') },
+  parts: { input: $('shader-input'), paint: $('shader-paint'), gutter: $('shader-gutter'), status: $('shader-status'), templates: $('shader-templates'), reset: $('shader-reset'), clip: $('shader-clip'), slidersOn: $('shader-sliders'), pick: $('shader-pick'), add: $('shader-add'), dup: $('shader-dup'), rename: $('shader-rename'), del: $('shader-del'), knobs: $('shader-knobs'), knobsOn: $('shader-knobs-on') },
   config, store: shaderStore, defaultSource: DEFAULT_GLSL, templates: TEMPLATES, machine: shaderMachine,
 });
 $('shader-pop').addEventListener('click', () => popOut());
@@ -1487,12 +1517,12 @@ const showViz = on => {
   if (on && !visual) {
     visual = createVisual($('viz-canvas'), { onError: text => { vizErr.hidden = !text; vizErr.textContent = text; shaderView?.error(text); } });
     if (!visual) { vizOn = false; $('status').textContent = 'The live picture needs WebGL, which this browser does not have.'; }
-    else { visual.resize(Number(config.get('visualSize'))); visual.setSource(shaderStore.get()); labels = createLabels($('viz-text'), Number(config.get('visualSize'))); }
+    else { visual.resize(Number(config.get('visualSize'))); pushShaders(); labels = createLabels($('viz-text'), Number(config.get('visualSize'))); }
   }
   if (!vizOn && pip) pip.close();
   vizBox.hidden = !vizOn; $('viz-btn').setAttribute('aria-pressed', String(vizOn)); placeViz();
 };
-const drawViz = now => { const d = visdata.frame(now ?? performance.now()); d.skeleton = config.get('visualSkeleton'); visual.draw(d); labels?.update(d.names, d.skeleton); };
+const drawViz = now => { const d = visdata.frame(now ?? performance.now()); d.skeleton = config.get('visualSkeleton'); if (tabs.active === 'shader') d.shader = shaderStore.index; visual.draw(d); labels?.update(d.names, d.skeleton); };
 // The picture in a window of its own: Document Picture-in-Picture (Chrome, Edge, Brave), an always-on-top window that can go to any
 // screen. The picture's box moves into it and is drawn from that window's own frame loop, which keeps running when this window is
 // covered by other programs. Closing the window, or the button again, brings the box back.
@@ -1576,7 +1606,7 @@ document.addEventListener('keydown', e => {
   if (/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName ?? '')) return;
   e.preventDefault(); e.stopPropagation(); openCmd();
 }, true);
-config.onChange((k, v) => { if (k === 'visualOn') showViz(v); else if (k === 'visualGlsl') { visual?.setSource(shaderStore.get()); shaderView?.load(); } else if (k === 'visualSize') { visual?.resize(Number(v)); labels?.resize(Number(v)); } else if (k === 'meterOn') { showMeters(v); placeViz(); } else if (k.startsWith('meter')) { meters.rebuild(); placeMeters(); } });
+config.onChange((k, v) => { if (k === 'visualOn') showViz(v); else if (k === 'visualGlsl') { pushShaders(); shaderView?.load(); } else if (k === 'visualSize') { visual?.resize(Number(v)); labels?.resize(Number(v)); } else if (k === 'meterOn') { showMeters(v); placeViz(); } else if (k.startsWith('meter')) { meters.rebuild(); placeMeters(); } });
 $('meters-btn').addEventListener('click', toggleMeters);
 addEventListener('resize', placeMeters);
 showMeters(config.get('meterOn'));

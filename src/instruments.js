@@ -626,9 +626,15 @@ export const shaderInstrument = () => ({
     connections: [],
   },
   noteColumns: 0,
-  exposed: [],
+  exposed: [shaderColumn()],
   commands: [],
 });
+// The Shd column: which shader (0 to F, as a hex digit) the picture shows from that row on.
+function shaderColumn() { return { node: 'g', param: 'shader', label: 'Shd', long: 'Shader', bits: 4 }; }
+export const ensureShaderColumn = instruments => {   // a project saved before the column existed gets it
+  const def = instruments[SHADER];
+  if (def && !def.exposed.some(e => e.param === 'shader')) def.exposed.unshift(shaderColumn());
+};
 
 // Makes sure a project ({ song, instruments }) has the master instrument and its lane, first in the lists, and that the
 // instrument starts at the song's tempo and swing.
@@ -642,4 +648,5 @@ export function ensureMaster({ song, instruments }) {
   const at = song.lanes.findIndex(l => l.id === MASTER);
   const lane = at >= 0 ? song.lanes.splice(at, 1)[0] : { id: MASTER, instrument: MASTER, patterns: {}, placements: [] };
   song.lanes.unshift(lane);
+  ensureShaderColumn(instruments);
 }
