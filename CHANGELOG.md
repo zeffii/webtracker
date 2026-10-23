@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 376 · 2026-10-23
+
+- Live picture: five shader templates (rings, bars, tunnel, piano roll, plasma). Config > Visual > "Picture: start from a template" copies one into the shader box for editing; "Built-in metaballs" empties the box again. Choosing one replaces the box's text.
+
 ## 375 · 2026-10-22
 
 - MP4 export always has AAC-LC sound now, which is what X and most sites require. Browsers without an AAC encoder (Brave has none, so the export used Opus) use a built-in one: the Fraunhofer FDK AAC encoder as WebAssembly (src/vendor/fdk-aac.mjs, about 480 KB, loaded only when needed). The status line says "AAC (built-in encoder)" when it was used.

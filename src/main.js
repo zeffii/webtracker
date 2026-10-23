@@ -16,6 +16,7 @@ import { createArpDemoProject } from './project/arpdemo.js';
 import { artCanvas, encodeMp4 } from './audio/mp4.js';
 import { createVisData } from './ui/visdata.js';
 import { createVisual, createLabels } from './ui/visual.js';
+import { TEMPLATES } from './ui/vistemplates.js';
 import * as ops from './project/ops.js';
 import { importMidi, parseMidi } from './project/midi.js';
 import { modToProject, parseMod } from './project/mod.js';
@@ -1493,7 +1494,7 @@ document.addEventListener('keydown', e => {
   if (/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName ?? '')) return;
   e.preventDefault(); e.stopPropagation(); openCmd();
 }, true);
-config.onChange((k, v) => { if (k === 'visualOn') showViz(v); else if (k === 'visualGlsl') visual?.setSource(v); else if (k === 'meterOn') { showMeters(v); placeViz(); } else if (k.startsWith('meter')) { meters.rebuild(); placeMeters(); } });
+config.onChange((k, v) => { if (k === 'visualOn') showViz(v); else if (k === 'visualGlsl') visual?.setSource(v); else if (k === 'visualTemplate') { if (v) { config.set('visualGlsl', v === 'builtin' ? '' : TEMPLATES[v].source); config.set('visualTemplate', ''); } } else if (k === 'meterOn') { showMeters(v); placeViz(); } else if (k.startsWith('meter')) { meters.rebuild(); placeMeters(); } });
 $('meters-btn').addEventListener('click', toggleMeters);
 addEventListener('resize', placeMeters);
 showMeters(config.get('meterOn'));
