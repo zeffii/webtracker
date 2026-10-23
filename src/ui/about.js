@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['389', ['Auto-slice settings now sit in a line above the status bar on the Sample screen.']],
   ['388', ['Picture settings in the Shader view, auto-slice settings beside the sample list.']],
   ['387', ['Clicking the tick column sets the playhead when scrolled sideways too.']],
   ['386', ['The sequence editor\'s tick column stays in view when scrolled sideways.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['382', ['A Pause button (and the Pause key): stop in place, carry on from the same row.']],
   ['381', ['Shader view: sliders for the numbers (hover or caret, or drag a number) and a Knobs panel.']],
   ['380', ['Live picture: choose its resolution, up to 1080 x 1080 (Config > Visual).']],
-  ['379', ['New shader template: Flock.']],
 ];

@@ -147,7 +147,7 @@ $('dock-grip').addEventListener('mousedown', e => {
 let shaderView = null;
 let tabBefore = 'patterns', tabNow = 'patterns';   // where the Info close button goes back to
 const tabs = createTabs({
-  onChange: id => { if (id === 'shader') { shaderView?.load(); if (!vizOn) config.set('visualOn', true); } if (id !== tabNow) { tabBefore = tabNow; tabNow = id; } applyDock(id); keysRefresh(id); requestAnimationFrame(() => { fitArrangement(); syncFloat(); }); },
+  onChange: id => { if (id === 'shader') { shaderView?.load(); if (!vizOn) config.set('visualOn', true); } if (id !== tabNow) { tabBefore = tabNow; tabNow = id; } applyDock(id); keysRefresh(id); requestAnimationFrame(() => { fitArrangement(); syncFloat(); placeViz(); placeMeters(); }); },
   tabs: [
     { id: 'patterns', key: 'F1', el: $('pane-patterns'), button: $('tab-patterns'), focus: $('view') },
     { id: 'samples', key: 'F2', el: $('pane-samples'), button: $('tab-samples'), focus: $('smp') },
