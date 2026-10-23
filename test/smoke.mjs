@@ -41,6 +41,7 @@ import { parseInstrument, serializeInstrument } from '../src/project/file.js';
 import { createSynthwaveProject } from '../src/project/synthwave.js';
 import { createArpDemoProject } from '../src/project/arpdemo.js';
 import { createVisData, preprocess, visibleLanes } from '../src/ui/visdata.js';
+import { highlight } from '../src/ui/shaderview.js';
 import * as lib from '../src/project/library.js';
 import { compileDsp } from '../src/audio/wasm/load.js';
 
@@ -4075,6 +4076,14 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
 // 103. The shipped demo song loads like any saved project and renders.
 {
   const { readFileSync } = await import('node:fs');
+  {   // the shader editor's colours: words by kind, text escaped, nothing lost
+    const src = 'float h = hit("kick") * 0.5; // a < b\nvec3 c = mix(C1, C2, .25);';
+    const html = highlight(src);
+    assert.ok(html.includes('<span class="t">float</span>') && html.includes('<span class="w">hit</span>') && html.includes('<span class="s">"kick"</span>'));
+    assert.ok(html.includes('<span class="n">0.5</span>') && html.includes('<span class="n">.25</span>') && html.includes('<span class="f">mix</span>'));
+    assert.ok(html.includes('<span class="c">// a &lt; b</span>'));
+    assert.equal(html.replace(/<[^>]+>/g, '').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&'), src);
+  }
   for (const name of ['bugsong']) {
     const demo = parseProject(readFileSync(new URL(`../src/project/demos/${name}.wax`, import.meta.url), 'utf8'));
     assert.ok(demo.song.length > 0 && demo.song.lanes.length > 1, `the ${name} demo loads`);

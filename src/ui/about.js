@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['378', ['Shader view (Ctrl+Alt+G): the picture\'s GLSL in an editor of its own, with syntax colours and the failing line marked.']],
   ['377', ['Live picture: pop it out into its own always-on-top window; four more shader templates.']],
   ['376', ['Live picture: five shader templates to start from (Config > Visual).']],
   ['375', ['MP4 export always uses AAC sound (a built-in encoder where the browser has none), so X accepts it.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['371', ['The live picture shows a skeleton of the patterns around the playhead, with lane names, in one muted blue; cell(\'kick\', dx) reads it from your own shader.']],
   ['370', ['A live picture driven by the lanes (Ctrl+Alt+V; your own GLSL in Config). Fix: a lane added in the session can have automation at once.']],
   ['369', ['Export to MP4: your album art as a 300 x 300 picture with the song as stereo AAC (Config, Export).']],
-  ['368', ['The Arp node shows its step mask and settings on the node itself, selected or not.']],
 ];

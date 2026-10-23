@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 378 · 2026-10-23
+
+- A Shader view of its own (the cube tab, or Ctrl+Alt+G) for the live picture's GLSL: colours for keywords, types, built-in functions, Wax's own look-ups and uniforms, numbers, strings and comments; line numbers with the failing line marked in red; the picture follows a moment after you stop typing. Tab indents (Shift+Tab outdents a selection), Enter keeps the indent, and undo works. The template list and the pop-out button are there too, and the built-in picture's source is shown to start from. The Config box for the shader stays, pointing to the new view.
+
 ## 377 · 2026-10-23
 
 - Live picture: a pop-out button (the arrow at the picture's top right, shown on hover) moves it into its own always-on-top window (Document Picture-in-Picture: Chrome, Edge, Brave) that can go to any screen. It keeps animating while Wax is covered by other programs. The button again, or closing the window, brings it back.

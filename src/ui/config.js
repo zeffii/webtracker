@@ -3,7 +3,6 @@
 // that should react to a change subscribes with onChange(), so the panel, the keyboard shortcuts and the
 // toolbar buttons all stay in step.
 import { DEFAULT_RULES } from './console.js';
-import { TEMPLATES } from './vistemplates.js';
 const KEY = 'webtracker.config';
 export const THEMES = ['system', 'dark', 'black', 'bright', 'neon', 'amber', 'phosphor', 'ice', 'synthwave'];
 
@@ -96,8 +95,7 @@ export const SCHEMA = [
   { group: 'Visual', key: 'visualOn', label: 'Live picture', hint: 'a 300 x 300 picture in the corner (Ctrl+Alt+V, or the button in the status bar)', type: 'bool', def: false },
   { key: 'visualSkeleton', label: 'Picture: pattern skeleton', hint: 'draws every lane\'s pattern around the playhead as thin rows of ticks over the picture (pitch is height, velocity is strength), scrolling past a fixed line', type: 'bool', def: true },
   { key: 'visualDecay', label: 'Picture: hit fade (ms)', hint: 'how long a lane\'s hit takes to fade from 1 (about a third of it is left after this long)', type: 'int', min: 50, max: 1000, def: 220 },
-  { key: 'visualTemplate', label: 'Picture: start from a template', hint: 'copies the template into the shader box below, replacing what is there (copy your own shader out first). "Built-in metaballs" empties the box', type: 'choice', options: ['', ...Object.keys(TEMPLATES), 'builtin'], labels: { '': 'Choose one…', ...Object.fromEntries(Object.entries(TEMPLATES).map(([k, t]) => [k, t.label])), builtin: 'Built-in metaballs' }, def: '' },
-  { key: 'visualGlsl', label: 'Picture: your own shader', hint: 'GLSL ES 1.00, a whole main(). Empty uses the built-in metaballs. Ready to use: uniforms R (size), T (seconds), BEAT (beats), HITS (all hits, 0 to 1), C1 and C2 (colours), LANE[16]; and the look-ups hit("kick"), pitch("acid"), vel(2), held("pad") by lane name or number from 0, and hits(). A mistake in it shows as a line at the foot of the picture and the built-in picture keeps running.', type: 'code', def: '' },
+  { key: 'visualGlsl', label: 'Picture: your own shader', hint: 'edited in the Shader view (Ctrl+Alt+G), with templates and colours for the code. GLSL ES 1.00, a whole main(). Empty uses the built-in metaballs. Ready to use: uniforms R (size), T (seconds), BEAT (beats), HITS (all hits, 0 to 1), C1 and C2 (colours), LANE[16]; and the look-ups hit("kick"), pitch("acid"), vel(2), held("pad") by lane name or number from 0, and hits(). A mistake in it shows as a line at the foot of the picture and the built-in picture keeps running.', type: 'code', def: '' },
   { group: 'Meters', key: 'meterOn', label: 'Meter band', hint: 'a strip along the bottom of the window (Ctrl+Alt+M, or the Meters button)', type: 'bool', def: false },
   { key: 'meterHeight', label: 'Meter band: height (px)', type: 'int', min: 100, max: 500, def: 190 },
   { key: 'meterSpectrum', label: 'Meters: spectrum', type: 'bool', def: true },

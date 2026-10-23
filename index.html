@@ -638,6 +638,28 @@
     #viz[hidden] { display: none; }
     #viz canvas { width: 300px; height: 300px; display: block; }
     #viz #viz-text { position: absolute; left: 0; top: 0; pointer-events: none; }
+    #shader-bar { display: flex; gap: .4rem; align-items: center; margin: .3rem 0; }
+    #pane-shader .ref { display: block; margin-top: .3rem; opacity: .85; }
+    body:has(#viz:not([hidden])) #pane-shader .pane-main { padding-right: 330px; }
+    #shader-box { display: flex; height: calc(100vh - 14rem); min-height: 14rem; max-width: 110ch; border: 1px solid color-mix(in srgb, var(--fg) 30%, transparent); background: var(--panel); font: 13px/1.45 ui-monospace, Consolas, monospace; overflow: hidden; }
+    #shader-gutter { flex: none; padding: .5rem .5rem .5rem .6rem; text-align: right; white-space: pre; color: color-mix(in srgb, var(--fg) 40%, transparent); user-select: none; will-change: transform; }
+    #shader-gutter span { display: block; }
+    #shader-gutter .bad { color: #e5534b; font-weight: 700; }
+    #shader-clip { position: relative; flex: 1 1 auto; min-width: 0; overflow: hidden; }
+    #shader-paint, #shader-input { position: absolute; inset: 0; margin: 0; padding: .5rem .6rem; box-sizing: border-box; font: inherit; line-height: inherit; white-space: pre; tab-size: 2; letter-spacing: 0; border: 0; }
+    #shader-paint { color: var(--fg); pointer-events: none; overflow: visible; will-change: transform; }
+    #shader-input { background: transparent; color: transparent; caret-color: var(--fg); resize: none; outline: none; overflow: auto; }
+    #shader-input::selection { background: color-mix(in srgb, var(--hi, #4a90d9) 55%, transparent); }
+    #shader-paint .c { color: color-mix(in srgb, var(--fg) 45%, transparent); font-style: italic; }
+    #shader-paint .k { color: color-mix(in srgb, #c46ad8 70%, var(--fg)); }
+    #shader-paint .t { color: color-mix(in srgb, #3bb0c9 70%, var(--fg)); }
+    #shader-paint .f { color: color-mix(in srgb, #4f9be0 70%, var(--fg)); }
+    #shader-paint .w { color: color-mix(in srgb, #e0a030 75%, var(--fg)); font-weight: 600; }
+    #shader-paint .g { color: color-mix(in srgb, #d9696b 70%, var(--fg)); }
+    #shader-paint .n { color: color-mix(in srgb, #d98a4a 75%, var(--fg)); }
+    #shader-paint .s { color: color-mix(in srgb, #5fb36a 75%, var(--fg)); }
+    #shader-paint .p { color: color-mix(in srgb, #9a8f6a 70%, var(--fg)); }
+    #shader-status.bad { color: #e5534b; }
     #viz-pop { position: absolute; right: 6px; top: 6px; width: 1.6rem; height: 1.6rem; padding: 0; opacity: 0; transition: opacity .15s; background: rgba(0,0,0,.55); color: #cfe3e7; border: 0; border-radius: 4px; cursor: pointer; }
     #viz:hover #viz-pop, #viz-pop:focus-visible { opacity: 1; }
     #viz-err { position: absolute; left: 0; right: 0; bottom: 0; padding: 3px 8px; font: 11px ui-monospace, Consolas, monospace; color: #ffd9d4; background: rgba(120,20,10,.85); }
@@ -815,6 +837,7 @@
       <button id="tab-arrange" title="Arrangement (F4)" aria-label="Arrangement"><svg class="ri" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 4h4v8H3z M10 9h4v11h-4z M17 3h4v5h-4z M17 12h4v6h-4z"/></svg></button>
       <button id="tab-script" title="Script: scripts that fill pattern data (Ctrl+Alt+S)" aria-label="Script"><svg class="ri" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 4c-3 0-3 2-3 4s0 4-2 4c2 0 2 2 2 4s0 4 3 4 M16 4c3 0 3 2 3 4s0 4 2 4c-2 0-2 2-2 4s0 4-3 4"/></svg></button>
       <button id="script-dock" title="Dock: show the Script panel beside the pattern editor (Ctrl+Alt+D)" aria-label="Dock" aria-pressed="false"><svg class="ri" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 4h18v16H3z M3 14h18"/></svg></button>
+      <button id="tab-shader" title="Shader: the GLSL of the live picture (Ctrl+Alt+G)" aria-label="Shader"><svg class="ri" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 5v8l-8 5-8-5V8z M12 3v18 M4 8l8 5 8-5"/></svg></button>
       <button id="tab-info" title="Song info (F10)" aria-label="Info"><svg class="ri" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h9l4 4v14H6z M15 3v4h4 M9 12h7 M9 16h7"/></svg></button>
     </nav>
     <span class="grow"></span>
@@ -1150,6 +1173,16 @@
           <dt>K, Shift+K</dt><dd>step the colour of the pattern under the cursor through 16 pastels and back to automatic (Shift goes backwards)</dd>
         </dl>
       </aside>
+  </section>
+
+  <section id="pane-shader" class="pane" hidden>
+    <div class="pane-main">
+      <div class="help">The live picture's shader: GLSL ES 1.00, a whole <code>main()</code> that sets <code>gl_FragColor</code>. It runs a moment after you stop typing, and a mistake shows below with its line marked, while the built-in picture keeps running.
+        <span class="ref">Uniforms: <b>R</b> size, <b>T</b> seconds, <b>BEAT</b> beats, <b>HITS</b> all hits 0..1, <b>NL</b> lanes, <b>C1</b> <b>C2</b> colours, <b>LANE[16]</b> (hit, pitch, vel, held). Look-ups: <b>hit("kick")</b> <b>pitch("acid")</b> <b>vel(2)</b> <b>held("pad")</b> <b>hits()</b> by lane name or number from 0; <b>cell("kick", dx)</b> the pattern dx ticks from the playhead (-8 to +23).</span></div>
+      <div id="shader-bar"><select id="shader-templates" aria-label="Shader template"></select> <button id="shader-reset" type="button" title="Go back to the built-in metaballs">Built-in</button> <button id="shader-pop" type="button" title="Pop the picture out into its own always-on-top window">Pop out picture</button></div>
+      <div id="shader-box"><div id="shader-gutter" aria-hidden="true"></div><div id="shader-clip"><pre id="shader-paint" aria-hidden="true"></pre><textarea id="shader-input" spellcheck="false" autocomplete="off" autocapitalize="off" wrap="off" aria-label="Shader source"></textarea></div></div>
+      <div id="shader-status" class="statusbar"></div>
+    </div>
   </section>
 
   <section id="pane-info" class="pane" hidden>
