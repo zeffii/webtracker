@@ -6245,7 +6245,7 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
       for (const [msgs, secs] of steps) { for (const m of msgs) rt.note('du', m); parts.push(render(rt, secs).left); }
       return Float32Array.from(parts.flatMap(p => [...p]));
     };
-    const on = (note, from = -1) => ({ type: 'noteOn', note, vel: 1, from });
+    const on = (note, from = -1, col = 'c0') => ({ type: 'noteOn', note, vel: 1, from, col });
     const chord = [[[on(48), on(55)], 0.4]];
     const one = play(1, {}, chord), four = play(4, {}, chord);
     assert.ok(four.every(Number.isFinite) && peak(four) < 2, 'poly stays finite');
@@ -6273,6 +6273,26 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     const win = (from, len) => Math.sqrt(all.slice(from, from + len).reduce((s, v) => s + v * v, 0) / len);
     const edge = a.length, len = Math.round(sr * 0.003);
     assert.ok(win(edge, len) > 0.8 * win(edge - len, len), `a retrigger does not drop the level to zero (${win(edge, len).toFixed(4)} after, ${win(edge - len, len).toFixed(4)} before)`);
+  }
+  // two columns on the same pitch keep their own voices, so a unison does not fall to one note
+  {
+    const registry = new ParamRegistry();
+    const graph = JSON.parse(JSON.stringify(def.graph));
+    graph.voices = 4;
+    const c = compile(graph, { instrument: 'du', nodeTypes: NODE_TYPES, registry });
+    const rt = new GraphRuntime({ sampleRate: sr, params: registry.values });
+    rt.load(c);
+    const on = (note, from, col) => ({ type: 'noteOn', note, vel: 1, from, col });
+    rt.note('du', on(50, -1, 'a')); rt.note('du', on(50, -1, 'b')); render(rt, 0.1);
+    rt.note('du', { type: 'noteOff', note: 50, implied: true }); rt.note('du', on(52, 50, 'a'));
+    rt.note('du', { type: 'noteOff', note: 50, implied: true }); rt.note('du', on(52, 50, 'b'));
+    render(rt, 0.1);
+    rt.note('du', { type: 'noteOff', note: 52, implied: true }); rt.note('du', on(50, 52, 'a'));
+    rt.note('du', { type: 'noteOff', note: 52, implied: true }); rt.note('du', on(50, 52, 'b'));
+    render(rt, 0.1);
+    const sets = rt.instruments.get('du').sets;
+    assert.equal(sets.filter(s => s.active).length, 2, 'two columns, two voices, however often the same pitch comes round');
+    assert.deepEqual(sets.filter(s => s.active).map(s => s.col).sort(), ['a', 'b']);
   }
   console.log('ok: duette');
 }

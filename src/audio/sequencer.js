@@ -95,6 +95,7 @@ export class Sequencer {
       prev: new Int16Array(cols.reduce((n, c) => (c.kind === 'note' ? n + 1 : n), 0)).fill(-1),   // the note each note column last started
       notes: new Float32Array(cols.reduce((n, c) => (c.kind === 'note' ? n + 1 : n), 0)),
       vels: new Float32Array(cols.reduce((n, c) => (c.kind === 'note' ? n + 1 : n), 0)),
+      colKeys: cols.filter(c => c.kind === 'note').map((_, k) => `${id}:${k}`),   // which note column a note came from, for machines that keep a column on one voice
       trigCols: cols.filter(c => c.kind === 'trig'),
       trigs: new Float32Array(cols.reduce((n, c) => (c.kind === 'trig' ? n + 1 : n), 0)),
       on: { type: 'noteOn', note: 0, vel: 1, from: -1 },   // from: the note this column was playing, for a slide
@@ -255,6 +256,7 @@ export class Sequencer {
       const vel = decodeHex1(lane.trigs[k]) / 15;
       if (lane.trigs[k] === EMPTY || vel <= 0) continue;
       lane.on.from = -1;
+      lane.on.col = undefined;
       lane.on.note = lane.trigCols[k].note;
       lane.on.vel = vel;
       this.runtime.note(lane.instrument, lane.on);
@@ -275,6 +277,7 @@ export class Sequencer {
       const from = lane.prev[k];   // still sounding in this column, or -1
       this.release(lane, k, true);
       lane.on.from = from;
+      lane.on.col = lane.colKeys[k];
       lane.on.note = decodeNote(note);
       lane.on.vel = lane.vels[k];
       this.runtime.note(lane.instrument, lane.on);

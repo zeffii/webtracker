@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 423 · 2026-10-24
+
+- Duette (and any machine that keeps a note column on one voice): a column now finds its voice by its column number instead of by the pitch of its last note, so two columns playing the same pitch (a unison, an octave doubling written as the same note) can never fall onto one voice and leave the other column silent. Notes that carry no column (the keyboard, a trigger) are allocated as before.
+
 ## 422 · 2026-10-23
 
 - **Limiter switch** on the status bar (the "Lim" button beside the meters button): switches the master limiter on and off. It is the master lane's `Lim` parameter, so it is saved with the project, follows the pattern column and the parameter panel, and lights up when the limiter is on.

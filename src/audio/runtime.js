@@ -208,16 +208,17 @@ export class GraphRuntime {
     const send = set => { for (const node of set.nodes) node.instance.note?.(msg); };
     const release = set => { set.released = true; set.releasedAt = ++this.stamp; };
     if (msg.type === 'noteOn') {
-      // a node type marked `columnVoice` keeps a note column on one voice: the next note of the column (msg.from is the note it
-      // replaces) goes to the voice that played the last, which can then glide or slide into it
-      let pick = inst.columnVoice && msg.from >= 0 ? inst.sets.find(s => s.active && s.note === msg.from) : null;
+      // a node type marked `columnVoice` keeps a note column on one voice: the next note of a column that is still sounding
+      // (msg.from is the note it replaces, msg.col names the column) goes to the voice that played the last, which can then
+      // glide or slide into it
+      let pick = inst.columnVoice && msg.from >= 0 && msg.col !== undefined ? inst.sets.find(s => s.active && s.col === msg.col) : null;
       if (!pick) pick = inst.sets.find(s => !s.active);
       if (!pick) {
         for (const s of inst.sets) {
           if (s.released ? !pick?.released || s.releasedAt < pick.releasedAt : !pick?.released && (!pick || s.stamp < pick.stamp)) pick = s;
         }
       }
-      Object.assign(pick, { active: true, released: false, silent: 0, note: msg.note, stamp: ++this.stamp });
+      Object.assign(pick, { active: true, released: false, silent: 0, note: msg.note, col: msg.col, stamp: ++this.stamp });
       send(pick);
     } else if (msg.type === 'noteOff') {
       let best = null;

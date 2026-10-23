@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['423', ['Duette: a note column keeps its voice by column number, not by pitch.']],
   ['422', ['Limiter switch on the status bar; multiband compressor with four bands.']],
   ['421', ['The master limiter starts off.']],
   ['420', ['Master limiter after the master volume, with a limiter meter in the meter band.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['416', ['Duette: a two-oscillator mono lead voice with sync, ring, one envelope and one LFO. Waveform redraws after Normalise and the other in-place edits.']],
   ['415', ['Detect chords: the notes of a recording written into a pattern (Samples, Shift+H).']],
   ['414', ['OSC out machine: notes as OSC, Renoise addresses, with a relay script.']],
-  ['413', ['Insert lane goes left or right of the lane; New instrument lists kinds with default names.']],
 ];
