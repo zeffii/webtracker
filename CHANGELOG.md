@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 397 · 2026-10-23
+
+- The DSP tab has a diode icon instead of the word. The Parameters, Ports and Kernel panel now runs down the right edge of the whole window, and the source area fills the space that is left, in width and height.
+
 ## 396 · 2026-10-23
 
 - The DSP view folds code: a small arrow in the gutter closes or opens a block (the params list, the create function with its per-sample loop, and anything nested), leaving a grey "… 35 lines, per-sample loop …" marker you can click to open again. "Fold all" closes the top-level blocks so a big node reads as an outline; "Unfold all" opens everything. Folds are remembered per node while the page is open.

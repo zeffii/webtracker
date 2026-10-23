@@ -665,8 +665,9 @@
     #dsp-chain .arr { opacity: .55; }
     #dsp-chain button { padding: 1px 9px; }
     #dsp-chain button[aria-pressed="true"] { background: var(--hi); color: var(--hi-fg); border-color: var(--hi); }
-    #dsp-body { display: grid; grid-template-columns: minmax(0, 1fr) 17rem; border: 1px solid color-mix(in srgb, var(--fg) 25%, transparent); background: var(--panel); max-width: 150ch; }
-    #dsp-code { display: grid; grid-template-columns: auto minmax(0, 1fr); height: calc(100vh - 17rem); min-height: 14rem; overflow: auto; font: 13px/1.45 ui-monospace, Consolas, monospace; }
+    #pane-dsp:not([hidden]) { display: grid; grid-template-columns: minmax(0, 1fr) 17rem; gap: 0 .75rem; padding-right: 0; }
+    #dsp-body { border: 1px solid color-mix(in srgb, var(--fg) 25%, transparent); background: var(--panel); }
+    #dsp-code { display: grid; grid-template-columns: auto minmax(0, 1fr); height: calc(100vh - 14rem); min-height: 14rem; overflow: auto; font: 13px/1.45 ui-monospace, Consolas, monospace; }
     #dsp-gut { padding: .5rem .5rem .5rem .6rem; text-align: right; white-space: pre; opacity: .55; user-select: none; }
     #dsp-gut b { font-weight: 400; color: var(--hi); opacity: 1; }
     #dsp-src { margin: 0; padding: .5rem .7rem; white-space: pre; tab-size: 2; outline: none; font: inherit; }
@@ -678,7 +679,7 @@
     #dsp-src .n { color: color-mix(in srgb, #d98a4a 75%, var(--fg)); }
     #dsp-src .o { color: color-mix(in srgb, #d9696b 75%, var(--fg)); }   /* operators: = + - * / < > ? : and the rest */
     #dsp-src .p { color: color-mix(in srgb, #3bb0c9 65%, var(--fg)); }   /* punctuation: ( ) { } [ ] ; , . */
-    #dsp-side { border-left: 1px solid color-mix(in srgb, var(--fg) 25%, transparent); padding: .5rem .7rem; display: grid; align-content: start; gap: .8rem; font-size: 12px; }
+    #dsp-side { min-height: calc(100vh - 3.2rem); margin-top: -.5rem; margin-bottom: -2rem; background: var(--panel); border-left: 1px solid color-mix(in srgb, var(--fg) 25%, transparent); padding: .5rem .7rem; display: grid; align-content: start; gap: .8rem; font-size: 12px; }
     #dsp-side h3 { margin: 0 0 .3rem; font: 600 11px/1 system-ui, sans-serif; text-transform: uppercase; letter-spacing: .08em; opacity: .65; }
     #dsp-side .prm { display: grid; grid-template-columns: 8ch minmax(0, 1fr) 7ch; gap: .4rem; align-items: center; padding: 1px 0; }
     #dsp-side .prm span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -691,7 +692,7 @@
     #dsp-kern b { color: #1f9d4b; }
     #dsp-foot { display: flex; flex-wrap: wrap; gap: .2rem 1.1rem; }
     #dsp-foot b { color: #1f9d4b; font-weight: 600; }
-    @media (max-width: 800px) { #dsp-body { grid-template-columns: minmax(0, 1fr); } #dsp-side { border-left: 0; border-top: 1px solid color-mix(in srgb, var(--fg) 25%, transparent); } }
+    @media (max-width: 800px) { #pane-dsp:not([hidden]) { grid-template-columns: minmax(0, 1fr); padding-right: .75rem; } #dsp-side { border-left: 0; border-top: 1px solid color-mix(in srgb, var(--fg) 25%, transparent); } }
     #pane-shader .ref { display: block; margin-top: .3rem; opacity: .85; }
     body:has(#viz:not([hidden])) #pane-shader .pane-main { padding-right: 330px; }
     #shader-main { display: flex; gap: .6rem; align-items: stretch; max-width: 150ch; }
@@ -918,7 +919,7 @@
       <button id="tab-script" title="Script: scripts that fill pattern data (Ctrl+Alt+S)" aria-label="Script"><svg class="ri" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 4c-3 0-3 2-3 4s0 4-2 4c2 0 2 2 2 4s0 4 3 4 M16 4c3 0 3 2 3 4s0 4 2 4c-2 0-2 2-2 4s0 4-3 4"/></svg></button>
       <button id="script-dock" title="Dock: show the Script panel beside the pattern editor (Ctrl+Alt+D)" aria-label="Dock" aria-pressed="false"><svg class="ri" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 4h18v16H3z M3 14h18"/></svg></button>
       <button id="tab-shader" title="Shader: the GLSL of the live picture (Ctrl+Alt+G)" aria-label="Shader"><svg class="ri" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 5v8l-8 5-8-5V8z M12 3v18 M4 8l8 5 8-5"/></svg></button>
-      <button id="tab-dsp" title="DSP: the code of an instrument's nodes, read only (Ctrl+Alt+I)" aria-label="DSP"><svg class="ri" viewBox="0 0 24 24" fill="currentColor" shape-rendering="crispEdges" aria-hidden="true"><path transform="translate(1 7) scale(2)" d="M0 0h2v1h-2zM0 1h1v1h-1zM2 1h1v1h-1zM0 2h1v1h-1zM2 2h1v1h-1zM0 3h1v1h-1zM2 3h1v1h-1zM0 4h2v1h-2zM5 0h2v1h-2zM4 1h1v1h-1zM5 2h1v1h-1zM6 3h1v1h-1zM4 4h2v1h-2zM8 0h2v1h-2zM8 1h1v1h-1zM10 1h1v1h-1zM8 2h2v1h-2zM8 3h1v1h-1zM8 4h1v1h-1z"/></svg></button>
+      <button id="tab-dsp" title="DSP: the code of an instrument's nodes, read only (Ctrl+Alt+I)" aria-label="DSP"><svg class="ri" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12h5 M8 6l9 6-9 6z M17 6v12 M17 12h4"/></svg></button>
       <button id="tab-info" title="Song info (F10)" aria-label="Info"><svg class="ri" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h9l4 4v14H6z M15 3v4h4 M9 12h7 M9 16h7"/></svg></button>
     </nav>
     <span class="grow"></span>
@@ -1287,14 +1288,14 @@
       <div id="dsp-chain" role="toolbar" aria-label="Nodes in running order"></div>
       <div id="dsp-body">
         <div id="dsp-code"><div id="dsp-gut" aria-hidden="true"></div><pre id="dsp-src" tabindex="0" aria-label="Node source"></pre></div>
-        <aside id="dsp-side">
-          <div><h3>Parameters</h3><div id="dsp-prm"></div></div>
-          <div><h3>Ports</h3><div id="dsp-ports"></div></div>
-          <div><h3>Kernel</h3><div id="dsp-kern"></div></div>
-        </aside>
       </div>
       <div id="dsp-foot" class="statusbar"></div>
     </div>
+    <aside id="dsp-side">
+        <div><h3>Parameters</h3><div id="dsp-prm"></div></div>
+        <div><h3>Ports</h3><div id="dsp-ports"></div></div>
+        <div><h3>Kernel</h3><div id="dsp-kern"></div></div>
+      </aside>
   </section>
 
   <section id="pane-info" class="pane" hidden>
