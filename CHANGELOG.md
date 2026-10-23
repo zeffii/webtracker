@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 418 · 2026-10-23
+
+- **Tape** effect (Effects > Distortion > "Tape", or the `tape` node): what a recording on tape does to a sound, in six qualities (`type`): studio reel, chrome cassette, ferric cassette, worn cassette, dictaphone and dubbed copy, each with its own brightness, low cut, head bump, hiss, wobble and dropout habits. `age` wears any of them: darker, more wobble, more hiss, more dropouts. `drive` is the tape saturation (squashes loud parts, adds warm harmonics), `wow` is the slow pitch drift (shared by both channels) and `flutter` the fast shiver (a little different in each), `hiss` and `dropouts` (short dips in level and brightness, each channel on its own) scale those, `tone` moves the loss of highs, and `mix` blends with the clean sound, which is delayed by 4.5 ms to match.
+
 ## 417 · 2026-10-23
 
 - **Duette is polyphonic**: a new Duette instrument starts with 3 voices and 3 note columns (set both in the Instruments screen; at 1 voice it is the mono lead as before). Every note column keeps to one voice, so portamento and the Sld slide work along each column, from that column's own last note, and the columns together play chords. A new `columnVoice` flag on a node type asks the voice allocator for this; other polyphonic machines still let a note ring out through its release while the next one takes another voice.

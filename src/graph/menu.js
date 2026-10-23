@@ -19,7 +19,7 @@ const GROUPS = {
     ['Delay', ['delay', 'multitap', 'shiva']],
     ['Reverb', ['hall', 'plate', 'shimmer', 'urugraVerb', 'convolver']],
     ['Spectral', ['blur', 'specpan']],
-    ['Distortion', ['distortion', 'waveshaper', 'crusher']],
+    ['Distortion', ['distortion', 'waveshaper', 'crusher', 'tape']],
     ['Routing', ['split', 'tap']],
   ],
 };

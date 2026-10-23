@@ -6108,6 +6108,38 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   console.log('ok: squelch');
 }
 
+
+// Tape: the degrading effect
+{
+  const run = (over, input) => {
+    const T = NODE_TYPES.tape, params = T.params.map(p => over[p.name] ?? p.def), slots = Int32Array.from(params.keys());
+    const node = T.create({ sampleRate: sr, maxBlock: 128 });
+    const n = 128, total = Math.floor(sr * 0.6 / n) * n, out = new Float32Array(total), L = new Float32Array(n), R = new Float32Array(n);
+    for (let at = 0; at < total; at += n) {
+      const inp = Float32Array.from({ length: n }, (_, i) => input(at + i));
+      node.process([[inp, inp]], [[L, R]], n, Float32Array.from(params), slots);
+      out.set(L, at);
+    }
+    return out;
+  };
+  const rms = (a, from = 0) => Math.sqrt(a.slice(from).reduce((s, v) => s + v * v, 0) / (a.length - from));
+  const sine = f => i => 0.5 * Math.sin(2 * Math.PI * f * i / sr);
+  for (let t = 0; t < 6; t++) {
+    const o = run({ type: t, age: 1, drive: 1, wow: 1, flutter: 1, hiss: 1, dropouts: 1 }, sine(440));
+    assert.ok(o.every(Number.isFinite) && peak(o) < 2, `tape type ${t} stays finite and in range`);
+  }
+  const hissOf = t => rms(run({ type: t, hiss: 1, drive: 0, dropouts: 0, wow: 0, flutter: 0 }, () => 0), 4000);
+  assert.ok(hissOf(0) < 0.3 * hissOf(3) && hissOf(3) > 1e-4, 'a worn cassette hisses more than a studio reel');
+  const high = t => rms(run({ type: t, age: 0.5, hiss: 0, drive: 0, dropouts: 0, wow: 0, flutter: 0 }, sine(8000)), 4000);
+  assert.ok(high(3) < 0.5 * high(0), 'a worn cassette loses the highs a studio reel keeps');
+  const dry = run({ mix: 0 }, sine(300)), ref = sine(300);
+  assert.ok(Math.abs(rms(dry, 4000) - rms(Float32Array.from({ length: dry.length }, (_, i) => ref(i)), 4000)) < 0.01, 'mix 0 passes the clean sound');
+  const still = run({ wow: 0, flutter: 0, hiss: 0, dropouts: 0, drive: 0, type: 0, age: 0 }, sine(1000)), wobbly = run({ wow: 1, flutter: 1, hiss: 0, dropouts: 0, drive: 0, type: 3, age: 1 }, sine(1000));
+  let d = 0; for (let i = 8000; i < still.length; i++) d += Math.abs(still[i] - wobbly[i]);
+  assert.ok(d / (still.length - 8000) > 0.02, 'wow and flutter change the pitch');
+  console.log('ok: tape');
+}
+
 // Duette: the two-oscillator mono voice
 {
   const def = synthKinds.duette.make();

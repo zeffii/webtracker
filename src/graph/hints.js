@@ -363,6 +363,17 @@ const HINTS = {
   dcblock: {
     freq: 'Cutoff of the high pass that removes the offset, in Hz. Lower keeps more bass but settles more slowly.',
   },
+  tape: {
+    type: 'The kind of tape and machine. studio reel: clean and fast. chrome cassette: bright. ferric cassette: an ordinary cassette, duller and warm. worn cassette: dark, wobbling, hissy, with dropouts. dictaphone: only the middle of the sound, a lot of wobble. dubbed copy: a copy of a copy, dark and saturated.',
+    age: 'How worn the tape is. Older is darker, wobbles more, hisses more and drops out more.',
+    drive: 'How hard the tape is driven. It squashes the loud parts and adds warm harmonics.',
+    wow: 'Slow pitch drift, about once a second. Scaled by the type and the age.',
+    flutter: 'Fast pitch shiver, 7 to 12 times a second. Scaled by the type and the age.',
+    hiss: 'The hiss of the tape. Its level depends on the type and the age.',
+    dropouts: 'How often the tape drops out: short dips in level, dulling the sound as they go. Rarer on a young tape.',
+    tone: 'Moves the loss of highs: left is duller, right is brighter.',
+    mix: 'Blend with the clean sound (delayed by about 4.5 ms to match).',
+  },
   crusher: {
     bits: 'Bit depth. Lower is rougher; it may be fractional (4.5 is between 4 and 5 bits).',
     rate: 'Sample rate in Hz the sound is held at. Lower is more aliased and gritty. At or above the engine\'s rate there is no reduction.',

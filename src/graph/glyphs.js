@@ -270,6 +270,11 @@ export const GLYPHS = {
     line(ctx, burst(0.02, 0.2, 0.7));
     line(ctx, burst(0.32, 0.64, 0.9));
   },
+  tape: (ctx, cx, cy, w, h) => {   // two reels joined by a tape path
+    const r = Math.min(w, h) * 0.2, lx = cx - w * 0.24, rx = cx + w * 0.24, y = cy - h * 0.05;
+    for (const x of [lx, rx]) { const pts = []; for (let i = 0; i <= 16; i++) { const a = i / 16 * Math.PI * 2; pts.push([x + Math.cos(a) * r, y + Math.sin(a) * r]); } line(ctx, pts); }
+    line(ctx, [[lx - r, y + 0.2 * h], [lx, y + r], [rx, y + r], [rx + r, y + 0.2 * h]]);
+  },
   squelch: (ctx, cx, cy, w, h) => {   // a saw tooth rising through a resonant filter peak
     const x = f => cx - w / 2 + f * w, y = f => cy + h / 2 - f * h;
     const saw = []; for (let i = 0; i <= 3; i++) { saw.push([x(0.05 + i * 0.12), y(0.15)], [x(0.05 + i * 0.12 + 0.11), y(0.55)]); }
