@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 411 · 2026-10-23
+
+- The arrangement view's right-click "Insert lane…" now opens with two entries before the instrument list: **New instrument…** (every synth kind, the sampler and the blank graph; it makes the instrument and puts its lane at the end) and **Unassigned instruments…** (the instruments that have no lane yet, greyed out when there are none). Below them the list of all instruments stays as it was. Menus taller than the window now scroll.
+
 ## 410 · 2026-10-23
 
 - Dragging a selection in the arrangement view no longer stops when the pointer strays out of the grid (into the side menu, say). The drag now ends only when the button is let go, so coming back into the grid carries on growing the same block. The same fix applies if the button is released outside the window.

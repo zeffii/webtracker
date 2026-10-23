@@ -277,6 +277,13 @@ const seqView = createSequenceView({
   onMove: (lane, tick) => { view.goto(lane, tick); followLane(lane); help.update(project?.lanes?.[lane]); },
   onParams: () => setFloat(true),
   instruments: () => listedInstruments(),
+  unassigned: () => { const used = new Set(project.lanes.map(l => l.instrument)); return listedInstruments().filter(id => !used.has(id)); },
+  newKinds: () => [
+    ...Object.entries(synthKinds).filter(([k]) => k !== 'empty').map(([k, { label }]) => ({ value: `synth:${k}`, label })),
+    { value: 'sampler', label: 'Sampler (plays a sample)', disabled: !$('new-inst-sample').value },
+    { value: 'synth:empty', label: synthKinds.empty.label },
+  ],
+  onNewInstrument: value => makeInstrument(value),
   onAddLane: id => { try { const lane = addLaneFor(id); projStatus(`Added lane ${lane.id}.`); } catch (err) { projStatus(err.message); } },
   onSeek: tick => { if (!started) return; if (playing) engine.play(tick); else setPlaying(true, tick); },
   onSong: () => songChanged(),
@@ -1938,6 +1945,24 @@ async function loadSampleFiles(files) {
   };
 }
 
+// A new instrument of a kind ('synth:NAME' or 'sampler') with its own lane; the sampler plays the sample picked in the box.
+function makeInstrument(value, name = '') {
+  try {
+    const [type, kind] = value.split(':');
+    const id = type === 'sampler' ? addSamplerInstrument(project, name, $('new-inst-sample').value) : addSynthInstrument(project, name, kind);
+    loadInst(id);
+    if (type === 'sampler') sendSamples(id);
+    addLaneFor(id);
+    patcher.load({ instruments: project.instruments });
+    patcher.show(id);
+    refreshProjectUi();
+    $('new-inst-name').value = '';
+    projStatus(`Added ${id} with its own lane.`);
+  } catch (err) {
+    projStatus(err.message);
+  }
+}
+
 // One box makes any new instrument: a synth from the list, a sampler on a chosen sample, or an empty graph.
 {
   const kinds = $('new-inst-kind'), sample = $('new-inst-sample');
@@ -1948,23 +1973,7 @@ async function loadSampleFiles(files) {
   const showSample = () => { sample.hidden = kinds.value !== 'sampler'; };
   kinds.addEventListener('change', showSample);
   showSample();
-  $('add-inst').addEventListener('click', () => {
-    try {
-      const [type, kind] = kinds.value.split(':');
-      const name = $('new-inst-name').value.trim();
-      const id = type === 'sampler' ? addSamplerInstrument(project, name, sample.value) : addSynthInstrument(project, name, kind);
-      loadInst(id);
-      if (type === 'sampler') sendSamples(id);
-      addLaneFor(id);
-      patcher.load({ instruments: project.instruments });
-      patcher.show(id);
-      refreshProjectUi();
-      $('new-inst-name').value = '';
-      projStatus(`Added ${id} with its own lane.`);
-    } catch (err) {
-      projStatus(err.message);
-    }
-  });
+  $('add-inst').addEventListener('click', () => makeInstrument(kinds.value, $('new-inst-name').value.trim()));
 }
 
 $('add-lane').addEventListener('click', () => {

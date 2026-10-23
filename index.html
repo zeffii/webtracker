@@ -83,7 +83,7 @@
     .ico { width: 1em; height: 1em; vertical-align: -.12em; }
     #rec[aria-pressed=true] .ico circle { fill: #fff; }
     #rec[aria-pressed=true] { background: #c0303a; border-color: #c0303a; color: #fff; }
-    .ctx-menu { position: fixed; z-index: 30; min-width: 15rem; background: var(--bg); color: var(--fg); border: 1px solid; box-shadow: 0 4px 14px rgb(0 0 0 / .35); padding: 2px; font: 12px/18px system-ui, sans-serif; user-select: none; }
+    .ctx-menu { position: fixed; z-index: 30; min-width: 15rem; background: var(--bg); color: var(--fg); border: 1px solid; box-shadow: 0 4px 14px rgb(0 0 0 / .35); padding: 2px; font: 12px/18px system-ui, sans-serif; user-select: none; max-height: calc(100vh - 12px); overflow-y: auto; }
     .ctx-item { display: flex; justify-content: space-between; gap: 1.5rem; padding: 1px 8px; cursor: pointer; white-space: nowrap; }
     .ctx-item.on { background: var(--hi); color: var(--hi-fg); }
     .ctx-item.off { opacity: .4; cursor: default; }

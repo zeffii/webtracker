@@ -10,7 +10,7 @@ export function showContextMenu(e, items, { doc = document } = {}) {
   const rows = [];
   let at = -1;
   const mark = i => { at = i; rows.forEach((r, k) => r.classList.toggle('on', k === i)); };
-  const close = () => { menu.remove(); doc.removeEventListener('mousedown', away, true); doc.removeEventListener('keydown', keys, true); doc.removeEventListener('scroll', close, true); if (open === close) open = null; };
+  const close = () => { menu.remove(); doc.removeEventListener('mousedown', away, true); doc.removeEventListener('keydown', keys, true); doc.removeEventListener('scroll', onScroll, true); if (open === close) open = null; };
   const run = item => { close(); item.run(); };
   for (const item of items) {
     if (item.separator) { const s = doc.createElement('div'); s.className = 'ctx-sep'; menu.append(s); continue; }
@@ -28,6 +28,7 @@ export function showContextMenu(e, items, { doc = document } = {}) {
     rows.push(row);
     menu.append(row);
   }
+  const onScroll = ev => { if (!menu.contains(ev.target)) close(); };   // a long menu scrolls itself
   const away = ev => { if (!menu.contains(ev.target)) close(); };
   const keys = ev => {
     const live = rows.map((r, i) => (r.item.disabled ? -1 : i)).filter(i => i >= 0);
@@ -45,7 +46,7 @@ export function showContextMenu(e, items, { doc = document } = {}) {
   menu.style.top = `${Math.max(0, Math.min(e.clientY, vh - h - 4))}px`;
   doc.addEventListener('mousedown', away, true);
   doc.addEventListener('keydown', keys, true);
-  doc.addEventListener('scroll', close, true);
+  doc.addEventListener('scroll', onScroll, true);
   open = close;
   return close;
 }
