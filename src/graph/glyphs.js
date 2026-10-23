@@ -75,6 +75,13 @@ export const GLYPHS = {
     for (let i = 0; i <= 14; i++) { const t = i / 14, X = x(0.2 + t * 0.75), A = 0.55 * Math.exp(-t * 3.2); ctx.moveTo(X, y(0.1 + 0.3)); ctx.lineTo(X, y(0.4 + (i % 2 ? A : -A) * 0.6)); }
     ctx.stroke();
   },
+  urugraVerb: (ctx, cx, cy, w, h) => {   // echoes falling away, the later ones blurred together
+    const x = f => cx - w / 2 + f * w, y = f => cy + h / 2 - f * h;
+    ctx.beginPath();
+    [0.08, 0.26, 0.4, 0.5, 0.58].forEach((f, i) => { ctx.moveTo(x(f), y(0.1)); ctx.lineTo(x(f), y(0.1 + 0.85 * Math.pow(0.62, i))); });
+    ctx.moveTo(x(0.62), y(0.1)); ctx.quadraticCurveTo(x(0.78), y(0.22), x(0.95), y(0.1));
+    ctx.stroke();
+  },
   comb: (ctx, cx, cy, w, h) => {   // evenly spaced teeth that fall away to the right
     line(ctx, [[cx - w / 2, cy + h * 0.35], [cx + w / 2, cy + h * 0.35]]);
     ctx.beginPath();

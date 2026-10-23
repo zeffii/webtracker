@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 407 · 2026-10-23
+
+- **urugraVerb** (Effects > Reverb): your ArguruInspiredReverb3Opto gendsp, ported as it is. Four damped feedback combs per channel (the right channel read a little further back), six all-pass diffusers in series, a gentle low-pass and a mid/side width stage, with the very slow 0.11 Hz modulation of the delay times and the pre-delay inside the comb loops. Parameters keep the names and defaults of the gendsp: predelay, size, decay, damp, mod, dry, wet, width. Two small differences: the delay times glide for 10 ms when a parameter moves, so turning size or predelay does not click, and the buffers grow with the sample rate so the longest delay plus pre-delay always fits.
+
 ## 406 · 2026-10-23
 
 - An impulse-response reverb, **convolver** (Effects > Reverb). Any sample in the project is the response (mono or stereo, up to 8 seconds): add one under the graph with Add sample, and it is saved inside the project. Controls: `size` stretches the room, `decay` fades the response out sooner, `predelay`, `lowcut`, `highcut`, `width`, `level` and `mix`; a pattern's Smp column can switch between several responses. It is partitioned FFT convolution in three stages (128, 1024 and 4096 samples) with the slow stage spread over the blocks between, so a long response stays cheap (about 8 percent of a block's time in my test with an 8 second stereo response); the sound is about 3 ms late. A new response, size or decay is rebuilt in the background while the old one plays on. The node's F1 help page lists where to find free impulse responses (OpenAIR, EchoThief, Voxengo, Airwindows, Samplicity and more).

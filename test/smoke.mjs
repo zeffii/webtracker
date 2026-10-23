@@ -7720,4 +7720,29 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   assert.ok(Math.abs(y[3000]) < 0.01 && Math.abs(y[12000]) < 0.01, 'and nothing between them');
   console.log('ok: convolver');
 }
+{
+  // urugraVerb: a tail that rings and dies away, dry passes at wet 0, more decay rings longer
+  const type = NODE_TYPES.urugraVerb;
+  const slots = type.params.map((_, i) => i);
+  const tail = set => {
+    const node = type.create({ sampleRate: sr });
+    const values = type.params.map(p => set[p.name] ?? p.def);
+    const e = [];
+    for (let b = 0; b < 400; b++) {
+      const L = new Float32Array(block), R = new Float32Array(block), oL = new Float32Array(block), oR = new Float32Array(block);
+      if (b === 0) { L[0] = 1; R[0] = 1; }
+      node.process([[L, R]], [[oL, oR]], block, values, slots);
+      assert.ok(oL.every(Number.isFinite) && oR.every(Number.isFinite), 'urugraVerb stays finite');
+      e.push(oL.reduce((a, x) => a + x * x, 0) + oR.reduce((a, x) => a + x * x, 0));
+    }
+    return e;
+  };
+  const dryOnly = tail({ wet: 0 });
+  assert.ok(Math.abs(dryOnly[0] - 2) < 1e-6 && dryOnly.slice(1).every(v => v === 0), 'wet 0 passes the dry sound alone');
+  const short = tail({ decay: 0.3, dry: 0 }), long = tail({ decay: 0.9, dry: 0 });
+  const sum = (e, a, b) => e.slice(a, b).reduce((x, y) => x + y, 0);
+  assert.ok(sum(long, 100, 400) > 3 * sum(short, 100, 400), 'more decay rings longer');
+  assert.ok(sum(long, 300, 400) < sum(long, 20, 120), 'and the tail dies away');
+  console.log('ok: urugraVerb');
+}
 console.log('smoke test passed');

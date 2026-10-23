@@ -212,6 +212,16 @@ const HINTS = {
     level: 'Level of the reverb in dB. The response is evened out, so different ones come in at about the same level.',
     mix: 'Dry to reverb. 0 is dry only.',
   },
+  urugraVerb: {
+    predelay: 'Milliseconds before the reverb starts. It sits inside the comb loops, so it also stretches each echo of the tail.',
+    size: 'Room size: 0 is small and tight, 1 is large.',
+    decay: 'How long the tail rings. Used from 0.1 to 0.93.',
+    damp: 'Darkens the tail: higher is duller and the highs die sooner.',
+    mod: 'Depth of a very slow (0.11 Hz) wobble in the delay times, which keeps the tail from ringing.',
+    dry: 'Level of the unprocessed sound.',
+    wet: 'Level of the reverb.',
+    width: 'Stereo width of the reverb: 0 is mono, 1 as it is, 2 wide.',
+  },
   comb: {
     freq: 'The first peak of the comb, in Hz; the others sit at its multiples. Feed it noise or clicks and it plays this pitch.',
     feedback: 'Sends the output back through the delay: higher rings longer (a tuned resonator). Negative puts the peaks between the harmonics and sounds an octave lower.',
