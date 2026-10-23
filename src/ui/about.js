@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['392', ['Sample screen: Space over the waveform plays from the start, Alt+Space from the slice marker left of the mouse.']],
   ['391', ['Auto-slice previews the hits on the waveform as you move its settings; Slice makes them real markers.']],
   ['390', ['Auto-slice is a dialog with a live count of the hits it finds.']],
   ['389', ['Auto-slice settings now sit in a line above the status bar on the Sample screen.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['385', ['Several shaders per song: the shader lane\'s Shd column switches between them.']],
   ['384', ['The picture\'s shader is saved with the project.']],
   ['383', ['Expose a shader number from the Knobs panel: the shader machine gets a hatched lane with a pattern column for it, so patterns can animate the picture.']],
-  ['382', ['A Pause button (and the Pause key): stop in place, carry on from the same row.']],
 ];

@@ -1228,10 +1228,31 @@ const prepareAudition = id => {
   }
   if (auditionDirty) { engine.sendToNode(AUDITION, 'sampler', sampleMessage(s)); auditionDirty = false; }
 };
-const playSample = (id, note, on) => {
+const playSample = (id, note, on, frame = 0) => {   // frame: where in the sample the note starts (0 is the beginning)
   if (!started || !(id in project.samples)) return;
-  if (on) { prepareAudition(id); engine.noteOn(AUDITION, note, 1, { choke: true }); }   // a new note fades the old one, loop or not else if (audition) engine.noteOff(AUDITION, note);
+  if (on) { prepareAudition(id); engine.set(`${AUDITION}.sampler.offset`, Math.min(1, Math.max(0, frame / Math.max(1, project.samples[id].data.length - 1)))); engine.noteOn(AUDITION, note, 1, { choke: true }); }   // a new note fades the old one, loop or not else if (audition) engine.noteOff(AUDITION, note);
 };
+// Space with the mouse over the waveform plays the sample from its start; Alt+Space (or Ctrl+Space, as some systems keep Alt+Space for
+// the window menu) from the slice marker at or to the left of the mouse. The note lasts while the key is held.
+let waveX = null;
+{
+  const wave = $('wave');
+  wave.addEventListener('mousemove', e => { waveX = e.offsetX; });
+  wave.addEventListener('mouseleave', () => { waveX = null; });
+  document.addEventListener('keydown', e => {
+    if (e.key !== ' ' || waveX === null || tabs.active !== 'samples') return;
+    if (/^(INPUT|TEXTAREA|SELECT|BUTTON)$/.test(e.target?.tagName) || $('autoslice').open) return;
+    e.preventDefault(); e.stopImmediatePropagation();
+    if (e.repeat || !started) return;
+    const at = waveform.frameAtX(waveX), from = e.altKey || e.ctrlKey ? waveform.sliceBefore(at) : 0;
+    if (sampleScreen.playFrom('wave-space', Math.max(0, from))) {
+      const slice = from >= 0 && (e.altKey || e.ctrlKey) ? (waveform.sample()?.slices ?? []).slice().sort((a, b) => a - b).indexOf(from) : -1;
+      sampleScreen.say(e.altKey || e.ctrlKey ? (from >= 0 ? `Playing from slice ${slice.toString(16).toUpperCase().padStart(2, '0')}, frame ${from}.` : 'No slice marker to the left: playing from the start.') : 'Playing from the start.');
+    }
+  }, true);
+  document.addEventListener('keyup', e => { if (e.key === ' ') sampleScreen.release('wave-space'); }, true);
+  window.addEventListener('blur', () => sampleScreen.release('wave-space'));
+}
 let autoSliceOpen = () => {};
 const sampleScreen = createSampleScreen({
   el: $('smp'), statusEl: $('proj-status'), getProject: () => project,

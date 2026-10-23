@@ -340,6 +340,9 @@ export function createWaveformView({ canvas, statusEl, getProject, onLoop, onSel
     // markers drawn as a preview only (auto-slice): frames, and the range whose own markers they would replace ({ from, to }, or null); nothing is stored
     setGhost(frames, replaced = null) { ghost = frames?.length ? { frames: [...frames], replaced } : null; lastKey = null; },
     activeFrame() { const s = sample(); return s && active >= 0 ? slicesOf(s)[active] ?? -1 : -1; },
+    // the frame under a canvas x, and the slice marker at or before a frame (-1 when there is none)
+    frameAtX(x) { return Math.min(Math.max(0, xToFrame(x)), Math.max(0, frames() - 1)); },
+    sliceBefore(frame) { const s = sample(); return (s?.slices ?? []).reduce((best, f) => (f <= frame && f > best ? f : best), -1); },
     sample,
     setSelection(from, to) { selection = { from, to }; lastKey = null; },
     setMode(next) { mode = next === 'spec' ? 'spec' : 'wave'; lastKey = null; },

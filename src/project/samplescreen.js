@@ -414,6 +414,8 @@ export function createSampleScreen({ el, statusEl, getProject, onChange = () => 
 
   // Auto-slice: a marker on every hit of the sample, or of the selection (markers inside it are replaced). preview finds them without
   // touching the sample, so a dialog can show how many a setting gives; apply puts the markers in. Both take sensitivity (0 to 100) and gap (ms).
+  // Plays the selected sample from a frame, for as long as the key that started it is held (main.js: Space over the waveform).
+  const playFrom = (code, frame) => { if (!sel || held.has(code)) return false; held.set(code, ROOT); onNote(sel, ROOT, true, frame); return true; };
   const autoSlice = {
     preview({ sensitivity = config.get('sliceSensitivity'), gap = config.get('sliceMinGap'), replace = config.get('sliceReplace') } = {}) {
       const s = sample();
@@ -435,5 +437,5 @@ export function createSampleScreen({ el, statusEl, getProject, onChange = () => 
       return `Found ${hits.length} onsets${whole ? '' : ' in the selection'}: ${sample().slices.length} slice markers now.`;
     },
   };
-  return { draw, key, select, runEdit, autoSlice, undoRedo, markSlice, setSelection(from, to) { if (sel) setSelection(Math.max(0, from), Math.max(0, to)); }, setActiveSlice(i) { activeSlice = i; }, history, get octave() { return octave; }, get selection() { return [selFrom, selTo]; }, get selected() { return sel; }, get focus() { return focus; }, get mode() { return mode; } };
+  return { draw, key, select, runEdit, autoSlice, playFrom, release: code => stopNote(code), say, undoRedo, markSlice, setSelection(from, to) { if (sel) setSelection(Math.max(0, from), Math.max(0, to)); }, setActiveSlice(i) { activeSlice = i; }, history, get octave() { return octave; }, get selection() { return [selFrom, selTo]; }, get selected() { return sel; }, get focus() { return focus; }, get mode() { return mode; } };
 }

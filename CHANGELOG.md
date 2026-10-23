@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 392 · 2026-10-23
+
+- Sample screen: with the mouse over the waveform, Space plays the sample from the start (for as long as it is held), and Alt+Space plays from the slice marker nearest to the left of the mouse (Ctrl+Space does the same, for systems that keep Alt+Space for the window menu). The status line says which slice it started from.
+
 ## 391 · 2026-10-23
 
 - Auto-slice shows what it would do before it does it: the hits are drawn on the waveform as dashed teal lines (a preview only, nothing is stored) and follow the sensitivity and gap while you change them. Slice turns them into real markers. With no selection it works on the whole sample; with one, only on that part. A new tick box, Replace the markers in range (on by default), decides whether the markers already inside that range are replaced (they are drawn faint in the preview) or kept with the new ones added; markers outside the range always stay.
