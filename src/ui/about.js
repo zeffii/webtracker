@@ -17,5 +17,4 @@ export const CHANGELOG = [
   ['378', ['Shader view (Ctrl+Alt+G): the picture\'s GLSL in an editor of its own, with syntax colours and the failing line marked.']],
   ['377', ['Live picture: pop it out into its own always-on-top window; four more shader templates.']],
   ['376', ['Live picture: five shader templates to start from (Config > Visual).']],
-  ['375', ['MP4 export always uses AAC sound (a built-in encoder where the browser has none), so X accepts it.']],
 ];
