@@ -2,6 +2,11 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 383 · 2026-10-23
+
+- Patterns can animate the shader. In the Knobs panel of the Shader view each ordinary number has an "expose" button: the number in the code becomes kn("name", start, low, high), named from the variable it belongs to, and the project gets a "shader" machine and lane (made the first time) with a pattern column of that name, 00 giving low and FF high, up to 16 of them. They can be written, ramped and given curves like any other column; the picture reads them every frame. An exposed number shows in blue in the code, its knob follows the song, "unexpose" turns it back into a plain number, and an input no code uses any more can be removed. The shader lane is drawn faintly hatched, in the pattern editor and the arrangement, and is left out of the picture's own lane list.
+- Whole-number (int) literals can't be exposed, since the picture's inputs are floats.
+
 ## 382 · 2026-10-23
 
 - A Pause button next to Play (also the Pause key). It stops where the song is and keeps the place; Pause again, or Play, carries on from that row. Stop (F8) still stops for good, and Play from the cursor (F6) starts from the cursor as before. Notes held across a pause start again from the row.

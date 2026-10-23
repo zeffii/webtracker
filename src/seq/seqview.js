@@ -1,4 +1,5 @@
 import { esc } from './html.js';
+import { SHADER } from '../instruments.js';
 import * as config from '../ui/config.js';
 import { dimLevel, dimFilter } from '../ui/dim.js';
 import { createPlayline, createLoopLines } from '../ui/playline.js';
@@ -579,7 +580,7 @@ export function createSequenceView({ el, statusEl, listEl, transport, onToggle, 
         const label = `${off ? '<off>' : ''}${flip ? (muted ? '<mute>' : '<play>') : ''}`;
         const room = COLW - label.length - 1;   // the cell's last character is hidden by the text's left padding
         if (label) text = `${(pl && pl.start >= t ? text.slice(0, room - 1).trimEnd() : '').padEnd(room)}${label} `;
-        const classes = ['cell', level === 2 ? 'silenced' : muted && 'muted', isCur && 'cur', picked && li >= picked.l0 && li <= picked.l1 && t >= picked.t0 && t <= picked.t1 && 'sel'].filter(Boolean).join(' ');
+        const classes = ['cell', l.instrument === SHADER && 'shd', level === 2 ? 'silenced' : muted && 'muted', isCur && 'cur', picked && li >= picked.l0 && li <= picked.l1 && t >= picked.t0 && t <= picked.t1 && 'sel'].filter(Boolean).join(' ');
         let inner = esc(text);
         if (label) {
           inner = `${esc(text.slice(0, room))}<span class="mk ${muted ? 'mm' : 'mu'}">${esc(label)}</span> `;

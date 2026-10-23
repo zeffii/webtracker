@@ -42,6 +42,9 @@ import { createSynthwaveProject } from '../src/project/synthwave.js';
 import { createArpDemoProject } from '../src/project/arpdemo.js';
 import { createVisData, preprocess, visibleLanes } from '../src/ui/visdata.js';
 import { highlight, numbers, sliderSpec, formatValue } from '../src/ui/shaderview.js';
+import { knobCalls } from '../src/ui/visdata.js';
+import { addShaderKnob, removeShaderKnob } from '../src/project/ops.js';
+import { SHADER } from '../src/instruments.js';
 import * as lib from '../src/project/library.js';
 import { compileDsp } from '../src/audio/wasm/load.js';
 
@@ -3342,6 +3345,29 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     parseProject(serializeProject({ ...p, lanes }));
   }
 
+  // a number exposed to the patterns is a column of the shader lane, and a value written there reaches the registry the picture reads
+  {
+    const p = createArpDemoProject();
+    p.lanes = p.song.lanes;
+    addShaderKnob(p, 'rad', 0.2);
+    const registry = new ParamRegistry();
+    const rt = new GraphRuntime({ sampleRate: sr, params: registry.values });
+    const seq = new Sequencer({ sampleRate: sr, runtime: rt, params: registry.values, transport: new Int32Array(new SharedArrayBuffer(8)) });
+    for (const [id, def] of Object.entries(p.instruments)) rt.load(compile(def.graph, { instrument: id, nodeTypes: NODE_TYPES, registry }));
+    seq.setSong(p.song);
+    for (const lane of prepareSong(p.song, p.instruments, registry)) seq.setLane(lane);
+    const lane = pops.addLane({ ...p, lanes: [] , song: p.song }, registry, SHADER);
+    assert.equal(lane.columns.length, 1); assert.equal(lane.columns[0].label, 'rad'); assert.equal(lane.columns[0].kind, 'param');
+    const slot = registry.slots.get(`${SHADER}.g.k1`);
+    assert.ok(Math.abs(registry.values[slot] - 0.2) < 1e-6, 'it starts at the number it was exposed with');
+    lane.rows[0][0] = 'C0';
+    lane.pages = buildPages(lane.rows, lane.columns);
+    lane.placements.push({ start: 0, length: 16, puid: 'x' });
+    seq.setLane({ ...lane, mask: lane.mask });
+    seq.play(0); render(seq, 0.3);
+    assert.ok(Math.abs(registry.values[slot] - 0xC0 / 255) < 0.01, `a pattern writes it: ${registry.values[slot]}`);
+  }
+
   // a lane added in the session can be given automation at once: it lists its curve targets without a reload
   {
     const p = createArpDemoProject();
@@ -4099,6 +4125,28 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     assert.equal(formatValue('float', 0, { decimals: 3, bare: true }), '0.');
     assert.equal(formatValue('int', -4), '(-4)');
     assert.ok(highlight('int i = 3; float f = 1.5;').includes('<span class="i">3</span>'));
+  }
+  {   // numbers exposed to the patterns: kn("name", start, low, high)
+    const t = 'float rad = kn("rad", 0.07, 0., 2.) + .4; // kn("no", 1, 0, 2)\nfloat g = kn("glow", .5, -1, 1.5);';
+    const calls = knobCalls(t);
+    assert.deepEqual(calls.map(c => [c.name, c.start0, c.lo, c.hi]), [['rad', 0.07, 0, 2], ['glow', .5, -1, 1.5]], 'a call in a comment is left out');
+    assert.deepEqual(numbers(t).map(n => n.text), ['.4'], 'the numbers inside a call are not sliders of their own');
+    const names = [[ 'kick', 'kick' ]], knobs = [];
+    const code = preprocess('float x = kn("rad", .5, 0., 2.) + kn("rad", .5, 0., 2.) + kn("glow", 1, 0, 3);', names, knobs);
+    assert.equal(code, 'float x = KN[0] + KN[0] + KN[1];');
+    assert.deepEqual(knobs.map(k => [k.name, k.d, k.lo, k.hi]), [['rad', .5, 0, 2], ['glow', 1, 0, 3]]);
+    assert.ok(highlight(t).includes('<span class="x">kn("rad", 0.07, 0., 2.)</span>'));
+    // the machine: the first exposed number makes it, names stay unique, the 17th is refused, removing frees the input
+    const proj = { instruments: {}, lanes: [], samples: {}, song: {} };
+    const a = addShaderKnob(proj, 'rad', .3), b = addShaderKnob(proj, 'rad', .6);
+    assert.equal(a.first, true); assert.equal(b.first, false);
+    assert.deepEqual([a.name, a.param, b.name, b.param], ['rad', 'k1', 'rad2', 'k2']);
+    assert.deepEqual(proj.instruments[SHADER].exposed.map(e => e.label), ['rad', 'rad2']);
+    assert.equal(proj.instruments[SHADER].graph.nodes[0].params.k2, .6);
+    removeShaderKnob(proj, 'rad');
+    assert.equal(addShaderKnob(proj, 'glow', .1).param, 'k1', 'the freed input is used again');
+    for (let i = 0; i < 14; i++) addShaderKnob(proj, `n${i}`, 0);
+    assert.throws(() => addShaderKnob(proj, 'one more', 0), /16 inputs/);
   }
   for (const name of ['bugsong']) {
     const demo = parseProject(readFileSync(new URL(`../src/project/demos/${name}.wax`, import.meta.url), 'utf8'));

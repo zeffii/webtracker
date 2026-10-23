@@ -14,7 +14,7 @@ import { preprocess } from './visdata.js';
 const VS = 'attribute vec2 a;void main(){gl_Position=vec4(a,0.,1.);}';
 const PREAMBLE = `precision highp float;
 uniform vec2 R;uniform float T,BEAT,HITS,NL,SKEL;uniform vec3 C1,C2;uniform vec4 LANE[16];
-uniform sampler2D PAT;
+uniform sampler2D PAT;uniform float KN[16];
 const float WIN=32.,BEHIND=8.;
 vec4 cell(float lane,float dx){if(lane<0.||dx<-BEHIND||dx>=WIN-BEHIND)return vec4(0.);return texture2D(PAT,vec2((dx+BEHIND+.5)/WIN,(lane+.5)/16.));}
 vec4 cell(int lane,float dx){return cell(float(lane),dx);}
@@ -103,7 +103,8 @@ export function createVisual(canvas, { size = 300, colours = [[.30, .74, .80], [
   gl.viewport(0, 0, size, size);
   gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
-  let program = null, names = [], source = '', locs = {};
+  let program = null, names = [], source = '', locs = {}, knobDefs = [];
+  const knobValues = new Float32Array(16);
   const tex = gl.createTexture();
   gl.bindTexture(gl.TEXTURE_2D, tex);
   for (const [k, v] of [[gl.TEXTURE_MIN_FILTER, gl.NEAREST], [gl.TEXTURE_MAG_FILTER, gl.NEAREST], [gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE], [gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE]]) gl.texParameteri(gl.TEXTURE_2D, k, v);
@@ -115,14 +116,14 @@ export function createVisual(canvas, { size = 300, colours = [[.30, .74, .80], [
   // Builds the program for `src` (the user's text) with the lane names as they are now. Returns '' or the error text, with line numbers
   // counted in the user's own text.
   function build(src, laneNames) {
-    const vs = compile(gl.VERTEX_SHADER, VS), fs = compile(gl.FRAGMENT_SHADER, PREAMBLE + preprocess(src, laneNames));
+    const knobs = [], vs = compile(gl.VERTEX_SHADER, VS), fs = compile(gl.FRAGMENT_SHADER, PREAMBLE + preprocess(src, laneNames, knobs));
     if (fs.error || vs.error) return String(fs.error ?? vs.error).replace(/ERROR: (\d+):(\d+)/g, (_, f, l) => `line ${Math.max(1, Number(l) - PRE_LINES)}`).trim().split('\n')[0];
     const pr = gl.createProgram(); gl.attachShader(pr, vs.s); gl.attachShader(pr, fs.s); gl.linkProgram(pr);
     if (!gl.getProgramParameter(pr, gl.LINK_STATUS)) return gl.getProgramInfoLog(pr) ?? 'the shader did not link';
     if (program) gl.deleteProgram(program);
-    program = pr; gl.useProgram(pr);
+    program = pr; knobDefs = knobs; gl.useProgram(pr);
     const at = gl.getAttribLocation(pr, 'a'); gl.enableVertexAttribArray(at); gl.vertexAttribPointer(at, 2, gl.FLOAT, false, 0, 0);
-    locs = { NL: gl.getUniformLocation(pr, 'NL'), SKEL: gl.getUniformLocation(pr, 'SKEL'), PAT: gl.getUniformLocation(pr, 'PAT'), R: gl.getUniformLocation(pr, 'R'), T: gl.getUniformLocation(pr, 'T'), BEAT: gl.getUniformLocation(pr, 'BEAT'), HITS: gl.getUniformLocation(pr, 'HITS'), LANE: gl.getUniformLocation(pr, 'LANE') };
+    locs = { NL: gl.getUniformLocation(pr, 'NL'), SKEL: gl.getUniformLocation(pr, 'SKEL'), PAT: gl.getUniformLocation(pr, 'PAT'), R: gl.getUniformLocation(pr, 'R'), T: gl.getUniformLocation(pr, 'T'), BEAT: gl.getUniformLocation(pr, 'BEAT'), HITS: gl.getUniformLocation(pr, 'HITS'), LANE: gl.getUniformLocation(pr, 'LANE'), KN: gl.getUniformLocation(pr, 'KN[0]') };
     gl.uniform3fv(gl.getUniformLocation(pr, 'C1'), colours[0]); gl.uniform3fv(gl.getUniformLocation(pr, 'C2'), colours[1]);
     return '';
   }
@@ -142,6 +143,10 @@ export function createVisual(canvas, { size = 300, colours = [[.30, .74, .80], [
       if (!program) return;
       gl.uniform2f(locs.R, size, size); gl.uniform1f(locs.T, data.T); gl.uniform1f(locs.BEAT, data.BEAT); gl.uniform1f(locs.HITS, data.HITS);
       gl.uniform4fv(locs.LANE, data.lane);
+      if (locs.KN) {   // exposed numbers: what the shader machine holds (0 to 1) stretched to the range the call gave, or the number it started as
+        knobDefs.forEach((k, j) => { const v = data.knob?.(k.name); knobValues[j] = v === undefined ? k.d : k.lo + (k.hi - k.lo) * v; });
+        gl.uniform1fv(locs.KN, knobValues);
+      }
       gl.uniform1f(locs.NL, data.NL); gl.uniform1f(locs.SKEL, data.skeleton ? 1 : 0);
       gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, tex);
       gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, 32, 16, gl.RGBA, gl.UNSIGNED_BYTE, data.pat);

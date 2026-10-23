@@ -7,14 +7,14 @@
 // A shader reads them through the lane's name (its id, or its instrument's name) or its place in the lane list, which the preprocess
 // below turns into a look-up in the LANE array:  hit("kick")  pitch("acid")  vel(2)  held("pad")  hits()
 import { PAGE_TICKS } from '../audio/sequencer.js';
-import { MASTER } from '../instruments.js';
+import { MASTER, SHADER } from '../instruments.js';
 import { EMPTY, CUT, OFF, decodeNote, decodeHex1, decodeHex2 } from '../seq/cells.js';
 
 export const MAX_LANES = 16;
 export const WIN = 32, BEHIND = 8;   // the pattern window a shader can read: WIN ticks across, the playhead BEHIND ticks from the left edge
 
 // The lanes a picture can see: every lane but the master lane, in order, at most MAX_LANES.
-export const visibleLanes = lanes => (lanes ?? []).filter(l => l.instrument !== MASTER).slice(0, MAX_LANES);
+export const visibleLanes = lanes => (lanes ?? []).filter(l => l.instrument !== MASTER && l.instrument !== SHADER).slice(0, MAX_LANES);
 
 // Reads one lane's cells at one tick into the state { hit, pitch, vel, held }. Returns true when it started something.
 export function readTick(lane, state, tick) {
@@ -59,9 +59,9 @@ export function peek(lane, tick) {
 }
 
 // transport: the Int32Array the sequencer fills ([tick, playing, fraction of the tick in 1/65536]); song: { ticksPerBeat }.
-export function createVisData({ lanes, transport, song, decayMs = () => 220 }) {
+export function createVisData({ lanes, transport, song, decayMs = () => 220, knob = () => undefined }) {
   let states = [], key = '', lastTick = -1, last = 0, time = 0;
-  const out = { T: 0, BEAT: 0, HITS: 0, NL: 1, lane: new Float32Array(MAX_LANES * 4), names: [], pat: new Uint8Array(WIN * MAX_LANES * 4) };
+  const out = { knob, T: 0, BEAT: 0, HITS: 0, NL: 1, lane: new Float32Array(MAX_LANES * 4), names: [], pat: new Uint8Array(WIN * MAX_LANES * 4) };
   let patTick = -2, patKey = '';
   const sync = () => {
     const list = visibleLanes(lanes()), k = list.map(l => `${l.id}\u0000${l.instrument}`).join('\u0001');
@@ -107,10 +107,25 @@ export function createVisData({ lanes, transport, song, decayMs = () => 220 }) {
 
 // The look-ups in a shader, turned into reads of the LANE array: hit("kick") becomes LANE[0].x, pitch(2) LANE[2].y, and so on. A name that
 // matches no lane reads 0. `names` is [[id, instrument], ...] in lane order. hits() is the sum of every lane's hit, 0 to 1.
-export function preprocess(source, names) {
+// A number exposed to the patterns is written kn("name", start, low, high): the value a lane of the shader machine gives it (0 to 1) stretched
+// from low to high, or `start` while the project has no such input. knobCalls finds them in the text (start and end are where the call sits);
+// preprocess turns each one into KN[j], j counting the different names, which the picture fills in every frame from the same list.
+const NUM = String.raw`[-+]?(?:\d+\.?\d*|\.\d+)`;
+export const KN_SOURCE = String.raw`\bkn\s*\(\s*"([^"\n]*)"\s*,\s*(${NUM})\s*,\s*(${NUM})\s*,\s*(${NUM})\s*\)`;
+export function knobCalls(text) {
+  text = String(text);
+  return [...text.matchAll(new RegExp(KN_SOURCE, 'g'))].filter(m => !text.slice(text.lastIndexOf('\n', m.index) + 1, m.index).includes('//')).map(m => ({ start: m.index, end: m.index + m[0].length, name: m[1], start0: Number(m[2]), lo: Number(m[3]), hi: Number(m[4]), text: m[0] }));
+}
+export const MAX_KNOBS = 16;
+export function preprocess(source, names, knobs = []) {
   const at = name => names.findIndex(([id, inst]) => id === name || inst === name);
   const comp = { hit: 'x', pitch: 'y', vel: 'z', held: 'w' };
   return String(source)
+    .replace(new RegExp(KN_SOURCE, 'g'), (m, name, d, lo, hi) => {
+      let j = knobs.findIndex(k => k.name === name);
+      if (j < 0 && knobs.length < MAX_KNOBS) { knobs.push({ name, d: Number(d), lo: Number(lo), hi: Number(hi) }); j = knobs.length - 1; }
+      return j >= 0 ? `KN[${j}]` : (/\./.test(d) ? d : `${d}.`);
+    })
     .replace(/\bhits\s*\(\s*\)/g, 'HITS')
     .replace(/\bcell\s*\(\s*(?:"([^"]*)"|'([^']*)')\s*,/g, (m, a, b) => { const i = at(a ?? b); return i >= 0 ? `cell(${i}.,` : `cell(-1.,`; })
     .replace(/\b(hit|pitch|vel|held)\s*\(\s*(?:"([^"]*)"|'([^']*)'|([^()]*?))\s*\)/g, (_, fn, a, b, expr) => {

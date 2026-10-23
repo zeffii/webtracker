@@ -475,6 +475,7 @@
     #view .r16 { color: #f0707a; }   /* every 16th tick, the bar line, in the accent red */
     #view .d { opacity: .5; }   /* the dots of empty cells */
     #view .cur .d { opacity: 1; }
+    #view .shd, #seq .cell.shd { background: repeating-linear-gradient(135deg, transparent 0 4px, color-mix(in srgb, var(--fg) 9%, transparent) 4px 5px); }   /* the shader lane: faintly hatched */
     #view .lock { opacity: .5; background: repeating-linear-gradient(135deg, transparent 0 5px, rgba(60, 70, 90, .10) 5px 10px); }
     #view .soloblk { background: rgba(90, 150, 255, .14); }
     .curve-pop { position: fixed; z-index: 60; background: var(--panel); color: var(--fg); border: 1px solid color-mix(in srgb, var(--fg) 40%, transparent); box-shadow: 0 6px 20px rgba(0, 0, 0, .25); padding: 8px; width: 318px; font: 12px/1.4 ui-monospace, Consolas, monospace; display: grid; gap: 4px; }
@@ -660,11 +661,12 @@
     #shader-paint .g { color: color-mix(in srgb, #d9696b 70%, var(--fg)); }
     #shader-paint .n { color: color-mix(in srgb, #d98a4a 75%, var(--fg)); background: color-mix(in srgb, #d98a4a 7%, transparent); box-shadow: 0 0 0 1px color-mix(in srgb, #d98a4a 14%, transparent); border-radius: 3px; }
     #shader-paint .i { color: color-mix(in srgb, #3fb0a0 75%, var(--fg)); background: color-mix(in srgb, #3fb0a0 8%, transparent); box-shadow: 0 0 0 1px color-mix(in srgb, #3fb0a0 16%, transparent); border-radius: 3px; }
+    #shader-paint .x { color: color-mix(in srgb, var(--hi, #4a90d9) 70%, var(--fg)); background: color-mix(in srgb, var(--hi, #4a90d9) 14%, transparent); box-shadow: 0 0 0 1px color-mix(in srgb, var(--hi, #4a90d9) 40%, transparent); border-radius: 3px; font-weight: 600; }
     #shader-paint .on { background: color-mix(in srgb, currentColor 22%, transparent); box-shadow: 0 0 0 1px color-mix(in srgb, currentColor 55%, transparent); }
     #shader-paint.plain .n, #shader-paint.plain .i { background: none; box-shadow: none; }
     #shader-knobs { flex: 0 0 17rem; height: calc(100vh - 14rem); min-height: 14rem; overflow-y: auto; padding: .4rem .5rem; box-sizing: border-box; background: var(--panel); border: 1px solid color-mix(in srgb, var(--fg) 25%, transparent); font: 11px ui-monospace, Consolas, monospace; display: flex; flex-direction: column; gap: .35rem; }
     #shader-knobs[hidden] { display: none; }
-    #shader-knobs .knob { display: grid; grid-template-columns: auto minmax(0, 1fr) 3rem auto; gap: .1rem .4rem; align-items: center; padding-bottom: .3rem; border-bottom: 1px solid color-mix(in srgb, var(--fg) 10%, transparent); }
+    #shader-knobs .knob { display: grid; grid-template-columns: auto minmax(0, 1fr) 2.6rem auto auto; gap: .1rem .4rem; align-items: center; padding-bottom: .3rem; border-bottom: 1px solid color-mix(in srgb, var(--fg) 10%, transparent); }
     #shader-knobs .knob.off .val, #shader-knobs .knob.off input[type=range] { opacity: .45; }
     #shader-knobs .knob .ctx { grid-column: 1 / -1; color: color-mix(in srgb, var(--fg) 55%, transparent); white-space: pre; overflow: hidden; text-overflow: ellipsis; }
     #shader-knobs .knob .ctx b { color: color-mix(in srgb, #d98a4a 80%, var(--fg)); font-weight: 600; }
@@ -672,6 +674,9 @@
     #shader-knobs input[type=range] { width: 100%; min-width: 0; accent-color: var(--hi, #4a90d9); background: none; }
     #shader-knobs button { font: 10px system-ui; border: 1px solid color-mix(in srgb, var(--fg) 25%, transparent); background: none; color: inherit; border-radius: 4px; cursor: pointer; padding: 0 .3rem; opacity: .7; }
     #shader-knobs .empty { opacity: .6; }
+    #shader-knobs .knob.xp { border-left: 2px solid color-mix(in srgb, var(--hi, #4a90d9) 80%, transparent); padding-left: .3rem; }
+    #shader-knobs .knob .xd { color: var(--hi, #4a90d9); font-size: 9px; }
+    #shader-knobs .knob.orphan { grid-template-columns: minmax(0, 1fr) auto; opacity: .75; }
     #shader-pop-slider { position: absolute; z-index: 4; display: flex; gap: .5rem; align-items: center; padding: .2rem .45rem; background: color-mix(in srgb, var(--panel) 94%, transparent); border: 1px solid color-mix(in srgb, var(--fg) 22%, transparent); border-radius: 6px; box-shadow: 0 3px 10px rgba(0,0,0,.18); font: 11px system-ui, sans-serif; white-space: nowrap; }
     #shader-pop-slider[hidden] { display: none; }
     #shader-pop-slider input[type=range] { width: 7rem; height: .8rem; accent-color: var(--hi, #4a90d9); background: none; }
@@ -1202,7 +1207,7 @@
   <section id="pane-shader" class="pane" hidden>
     <div class="pane-main">
       <div class="help">The live picture's shader: GLSL ES 1.00, a whole <code>main()</code> that sets <code>gl_FragColor</code>. It runs a moment after you stop typing, and a mistake shows below with its line marked, while the built-in picture keeps running.
-        <span class="ref">Uniforms: <b>R</b> size, <b>T</b> seconds, <b>BEAT</b> beats, <b>HITS</b> all hits 0..1, <b>NL</b> lanes, <b>C1</b> <b>C2</b> colours, <b>LANE[16]</b> (hit, pitch, vel, held). Look-ups: <b>hit("kick")</b> <b>pitch("acid")</b> <b>vel(2)</b> <b>held("pad")</b> <b>hits()</b> by lane name or number from 0; <b>cell("kick", dx)</b> the pattern dx ticks from the playhead (-8 to +23).</span></div>
+        <span class="ref">Uniforms: <b>R</b> size, <b>T</b> seconds, <b>BEAT</b> beats, <b>HITS</b> all hits 0..1, <b>NL</b> lanes, <b>C1</b> <b>C2</b> colours, <b>LANE[16]</b> (hit, pitch, vel, held). Look-ups: <b>hit("kick")</b> <b>pitch("acid")</b> <b>vel(2)</b> <b>held("pad")</b> <b>hits()</b> by lane name or number from 0; <b>cell("kick", dx)</b> the pattern dx ticks from the playhead (-8 to +23). <b>kn("name", start, low, high)</b> is a number the patterns can move: press <b>expose</b> on a number in the Knobs panel and it becomes one, with a column of that name in the hatched shader lane (0 is <i>low</i>, FF is <i>high</i>).</span></div>
       <div id="shader-bar"><select id="shader-templates" aria-label="Shader template"></select> <button id="shader-reset" type="button" title="Go back to the built-in metaballs">Built-in</button> <label class="tk"><input id="shader-sliders" type="checkbox" checked> Number sliders</label> <label class="tk"><input id="shader-knobs-on" type="checkbox"> Knobs</label> <button id="shader-pop" type="button" title="Pop the picture out into its own always-on-top window">Pop out picture</button></div>
       <div id="shader-main"><div id="shader-box"><div id="shader-gutter" aria-hidden="true"></div><div id="shader-clip"><pre id="shader-paint" aria-hidden="true"></pre><textarea id="shader-input" spellcheck="false" autocomplete="off" autocapitalize="off" wrap="off" aria-label="Shader source"></textarea></div></div><div id="shader-knobs" hidden aria-label="Knobs"></div></div>
       <div id="shader-status" class="statusbar"></div>

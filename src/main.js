@@ -26,7 +26,7 @@ import { LIBRARY_EXT, addToLibrary, importFromLibrary, newLibrary, parseLibrary,
 import { createRecorder } from './project/recorder.js';
 import { poolId, isPool, ensurePool, usersOfSample } from './project/ops.js';
 import { idFromName, uniqueId, addLane, addSample, addSamplerInstrument, addSynthInstrument, channelsOf, sampleMessage, slotsOf, syncSamplerStereo } from './project/ops.js';
-import { MASTER, ensureMaster, synthKinds } from './instruments.js';
+import { MASTER, SHADER, ensureMaster, synthKinds } from './instruments.js';
 import { createSampleScreen } from './project/samplescreen.js';
 import { createWaveformView } from './project/waveform.js';
 import { showContextMenu } from './ui/ctxmenu.js';
@@ -1444,11 +1444,30 @@ const toggleMeters = () => config.set('meterOn', !meters.open);
 
 // The live picture: a 300 x 300 shader in the corner, fed by what the lanes play (ui/visdata.js, ui/visual.js).
 const vizBox = $('viz'), vizErr = $('viz-err');
-const visdata = createVisData({ lanes: () => project?.lanes ?? [], transport: engine.transport, song: () => project?.song, decayMs: () => config.get('visualDecay') });
+// The shader machine: numbers the shader exposes as pattern columns (see addShaderKnob). get gives a number's value, 0 to 1.
+const shaderMachine = {
+  names: () => (project?.instruments[SHADER]?.exposed ?? []).map(e => e.label),
+  entry: name => project?.instruments[SHADER]?.exposed.find(e => e.label === name),
+  get(name) { const e = this.entry(name), slot = e && engine.registry.slots.get(`${SHADER}.${e.node}.${e.param}`); return slot === undefined ? undefined : engine.registry.values[slot]; },
+  set(name, value) {   // from a slider: the engine's value and the project's, so it is saved
+    const e = this.entry(name); if (!e) return;
+    engine.set(`${SHADER}.${e.node}.${e.param}`, value);
+    project.instruments[SHADER].graph.nodes.find(n => n.id === e.node).params[e.param] = value;
+  },
+  expose(name, value) {
+    if (!project) throw new Error('Open a project first.');
+    const r = ops.addShaderKnob(project, name, value);
+    if (r.first) { loadInst(SHADER); addLaneFor(SHADER); patcher.load({ instruments: project.instruments }); refreshProjectUi(); }
+    else reloadInstrument(SHADER);
+    return r.name;
+  },
+  remove(name) { ops.removeShaderKnob(project, name); reloadInstrument(SHADER); },
+};
+const visdata = createVisData({ lanes: () => project?.lanes ?? [], transport: engine.transport, song: () => project?.song, decayMs: () => config.get('visualDecay'), knob: name => shaderMachine.get(name) });
 let visual = null, labels = null, vizOn = false;
 shaderView = createShaderView({
   parts: { input: $('shader-input'), paint: $('shader-paint'), gutter: $('shader-gutter'), status: $('shader-status'), templates: $('shader-templates'), reset: $('shader-reset'), clip: $('shader-clip'), slidersOn: $('shader-sliders'), knobs: $('shader-knobs'), knobsOn: $('shader-knobs-on') },
-  config, defaultSource: DEFAULT_GLSL, templates: TEMPLATES,
+  config, defaultSource: DEFAULT_GLSL, templates: TEMPLATES, machine: shaderMachine,
 });
 $('shader-pop').addEventListener('click', () => popOut());
 const placeViz = () => { if (pip) return; vizBox.style.bottom = `${$('footer').offsetHeight + (meters.open ? config.get('meterHeight') : 0) + 14}px`; };

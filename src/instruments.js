@@ -613,6 +613,23 @@ export const masterInstrument = song => ({
   commands: [],
 });
 
+// The shader machine: one `glsl` node holding sixteen values the live picture reads (see ui/visdata.js). It starts with no pattern
+// columns; each number exposed from the Shader view adds one, named as the number is (see addShaderKnob in project/ops.js). Its lane is
+// drawn hatched.
+export const SHADER = 'shader';
+export const shaderInstrument = () => ({
+  graph: {
+    nodes: [
+      { id: 'g', type: 'glsl', x: 40, y: 40, params: {} },
+      { id: 'out', type: 'out', x: 240, y: 40 },
+    ],
+    connections: [],
+  },
+  noteColumns: 0,
+  exposed: [],
+  commands: [],
+});
+
 // Makes sure a project ({ song, instruments }) has the master instrument and its lane, first in the lists, and that the
 // instrument starts at the song's tempo and swing.
 export function ensureMaster({ song, instruments }) {

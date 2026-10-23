@@ -9,16 +9,22 @@ const BUILTINS = new Set(('radians degrees sin cos tan asin acos atan pow exp lo
 const WAX = new Set('hit pitch vel held hits cell R T BEAT HITS NL SKEL C1 C2 LANE PAT WIN BEHIND'.split(' '));
 const SPECIAL = new Set(['gl_FragCoord', 'gl_FragColor', 'gl_PointCoord']);
 
+import { knobCalls } from './visdata.js';
 const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 const TOKEN = /(\/\/[^\n]*|\/\*[\s\S]*?(?:\*\/|$))|("[^"\n]*"?)|(#[^\n]*)|((?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?)|([A-Za-z_]\w*)|([\s\S])/g;
 
 // The text as HTML, each word in a span whose class says what it is: c comment, s string, p preprocessor line, n number, k keyword,
 // t type, f built-in function, w one of Wax's own names, g gl_ variable. Everything else is left as it is.
 export function highlight(text, mark = -1) {
+  let out = '', at = 0;
+  for (const c of knobCalls(text)) { out += colour(text.slice(at, c.start), at, mark); out += `<span class="x">${esc(c.text)}</span>`; at = c.end; }
+  return out + colour(text.slice(at), at, mark);
+}
+function colour(text, offset, mark) {
   let out = '';
   for (const m of text.matchAll(TOKEN)) {
     const [all, comment, string, pre, num, word] = m;
-    const cls = comment ? 'c' : string ? 's' : pre ? 'p' : num ? `${/^\d+$/.test(num) ? 'i' : 'n'}${m.index === mark ? ' on' : ''}`
+    const cls = comment ? 'c' : string ? 's' : pre ? 'p' : num ? `${/^\d+$/.test(num) ? 'i' : 'n'}${m.index + offset === mark ? ' on' : ''}`
       : word ? (KEYWORDS.has(word) ? 'k' : TYPES.has(word) ? 't' : WAX.has(word) ? 'w' : BUILTINS.has(word) ? 'f' : SPECIAL.has(word) ? 'g' : '') : '';
     out += cls ? `<span class="${cls}">${esc(all)}</span>` : esc(all);
   }
@@ -29,10 +35,10 @@ export function highlight(text, mark = -1) {
 // (-.3), so it can follow a minus sign), { numStart, numEnd } the digits, kind 'int' or 'float', value signed. Numbers in comments,
 // strings and #lines, written with an exponent, or stuck to a letter (0x1F) are left out.
 export function numbers(text) {
-  const out = [];
+  const out = [], calls = knobCalls(text);
   for (const m of text.matchAll(TOKEN)) {
     const t = m[4];
-    if (!t || /[eE]/.test(t) || /\w/.test(text[m.index + t.length] ?? '')) continue;
+    if (!t || calls.some(c => m.index >= c.start && m.index < c.end) || /[eE]/.test(t) || /\w/.test(text[m.index + t.length] ?? '')) continue;
     let start = m.index, end = m.index + t.length, neg = false;
     if (text[start - 1] === '-' && text[start - 2] === '(' && text[end] === ')') { start -= 2; end += 1; neg = true; }
     out.push({ start, end, numStart: m.index, numEnd: m.index + t.length, text: t, kind: /^\d+$/.test(t) ? 'int' : 'float', neg, value: (neg ? -1 : 1) * parseFloat(t) });
@@ -63,8 +69,9 @@ export function formatValue(kind, v, { decimals = 0, bare = false } = {}) {
 
 // parts: { box, input, paint, gutter, status, templates (a select), reset (a button) }; config; defaultSource; templates: { id: { label, source } }
 // sliders: parts.clip (the box the popup sits in) and parts.slidersOn (the tick box that switches the number chips and sliders on or off)
-export function createShaderView({ parts, config, defaultSource, templates }) {
+export function createShaderView({ parts, config, defaultSource, templates, machine = null }) {
   const { input, paint, gutter, status } = parts;
+  parts.machine = machine;
   let timer = null, errorLine = 0, shown = '', slider = null, hoverMark = -1;
   const stored = () => config.get('visualGlsl');
   const lineCount = () => input.value.split('\n').length;
@@ -239,20 +246,74 @@ export function createShaderView({ parts, config, defaultSource, templates }) {
   const knobsEl = parts.knobs, rows = [];
   let knobTimer = 0;
   const nth = i => numbers(input.value)[i];
+  let liveTimer = 0;
+  const plain = v => { const t = String(Number(v.toFixed(6))); return t.includes('.') ? t : `${t}.`; };
+  // Put text over a range of the code as one step for undo, then rebuild the lists.
+  const replaceText = (start, end, text) => {
+    closeSlider(true);
+    const at = input.selectionStart;
+    sliding = true;
+    input.focus({ preventScroll: true }); input.setSelectionRange(start, end);
+    document.execCommand('insertText', false, text);
+    input.setSelectionRange(Math.min(at, input.value.length), Math.min(at, input.value.length));
+    sliding = false;
+    clearTimeout(timer); apply(); draw(); rebuildKnobs();
+  };
+  const guessName = (text, n) => {   // the name written before the = on the number's line: "float rad = .07 + ..." is "rad"
+    const ls = text.lastIndexOf('\n', n.start - 1) + 1, before = text.slice(ls, n.start), m = /([A-Za-z_]\w*)\s*[-+*\/]?=(?!=)/.exec(before);
+    return m ? m[1] : 'knob';
+  };
   const rebuildKnobs = () => {
+    clearInterval(liveTimer);
     knobsEl.hidden = !parts.knobsOn.checked || !enabled();
     if (knobsEl.hidden) return;
     knobsEl.textContent = ''; rows.length = 0;
-    const list = numbers(input.value).slice(0, 150), text = input.value;
-    if (!list.length) { knobsEl.append(Object.assign(document.createElement('div'), { className: 'empty', textContent: 'No numbers in the shader.' })); return; }
-    list.forEach((n, i) => {
+    const text = input.value, nums = numbers(text).slice(0, 150), calls = knobCalls(text), machine = parts.machine;
+    const list = [...nums.map((n, i) => ({ n, i, at: n.start })), ...calls.map(c => ({ c, at: c.start }))].sort((x, y) => x.at - y.at);
+    const lineOf = at => { const ls = text.lastIndexOf('\n', at - 1) + 1, le = text.indexOf('\n', at); return [ls, text.slice(ls, le < 0 ? text.length : le)]; };
+    const live = [];
+    if (!list.length) knobsEl.append(Object.assign(document.createElement('div'), { className: 'empty', textContent: 'No numbers in the shader.' }));
+    for (const item of list) {
+      const el = document.createElement('div');
+      if (item.c) {   // an exposed number: kn("name", start, low, high)
+        const c = item.c, here = machine?.get(c.name) !== undefined;
+        el.className = 'knob xp';
+        const dot = Object.assign(document.createElement('span'), { className: 'xd', textContent: '●', title: 'Exposed: a pattern column of the shader lane moves it' });
+        const r = Object.assign(document.createElement('input'), { type: 'range', min: 0, max: 1, step: 0.001, disabled: !here, value: here ? machine.get(c.name) : 0 });
+        const val = Object.assign(document.createElement('span'), { className: 'val' });
+        const show = v => { val.textContent = here ? plain(c.lo + (c.hi - c.lo) * v).replace(/^0\./, '.') : '-'; };
+        show(here ? machine.get(c.name) : 0);
+        const btn = Object.assign(document.createElement('button'), { type: 'button', textContent: here ? 'unexpose' : 'make input', title: here ? 'Back to a plain number, as it stands now' : 'This project has no input of that name: make one, starting at the number in the code' });
+        const ctx = Object.assign(document.createElement('div'), { className: 'ctx' });
+        ctx.append(Object.assign(document.createElement('b'), { textContent: c.name }), document.createTextNode(`  ${plain(c.lo)} to ${plain(c.hi)}${here ? '' : '  (no input yet)'}`));
+        r.addEventListener('input', () => { machine.set(c.name, Number(r.value)); show(Number(r.value)); });
+        btn.addEventListener('click', () => {
+          try {
+            if (here) {
+              const now = machine.get(c.name), mapped = c.lo + (c.hi - c.lo) * now;
+              const others = calls.some(o => o !== c && o.name === c.name);
+              replaceText(c.start, c.end, formatValue('float', mapped, { decimals: 4 }));
+              if (!others) machine.remove(c.name);
+            } else {
+              machine.expose(c.name, Math.max(0, Math.min(1, (c.start0 - c.lo) / ((c.hi - c.lo) || 1))));
+              rebuildKnobs();
+            }
+          } catch (err) { status.textContent = err.message; }
+        });
+        el.addEventListener('mouseenter', () => { hoverMark = c.start; draw(); });
+        el.addEventListener('mouseleave', () => { hoverMark = -1; draw(); });
+        if (here) live.push(() => { if (document.activeElement !== r) { const v = machine.get(c.name); if (v !== undefined && Number(r.value) !== v) { r.value = v; show(v); } } });
+        el.append(dot, r, val, btn, ctx); knobsEl.append(el);
+        continue;
+      }
+      const { n, i } = item;
       const row = { i, orig: null, undoText: null, spec: sliderSpec(n.kind, n.value, n.value < 0 || signedPref[n.kind]), bare: /^\./.test(n.text), kind: n.kind };
-      const el = document.createElement('div'); el.className = `knob off ${n.kind}`;
+      el.className = `knob off ${n.kind}`;
       const tick = Object.assign(document.createElement('input'), { type: 'checkbox', title: 'Ticked: the knob sets the number. Untick: it goes back to the text as it was' });
       const r = Object.assign(document.createElement('input'), { type: 'range', min: row.spec.lo, max: row.spec.hi, step: row.spec.step, value: n.value });
       const val = Object.assign(document.createElement('span'), { className: 'val', textContent: n.text.replace(/^\(|\)$/g, '') });
       const reset = Object.assign(document.createElement('button'), { type: 'button', textContent: 'reset', title: 'Back to the number as it was' });
-      const ls = text.lastIndexOf('\n', n.start - 1) + 1, le = text.indexOf('\n', n.end), line = text.slice(ls, le < 0 ? text.length : le);
+      const [ls, line] = lineOf(n.start);
       const ctx = document.createElement('div'); ctx.className = 'ctx';
       const a = line.slice(Math.max(0, n.start - ls - 22), n.start - ls), z = line.slice(n.end - ls, n.end - ls + 14);
       ctx.append(document.createTextNode(`${a.trimStart()}`), Object.assign(document.createElement('b'), { textContent: text.slice(n.start, n.end) }), document.createTextNode(z));
@@ -260,8 +321,9 @@ export function createShaderView({ parts, config, defaultSource, templates }) {
       const put = v => {
         closeSlider(true);
         const cur = nth(i); if (!cur) return;
-        sliding = true; input.setRangeText(formatValue(row.kind, v, { decimals: row.spec.decimals, bare: row.bare }), cur.start, cur.end, 'preserve'); sliding = false;
-        val.textContent = formatValue(row.kind, v, { decimals: row.spec.decimals, bare: row.bare }).replace(/^\(|\)$/g, '');
+        const t = formatValue(row.kind, v, { decimals: row.spec.decimals, bare: row.bare });
+        sliding = true; input.setRangeText(t, cur.start, cur.end, 'preserve'); sliding = false;
+        val.textContent = t.replace(/^\(|\)$/g, '');
         draw(); if (!frame) frame = requestAnimationFrame(() => { frame = 0; clearTimeout(timer); apply(); });
       };
       const back = () => {
@@ -271,13 +333,36 @@ export function createShaderView({ parts, config, defaultSource, templates }) {
         row.orig = null; tick.checked = false; el.classList.add('off'); draw(); clearTimeout(timer); apply();
       };
       r.addEventListener('input', () => { if (row.orig === null || !tick.checked) touch(); put(Number(r.value)); });
-      r.addEventListener('change', () => { const cur = nth(i); if (cur && row.undoText !== null) { commit(cur.start, cur.end, row.undoText); row.undoText = input.value.slice(nth(i).start, nth(i).end); } });
+      r.addEventListener('change', () => { const cur = nth(i); if (cur && row.undoText !== null) { commit(cur.start, cur.end, row.undoText); const now = nth(i); row.undoText = input.value.slice(now.start, now.end); } });
       tick.addEventListener('change', () => { if (tick.checked) touch(); else back(); });
       reset.addEventListener('click', back);
       el.addEventListener('mouseenter', () => { hoverMark = nth(i)?.numStart ?? -1; draw(); });
       el.addEventListener('mouseleave', () => { hoverMark = -1; draw(); });
-      el.append(tick, r, val, reset, ctx); knobsEl.append(el); rows.push(row);
-    });
+      el.append(tick, r, val, reset, ctx);
+      if (n.kind === 'float' && machine) {   // expose: the number becomes an input the patterns can move
+        const ex = Object.assign(document.createElement('button'), { type: 'button', textContent: 'expose', title: 'Make this number an input of the shader machine: a pattern column that animates it' });
+        ex.addEventListener('click', () => {
+          try {
+            if (row.orig !== null) back();
+            const cur = nth(i), lo = row.spec.lo, hi = row.spec.hi;
+            const name = machine.expose(guessName(input.value, cur), Math.max(0, Math.min(1, (cur.value - lo) / ((hi - lo) || 1))));
+            replaceText(cur.start, cur.end, `kn("${name}", ${plain(cur.value)}, ${plain(lo)}, ${plain(hi)})`);
+            status.textContent = `${name} is now an input: see the shader lane in the pattern editor.`;
+          } catch (err) { status.textContent = err.message; }
+        });
+        el.append(ex);
+      }
+      knobsEl.append(el); rows.push(row);
+    }
+    // inputs the machine has that no kn() call uses any more
+    if (machine) for (const name of machine.names().filter(nm => !calls.some(c => c.name === nm))) {
+      const el = document.createElement('div'); el.className = 'knob orphan';
+      const btn = Object.assign(document.createElement('button'), { type: 'button', textContent: 'remove', title: 'Delete this input and its pattern column' });
+      btn.addEventListener('click', () => { try { machine.remove(name); rebuildKnobs(); } catch (err) { status.textContent = err.message; } });
+      el.append(Object.assign(document.createElement('span'), { className: 'ctx', textContent: `input "${name}" is not used in the code` }), btn);
+      knobsEl.append(el);
+    }
+    if (live.length) liveTimer = setInterval(() => live.forEach(f => f()), 120);
   };
   const queueKnobs = () => { clearTimeout(knobTimer); knobTimer = setTimeout(rebuildKnobs, 250); };
   parts.knobsOn.addEventListener('change', () => { config.set('shaderKnobs', parts.knobsOn.checked); rebuildKnobs(); });

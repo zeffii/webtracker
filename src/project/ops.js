@@ -1,4 +1,4 @@
-import { MASTER, newSamplerInstrument, synthKinds } from '../instruments.js';
+import { MASTER, SHADER, newSamplerInstrument, shaderInstrument, synthKinds } from '../instruments.js';
 import { clampLoop } from '../seq/loop.js';
 import { dropSource, renameSource } from '../graph/sidechain.js';
 import { slicePlacement } from '../seq/edit.js';
@@ -189,6 +189,32 @@ export function addLane(project, registry, instrumentId) {
   const lane = createLane(id, instrumentId, project.instruments, registry, project.song.length);
   project.lanes.push(lane);
   return lane;
+}
+
+// ---- the shader machine: numbers of the live picture's shader that patterns can move ----
+// Each is one of the 16 values of the machine's `glsl` node, exposed as a pattern column of that name (so the shader lane's columns
+// are the exposed numbers, and nothing else). The machine is made the first time a number is exposed. Returns what the caller needs
+// to load it: { name (made unique), param, first (the machine is new) }.
+export function addShaderKnob(project, name, value) {
+  const first = !project.instruments[SHADER];
+  const def = project.instruments[SHADER] ??= shaderInstrument();
+  const used = new Set(def.exposed.map(e => e.param)), labels = new Set(def.exposed.map(e => e.label));
+  const param = Array.from({ length: 16 }, (_, i) => `k${i + 1}`).find(p => !used.has(p));
+  if (!param) throw new Error('The shader machine has 16 inputs and all of them are in use.');
+  const base = String(name || 'knob').replace(/[^\w ]/g, '').trim().slice(0, 12) || 'knob';
+  let label = base;
+  for (let n = 2; labels.has(label); n++) label = `${base.slice(0, 11)}${n}`;
+  def.graph.nodes.find(n => n.id === 'g').params[param] = Math.max(0, Math.min(1, Number(value) || 0));
+  def.exposed.push({ node: 'g', param, label, long: label });
+  return { name: label, param, first };
+}
+export function removeShaderKnob(project, name) {
+  const def = project.instruments[SHADER];
+  const at = def?.exposed.findIndex(e => e.label === name) ?? -1;
+  if (at < 0) throw new Error(`The shader machine has no input called "${name}".`);
+  const [gone] = def.exposed.splice(at, 1);
+  delete def.graph.nodes.find(n => n.id === 'g').params[gone.param];
+  return gone;
 }
 
 // ---- managing lanes and instruments ----

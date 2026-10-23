@@ -5,6 +5,7 @@ import { createPlayline, createLoopLines } from '../ui/playline.js';
 import { patternColour } from '../ui/patcolor.js';
 import { KINDS, encodeCell, noteSemitones, noteToken } from './cells.js';
 import { esc } from './html.js';
+import { SHADER } from '../instruments.js';
 import { describeColumn, describeParts } from './describe.js';
 import { placementAt } from './edit.js';
 import { showContextMenu } from '../ui/ctxmenu.js';
@@ -919,7 +920,7 @@ export function createTrackerView({ showMenu = (e, items) => showContextMenu(e, 
     vis = lanes.map((_, li) => visibleCols(li));
     const shown = lanes.map((l, li) => ({ l, li })).filter(({ li }) => !windowed() || li === solo.lane);   // the window shows its lane only
     const lines = [
-      `<span class="g">${' '.repeat(GUTTER)}</span>${shown.map(({ l, li }) => ` ${esc(l.id.padEnd(block(li)))}`).join('  ')}`,
+      `<span class="g">${' '.repeat(GUTTER)}</span>${shown.map(({ l, li }) => { const head = ` ${esc(l.id.padEnd(block(li)))}`; return l.instrument === SHADER ? `<span class="shd">${head}</span>` : head; }).join('  ')}`,
       `<span class="g">${' '.repeat(GUTTER)}</span>${shown.map(({ l, li }) => ` ${vis[li].map(ci => esc((l.columns[ci].short ?? l.columns[ci].label).padEnd(widths[li][ci]))).join(' ')}`).join('  ')}`,
     ];
     const base = showLo();
@@ -945,7 +946,8 @@ export function createTrackerView({ showMenu = (e, items) => showContextMenu(e, 
         const under = tint && covered ? placementAt(lane, t) : null;
         const tinted = under && lane.patterns[under.puid] ? `<span style="background:${patternColour(lane.patterns[under.puid], 0.13)}">${html}</span>` : html;
         const dim = dimFilter(dimLevel(lane)), shaded = dim ? `<span style="${dim}">${tinted}</span>` : tinted;
-        return !solo || soloStyle !== 'hatch' ? shaded : `<span class="${locked ? 'lock' : 'soloblk'}">${shaded}</span>`;
+        const chunk = !solo || soloStyle !== 'hatch' ? shaded : `<span class="${locked ? 'lock' : 'soloblk'}">${shaded}</span>`;
+        return lane.instrument === SHADER ? `<span class="shd">${chunk}</span>` : chunk;   // the shader lane is hatched
       });
       const row = `<span class="g">${playing && t === playTick && !overlay() ? '>' : ' '}${String(t - base).padStart(4, '0')} </span>${chunks.join('  ')}`;
       const shade = (t - base) % 16 === 0 ? 'r16' : (t - base) % 4 === 0 ? 'r4' : '';
