@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 410 · 2026-10-23
+
+- Dragging a selection in the arrangement view no longer stops when the pointer strays out of the grid (into the side menu, say). The drag now ends only when the button is let go, so coming back into the grid carries on growing the same block. The same fix applies if the button is released outside the window.
+
 ## 409 · 2026-10-23
 
 - Dragging the graph view's size no longer leaves it blank until you let go. Changing the size clears the canvas, and the repaint waited for the next animation frame; the resize observer fires after a frame's callbacks, so a cleared canvas was sometimes shown first. The graph is now drawn in the same call that resizes it.

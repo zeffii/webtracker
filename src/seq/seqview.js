@@ -205,7 +205,8 @@ export function createSequenceView({ el, statusEl, listEl, transport, onToggle, 
     onMove?.(cur.lane, cur.tick);
   });
   el.addEventListener('mousemove', e => {
-    if (!lanes || !dragging || !(e.buttons & 1)) return;
+    if (!lanes || !dragging) return;
+    if (!(e.buttons & 1)) { dragging = null; return; }   // the button was let go while the pointer was elsewhere
     const hit = pointed(e);
     if (!hit || (hit.lane === cur.lane && hit.tick === cur.tick)) return;
     sel = hit.lane === dragging.lane && hit.tick === dragging.tick ? null : { ...dragging };
@@ -295,7 +296,7 @@ export function createSequenceView({ el, statusEl, listEl, transport, onToggle, 
   });
   const stopDrag = () => { dragging = null; };
   el.addEventListener('mouseup', stopDrag);
-  el.addEventListener('mouseleave', stopDrag);
+  document.addEventListener('mouseup', stopDrag);   // leaving the grid (the side menu, say) does not end the drag: coming back carries on
 
   // A note-off marker on this row: the lane lets go of what is sounding there.
   const noteOffMark = () => {

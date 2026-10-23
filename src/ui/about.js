@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['410', ['The arrangement selection drag survives the pointer leaving the grid.']],
   ['409', ['Resizing the graph view redraws it at once instead of flashing blank.']],
   ['408', ['A clap synth: burst train and tail through a band-pass.']],
   ['407', ['urugraVerb: the Arguru-inspired reverb, ported from your gendsp.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['403', ['Arrangement view: no wrap at the ends (a Wrap button turns it on), and the master lane is half as wide.']],
   ['402', ['Graph view: R removes the selected node and joins the wires round it.']],
   ['401', ['Granular: every note starts the cloud at Position.']],
-  ['400', ['A node\'s envelope box and its scope sit side by side, level at the middle.']],
 ];
