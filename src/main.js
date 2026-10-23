@@ -278,12 +278,7 @@ const seqView = createSequenceView({
   onParams: () => setFloat(true),
   instruments: () => listedInstruments(),
   unassigned: () => { const used = new Set(project.lanes.map(l => l.instrument)); return listedInstruments().filter(id => !used.has(id)); },
-  newKinds: () => [
-    ...Object.entries(synthKinds).filter(([k]) => k !== 'empty').map(([k, { label }]) => ({ value: `synth:${k}`, label })),
-    { value: 'sampler', label: 'Sampler (plays a sample)', disabled: !$('new-inst-sample').value },
-    { value: 'synth:empty', label: synthKinds.empty.label },
-  ],
-  onNewInstrument: value => makeInstrument(value),
+  onNewInstrument: () => { tabs.show('instruments'); $('new-inst-name').focus(); projStatus('Pick a kind and press Add: the new instrument gets its own lane.'); },
   onAddLane: id => { try { const lane = addLaneFor(id); projStatus(`Added lane ${lane.id}.`); } catch (err) { projStatus(err.message); } },
   onSeek: tick => { if (!started) return; if (playing) engine.play(tick); else setPlaying(true, tick); },
   onSong: () => songChanged(),

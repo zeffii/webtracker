@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 412 · 2026-10-23
+
+- "Insert lane…" in the arrangement view is down to two entries: **New instrument…** (takes you to the instrument screen's new-instrument box, with the name field ready; Add makes the instrument and its lane) and **Instruments without a lane…** (greyed out when every instrument has one). The kind list and the list of all instruments are gone from the menu.
+
 ## 411 · 2026-10-23
 
 - The arrangement view's right-click "Insert lane…" now opens with two entries before the instrument list: **New instrument…** (every synth kind, the sampler and the blank graph; it makes the instrument and puts its lane at the end) and **Unassigned instruments…** (the instruments that have no lane yet, greyed out when there are none). Below them the list of all instruments stays as it was. Menus taller than the window now scroll.

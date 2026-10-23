@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['412', ['Insert lane: New instrument and Instruments without a lane.']],
   ['411', ['Insert lane: New instrument and Unassigned instruments entries.']],
   ['410', ['The arrangement selection drag survives the pointer leaving the grid.']],
   ['409', ['Resizing the graph view redraws it at once instead of flashing blank.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['405', ['Arrangement view: right-click > Insert lane… adds a lane for an instrument at the end.']],
   ['404', ['A comb filter: tuned resonator with feedback, feedforward, damping and stereo spread.']],
   ['403', ['Arrangement view: no wrap at the ends (a Wrap button turns it on), and the master lane is half as wide.']],
-  ['402', ['Graph view: R removes the selected node and joins the wires round it.']],
 ];
