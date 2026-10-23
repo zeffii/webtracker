@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 409 · 2026-10-23
+
+- Dragging the graph view's size no longer leaves it blank until you let go. Changing the size clears the canvas, and the repaint waited for the next animation frame; the resize observer fires after a frame's callbacks, so a cleared canvas was sometimes shown first. The graph is now drawn in the same call that resizes it.
+
 ## 408 · 2026-10-23
 
 - A clap synth (Sources > Synths, and in the new-instrument list as "Clap (burst noise)"): noise through a band-pass, shaped by a run of quick bursts (the hands: `bursts`, `spacing`, `burstDecay`) and a longer tail (`tailDecay`, `tailLevel`) that starts with the last one, in the 808 and 909 manner. `tone` and `q` set the band-pass, `spread` gives the two channels different noise for width, `drive` rounds the peaks. Like the hat it has no notes: the Cl column triggers it and the digit is the velocity. The instrument has Ton, Tai, Bur and Spc columns and ten commands.

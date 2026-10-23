@@ -1281,6 +1281,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
       canvas.width = W * dpr;
       if (dpr !== 1) ctx.setTransform?.(dpr, 0, 0, dpr, 0, 0);
       dirty = true;
+      draw();   // at once: the observer runs after the frame's callbacks, so waiting for the next frame shows a cleared canvas
       return W;
     },
     get width() { return W; },
@@ -1292,6 +1293,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
       canvas.height = H * dpr;   // a new size clears the canvas and its transform
       if (dpr !== 1) ctx.setTransform?.(dpr, 0, 0, dpr, 0, 0);
       dirty = true;
+      draw();
       return H;
     },
     get height() { return H; },
