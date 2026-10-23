@@ -6109,6 +6109,36 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
 }
 
 
+// Master limiter: nothing passes the ceiling, quiet sound is untouched, it lets go, and the sequencer applies it after the volume
+{
+  const { Limiter } = await import('../src/audio/limiter.js');
+  const run = (make, ceiling = -0.3, boost = 0, release = 120, seconds = 1) => {
+    const lim = new Limiter(sr), N = Math.floor(sr * seconds / 128) * 128, l = new Float32Array(N), r = new Float32Array(N);
+    for (let i = 0; i < N; i++) l[i] = r[i] = make(i);
+    let red = 0;
+    for (let at = 0; at < N; at += 128) red = Math.max(red, lim.process(l.subarray(at, at + 128), r.subarray(at, at + 128), 128, ceiling, boost, release).reduction);
+    return { l, r, red, lim };
+  };
+  const c = Math.pow(10, -0.3 / 20);
+  const kick = i => Math.exp(-((i % 11025) / 1500)) * Math.sin(2 * Math.PI * 60 * i / sr) * 1.8 + 0.2 * Math.sin(2 * Math.PI * 440 * i / sr);
+  const hot = run(kick);
+  assert.ok(peak(hot.l) <= c + 1e-6 && peak(hot.r) <= c + 1e-6, `a hot kick stays under the ceiling (${peak(hot.l).toFixed(4)} vs ${c.toFixed(4)})`);
+  assert.ok(hot.red > 3, 'and it says how much it held back');
+  const quiet = run(i => 0.3 * Math.sin(2 * Math.PI * 300 * i / sr));
+  const d = quiet.lim.latency;
+  let worst = 0; for (let i = d + 400; i < quiet.l.length; i++) worst = Math.max(worst, Math.abs(quiet.l[i] - 0.3 * Math.sin(2 * Math.PI * 300 * (i - d) / sr)));
+  assert.ok(worst < 1e-5 && quiet.red === 0, 'a sound under the ceiling passes untouched, only delayed');
+  const burst = run(i => (i > 8000 && i < 8400 ? 3 : 0.2) * Math.sin(2 * Math.PI * 200 * i / sr), -0.3, 0, 60, 1);
+  let tail = 0; for (let i = sr * 0.8 | 0; i < burst.l.length; i++) tail = Math.max(tail, Math.abs(burst.l[i] - 0.2 * Math.sin(2 * Math.PI * 200 * (i - burst.lim.latency) / sr)));
+  assert.ok(tail < 0.002, `it lets go after a peak (${tail.toFixed(4)})`);
+  const boosted = run(i => 0.4 * Math.sin(2 * Math.PI * 300 * i / sr), -1, 12);
+  assert.ok(peak(boosted.l) <= Math.pow(10, -1 / 20) + 1e-6 && peak(boosted.l) > 0.85, 'boost makes it louder, held at the ceiling');
+  const stereo = run(i => 1.5 * Math.sin(2 * Math.PI * 100 * i / sr));
+  let skew = 0; for (let i = 0; i < stereo.l.length; i++) skew = Math.max(skew, Math.abs(stereo.l[i] - stereo.r[i]));
+  assert.equal(skew, 0, 'both channels get the same gain');
+  console.log('ok: master limiter');
+}
+
 // Tape: the degrading effect
 {
   const run = (over, input) => {

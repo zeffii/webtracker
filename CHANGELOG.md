@@ -2,6 +2,11 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 420 · 2026-10-23
+
+- **Master limiter**, after the master volume, on by default: a lookahead peak limiter (1.5 ms) that keeps the whole mix under a ceiling so nothing clips, with one gain for both channels so the stereo image stays put. New master lane parameters and columns: `Lim` (on or off), `Ceil` (the ceiling in dB, default -0.3), `Gain` (dB into the limiter, up to +18: louder and denser, with the peaks held at the ceiling) and `Rel` (the release in ms). A project saved earlier gets the columns when it is opened. It also applies to the exported file. Peaks are sample peaks, not true peaks, so keep the ceiling a little under 0.
+- **Limiter meter** in the meter band (Config > Meters > limiter, on by default): the level going in (grey), the level going out (green), the ceiling (dashed), and how much the limiter held back, hanging from the top, with the current and the highest value.
+
 ## 419 · 2026-10-23
 
 - Duette: fixed clicks. A note started while the last one was still sounding or dying (a column's next note, a note after a `===` that was still fading, a stolen voice) sent the envelope back to zero in one step, which clicks. The envelope now starts again from where it is. A note cut (all notes off) fades over a few ms instead of stopping dead.

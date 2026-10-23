@@ -1,6 +1,7 @@
 import { EMPTY, CUT, OFF, decodeNote, decodeHex1, decodeHex2, decodeHex4 } from '../seq/cells.js';
 import { loopRange } from '../seq/loop.js';
 import { RES } from '../seq/automation.js';
+import { Limiter } from './limiter.js';
 
 // The sequence lives in fixed-size pages of ticks. Each lane has one buffer per
 // page, with one float channel per cell channel (see KINDS in cells.js).
@@ -37,6 +38,7 @@ export class Sequencer {
     this.runtime = runtime;
     this.params = params;         // Float32Array over the shared parameter block
     this.transport = transport;   // Int32Array: [tick, playing, how far through the tick, in 1/65536]
+    this.limiter = new Limiter(sampleRate);
     this.scratchL = new Float32Array(maxBlock);
     this.scratchR = new Float32Array(maxBlock);
   }
@@ -51,6 +53,9 @@ export class Sequencer {
     if (song.master && changed) this.resetTempo();
     if (this.runtime.clock) this.runtime.clock.tickSamples = (this.sampleRate * 60) / (song.bpm * song.ticksPerBeat);
   }
+
+  // A number for the meters that keeps the largest value since they last looked (they read it and clear it).
+  report(slot, value) { if (value > Atomics.load(this.transport, slot)) Atomics.store(this.transport, slot, value); }
 
   resetTempo() {
     const m = this.song.master;
@@ -348,6 +353,18 @@ export class Sequencer {
         const to = this.params[m.volume], from = this.gain ?? to;
         if (from !== 1 || to !== 1) for (let i = 0; i < span; i++) { const g = from + (to - from) * (i + 1) / span; this.scratchL[i] *= g; this.scratchR[i] *= g; }
         this.gain = to;
+        // the limiter, after the volume. What the meters show (how much it held back, the loudest input) goes in the transport.
+        if (m.limit !== undefined) {
+          const on = this.params[m.limit] >= 0.5;
+          if (on) {
+            const res = this.limiter.process(this.scratchL, this.scratchR, span, this.params[m.ceiling], this.params[m.boost], this.params[m.release]);
+            if (this.transport.length > 5) { this.report(4, Math.round(res.reduction * 100)); this.report(5, Math.round((Math.max(-200, res.peak) + 200) * 100)); }
+          } else if (this.transport.length > 5) {
+            let top = 0;
+            for (let i = 0; i < span; i++) top = Math.max(top, Math.abs(this.scratchL[i]), Math.abs(this.scratchR[i]));
+            this.report(5, Math.round((Math.max(-200, 20 * Math.log10(Math.max(1e-10, top))) + 200) * 100));
+          }
+        }
       }
       if (this.playing) this.songPos += span / samplesPerTick;
       for (let i = 0; i < span; i++) {

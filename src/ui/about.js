@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['420', ['Master limiter after the master volume, with a limiter meter in the meter band.']],
   ['419', ['Duette: no more clicks when a note starts over the last one; note cuts fade.']],
   ['418', ['Tape effect: six tape qualities, age, wow and flutter, saturation, hiss and dropouts.']],
   ['417', ['Duette is polyphonic: a note column keeps one voice, so glide and slide work per column.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['413', ['Insert lane goes left or right of the lane; New instrument lists kinds with default names.']],
   ['412', ['Insert lane: New instrument and Instruments without a lane.']],
   ['411', ['Insert lane: New instrument and Unassigned instruments entries.']],
-  ['410', ['The arrangement selection drag survives the pointer leaving the grid.']],
 ];

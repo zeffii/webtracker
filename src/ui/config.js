@@ -116,6 +116,7 @@ export const SCHEMA = [
   { key: 'meterLayers', label: 'Meters: spectrum by instrument', hint: 'the spectrum is split into one translucent layer per instrument, with small numbered buttons to hide lanes; the colour setting is not used then', type: 'bool', def: false },
   { key: 'meterColour', label: 'Meters: spectrum colour', type: 'choice', options: ['spectrum', 'green'], labels: { spectrum: 'by frequency', green: 'plain green' }, hint: 'by frequency runs from violet at the bass to red at the top', def: 'spectrum' },
   { key: 'meterLevel', label: 'Meters: level and loudness', type: 'bool', def: true },
+  { key: 'meterLimiter', label: 'Meters: limiter', hint: 'the master limiter: the level going in, the level going out and how much it holds back, over the last few seconds', type: 'bool', def: true },
   { key: 'meterCorr', label: 'Meters: correlation', type: 'bool', def: true },
   { key: 'meterWidth', label: 'Meters: stereo width by band', hint: 'the ten bands of the spectral panner', type: 'bool', def: false },
   { key: 'meterScope', label: 'Meters: vectorscope', hint: 'left against right, a square at the right end of the band (Ctrl+Alt+O); a mono sound is a vertical line, a wide one spreads sideways', type: 'bool', def: false },

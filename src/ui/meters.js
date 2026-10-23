@@ -7,7 +7,7 @@ import { BANDS, SPEC_N, WIDTH_BANDS, createAnalyser, createCorrelation, createLo
 const TXT = '#6d7480', GRID = 'rgba(255,255,255,.07)', BRIGHT = '#cfd3da';
 const FONT = (px, w = 400) => `${w} ${px}px ui-monospace, Consolas, monospace`;
 
-export function createMeters({ box, sab, lsab, sampleRate, options, lanes = () => [], setTaps = () => {} }) {
+export function createMeters({ box, transport, sab, lsab, sampleRate, options, lanes = () => [], setTaps = () => {} }) {
   const reader = ringReader(sab, 1), buf = new Float32Array(RING * 2);
   const mono = { l: new Float32Array(SPEC_N), r: new Float32Array(SPEC_N) };   // the newest SPEC_N frames
   const lBlock = new Float32Array(RING), rBlock = new Float32Array(RING);
@@ -50,13 +50,14 @@ export function createMeters({ box, sab, lsab, sampleRate, options, lanes = () =
     host.append(lbox);
   }
   let raf = 0, open = false, fs = 44100, panels = [], signature = '', analyser, loud, corr;
+  const lim = { peak: [], red: [], now: 0, max: 0, maxAt: 0, ceil: -0.3 };   // the limiter panel: per frame, the loudest input (dB) and the most it held back (dB)
   const state = { l: 0, r: 0, pl: 0, pr: 0, hl: 0, hr: 0, spec: new Float32Array(BANDS).fill(-120), peak: new Float32Array(BANDS).fill(-120), width: new Float32Array(WIDTH_BANDS), hist: [], last: 0, n: 0 };
 
   const KINDS = {
-    spectrum: ['SPECTRUM', 3], level: ['LEVEL', 1.35], corr: ['CORRELATION', 0.9], width: ['STEREO WIDTH BY BAND', 1.5], sgram: ['SPECTROGRAM', 2.4], vscope: ['XY MASTER', 0],
+    spectrum: ['SPECTRUM', 3], level: ['LEVEL', 1.35], limiter: ['LIMITER', 2], corr: ['CORRELATION', 0.9], width: ['STEREO WIDTH BY BAND', 1.5], sgram: ['SPECTROGRAM', 2.4], vscope: ['XY MASTER', 0],
   };
   function build() {
-    const o = options(), kinds = ['sgram', 'spectrum', 'width', 'level', 'corr', 'vscope'].filter(k => o[k]);
+    const o = options(), kinds = ['sgram', 'spectrum', 'width', 'level', 'limiter', 'corr', 'vscope'].filter(k => o[k]);
     const sig = `${kinds.join()}|${layersOn()}`, changed = syncLayers();
     if (sig === signature && !changed) return;
     signature = sig; box.textContent = ''; panels = []; lbox = null;
@@ -120,6 +121,29 @@ export function createMeters({ box, sab, lsab, sampleRate, options, lanes = () =
       const x = Math.max(w * .62, x1 + bw + 34), fmt = v => (Number.isFinite(v) ? v.toFixed(1) : '-∞');
       const row = (v, label, y, big) => { g.fillStyle = BRIGHT; g.font = FONT(big ? 15 : 12, 600); g.fillText(fmt(v), x, y); g.font = FONT(9); g.fillStyle = TXT; g.fillText(label, x, y + 11); };
       row(loud.short(), 'LUFS short', T + 14, true); row(loud.momentary(), 'LUFS momentary', T + 46); row(dbOf(Math.max(state.hl, state.hr)), 'peak dB', T + 78);
+    },
+    limiter(c) {   // the level going in (grey), the level going out (green), the ceiling (dashed), and the reduction hanging from the top
+      const [g, w, h] = ctxOf(c), X0 = 28, T = 14, redH = Math.max(18, h * .26), plotT = T + redH + 6, B = 14, H = h - plotT - B, n = lim.peak.length, step = (w - X0 - 6) / 400;
+      const lo = -30, hi = 6, Y = d => plotT + H * (1 - Math.max(0, Math.min(1, (d - lo) / (hi - lo))));
+      g.font = FONT(9); g.lineWidth = 1;
+      for (const d of [-24, -18, -12, -6, 0]) { g.strokeStyle = GRID; g.beginPath(); g.moveTo(X0, Y(d)); g.lineTo(w - 4, Y(d)); g.stroke(); g.fillStyle = TXT; g.fillText(d, 2, Y(d) + 3); }
+      const ceil = lim.ceil;
+      g.strokeStyle = 'rgba(255,120,100,.8)'; g.setLineDash([4, 3]); g.beginPath(); g.moveTo(X0, Y(ceil)); g.lineTo(w - 4, Y(ceil)); g.stroke(); g.setLineDash([]);
+      g.fillStyle = 'rgba(255,255,255,.06)'; g.fillRect(X0, T, w - X0 - 4, redH);
+      g.fillStyle = TXT; g.fillText('held back', X0 + 4, T + redH - 3);
+      const x0 = w - 6 - n * step;
+      g.beginPath(); g.moveTo(x0, plotT + H);
+      for (let i = 0; i < n; i++) g.lineTo(x0 + i * step, Y(lim.peak[i]));
+      g.lineTo(x0 + (n - 1) * step, plotT + H); g.fillStyle = 'rgba(190,200,215,.28)'; g.fill();
+      g.beginPath();
+      for (let i = 0; i < n; i++) { const y = Y(Math.min(ceil, lim.peak[i] - lim.red[i])); i ? g.lineTo(x0 + i * step, y) : g.moveTo(x0 + i * step, y); }
+      g.strokeStyle = '#78ffaa'; g.lineWidth = 1.4; g.stroke();
+      g.fillStyle = 'rgba(255,140,90,.85)';
+      for (let i = 0; i < n; i++) { const r = Math.min(1, lim.red[i] / 12); if (r > 0.004) g.fillRect(x0 + i * step, T, Math.max(1, step), Math.max(1, r * redH)); }
+      g.fillStyle = BRIGHT; g.font = FONT(11, 600);
+      g.fillText(`${lim.now > 0.05 ? '-' : ''}${lim.now.toFixed(1)} dB`, w - 120, T + 11);
+      g.font = FONT(9); g.fillStyle = TXT; g.fillText(`max ${lim.max.toFixed(1)}`, w - 52, T + 11);
+      g.fillText('input', X0 + 4, h - 3); g.fillStyle = '#78ffaa'; g.fillText('output', X0 + 40, h - 3); g.fillStyle = 'rgba(255,120,100,.9)'; g.fillText(`ceiling ${ceil.toFixed(1)}`, X0 + 84, h - 3);
     },
     corr(c) {
       const [g, w, h] = ctxOf(c), y = h * .5, x0 = 14, x1 = w - 14, mid = (x0 + x1) / 2, v = corr.value(), cx = x0 + (v + 1) / 2 * (x1 - x0);
@@ -216,6 +240,13 @@ export function createMeters({ box, sab, lsab, sampleRate, options, lanes = () =
         analyser.run(L.l, L.l);
         for (let i = 0; i < BANDS; i++) { const v = analyser.db[i]; L.spec[i] += (v - L.spec[i]) * (v > L.spec[i] ? .6 : .14); }
       }
+    }
+    if (transport && transport.length > 5 && panels.some(p => p.kind === 'limiter')) {   // what the limiter did since the last frame
+      const red = Atomics.exchange(transport, 4, 0) / 100, raw = Atomics.exchange(transport, 5, 0), peak = raw > 0 ? raw / 100 - 200 : -60;
+      lim.peak.push(peak); lim.red.push(red); if (lim.peak.length > 400) { lim.peak.shift(); lim.red.shift(); }
+      lim.now = Math.max(red, lim.now * .9);
+      if (red >= lim.max || now - lim.maxAt > 4000) { lim.max = red; lim.maxAt = now; }
+      lim.ceil = options().ceiling ?? -0.3;
     }
     for (const p of panels) draw[p.kind](p.canvas);
     raf = requestAnimationFrame(frame);

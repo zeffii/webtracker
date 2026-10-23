@@ -704,9 +704,17 @@ export const masterInstrument = song => ({
     { node: 'm', param: 'swing', label: 'Swg' },
     { node: 'm', param: 'tpb', label: 'TPB' },
     { node: 'm', param: 'volume', label: 'Vol' },
+    ...limiterColumns(),
   ],
   commands: [],
 });
+// The limiter's columns: on or off, the ceiling, the gain into it, and the release.
+const limiterColumns = () => [
+  { node: 'm', param: 'limit', label: 'Lim', long: 'Limiter', bits: 4 },
+  { node: 'm', param: 'ceiling', label: 'Ceil', long: 'Ceiling' },
+  { node: 'm', param: 'boost', label: 'Gain', long: 'Limiter gain' },
+  { node: 'm', param: 'release', label: 'Rel', long: 'Limiter release', scale: 'log' },
+];
 
 // The shader machine: one `glsl` node holding sixteen values the live picture reads (see ui/visdata.js). It starts with no pattern
 // columns; each number exposed from the Shader view adds one, named as the number is (see addShaderKnob in project/ops.js). Its lane is
@@ -744,4 +752,5 @@ export function ensureMaster({ song, instruments }) {
   const lane = at >= 0 ? song.lanes.splice(at, 1)[0] : { id: MASTER, instrument: MASTER, patterns: {}, placements: [] };
   song.lanes.unshift(lane);
   ensureShaderColumn(instruments);
+  if (!master.exposed.some(e => e.param === 'limit')) master.exposed.push(...limiterColumns());   // a project saved before the limiter gets its columns
 }

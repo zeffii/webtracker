@@ -363,6 +363,16 @@ const HINTS = {
   dcblock: {
     freq: 'Cutoff of the high pass that removes the offset, in Hz. Lower keeps more bass but settles more slowly.',
   },
+  tempo: {
+    bpm: 'Beats per minute. A pattern can change it as the song plays.',
+    swing: 'Percent: 50 is straight, 75 the most.',
+    tpb: 'Ticks per beat.',
+    volume: 'The volume of the whole mix.',
+    limit: 'The master limiter, after the volume. It holds the peaks of the whole mix under the ceiling so nothing clips. 1 on, 0 off.',
+    ceiling: 'The loudest the mix can get, in dB below full scale. A little under 0 (the default is -0.3) leaves room for the peaks between the samples.',
+    boost: 'Gain into the limiter, in dB. The peaks are held at the ceiling, so more gain makes the whole mix louder and denser.',
+    release: 'How long the limiter takes to let go after a peak, in ms. Short is louder and can pump; long is smoother.',
+  },
   tape: {
     type: 'The kind of tape and machine. studio reel: clean and fast. chrome cassette: bright. ferric cassette: an ordinary cassette, duller and warm. worn cassette: dark, wobbling, hissy, with dropouts. dictaphone: only the middle of the sound, a lot of wobble. dubbed copy: a copy of a copy, dark and saturated.',
     age: 'How worn the tape is. Older is darker, wobbles more, hisses more and drops out more.',

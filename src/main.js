@@ -1504,8 +1504,8 @@ function startDownloads() {
 // Meter band: Ctrl+Alt+M or the Meters button. It sits above the status bar, and the page gets room under it.
 const metersBox = $('meters');
 const meters = createMeters({
-  box: metersBox, sab: engine.vring, lsab: engine.lring, lanes: () => project?.lanes ?? [], setTaps: ids => engine.setLaneTaps(ids), sampleRate: () => engine.ctx?.sampleRate ?? 44100,
-  options: () => ({ spectrum: config.get('meterSpectrum'), level: config.get('meterLevel'), corr: config.get('meterCorr'), width: config.get('meterWidth'), sgram: config.get('meterSgram'), layers: config.get('meterLayers'), colour: config.get('meterColour'), vscope: config.get('meterScope'), linger: config.get('vscopeLinger'), glow: config.get('vscopeGlow') }),
+  box: metersBox, transport: engine.transport, sab: engine.vring, lsab: engine.lring, lanes: () => project?.lanes ?? [], setTaps: ids => engine.setLaneTaps(ids), sampleRate: () => engine.ctx?.sampleRate ?? 44100,
+  options: () => ({ spectrum: config.get('meterSpectrum'), level: config.get('meterLevel'), corr: config.get('meterCorr'), limiter: config.get('meterLimiter'), ceiling: (() => { const k = engine.registry.slots.get('master.m.ceiling'); return k === undefined ? -0.3 : engine.registry.values[k]; })(), width: config.get('meterWidth'), sgram: config.get('meterSgram'), layers: config.get('meterLayers'), colour: config.get('meterColour'), vscope: config.get('meterScope'), linger: config.get('vscopeLinger'), glow: config.get('vscopeGlow') }),
 });
 const placeMeters = () => {
   const foot = $('footer').offsetHeight, h = config.get('meterHeight');

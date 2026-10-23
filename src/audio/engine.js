@@ -25,7 +25,7 @@ export class Engine {
   vring = ringBuffer();   // the last output samples, for the vectorscope
   sent = new Map();       // the latest of each message that sets the audio thread up (graphs, node data, song, lanes), for rendering offline
   loaded = new Map();     // instrument -> the signature of what the audio thread has, to skip a reload that would change nothing
-  transport = new Int32Array(new SharedArrayBuffer(16));   // [tick, playing, fraction of the tick in 1/65536], written by the worklet
+  transport = new Int32Array(new SharedArrayBuffer(32));   // [tick, playing, fraction of the tick in 1/65536, -, most limiter reduction in 1/100 dB, loudest input peak in 1/100 dB + 200 dB], written by the worklet; the last two are read and cleared by the meters
 
   async start() {
     if (!crossOriginIsolated) {
@@ -122,7 +122,7 @@ export class Engine {
 
   setSong({ bpm, ticksPerBeat, length, swing = 0.5, loop }) {
     const slot = name => this.registry.slots.get(`master.m.${name}`);   // the master lane's parameters, once its instrument is loaded
-    const master = slot('bpm') !== undefined ? { bpm: slot('bpm'), swing: slot('swing'), tpb: slot('tpb'), volume: slot('volume') } : undefined;
+    const master = slot('bpm') !== undefined ? { bpm: slot('bpm'), swing: slot('swing'), tpb: slot('tpb'), volume: slot('volume'), limit: slot('limit'), ceiling: slot('ceiling'), boost: slot('boost'), release: slot('release') } : undefined;
     this.sent?.set('song', { type: 'song', song: { bpm, ticksPerBeat, length, swing, ...(master ? { master } : {}) } });
     this.node.port.postMessage({ type: 'song', song: { bpm, ticksPerBeat, length, swing, ...(master ? { master } : {}), ...(loop && !loop.off ? { loop: { start: loop.start, end: loop.end } } : {}) } });
   }
