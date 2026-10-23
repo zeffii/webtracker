@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['405', ['Arrangement view: right-click > Insert lane… adds a lane for an instrument at the end.']],
   ['404', ['A comb filter: tuned resonator with feedback, feedforward, damping and stereo spread.']],
   ['403', ['Arrangement view: no wrap at the ends (a Wrap button turns it on), and the master lane is half as wide.']],
   ['402', ['Graph view: R removes the selected node and joins the wires round it.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['398', ['A woodblock synth: struck modes that lose energy as they ring, with drawn volume and pitch envelopes.']],
   ['397', ['DSP tab: diode icon; the parameter panel runs down the window\'s right edge and the source fills the rest.']],
   ['396', ['The DSP view folds code: gutter arrows, Fold all and Unfold all.']],
-  ['395', ['A DSP view (Ctrl+Alt+I): read the code of an instrument\'s nodes, with live parameters.']],
 ];

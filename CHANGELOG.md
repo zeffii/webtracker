@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 405 · 2026-10-23
+
+- Arrangement view: right-click anywhere on the grid, on a pattern or an empty cell, and **Insert lane…** lists the instruments. Picking one adds a lane for it at the end of the arrangement (the same as "Add lane for" under the list).
+
 ## 404 · 2026-10-23
 
 - A comb filter (Effects > Filter & EQ): the signal is mixed with a copy delayed by one period of `freq`, which puts peaks at that frequency and its multiples. `feedback` rings them (a tuned resonator; feed it noise or clicks and it plays a string-like pitch; negative values drop it an octave), `ff` mixes in the delayed input once for notches, `damp` darkens the loop so the highs die first, `spread` detunes the two channels for width. The loop level is evened out, so more feedback does not mean louder.

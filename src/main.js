@@ -276,6 +276,8 @@ const seqView = createSequenceView({
   onOpen: (lane, tick, { solo = false } = {}) => { if (!solo || !view.enterSolo(lane, tick)) view.goto(lane, tick); tabs.show('patterns'); },
   onMove: (lane, tick) => { view.goto(lane, tick); followLane(lane); help.update(project?.lanes?.[lane]); },
   onParams: () => setFloat(true),
+  instruments: () => listedInstruments(),
+  onAddLane: id => { try { const lane = addLaneFor(id); projStatus(`Added lane ${lane.id}.`); } catch (err) { projStatus(err.message); } },
   onSeek: tick => { if (!started) return; if (playing) engine.play(tick); else setPlaying(true, tick); },
   onSong: () => songChanged(),
   onShape: li => { const l = project?.lanes?.[li]; if (l) engine.setLane({ id: l.id, instrument: l.instrument, columns: l.columns, pages: l.pages, mask: l.mask, auto: l.auto }); },

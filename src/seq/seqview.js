@@ -21,7 +21,7 @@ const hex2 = n => n.toString(16).toUpperCase().padStart(2, '0');
 // column. The cursor sits on a row; edits happen at the row's start, or at the start of a
 // pattern that begins inside it. A pattern is a block that starts with its index and name; a later
 // pattern covers the ones under it. Keyboard-driven.
-export function createSequenceView({ el, statusEl, listEl, transport, onToggle, onOpen, onMove, onSeek, onParams = () => {}, onSong = () => {}, onShape = () => {}, follow = () => false }) {
+export function createSequenceView({ el, statusEl, listEl, transport, onToggle, onOpen, onMove, onSeek, onParams = () => {}, instruments = () => [], onAddLane = () => {}, onSong = () => {}, onShape = () => {}, follow = () => false }) {
   let lanes = null, len = 0, editor = null, song = null;
   const cur = { lane: 0, tick: 0 };
   let typed = '', message = '';
@@ -260,6 +260,13 @@ export function createSequenceView({ el, statusEl, listEl, transport, onToggle, 
     return items;
   };
   // Right-click a pattern: the cursor goes there and a small menu offers what the keys do, and the parameters of its lane.
+  // Insert lane: a second small menu lists the instruments; the lane goes at the end of the arrangement
+  const laneItems = e => [{
+    label: 'Insert lane…', hint: 'at the end', run: () => {
+      const ids = instruments();
+      showContextMenu(e, [{ label: 'Insert lane for:', disabled: true }, ...ids.map(id => ({ label: id, run: () => { onAddLane(id); draw(); } }))]);
+    },
+  }];
   el.addEventListener('contextmenu', e => {
     if (!lanes) return;
     const hit = pointed(e);
@@ -269,7 +276,7 @@ export function createSequenceView({ el, statusEl, listEl, transport, onToggle, 
     onMove?.(cur.lane, cur.tick);
     draw();
     const li = cur.lane, t = editTick(), go = (label, result, ok) => { act(label, result, ok); draw(); };
-    if (!here()) { showContextMenu(e, curveItems(li)); return; }
+    if (!here()) { showContextMenu(e, [...curveItems(li), { separator: true }, ...laneItems(e)]); return; }
     showContextMenu(e, [
       { label: 'Open in the pattern editor', hint: 'Enter', run: () => onOpen(li, t) },
       { label: 'Open on its own', hint: 'Ctrl+double-click', run: () => onOpen(li, t, { solo: true }) },
@@ -282,6 +289,8 @@ export function createSequenceView({ el, statusEl, listEl, transport, onToggle, 
       { label: 'Params', hint: 'Ctrl+Alt+P', run: () => { onParams(li); draw(); } },
       { separator: true },
       ...curveItems(li),
+      { separator: true },
+      ...laneItems(e),
     ]);
   });
   const stopDrag = () => { dragging = null; };
