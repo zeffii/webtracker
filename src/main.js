@@ -1232,6 +1232,7 @@ const playSample = (id, note, on) => {
   if (!started || !(id in project.samples)) return;
   if (on) { prepareAudition(id); engine.noteOn(AUDITION, note, 1, { choke: true }); }   // a new note fades the old one, loop or not else if (audition) engine.noteOff(AUDITION, note);
 };
+let autoSliceOpen = () => {};
 const sampleScreen = createSampleScreen({
   el: $('smp'), statusEl: $('proj-status'), getProject: () => project,
   onChange: users => { sendLoop(users); auditionDirty = true; },   // loops, levels and edits change what the sample plays
@@ -1242,6 +1243,7 @@ const sampleScreen = createSampleScreen({
   onSelection: (from, to) => waveform.setSelection(from, to),
   onSlice: i => waveform.setActiveSlice(i),
   onZoom: kind => waveform.zoom(kind),
+  onAutoSlice: () => autoSliceOpen(),
   onLoad: () => $('sample-file').click(),
   onKeep: id => {   // K: copy the sample under the cursor into a new normal sample
     const s = project.samples[id];
@@ -1513,7 +1515,25 @@ shaderView = createShaderView({
 });
 $('shader-pop').addEventListener('click', () => popOut());
 mountConfig($('shader-cfg'), config, [['visualSize', 'Resolution'], ['visualDecay', 'Hit fade (ms)'], ['visualSkeleton', 'Pattern skeleton']]);
-mountConfig($('smp-cfg'), config, [['sliceSensitivity', 'Sensitivity (%)'], ['sliceMinGap', 'Shortest gap (ms)'], ['hexMode', 'Marker hex value'], ['ptrMax', 'Resynthesis branches']]);
+mountConfig($('as-cfg'), config, [['sliceSensitivity', 'Sensitivity (%)', 'range'], ['sliceMinGap', 'Shortest gap (ms)']]);
+// Auto-slice: a dialog with its two settings and a live count of the hits they find, so a setting can be tried before it is applied
+{
+  const dlg = $('autoslice'), count = $('as-count');
+  const refresh = () => {
+    if (!dlg.open) return;
+    const r = sampleScreen.autoSlice.preview();
+    $('as-go').disabled = !r.hits.length;
+    count.textContent = !r.name ? 'Pick a sample first.' : r.hits.length ? `${r.hits.length} hits found${r.whole ? '' : ' in the selection'}.` : `No hits found${r.whole ? '' : ' in the selection'}: raise the sensitivity or shorten the gap.`;
+  };
+  const open = () => { if (!started) return; if (!sampleScreen.selected) { $('proj-status').textContent = 'Pick a sample first.'; return; } dlg.showModal(); refresh(); $('as-cfg').querySelector('input')?.focus(); };
+  config.onChange(k => { if (k === 'sliceSensitivity' || k === 'sliceMinGap') refresh(); });
+  dlg.addEventListener('keydown', e => e.stopPropagation());
+  $('as-go').addEventListener('click', () => { const msg = sampleScreen.autoSlice.apply(); dlg.close(); $('proj-status').textContent = msg; $('smp').focus(); });
+  $('as-cancel').addEventListener('click', () => { dlg.close(); $('smp').focus(); });
+  dlg.addEventListener('close', () => $('smp').focus());
+  $('autoslice-open').addEventListener('click', open);
+  autoSliceOpen = open;
+}
 const placeViz = () => { if (pip) return; vizBox.style.bottom = `${$('footer').offsetHeight + (meters.open ? config.get('meterHeight') : 0) + 14}px`; };
 const showViz = on => {
   vizOn = on;

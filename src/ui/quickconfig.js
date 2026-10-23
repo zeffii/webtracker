@@ -2,7 +2,7 @@
 // changing it here changes it in Config and the other way round. rows: [[key, short label], ...]; schema: config.schemaOf(key).
 export function mountConfig(host, config, rows) {
   const syncs = [];
-  for (const [key, label] of rows) {
+  for (const [key, label, look] of rows) {
     const s = config.schemaOf(key); if (!s) continue;
     const row = document.createElement('label'); row.className = `qc ${s.type}`; row.title = s.hint ?? '';
     const text = Object.assign(document.createElement('span'), { textContent: label });
@@ -17,7 +17,12 @@ export function mountConfig(host, config, rows) {
       box.addEventListener('change', () => { config.set(key, Number(box.value)); box.value = config.get(key); });
       box.addEventListener('keydown', e => e.stopPropagation());   // typing a number is not a shortcut
       syncs.push(() => { if (document.activeElement !== box) box.value = config.get(key); });
-      row.append(text, box);
+      if (look === 'range') {   // a slider as well as the number
+        const r = Object.assign(document.createElement('input'), { type: 'range', min: s.min, max: s.max, step: 1 });
+        r.addEventListener('input', () => { config.set(key, Number(r.value)); box.value = config.get(key); });
+        syncs.push(() => { r.value = config.get(key); });
+        row.append(text, r, box);
+      } else row.append(text, box);
     } else {
       box = document.createElement('select');
       for (const o of s.options) box.append(Object.assign(document.createElement('option'), { value: o, textContent: s.labels?.[o] ?? o }));

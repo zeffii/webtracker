@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 390 · 2026-10-23
+
+- Auto-slice is a dialog now (Shift+E, or the Auto-slice button above the status bar on the Sample screen). It holds the sensitivity (slider) and shortest gap, shows how many hits those find as you change them, and Slice puts the markers in. Before, a result such as "No onsets found" only appeared as a short line at the foot of the screen, which made it look as if nothing had happened. The other sample settings stay in Config.
+
 ## 389 · 2026-10-23
 
 - The Sample screen's auto-slice settings are one line above the status bar (shown only on that screen) instead of a column beside the sample list, where it overlapped the Slices text. The live picture and meters move up with the taller footer.

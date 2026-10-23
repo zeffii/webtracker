@@ -32,7 +32,7 @@ const EDITS = { C: 'crop', T: 'crop', X: 'cut', S: 'silence', R: 'reverse', N: '
 const ROOT = 60;
 const round2 = v => Math.round(v * 100) / 100;
 
-export function createSampleScreen({ el, statusEl, getProject, onChange = () => {}, onSelect = () => {}, onRemove = () => {}, onRename = () => {}, onNote = () => {}, onLoad = () => {}, onKeep = () => {}, onView = () => {}, onSelection = () => {}, onSlice = () => {}, onZoom = () => '' }) {
+export function createSampleScreen({ el, statusEl, getProject, onChange = () => {}, onSelect = () => {}, onRemove = () => {}, onRename = () => {}, onNote = () => {}, onLoad = () => {}, onKeep = () => {}, onView = () => {}, onSelection = () => {}, onSlice = () => {}, onZoom = () => '', onAutoSlice = null }) {
   let sel = null, focus = 'list', edit = null, mode = 'wave', announced = null, last = null, top = 0;
   let selFrom = 0, selTo = 0, octave = 5, activeSlice = -1;   // the slice marker + and - move
   const held = new Map();   // key -> note it is playing
@@ -226,17 +226,7 @@ export function createSampleScreen({ el, statusEl, getProject, onChange = () => 
       }
       return eat();
     }
-    if (e.shiftKey && focus !== 'name' && k === 'E') {   // find the onsets (hits) of the sample, or of the selection, and put a slice marker on each
-      const s = sample(), whole = selTo <= selFrom, from = whole ? 0 : selFrom, to = whole ? s.data.length : selTo;
-      const hits = detectOnsets(s.data, s.right, s.rate, { from, to, sensitivity: config.get('sliceSensitivity') / 100, minGapMs: config.get('sliceMinGap') });
-      if (!hits.length) say('No onsets found: try a higher sensitivity in Config (Sample).');
-      else {
-        const keep = (s.slices ?? []).filter(f => f < from || f >= to);   // markers outside the range stay; inside it they are replaced
-        const marks = [...new Set([...keep, ...(hits[0] - from > Math.round(0.02 * s.rate) ? [from] : []), ...hits])];
-        if (attempt(() => setSlices(getProject(), sel, marks))) { setActive(-1); say(`Found ${hits.length} onsets${whole ? '' : ' in the selection'}: ${sample().slices.length} slice markers now.`); }
-      }
-      return eat();
-    }
+    if (e.shiftKey && focus !== 'name' && k === 'E') { if (onAutoSlice) onAutoSlice(); else say(autoSlice.apply()); return eat(); }   // auto-slice: the dialog (main.js) asks for the settings, or it just runs
     if (e.shiftKey && focus !== 'name' && (k === 'Z' || k === 'A' || k === 'W')) { say(onZoom(k === 'Z' ? 'selection' : k === 'A' ? 'out' : 'all') ?? ''); return eat(); }   // zoom the display: to the selection, out, whole sample
     if ((k === '[' || k === ']') && focus !== 'name') {
       octave = Math.min(9, Math.max(0, octave + (k === ']' ? 1 : -1)));
@@ -422,5 +412,25 @@ export function createSampleScreen({ el, statusEl, getProject, onChange = () => 
     }
   }
 
-  return { draw, key, select, runEdit, undoRedo, markSlice, setSelection(from, to) { if (sel) setSelection(Math.max(0, from), Math.max(0, to)); }, setActiveSlice(i) { activeSlice = i; }, history, get octave() { return octave; }, get selection() { return [selFrom, selTo]; }, get selected() { return sel; }, get focus() { return focus; }, get mode() { return mode; } };
+  // Auto-slice: a marker on every hit of the sample, or of the selection (markers inside it are replaced). preview finds them without
+  // touching the sample, so a dialog can show how many a setting gives; apply puts the markers in. Both take sensitivity (0 to 100) and gap (ms).
+  const autoSlice = {
+    preview({ sensitivity = config.get('sliceSensitivity'), gap = config.get('sliceMinGap') } = {}) {
+      const s = sample();
+      if (!s) return { hits: [], whole: true, name: '' };
+      const whole = selTo <= selFrom, from = whole ? 0 : selFrom, to = whole ? s.data.length : selTo;
+      return { hits: detectOnsets(s.data, s.right, s.rate, { from, to, sensitivity: sensitivity / 100, minGapMs: gap }), whole, from, to, name: sel, length: s.data.length / s.rate };
+    },
+    apply(opts) {
+      const s = sample(), { hits, whole, from, to } = autoSlice.preview(opts);
+      if (!s) return 'Pick a sample first.';
+      if (!hits.length) return 'No onsets found: try a higher sensitivity.';
+      const keep = (s.slices ?? []).filter(f => f < from || f >= to);   // markers outside the range stay; inside it they are replaced
+      const marks = [...new Set([...keep, ...(hits[0] - from > Math.round(0.02 * s.rate) ? [from] : []), ...hits])];
+      if (!attempt(() => setSlices(getProject(), sel, marks))) return '';
+      setActive(-1);
+      return `Found ${hits.length} onsets${whole ? '' : ' in the selection'}: ${sample().slices.length} slice markers now.`;
+    },
+  };
+  return { draw, key, select, runEdit, autoSlice, undoRedo, markSlice, setSelection(from, to) { if (sel) setSelection(Math.max(0, from), Math.max(0, to)); }, setActiveSlice(i) { activeSlice = i; }, history, get octave() { return octave; }, get selection() { return [selFrom, selTo]; }, get selected() { return sel; }, get focus() { return focus; }, get mode() { return mode; } };
 }
