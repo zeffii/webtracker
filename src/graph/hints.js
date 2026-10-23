@@ -368,7 +368,7 @@ const HINTS = {
     swing: 'Percent: 50 is straight, 75 the most.',
     tpb: 'Ticks per beat.',
     volume: 'The volume of the whole mix.',
-    limit: 'The master limiter, after the volume. It holds the peaks of the whole mix under the ceiling so nothing clips. 1 on, 0 off.',
+    limit: 'The master limiter, after the volume. It holds the peaks of the whole mix under the ceiling so nothing clips. 1 on, 0 off; it starts off, because it changes the sound of the mix.',
     ceiling: 'The loudest the mix can get, in dB below full scale. A little under 0 (the default is -0.3) leaves room for the peaks between the samples.',
     boost: 'Gain into the limiter, in dB. The peaks are held at the ceiling, so more gain makes the whole mix louder and denser.',
     release: 'How long the limiter takes to let go after a peak, in ms. Short is louder and can pump; long is smoother.',

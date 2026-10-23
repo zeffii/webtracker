@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 421 · 2026-10-23
+
+- The master limiter starts **off** (`Lim` 0): it changes the sound of the mix more than a safety net should, so it is there when you ask for it. Switch it on with the `Lim` column of the master lane, or the Limiter parameter of the master lane. A project that was saved with it on keeps it on. The limiter meter shows the level either way, with nothing held back while it is off.
+
 ## 420 · 2026-10-23
 
 - **Master limiter**, after the master volume, on by default: a lookahead peak limiter (1.5 ms) that keeps the whole mix under a ceiling so nothing clips, with one gain for both channels so the stereo image stays put. New master lane parameters and columns: `Lim` (on or off), `Ceil` (the ceiling in dB, default -0.3), `Gain` (dB into the limiter, up to +18: louder and denser, with the peaks held at the ceiling) and `Rel` (the release in ms). A project saved earlier gets the columns when it is opened. It also applies to the exported file. Peaks are sample peaks, not true peaks, so keep the ceiling a little under 0.
