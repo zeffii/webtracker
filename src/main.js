@@ -38,6 +38,8 @@ import { renderMarkdown } from './ui/markdown.js';
 import { TUTORIAL } from './script/tutorial.js';
 import { mountWidgets } from './script/euclidhelp.js';
 import { createMidiInput } from './ui/midiin.js';
+import { createOscClient } from './ui/oscclient.js';
+import { noteMessage } from './osc.js';
 import { createMidiWriter } from './seq/midiwrite.js';
 import { createMarkerRegionView } from './project/markerregion.js';
 import { FILE_EXT, INSTRUMENT_EXT, parseInstrument, parseProject, serializeInstrument, serializeProject } from './project/file.js';
@@ -679,6 +681,9 @@ const songInfo = () => {
 };
 
 const projStatus = text => { $('proj-status').textContent = text; };
+// the link to the OSC relay, for the OSC out machines
+let oscSaid = null;
+const osc = createOscClient({ port: () => config.get('oscPort'), onState: ({ up, error }) => { const said = up ? 'up' : error; if (said === oscSaid) return; oscSaid = said; projStatus(up ? 'OSC relay connected.' : `OSC: ${error}.`); } });
 
 // The lists that depend on what the project holds: instruments, samples, the sample list.
 function refreshProjectUi() {
@@ -1945,6 +1950,7 @@ async function loadSampleFiles(files) {
     projStatus(`${said}.`);
   };
   engine.onEmit = ({ instrument, node, msg }) => {
+    if (msg.type === 'osc') { const [address, args] = noteMessage(msg, msg.p, instrument); osc.send(address, args); return; }
     if (msg.type === 'cloud') { patcher.feedCloud(instrument, node, msg, engine.ctx.sampleRate); return; }
     const key = `${instrument}\u0000${node}`;
     if (msg.phase === 'start') { takes.set(key, { ...msg, node, ls: [], rs: [] }); projStatus(`Tap ${node}: recording into ${poolId(msg.smp)}…`); return; }

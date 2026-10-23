@@ -73,6 +73,7 @@ const NAMES = {
   waveshaper: { oversample: ['1x', '2x', '4x'] },
   follower: { mode: ['peak', 'rms'], invert: ONOFF },
   notetrig: { legato: ONOFF },
+  oscout: { mode: ['Renoise addresses', 'Wax addresses'], instrument: '', track: '', transpose: 'st' },
   arp: { mode: ARP_MODES, rate: ARP_RATES, retrigger: ARP_RETRIG, veltype: ['played', 'fixed'], hold: ONOFF, thru: ONOFF },
   sampler: { reverse: ONOFF },
   fourpole: {

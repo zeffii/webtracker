@@ -2,6 +2,11 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 414 · 2026-10-23
+
+- **OSC out**, a machine that sends the notes of its lane as Open Sound Control (Sources > Synths > "OSC out (Renoise, Max, ...)", or the `oscout` node). It makes no sound: it sends `/renoise/trigger/note_on` (instrument, track, note, velocity) and `note_off` with Renoise's own numbering, so Wax can play a Renoise song's instruments (switch on Renoise's OSC server in Preferences > OSC, UDP). Parameters: `instrument`, `track` (-1 is the current track) and `transpose`; `mode` 1 sends Wax's own `/wax/NAME/note_on` and `note_off` (MIDI note, velocity) for Max, SuperCollider and the like. The computer keys play it in the graph view like any other machine.
+- A browser cannot send UDP, so the messages go to a small relay: `node tools/osc-relay.mjs [--port 8765] [--to 127.0.0.1:8000] [--log]` (no packages needed; Settings > OSC relay port must match). Wax connects when the first note is sent and says in the status line if no relay is listening. Messages go out as soon as the page hears of them, with no time tags yet.
+
 ## 413 · 2026-10-23
 
 - "Insert lane…" in the arrangement view now places the new lane **to the left or to the right of the lane you right-clicked**: two rows at the top of the menu (● marks the side, and it is remembered for the session; nothing goes before the master lane). **New instrument…** no longer sends you to the instrument screen: it lists the kinds (synths, sampler, blank) right there and makes the instrument with a default name, a number added when the name is taken (clap, clap2, clap3), and its lane. **Instruments without a lane…** puts a lane for an existing instrument on the chosen side. Lane names count up the same way (clap2, clap3, not clap22).

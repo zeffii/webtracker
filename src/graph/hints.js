@@ -399,6 +399,7 @@ const HINTS = {
     cycle2: 'Interval cycle mode: the third note of each triple, in semitones above the held note (7 is a fifth).',
     thru: '1: the keys you play sound as well as the arpeggio, handy for a bass note under the arp.',
   },
+  oscout: { mode: '0: Renoise\'s own OSC addresses (/renoise/trigger/note_on and note_off, so Wax can play a Renoise song\'s instruments). 1: Wax\'s addresses, /wax/NAME/note_on and note_off with the MIDI note and velocity.', instrument: 'Renoise: the instrument number to play, counted from 0 as its OSC server counts.', track: 'Renoise: the track number (from 0), or -1 for the current track.', transpose: 'Semitones added to every note sent.' },
   notetrig: { legato: '1: a note played while another is still held does not start the envelope again. 0: every note fires it.' },
   follower: {
     attack: 'How fast the level rises to follow a louder sound, in ms.',

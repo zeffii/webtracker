@@ -7771,4 +7771,63 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   assert.ok(slice(1) > rms(gaps, Math.round(0.014 * sr), Math.round(0.019 * sr)) * 3, 'each burst stands out from the quiet before it');
   console.log('ok: clap');
 }
+
+{
+  // OSC: messages encode to the spec's bytes, notes become Renoise's note_on and note_off, the node emits them, the relay passes them on
+  const { encodeMessage, decodeMessage, noteMessage } = await import('../src/osc.js');
+  const m = encodeMessage('/renoise/trigger/note_on', [0, -1, 48, 100]);
+  assert.equal(m.length % 4, 0, 'padded to four bytes');
+  assert.deepEqual(decodeMessage(m), { address: '/renoise/trigger/note_on', args: [0, -1, 48, 100] }, 'int arguments survive');
+  assert.deepEqual([...encodeMessage('/a', [])], [...'/a\0\0,\0\0\0'].map(c => c.charCodeAt(0)), 'an address with no arguments is address and an empty tag string');
+  assert.deepEqual(decodeMessage(encodeMessage('/x', [0.5, 'hi', 7])), { address: '/x', args: [0.5, 'hi', 7] }, 'floats, strings and ints');
+  assert.deepEqual(noteMessage({ on: true, note: 60, vel: 1 }, [0, 3, -1, 0], 'r'), ['/renoise/trigger/note_on', [3, -1, 48, 127]], 'MIDI 60 is Renoise C-4 = 48');
+  assert.deepEqual(noteMessage({ on: false, note: 60, vel: 0 }, [0, 3, 2, 12], 'r'), ['/renoise/trigger/note_off', [3, 2, 60]], 'transpose adds');
+  assert.deepEqual(noteMessage({ on: true, note: 64, vel: 0.5 }, [1, 0, 0, 0], 'my inst'), ['/wax/my_inst/note_on', [64, 64]], 'Wax addresses');
+  const type = NODE_TYPES.oscout, sent = [];
+  const inst = type.create({ emit: x => sent.push(x) });
+  inst.process([], [], 128, new Float32Array([0, 5, 2, 0]), [0, 1, 2, 3]);
+  inst.note({ type: 'noteOn', note: 60, vel: 0.5 });
+  inst.note({ type: 'noteOff', note: 60 });
+  inst.note({ type: 'noteOff', note: 60 });   // not held: nothing
+  assert.equal(sent.length, 2, 'one on, one off');
+  assert.deepEqual(sent[0].p, [0, 5, 2, 0], 'the settings go with the note');
+  assert.ok(sent[0].on && !sent[1].on);
+  const { createOscClient } = await import('../src/ui/oscclient.js');
+  const frames = [];
+  class FakeWS { constructor(url) { this.url = url; FakeWS.last = this; } send(b) { frames.push(b); } }
+  const states = [];
+  const client = createOscClient({ port: () => 9000, WS: FakeWS, onState: x => states.push(x) });
+  assert.equal(client.send('/a', [1]), false, 'not connected yet');
+  assert.equal(FakeWS.last.url, 'ws://localhost:9000');
+  FakeWS.last.onopen();
+  assert.equal(frames.length, 1, 'what was sent while it opened goes out once it is open');
+  assert.equal(client.send('/a', [1]), true, 'sent once it is open');
+  assert.equal(frames.length, 2);
+  FakeWS.last.onclose();
+  assert.equal(states.at(-1).up, false);
+  assert.ok(/relay/.test(states.at(-1).error), 'it says to start the relay');
+  // the relay itself: a WebSocket frame in, a UDP packet out
+  const dgram = await import('node:dgram'), net = await import('node:net'), { spawn } = await import('node:child_process');
+  const udp = dgram.createSocket('udp4');
+  await new Promise(r => udp.bind(0, '127.0.0.1', r));
+  const relay = spawn(process.execPath, ['tools/osc-relay.mjs', '--port', '18765', '--to', `127.0.0.1:${udp.address().port}`], { stdio: 'ignore' });
+  try {
+    const got = new Promise((res, rej) => { udp.once('message', res); setTimeout(() => rej(new Error('the relay passed nothing on')), 4000); });
+    let sock;
+    for (let i = 0; i < 40 && !sock; i++) {
+      await new Promise(r => setTimeout(r, 100));
+      sock = await new Promise(r => { const c = net.connect(18765, '127.0.0.1', () => r(c)); c.on('error', () => r(null)); });
+    }
+    assert.ok(sock, 'the relay listens');
+    sock.write('GET / HTTP/1.1\r\nHost: x\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\nSec-WebSocket-Version: 13\r\n\r\n');
+    await new Promise(r => sock.once('data', r));
+    const payload = Buffer.from(encodeMessage('/renoise/transport/start', []));
+    const mask = Buffer.from([1, 2, 3, 4]), masked = Buffer.from(payload.map((b, i) => b ^ mask[i & 3]));
+    sock.write(Buffer.concat([Buffer.from([0x82, 0x80 | payload.length]), mask, masked]));
+    const packet = await got;
+    assert.equal(decodeMessage(new Uint8Array(packet)).address, '/renoise/transport/start', 'the relay sent the message on as UDP');
+    sock.destroy();
+  } finally { relay.kill(); udp.close(); }
+  console.log('ok: osc');
+}
 console.log('smoke test passed');

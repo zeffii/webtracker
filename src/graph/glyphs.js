@@ -217,6 +217,11 @@ export const GLYPHS = {
     [[0, 0.1], [0.25, 0.35], [0.5, 0.6], [0.75, 0.85]].forEach(([f, v]) => line(ctx, [[x(f), y(v)], [x(f + 0.18), y(v)]]));
     line(ctx, [[x(0.18), y(0.1)], [x(0.25), y(0.35)]]); line(ctx, [[x(0.43), y(0.35)], [x(0.5), y(0.6)]]); line(ctx, [[x(0.68), y(0.6)], [x(0.75), y(0.85)]]);
   },
+  oscout: (ctx, cx, cy, w, h) => {   // a dot sending rings outwards: a signal leaving the program
+    const x = f => cx - w / 2 + f * w, y = f => cy + h / 2 - f * h;
+    ctx.beginPath(); ctx.arc(x(0.2), y(0.5), h * 0.07, 0, 7); ctx.fill();
+    for (const r of [0.2, 0.4, 0.6]) { ctx.beginPath(); ctx.arc(x(0.2), y(0.5), h * r, -0.8, 0.8); ctx.stroke(); }
+  },
   notetrig: (ctx, cx, cy, w, h) => {   // a note's block, and the spike it fires
     const x = f => cx - w / 2 + f * w, y = f => cy + h / 2 - f * h;
     line(ctx, [[x(0), y(0.08)], [x(0.15), y(0.08)], [x(0.15), y(0.45)], [x(0.7), y(0.45)], [x(0.7), y(0.08)], [x(1), y(0.08)]]);

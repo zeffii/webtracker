@@ -387,6 +387,16 @@ export const synthKinds = {
     label: 'Comb resonator tom (tuned, zapping)',
     make: () => combPercKind({ spread: 0.1, decay: 380, sweep: 2, sdec: 45, damp: 0.5, click: 3, bright: 0.45, drive: 0.15 }),
   },
+  osc: {
+    label: 'OSC out (Renoise, Max, ...)',
+    make: () => ({
+      graph: { nodes: [{ id: 'osc', type: 'oscout' }, { id: 'out', type: 'out', params: { gain: 0 } }], connections: [] },
+      exposed: [
+        { node: 'osc', param: 'instrument', label: 'Ins' },
+        { node: 'osc', param: 'track', label: 'Trk' },
+      ],
+    }),
+  },
   clap: {
     label: 'Clap (burst noise)',
     make: () => ({

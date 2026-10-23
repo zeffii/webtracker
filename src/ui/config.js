@@ -74,6 +74,7 @@ export const SCHEMA = [
   { key: 'followLane', label: 'Instrument editor follows the cursor', hint: 'moving into another lane shows that lane\'s machine', type: 'bool', def: true },
   { key: 'insertLength', label: 'Insert silence: default length', hint: 'in ticks', type: 'int', min: 1, max: 65536, def: 128 },
   { key: 'insertCut', label: 'Insert silence: cut patterns across the cursor', hint: 'off: a pattern crossing the cursor row stays whole', type: 'bool', def: false },
+  { group: 'OSC', key: 'oscPort', label: 'OSC relay port', hint: 'where an OSC out machine sends: run node tools/osc-relay.mjs (it passes the messages on as UDP, to Renoise for one)', type: 'int', min: 1024, max: 65535, def: 8765 },
   { group: 'MIDI', key: 'midiOn', label: 'Use MIDI input', hint: 'the browser asks for permission when this is switched on', type: 'bool', def: false },
   { key: 'midiChannel', label: 'MIDI channel', hint: '0 listens to every channel', type: 'int', min: 0, max: 16, def: 0 },
   { key: 'midiVelocity', label: 'Velocity sensitive', hint: 'on: the key velocity is played and written to the vl column (Alt+V). off: every note at the default volume, nothing written', type: 'bool', def: false },
