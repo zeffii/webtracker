@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['384', ['The picture\'s shader is saved with the project.']],
   ['383', ['Expose a shader number from the Knobs panel: the shader machine gets a hatched lane with a pattern column for it, so patterns can animate the picture.']],
   ['382', ['A Pause button (and the Pause key): stop in place, carry on from the same row.']],
   ['381', ['Shader view: sliders for the numbers (hover or caret, or drag a number) and a Knobs panel.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['377', ['Live picture: pop it out into its own always-on-top window; four more shader templates.']],
   ['376', ['Live picture: five shader templates to start from (Config > Visual).']],
   ['375', ['MP4 export always uses AAC sound (a built-in encoder where the browser has none), so X accepts it.']],
-  ['374', ['Export shows a progress bar at the right of the status bar.']],
 ];

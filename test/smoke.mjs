@@ -3345,6 +3345,17 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     parseProject(serializeProject({ ...p, lanes }));
   }
 
+  // the picture's shader is saved with the project, and a project without one writes nothing
+  {
+    const p = createArpDemoProject(), registry = new ParamRegistry();
+    for (const [id, def] of Object.entries(p.instruments)) compile(def.graph, { instrument: id, nodeTypes: NODE_TYPES, registry });
+    const lanes = prepareSong(p.song, p.instruments, registry);
+    assert.ok(!('shaders' in JSON.parse(serializeProject({ ...p, lanes })).song));
+    p.song.shaders = [{ name: 'main', glsl: 'void main(){gl_FragColor=vec4(1.);}' }, { name: 'empty', glsl: '' }];
+    const back = parseProject(serializeProject({ ...p, lanes }));
+    assert.deepEqual(back.song.shaders, [{ name: 'main', glsl: 'void main(){gl_FragColor=vec4(1.);}' }]);
+  }
+
   // a number exposed to the patterns is a column of the shader lane, and a value written there reaches the registry the picture reads
   {
     const p = createArpDemoProject();

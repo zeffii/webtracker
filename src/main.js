@@ -1340,6 +1340,7 @@ function openProject({ song, instruments, samples }, { stay = false, instrument 
   const at = Math.max(lanes.length > 1 ? 1 : 0, lanes.findIndex(l => l.id === lane));   // not the master lane, to start with
   view.goto(at, 0); seqView.goto(at, 0);
   scriptScreen.load(song.script);
+  visual?.setSource(shaderStore.get()); shaderView?.load();
   $('info').value = song.info ?? '';
   infoStatus();
   if (song.info) { renderInfo(); $('info').hidden = true; $('info-view').hidden = false; $('info-edit').textContent = 'Edit'; }
@@ -1463,11 +1464,21 @@ const shaderMachine = {
   },
   remove(name) { ops.removeShaderKnob(project, name); reloadInstrument(SHADER); },
 };
+// The picture's shader lives in the project (song.shaders, a list so that later a song can have several); a project with none uses the text in Config.
+const shaderStore = {
+  get: () => project?.song.shaders?.[0]?.glsl || config.get('visualGlsl'),
+  set(text) {
+    if (!project) return;
+    if (text) project.song.shaders = [{ name: project.song.shaders?.[0]?.name ?? 'main', glsl: text }]; else delete project.song.shaders;
+    visual?.setSource(this.get());
+    scheduleCheck();
+  },
+};
 const visdata = createVisData({ lanes: () => project?.lanes ?? [], transport: engine.transport, song: () => project?.song, decayMs: () => config.get('visualDecay'), knob: name => shaderMachine.get(name) });
 let visual = null, labels = null, vizOn = false;
 shaderView = createShaderView({
   parts: { input: $('shader-input'), paint: $('shader-paint'), gutter: $('shader-gutter'), status: $('shader-status'), templates: $('shader-templates'), reset: $('shader-reset'), clip: $('shader-clip'), slidersOn: $('shader-sliders'), knobs: $('shader-knobs'), knobsOn: $('shader-knobs-on') },
-  config, defaultSource: DEFAULT_GLSL, templates: TEMPLATES, machine: shaderMachine,
+  config, store: shaderStore, defaultSource: DEFAULT_GLSL, templates: TEMPLATES, machine: shaderMachine,
 });
 $('shader-pop').addEventListener('click', () => popOut());
 const placeViz = () => { if (pip) return; vizBox.style.bottom = `${$('footer').offsetHeight + (meters.open ? config.get('meterHeight') : 0) + 14}px`; };
@@ -1476,7 +1487,7 @@ const showViz = on => {
   if (on && !visual) {
     visual = createVisual($('viz-canvas'), { onError: text => { vizErr.hidden = !text; vizErr.textContent = text; shaderView?.error(text); } });
     if (!visual) { vizOn = false; $('status').textContent = 'The live picture needs WebGL, which this browser does not have.'; }
-    else { visual.resize(Number(config.get('visualSize'))); visual.setSource(config.get('visualGlsl')); labels = createLabels($('viz-text'), Number(config.get('visualSize'))); }
+    else { visual.resize(Number(config.get('visualSize'))); visual.setSource(shaderStore.get()); labels = createLabels($('viz-text'), Number(config.get('visualSize'))); }
   }
   if (!vizOn && pip) pip.close();
   vizBox.hidden = !vizOn; $('viz-btn').setAttribute('aria-pressed', String(vizOn)); placeViz();
@@ -1565,7 +1576,7 @@ document.addEventListener('keydown', e => {
   if (/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName ?? '')) return;
   e.preventDefault(); e.stopPropagation(); openCmd();
 }, true);
-config.onChange((k, v) => { if (k === 'visualOn') showViz(v); else if (k === 'visualGlsl') visual?.setSource(v); else if (k === 'visualSize') { visual?.resize(Number(v)); labels?.resize(Number(v)); } else if (k === 'meterOn') { showMeters(v); placeViz(); } else if (k.startsWith('meter')) { meters.rebuild(); placeMeters(); } });
+config.onChange((k, v) => { if (k === 'visualOn') showViz(v); else if (k === 'visualGlsl') { visual?.setSource(shaderStore.get()); shaderView?.load(); } else if (k === 'visualSize') { visual?.resize(Number(v)); labels?.resize(Number(v)); } else if (k === 'meterOn') { showMeters(v); placeViz(); } else if (k.startsWith('meter')) { meters.rebuild(); placeMeters(); } });
 $('meters-btn').addEventListener('click', toggleMeters);
 addEventListener('resize', placeMeters);
 showMeters(config.get('meterOn'));

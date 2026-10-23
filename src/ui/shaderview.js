@@ -69,11 +69,12 @@ export function formatValue(kind, v, { decimals = 0, bare = false } = {}) {
 
 // parts: { box, input, paint, gutter, status, templates (a select), reset (a button) }; config; defaultSource; templates: { id: { label, source } }
 // sliders: parts.clip (the box the popup sits in) and parts.slidersOn (the tick box that switches the number chips and sliders on or off)
-export function createShaderView({ parts, config, defaultSource, templates, machine = null }) {
+// store: { get(), set(text) } holds the source ('' for the built-in picture): the project's shader, with the Config text as a default
+export function createShaderView({ parts, config, store, defaultSource, templates, machine = null }) {
   const { input, paint, gutter, status } = parts;
   parts.machine = machine;
   let timer = null, errorLine = 0, shown = '', slider = null, hoverMark = -1;
-  const stored = () => config.get('visualGlsl');
+  const stored = () => store.get();
   const lineCount = () => input.value.split('\n').length;
   const draw = () => {
     paint.innerHTML = `${highlight(input.value, hoverMark >= 0 ? hoverMark : slider ? slider.numStart : -1)}\n`;
@@ -82,7 +83,7 @@ export function createShaderView({ parts, config, defaultSource, templates, mach
     sync();
   };
   const sync = () => { paint.style.transform = `translate(${-input.scrollLeft}px, ${-input.scrollTop}px)`; gutter.style.transform = `translateY(${-input.scrollTop}px)`; };
-  const apply = () => { timer = null; shown = input.value; config.set('visualGlsl', input.value === defaultSource ? '' : input.value); };
+  const apply = () => { timer = null; shown = input.value; store.set(input.value === defaultSource ? '' : input.value); };
   const change = () => { if (sliding) return; closeSlider(false); errorLine = 0; draw(); clearTimeout(timer); timer = setTimeout(apply, 350); };
   let sliding = false;
   input.addEventListener('input', change);
@@ -382,11 +383,10 @@ export function createShaderView({ parts, config, defaultSource, templates, mach
     const id = parts.templates.value; parts.templates.value = '';
     if (!id) return;
     clearTimeout(timer); timer = null;
-    config.set('visualGlsl', id === 'builtin' ? '' : templates[id].source);
+    store.set(id === 'builtin' ? '' : templates[id].source);
     load();
   });
-  parts.reset.addEventListener('click', () => { clearTimeout(timer); timer = null; config.set('visualGlsl', ''); load(); });
-  config.onChange(k => { if (k === 'visualGlsl' && timer === null) load(); });
+  parts.reset.addEventListener('click', () => { clearTimeout(timer); timer = null; store.set(''); load(); });
   load(); rebuildKnobs();
   return {
     load,
