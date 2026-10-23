@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['422', ['Limiter switch on the status bar; multiband compressor with four bands.']],
   ['421', ['The master limiter starts off.']],
   ['420', ['Master limiter after the master volume, with a limiter meter in the meter band.']],
   ['419', ['Duette: no more clicks when a note starts over the last one; note cuts fade.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['415', ['Detect chords: the notes of a recording written into a pattern (Samples, Shift+H).']],
   ['414', ['OSC out machine: notes as OSC, Renoise addresses, with a relay script.']],
   ['413', ['Insert lane goes left or right of the lane; New instrument lists kinds with default names.']],
-  ['412', ['Insert lane: New instrument and Instruments without a lane.']],
 ];

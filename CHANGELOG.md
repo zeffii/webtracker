@@ -2,6 +2,11 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 422 · 2026-10-23
+
+- **Limiter switch** on the status bar (the "Lim" button beside the meters button): switches the master limiter on and off. It is the master lane's `Lim` parameter, so it is saved with the project, follows the pattern column and the parameter panel, and lights up when the limiter is on.
+- **Multiband compressor** (Effects > Dynamics > "Multiband compressor", or the `mbcomp` node): four bands (low, low mid, high mid, high) split at three crossovers with the same phase-aligned 24 dB per octave filters as the band splitter, each compressed on its own with its own threshold, ratio, attack, release and gain; the knee is shared and each band is stereo-linked, so the image does not shift. With nothing to compress the bands add back to the original level. `solo` plays one band alone to set it up, `mix` blends with the dry sound for parallel compression, and `out` is the gain at the end. The low band starts with a slow attack to let the front of a kick through, the high band with a quick one for hats.
+
 ## 421 · 2026-10-23
 
 - The master limiter starts **off** (`Lim` 0): it changes the sound of the mix more than a safety net should, so it is there when you ask for it. Switch it on with the `Lim` column of the master lane, or the Limiter parameter of the master lane. A project that was saved with it on keeps it on. The limiter meter shows the level either way, with nothing held back while it is off.

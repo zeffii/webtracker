@@ -1515,6 +1515,20 @@ const placeMeters = () => {
 const showMeters = on => { if (on) meters.show(); else meters.hide(); $('meters-btn').setAttribute('aria-pressed', String(on)); placeMeters(); };
 const toggleMeters = () => config.set('meterOn', !meters.open);
 
+// The master limiter switch on the status bar: the master lane's `limit` parameter, kept in the project so it is saved with it.
+const limitSlot = () => engine.registry.slots.get('master.m.limit');
+const limitOn = () => { const s = limitSlot(); return s !== undefined && engine.registry.values[s] >= 0.5; };
+const paintLimit = () => { const on = String(limitOn()); if ($('limit-btn').getAttribute('aria-pressed') !== on) $('limit-btn').setAttribute('aria-pressed', on); };
+$('limit-btn').addEventListener('click', () => {
+  const node = project?.instruments?.master?.graph.nodes.find(n => n.id === 'm');
+  if (!node || limitSlot() === undefined) return;
+  const v = limitOn() ? 0 : 1;
+  (node.params ??= {}).limit = v;
+  engine.set('master.m.limit', v);
+  paintLimit();
+});
+setInterval(paintLimit, 400);   // the pattern or the parameter panel can switch it too
+
 // The live picture: a 300 x 300 shader in the corner, fed by what the lanes play (ui/visdata.js, ui/visual.js).
 const vizBox = $('viz'), vizErr = $('viz-err');
 // The shader machine: numbers the shader exposes as pattern columns (see addShaderKnob). get gives a number's value, 0 to 1.

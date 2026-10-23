@@ -270,6 +270,14 @@ export const GLYPHS = {
     line(ctx, burst(0.02, 0.2, 0.7));
     line(ctx, burst(0.32, 0.64, 0.9));
   },
+  mbcomp: (ctx, cx, cy, w, h) => {   // four bars, each squashed to a different height
+    const x = f => cx - w / 2 + f * w, y = f => cy + h / 2 - f * h;
+    [0.8, 0.55, 0.7, 0.4].forEach((top, k) => {
+      const x0 = 0.08 + k * 0.23, x1 = x0 + 0.17;
+      line(ctx, [[x(x0), y(0.1)], [x(x0), y(top)], [x(x1), y(top)], [x(x1), y(0.1)]]);
+      line(ctx, [[x(x0), y(top - 0.18)], [x(x1), y(top - 0.18)]]);
+    });
+  },
   tape: (ctx, cx, cy, w, h) => {   // two reels joined by a tape path
     const r = Math.min(w, h) * 0.2, lx = cx - w * 0.24, rx = cx + w * 0.24, y = cy - h * 0.05;
     for (const x of [lx, rx]) { const pts = []; for (let i = 0; i <= 16; i++) { const a = i / 16 * Math.PI * 2; pts.push([x + Math.cos(a) * r, y + Math.sin(a) * r]); } line(ctx, pts); }

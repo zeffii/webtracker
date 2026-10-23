@@ -28,6 +28,7 @@ const TYPE_UNIT = {
   compressor: { ratio: ':1' },
   follower: { gain: 'dB' },
   crusher: { rate: 'Hz', bits: 'bit' },
+  mbcomp: { f1: 'Hz', f2: 'Hz', f3: 'Hz', knee: 'dB', out: 'dB', ...Object.fromEntries(['low', 'lowmid', 'highmid', 'high'].flatMap(b => [[`${b}Thresh`, 'dB'], [`${b}Ratio`, ':1'], [`${b}Attack`, 'ms'], [`${b}Release`, 'ms'], [`${b}Gain`, 'dB']])) },
   tempo: { ceiling: 'dB', boost: 'dB', release: 'ms' },
   dcblock: { freq: 'Hz' },
   modchan: {},

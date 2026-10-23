@@ -6139,6 +6139,39 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   console.log('ok: master limiter');
 }
 
+// Multiband compressor: flat with nothing to do, each band squashed on its own, solo
+{
+  const T = NODE_TYPES.mbcomp, n = 128;
+  const run = (over, make, seconds = 0.8) => {
+    const params = T.params.map(p => over[p.name] ?? p.def), slots = Int32Array.from(params.keys());
+    const node = T.create({ sampleRate: sr, maxBlock: n });
+    const total = Math.floor(sr * seconds / n) * n, out = new Float32Array(total), L = new Float32Array(n), R = new Float32Array(n);
+    for (let at = 0; at < total; at += n) {
+      const inp = Float32Array.from({ length: n }, (_, i) => make(at + i));
+      node.process([[inp, inp]], [[L, R]], n, Float32Array.from(params), slots);
+      out.set(L, at);
+    }
+    return out;
+  };
+  const rms = (a, from = 0) => Math.sqrt(a.slice(from).reduce((s, v) => s + v * v, 0) / (a.length - from));
+  const tone = (f, a) => i => a * Math.sin(2 * Math.PI * f * i / sr);
+  const two = i => tone(80, 0.5)(i) + tone(8000, 0.05)(i);
+  const thresholds = Object.fromEntries(['low', 'lowmid', 'highmid', 'high'].map(b => [`${b}Thresh`, 0]));
+  let seed = 1; const noise = () => { seed = (seed * 1664525 + 1013904223) >>> 0; return (seed / 2147483648 - 1) * 0.3; };
+  const flat = run(thresholds, noise);
+  const ref = (() => { seed = 1; return Float32Array.from({ length: flat.length }, noise); })();
+  assert.ok(Math.abs(20 * Math.log10(rms(flat, 4000) / rms(ref, 4000))) < 0.5, 'with nothing to compress the bands add back to the original level');
+  const sq = run({ lowThresh: -40, lowRatio: 10 }, two), plain = run(thresholds, two);
+  const lowOf = x => { let re = 0, im = 0; for (let i = 8000; i < x.length; i++) { re += x[i] * Math.cos(2 * Math.PI * 80 * i / sr); im += x[i] * Math.sin(2 * Math.PI * 80 * i / sr); } return Math.hypot(re, im) / (x.length - 8000) * 2; };
+  const highOf = x => { let re = 0, im = 0; for (let i = 8000; i < x.length; i++) { re += x[i] * Math.cos(2 * Math.PI * 8000 * i / sr); im += x[i] * Math.sin(2 * Math.PI * 8000 * i / sr); } return Math.hypot(re, im) / (x.length - 8000) * 2; };
+  assert.ok(lowOf(sq) < 0.5 * lowOf(plain), 'the loud low band is turned down');
+  assert.ok(Math.abs(20 * Math.log10(highOf(sq) / highOf(plain))) < 1, 'the high band beside it is left alone');
+  const solo = run({ ...thresholds, solo: 4 }, two);
+  assert.ok(lowOf(solo) < 0.05 * lowOf(plain) && highOf(solo) > 0.8 * highOf(plain), 'solo plays one band');
+  assert.ok(sq.every(Number.isFinite) && peak(sq) < 2, 'finite and in range');
+  console.log('ok: multiband compressor');
+}
+
 // Tape: the degrading effect
 {
   const run = (over, input) => {

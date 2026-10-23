@@ -25,7 +25,7 @@ class Svf {
 }
 
 // Filters for one channel: two per split, then the allpasses for the lower bands.
-class Channel {
+export class Channel {
   a1 = new Svf(); a2 = new Svf();      // split at f1
   b1 = new Svf(); b2 = new Svf();      // split at f2
   c1 = new Svf(); c2 = new Svf();      // split at f3
