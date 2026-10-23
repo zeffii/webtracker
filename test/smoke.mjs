@@ -7660,4 +7660,20 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   assert.ok(Math.abs(sent[0].head - 0.25) < 0.02, `a new note, even while the first sounds, starts at position (${sent[0].head})`);
   console.log('ok: granular start');
 }
+{
+  // R in the graph: a node goes and the wires join up round it
+  const { removeAndJoin } = await import('../src/graph/edit.js');
+  const mk = () => ({ nodes: [{ id: 'o', type: 'osc' }, { id: 'f', type: 'filter' }, { id: 'g', type: 'gain' }, { id: 'out', type: 'out' }], connections: [['o.out', 'f.in'], ['f.out', 'g.in'], ['g.out', 'out.in']] });
+  const d = mk();
+  removeAndJoin(d, NODE_TYPES, 'f');
+  assert.deepEqual(d.connections, [['g.out', 'out.in'], ['o.out', 'g.in']].sort(), 'the filter goes and the osc feeds the gain');
+  assert.ok(!d.nodes.some(n => n.id === 'f'));
+  const e = mk();
+  assert.throws(() => removeAndJoin(e, NODE_TYPES, 'out'), /cannot be removed/, 'the out node stays');
+  assert.equal(e.nodes.length, 4, 'and nothing changed');
+  const m = { nodes: [{ id: 'a', type: 'osc' }, { id: 'b', type: 'osc' }, { id: 'x', type: 'mix' }, { id: 'out', type: 'out' }], connections: [['a.out', 'x.a'], ['b.out', 'x.b'], ['x.out', 'out.in']] };
+  removeAndJoin(m, NODE_TYPES, 'x');
+  assert.equal(m.connections.length, 2, 'a mixer\'s inputs all go on to what it fed');
+  console.log('ok: remove and join');
+}
 console.log('smoke test passed');

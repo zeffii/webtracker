@@ -1,7 +1,7 @@
 import * as config from '../ui/config.js';
 import { factoryPresets, userPresets, saveUserPreset, deleteUserPreset, capture, valuesOf, DATA_KEYS } from './nodepresets.js';
 import { MODES, SIZES, scopeBox, headerHit, drawScope, modesFor } from './scope.js';
-import { addNode, replaceNode, autoLayout, connect, disconnect, duplicateNodes, insertOnWire, pruneDef, pullOut, removeNode, setBits, setExposed, setParam, setPort, nudgeClear } from './edit.js';
+import { addNode, replaceNode, autoLayout, connect, disconnect, duplicateNodes, insertOnWire, pruneDef, pullOut, removeNode, removeAndJoin, setBits, setExposed, setParam, setPort, nudgeClear } from './edit.js';
 
 // The modular view: a canvas of nodes and wires for one instrument's graph, plus a panel
 // for the selected node's parameters. Drag a node to move it, drag from an output dot to
@@ -350,11 +350,12 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
     if (msg !== drag.msg) { drag.msg = msg; say(msg); }
   }
 
-  function removeSelected() {
+  function removeSelected(join = false) {
     if (!instId) return;
+    const take = id => (join ? removeAndJoin(desc(), nodeTypes, id) : removeNode(desc(), nodeTypes, id));
     if (group.size) {
       try {
-        for (const id of group) if (!nodeTypes[desc().nodes.find(n => n.id === id)?.type]?.master) removeNode(desc(), nodeTypes, id);
+        for (const id of group) if (!nodeTypes[desc().nodes.find(n => n.id === id)?.type]?.master) take(id);
         pruneDef(def(), nodeTypes);
         group.clear(); selected = null;
         say(''); renderPanel(); structure();
@@ -364,7 +365,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
     if (!selected) return;
     try {
       if (selected.kind === 'node') {
-        removeNode(desc(), nodeTypes, selected.id);
+        take(selected.id);
         pruneDef(def(), nodeTypes);
       } else {
         const [from, to] = desc().connections[selected.index];
@@ -803,6 +804,11 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
     if (e.ctrlKey && !e.altKey && !e.metaKey && (e.key === 'd' || e.key === 'D')) { duplicateSelected(); e.preventDefault(); return; }
     if (e.key === 'Delete' || e.key === 'Backspace' || (e.ctrlKey && !e.altKey && !e.metaKey && (e.key === 'x' || e.key === 'X'))) {   // Ctrl+X removes too
       removeSelected();
+      e.preventDefault();
+      return;
+    }
+    if (!e.ctrlKey && !e.altKey && !e.metaKey && (e.key === 'r' || e.key === 'R') && !generatorSelected() && (group.size || selected?.kind === 'node')) {   // R takes a node out and joins the wires round it
+      removeSelected(true);
       e.preventDefault();
       return;
     }

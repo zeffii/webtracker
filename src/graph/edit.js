@@ -140,6 +140,24 @@ export function pullOut(desc, nodeTypes, id) {
   } catch (err) { desc.connections = before; throw err; }
 }
 
+// Removes a node and joins the wires round it: whatever fed its audio inputs now feeds whatever its first output fed
+// (a mixer's inputs all go on, summed). Control inputs and parameter ports are dropped with the node. Throws (and
+// changes nothing) for the out node, or if a join would make a loop.
+export function removeAndJoin(desc, nodeTypes, id) {
+  const node = desc.nodes.find(n => n.id === id);
+  if (!node) return false;
+  const def = nodeTypes[node.type];
+  const ins = def.inputs.filter(p => def.kinds?.[p] !== 'control').map(p => `${id}.${p}`), out = def.outputs[0] ? `${id}.${def.outputs[0]}` : null;
+  const feeds = desc.connections.filter(([, t]) => ins.includes(t)).map(([f]) => f);
+  const sinks = out ? desc.connections.filter(([f]) => f === out).map(([, t]) => t) : [];
+  const nodes = desc.nodes, links = desc.connections;
+  try {
+    removeNode(desc, nodeTypes, id);
+    for (const f of feeds) for (const t of sinks) if (splitPort(f)[0] !== splitPort(t)[0]) connect(desc, nodeTypes, f, t);
+  } catch (err) { desc.nodes = nodes; desc.connections = links; throw err; }
+  return true;
+}
+
 export function disconnect(desc, from, to) {
   const before = desc.connections.length;
   desc.connections = desc.connections.filter(([f, t]) => !(f === from && t === to));

@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 402 · 2026-10-23
+
+- Graph view: **R** with a node (or a lasso group) selected takes it out and joins the wires round it, so what fed the node now feeds what it fed. A mixer's inputs all go on to what it fed; control inputs and parameter ports go with the node. The out node stays, and a join that would make a loop is refused and changes nothing. On a generator R still plays a note, so use Delete there. Delete and Ctrl+X still remove without joining.
+
 ## 401 · 2026-10-23
 
 - Granular: every note now starts the cloud at Position. Before, a note that arrived while the instrument's last note was still sounding or fading (a voice reused during its release) carried on from wherever Scan had moved the cloud, so where it started was hard to predict. The Position hint now says what it is: where the cloud starts when a note starts. Scan moves it on from there and Spray scatters the grains around it.
