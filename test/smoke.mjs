@@ -7676,4 +7676,22 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   assert.equal(m.connections.length, 2, 'a mixer\'s inputs all go on to what it fed');
   console.log('ok: remove and join');
 }
+{
+  // comb filter: with feedback 0.5 an impulse comes back every period, half as loud each time
+  const type = NODE_TYPES.comb;
+  const slots = type.params.map((_, i) => i);
+  const node = type.create({ sampleRate: sr });
+  const values = type.params.map(p => ({ freq: sr / 100, feedback: 0.5, ff: 0, damp: 0, spread: 0, mix: 1 }[p.name] ?? p.def));
+  const out = [];
+  for (let b = 0; b < 4; b++) {
+    const L = new Float32Array(block), R = new Float32Array(block);
+    if (b === 0) { L[0] = 1; R[0] = 1; }
+    node.process([[L, R]], [[L, R]], block, values, slots);
+    out.push(...L);
+  }
+  const norm = 1 / (1 + 0.8 * 0.5);
+  assert.ok(Math.abs(out[0] - norm) < 1e-4 && Math.abs(out[100] - 0.5 * norm) < 0.01 && Math.abs(out[200] - 0.25 * norm) < 0.01, `the comb rings at its period (${out[0]}, ${out[100]}, ${out[200]})`);
+  assert.ok(Math.abs(out[50]) < 1e-4, 'and is silent between the teeth');
+  console.log('ok: comb');
+}
 console.log('smoke test passed');

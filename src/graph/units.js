@@ -11,6 +11,7 @@ const UNIT = {
 const TYPE_UNIT = {
   chorus: { depth: 'ms', delay: 'ms' },
   flanger: { depth: 'ms', delay: 'ms' },
+  comb: { freq: 'Hz', spread: 'ct' },
   phaser: { depth: 'oct' },
   delay: { time: 'ms' },
   multitap: { time: 'ms' },

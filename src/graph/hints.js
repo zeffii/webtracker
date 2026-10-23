@@ -201,6 +201,14 @@ const HINTS = {
     width: 'Offsets the right channel\'s sweep from the left for stereo width.',
     mix: 'Amount of the phased sound added to the dry sound. 1 gives the deepest notches.',
   },
+  comb: {
+    freq: 'The first peak of the comb, in Hz; the others sit at its multiples. Feed it noise or clicks and it plays this pitch.',
+    feedback: 'Sends the output back through the delay: higher rings longer (a tuned resonator). Negative puts the peaks between the harmonics and sounds an octave lower.',
+    ff: 'Mixes in the delayed input once, with no ringing: notches at the odd multiples (positive) or at the multiples (negative).',
+    damp: 'Darkens the feedback path, so the high peaks die first, like a string.',
+    spread: 'Detunes the two channels in opposite directions, in cents, for width.',
+    mix: 'Dry to comb. 1 is all comb.',
+  },
   flanger: {
     rate: 'Speed of the sweep in Hz.',
     depth: 'How far the delay swings, in ms either side of `delay`.',

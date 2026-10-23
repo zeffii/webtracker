@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 404 · 2026-10-23
+
+- A comb filter (Effects > Filter & EQ): the signal is mixed with a copy delayed by one period of `freq`, which puts peaks at that frequency and its multiples. `feedback` rings them (a tuned resonator; feed it noise or clicks and it plays a string-like pitch; negative values drop it an octave), `ff` mixes in the delayed input once for notches, `damp` darkens the loop so the highs die first, `spread` detunes the two channels for width. The loop level is evened out, so more feedback does not mean louder.
+
 ## 403 · 2026-10-23
 
 - Arrangement view: Left and Right no longer wrap round the ends. At the last lane Right stays put (and Left at the first). A small **Wrap** button beside "Add lane for" turns the wrapping back on, and the same switch is in Config (Editing). The master lane, which has no notes, is half as wide as the others; a Config switch (Editing) makes it full width again. Tab still cycles through the lanes.
