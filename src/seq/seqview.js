@@ -21,7 +21,7 @@ const hex2 = n => n.toString(16).toUpperCase().padStart(2, '0');
 // column. The cursor sits on a row; edits happen at the row's start, or at the start of a
 // pattern that begins inside it. A pattern is a block that starts with its index and name; a later
 // pattern covers the ones under it. Keyboard-driven.
-export function createSequenceView({ el, statusEl, listEl, transport, onToggle, onOpen, onMove, onSeek, onParams = () => {}, instruments = () => [], unassigned = () => [], onNewInstrument = () => {}, onAddLane = () => {}, onSong = () => {}, onShape = () => {}, follow = () => false }) {
+export function createSequenceView({ el, statusEl, listEl, transport, onToggle, onOpen, onMove, onSeek, onParams = () => {}, instruments = () => [], unassigned = () => [], newKinds = () => [], onNewInstrument = () => {}, onAddLane = () => {}, onSong = () => {}, onShape = () => {}, follow = () => false }) {
   let lanes = null, len = 0, editor = null, song = null;
   const cur = { lane: 0, tick: 0 };
   let typed = '', message = '';
@@ -262,19 +262,28 @@ export function createSequenceView({ el, statusEl, listEl, transport, onToggle, 
   };
   // Right-click a pattern: the cursor goes there and a small menu offers what the keys do, and the parameters of its lane.
   // Insert lane: a second small menu lists the instruments; the lane goes at the end of the arrangement
+  let side = 'right';   // which side of the cursor's lane a new lane goes (kept for the session)
   const laneItems = e => [{
-    label: 'Insert lane…', hint: 'at the end', run: () => {
-      const free = unassigned();
-      showContextMenu(e, [
-        { label: 'Insert lane for:', disabled: true },
-        { label: 'New instrument…', hint: 'instrument screen', run: () => onNewInstrument() },
-        { label: 'Instruments without a lane…', hint: free.length ? `${free.length}` : 'none', disabled: !free.length, run: () => showContextMenu(e, [
-          { label: 'Instruments without a lane:', disabled: true },
-          ...free.map(id => ({ label: id, run: () => { onAddLane(id); draw(); } })),
-        ]) },
-      ]);
-    },
+    label: 'Insert lane…', hint: 'next to this one', run: () => insertMenu(e),
   }];
+  const insertMenu = e => {
+    const free = unassigned(), here = lane(), isMaster = here.instrument === MASTER;
+    if (isMaster && side === 'left') side = 'right';   // nothing goes before the master lane
+    const pick = s => () => { side = s; insertMenu(e); };
+    showContextMenu(e, [
+      { label: `${side === 'left' ? '●' : '○'} To the left of ${here.id}`, disabled: isMaster, run: pick('left') },
+      { label: `${side === 'right' ? '●' : '○'} To the right of ${here.id}`, run: pick('right') },
+      { separator: true },
+      { label: 'New instrument…', run: () => showContextMenu(e, [
+        { label: `New instrument, ${side} of ${here.id}:`, disabled: true },
+        ...newKinds().map(k => ({ label: k.label, disabled: k.disabled, run: () => { onNewInstrument(k.value, side); draw(); } })),
+      ]) },
+      { label: 'Instruments without a lane…', hint: free.length ? `${free.length}` : 'none', disabled: !free.length, run: () => showContextMenu(e, [
+        { label: `Instrument without a lane, ${side} of ${here.id}:`, disabled: true },
+        ...free.map(id => ({ label: id, run: () => { onAddLane(id, side); draw(); } })),
+      ]) },
+    ]);
+  };
   el.addEventListener('contextmenu', e => {
     if (!lanes) return;
     const hit = pointed(e);

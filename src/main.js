@@ -278,8 +278,13 @@ const seqView = createSequenceView({
   onParams: () => setFloat(true),
   instruments: () => listedInstruments(),
   unassigned: () => { const used = new Set(project.lanes.map(l => l.instrument)); return listedInstruments().filter(id => !used.has(id)); },
-  onNewInstrument: () => { tabs.show('instruments'); $('new-inst-name').focus(); projStatus('Pick a kind and press Add: the new instrument gets its own lane.'); },
-  onAddLane: id => { try { const lane = addLaneFor(id); projStatus(`Added lane ${lane.id}.`); } catch (err) { projStatus(err.message); } },
+  newKinds: () => [
+    ...Object.entries(synthKinds).filter(([k]) => k !== 'empty').map(([k, { label }]) => ({ value: `synth:${k}`, label })),
+    { value: 'sampler', label: 'Sampler (plays a sample)', disabled: !$('new-inst-sample').value },
+    { value: 'synth:empty', label: synthKinds.empty.label },
+  ],
+  onNewInstrument: (value, side) => makeInstrument(value, '', side),
+  onAddLane: (id, side) => { try { const at = cursorLane(), lane = addLaneFor(id); placeLane(lane.id, at, side); projStatus(`Added lane ${lane.id}.`); } catch (err) { projStatus(err.message); } },
   onSeek: tick => { if (!started) return; if (playing) engine.play(tick); else setPlaying(true, tick); },
   onSong: () => songChanged(),
   onShape: li => { const l = project?.lanes?.[li]; if (l) engine.setLane({ id: l.id, instrument: l.instrument, columns: l.columns, pages: l.pages, mask: l.mask, auto: l.auto }); },
@@ -1330,6 +1335,15 @@ function resynthesize() {
   }, 30);
 }
 
+// A lane just added at the end goes next to another one instead: side 'left' or 'right' of lane `besideId` (never before the master lane).
+function placeLane(id, besideId, side) {
+  const at = project.lanes.findIndex(l => l.id === besideId), from = project.lanes.findIndex(l => l.id === id);
+  if (at < 0 || from < 0) return;
+  const target = Math.max(1, at + (side === 'right' ? 1 : 0));
+  if (target === from) return;
+  reshape(() => { ops.moveLane(project, id, target - from); return { lane: id }; });
+}
+
 function addLaneFor(instrumentId) {
   const lane = addLane(project, engine.registry, instrumentId);
   engine.setLane({ id: lane.id, instrument: lane.instrument, columns: lane.columns, pages: lane.pages, mask: lane.mask, auto: lane.auto });
@@ -1941,16 +1955,18 @@ async function loadSampleFiles(files) {
 }
 
 // A new instrument of a kind ('synth:NAME' or 'sampler') with its own lane; the sampler plays the sample picked in the box.
-function makeInstrument(value, name = '') {
+function makeInstrument(value, name = '', side = null) {
   try {
+    const at = cursorLane();
     const [type, kind] = value.split(':');
     const id = type === 'sampler' ? addSamplerInstrument(project, name, $('new-inst-sample').value) : addSynthInstrument(project, name, kind);
     loadInst(id);
     if (type === 'sampler') sendSamples(id);
-    addLaneFor(id);
+    const lane = addLaneFor(id);
     patcher.load({ instruments: project.instruments });
     patcher.show(id);
     refreshProjectUi();
+    if (side) placeLane(lane.id, at, side);
     $('new-inst-name').value = '';
     projStatus(`Added ${id} with its own lane.`);
   } catch (err) {

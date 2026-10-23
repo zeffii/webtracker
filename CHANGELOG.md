@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 413 · 2026-10-23
+
+- "Insert lane…" in the arrangement view now places the new lane **to the left or to the right of the lane you right-clicked**: two rows at the top of the menu (● marks the side, and it is remembered for the session; nothing goes before the master lane). **New instrument…** no longer sends you to the instrument screen: it lists the kinds (synths, sampler, blank) right there and makes the instrument with a default name, a number added when the name is taken (clap, clap2, clap3), and its lane. **Instruments without a lane…** puts a lane for an existing instrument on the chosen side. Lane names count up the same way (clap2, clap3, not clap22).
+
 ## 412 · 2026-10-23
 
 - "Insert lane…" in the arrangement view is down to two entries: **New instrument…** (takes you to the instrument screen's new-instrument box, with the name field ready; Add makes the instrument and its lane) and **Instruments without a lane…** (greyed out when every instrument has one). The kind list and the list of all instruments are gone from the menu.

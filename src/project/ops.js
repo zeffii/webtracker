@@ -185,7 +185,9 @@ export function addSynthInstrument(project, name, kind) {
 
 // Adds an empty lane for an instrument that is already compiled. Returns the lane.
 export function addLane(project, registry, instrumentId) {
-  const id = uniqueId(new Set(project.lanes.map(l => l.id)), instrumentId);
+  const taken = new Set(project.lanes.map(l => l.id));
+  // a second lane for 'clap2' is 'clap3', not 'clap22': the number counts up instead of piling on
+  const id = uniqueId(taken, taken.has(instrumentId) ? instrumentId.replace(/\d+$/, '') || instrumentId : instrumentId);
   const lane = createLane(id, instrumentId, project.instruments, registry, project.song.length);
   project.lanes.push(lane);
   return lane;
