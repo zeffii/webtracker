@@ -17,7 +17,7 @@ const GROUPS = {
     ['Dynamics', ['compressor', 'gate', 'transient', 'envfx']],
     ['Modulation', ['chorus', 'phaser', 'flanger', 'gater', 'freqshift']],
     ['Delay', ['delay', 'multitap', 'shiva']],
-    ['Reverb', ['hall', 'plate', 'shimmer']],
+    ['Reverb', ['hall', 'plate', 'shimmer', 'convolver']],
     ['Spectral', ['blur', 'specpan']],
     ['Distortion', ['distortion', 'waveshaper', 'crusher']],
     ['Routing', ['split', 'tap']],

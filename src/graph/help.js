@@ -5,6 +5,31 @@ import { hintFor, factsFor } from './hints.js';
 
 // summary: one or two sentences. best: ways to get the most out of it. limits: what it will not do well.
 export const PAGES = {
+  convolver: {
+    summary: 'Reverb from a recording: any sample in the project is the impulse response of a room, hall, plate, spring or speaker, and the sound is convolved with it. Mono or stereo responses work, up to 8 seconds.',
+    best: [
+      'Add a sample under the graph (Add sample), pick the response in the sample list, and keep mix near 0.2 to 0.4. The node does the rest, and the response is saved inside the project.',
+      'Use predelay of 10 to 40 ms to keep drums clear of the tail, and lowcut around 150 to 300 Hz so the reverb does not muddy the bass.',
+      'size changes the room: 0.5 is a small bright space, 2 is a cavern. decay fades a long response out sooner without editing the file.',
+      'It is not only for rooms: the response of a speaker cabinet, a metal plate, a tin can or a spring gives a filter or a texture, and a short click-like sample gives a comb or a resonator.',
+      'Switch the response from a pattern with the Smp column (expose sample on the node) for a different space in each part of the song.',
+    ],
+    limits: [
+      'A new response, size or decay is rebuilt in the background and takes a fraction of a second to arrive; the old one keeps playing until then.',
+      'It costs more CPU than the algorithmic reverbs, and more with a long response. Trim a long file to what you need.',
+      'The sound is about 3 ms late; the dry sound is not delayed to match. At mix 1 this does not matter.',
+      'The response is read as it is (not shortened by silence at the start), and it is evened out to a fixed energy, so a very quiet or empty file gives no reverb.',
+    ],
+    links: [
+      ['OpenAIR', 'https://www.openairlib.net/', 'real acoustic spaces: halls, churches, tunnels, stairwells; check the licence of each'],
+      ['EchoThief', 'http://www.echothief.com/', 'a large collection of recorded spaces'],
+      ['Voxengo', 'https://www.voxengo.com/impulses/', 'free reverb impulse responses'],
+      ['Airwindows', 'http://www.airwindows.com/airwindows-impulses/', 'large sampled spaces'],
+      ['Samplicity', 'https://www.samplicity.com/download/', 'free halls (and Bricasti M7 responses at another page on the site)'],
+      ['Balance Mastering', 'http://www.balancemastering.com/free-funktion-one-impulse-responses-ir-irs-convolution/', 'a club sound system and a former listening tower'],
+      ['Reason Studios list', 'https://www.reasonstudios.com/blog/free-reverb-resources-where-to-find-impulse-responses', 'a longer list, including guitar cabinets and classic reverb units'],
+    ],
+  },
   noise: {
     summary: 'Noise in every colour, from deep brown through pink and white to thin violet, set with tilt (the slope of the spectrum in dB per octave).',
     best: [
@@ -276,6 +301,7 @@ export function helpPage(type, def) {
     parts.push(`<p>${esc(page.summary)}</p>`);
     if (page.best.length) parts.push(`<h3>Getting the most out of it</h3><ul>${page.best.map(b => `<li>${esc(b)}</li>`).join('')}</ul>`);
     if (page.limits.length) parts.push(`<h3>Limits</h3><ul>${page.limits.map(b => `<li>${esc(b)}</li>`).join('')}</ul>`);
+    if (page.links?.length) parts.push(`<h3>Free impulse responses</h3><p>Download a WAV, load it with Add sample. Check each site's terms before using a response commercially.</p><ul>${page.links.map(([name, url, note]) => `<li><a href="${esc(url)}" target="_blank" rel="noopener noreferrer">${esc(name)}</a>${note ? `: ${esc(note)}` : ''}</li>`).join('')}</ul>`);
     for (const sec of page.sections ?? []) {   // longer explanations: paragraphs and command lists
       parts.push(`<h3>${esc(sec.title)}</h3>`);
       for (const t of sec.text ?? []) parts.push(`<p>${esc(t)}</p>`);

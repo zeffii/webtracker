@@ -201,6 +201,17 @@ const HINTS = {
     width: 'Offsets the right channel\'s sweep from the left for stereo width.',
     mix: 'Amount of the phased sound added to the dry sound. 1 gives the deepest notches.',
   },
+  convolver: {
+    sample: 'Which of the node\'s samples is the impulse response. Add one under the graph (the Add sample button); a pattern\'s Smp column can switch between several.',
+    size: 'Stretches the response: below 1 is a smaller, higher-pitched room, above 1 a bigger, lower one.',
+    decay: 'Fades the response out over this many seconds. 10 leaves it as recorded.',
+    predelay: 'Milliseconds before the reverb starts, on top of the 3 ms the node always takes.',
+    lowcut: 'Removes the lows from the reverb (it keeps the dry sound whole).',
+    highcut: 'Removes the highs from the reverb, for a darker room.',
+    width: 'Stereo width of the reverb: 0 is mono, 1 as recorded, above 1 wider.',
+    level: 'Level of the reverb in dB. The response is evened out, so different ones come in at about the same level.',
+    mix: 'Dry to reverb. 0 is dry only.',
+  },
   comb: {
     freq: 'The first peak of the comb, in Hz; the others sit at its multiples. Feed it noise or clicks and it plays this pitch.',
     feedback: 'Sends the output back through the delay: higher rings longer (a tuned resonator). Negative puts the peaks between the harmonics and sounds an octave lower.',

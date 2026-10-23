@@ -12,6 +12,7 @@ const TYPE_UNIT = {
   chorus: { depth: 'ms', delay: 'ms' },
   flanger: { depth: 'ms', delay: 'ms' },
   comb: { freq: 'Hz', spread: 'ct' },
+  convolver: { decay: 's', predelay: 'ms', lowcut: 'Hz', highcut: 'Hz', level: 'dB' },
   phaser: { depth: 'oct' },
   delay: { time: 'ms' },
   multitap: { time: 'ms' },

@@ -7694,4 +7694,30 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   assert.ok(Math.abs(out[50]) < 1e-4, 'and is silent between the teeth');
   console.log('ok: comb');
 }
+{
+  // convolver: spikes in the response come out at their place, 128 samples later, in all three stages
+  const type = NODE_TYPES.convolver;
+  const slots = type.params.map((_, i) => i);
+  const node = type.create({ sampleRate: sr });
+  const ir = new Float32Array(24000); ir[1000] = 1; ir[5000] = 0.25; ir[20000] = 0.5;
+  node.message({ type: 'sample', slot: 0, data: ir, rate: sr });
+  const values = type.params.map(p => (p.name === 'mix' ? 1 : p.def));
+  const run = (blocks, impulseAt) => {
+    const out = [];
+    for (let b = 0; b < blocks; b++) {
+      const L = new Float32Array(block), R = new Float32Array(block), oL = new Float32Array(block), oR = new Float32Array(block);
+      if (b === impulseAt) { L[0] = 1; R[0] = 1; }
+      node.process([[L, R]], [[oL, oR]], block, values, slots);
+      assert.ok(oL.every(Number.isFinite), 'the convolver stays finite');
+      out.push(...oL);
+    }
+    return out;
+  };
+  run(100, -1);   // the response builds in the background
+  const y = run(300, 0), gain = 1 / Math.sqrt(1 + 0.0625 + 0.25);
+  const at = (i, want) => assert.ok(Math.abs(y[i] - want * gain) < 0.02, `spike at ${i}: ${y[i].toFixed(3)} against ${(want * gain).toFixed(3)}`);
+  at(1128, 1); at(5128, 0.25); at(20128, 0.5);
+  assert.ok(Math.abs(y[3000]) < 0.01 && Math.abs(y[12000]) < 0.01, 'and nothing between them');
+  console.log('ok: convolver');
+}
 console.log('smoke test passed');

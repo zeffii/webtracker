@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 406 · 2026-10-23
+
+- An impulse-response reverb, **convolver** (Effects > Reverb). Any sample in the project is the response (mono or stereo, up to 8 seconds): add one under the graph with Add sample, and it is saved inside the project. Controls: `size` stretches the room, `decay` fades the response out sooner, `predelay`, `lowcut`, `highcut`, `width`, `level` and `mix`; a pattern's Smp column can switch between several responses. It is partitioned FFT convolution in three stages (128, 1024 and 4096 samples) with the slow stage spread over the blocks between, so a long response stays cheap (about 8 percent of a block's time in my test with an 8 second stereo response); the sound is about 3 ms late. A new response, size or decay is rebuilt in the background while the old one plays on. The node's F1 help page lists where to find free impulse responses (OpenAIR, EchoThief, Voxengo, Airwindows, Samplicity and more).
+
 ## 405 · 2026-10-23
 
 - Arrangement view: right-click anywhere on the grid, on a pattern or an empty cell, and **Insert lane…** lists the instruments. Picking one adds a lane for it at the end of the arrangement (the same as "Add lane for" under the list).
