@@ -1,5 +1,5 @@
 import { esc } from './html.js';
-import { SHADER } from '../instruments.js';
+import { SHADER, MASTER } from '../instruments.js';
 import * as config from '../ui/config.js';
 import { dimLevel, dimFilter } from '../ui/dim.js';
 import { createPlayline, createLoopLines } from '../ui/playline.js';
@@ -13,6 +13,7 @@ import { newCurve, normalise, addSection, removeSection } from './automation.js'
 const ROWS = { min: 6, max: 128, normal: 24 };   // rows shown at once
 let CELL = 16;      // ticks in one row: a bar by default (the beats in a bar times the ticks in a beat); Ctrl+wheel halves it down to a beat and back
 const COLW = 14;     // characters per lane column
+const colw = l => (l.instrument === MASTER && config.get('seqMasterNarrow') ? COLW / 2 : COLW);   // the master lane has no notes, so it gets half
 const INSET = 6;     // pixels a pattern is inset from the right for each pattern under it
 const hex2 = n => n.toString(16).toUpperCase().padStart(2, '0');
 
@@ -59,6 +60,8 @@ export function createSequenceView({ el, statusEl, listEl, transport, onToggle, 
   const rowStart = t => Math.floor(t / CELL) * CELL;
   const moveTick = d => { cur.tick = rowStart(Math.min(len - 1, Math.max(0, rowStart(cur.tick) + d * CELL))); typed = ''; };
   const moveLane = d => { cur.lane = (cur.lane + d + lanes.length) % lanes.length; typed = ''; };
+  // Left and Right at the first or last lane: wrap round to the other end, or stop (the Wrap button, Config)
+  const stepLane = d => { const n = cur.lane + d; if (!config.get('seqWrap') && (n < 0 || n >= lanes.length)) return; moveLane(d); };
   // what a row of lane l shows: the first pattern that starts inside it, else the one covering it.
   // `more` is true when several patterns start in the row (a short one was placed over another).
   const inRow = (l, t0) => {
@@ -422,8 +425,8 @@ export function createSequenceView({ el, statusEl, listEl, transport, onToggle, 
     switch (k) {
       case 'ArrowUp': moveTick(-1); break;
       case 'ArrowDown': moveTick(1); break;
-      case 'ArrowLeft': moveLane(-1); break;
-      case 'ArrowRight': moveLane(1); break;
+      case 'ArrowLeft': stepLane(-1); break;
+      case 'ArrowRight': stepLane(1); break;
       case 'Tab': moveLane(e.shiftKey ? -1 : 1); break;
       case 'PageUp': moveTick(-16); break;
       case 'PageDown': moveTick(16); break;
@@ -551,7 +554,7 @@ export function createSequenceView({ el, statusEl, listEl, transport, onToggle, 
     if (syncCell()) top = 0;   // the bar changed under us: the row size follows it
     const bar = barTicks(), num = t => { const s = String(t).padStart(4, '0'); return t % (bar * 4) ? `${s} ` : `<span class="gn ${t % (bar * 16) ? 'g2' : 'g1'}">${s} </span>`; };
     const lines = [row(`<span class="sg">      </span>${lanes.map((l, li) => {
-      const mark = headMark(l), head = `${li === cur.lane ? '>' : ' '}${esc(l.id.slice(0, COLW - (mark === ' ' ? 1 : 3)).padEnd(COLW - 1 - (mark === ' ' ? 0 : 2)))}${mark === ' ' ? '' : ` ${mark}`}`;
+      const w = colw(l), mark = headMark(l), head = `${li === cur.lane ? '>' : ' '}${esc(l.id.slice(0, w - (mark === ' ' ? 1 : 3)).padEnd(w - 1 - (mark === ' ' ? 0 : 2)))}${mark === ' ' ? '' : ` ${mark}`}`;
       const dim = dimFilter(dimLevel(l));
       return l.silenced ? `<span class="silenced">${head}</span>` : dim ? `<span style="${dim}">${head}</span>` : head;
     }).join('')}`)];
@@ -569,18 +572,19 @@ export function createSequenceView({ el, statusEl, listEl, transport, onToggle, 
           const css = `right:${Math.min(e.depth, 4) * INSET}px${style ? `;--c:${style}` : ''}`;
           return `<i class="L${cls ? ` ${cls}` : ''}${edges}" style="${css}"></i>`;
         }).join('');
-        let text = muted && !pl ? '·'.repeat(COLW) : ' '.repeat(COLW);
+        const w = colw(l);
+        let text = muted && !pl ? '·'.repeat(w) : ' '.repeat(w);
         if (pl) {
           const pat = l.patterns[pl.puid];
-          text = (pl.start >= t ? (config.get('seqNames') ? `${hex2(pat.index)} ${pat.name}` : hex2(pat.index)) : '').slice(0, COLW).padEnd(COLW);
-          if (pl.more) text = `${text.slice(0, COLW - 1)}+`;
+          text = (pl.start >= t ? (config.get('seqNames') ? `${hex2(pat.index)} ${pat.name}` : hex2(pat.index)) : '').slice(0, w).padEnd(w);
+          if (pl.more) text = `${text.slice(0, w - 1)}+`;
         }
         // a mute marker is a labelled cell: <mute> from here down, <play> where the lane comes back. The label sits at
         // the right when a pattern starts in the row, so the pattern's name still shows.
         const label = `${off ? '<off>' : ''}${flip ? (muted ? '<mute>' : '<play>') : ''}`;
-        const room = COLW - label.length - 1;   // the cell's last character is hidden by the text's left padding
+        const room = w - label.length - 1;   // the cell's last character is hidden by the text's left padding
         if (label) text = `${(pl && pl.start >= t ? text.slice(0, room - 1).trimEnd() : '').padEnd(room)}${label} `;
-        const classes = ['cell', l.instrument === SHADER && 'shd', level === 2 ? 'silenced' : muted && 'muted', isCur && 'cur', picked && li >= picked.l0 && li <= picked.l1 && t >= picked.t0 && t <= picked.t1 && 'sel'].filter(Boolean).join(' ');
+        const classes = ['cell', w < COLW && 'nr', l.instrument === SHADER && 'shd', level === 2 ? 'silenced' : muted && 'muted', isCur && 'cur', picked && li >= picked.l0 && li <= picked.l1 && t >= picked.t0 && t <= picked.t1 && 'sel'].filter(Boolean).join(' ');
         let inner = esc(text);
         if (label) {
           inner = `${esc(text.slice(0, room))}<span class="mk ${muted ? 'mm' : 'mu'}">${esc(label)}</span> `;

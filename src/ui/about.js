@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['403', ['Arrangement view: no wrap at the ends (a Wrap button turns it on), and the master lane is half as wide.']],
   ['402', ['Graph view: R removes the selected node and joins the wires round it.']],
   ['401', ['Granular: every note starts the cloud at Position.']],
   ['400', ['A node\'s envelope box and its scope sit side by side, level at the middle.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['396', ['The DSP view folds code: gutter arrows, Fold all and Unfold all.']],
   ['395', ['A DSP view (Ctrl+Alt+I): read the code of an instrument\'s nodes, with live parameters.']],
   ['394', ['Sample screen: a hide / show switch for the selection as well.']],
-  ['393', ['Waveform: drag selects, Alt+drag sets the loop, Ctrl+drag the sustain loop; hide switches on the Loop lines.']],
 ];

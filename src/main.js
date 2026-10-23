@@ -1113,6 +1113,9 @@ const insertSilence = n => {
   seqView.goto(lane, tick);
   $('seq-status').textContent = $('patch-status').textContent;
 };
+$('seq-wrap').setAttribute('aria-pressed', String(config.get('seqWrap')));
+$('seq-wrap').addEventListener('click', () => config.set('seqWrap', !config.get('seqWrap')));
+config.onChange((k, v) => { if (k === 'seqWrap') $('seq-wrap').setAttribute('aria-pressed', String(v)); });
 $('ins-n').value = config.get('insertLength');
 $('ins-cut').checked = config.get('insertCut');
 $('ins-cut').addEventListener('change', () => config.set('insertCut', $('ins-cut').checked));

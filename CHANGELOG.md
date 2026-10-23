@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 403 · 2026-10-23
+
+- Arrangement view: Left and Right no longer wrap round the ends. At the last lane Right stays put (and Left at the first). A small **Wrap** button beside "Add lane for" turns the wrapping back on, and the same switch is in Config (Editing). The master lane, which has no notes, is half as wide as the others; a Config switch (Editing) makes it full width again. Tab still cycles through the lanes.
+
 ## 402 · 2026-10-23
 
 - Graph view: **R** with a node (or a lasso group) selected takes it out and joins the wires round it, so what fed the node now feeds what it fed. A mixer's inputs all go on to what it fed; control inputs and parameter ports go with the node. The out node stays, and a join that would make a loop is refused and changes nothing. On a generator R still plays a note, so use Delete there. Delete and Ctrl+X still remove without joining.

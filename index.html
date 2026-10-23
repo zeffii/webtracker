@@ -321,6 +321,8 @@
     #seq .sg { position: sticky; left: 0; z-index: 4; display: inline-block; background: var(--panel); }   /* the tick numbers stay put when the lanes are scrolled sideways */
     #seq .minimap { position: absolute; left: 0; top: 0; pointer-events: none; z-index: 1; }
     #seq .r { height: 18px; white-space: pre; width: max-content; min-width: 100%; }   /* as wide as the lanes, so the sticky tick column has room to stay in view */
+    #seq .cell.nr { width: 7ch; }
+    #seq-wrap[aria-pressed="true"] { background: var(--hi); color: var(--hi-fg); border-color: var(--hi); }
     #seq .cell { position: relative; display: inline-block; width: 14ch; height: 18px; vertical-align: top; overflow: hidden; }
     #seq .cell > i { position: absolute; top: 0; bottom: 0; left: 0; right: 0; display: block; }
     /* a pattern is one rect from its first row to its last; opaque, so one placed over another hides it */
@@ -1226,6 +1228,7 @@
         </div>
         <div class="manage row">
           <button id="add-lane" disabled title="Add a lane that plays this instrument">Add lane for</button><select id="add-lane-inst" aria-label="Instrument for the new lane" disabled></select>
+          <button id="seq-wrap" type="button" aria-pressed="false" title="On: Right on the last lane wraps to the first (and Left on the first to the last). Off: the cursor stops at the ends.">Wrap</button>
         </div>
         </div>
         <h3>Shortcuts</h3>
