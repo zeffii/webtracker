@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['395', ['A DSP view (Ctrl+Alt+I): read the code of an instrument\'s nodes, with live parameters.']],
   ['394', ['Sample screen: a hide / show switch for the selection as well.']],
   ['393', ['Waveform: drag selects, Alt+drag sets the loop, Ctrl+drag the sustain loop; hide switches on the Loop lines.']],
   ['392', ['Sample screen: Space over the waveform plays from the start, Alt+Space from the slice marker left of the mouse.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['388', ['Picture settings in the Shader view, auto-slice settings beside the sample list.']],
   ['387', ['Clicking the tick column sets the playhead when scrolled sideways too.']],
   ['386', ['The sequence editor\'s tick column stays in view when scrolled sideways.']],
-  ['385', ['Several shaders per song: the shader lane\'s Shd column switches between them.']],
 ];

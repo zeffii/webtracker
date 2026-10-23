@@ -19,6 +19,7 @@ import { createVisual, createLabels, DEFAULT_GLSL } from './ui/visual.js';
 import { TEMPLATES } from './ui/vistemplates.js';
 import { createShaderView } from './ui/shaderview.js';
 import { mountConfig } from './ui/quickconfig.js';
+import { createDspView } from './ui/dspview.js';
 import * as ops from './project/ops.js';
 import { importMidi, parseMidi } from './project/midi.js';
 import { modToProject, parseMod } from './project/mod.js';
@@ -144,10 +145,10 @@ $('dock-grip').addEventListener('mousedown', e => {
   }, 'webtracker.keysW');
 }
 // Full-screen panes. Switching with an F-key or a click focuses the pane's main element.
-let shaderView = null;
+let shaderView = null, dspView = null;
 let tabBefore = 'patterns', tabNow = 'patterns';   // where the Info close button goes back to
 const tabs = createTabs({
-  onChange: id => { if (id === 'shader') { shaderView?.load(); if (!vizOn) config.set('visualOn', true); } if (id !== tabNow) { tabBefore = tabNow; tabNow = id; } applyDock(id); keysRefresh(id); requestAnimationFrame(() => { fitArrangement(); syncFloat(); placeViz(); placeMeters(); }); },
+  onChange: id => { if (id === 'dsp') dspView?.open(patcher?.instrument); if (id === 'shader') { shaderView?.load(); if (!vizOn) config.set('visualOn', true); } if (id !== tabNow) { tabBefore = tabNow; tabNow = id; } applyDock(id); keysRefresh(id); requestAnimationFrame(() => { fitArrangement(); syncFloat(); placeViz(); placeMeters(); }); },
   tabs: [
     { id: 'patterns', key: 'F1', el: $('pane-patterns'), button: $('tab-patterns'), focus: $('view') },
     { id: 'samples', key: 'F2', el: $('pane-samples'), button: $('tab-samples'), focus: $('smp') },
@@ -156,6 +157,7 @@ const tabs = createTabs({
     { id: 'config', key: 'F11', el: $('pane-config'), button: $('tab-config'), focus: $('cfg') },
     { id: 'script', key: null, combo: e => e.ctrlKey && e.altKey && !e.metaKey && !e.shiftKey && e.code === 'KeyS', el: $('pane-script'), button: $('tab-script'), focus: $('script') },
     { id: 'shader', key: null, combo: e => e.ctrlKey && e.altKey && !e.metaKey && !e.shiftKey && e.code === 'KeyG', el: $('pane-shader'), button: $('tab-shader'), focus: $('shader-input') },
+    { id: 'dsp', key: null, combo: e => e.ctrlKey && e.altKey && !e.metaKey && !e.shiftKey && e.code === 'KeyI', el: $('pane-dsp'), button: $('tab-dsp'), focus: $('dsp-src') },
     { id: 'info', key: 'F10', el: $('pane-info'), button: $('tab-info'), focus: { focus: () => (!$('info').hidden ? $('info') : $('info-view')).focus() } },
   ],
 });
@@ -1535,6 +1537,11 @@ shaderView = createShaderView({
   config, store: shaderStore, defaultSource: DEFAULT_GLSL, templates: TEMPLATES, machine: shaderMachine,
 });
 $('shader-pop').addEventListener('click', () => popOut());
+dspView = createDspView({
+  parts: { inst: $('dsp-inst'), chain: $('dsp-chain'), gut: $('dsp-gut'), src: $('dsp-src'), prm: $('dsp-prm'), ports: $('dsp-ports'), kern: $('dsp-kern'), foot: $('dsp-foot') },
+  getProject: () => project, nodeTypes: NODE_TYPES,
+  value: (inst, node, param) => { const slot = engine.registry.slots.get(`${inst}.${node}.${param}`); return slot === undefined ? undefined : engine.registry.values[slot]; },
+});
 mountConfig($('shader-cfg'), config, [['visualSize', 'Resolution'], ['visualDecay', 'Hit fade (ms)'], ['visualSkeleton', 'Pattern skeleton']]);
 mountConfig($('as-cfg'), config, [['sliceSensitivity', 'Sensitivity (%)', 'range'], ['sliceMinGap', 'Shortest gap (ms)'], ['sliceReplace', 'Replace the markers in range']]);
 // Auto-slice: a dialog with its two settings and a live count of the hits they find, so a setting can be tried before it is applied
@@ -2024,6 +2031,7 @@ $('start').addEventListener('click', async () => {
       if (tab === 'arrange' || !tab) seqView.draw();
       if (tab === 'patterns' || !tab) view.draw();
       if (tab === 'instruments' || !tab) patcher.draw(); else if (floatWanted) patcher.live();
+      if (tab === 'dsp') dspView?.live();
       if (tab === 'samples' || !tab) { sampleScreen.draw(); waveform.draw(); region.draw(); }
       requestAnimationFrame(frame);
     };

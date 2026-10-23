@@ -41,6 +41,7 @@ import { parseInstrument, serializeInstrument } from '../src/project/file.js';
 import { createSynthwaveProject } from '../src/project/synthwave.js';
 import { createArpDemoProject } from '../src/project/arpdemo.js';
 import { createVisData, preprocess, shaderAt, visibleLanes } from '../src/ui/visdata.js';
+import { runningOrder, highlightJs, sampleLoops } from '../src/ui/dspview.js';
 import { highlight, numbers, sliderSpec, formatValue } from '../src/ui/shaderview.js';
 import { knobCalls } from '../src/ui/visdata.js';
 import { addShaderKnob, removeShaderKnob } from '../src/project/ops.js';
@@ -4185,6 +4186,23 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     const sl = { columns: [col], channels: 1, pages: [cells, undefined, later] };
     assert.equal(shaderAt(sl, 5), 0); assert.equal(shaderAt(sl, 10), 2); assert.equal(shaderAt(sl, PAGE_TICKS + 4), 2, 'an empty page is looked past');
     assert.equal(shaderAt(sl, 2 * PAGE_TICKS + 3), 1); assert.equal(shaderAt({ columns: [], pages: [] }, 9), 0);
+  }
+  // the DSP view: nodes in running order, JavaScript as HTML a line at a time, and the per-sample loops found in a node's file
+  {
+    const g = { nodes: [{ id: 'out', type: 'out', x: 300 }, { id: 'f', type: 'filter', x: 200 }, { id: 's', type: 'osc', x: 10 }, { id: 'lfo', type: 'lfo', x: 100, y: 50 }], connections: [['s.out', 'f.in'], ['lfo.out', 'f.mod'], ['f.out', 'out.in']] };
+    assert.deepEqual(runningOrder(g).map(n => n.id), ['s', 'lfo', 'f', 'out'], 'a node comes after what feeds it; ties go left to right');
+    assert.deepEqual(runningOrder({ nodes: [{ id: 'a' }, { id: 'b' }], connections: [['a.out', 'b.in'], ['b.out', 'a.in']] }).map(n => n.id).sort(), ['a', 'b'], 'a loop does not hang it');
+    const html = highlightJs("const A = 1; // note <b>\nlet s = 'x', y = Math.exp(2e-3);\n/* two\nlines */ return;");
+    assert.equal(html.length, 4);
+    assert.ok(html[0].includes('<span class="k">const</span>') && html[0].includes('<span class="n">1</span>') && html[0].includes('&lt;b&gt;'), html[0]);
+    assert.ok(html[1].includes('<span class="s">\'x\'</span>') && html[1].includes('<span class="f">exp</span>'), html[1]);
+    assert.ok(html[0].includes('<span class="o">=</span>') && html[0].includes('<span class="p">;</span>') && html[1].includes('<span class="p">(</span>'), 'operators and punctuation have their own colours');
+    assert.ok(highlightJs('a >= b ? x : y => z')[0].includes('<span class="o">&gt;=</span>') && highlightJs('1.5 + .5')[0].includes('<span class="n">.5</span>'), 'a decimal point is part of the number');
+    assert.ok(html[2].includes('class="c"') && html[3].startsWith('<span class="c">lines */</span>'), 'a block comment carries over');
+    const src = 'process(a, b, n) {\n  const R = 1;\n  for (let i = 0; i < n; i++) {\n    if (x) { y(); }\n    out[i] = 0;\n  }\n}\n';
+    assert.deepEqual(sampleLoops(src), [[2, 5]]);
+    const dc = (await import('node:fs')).readFileSync(new URL('../src/audio/nodes/dcblock.js', import.meta.url), 'utf8');
+    assert.equal(sampleLoops(dc).length, 1, 'the DC blocker has one loop');
   }
   for (const name of ['bugsong']) {
     const demo = parseProject(readFileSync(new URL(`../src/project/demos/${name}.wax`, import.meta.url), 'utf8'));
