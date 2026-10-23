@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 417 · 2026-10-23
+
+- **Duette is polyphonic**: a new Duette instrument starts with 3 voices and 3 note columns (set both in the Instruments screen; at 1 voice it is the mono lead as before). Every note column keeps to one voice, so portamento and the Sld slide work along each column, from that column's own last note, and the columns together play chords. A new `columnVoice` flag on a node type asks the voice allocator for this; other polyphonic machines still let a note ring out through its release while the next one takes another voice.
+
 ## 416 · 2026-10-23
 
 - **Duette**, a monophonic two-oscillator lead voice (Sources > Synths > "Duette", or New instrument > "Duette (two-oscillator mono lead)"). Oscillator 1 is saw, triangle or square, oscillator 2 saw, triangle or noise (16' to 2', detune up to an octave, and a Mod switch for sync or ring modulation); each has a Shape that folds a saw or triangle into more harmonics, or narrows a square. A resonant two-pole low-pass filter that rings by itself, then Drive. One envelope is also the amplifier: A/D (a note is a blip), A/G/D (held while the note is held) or gate, and it moves the pitch of both oscillators, of oscillator 2 alone, or the cutoff, in either direction. One LFO (saw, triangle, square; fast up into the audio range, slow, or one shot per note) moves the pitch, the shapes or the cutoff. Portamento (always, or only when notes overlap), a per-note slide in the Sld column, key tracking, and velocity to level and cutoff. It is the sound only; the pattern is the sequencer. The instrument has Sld, Cut, Res, Int, Dec, Sh1, Sh2 and Drv columns and commands 01 to 12.

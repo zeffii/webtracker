@@ -6120,7 +6120,7 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     rt.load(compile(graph, { instrument: 'du', nodeTypes: NODE_TYPES, registry }));
     const seq = new Sequencer({ sampleRate: sr, runtime: rt, params: registry.values, transport: new Int32Array(new SharedArrayBuffer(16)) });
     const cols = buildColumns('du', def, registry);
-    const t = Array.from({ length: 16 }, (_, i) => cols.map(c => (i === 0 && c.label === 'Note' ? 'C-3' : KINDS[c.token].blank)).join(' ')).join('\n');
+    const t = Array.from({ length: 16 }, (_, i) => cols.map((c, ci) => (i === 0 && ci === cols.findIndex(x => x.token === 'note') ? 'C-3' : KINDS[c.token].blank)).join(' ')).join('\n');
     const song = song120([oneLane('du', 'du', t, 16)]);
     seq.setSong(song);
     for (const lane of prepareSong(song, { du: def }, registry)) seq.setLane(lane);
@@ -6135,6 +6135,30 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     const o = run(over);
     assert.ok(o.every(Number.isFinite) && peak(o) < 2, `${name}: finite and in range`);
     assert.ok(diff(base, o) > 1e-3, `${name} changes the sound`);
+  }
+  // with several voices two notes sound together; a column's next note takes its own voice back and glides from it
+  {
+    const play = (voices, over, steps) => {
+      const registry = new ParamRegistry();
+      const graph = JSON.parse(JSON.stringify(def.graph));
+      graph.voices = voices;
+      Object.assign(graph.nodes[0], { params: over });
+      const c = compile(graph, { instrument: 'du', nodeTypes: NODE_TYPES, registry });
+      const rt = new GraphRuntime({ sampleRate: sr, params: registry.values });
+      rt.load(c);
+      const parts = [];
+      for (const [msgs, secs] of steps) { for (const m of msgs) rt.note('du', m); parts.push(render(rt, secs).left); }
+      return Float32Array.from(parts.flatMap(p => [...p]));
+    };
+    const on = (note, from = -1) => ({ type: 'noteOn', note, vel: 1, from });
+    const chord = [[[on(48), on(55)], 0.4]];
+    const one = play(1, {}, chord), four = play(4, {}, chord);
+    assert.ok(four.every(Number.isFinite) && peak(four) < 2, 'poly stays finite');
+    assert.ok(energy(four) > 1.3 * energy(one), 'two voices are louder than one');
+    const column = port => play(3, { port, egtype: 1 }, [[[on(48)], 0.3], [[{ type: 'noteOff', note: 48, implied: true }, on(60, 48)], 0.3]]);
+    const jump = column(0), glide = column(500);
+    assert.ok(glide.every(Number.isFinite), 'the glide stays finite');
+    assert.ok(diff(jump.subarray(sr * 0.3 | 0), glide.subarray(sr * 0.3 | 0)) > 1e-3, 'a column glides from its own last note');
   }
   console.log('ok: duette');
 }

@@ -9,6 +9,8 @@
 //   LFO    saw, triangle or square at FAST (0.5 Hz to 2.8 kHz), SLOW (0.05 to 28 Hz) or 1-SHOT (it stops after half a cycle), on
 //          the pitch, the shapes or the cutoff
 //   plus portamento (always, or only when notes overlap), a per-note slide (the Sld column), cutoff key tracking and velocity.
+// With the instrument's Voices at 1 it is one voice. With more, every note gets its own copy (envelope, LFO and filter each),
+// and a note column keeps to one voice: the glide and slide work along each column, and the columns together play chords.
 // A slide, like the 303's, keeps the gate up: the envelope does not restart and the pitch glides to the new note.
 const SPEC = [
   { name: 'vco1wave', min: 0, max: 2, def: 0, int: true },     // 0 saw, 1 triangle, 2 square
@@ -63,7 +65,7 @@ export default {
   outputs: ['out'],
   category: 'Sources',
   generator: true,
-  shared: true,   // one voice for the instrument
+  columnVoice: true,   // with several voices, a note column keeps to one voice, so the glide and slide work per column
   shape: 'rounded',
   glyph: 'duette',
   kinds: { out: 'stereo' },

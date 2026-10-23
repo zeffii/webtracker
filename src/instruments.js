@@ -380,10 +380,10 @@ export const synthKinds = {
     }),
   },
   duette: {
-    label: 'Duette (two-oscillator mono lead)',
+    label: 'Duette (two-oscillator lead, mono or poly)',
     make: () => ({
-      graph: { nodes: [{ id: 'du', type: 'duette' }, { id: 'out', type: 'out', params: { gain: 0.5 } }], connections: [['du.out', 'out.in']] },
-      noteColumns: 1,
+      graph: { nodes: [{ id: 'du', type: 'duette' }, { id: 'poly', type: 'voices' }, { id: 'out', type: 'out', params: { gain: 0.5 } }], connections: [['du.out', 'poly.in'], ['poly.out', 'out.in']], voices: 3 },
+      noteColumns: 3,
       exposed: [
         { node: 'du', param: 'sld', label: 'Sld', bits: 4 },
         { node: 'du', param: 'cutoff', label: 'Cut', scale: 'log' },

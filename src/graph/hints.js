@@ -616,7 +616,7 @@ const HINTS = {
     lfoint: 'How far the LFO moves its target.',
     lfotarget: 'What the LFO moves: pitch, the shapes, or the cutoff.',
     drive: 'Saturates the sound after the filter.',
-    port: 'Glide time between notes, in ms. 0 is off.',
+    port: 'Glide time between notes, in ms. 0 is off. With several voices it works along each note column: a column glides from its own last note.',
     portmode: 'auto: glide only when notes overlap. always: glide from every note.',
     slide: 'Glide time of a note with the Sld flag, in ms. It keeps the envelope running instead of restarting it.',
     keytrack: 'How much the cutoff follows the note, so high notes are brighter.',

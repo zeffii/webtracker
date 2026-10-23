@@ -106,6 +106,7 @@ export class GraphRuntime {
     const register = (node, at) => { const list = inst.byId.get(node.id) ?? []; list[at] = node; inst.byId.set(node.id, list); };
     this.instruments.set(compiled.instrument, inst);
 
+    inst.columnVoice = compiled.nodes.some(n => NODE_TYPES[n.type]?.columnVoice === true);
     inst.pre = [];   // shared nodes that run before the voices (see below)
     if (V === 1) {
       inst.nodes = compiled.nodes.map(n => make(n, resolve0));
@@ -207,7 +208,10 @@ export class GraphRuntime {
     const send = set => { for (const node of set.nodes) node.instance.note?.(msg); };
     const release = set => { set.released = true; set.releasedAt = ++this.stamp; };
     if (msg.type === 'noteOn') {
-      let pick = inst.sets.find(s => !s.active);
+      // a node type marked `columnVoice` keeps a note column on one voice: the next note of the column (msg.from is the note it
+      // replaces) goes to the voice that played the last, which can then glide or slide into it
+      let pick = inst.columnVoice && msg.from >= 0 ? inst.sets.find(s => s.active && s.note === msg.from) : null;
+      if (!pick) pick = inst.sets.find(s => !s.active);
       if (!pick) {
         for (const s of inst.sets) {
           if (s.released ? !pick?.released || s.releasedAt < pick.releasedAt : !pick?.released && (!pick || s.stamp < pick.stamp)) pick = s;
