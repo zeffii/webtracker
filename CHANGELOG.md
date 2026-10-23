@@ -2,6 +2,11 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 393 · 2026-10-23
+
+- Sample waveform mouse, reassigned: a plain drag (or Shift+drag) is the selection (grey); Alt+drag sets the loop region (A to B); Ctrl+drag sets the sustain loop region (a to b). Each loop's edges can be grabbed with its own modifier to move them. Alt+click without a drag still adds a slice marker, and Alt+drag on a marker moves it. Double-click clears the selection, Alt+double-click (away from a marker) the loop, Ctrl+double-click the sustain loop.
+- The Loop and SusLoop lines of the sample screen end in a hide / show switch: it keeps that region off the waveform (starting to drag it shows it again). The switches are saved in Config (Sample).
+
 ## 392 · 2026-10-23
 
 - Sample screen: with the mouse over the waveform, Space plays the sample from the start (for as long as it is held), and Alt+Space plays from the slice marker nearest to the left of the mouse (Ctrl+Space does the same, for systems that keep Alt+Space for the window menu). The status line says which slice it started from.

@@ -60,11 +60,14 @@ export function createWaveformView({ canvas, statusEl, getProject, onLoop, onSel
     if (span >= n) { va = 0; vb = 0; } else { va = a; vb = a + span; }
     lastKey = null;
   };
-  const loopOf = s => drag?.preview ?? { start: s.loopStart ?? 0, end: s.loopEnd ?? 0 };
+  // what a loop drag is showing for the loop ('loop') or the sustain loop ('sus'), or null when no drag is on it
+  const prevFor = t => (drag?.preview && drag.kind !== 'select' && drag.kind !== 'slice' && (drag.target ?? 'loop') === t ? drag.preview : null);
+  const loopOf = s => prevFor('loop') ?? { start: s.loopStart ?? 0, end: s.loopEnd ?? 0 };
+  const hidden = n => config.get(n === 0 ? 'waveHideLoop' : 'waveHideSus');   // the Loop and SusLoop lines of the sample screen have a hide switch
 
-  const commit = (start, end) => {
+  const commit = (start, end, kind = 'loop') => {
     try {
-      const users = setLoop(getProject(), id, start, end);
+      const users = setLoop(getProject(), id, start, end, kind);
       say('');
       onLoop(users);
     } catch (err) {
@@ -112,18 +115,24 @@ export function createWaveformView({ canvas, statusEl, getProject, onLoop, onSel
     if ((e.button ?? 0) !== 0) return;
     const s = sample();
     if (!s || !frames()) return;
-    if (e.altKey) {   // slice markers: grab the one under the mouse, or make a new one there
+    // Plain drag (or Shift): the selection. Alt: the loop, or a slice marker when one is under the mouse (Alt+click alone makes a marker).
+    // Ctrl: the sustain loop. The start or end of the loop being worked on is grabbed when the mouse is on it.
+    const region = (target, markOnClick) => {
+      const keys = target === 'sus' ? ['susStart', 'susEnd'] : ['loopStart', 'loopEnd'];
+      const start = s[keys[0]] ?? 0, end = s[keys[1]] ?? 0;
+      if (hidden(target === 'sus' ? 1 : 0)) config.set(target === 'sus' ? 'waveHideSus' : 'waveHideLoop', false);   // working on it shows it
+      if (end > start && Math.abs(e.offsetX - frameToX(start)) <= GRAB) drag = { kind: 'start', target, preview: { start, end } };
+      else if (end > start && Math.abs(e.offsetX - frameToX(end)) <= GRAB) drag = { kind: 'end', target, preview: { start, end } };
+      else drag = { kind: 'region', target, anchor: xToFrame(e.offsetX), preview: null, markOnClick };
+    };
+    if (e.altKey) {
       const at = nearestSlice(s, e.offsetX, GRAB);
-      const list = [...(s.slices ?? [])];
-      if (at < 0) list.push(Math.min(xToFrame(e.offsetX), frames() - 1));
-      drag = { kind: 'slice', i: at < 0 ? list.length - 1 : at, preview: list };
+      if (at >= 0) { drag = { kind: 'slice', i: at, preview: [...(s.slices ?? [])] }; return; }
+      region('loop', Math.min(xToFrame(e.offsetX), frames() - 1));
       return;
     }
-    if (e.shiftKey) { drag = { kind: 'select', anchor: xToFrame(e.offsetX), preview: null }; return; }
-    const { start, end } = loopOf(s);
-    if (end > start && Math.abs(e.offsetX - frameToX(start)) <= GRAB) drag = { kind: 'start', preview: { start, end } };
-    else if (end > start && Math.abs(e.offsetX - frameToX(end)) <= GRAB) drag = { kind: 'end', preview: { start, end } };
-    else drag = { kind: 'region', anchor: xToFrame(e.offsetX), preview: null };
+    if (e.ctrlKey || e.metaKey) { region('sus'); return; }
+    drag = { kind: 'select', anchor: xToFrame(e.offsetX), preview: null };
   });
 
   const move = x => {
@@ -147,7 +156,8 @@ export function createWaveformView({ canvas, statusEl, getProject, onLoop, onSel
     drag = null;
     if (d?.kind === 'slice') { commitSlices(d.preview, d.preview[d.i]); return; }
     if (d?.kind === 'select') { if (d.preview) onSelect({ from: d.preview.start, to: d.preview.end }); return; }
-    if (d?.preview) commit(Math.max(0, d.preview.start), d.preview.end);
+    if (d?.preview) commit(Math.max(0, d.preview.start), d.preview.end, d.target ?? 'loop');
+    else if (d?.kind === 'region' && d.markOnClick !== undefined) commitSlices([...(sample()?.slices ?? []), d.markOnClick], d.markOnClick);   // Alt+click without a drag: a slice marker
   };
   canvas.addEventListener('mouseup', finish);
   canvas.addEventListener('mouseleave', e => { if (drag && !globalThis.addEventListener) { move(e.offsetX); finish(); } });
@@ -167,8 +177,10 @@ export function createWaveformView({ canvas, statusEl, getProject, onLoop, onSel
   }, { passive: false });
   canvas.addEventListener('dblclick', e => {
     if (!sample()) return;
-    if (e?.altKey) { const at = nearestSlice(sample(), e.offsetX, GRAB * 2); if (at >= 0) commitSlices(sample().slices.filter((_, i) => i !== at)); return; }
-    if (e?.shiftKey) onSelect({ from: 0, to: 0 }); else commit(0, 0);
+    if (e?.altKey) { const at = nearestSlice(sample(), e.offsetX, GRAB * 2); if (at >= 0) { commitSlices(sample().slices.filter((_, i) => i !== at)); return; } }   // Alt+double-click: the marker under it goes, or else the loop
+    if (e?.ctrlKey || e?.metaKey) commit(0, 0, 'sus');   // Ctrl+double-click takes the sustain loop away, Alt+double-click (away from a marker) the loop
+    else if (e?.altKey) commit(0, 0);
+    else onSelect({ from: 0, to: 0 });
   });
 
   const LOOPS = [
@@ -178,10 +190,11 @@ export function createWaveformView({ canvas, statusEl, getProject, onLoop, onSel
 
   function draw() {
     const s = sample();
-    const { start, end } = s ? (drag?.kind === 'select' ? { start: s.loopStart ?? 0, end: s.loopEnd ?? 0 } : loopOf(s)) : { start: 0, end: 0 };
+    const { start, end } = s ? loopOf(s) : { start: 0, end: 0 };
+    const sp = prevFor('sus');
     const pick = drag?.kind === 'select' && drag.preview ? { from: drag.preview.start, to: drag.preview.end } : selection;
     const [va0, vb0] = s ? range() : [0, 0];
-    const key = s ? `${va0}-${vb0}:${id}:${mode}:${s.data.length}:${start}:${end}:${LOOPS.slice(1).map(l => `${s[l.start]}.${s[l.end]}.${s[l.on]}`).join()}:${s.loopOn}:${s.loopXfade}:${s.susXfade}:${pick.from}-${pick.to}:${slicesOf(s).join(',')}:${active}:${ghost ? `${ghost.frames.join(',')}/${ghost.replaced?.from}-${ghost.replaced?.to}` : ''}:${W}:${H}:${settled}:${typeof getComputedStyle === 'function' ? getComputedStyle(canvas).color : ''}` : 'none';
+    const key = s ? `${va0}-${vb0}:${id}:${mode}:${s.data.length}:${start}:${end}:${LOOPS.slice(1).map(l => `${s[l.start]}.${s[l.end]}.${s[l.on]}`).join()}:${sp ? `${sp.start}-${sp.end}` : ''}:${hidden(0)}${hidden(1)}:${s.loopOn}:${s.loopXfade}:${s.susXfade}:${pick.from}-${pick.to}:${slicesOf(s).join(',')}:${active}:${ghost ? `${ghost.frames.join(',')}/${ghost.replaced?.from}-${ghost.replaced?.to}` : ''}:${W}:${H}:${settled}:${typeof getComputedStyle === 'function' ? getComputedStyle(canvas).color : ''}` : 'none';
     if (key === lastKey) return;
     lastKey = key;
     ctx.clearRect(0, 0, W, H);
@@ -224,9 +237,9 @@ export function createWaveformView({ canvas, statusEl, getProject, onLoop, onSel
     ctx.font = '11px ui-monospace, Consolas, monospace';
     ctx.textBaseline = 'top';
     LOOPS.forEach((l, n) => {
-      const a = n === 0 ? start : s[l.start] ?? 0, b = n === 0 ? end : s[l.end] ?? 0;
-      if (!(b > a)) return;
-      const off = n === 0 ? !drag && s[l.on] === false : s[l.on] === false;   // a switched-off loop is drawn faint
+      const a = n === 0 ? start : sp?.start ?? s[l.start] ?? 0, b = n === 0 ? end : sp?.end ?? s[l.end] ?? 0;
+      if (!(b > a) || hidden(n)) return;
+      const off = !drag && s[l.on] === false;   // a switched-off loop is drawn faint
       ctx.globalAlpha = off ? 0.35 : 1;
       const xs = frameToX(a), xe = frameToX(b);
       ctx.fillStyle = l.fill;

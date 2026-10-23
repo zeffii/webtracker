@@ -19,9 +19,10 @@ import { LOWER, UPPER } from '../seq/piano.js';
 // Every parameter, slider or number, answers to the same keys.
 
 const LIST_ROWS = 13, LEFT = 38;
-const FIELDS = ['name', 'loopOn', 'loopBeg', 'loopEnd', 'loopXf', 'susOn', 'susBeg', 'susEnd', 'susXf', 'selBeg', 'selEnd', 'volume', 'globalVolume', 'pan', 'view'];
+const FIELDS = ['name', 'loopOn', 'loopBeg', 'loopEnd', 'loopXf', 'loopHide', 'susOn', 'susBeg', 'susEnd', 'susXf', 'susHide', 'selBeg', 'selEnd', 'volume', 'globalVolume', 'pan', 'view'];
 const SLIDERS = { volume: 'Default volume', globalVolume: 'Global volume', pan: 'Default pan' };
-const LOOP_FIELDS = { loopOn: 'loop', loopBeg: 'loop', loopEnd: 'loop', loopXf: 'loop', susOn: 'sus', susBeg: 'sus', susEnd: 'sus', susXf: 'sus' };
+const SWITCH = ['loopOn', 'susOn', 'loopHide', 'susHide', 'view'];   // fields that are switches: Space, Enter and a click flip them
+const LOOP_FIELDS = { loopOn: 'loop', loopBeg: 'loop', loopEnd: 'loop', loopXf: 'loop', susOn: 'sus', susBeg: 'sus', susEnd: 'sus', susXf: 'sus' };   // (loopHide and susHide are switches of their own, not numbers)
 
 const esc = t => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 const seg = (text, cls, at = '') => ({ t: text.length, h: cls || at ? `<span${cls ? ` class="${cls}"` : ''}${at}>${esc(text)}</span>` : esc(text) });
@@ -127,6 +128,7 @@ export function createSampleScreen({ el, statusEl, getProject, onChange = () => 
 
   function toggle(field) {
     const s = sample(), project = getProject();
+    if (field === 'loopHide' || field === 'susHide') { const key = field === 'loopHide' ? 'waveHideLoop' : 'waveHideSus'; config.set(key, !config.get(key)); return; }
     if (field === 'view') {
       mode = mode === 'wave' ? 'spec' : 'wave';
       onView(mode);
@@ -140,7 +142,7 @@ export function createSampleScreen({ el, statusEl, getProject, onChange = () => 
   function adjust(field, dir, e) {
     const s = sample();
     if (field === 'name') return;
-    if (field === 'loopOn' || field === 'susOn' || field === 'view') { toggle(field); return; }
+    if (SWITCH.includes(field)) { toggle(field); return; }
     if (field in SLIDERS) {
       const step = e.ctrlKey ? 0.25 : e.shiftKey ? 0.1 : 0.01;
       setField(field, (s[field] ?? SAMPLE_PROPS[field].def) + dir * step);
@@ -280,12 +282,12 @@ export function createSampleScreen({ el, statusEl, getProject, onChange = () => 
     const dirOf = { ArrowRight: 1, ArrowLeft: -1 }[k] ?? (focus === 'name' ? undefined : { Equal: 1, NumpadAdd: 1, Minus: -1, NumpadSubtract: -1 }[e.code]);
     if (dirOf) { adjust(focus, dirOf, e); return eat(); }
     if (k === 'Enter') {
-      if (focus === 'loopOn' || focus === 'susOn' || focus === 'view') toggle(focus);
+      if (SWITCH.includes(focus)) toggle(focus);
       else edit = { field: focus, buf: focus === 'name' ? sel : '' };
       return eat();
     }
     if (k === ' ') {
-      if (focus === 'loopOn' || focus === 'susOn' || focus === 'view') toggle(focus); else if (!e.repeat) startNote(' ', ROOT);
+      if (SWITCH.includes(focus)) toggle(focus); else if (!e.repeat) startNote(' ', ROOT);
       return eat();
     }
     if (focus !== 'name') {
@@ -294,7 +296,7 @@ export function createSampleScreen({ el, statusEl, getProject, onChange = () => 
     }
     if (k === 'l' && focus !== 'name') { onLoad(); return eat(); }
     if (focus === 'name') { if (k.length === 1) { edit = { field: 'name', buf: k }; return eat(); } return false; }
-    if (k.length === 1 && /[0-9.\-]/.test(k) && !['loopOn', 'susOn', 'view'].includes(focus)) { edit = { field: focus, buf: k }; return eat(); }
+    if (k.length === 1 && /[0-9.\-]/.test(k) && !SWITCH.includes(focus)) { edit = { field: focus, buf: k }; return eat(); }
     return false;
   }
 
@@ -319,7 +321,7 @@ export function createSampleScreen({ el, statusEl, getProject, onChange = () => 
     if (edit && edit.field !== field) commit();
     focus = field;
     if (field === 'view') { if (hit.dataset.mode !== mode) toggle('view'); }
-    else if (field === 'loopOn' || field === 'susOn') toggle(field);
+    else if (field === 'loopOn' || field === 'susOn' || field === 'loopHide' || field === 'susHide') toggle(field);
     else if (hit.dataset.bar) {
       const r = hit.getBoundingClientRect(), spec = SAMPLE_PROPS[field];
       setField(field, spec.min + Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)) * (spec.max - spec.min));
@@ -369,16 +371,17 @@ export function createSampleScreen({ el, statusEl, getProject, onChange = () => 
           ...sl.map((f, i) => { const l = line(`${i === activeSlice ? ' >' : '  '} ${i.toString(16).toUpperCase().padStart(2, '0')}  ${placeHex(f, d.data.length, config.get('hexMode'))}  ${String(f).padStart(8, '0')}  ${(f / d.rate).toFixed(3)}s`); return i === activeSlice ? { t: l.t, h: `<span class="sl-act">${l.h}</span>` } : l; })];
       };
       const numCell = field => fieldCell(field, frameValue(s, field).toString().padStart(8, '0'), 8);
-      const loopLine = (label, p, onField, begField, endField, xfField) => line(
-        ` ${label.padEnd(9)}`, fieldCell(onField, isOn(s, p) ? ' on' : ' off', 4), ' Beg ', numCell(begField), ' End ', numCell(endField), ' Xfade ', numCell(xfField));
+      const loopLine = (label, p, onField, begField, endField, xfField, hideField) => line(
+        ` ${label.padEnd(9)}`, fieldCell(onField, isOn(s, p) ? ' on' : ' off', 4), ' Beg ', numCell(begField), ' End ', numCell(endField), ' Xfade ', numCell(xfField), '  ',
+        fieldCell(hideField, config.get(p === 'sus' ? 'waveHideSus' : 'waveHideLoop') ? 'show' : 'hide', 4));   // hide: keeps the region off the waveform
       const right = [
         line(' Sample'),
         line(' Name     ', fieldCell('name', sel, 24)),
         line(` Speed    ${s.rate} Hz   ${s.right ? 'stereo' : 'mono'}`),
         line(` Length   ${String(s.data.length).padStart(8, '0')} frames  ${(s.data.length / s.rate).toFixed(2)} s`),
         line(''),
-        loopLine('Loop', 'loop', 'loopOn', 'loopBeg', 'loopEnd', 'loopXf'),
-        loopLine('SusLoop', 'sus', 'susOn', 'susBeg', 'susEnd', 'susXf'),
+        loopLine('Loop', 'loop', 'loopOn', 'loopBeg', 'loopEnd', 'loopXf', 'loopHide'),
+        loopLine('SusLoop', 'sus', 'susOn', 'susBeg', 'susEnd', 'susXf', 'susHide'),
         line(' Select   ', seg('    ', ''), ' Beg ', numCell('selBeg'), ' End ', numCell('selEnd'), selTo > selFrom ? '' : '  (whole sample)'),
         line(''),
         line(' Levels'),

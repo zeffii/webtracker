@@ -1317,6 +1317,8 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   key('ArrowLeft'); assert.equal(pluck.loopEnd, 5099);
   type('99999999'); key('Enter'); assert.equal(pluck.loopEnd, n, 'a value past the end is clamped');
   key('Tab'); type('64'); key('Enter'); assert.equal(pluck.loopXfade, 64);
+  tab(1); assert.equal(screen.focus, 'loopHide');
+  key(' '); assert.equal(uiConfig.get('waveHideLoop'), true, 'the hide switch hides the loop region'); key(' '); assert.equal(uiConfig.get('waveHideLoop'), false);
   tab(1); assert.equal(screen.focus, 'susOn');
   key(' '); assert.equal(pluck.susEnd, n, 'switching a loop on with no points loops the whole sample');
   key(' '); assert.equal(pluck.susOn, false);
@@ -1325,7 +1327,7 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   tab(1); type('0'); key('Enter'); assert.equal(pluck.susEnd, undefined, 'an end of 0 removes the loop');
 
   // sliders answer to the same keys; the focused one is drawn brighter
-  tab(4); assert.equal(screen.focus, 'volume');
+  tab(5); assert.equal(screen.focus, 'volume');
   screen.draw(); assert.equal(el.innerHTML.split('class="sl on"').length - 1, 1, 'only the focused slider is bright');
   key('ArrowLeft'); assert.equal(pluck.volume, 0.99);
   key('ArrowLeft', { shiftKey: true }); assert.equal(pluck.volume, 0.89);
@@ -1466,31 +1468,47 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   const project = { samples: { s: { rate: sr, data: new Float32Array(9000).map((_, i) => Math.sin(i * 0.1)) } }, instruments: { a: { samples: { sampler: 's' } } } };
   const statusEl = { textContent: '' }, loops = [];
   const view = createWaveformView({ canvas, statusEl, getProject: () => project, onLoop: users => loops.push(users) });
-  const fire = (type, x) => canvas.listeners[type]?.({ offsetX: x, offsetY: 50 });
+  const fire = (type, x, extra = {}) => canvas.listeners[type]?.({ offsetX: x, offsetY: 50, ...extra });
+  const alt = { altKey: true }, ctrl = { ctrlKey: true };
   view.draw();                                           // nothing selected: no error
   view.show('s');
   view.draw();
 
-  fire('mousedown', 100); fire('mousemove', 400); fire('mouseup', 400);   // drag across empty waveform: a new loop (10 frames per pixel)
+  fire('mousedown', 100, alt); fire('mousemove', 400); fire('mouseup', 400);   // Alt+drag across empty waveform: a new loop (10 frames per pixel)
   assert.deepEqual([project.samples.s.loopStart, project.samples.s.loopEnd], [1000, 4000]);
   assert.deepEqual(loops.at(-1), [{ instrument: 'a', node: 'sampler' }]);
   view.draw();
 
-  fire('mousedown', 401); fire('mousemove', 600); fire('mouseup', 600);   // grab the end marker and drag it
+  fire('mousedown', 401, alt); fire('mousemove', 600); fire('mouseup', 600);   // grab the end marker and drag it
   assert.deepEqual([project.samples.s.loopStart, project.samples.s.loopEnd], [1000, 6000]);
-  fire('mousedown', 99); fire('mousemove', 50); fire('mouseup', 50);      // grab the start marker
+  fire('mousedown', 99, alt); fire('mousemove', 50); fire('mouseup', 50);      // grab the start marker
   assert.deepEqual([project.samples.s.loopStart, project.samples.s.loopEnd], [500, 6000]);
-  fire('mousedown', 300); fire('mousemove', 305); fire('mouseleave', 305); // leaving the canvas ends the drag where it left
+  fire('mousedown', 300, alt); fire('mousemove', 305); fire('mouseleave', 305); // leaving the canvas ends the drag where it left
   assert.deepEqual([project.samples.s.loopStart, project.samples.s.loopEnd], [3000, 3050]);
-  fire('mousedown', 99); fire('mousemove', 100); fire('mouseup', 100);
+  fire('mousedown', 99, alt); fire('mousemove', 100); fire('mouseup', 100);
   project.samples.s.loopStart = 500; project.samples.s.loopEnd = 6000;
   fire('mousedown', 300); fire('mouseup', 300);                           // a plain click changes nothing
   assert.equal(project.samples.s.loopEnd, 6000);
-  fire('mousedown', 598); fire('mousemove', 0); fire('mouseup', 0);        // the end cannot pass the start
+  fire('mousedown', 598, alt); fire('mousemove', 0); fire('mouseup', 0);        // the end cannot pass the start
   assert.equal(project.samples.s.loopStart, 500);
   assert.ok(project.samples.s.loopEnd >= 502);
-  canvas.listeners.dblclick();                                            // double-click clears
+  // Ctrl+drag is the sustain loop, which has its own handles; a plain drag only selects
+  fire('mousedown', 100, ctrl); fire('mousemove', 200); fire('mouseup', 200);
+  assert.deepEqual([project.samples.s.susStart, project.samples.s.susEnd], [1000, 2000]);
+  assert.equal(project.samples.s.loopEnd >= 502, true, 'and the loop is left alone');
+  fire('mousedown', 201, ctrl); fire('mousemove', 300); fire('mouseup', 300);
+  assert.deepEqual([project.samples.s.susStart, project.samples.s.susEnd], [1000, 3000]);
+  fire('mousedown', 50); fire('mousemove', 80); fire('mouseup', 80);
+  assert.deepEqual([project.samples.s.susStart, project.samples.s.susEnd], [1000, 3000], 'a plain drag does not touch either loop');
+  // Alt+click without a drag makes a slice marker; Alt+double-click on it takes it away, and elsewhere clears the loop
+  fire('mousedown', 700, alt); fire('mouseup', 700);
+  assert.deepEqual(project.samples.s.slices, [7000]);
+  canvas.listeners.dblclick({ offsetX: 700, altKey: true });
+  assert.ok(!project.samples.s.slices?.length);
+  canvas.listeners.dblclick({ offsetX: 20, altKey: true });              // away from any marker: the loop goes
   assert.equal(project.samples.s.loopStart, undefined);
+  canvas.listeners.dblclick({ offsetX: 20, ctrlKey: true });
+  assert.equal(project.samples.s.susStart, undefined);
   view.draw();
 }
 
@@ -3718,7 +3736,7 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   key('z'); key('z', { repeat: true }); assert.equal(events.filter(e => e[0] === 'note').length, 9, 'a held key does not retrigger');
   onUp({ key: 'z' });
   // a selection from the fields, then edit keys act on it
-  for (let i = 0; i < 10; i++) key('Tab');
+  for (let i = 0; i < 12; i++) key('Tab');
   assert.equal(screen.focus, 'selBeg');
   for (const c of '1000') key(c); key('Enter');
   assert.deepEqual(screen.selection, [1000, 4000]);
