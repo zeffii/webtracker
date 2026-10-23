@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 394 · 2026-10-23
+
+- The Select line of the sample screen has a hide / show switch too, in the same column as the Loop and SusLoop ones: it keeps the grey selection off the waveform (the edit tools still act on it, and dragging a new selection shows it again). Saved in Config (Sample).
+
 ## 393 · 2026-10-23
 
 - Sample waveform mouse, reassigned: a plain drag (or Shift+drag) is the selection (grey); Alt+drag sets the loop region (A to B); Ctrl+drag sets the sustain loop region (a to b). Each loop's edges can be grabbed with its own modifier to move them. Alt+click without a drag still adds a slice marker, and Alt+drag on a marker moves it. Double-click clears the selection, Alt+double-click (away from a marker) the loop, Ctrl+double-click the sustain loop.

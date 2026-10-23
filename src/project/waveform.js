@@ -132,6 +132,7 @@ export function createWaveformView({ canvas, statusEl, getProject, onLoop, onSel
       return;
     }
     if (e.ctrlKey || e.metaKey) { region('sus'); return; }
+    if (config.get('waveHideSel')) config.set('waveHideSel', false);   // selecting shows the selection
     drag = { kind: 'select', anchor: xToFrame(e.offsetX), preview: null };
   });
 
@@ -192,7 +193,7 @@ export function createWaveformView({ canvas, statusEl, getProject, onLoop, onSel
     const s = sample();
     const { start, end } = s ? loopOf(s) : { start: 0, end: 0 };
     const sp = prevFor('sus');
-    const pick = drag?.kind === 'select' && drag.preview ? { from: drag.preview.start, to: drag.preview.end } : selection;
+    const pick = drag?.kind === 'select' && drag.preview ? { from: drag.preview.start, to: drag.preview.end } : config.get('waveHideSel') ? { from: 0, to: 0 } : selection;   // hidden: drawn as no selection (it still stands)
     const [va0, vb0] = s ? range() : [0, 0];
     const key = s ? `${va0}-${vb0}:${id}:${mode}:${s.data.length}:${start}:${end}:${LOOPS.slice(1).map(l => `${s[l.start]}.${s[l.end]}.${s[l.on]}`).join()}:${sp ? `${sp.start}-${sp.end}` : ''}:${hidden(0)}${hidden(1)}:${s.loopOn}:${s.loopXfade}:${s.susXfade}:${pick.from}-${pick.to}:${slicesOf(s).join(',')}:${active}:${ghost ? `${ghost.frames.join(',')}/${ghost.replaced?.from}-${ghost.replaced?.to}` : ''}:${W}:${H}:${settled}:${typeof getComputedStyle === 'function' ? getComputedStyle(canvas).color : ''}` : 'none';
     if (key === lastKey) return;

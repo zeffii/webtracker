@@ -19,9 +19,9 @@ import { LOWER, UPPER } from '../seq/piano.js';
 // Every parameter, slider or number, answers to the same keys.
 
 const LIST_ROWS = 13, LEFT = 38;
-const FIELDS = ['name', 'loopOn', 'loopBeg', 'loopEnd', 'loopXf', 'loopHide', 'susOn', 'susBeg', 'susEnd', 'susXf', 'susHide', 'selBeg', 'selEnd', 'volume', 'globalVolume', 'pan', 'view'];
+const FIELDS = ['name', 'loopOn', 'loopBeg', 'loopEnd', 'loopXf', 'loopHide', 'susOn', 'susBeg', 'susEnd', 'susXf', 'susHide', 'selBeg', 'selEnd', 'selHide', 'volume', 'globalVolume', 'pan', 'view'];
 const SLIDERS = { volume: 'Default volume', globalVolume: 'Global volume', pan: 'Default pan' };
-const SWITCH = ['loopOn', 'susOn', 'loopHide', 'susHide', 'view'];   // fields that are switches: Space, Enter and a click flip them
+const SWITCH = ['loopOn', 'susOn', 'loopHide', 'susHide', 'selHide', 'view'];   // fields that are switches: Space, Enter and a click flip them
 const LOOP_FIELDS = { loopOn: 'loop', loopBeg: 'loop', loopEnd: 'loop', loopXf: 'loop', susOn: 'sus', susBeg: 'sus', susEnd: 'sus', susXf: 'sus' };   // (loopHide and susHide are switches of their own, not numbers)
 
 const esc = t => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -128,7 +128,7 @@ export function createSampleScreen({ el, statusEl, getProject, onChange = () => 
 
   function toggle(field) {
     const s = sample(), project = getProject();
-    if (field === 'loopHide' || field === 'susHide') { const key = field === 'loopHide' ? 'waveHideLoop' : 'waveHideSus'; config.set(key, !config.get(key)); return; }
+    if (field === 'loopHide' || field === 'susHide' || field === 'selHide') { const key = { loopHide: 'waveHideLoop', susHide: 'waveHideSus', selHide: 'waveHideSel' }[field]; config.set(key, !config.get(key)); return; }
     if (field === 'view') {
       mode = mode === 'wave' ? 'spec' : 'wave';
       onView(mode);
@@ -321,7 +321,7 @@ export function createSampleScreen({ el, statusEl, getProject, onChange = () => 
     if (edit && edit.field !== field) commit();
     focus = field;
     if (field === 'view') { if (hit.dataset.mode !== mode) toggle('view'); }
-    else if (field === 'loopOn' || field === 'susOn' || field === 'loopHide' || field === 'susHide') toggle(field);
+    else if (field === 'loopOn' || field === 'susOn' || field === 'loopHide' || field === 'susHide' || field === 'selHide') toggle(field);
     else if (hit.dataset.bar) {
       const r = hit.getBoundingClientRect(), spec = SAMPLE_PROPS[field];
       setField(field, spec.min + Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)) * (spec.max - spec.min));
@@ -382,7 +382,7 @@ export function createSampleScreen({ el, statusEl, getProject, onChange = () => 
         line(''),
         loopLine('Loop', 'loop', 'loopOn', 'loopBeg', 'loopEnd', 'loopXf', 'loopHide'),
         loopLine('SusLoop', 'sus', 'susOn', 'susBeg', 'susEnd', 'susXf', 'susHide'),
-        line(' Select   ', seg('    ', ''), ' Beg ', numCell('selBeg'), ' End ', numCell('selEnd'), selTo > selFrom ? '' : '  (whole sample)'),
+        line(' Select   ', seg('    ', ''), ' Beg ', numCell('selBeg'), ' End ', numCell('selEnd'), ' '.repeat(7 + 8 + 2), fieldCell('selHide', config.get('waveHideSel') ? 'show' : 'hide', 4), selTo > selFrom ? '' : '  (whole sample)'),   // hide lines up with the ones above
         line(''),
         line(' Levels'),
         ...Object.keys(SLIDERS).map(f => line(' ', slider(f))),

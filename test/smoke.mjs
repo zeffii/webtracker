@@ -1327,7 +1327,7 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   tab(1); type('0'); key('Enter'); assert.equal(pluck.susEnd, undefined, 'an end of 0 removes the loop');
 
   // sliders answer to the same keys; the focused one is drawn brighter
-  tab(5); assert.equal(screen.focus, 'volume');
+  tab(6); assert.equal(screen.focus, 'volume');
   screen.draw(); assert.equal(el.innerHTML.split('class="sl on"').length - 1, 1, 'only the focused slider is bright');
   key('ArrowLeft'); assert.equal(pluck.volume, 0.99);
   key('ArrowLeft', { shiftKey: true }); assert.equal(pluck.volume, 0.89);
