@@ -49,6 +49,7 @@ export function createInsertMenu({ parent, nodeTypes, onPick, doc = document }) 
   parent.appendChild(box);
 
   let shown = [], active = 0, at = { x: 20, y: 30 };
+  let wiring = null;      // the index of the wire the menu is choosing a node for
   let replacing = null;   // { id, type } while the menu is choosing what a node becomes
   // Replacing an effect, the sources are greyed out, and the other way round: they would have nothing to be wired to.
   const off = type => {
@@ -92,9 +93,9 @@ export function createInsertMenu({ parent, nodeTypes, onPick, doc = document }) 
 
   const pick = entry => {
     if (!entry || off(entry.type)) return;
-    const was = replacing;
+    const was = replacing, wired = wiring;
     close();
-    onPick(entry.type, at, was);
+    onPick(entry.type, at, was, wired);
   };
 
   // The columns for the current choice: the categories, then the children of the chosen row, and so on.
@@ -230,10 +231,11 @@ export function createInsertMenu({ parent, nodeTypes, onPick, doc = document }) 
     render();
   });
 
-  function open(x, y, replace = null) {
+  function open(x, y, replace = null, wire = null) {
     at = { x, y };
     replacing = replace;
-    input.placeholder = replace ? `Replace ${replace.id} with: letters pick, / searches` : 'Add node: letters pick, / searches';
+    wiring = wire;
+    input.placeholder = wire != null ? 'Put into the wire: letters pick, / searches' : replace ? `Replace ${replace.id} with: letters pick, / searches` : 'Add node: letters pick, / searches';
     const room = (parent.clientWidth || 0) - 3 * 192 - 8;   // keep the three columns inside the graph when there is room
     box.style.left = `${room > 0 ? Math.min(x, room) : x}px`;
     box.style.top = `${y}px`;

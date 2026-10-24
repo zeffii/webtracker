@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 447 · 2026-10-24
+
+- Graph: right-click on a wire opens the node menu to put a node into that wire. The node is placed in the middle of the wire, connected to both ends, and the nodes to its right move over to make room.
+
 ## 446 · 2026-10-24
 
 - Dark and Black themes (and System when the system is dark): the pattern colours in the arrangement are solid instead of a tint over the editor's background, so they no longer mix with it. The other themes are unchanged.

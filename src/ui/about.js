@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['447', ['Graph: right-click a wire to put a node into it; the nodes to its right move over.']],
   ['446', ['Dark themes: the pattern colours are solid, not mixed with the background.']],
   ['445', ['Arrangement: the grid and side panel reach the status bar.']],
   ['444', ['Sequencer: the undo line is a trail of chevrons, newest bright, older fading.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['440', ['Instruments tab: the left panel is styled like the Sample screen.']],
   ['439', ['New node: route, a small dot to branch a wire to many places.']],
   ['438', ['New demo: phase, an additive-process, serial, microsound and broken-beat piece.']],
-  ['437', ['New demo: suite, five short atonal studies for different sets of nodes.']],
 ];

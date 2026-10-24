@@ -760,6 +760,9 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
     if (node && !nodeTypes[node.type].master) {   // right-click on a node: the menu replaces it
       selected = { kind: 'node', id }; group.clear(); renderPanel(); dirty = true;
       onContext({ x: e.offsetX, y: e.offsetY, replace: { id, type: node.type } });
+    } else if (hit?.kind === 'link') {   // right-click on a wire: the menu puts the node into that wire
+      selected = { kind: 'link', index: hit.index }; group.clear(); renderPanel(); dirty = true;
+      onContext({ x: e.offsetX, y: e.offsetY, wire: hit.index });
     } else onContext({ x: e.offsetX, y: e.offsetY });
   });
   canvas.addEventListener('dblclick', e => {
@@ -1252,6 +1255,40 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
         structure();
       } catch (err) {
         say(err.message);
+      }
+    },
+    // Puts a new node into the middle of a wire (the right-click menu on a wire): it is wired to both ends, and the nodes to
+    // the right of its place move over so it has room and nothing overlaps.
+    insertIntoWire(type, index) {
+      if (!instId) return;
+      const before = structuredClone(def().graph ?? null);
+      try {
+        const link = [...desc().connections[index]];
+        const d = desc(), byId = id => d.nodes.find(n => n.id === id);
+        const A = byId(link[0].split('.')[0]), B = byId(link[1].split('.')[0]);
+        const tdef = nodeTypes[type], size = nodeBox(tdef, { type, x: 0, y: 0 });
+        const pa = portPos(A, nodeTypes[A.type], 'out', nodeTypes[A.type].outputs.indexOf(link[0].split('.')[1]));
+        const pb = portPos(B, nodeTypes[B.type], 'in', inputsOf(B, nodeTypes[B.type]).indexOf(link[1].split('.')[1]));
+        const GAP = 36, need = size.w + 2 * GAP, room = pb.x - pa.x, dx = Math.max(0, need - room);
+        const midX = (pa.x + pb.x) / 2, midY = (pa.y + pb.y) / 2;
+        const moved = d.nodes.filter(n => n.x !== undefined && n.x + nodeBox(nodeTypes[n.type], n).w / 2 > midX);
+        const id = addNode(d, nodeTypes, type, { x: Math.max(0, midX - size.w / 2), y: Math.max(14, midY - size.h / 2) });
+        for (const n of moved) if (n.id !== id) n.x += dx;
+        const node = byId(id);
+        node.x = Math.max(0, (pa.x + pb.x + dx) / 2 - size.w / 2);
+        if (nodeTypes[type]?.samples && getSampleIds().length) def().samples = { ...def().samples, [id]: getSampleIds()[0] };
+        insertOnWire(d, nodeTypes, id, link);
+        selected = { kind: 'node', id };
+        group.clear();
+        say(`${id} is now in that wire`);
+        renderPanel();
+        structure();
+        dirty = true;
+      } catch (err) {
+        if (before) def().graph = before;
+        say(err.message);
+        renderPanel();
+        dirty = true;
       }
     },
     // Swaps a node for one of another type (the right-click menu on a node), keeping its place, wires and shared parameters.
