@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 449 · 2026-10-24
+
+- Instruments tab: Voices and NoteCols are stacked with narrow number boxes, and the node preset box (shown when a node is selected) sits to their right, right-aligned.
+
 ## 448 · 2026-10-24
 
 - Graph: **undo and redo** (Ctrl+Z, Ctrl+Y or Ctrl+Shift+Z) for nodes, wires, parameter values and exposed columns, with a history of up to 100 steps for each instrument. A finished edit (mouse up, key up, a field changed) is one step.
