@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['436', ['DSP view: the DSP circle sits mid-page with a left arrow.']],
   ['435', ['DSP view: circuit hidden until the DSP circle is clicked; draggable divider.']],
   ['434', ['DSP view: a Circuit beside the code, the per-sample loop drawn as a signal-flow diagram.']],
   ['433', ['Live picture: a Cells (Voronoi) shader template.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['429', ['Graph: Alt+R takes a node out and joins the wires; R stays a keyjazz key.']],
   ['428', ['Wax tools for Claude: validate, outline, render offline and measure a song (an MCP server and a skill, in the repository).']],
   ['427', ['The demo: a later, slower Shepard tone, the Arp node plays the arpeggio, plus a woodblock and Detroit-style Duette stabs.']],
-  ['426', ['The first-screen line sits in an off-white cartouche.']],
 ];

@@ -678,8 +678,11 @@
     #dsp-split { position: absolute; top: 0; bottom: 0; left: -3px; width: 7px; cursor: col-resize; touch-action: none; z-index: 2; }
     #dsp-split:hover, #dsp-split.drag { background: color-mix(in srgb, var(--hi) 60%, transparent); }
     #dsp-diag { position: sticky; }
-    #dsp-open { display: none; position: sticky; top: 4px; align-self: start; justify-self: end; margin: 4px; width: 2.6rem; height: 2.6rem; border-radius: 50%; padding: 0; font: 600 10px/1 system-ui, sans-serif; letter-spacing: .04em; }
-    #dsp-code.nocirc #dsp-open { display: block; }
+    #dsp-open { display: none; position: sticky; top: calc((100vh - 14rem) / 2 - 1.3rem); align-self: start; justify-self: end; margin: calc((100vh - 14rem) / 2 - 1.3rem) 4px 0 0; padding: 0; background: none; border: 0; align-items: center; gap: 2px; color: inherit; cursor: pointer; }
+    #dsp-open svg { width: 2.2rem; height: 1rem; fill: none; stroke: currentColor; stroke-width: 1; opacity: .7; }
+    #dsp-open .dot { display: grid; place-items: center; width: 2.6rem; height: 2.6rem; border-radius: 50%; border: 1px solid currentColor; font: 600 10px/1 system-ui, sans-serif; letter-spacing: .04em; background: var(--bg); }
+    #dsp-open:hover .dot, #dsp-open:focus-visible .dot { background: var(--hi); color: var(--hi-fg); border-color: var(--hi); }
+    #dsp-code.nocirc #dsp-open { display: flex; }
     #dsp-code.dragging { user-select: none; }
     #dsp-diag .tabs { display: flex; gap: .3rem; align-items: center; margin-bottom: .4rem; opacity: .85; flex-wrap: wrap; }
     #dsp-diag .tabs button { padding: 0 8px; font-size: 11px; }
@@ -1331,7 +1334,7 @@
       <div id="dsp-bar"><label>Instrument <select id="dsp-inst" aria-label="Instrument"></select></label><button id="dsp-fold" type="button" title="Fold the blocks one step inside the outermost one: the parameter list, each method">Fold all</button><button id="dsp-unfold" type="button">Unfold all</button><button id="dsp-circ" type="button" aria-pressed="false" title="Draw the per-sample loop as a signal-flow diagram beside the code">Circuit</button><span class="dsp-ro">read only</span></div>
       <div id="dsp-chain" role="toolbar" aria-label="Nodes in running order"></div>
       <div id="dsp-body">
-        <div id="dsp-code" class="nocirc"><div id="dsp-gut" aria-hidden="true"></div><pre id="dsp-src" tabindex="0" aria-label="Node source"></pre><div id="dsp-diag" aria-label="Signal flow of the per-sample loop"><div id="dsp-split" role="separator" aria-orientation="vertical" title="Drag to resize"></div><div id="dsp-circuit"></div></div><button id="dsp-open" type="button" title="Show the circuit diagram of the per-sample loop">DSP</button></div>
+        <div id="dsp-code" class="nocirc"><div id="dsp-gut" aria-hidden="true"></div><pre id="dsp-src" tabindex="0" aria-label="Node source"></pre><div id="dsp-diag" aria-label="Signal flow of the per-sample loop"><div id="dsp-split" role="separator" aria-orientation="vertical" title="Drag to resize"></div><div id="dsp-circuit"></div></div><button id="dsp-open" type="button" title="Show the circuit diagram of the per-sample loop"><svg viewBox="0 0 36 16" aria-hidden="true"><path d="M35 8H2M8 2L2 8l6 6"/></svg><span class="dot">DSP</span></button></div>
       </div>
       <div id="dsp-foot" class="statusbar"></div>
     </div>

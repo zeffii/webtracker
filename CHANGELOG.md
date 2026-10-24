@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 436 · 2026-10-24
+
+- DSP view: the DSP circle sits halfway down the code with a thin arrow pointing left, to show the circuit unfolds that way.
+
 ## 435 · 2026-10-24
 
 - DSP view: the circuit starts hidden; a small **DSP** circle at the right of the code opens it (× or the Circuit button closes it). The divider between code and circuit drags to any width, and the width is remembered.
