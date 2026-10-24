@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['442', ['Instruments tab: list and instrument controls in one panel on the left; the graph starts at the top.']],
   ['441', ['The flat-panel look of the Sample screen and Instruments tab is named retroslate.']],
   ['440', ['Instruments tab: the left panel is styled like the Sample screen.']],
   ['439', ['New node: route, a small dot to branch a wire to many places.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['435', ['DSP view: circuit hidden until the DSP circle is clicked; draggable divider.']],
   ['434', ['DSP view: a Circuit beside the code, the per-sample loop drawn as a signal-flow diagram.']],
   ['433', ['Live picture: a Cells (Voronoi) shader template.']],
-  ['432', ['Alt+S solos and Alt+M mutes the lane under the cursor, in both editors.']],
 ];

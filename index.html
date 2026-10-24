@@ -582,9 +582,10 @@
     #inst-list { display: grid; gap: 0; margin-bottom: .5rem; outline: none; white-space: pre; }
     #inst-side { border-right: 1px solid color-mix(in srgb, currentColor 25%, transparent); padding-right: .75rem; min-height: 60vh; }
     /* retroslate: the look of the sample screen and the Instruments tab's left panel: one flat panel, text-like controls, a brighter list and fields */
-    #inst-side { background: rgba(128, 128, 128, .22); border-right: 0; padding: 0 0 .6rem; min-height: 60vh; line-height: 1.35; }
+    #inst-side { border-right: 0; padding: 0; min-height: 60vh; line-height: 1.35; display: grid; gap: .8rem; align-content: start; }
+    #inst-side .rs-panel { background: rgba(128, 128, 128, .22); padding: 0 0 .6rem; }
     #inst-side h2 { opacity: 1; margin: .7rem 0 0; padding: 0 .6ch; }
-    #inst-side > *, #inst-side .manage, #inst-side .new { padding-left: .6ch; padding-right: .6ch; box-sizing: border-box; }
+    #inst-side .rs-panel > *, #inst-side .manage, #inst-side .new { padding-left: .6ch; padding-right: .6ch; box-sizing: border-box; }
     #inst-side button, #inst-side select, #inst-side input { font: inherit; border: 0; border-radius: 0; background: rgba(128, 128, 128, .28); color: inherit; padding: 0 .6ch; height: auto; box-shadow: none; }
     #inst-side button:hover:not(:disabled) { background: var(--hi); color: var(--hi-fg); }
     #inst-side input::placeholder { color: inherit; opacity: .55; }
@@ -594,6 +595,20 @@
     #inst-side #inst-list button { background: transparent; display: block; width: 100%; padding: 0 .6ch; }
     #inst-side #inst-list button.active { background: color-mix(in srgb, currentColor 22%, transparent); }
     #inst-side #inst-list:focus button.active { background: var(--hi); color: var(--hi-fg); }
+    #inst-head { display: flex; flex-wrap: wrap; gap: .3rem; align-items: center; margin: .5rem 0 0; padding: 0 .6ch; min-height: 0; }
+    #inst-head label { display: flex; gap: .6ch; align-items: center; white-space: nowrap; }
+    #inst-head > label:first-child { flex: 1 1 calc(100% - 5rem); min-width: 0; }
+    #inst-head #inst-name { flex: 1; width: auto; min-width: 0; }
+    #inst-head #inst-rename { flex: none; }
+    #inst-head label:has(#inst-voices), #inst-head label:has(#inst-notecols) { flex: 1 1 40%; }
+    #inst-head input[type=number] { width: 3.2em; }
+    #inst-head #patch-add, #inst-head #patch-tools { flex: 1 1 100%; }
+    #patch-tools .prow.presets { display: grid; grid-template-columns: 1fr auto auto; gap: .25rem; margin: 0; }
+    #patch-tools .prow.presets > span, #patch-tools .prow.presets select { grid-column: 1 / -1; }
+    #patch-tools .prow.presets input { grid-column: 1; width: auto; min-width: 0; }
+    #inst-head button, #inst-head select, #inst-head input { font: inherit; border: 0; border-radius: 0; background: rgba(128, 128, 128, .28); color: inherit; padding: 0 .6ch; box-shadow: none; }
+    #inst-head input, #inst-head select { background: rgba(255, 255, 255, .34); }
+    #inst-head button:hover:not(:disabled) { background: var(--hi); color: var(--hi-fg); }
     #preset-section { grid-template-columns: repeat(4, auto); gap: .25rem .3rem; }
     #preset-section #preset-name { grid-column: 1 / -1; }
     #preset-section button { padding: 0 .3ch; font-size: 12px; justify-self: stretch; }
@@ -1171,8 +1186,19 @@
     <div class="pane-main">
       <div id="inst-layout">
         <div id="inst-side">
+          <div class="rs-panel">
           <h2>Instruments</h2>
           <div id="inst-list" tabindex="0" aria-label="Instruments"></div>
+            <div id="inst-head">
+              <label>Name <input id="inst-name" aria-label="Rename the selected instrument" disabled size="18"></label>
+              <button id="inst-rename" disabled>Rename</button>
+              <label>Voices <input id="inst-voices" type="number" min="1" max="16" step="1" disabled></label>
+              <label>NoteCols <input id="inst-notecols" type="number" min="1" max="8" step="1" disabled></label>
+              <button id="patch-add" disabled>Add node…</button>
+              <div id="patch-tools"></div>
+            </div>
+          </div>
+          <div class="rs-panel">
           <h2>New instrument</h2>
           <div class="manage row new">
             <input id="new-inst-name" placeholder="instrument name" aria-label="Instrument name">
@@ -1208,16 +1234,9 @@
           <button id="inst-import" disabled>Import…</button>
           <input id="inst-file" type="file" accept=".waxi,.json" hidden>
         </div>
+          </div>
         </div>
         <div id="inst-main">
-          <div id="inst-head">
-            <label>Name <input id="inst-name" aria-label="Rename the selected instrument" disabled size="18"></label>
-            <button id="inst-rename" disabled>Rename</button>
-            <label>Voices <input id="inst-voices" type="number" min="1" max="16" step="1" disabled></label>
-            <label>NoteCols <input id="inst-notecols" type="number" min="1" max="8" step="1" disabled></label>
-            <button id="patch-add" disabled>Add node…</button>
-            <div id="patch-tools"></div>
-          </div>
           <div id="patch-wrap">
             <canvas id="patch" width="900" height="460" tabindex="0"></canvas>
             <div id="patch-params" style="display:none"><div class="pv-grip" tabindex="0" role="separator" aria-orientation="vertical" aria-label="Parameter panel width: drag, or use Left and Right" title="Drag to change the width of the parameter panel"></div><div id="patch-scroll"></div></div>

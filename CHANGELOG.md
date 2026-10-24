@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 442 · 2026-10-24
+
+- Instruments tab: the instrument list and the selected instrument's controls (name, Rename, voices, note columns, Add node, node presets) are one retroslate panel on the left, with New instrument, Presets, Preset library and Instrument file in a second panel below. The graph now starts at the top of the page.
+
 ## 441 · 2026-10-24
 
 - The flat-panel look of the Sample screen and the Instruments tab's left panel now has a name: **retroslate** (a note in the stylesheet, for applying it to other panels).
