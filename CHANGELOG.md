@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 444 · 2026-10-24
+
+- Sequencer: the undo line under the grid is a trail of chevrons. The most recent undoable operation is bright, the older ones fade to the right, "undo" has even space on both sides, and a set waypoint shows after the trail.
+
 ## 443 · 2026-10-24
 
 - Instruments tab: the Add node button is gone from the left panel (double-click the graph for the node menu).

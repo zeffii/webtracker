@@ -623,8 +623,8 @@ export function createSequenceView({ el, statusEl, listEl, transport, onToggle, 
     // the rect is always rowCount rows tall, so the drag bar works even when the song has fewer rows
     for (let r = Math.min(rows, top + rowCount) - top; r < rowCount; r++) lines.push(row(''));
     lines.push(row(''));
-    const log = editor.log().slice(0, 5).map(esc).join(' < ');
-    lines.push(row(`undo: ${log || 'nothing yet'}${editor.hasWaypoint() ? '   [waypoint set]' : ''}`));
+    const log = editor.log().slice(0, 5).map(l => `<b>${esc(l)}</b>`).join('');
+    lines.push(row(`<span class="ud-lbl">undo</span><span class="ud-trail${log ? '' : ' none'}">${log || '<b>nothing yet</b>'}</span>${editor.hasWaypoint() ? '<span class="ud-wp">waypoint set</span>' : ''}`));
     const html = lines.join('');
     if (html !== painted) { el.innerHTML = html; painted = html; }   // unchanged: leave the page alone
     const head = el.firstElementChild;

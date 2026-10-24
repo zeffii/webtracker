@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['444', ['Sequencer: the undo line is a trail of chevrons, newest bright, older fading.']],
   ['443', ['Instruments tab: the Add node button is gone; double-click the graph for the node menu.']],
   ['442', ['Instruments tab: list and instrument controls in one panel on the left; the graph starts at the top.']],
   ['441', ['The flat-panel look of the Sample screen and Instruments tab is named retroslate.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['437', ['New demo: suite, five short atonal studies for different sets of nodes.']],
   ['436', ['DSP view: the DSP circle sits mid-page with a left arrow.']],
   ['435', ['DSP view: circuit hidden until the DSP circle is clicked; draggable divider.']],
-  ['434', ['DSP view: a Circuit beside the code, the per-sample loop drawn as a signal-flow diagram.']],
 ];

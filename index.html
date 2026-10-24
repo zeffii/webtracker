@@ -36,6 +36,14 @@
     [hidden] { display: none !important; }
     #smp { margin: .5rem 0; outline: none; white-space: pre; }
     .qcs { display: flex; flex-wrap: wrap; gap: .3rem .9rem; align-items: center; margin: .3rem 0; font-size: 12px; }
+    /* the undo trail under the grid: the newest operation is a bright chevron, older ones fade to the right */
+    .ud-lbl { display: inline-block; padding: 0 1ch; opacity: .7; }
+    .ud-trail { display: inline-flex; align-items: stretch; }
+    .ud-trail b { font-weight: normal; padding: 0 1.4ch 0 2.1ch; margin-left: -.55em; background: color-mix(in srgb, currentColor 14%, transparent); clip-path: polygon(0 0, calc(100% - .6em) 0, 100% 50%, calc(100% - .6em) 100%, 0 100%, .6em 50%); }
+    .ud-trail b:first-child { margin-left: 0; padding-left: 1.2ch; clip-path: polygon(0 0, calc(100% - .6em) 0, 100% 50%, calc(100% - .6em) 100%, 0 100%); background: var(--hi); color: var(--hi-fg); }
+    .ud-trail b:nth-child(2) { opacity: .85; } .ud-trail b:nth-child(3) { opacity: .68; } .ud-trail b:nth-child(4) { opacity: .52; } .ud-trail b:nth-child(5) { opacity: .38; }
+    .ud-trail.none b { background: color-mix(in srgb, currentColor 14%, transparent); color: inherit; opacity: .5; }
+    .ud-wp { margin-left: 1.5ch; opacity: .7; }
     #smp-cfg { display: none; margin: 0; font-size: 12px; }   /* one line above the status bar while the sample screen is shown */
     body:has(#pane-samples:not([hidden])) #smp-cfg { display: flex; }
     #autoslice { background: var(--bg); color: var(--fg); border: 1px solid; max-width: 30rem; padding: 1rem 1.25rem; font: 13px/1.5 system-ui, sans-serif; }
