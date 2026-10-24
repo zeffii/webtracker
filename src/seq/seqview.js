@@ -369,7 +369,8 @@ export function createSequenceView({ el, statusEl, listEl, transport, onToggle, 
   };
 
   el.addEventListener('keydown', e => {
-    if (!lanes || e.altKey) return;
+    const altM = e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey && e.code === 'KeyM';   // Alt+M silences the lane (e.key is another character with Alt on some keyboards)
+    if (!lanes || (e.altKey && !altM)) return;
     if (dialog) { return; }
     if (curves.key(e)) { e.preventDefault(); e.stopPropagation(); draw(); return; }   // an anchor of a lane curve is selected: E, Shift+E, B, [ ], Left/Right, Delete, Esc
     if (e.ctrlKey || e.metaKey) {
@@ -400,7 +401,7 @@ export function createSequenceView({ el, statusEl, listEl, transport, onToggle, 
       if (onMove && (cur.lane !== li0 || cur.tick !== tick0)) onMove(cur.lane, cur.tick);
       return;
     }
-    const k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+    const k = altM ? 'alt+m' : e.key.length === 1 ? e.key.toLowerCase() : e.key;
     const li = cur.lane, t = editTick(), before = cur.tick;
     let used = true;
     // Shift with a movement key grows a block of lanes and rows from where the cursor was; Delete removes the patterns in it;
@@ -489,8 +490,9 @@ export function createSequenceView({ el, statusEl, listEl, transport, onToggle, 
         else act('pull up', editor.shift(li, rowStart(cur.tick), -16), 'Pulled the patterns below up.');   // an empty spot: close the gap, 16 ticks at most
         break;
       case 'Insert': act('push down', editor.shift(li, rowStart(cur.tick), 16), 'Pushed the patterns from here down 16 ticks.'); break;
-      case 'm': {   // start a mute here; again further down to unmute. Shift+M silences the whole lane.
-        if (e.shiftKey) { message = editor.silence(li) ? `${lane().id} silenced.` : `${lane().id} is back on.`; break; }
+      case 'alt+m': message = editor.silence(li) ? `${lane().id} silenced.` : `${lane().id} is back on.`; break;   // Alt+M: the whole lane, whatever its marks say
+      case 'm': {   // start a mute here; again further down to unmute. Alt+M silences the whole lane.
+        if (e.shiftKey) { used = false; break; }
         const row = rowStart(cur.tick);
         if (!editor.toggleMute(li, row)) { message = "Can't mute here."; break; }
         const l = lane();

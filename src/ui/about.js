@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['431', ['Sequence editor: Alt+M silences the whole lane (was Shift+M).']],
   ['430', ['A player: <wax-player> plays a .wax song with no tracker around it; player.html lists songs from tracks.yaml.']],
   ['429', ['Graph: Alt+R takes a node out and joins the wires; R stays a keyjazz key.']],
   ['428', ['Wax tools for Claude: validate, outline, render offline and measure a song (an MCP server and a skill, in the repository).']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['424', ['Prisma Canyon: a four-head tape echo with a pan and a damp per line, and a view in ticks.']],
   ['423', ['Duette: a note column keeps its voice by column number, not by pitch.']],
   ['422', ['Limiter switch on the status bar; multiband compressor with four bands.']],
-  ['421', ['The master limiter starts off.']],
 ];
