@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['451', ['Instruments tab: Voices and Tracks line up with the node preset box.']],
   ['450', ['Instruments tab: NoteCols is Tracks; the preset box is headed "selected node preset".']],
   ['449', ['Instruments tab: Voices and NoteCols stacked, the node preset box right-aligned beside them.']],
   ['448', ['Graph: undo and redo (Ctrl+Z, Ctrl+Y); wires are easier to hit.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['444', ['Sequencer: the undo line is a trail of chevrons, newest bright, older fading.']],
   ['443', ['Instruments tab: the Add node button is gone; double-click the graph for the node menu.']],
   ['442', ['Instruments tab: list and instrument controls in one panel on the left; the graph starts at the top.']],
-  ['441', ['The flat-panel look of the Sample screen and Instruments tab is named retroslate.']],
 ];
