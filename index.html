@@ -597,6 +597,10 @@
     #inst-side .rs-panel { background: rgba(128, 128, 128, .22); padding: 0 0 .6rem; }
     #inst-side h2 { opacity: 1; margin: .7rem 0 0; padding: 0 .6ch; }
     #inst-side .rs-panel > *, #inst-side .manage, #inst-side .new { padding-left: .6ch; padding-right: .6ch; box-sizing: border-box; }
+    /* the open list of every dropdown: a shade darker than the page, text at full contrast (the translucent field colours on the select itself used to leave pale text on the browser's white popup) */
+    select option, select optgroup { background-color: color-mix(in srgb, var(--bg) 78%, #000); color: var(--fg); }
+    select optgroup { color: color-mix(in srgb, var(--fg) 62%, var(--bg)); font-weight: 600; }
+    select optgroup option { font-weight: 400; color: var(--fg); }
     #inst-side button, #inst-side select, #inst-side input { font: inherit; border: 0; border-radius: 0; background: rgba(128, 128, 128, .28); color: inherit; padding: 0 .6ch; height: auto; box-shadow: none; }
     #inst-side button:hover:not(:disabled) { background: var(--hi); color: var(--hi-fg); }
     #inst-side input::placeholder { color: inherit; opacity: .55; }
