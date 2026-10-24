@@ -167,6 +167,11 @@ const HINTS = {
     noise: 'Noise mixed into the built-in carrier, for whispery, breathy consonants.',
     level: 'Output level.',
   },
+  sweep: {
+    sweep: 'One knob, filtering as if it were always part of the signal. 0 leaves the sound untouched; turning down closes a lowpass from the top, turning up opens a highpass from the bottom. The filter fades in over the first few percent, so there is no dry/wet seam. Wire an LFO or envelope into `mod` (a full swing is 1.0) for an auto-filter.',
+    resonance: 'Emphasis at the cutoff. It grows in with the distance from the middle, so the centre stays clean.',
+    slope: '12 dB for a gentle slope, 24 dB for a steeper one.',
+  },
   ladder: {
     cutoff: 'Centre of the sweep in Hz. The filter is a 24 dB lowpass in the classic ladder style.',
     resonance: 'Emphasis at the cutoff. Near 1 the filter sings by itself.',

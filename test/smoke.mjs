@@ -6445,6 +6445,34 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   console.log('ok: filterpro');
 }
 
+// sweep: untouched at 0, closes a lowpass below 0, opens a highpass above 0, no seam near the middle
+{
+  const sw = NODE_TYPES.sweep, sr = 48000, N = 24064;
+  const run = (over, gen, modv) => {
+    const inst = sw.create({ sampleRate: sr });
+    const vals = Object.fromEntries(sw.params.map(q => [q.name, q.def])); Object.assign(vals, over);
+    const params = sw.params.map(q => vals[q.name]), slots = sw.params.map((_, i) => i), y = new Float32Array(N), x = new Float32Array(N);
+    for (let i = 0; i < N; i += 128) {
+      const xs = Float32Array.from({ length: 128 }, (_, j) => gen(i + j)), o = [new Float32Array(128)];
+      inst.process([xs, modv ? modv.subarray(i, i + 128) : null], o, 128, params, slots);
+      y.set(o[0], i); x.set(xs, i);
+    }
+    return { y, x };
+  };
+  const rms = a => { let s = 0; for (let i = 6000; i < a.length; i++) s += a[i] * a[i]; return Math.sqrt(s / (a.length - 6000)); };
+  const sine = hz => i => 0.5 * Math.sin(2 * Math.PI * hz * i / sr);
+  const mid = run({ sweep: 0 }, sine(500));
+  assert.ok(mid.y.every((v, i) => v === mid.x[i]), 'sweep 0 is untouched');
+  assert.ok(rms(run({ sweep: -0.8 }, sine(6000)).y) < 0.1 * rms(run({ sweep: -0.8 }, sine(100)).y), 'negative closes a lowpass');
+  assert.ok(rms(run({ sweep: 0.8 }, sine(100)).y) < 0.1 * rms(run({ sweep: 0.8 }, sine(6000)).y), 'positive opens a highpass');
+  const near = run({ sweep: -0.01 }, sine(3000));
+  assert.ok(Math.abs(rms(near.y) - rms(near.x)) < 0.02 * rms(near.x), 'no seam just off the middle');
+  assert.ok(rms(run({ sweep: -0.8, slope: 1 }, sine(4000)).y) < rms(run({ sweep: -0.8, slope: 0 }, sine(4000)).y), '24 dB is steeper');
+  assert.ok(rms(run({ sweep: 0 }, sine(300), new Float32Array(N).fill(-0.9)).y) < 0.5 * rms(sine(300) && mid.x), 'mod moves the knob');
+  assert.ok(run({ sweep: -0.9, resonance: 1, slope: 1 }, i => 0.9 * Math.sin(i * 0.3)).y.every(Number.isFinite), 'stays finite');
+  console.log('ok: sweep');
+}
+
 // ladder: 24 dB lowpass, sings at resonance 1, the LFO sweeps the cutoff, mix 0 is dry, rate is a log control
 {
   const ld = NODE_TYPES.ladder, sr = 48000, N = 48128;

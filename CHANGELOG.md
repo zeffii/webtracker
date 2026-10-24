@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 453 · 2026-10-24
+
+- New `sweep` node (Filter & EQ): a one-knob filter that starts out of the way. 0 leaves the sound untouched, below 0 closes a lowpass from the top, above 0 opens a highpass from the bottom; resonance grows in with the distance from the middle and the first few percent fade the filter in, so there is no dry/wet seam. 12 or 24 dB, and a `mod` input (a full swing is 1.0) for auto-filtering.
+
 ## 452 · 2026-10-24
 
 - New `ladder` node (Filter & EQ): a 24 dB resonant ladder lowpass that sings at full resonance, with a built-in LFO (log-scale rate 0.01–20 Hz, depth in octaves, four shapes), a `mod` input in octaves, drive, and a smoothed dry/wet `mix` to morph the filter in and out of a chain.
