@@ -2,6 +2,11 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 424 · 2026-10-24
+
+- New delay node, **Prisma Canyon**: a tape echo with four playback heads at 1, 2, 3 and 4 times the repeat time. Each head has its own level, its own pan and its own damp: a negative multiplier on the cutoff, so every line is darker than the one before (cutoff × 2^(−4·damp)). The loop has intensity (feedback, up to self-oscillation), tape saturation, wow and flutter, bass and treble shelves, an echo/dry/reverb mix, and the repeat time glides like a tape's.
+- Its panel shows a canyon view: a row per delay line in its own colour, each echo fainter than the last, laid out on a ruler in tracker ticks (or milliseconds when there is no tempo), with each line's pan and cutoff beside it.
+
 ## 423 · 2026-10-24
 
 - Duette (and any machine that keeps a note column on one voice): a column now finds its voice by its column number instead of by the pitch of its last note, so two columns playing the same pitch (a unison, an octave doubling written as the same note) can never fall onto one voice and leave the other column silent. Notes that carry no column (the keyboard, a trigger) are allocated as before.

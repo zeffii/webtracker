@@ -18,6 +18,7 @@ const TYPE_UNIT = {
   phaser: { depth: 'oct' },
   delay: { time: 'ms' },
   multitap: { time: 'ms' },
+  prismacanyon: { time: 'ms', cutoff: 'Hz', bass: 'dB', treble: 'dB' },
   shiva: { length: 'ms', damp: '%' },
   hall: { decay: 's' }, plate: { decay: 's' }, shimmer: { decay: 's', pitch: 'st' }, string: { decay: 's', release: 'ms' },
   env: {}, lfo: {},

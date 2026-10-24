@@ -140,6 +140,11 @@ export const GLYPHS = {
     ctx.stroke();
     curve(ctx, cx + w * 0.25, base - h * 0.28, w * 0.5, h * 0.56, t => Math.exp(-Math.pow((t - 0.5) / 0.28, 2)) * 0.9 - 0.45, 32);
   },
+  prismacanyon: (ctx, cx, cy, w, h) => {   // echoes stepping down in height, in four rows
+    const x = f => cx - w / 2 + f * w, y = f => cy + h / 2 - f * h;
+    [0.8, 0.62, 0.46, 0.32, 0.2].forEach((v, i) => line(ctx, [[x(0.1 + i * 0.19), y(0.12)], [x(0.1 + i * 0.19), y(0.12 + v * 0.8)]]));
+    line(ctx, [[x(0.04), y(0.12)], [x(0.96), y(0.12)]]);
+  },
   multitap: (ctx, cx, cy, w, h) => {   // taps fanning left and right of a centre line
     line(ctx, [[cx - w / 2, cy], [cx + w / 2, cy]]);
     ctx.beginPath();

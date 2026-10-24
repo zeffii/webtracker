@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['424', ['Prisma Canyon: a four-head tape echo with a pan and a damp per line, and a view in ticks.']],
   ['423', ['Duette: a note column keeps its voice by column number, not by pitch.']],
   ['422', ['Limiter switch on the status bar; multiband compressor with four bands.']],
   ['421', ['The master limiter starts off.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['417', ['Duette is polyphonic: a note column keeps one voice, so glide and slide work per column.']],
   ['416', ['Duette: a two-oscillator mono lead voice with sync, ring, one envelope and one LFO. Waveform redraws after Normalise and the other in-place edits.']],
   ['415', ['Detect chords: the notes of a recording written into a pattern (Samples, Shift+H).']],
-  ['414', ['OSC out machine: notes as OSC, Renoise addresses, with a relay script.']],
 ];

@@ -6172,6 +6172,54 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   console.log('ok: multiband compressor');
 }
 
+// Prisma Canyon: four heads at 1, 2, 3 and 4 times the repeat time, each with a level, a pan and a darkening
+{
+  const { repeats, lineCutoff } = await import('../src/audio/nodes/canyon.js');
+  const T = NODE_TYPES.prismacanyon, n = 128;
+  const run = (over, make, seconds = 1.2) => {
+    const params = T.params.map(p => over[p.name] ?? p.def), slots = Int32Array.from(params.keys());
+    const node = T.create({ sampleRate: sr, maxBlock: n });
+    const total = Math.floor(sr * seconds / n) * n, L = new Float32Array(total), R = new Float32Array(total), l = new Float32Array(n), r = new Float32Array(n);
+    for (let at = 0; at < total; at += n) {
+      const inp = Float32Array.from({ length: n }, (_, i) => make(at + i));
+      node.process([[inp, inp]], [[l, r]], n, Float32Array.from(params), slots);
+      L.set(l, at); R.set(r, at);
+    }
+    return { L, R };
+  };
+  const base = { dry: 0, echo: 1, saturation: 0, wow: 0, flutter: 0, intensity: 0, level1: 0, level2: 0, level3: 0, level4: 0, time: 100, cutoff: 18000, damp1: 0, damp2: 0, damp3: 0, damp4: 0, pan1: 0, pan2: 0, pan3: 0, pan4: 0 };
+  const burst = i => (i < 400 ? Math.sin(2 * Math.PI * 200 * i / sr) * 0.5 : 0);   // a short 200 Hz burst
+  const win = (a, from, len) => { let s = 0; for (let i = from; i < from + len && i < a.length; i++) s += a[i] * a[i]; return Math.sqrt(s / len); };
+  const at = ms => Math.round(ms * 0.001 * sr);
+  // line k is heard at k times the repeat time, and only there
+  for (const k of [1, 2, 3, 4]) {
+    const { L } = run({ ...base, [`level${k}`]: 1 }, burst);
+    const here = win(L, at(100 * k), 600), elsewhere = Math.max(...[1, 2, 3, 4].filter(j => j !== k).map(j => win(L, at(100 * j), 600)), win(L, at(50), 600));
+    assert.ok(here > 0.1 && elsewhere < 0.02 * here, `line ${k} is heard at ${100 * k} ms and nowhere else (${here.toFixed(3)} vs ${elsewhere.toFixed(4)})`);
+  }
+  // feedback: the repeats go down by the intensity
+  const fb = run({ ...base, level1: 1, intensity: 0.5 }, burst, 1);
+  const e1 = win(fb.L, at(100), 600), e2 = win(fb.L, at(200), 600), e3 = win(fb.L, at(300), 600);
+  assert.ok(Math.abs(e2 / e1 - 0.5) < 0.08 && Math.abs(e3 / e2 - 0.5) < 0.08, `each repeat is half the one before (${(e2 / e1).toFixed(2)}, ${(e3 / e2).toFixed(2)})`);
+  const rp = repeats({ levels: [1, 0, 0, 0], intensity: 0.5 }, 4);
+  assert.ok(Math.abs(rp[1] - 0.5) < 1e-9 && Math.abs(rp[2] - 0.25) < 1e-9, 'the view shows the same repeats');
+  // pan puts a line on one side
+  const left = run({ ...base, level1: 1, pan1: -1 }, burst), right = run({ ...base, level1: 1, pan1: 1 }, burst);
+  assert.ok(win(left.L, at(100), 600) > 0.1 && win(left.R, at(100), 600) < 1e-6, 'pan -1 is left only');
+  assert.ok(win(right.R, at(100), 600) > 0.1 && win(right.L, at(100), 600) < 1e-6, 'pan 1 is right only');
+  // damp darkens a line: a high tone is much quieter, a low one is not
+  const hiBurst = i => (i < 400 ? Math.sin(2 * Math.PI * 8000 * i / sr) * 0.5 : 0);
+  const bright = run({ ...base, level1: 1 }, hiBurst), dark = run({ ...base, level1: 1, damp1: 1, cutoff: 4000 }, hiBurst);
+  assert.ok(win(dark.L, at(100), 600) < 0.1 * win(bright.L, at(100), 600), 'damp takes the highs out of a line');
+  const lowDark = run({ ...base, level1: 1, damp1: 0.5, cutoff: 4000 }, burst);
+  assert.ok(win(lowDark.L, at(100), 600) > 0.8 * win(run({ ...base, level1: 1 }, burst).L, at(100), 600), 'and leaves the lows');
+  assert.ok(Math.abs(lineCutoff(8000, 0.5) - 2000) < 1e-6, 'a damp of half is two octaves down');
+  // it stays finite and bounded when it is made to feed on itself
+  const wild = run({ ...base, level1: 1, level2: 1, level3: 1, level4: 1, intensity: 1.15, saturation: 1, wow: 1, flutter: 1, reverb: 1, dry: 1, bass: 12, treble: 12 }, i => 0.9 * Math.sin(2 * Math.PI * 110 * i / sr), 4);
+  assert.ok(wild.L.every(Number.isFinite) && peak(wild.L) < 6, `it stays in range when it feeds on itself (${peak(wild.L).toFixed(2)})`);
+  console.log('ok: prisma canyon');
+}
+
 // Tape: the degrading effect
 {
   const run = (over, input) => {

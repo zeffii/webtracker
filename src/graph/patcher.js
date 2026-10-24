@@ -17,6 +17,7 @@ import { choices, display, unitOf } from './units.js';
 import { timeKind, toTicks, fromTicks, tickMarks, snapTo, tickText } from './ticks.js';
 import { createParamView } from './paramview.js';
 import { createSpecPanView } from './specpaneditor.js';
+import { createCanyonView } from './canyonview.js';
 import { createCurveEditor } from './curveeditor.js';
 import { createTapEditor } from './tapeditor.js';
 import { createDxView } from './dxview.js';
@@ -150,6 +151,7 @@ const fmt = v => String(Number(v.toPrecision(4)));
 export function createPatcher({ getTiming = () => null, onHelp = () => {}, canvas, panel, toolsEl = null, paramPanel = null, exposedDock = null, floatDock = null, onScope = () => {}, onEscape = () => {}, statusEl, doc = document, nodeTypes, onStructure, onParam, onData = () => {}, onContext = () => {}, onNote = () => {}, getSampleIds = () => [], getSample = () => null, getGrainSource = () => null, readLive = () => undefined }) {
   let gateEditor = null;    // the step pattern of a trance gate, redrawn when its length moves
   let dxView = null;        // the bank loader and algorithm view of a DVIIloader
+  let canyonView = null;    // the echoes of a Prisma Canyon against the song's ticks, redrawn when its parameters move
   let specView = null;      // the pan-against-frequency view of a spectral panner, redrawn when its parameters move
   let tapEditor = null;     // the tap view of a Shiva delay, redrawn when its parameters move
   let tableEditor = null;   // the wavetable panel of the selected node, redrawn when position or mix move
@@ -259,6 +261,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
         if (type.editor === 'taps') tapEditor?.refresh();
         if (type.editor === 'gate') gateEditor?.refresh();
         if (type.editor === 'specpan') specView?.refresh();
+        if (type.editor === 'canyon') canyonView?.refresh();
         if (type.editor === 'dx' && spec.name === 'voice') dxView?.refresh();
         if (entry()) exposedView?.refresh();   // repaint in place: rebuilding the dock would drop a drag that is under way
       };
@@ -501,6 +504,11 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
     if (type.editor === 'specpan') {   // the pan of each band against frequency, drawn from the parameters
       specView = createSpecPanView({ doc, getParam: name => readLive(instId, node.id, name) ?? node.params?.[name] ?? type.params.find(p => p.name === name)?.def ?? 0 });
       items.splice(1, 0, specView.el);
+    }
+    canyonView = null;
+    if (type.editor === 'canyon') {   // the four delay lines and their echoes against the ticks, drawn from the parameters
+      canyonView = createCanyonView({ doc, getTiming, getParam: name => readLive(instId, node.id, name) ?? node.params?.[name] ?? type.params.find(p => p.name === name)?.def ?? 0 });
+      items.splice(1, 0, canyonView.el);
     }
     tapEditor = null;
     if (type.editor === 'taps') {   // the taps of a Shiva delay, kept on the node and sent live
@@ -983,7 +991,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
     const sig = parts.join(',');
     if (sig === liveSig) return;
     liveSig = sig;
-    paramView?.refresh(); exposedView?.refresh(); floatView?.refresh(); tapEditor?.refresh(); gateEditor?.refresh(); specView?.refresh(); dxView?.refresh();
+    paramView?.refresh(); exposedView?.refresh(); floatView?.refresh(); tapEditor?.refresh(); gateEditor?.refresh(); specView?.refresh(); canyonView?.refresh(); dxView?.refresh();
   }
 
   // A graph is moved clear of the exposed-parameters dock once when its instrument is first shown after a load (the file
