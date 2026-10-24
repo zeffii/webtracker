@@ -167,6 +167,16 @@ const HINTS = {
     noise: 'Noise mixed into the built-in carrier, for whispery, breathy consonants.',
     level: 'Output level.',
   },
+  ladder: {
+    cutoff: 'Centre of the sweep in Hz. The filter is a 24 dB lowpass in the classic ladder style.',
+    resonance: 'Emphasis at the cutoff. Near 1 the filter sings by itself.',
+    drive: 'Saturation in front of the poles. More bites and thickens; the level is evened out for you.',
+    rate: 'Speed of the built-in LFO in Hz, on a log scale so the slow end (a sweep every minute or so) has the most room.',
+    depth: 'How far the LFO swings the cutoff, in octaves either side. 0 turns the LFO off.',
+    shape: 'LFO wave: sine, triangle, saw down or square.',
+    mix: 'Dry/wet balance. Turn it from 0 to 1 while playing to morph the filter in smoothly; the control is smoothed so it never clicks.',
+    level: 'Output level.',
+  },
   filterpro: {
     cutoff: 'Cutoff in Hz. For the vowel mode it slides all formants (1000 Hz is neutral); for the comb modes it is the pitch the comb rings at. Wire an envelope or LFO into `mod` (octaves, sample by sample).',
     resonance: 'Emphasis at the cutoff. Near 1 the filter sings by itself. In the comb modes it is the feedback; in vowel it narrows the formants.',

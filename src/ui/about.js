@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['452', ['New ladder filter node: 24 dB lowpass with a built-in LFO (log-scale rate) and a smooth dry/wet mix.']],
   ['451', ['Instruments tab: Voices and Tracks line up with the node preset box.']],
   ['450', ['Instruments tab: NoteCols is Tracks; the preset box is headed "selected node preset".']],
   ['449', ['Instruments tab: Voices and NoteCols stacked, the node preset box right-aligned beside them.']],
@@ -15,6 +16,5 @@ export const CHANGELOG = [
   ['446', ['Dark themes: the pattern colours are solid, not mixed with the background.']],
   ['445', ['Arrangement: the grid and side panel reach the status bar.']],
   ['444', ['Sequencer: the undo line is a trail of chevrons, newest bright, older fading.']],
-  ['443', ['Instruments tab: the Add node button is gone; double-click the graph for the node menu.']],
   ['442', ['Instruments tab: list and instrument controls in one panel on the left; the graph starts at the top.']],
 ];

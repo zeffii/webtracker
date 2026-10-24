@@ -6445,6 +6445,34 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   console.log('ok: filterpro');
 }
 
+// ladder: 24 dB lowpass, sings at resonance 1, the LFO sweeps the cutoff, mix 0 is dry, rate is a log control
+{
+  const ld = NODE_TYPES.ladder, sr = 48000, N = 48128;
+  const run = (over, gen) => {
+    const inst = ld.create({ sampleRate: sr });
+    const vals = Object.fromEntries(ld.params.map(q => [q.name, q.def])); Object.assign(vals, over);
+    const params = ld.params.map(q => vals[q.name]), slots = ld.params.map((_, i) => i), y = new Float32Array(N);
+    for (let i = 0; i < N; i += 128) {
+      const o = [new Float32Array(128)], x = Float32Array.from({ length: 128 }, (_, j) => gen(i + j));
+      inst.process([x, null], o, 128, params, slots);
+      y.set(o[0], i);
+    }
+    return y;
+  };
+  const rms = (a, f, t) => { let s = 0; for (let i = f; i < t; i++) s += a[i] * a[i]; return Math.sqrt(s / (t - f)); };
+  const sine = hz => i => 0.4 * Math.sin(2 * Math.PI * hz * i / sr);
+  assert.ok(rms(run({ cutoff: 1000, drive: 0 }, sine(200)), 6000, N) > 10 * rms(run({ cutoff: 1000, drive: 0 }, sine(6000)), 6000, N), 'lowpass');
+  assert.ok(rms(run({ resonance: 1, cutoff: 800 }, () => 0), 30000, N) > 0.05, 'sings at resonance 1');
+  assert.ok(run({ resonance: 1, drive: 1, depth: 4, rate: 20 }, i => 0.9 * Math.sin(i * 0.05)).every(Number.isFinite), 'stays finite');
+  assert.ok(Math.abs(rms(run({ mix: 0, drive: 0.7 }, sine(300)), 6000, N) - 0.4 / Math.SQRT2) < 1e-3, 'mix 0 is the dry signal');
+  const swept = run({ cutoff: 500, depth: 3, rate: 2, resonance: 0.1, drive: 0 }, sine(2000));
+  const seg = []; for (let a = 0; a + 4800 <= N; a += 4800) seg.push(rms(swept, a, a + 4800));
+  assert.ok(Math.max(...seg) > 5 * Math.min(...seg), 'LFO opens and closes the filter');
+  const rate = ld.params.find(q => q.name === 'rate');
+  assert.ok(rate.min > 0 && rate.max / rate.min >= 50, 'rate is a log-scale control');
+  console.log('ok: ladder');
+}
+
 // Pattern editing: gobble (Ctrl+Delete), insert (Ctrl+Insert), rotate (Ctrl+Alt+Up/Down), randomize (Ctrl+K): never across patterns
 {
   const defs = structuredClone(instruments), registry = new ParamRegistry();

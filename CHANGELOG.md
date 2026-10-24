@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 452 · 2026-10-24
+
+- New `ladder` node (Filter & EQ): a 24 dB resonant ladder lowpass that sings at full resonance, with a built-in LFO (log-scale rate 0.01–20 Hz, depth in octaves, four shapes), a `mod` input in octaves, drive, and a smoothed dry/wet `mix` to morph the filter in and out of a chain.
+
 ## 451 · 2026-10-24
 
 - Instruments tab: Voices lines up with the "selected node preset" heading and Tracks with its list.
