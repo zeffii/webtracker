@@ -56,8 +56,8 @@ html[data-theme="synthwave"] {   /* purple dusk, hot pink and a little gold */
 /* Pattern colours follow the theme. The hue of a pattern says which pattern it is; these say how bright, how saturated and how strong
    its tint is, and how far the hues are pulled toward the theme's own hue (spread 1 keeps them all; less keeps them in one family). */
 :root { --pat-hue: 210; --pat-spread: 1; --pat-ds: 0%; --pat-dl: 0%; --pat-am: 1; }
-@media (prefers-color-scheme: dark) { html:is(:not([data-theme]), [data-theme="system"]) { --pat-ds: -15%; --pat-dl: -22%; --pat-am: 1.6; } }
-html[data-theme="dark"], html[data-theme="black"] { --pat-ds: -15%; --pat-dl: -22%; --pat-am: 1.6; }
+@media (prefers-color-scheme: dark) { html:is(:not([data-theme]), [data-theme="system"]) { --pat-ds: -15%; --pat-dl: -22%; --pat-am: 3; } }
+html[data-theme="dark"], html[data-theme="black"] { --pat-ds: -15%; --pat-dl: -22%; --pat-am: 3; }
 html[data-theme="ice"] { --pat-hue: 200; --pat-spread: .75; --pat-ds: -5%; }
 html[data-theme="neon"] { --pat-ds: 10%; --pat-dl: -17%; --pat-am: 1.5; }
 html[data-theme="amber"] { --pat-hue: 38; --pat-spread: .25; --pat-ds: 5%; --pat-dl: -22%; --pat-am: 1.5; }
