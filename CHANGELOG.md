@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 450 · 2026-10-24
+
+- Instruments tab: NoteCols is now called **Tracks**, the numbers sit next to their words, the preset box is headed "selected node preset", and its two boxes (the list and the name field) start at the same edge.
+
 ## 449 · 2026-10-24
 
 - Instruments tab: Voices and NoteCols are stacked with narrow number boxes, and the node preset box (shown when a node is selected) sits to their right, right-aligned.

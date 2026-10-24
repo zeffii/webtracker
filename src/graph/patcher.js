@@ -628,7 +628,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
       });
       const drop = el('button', { textContent: '✕', title: 'Delete the chosen preset of yours' });
       drop.addEventListener('click', () => { if (pick.value.startsWith('u:')) { deleteUserPreset(node.type, pick.value.slice(2)); fill(); } });
-      items.unshift(el('div', { className: 'prow presets' }, el('span', { textContent: 'preset' }), pick, name, save, drop));
+      items.unshift(el('div', { className: 'prow presets' }, el('span', { textContent: 'selected node preset' }), pick, name, save, drop));
     }
     // the preset row and the duplicate and delete buttons live in the bar above the graph, next to Add node
     const tool = x => x.classList?.contains('presets') || x.classList?.contains('tool');

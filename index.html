@@ -612,11 +612,12 @@
     #inst-head #inst-name { flex: 1; width: auto; min-width: 0; }
     #inst-head #inst-rename { flex: none; }
     #inst-head .vn { flex: none; display: grid; gap: .3rem; }
-    #inst-head .vn label { justify-content: space-between; }
+    #inst-head .vn label { justify-content: flex-start; gap: .8ch; }
     #inst-head .vn input[type=number] { width: 2.6ch; box-sizing: content-box; text-align: center; -moz-appearance: textfield; appearance: textfield; padding: 0; }
     #inst-head .vn input[type=number]::-webkit-inner-spin-button, #inst-head .vn input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
     #inst-head #patch-tools { flex: 1 1 0; min-width: 0; margin-left: auto; text-align: right; }
-    #patch-tools .prow.presets { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: .25rem; margin: 0; justify-items: end; width: 100%; }
+    #patch-tools .prow.presets { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: .25rem; margin: 0; justify-items: stretch; width: 100%; }
+    #patch-tools .prow.presets > span { text-align: right; }
     #patch-tools .prow.presets > span { grid-column: 1 / -1; }
     #patch-tools .prow.presets select { grid-column: 1 / -1; width: 100%; min-width: 0; }
     #patch-tools .prow.presets input { grid-column: 1; width: 100%; min-width: 0; box-sizing: border-box; }
@@ -1208,7 +1209,7 @@
               <button id="inst-rename" disabled>Rename</button>
               <div class="vn">
                 <label>Voices <input id="inst-voices" type="number" min="1" max="16" step="1" disabled></label>
-                <label>NoteCols <input id="inst-notecols" type="number" min="1" max="8" step="1" disabled></label>
+                <label>Tracks <input id="inst-notecols" type="number" min="1" max="8" step="1" disabled></label>
               </div>
               <div id="patch-tools"></div>
             </div>
