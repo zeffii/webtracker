@@ -25,6 +25,7 @@ import { createGateEditor } from './gateeditor.js';
 import { createSpectrumEditor } from './spectrumeditor.js';
 import { createWaveEditor } from './waveeditor.js';
 import { createWavetableEditor } from './wavetableeditor.js';
+import { createGenexprEditor } from './genexpreditor.js';
 
 // The help box beside a parameter: one floating note, shown beside the "?" while the mouse (or keyboard focus) is on it.
 let tipEl = null;
@@ -527,6 +528,14 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
         },
       });
       items.splice(1, 0, gateEditor.el);
+    }
+    if (type.editor === 'genexpr') {   // the code of a GenExpr node, kept on the node and sent live; its Params move the knobs
+      const code = createGenexprEditor({
+        doc, code: node.data?.code,
+        setKnob: (i, value) => { const name = `p${i + 1}`; setParam(desc(), node.id, name, value); onParam(instId, node.id, name, value); paramView?.refresh(); },
+        onChange: text => { node.data = { ...node.data, code: text }; onData(instId, node.id, { type: 'code', text }); },
+      });
+      items.splice(1, 0, code.el);
     }
     dxView = null;
     if (type.editor === 'dx') {   // a DX7 bank on the node, sent live; the voice parameter picks from it

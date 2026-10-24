@@ -167,6 +167,16 @@ const HINTS = {
     noise: 'Noise mixed into the built-in carrier, for whispery, breathy consonants.',
     level: 'Output level.',
   },
+  genexpr: {
+    p1: 'Knob 1 of the code: the first Param declared in the code box. It runs 0 to 1 here and is stretched to that Param\'s own min and max. The code panel lists what each knob is.',
+    p2: 'Knob 2: the second Param declared in the code, 0 to 1, stretched to its min and max.',
+    p3: 'Knob 3: the third Param declared in the code, 0 to 1, stretched to its min and max.',
+    p4: 'Knob 4: the fourth Param declared in the code, 0 to 1, stretched to its min and max.',
+    p5: 'Knob 5: the fifth Param declared in the code, 0 to 1, stretched to its min and max.',
+    p6: 'Knob 6: the sixth Param declared in the code, 0 to 1, stretched to its min and max.',
+    p7: 'Knob 7: the seventh Param declared in the code, 0 to 1, stretched to its min and max.',
+    p8: 'Knob 8: the eighth Param declared in the code, 0 to 1, stretched to its min and max.',
+  },
   sweep: {
     sweep: 'One knob, filtering as if it were always part of the signal. 0 leaves the sound untouched; turning down closes a lowpass from the top, turning up opens a highpass from the bottom. The filter fades in over the first few percent, so there is no dry/wet seam. Wire an LFO or envelope into `mod` (a full swing is 1.0) for an auto-filter.',
     resonance: 'Emphasis at the cutoff. It grows in with the distance from the middle, so the centre stays clean.',

@@ -21,6 +21,7 @@ const GROUPS = {
     ['Spectral', ['blur', 'specpan']],
     ['Distortion', ['distortion', 'waveshaper', 'crusher', 'tape']],
     ['Routing', ['route', 'split', 'tap']],
+    ['Code', ['genexpr']],
   ],
 };
 const ORDER = ['Sources', 'Effects', 'Control', 'Mix & level'];

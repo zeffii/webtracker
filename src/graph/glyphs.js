@@ -212,6 +212,11 @@ export const GLYPHS = {
     const star = (sx, sy, r) => { line(ctx, [[sx - r, sy], [sx + r, sy]]); line(ctx, [[sx, sy - r], [sx, sy + r]]); };
     star(cx - w * 0.15, cy + h * 0.1, h * 0.36); star(cx + w * 0.28, cy - h * 0.22, h * 0.2); star(cx + w * 0.1, cy + h * 0.3, h * 0.12);
   },
+  braces: (ctx, cx, cy, w, h) => {   // { }: code
+    const x = f => cx - w / 2 + f * w, y = f => cy + h / 2 - f * h;
+    line(ctx, [[x(0.38), y(0.9)], [x(0.28), y(0.86)], [x(0.28), y(0.58)], [x(0.14), y(0.5)], [x(0.28), y(0.42)], [x(0.28), y(0.14)], [x(0.38), y(0.1)]]);
+    line(ctx, [[x(0.62), y(0.9)], [x(0.72), y(0.86)], [x(0.72), y(0.58)], [x(0.86), y(0.5)], [x(0.72), y(0.42)], [x(0.72), y(0.14)], [x(0.62), y(0.1)]]);
+  },
   oberheim: (ctx, cx, cy, w, h) => {   // a notch swept across a pulse: the filter's lowpass, notch and highpass in one curve
     const x = f => cx - w / 2 + f * w, y = f => cy + h / 2 - f * h;
     line(ctx, [[x(0), y(0.35)], [x(0.12), y(0.35)], [x(0.12), y(0.8)], [x(0.3), y(0.8)], [x(0.3), y(0.35)], [x(0.42), y(0.35)], [x(0.42), y(0.8)], [x(0.6), y(0.8)], [x(0.6), y(0.35)], [x(1), y(0.35)]]);

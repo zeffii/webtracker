@@ -597,6 +597,32 @@
     #inst-side .rs-panel { background: rgba(128, 128, 128, .22); padding: 0 0 .6rem; }
     #inst-side h2 { opacity: 1; margin: .7rem 0 0; padding: 0 .6ch; }
     #inst-side .rs-panel > *, #inst-side .manage, #inst-side .new { padding-left: .6ch; padding-right: .6ch; box-sizing: border-box; }
+    /* the GenExpr code panel */
+    .ge { display: flex; flex-direction: column; gap: 4px; width: 100%; min-width: 0; padding-bottom: 6px; }
+    .ge-code { display: flex; border: 1px solid color-mix(in srgb, var(--fg) 28%, transparent); background: var(--field); border-radius: 2px; overflow: hidden; }
+    .ge-gutter, .ge-mirror, .ge-text { margin: 0; padding: 6px 0; font: 12px/18px ui-monospace, Consolas, monospace; tab-size: 2; }
+    .ge-gutter { flex: none; width: 3.2ch; box-sizing: content-box; padding: 6px 6px 6px 4px; overflow: hidden; text-align: right; white-space: pre; opacity: .45; user-select: none; border-right: 1px solid color-mix(in srgb, var(--fg) 15%, transparent); }
+    .ge-gutter span { display: block; }
+    .ge-gutter .bad { color: #e5484d; opacity: 1; font-weight: 700; }
+    .ge-wrap { position: relative; flex: 1 1 auto; min-width: 0; }
+    .ge-mirror, .ge-text { position: absolute; inset: 0; width: 100%; box-sizing: border-box; padding-left: 8px; padding-right: 8px; white-space: pre; overflow: auto; border: 0; }
+    .ge-mirror { pointer-events: none; color: var(--fg); overflow: hidden; }
+    .ge-text { background: transparent; color: transparent; caret-color: var(--fg); resize: none; outline: none; }
+    .ge-text::selection { background: color-mix(in srgb, var(--hi) 55%, transparent); }
+    .ge-mirror .g-c { opacity: .5; font-style: italic; }
+    .ge-mirror .g-k { color: #c792ea; font-weight: 600; }
+    .ge-mirror .g-n { color: #e0a84a; }
+    .ge-mirror .g-io { color: #4fc3d9; }
+    .ge-mirror .g-e { text-decoration: underline wavy #e5484d; text-decoration-skip-ink: none; text-underline-offset: 2px; background: color-mix(in srgb, #e5484d 18%, transparent); }
+    .ge-mirror .g-w { text-decoration: underline wavy #d9a441; text-underline-offset: 2px; }
+    .ge-status { font: 11px ui-monospace, Consolas, monospace; opacity: .75; }
+    .ge-status.bad { color: #e5484d; opacity: 1; }
+    .ge-errors { display: flex; flex-direction: column; gap: 2px; max-height: 6.5rem; overflow-y: auto; }
+    .ge-err { all: unset; display: block; box-sizing: border-box; cursor: pointer; font: 12px/16px system-ui, sans-serif; padding: 2px 6px; border-left: 3px solid #e5484d; background: color-mix(in srgb, #e5484d 12%, transparent); }
+    .ge-err.w { border-left-color: #d9a441; background: color-mix(in srgb, #d9a441 10%, transparent); }
+    .ge-err b { font: 600 11px ui-monospace, Consolas, monospace; margin-right: .6ch; }
+    .ge-err i { display: block; opacity: .75; }
+    .ge-knobs { font: 11px/16px ui-monospace, Consolas, monospace; opacity: .7; white-space: pre; }
     /* the open list of every dropdown: a shade darker than the page, text at full contrast (the translucent field colours on the select itself used to leave pale text on the browser's white popup) */
     select option, select optgroup { background-color: color-mix(in srgb, var(--bg) 78%, #000); color: var(--fg); }
     select optgroup { color: color-mix(in srgb, var(--fg) 62%, var(--bg)); font-weight: 600; }

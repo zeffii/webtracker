@@ -2,6 +2,11 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 455 · 2026-10-24
+
+- New `genexpr` node (Effects > Code): a node whose sound is code. A GenExpr-style language (History, Param, Data and Delay declarations, assignments, if / else, `?:`, around fifty operators including phasor, cycle, noise, delta, slide, mix, scale, wrap, fold, peek, poke and delay `.read` / `.write`) is compiled to JavaScript once per edit, never per block. `in1` `in2` come in, `out1` `out2` go out; each `Param` becomes a knob (p1 to p8) scaled to its own min and max.
+- The code panel has line numbers, highlighting, and every mistake underlined where it is, listed with line, column and a hint ("did you mean sin?"). A bad edit keeps the last working code playing.
+
 ## 454 · 2026-10-24
 
 - Dropdown lists (the New instrument picker and every other select): the open list has a darker background and full-contrast text in every theme.

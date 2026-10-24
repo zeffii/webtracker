@@ -6445,6 +6445,54 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   console.log('ok: filterpro');
 }
 
+// GenExpr: compiles once to JS, runs per sample, and reports every mistake with where it is and a hint
+{
+  const { compile, DEFAULT_CODE } = await import('../src/genexpr/compile.js');
+  const ok = compile(DEFAULT_CODE);
+  assert.ok(ok.ok && ok.params.length === 1 && ok.params[0].name === 'amount', 'default code compiles');
+  const run = (code, input, params = []) => {
+    const r = compile(code); assert.ok(r.ok, JSON.stringify(r.errors));
+    const f = r.build(48000), o1 = new Float32Array(input.length), o2 = new Float32Array(input.length);
+    f(Float32Array.from(input), null, o1, o2, input.length, params); return [Array.from(o1), Array.from(o2)];
+  };
+  assert.deepEqual(run('out1 = in1 * 2 + 1; out2 = -in1;', [1, 2])[0], [3, 5]);
+  assert.deepEqual(run('History h(0); h = h + in1; out1 = h;', [1, 1, 1, 1])[0], [1, 2, 3, 4], 'history persists across samples');
+  assert.deepEqual(run('x = in1 > 1 ? 10 : 20; if (in1 == 3) { x = 99; } else { x = x + 1; } out1 = x;', [1, 2, 3])[0], [21, 11, 99], 'if / else and ?:');
+  assert.deepEqual(run('Param g(1, min=0, max=4); out1 = in1 * g;', [1, 1], [3])[0], [3, 3], 'a Param is read from the knob');
+  assert.deepEqual(run('Delay d(8); out1 = d.read(2); d.write(in1);', [1, 2, 3, 4])[0], [0, 0, 1, 2], 'a delay line reads back what was written');
+  assert.deepEqual(run('Data t(4); poke(t, in1, 1); out1 = peek(t, 1) + dim(t);', [5])[0], [9], 'Data and dim');
+  assert.deepEqual(run('out1 = in1 / 0 + sqrt(-4) + log(0);', [1])[0], [0], 'division, sqrt and log never make NaN');
+  const ph = run('out1 = phasor(1000); out2 = noise();', new Array(96).fill(0));
+  assert.ok(ph[0].every(v => v >= 0 && v < 1) && ph[0][1] > 0 && ph[1].every(v => v >= -1 && v <= 1) && new Set(ph[1]).size > 50, 'phasor and noise');
+  // mistakes: every one is found, with line, column, a message and often a hint
+  const bad = compile('Param a(0.5, min=0, max=1);\nx = in1 * a;\nout1 = x + y;\nout2 = sinn(x);\nin1 = 3;\nz = sin(1, 2);\nw = (1 + ;\nDelay d();\nout1 = q\n');
+  assert.equal(bad.ok, false);
+  const find = re => bad.errors.find(e => re.test(e.message));
+  assert.ok(find(/unknown name "y"/)?.line === 3 && find(/unknown name "y"/).col === 12, 'unknown name, at its column');
+  assert.ok(find(/unknown operator "sinn"/)?.hint === 'did you mean "sin"?', 'a hint for a misspelt operator');
+  assert.ok(find(/"in1" is an input/)?.line === 5, 'an input cannot be set');
+  assert.ok(find(/sin takes 1 argument but got 2/)?.line === 6, 'argument count');
+  assert.ok(find(/expected a value/)?.line === 7, 'a syntax error is reported and the parse carries on');
+  assert.ok(find(/Delay d needs a size/)?.line === 8, 'declaration needs a size');
+  assert.ok(bad.errors.length >= 6, 'all of them in one go, not just the first');
+  assert.ok(compile('out1 = x; x = 1;').errors[0].message.includes('before it is set') || compile('y = 1; out1 = x; x = 1;').errors[0].message.includes('before it is set'), 'use before set');
+  assert.ok(compile('Param a(5, min=0, max=1); out1 = a;').errors[0].message.includes('outside the range'), 'default outside range');
+  assert.ok(!compile('/* never closed\nout1 = 1;').ok, 'an unclosed comment');
+  assert.ok(compile('Param a(0.5); out1 = in1;').warnings.some(w => /never used/.test(w.message)), 'unused Param warns');
+  // the node: runs the code, keeps the last good code on a bad edit, scales its knobs
+  const gx = NODE_TYPES.genexpr, inst = gx.create({ sampleRate: 48000, data: { code: 'Param g(1, min=0, max=4); out1 = in1 * g; out2 = in1;' } });
+  const outs = [new Float32Array(4), new Float32Array(4)], slots = gx.params.map((_, i) => i), pv = gx.params.map(() => 0.5);
+  inst.process([Float32Array.from([1, 1, 1, 1]), null], outs, 4, pv, slots);
+  assert.deepEqual(Array.from(outs[0]), [2, 2, 2, 2], 'knob 0.5 of 0..4 is 2');
+  inst.message({ type: 'code', text: 'out1 = ;' });
+  inst.process([Float32Array.from([1, 1, 1, 1]), null], outs, 4, pv, slots);
+  assert.deepEqual(Array.from(outs[0]), [2, 2, 2, 2], 'a bad edit keeps the last working code');
+  inst.message({ type: 'code', text: 'out1 = in1 * 7;' });
+  inst.process([Float32Array.from([1, 1, 1, 1]), null], outs, 4, pv, slots);
+  assert.deepEqual(Array.from(outs[0]), [7, 7, 7, 7], 'a good edit takes over');
+  console.log('ok: genexpr');
+}
+
 // sweep: untouched at 0, closes a lowpass below 0, opens a highpass above 0, no seam near the middle
 {
   const sw = NODE_TYPES.sweep, sr = 48000, N = 24064;
