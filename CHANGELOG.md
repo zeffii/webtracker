@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 443 · 2026-10-24
+
+- Instruments tab: the Add node button is gone from the left panel (double-click the graph for the node menu).
+
 ## 442 · 2026-10-24
 
 - Instruments tab: the instrument list and the selected instrument's controls (name, Rename, voices, note columns, Add node, node presets) are one retroslate panel on the left, with New instrument, Presets, Preset library and Instrument file in a second panel below. The graph now starts at the top of the page.

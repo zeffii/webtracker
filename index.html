@@ -602,7 +602,7 @@
     #inst-head #inst-rename { flex: none; }
     #inst-head label:has(#inst-voices), #inst-head label:has(#inst-notecols) { flex: 1 1 40%; }
     #inst-head input[type=number] { width: 3.2em; }
-    #inst-head #patch-add, #inst-head #patch-tools { flex: 1 1 100%; }
+    #inst-head #patch-tools { flex: 1 1 100%; }
     #patch-tools .prow.presets { display: grid; grid-template-columns: 1fr auto auto; gap: .25rem; margin: 0; }
     #patch-tools .prow.presets > span, #patch-tools .prow.presets select { grid-column: 1 / -1; }
     #patch-tools .prow.presets input { grid-column: 1; width: auto; min-width: 0; }
@@ -1194,7 +1194,6 @@
               <button id="inst-rename" disabled>Rename</button>
               <label>Voices <input id="inst-voices" type="number" min="1" max="16" step="1" disabled></label>
               <label>NoteCols <input id="inst-notecols" type="number" min="1" max="8" step="1" disabled></label>
-              <button id="patch-add" disabled>Add node…</button>
               <div id="patch-tools"></div>
             </div>
           </div>
