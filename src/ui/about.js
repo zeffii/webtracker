@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['441', ['The flat-panel look of the Sample screen and Instruments tab is named retroslate.']],
   ['440', ['Instruments tab: the left panel is styled like the Sample screen.']],
   ['439', ['New node: route, a small dot to branch a wire to many places.']],
   ['438', ['New demo: phase, an additive-process, serial, microsound and broken-beat piece.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['434', ['DSP view: a Circuit beside the code, the per-sample loop drawn as a signal-flow diagram.']],
   ['433', ['Live picture: a Cells (Voronoi) shader template.']],
   ['432', ['Alt+S solos and Alt+M mutes the lane under the cursor, in both editors.']],
-  ['431', ['Sequence editor: Alt+M silences the whole lane (was Shift+M).']],
 ];

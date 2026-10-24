@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 441 · 2026-10-24
+
+- The flat-panel look of the Sample screen and the Instruments tab's left panel now has a name: **retroslate** (a note in the stylesheet, for applying it to other panels).
+
 ## 440 · 2026-10-24
 
 - Instruments tab: the left panel is styled like the Sample screen: one flat panel, flat text-like buttons, a brighter instrument list with a faint border, brighter text fields, and the four preset buttons (Save new, Overwrite, Rename, Remove) on one line.
