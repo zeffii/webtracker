@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 445 · 2026-10-24
+
+- Arrangement: the grid and the side panel now run all the way down to the top of the status bar instead of stopping short (the window-fit rows use the whole height).
+
 ## 444 · 2026-10-24
 
 - Sequencer: the undo line under the grid is a trail of chevrons. The most recent undoable operation is bright, the older ones fade to the right, "undo" has even space on both sides, and a set waypoint shows after the trail.

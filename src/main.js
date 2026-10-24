@@ -602,8 +602,9 @@ const fitArrangement = () => {
   document.body.classList.toggle('seqfit', config.get('seqFit'));
   document.body.classList.toggle('viewfit', config.get('viewFit'));
   if (config.get('seqFit') && tabs.active === 'arrange') {
-    const el = $('seq'), room = innerHeight - el.getBoundingClientRect().top - foot - 36;
+    const el = $('seq'), pane = $('pane-arrange'), room = innerHeight - el.getBoundingClientRect().top - foot - 2;
     seqView.setRows(Math.floor(room / 18) - Math.max(0, el.childElementCount - seqView.rows));
+    document.body.style.setProperty('--arr-h', `${Math.max(0, innerHeight - pane.getBoundingClientRect().top - foot)}px`);   // the panels reach the top of the status bar
   }
   if (config.get('viewFit') && tabs.active === 'patterns') {
     const el = $('view'), lh = view.lineHeight(), room = innerHeight - el.getBoundingClientRect().bottom - foot - 36;

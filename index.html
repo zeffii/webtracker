@@ -143,6 +143,9 @@
     body:has(#pane-arrange:not([hidden])) #seq-status { display: block; }
     body { padding-bottom: calc(var(--footer-h, 2rem) + 6px); }   /* the footer's height changes with the tab: main.js keeps this variable */
     body.seqfit #seq-grip, body.viewfit #view-grip { display: none; }
+    body.seqfit #pane-arrange:not([hidden]) { padding-bottom: 0; min-height: var(--arr-h, 0); box-sizing: border-box; }   /* the arrangement and its side panel run down to the status bar */
+    body.seqfit #pane-arrange .pane-main { display: flex; flex-direction: column; align-self: stretch; }
+    body.seqfit #pane-arrange #seq { flex: 1 1 auto; box-sizing: border-box; }
     /* the lane and silence controls under the pattern list */
     #seq-side.sized { height: var(--list-h); max-height: none; }
     #list-grip { height: 17px; margin: 0; cursor: row-resize; position: relative; touch-action: none; }   /* one row of space between the list and the lane controls, to drag */

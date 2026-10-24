@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['445', ['Arrangement: the grid and side panel reach the status bar.']],
   ['444', ['Sequencer: the undo line is a trail of chevrons, newest bright, older fading.']],
   ['443', ['Instruments tab: the Add node button is gone; double-click the graph for the node menu.']],
   ['442', ['Instruments tab: list and instrument controls in one panel on the left; the graph starts at the top.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['438', ['New demo: phase, an additive-process, serial, microsound and broken-beat piece.']],
   ['437', ['New demo: suite, five short atonal studies for different sets of nodes.']],
   ['436', ['DSP view: the DSP circle sits mid-page with a left arrow.']],
-  ['435', ['DSP view: circuit hidden until the DSP circle is clicked; draggable divider.']],
 ];
