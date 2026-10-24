@@ -4236,6 +4236,26 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   assert.equal(loaded.instruments.stab.noteColumns, loaded.instruments.stab.graph.voices, 'the stabs have a voice for every note of the chord');
 }
 
+// The Wax tools: the song is checked, outlined, rendered and measured without a browser.
+{
+  const core = await import('../tools/wax-mcp/core.mjs');
+  const path = new URL('../src/project/demo.wax', import.meta.url).pathname;
+  const v = core.validate(path);
+  assert.ok(v.ok && !v.problems.length, `the demo validates (${v.problems})`);
+  const bad = core.validate(new URL('../package.json', import.meta.url).pathname);
+  assert.ok(!bad.ok, 'a file that is not a project is refused');
+  const o = core.outline(core.loadProject(path), { window: 128 });
+  assert.ok(o.lanes.find(l => l.id === 'pad').notes_per_window.some(n => n > 0) && o.seconds > 60, 'the outline counts notes');
+  const audio = await core.render(core.loadProject(path), { tail: 0.5, maxSeconds: 4, solo: ['pad'] });
+  const a = core.analyse(audio, { window: 2 });
+  assert.ok(!a.whole.not_finite && a.whole.peak_db < 0 && a.whole.peak_db > -80 && a.sections.length >= 2, 'a lane renders and is measured');
+  const sine = Float32Array.from({ length: 48000 * 4 }, (_, i) => 0.0707 * Math.sin(2 * Math.PI * 997 * i / 48000));
+  assert.ok(Math.abs(core.lufs(sine, sine, 48000) + 23) < 0.2, 'the loudness meter reads -23 LUFS for a -23 dBFS sine');
+  const nodes = core.reference('canyon');
+  assert.ok(nodes.length === 1 && nodes[0].params.some(p => p.startsWith('time ')), 'the node list gives the parameters');
+  console.log('ok: wax tools');
+}
+
 // 104. Pattern editor: transpose notes, transpose values, interpolate.
 {
   const registry = new ParamRegistry();

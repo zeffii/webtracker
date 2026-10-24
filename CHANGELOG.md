@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 428 · 2026-10-24
+
+- Wax tools for Claude: an MCP server (`tools/wax-mcp`, named in `.mcp.json`) that validates a `.wax` file, outlines it (what plays when), renders it offline with the engine the page uses (no browser, no sound card) and measures the result: peak, LUFS, clipping, level, band balance, onsets and stereo correlation per section, with `solo` / `mute` per lane. A skill (`.claude/skills/wax`) teaches the file format, the pattern row syntax and the working loop.
+
 ## 427 · 2026-10-24
 
 - The demo song, from your edited version: the Shepard tone now comes in after 8 s and fades in over 30 s (a ramp written in a new Lvl column of its lane); the arp lane holds each chord in four note columns and the Arp node plays it (up and down over three octaves, its step quickening from quarters to sixteenths in a new Rate column); a new woodblock lane (E minor pentatonic hits at uneven distances, through a Prisma Canyon echo and a hall); and a new Duette lane of Detroit-style stabs (minor 9th, major 9th and minor 11th voicings of the chord that is playing, a 3-3-2 syncopation, five voices).

@@ -273,3 +273,8 @@ Export WAV (m240): the Export WAV button renders the song once, offline (src/aud
 New demo (m238): a three-minute interstellar soundscape (Shepard glide, chords, delayed stars, swells with long wide tails).
 
 Noise colours (m237): `tilt` in dB/oct (-6 brown, -3 pink, 0 white, +3 blue, +6 violet), loudness-matched; `free` runs without notes.
+
+
+## Claude and Wax
+
+`tools/wax-mcp` is an MCP server that checks, renders and measures `.wax` songs without a browser, and `.claude/skills/wax` teaches Claude the file format. See `tools/wax-mcp/README.md`.

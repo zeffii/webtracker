@@ -1,0 +1,5 @@
+{
+  "mcpServers": {
+    "wax": { "command": "node", "args": ["tools/wax-mcp/server.mjs"] }
+  }
+}

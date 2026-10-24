@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['428', ['Wax tools for Claude: validate, outline, render offline and measure a song (an MCP server and a skill, in the repository).']],
   ['427', ['The demo: a later, slower Shepard tone, the Arp node plays the arpeggio, plus a woodblock and Detroit-style Duette stabs.']],
   ['426', ['The first-screen line sits in an off-white cartouche.']],
   ['425', ['The first screen reads "musical spreadsheet - click to enter".']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['421', ['The master limiter starts off.']],
   ['420', ['Master limiter after the master volume, with a limiter meter in the meter band.']],
   ['419', ['Duette: no more clicks when a note starts over the last one; note cuts fade.']],
-  ['418', ['Tape effect: six tape qualities, age, wow and flutter, saturation, hiss and dropouts.']],
 ];
