@@ -671,7 +671,28 @@
     #dsp-chain button[aria-pressed="true"] { background: var(--hi); color: var(--hi-fg); border-color: var(--hi); }
     #pane-dsp:not([hidden]) { display: grid; grid-template-columns: minmax(0, 1fr) 17rem; gap: 0 .75rem; padding-right: 0; }
     #dsp-body { border: 1px solid color-mix(in srgb, var(--fg) 25%, transparent); background: var(--panel); }
-    #dsp-code { display: grid; grid-template-columns: auto minmax(0, 1fr); height: calc(100vh - 14rem); min-height: 14rem; overflow: auto; font: 13px/1.45 ui-monospace, Consolas, monospace; }
+    #dsp-code { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; height: calc(100vh - 14rem); min-height: 14rem; overflow: auto; font: 13px/1.45 ui-monospace, Consolas, monospace; }
+    #dsp-code:not(.nocirc) #dsp-src { max-width: 62ch; overflow-x: auto; }
+    #dsp-diag { position: sticky; top: 0; align-self: start; max-height: 100%; max-width: 46vw; min-width: 16rem; overflow: auto; padding: .5rem .8rem; border-left: 1px solid color-mix(in srgb, var(--fg) 20%, transparent); font: 12px/1.3 system-ui, sans-serif; }
+    #dsp-code.nocirc #dsp-diag { display: none; }
+    #dsp-diag .tabs { display: flex; gap: .3rem; align-items: center; margin-bottom: .4rem; opacity: .85; flex-wrap: wrap; }
+    #dsp-diag .tabs button { padding: 0 8px; font-size: 11px; }
+    #dsp-diag .tabs button[aria-pressed="true"] { background: var(--hi); color: var(--hi-fg); border-color: var(--hi); }
+    #dsp-diag .note { opacity: .65; margin-top: .4rem; }
+    svg.circuit { display: block; font: 11px ui-monospace, Consolas, monospace; overflow: visible; }
+    svg.circuit .wire { fill: none; stroke: color-mix(in srgb, var(--fg) 45%, transparent); stroke-width: 1.2; }
+    svg.circuit .bk { fill: none; stroke: color-mix(in srgb, var(--hi) 80%, transparent); stroke-width: 1.2; stroke-dasharray: 4 3; }
+    svg.circuit text { fill: var(--fg); }
+    svg.circuit .sym circle, svg.circuit .sym rect, svg.circuit .sym path { fill: var(--panel); stroke: color-mix(in srgb, var(--fg) 70%, transparent); stroke-width: 1.2; }
+    svg.circuit .in path, svg.circuit .outp path { fill: color-mix(in srgb, var(--hi) 35%, var(--panel)); }
+    svg.circuit .coef rect { fill: color-mix(in srgb, #d98a4a 40%, var(--panel)); }
+    svg.circuit .coef text, svg.circuit .num text { fill: color-mix(in srgb, #d98a4a 80%, var(--fg)); }
+    svg.circuit .delay rect { fill: color-mix(in srgb, var(--hi) 18%, var(--panel)); stroke: var(--hi); }
+    svg.circuit .delay text.in { fill: var(--hi); }
+    svg.circuit .op text { font-size: 14px; font-weight: 600; }
+    svg.circuit .op text.sm { font-size: 9px; font-weight: 400; }
+    svg.circuit .sym:hover circle, svg.circuit .sym:hover rect { stroke: var(--hi); stroke-width: 2; }
+    #dsp-src .lit { display: inline-block; min-width: 100%; background: color-mix(in srgb, var(--hi) 35%, transparent); }
     #dsp-gut { padding: .5rem .5rem .5rem .6rem; text-align: right; white-space: pre; opacity: .55; user-select: none; }
     #dsp-gut b { font-weight: 400; color: var(--hi); opacity: 1; }
     #dsp-src { margin: 0; padding: .5rem .7rem; white-space: pre; tab-size: 2; outline: none; font: inherit; }
@@ -1301,10 +1322,10 @@
   <section id="pane-dsp" class="pane" hidden>
     <div class="pane-main">
       <div class="help">The DSP view: the code behind the sound, read only. The strip lists the instrument's nodes in the order they run; pick one to read its file. The shaded lines are its per-sample loop, where the work is done. The parameters on the right move with the live values.</div>
-      <div id="dsp-bar"><label>Instrument <select id="dsp-inst" aria-label="Instrument"></select></label><button id="dsp-fold" type="button" title="Fold the blocks one step inside the outermost one: the parameter list, each method">Fold all</button><button id="dsp-unfold" type="button">Unfold all</button><span class="dsp-ro">read only</span></div>
+      <div id="dsp-bar"><label>Instrument <select id="dsp-inst" aria-label="Instrument"></select></label><button id="dsp-fold" type="button" title="Fold the blocks one step inside the outermost one: the parameter list, each method">Fold all</button><button id="dsp-unfold" type="button">Unfold all</button><button id="dsp-circ" type="button" aria-pressed="true" title="Draw the per-sample loop as a signal-flow diagram beside the code">Circuit</button><span class="dsp-ro">read only</span></div>
       <div id="dsp-chain" role="toolbar" aria-label="Nodes in running order"></div>
       <div id="dsp-body">
-        <div id="dsp-code"><div id="dsp-gut" aria-hidden="true"></div><pre id="dsp-src" tabindex="0" aria-label="Node source"></pre></div>
+        <div id="dsp-code"><div id="dsp-gut" aria-hidden="true"></div><pre id="dsp-src" tabindex="0" aria-label="Node source"></pre><div id="dsp-diag" aria-label="Signal flow of the per-sample loop"></div></div>
       </div>
       <div id="dsp-foot" class="statusbar"></div>
     </div>

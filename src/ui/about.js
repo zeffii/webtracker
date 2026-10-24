@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['434', ['DSP view: a Circuit beside the code, the per-sample loop drawn as a signal-flow diagram.']],
   ['433', ['Live picture: a Cells (Voronoi) shader template.']],
   ['432', ['Alt+S solos and Alt+M mutes the lane under the cursor, in both editors.']],
   ['431', ['Sequence editor: Alt+M silences the whole lane (was Shift+M).']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['427', ['The demo: a later, slower Shepard tone, the Arp node plays the arpeggio, plus a woodblock and Detroit-style Duette stabs.']],
   ['426', ['The first-screen line sits in an off-white cartouche.']],
   ['425', ['The first screen reads "musical spreadsheet - click to enter".']],
-  ['424', ['Prisma Canyon: a four-head tape echo with a pan and a damp per line, and a view in ticks.']],
 ];

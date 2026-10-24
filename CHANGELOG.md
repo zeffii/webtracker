@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 434 · 2026-10-24
+
+- DSP view: a **Circuit** beside the code. A node's per-sample loop is read as plain arithmetic and drawn as a signal flow: the streams in on the left, a symbol for each operation (+ − × ÷, a function such as tanh, a ?: switch), a one-sample delay (z⁻¹, dashed wire back) for every variable read before it is written, orange blocks for what was set before the loop, and the output on the right. Hover a symbol to light its line in the code. Where a node has several loops each gets a tab, and what cannot be read (an if, a nested loop) is left out and counted. Switch it off with the Circuit button.
+
 ## 433 · 2026-10-24
 
 - Live picture: a new shader template, **Cells** (a Voronoi mosaic). Every cell belongs to one lane; a hit lights its cells, the pitch picks the colour, a held note keeps them warm, and the walls between the cells flash with the beat. Choose it from Config > Visual > Start from a template.

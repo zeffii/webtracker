@@ -4268,6 +4268,22 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   console.log('ok: track list');
 }
 
+// The DSP view's circuit: a node's per-sample loop read as a signal flow.
+{
+  const { buildCircuit, circuitSvg } = await import('../src/ui/circuit.js');
+  const { sampleLoops } = await import('../src/ui/dspview.js');
+  const { readFileSync } = await import('node:fs');
+  const circuit = name => { const text = readFileSync(new URL(`../src/audio/nodes/${name}.js`, import.meta.url), 'utf8'); return buildCircuit(text.split('\n'), sampleLoops(text)[0]); };
+  const dc = circuit('dcblock');
+  assert.equal(dc.nodes.filter(n => n.kind === 'out').length, 2, 'the DC blocker has a left and a right output');
+  assert.deepEqual(dc.nodes.filter(n => n.kind === 'delay').map(n => n.label).sort(), ['xl', 'xr', 'yl', 'yr'], 'and four one-sample delays: the last input and output of each side');
+  assert.equal(dc.back.length, 4, 'each delay is fed back from where its variable ends up');
+  const g = circuit('gain');
+  assert.ok(g.nodes.some(n => n.kind === 'mux') && g.nodes.filter(n => n.kind === 'mul').length === 2 && g.nodes.some(n => n.kind === 'delay' && n.label === 'g0'), 'the gain stage is a ramped gain times the input times (cv or 1)');
+  assert.ok(/^<svg/.test(circuitSvg(g)) && circuitSvg(g).includes('z⁻¹'), 'it draws');
+  console.log('ok: circuit');
+}
+
 // 104. Pattern editor: transpose notes, transpose values, interpolate.
 {
   const registry = new ParamRegistry();

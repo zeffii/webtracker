@@ -2,6 +2,8 @@
 // across the top); the one picked shows its source file, its parameters (with their live values), its ports and whether it has a
 // WASM kernel. The source is the node's own file, fetched from the site, so it is always what is running.
 
+import { buildCircuit, circuitSvg } from './circuit.js';
+
 const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
 // The nodes of a graph in running order: a node comes after everything that feeds it; ties go left to right on the graph.
@@ -166,8 +168,9 @@ export function createDspView({ parts, getProject, nodeTypes, value = () => unde
     }
     const lines = highlightJs(text), loops = sampleLoops(text), regions = foldRegions(text);
     if (!folds.has(node.type)) folds.set(node.type, new Set());
-    shown = { type: node.type, lines, loops, regions, closed: folds.get(node.type) };
+    shown = { type: node.type, lines, loops, regions, closed: folds.get(node.type), plain: text.split('\n'), lit: -1, circuits: null, pick: 0 };
     render();
+    drawCircuit();
     const wasm = /instantiateDsp/.test(text);
     parts.kern.innerHTML = wasm ? '<b>WASM</b> kernel, with the JavaScript here as its reference and fallback' : 'JavaScript only';
     parts.foot.innerHTML = `<span>src/audio/nodes/${esc(node.type)}.js</span><span>${lines.length} lines</span><span>${loops.length} per-sample loop${loops.length === 1 ? '' : 's'} (marked)</span><span>${wasm ? '<b>WASM kernel</b>' : 'JS'}</span><span>read only</span>`;
@@ -191,12 +194,34 @@ export function createDspView({ parts, getProject, nodeTypes, value = () => unde
         const hasLoop = loops.some(([a, b]) => a > r.s && b <= r.e);
         h += `<span class="fold" data-l="${i}" title="Unfold">… ${r.e - r.s - 1} lines${hasLoop ? ', per-sample loop' : ''} …</span>${lines[r.e].replace(/^\s+/, '')}`;
       }
+      if (i === shown.lit) h = `<span class="lit">${h}</span>`;
       src.push(inLoop(i) ? `<span class="loop">${h}</span>` : h);
       if (folded) i = r.e;
     }
     parts.src.innerHTML = src.join('\n');
     parts.gut.innerHTML = gut.join('\n');
   }
+
+  // The circuit beside the code: the per-sample loops that read as a signal flow, one tab each when there are several.
+  function drawCircuit() {
+    const box = parts.diag;
+    if (!box) return;
+    box.textContent = '';
+    if (!shown) return;
+    shown.circuits ??= shown.loops.map(l => { try { return { loop: l, g: buildCircuit(shown.plain, l) }; } catch { return { loop: l, g: null }; } }).filter(c => c.g);
+    const list = shown.circuits;
+    if (!list.length) { box.append(Object.assign(document.createElement('div'), { className: 'note', textContent: 'No circuit: this node has no per-sample loop that reads as plain arithmetic.' })); return; }
+    const c = list[Math.min(shown.pick, list.length - 1)];
+    const tabs = document.createElement('div'); tabs.className = 'tabs';
+    tabs.append(Object.assign(document.createElement('span'), { textContent: `Loop on lines ${c.loop[0] + 1}–${c.loop[1] + 1}` }));
+    if (list.length > 1) list.forEach((o, i) => { const b = Object.assign(document.createElement('button'), { type: 'button', textContent: String(i + 1) }); b.setAttribute('aria-pressed', String(o === c)); b.addEventListener('click', () => { shown.pick = i; drawCircuit(); }); tabs.append(b); });
+    box.append(tabs);
+    const holder = document.createElement('div'); holder.innerHTML = circuitSvg(c.g); box.append(holder);
+    box.append(Object.assign(document.createElement('div'), { className: 'note', textContent: `${c.g.nodes.length} symbols. Dashed: a value kept for the next sample (z⁻¹). Orange: set before the loop.${c.g.skipped ? ` ${c.g.skipped} statement${c.g.skipped === 1 ? '' : 's'} not drawn (an if, a call or something else not plain arithmetic).` : ''}` }));
+    holder.addEventListener('mouseover', e => { const s = e.target.closest?.('[data-line]'); if (s && shown) { const l = Number(s.dataset.line); if (shown.lit !== l) { shown.lit = l; render(); } } });
+    holder.addEventListener('mouseleave', () => { if (shown && shown.lit >= 0) { shown.lit = -1; render(); } });
+  }
+  parts.circ?.addEventListener('click', () => { const on = parts.circ.getAttribute('aria-pressed') !== 'true'; parts.circ.setAttribute('aria-pressed', String(on)); parts.code?.classList.toggle('nocirc', !on); });
   const toggle = l => {
     if (!shown || !shown.regions.some(r => r.s === l)) return;
     if (shown.closed.has(l)) shown.closed.delete(l); else shown.closed.add(l);
