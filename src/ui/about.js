@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['429', ['Graph: Alt+R takes a node out and joins the wires; R stays a keyjazz key.']],
   ['428', ['Wax tools for Claude: validate, outline, render offline and measure a song (an MCP server and a skill, in the repository).']],
   ['427', ['The demo: a later, slower Shepard tone, the Arp node plays the arpeggio, plus a woodblock and Detroit-style Duette stabs.']],
   ['426', ['The first-screen line sits in an off-white cartouche.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['422', ['Limiter switch on the status bar; multiband compressor with four bands.']],
   ['421', ['The master limiter starts off.']],
   ['420', ['Master limiter after the master volume, with a limiter meter in the meter band.']],
-  ['419', ['Duette: no more clicks when a note starts over the last one; note cuts fade.']],
 ];

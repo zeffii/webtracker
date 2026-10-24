@@ -815,7 +815,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
       e.preventDefault();
       return;
     }
-    if (!e.ctrlKey && !e.altKey && !e.metaKey && (e.key === 'r' || e.key === 'R') && !generatorSelected() && (group.size || selected?.kind === 'node')) {   // R takes a node out and joins the wires round it
+    if (e.altKey && !e.ctrlKey && !e.metaKey && e.code === 'KeyR' && (group.size || selected?.kind === 'node')) {   // Alt+R takes a node out and joins the wires round it (plain R is a keyjazz key)
       removeSelected(true);
       e.preventDefault();
       return;

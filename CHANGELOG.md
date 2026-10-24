@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 429 · 2026-10-24
+
+- Graph view: taking a node out and joining the wires round it is now **Alt+R**; plain R is the keyjazz key it always was on a generator, so the two no longer collide.
+
 ## 428 · 2026-10-24
 
 - Wax tools for Claude: an MCP server (`tools/wax-mcp`, named in `.mcp.json`) that validates a `.wax` file, outlines it (what plays when), renders it offline with the engine the page uses (no browser, no sound card) and measures the result: peak, LUFS, clipping, level, band balance, onsets and stereo correlation per section, with `solo` / `mute` per lane. A skill (`.claude/skills/wax`) teaches the file format, the pattern row syntax and the working loop.
