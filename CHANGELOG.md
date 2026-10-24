@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 432 · 2026-10-24
+
+- **Alt+M** now works in the pattern editor too, as the pair of Alt+S: Alt+S solos the lane under the cursor, Alt+M mutes it (both in the sequence editor and the pattern editor).
+
 ## 431 · 2026-10-24
 
 - Sequence editor: **Alt+M** silences the whole lane (it was Shift+M), so the Alt shortcuts sit together; M still starts a mute from the row.

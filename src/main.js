@@ -197,6 +197,15 @@ document.addEventListener('keydown', e => {
     seqView.say(text); view.say(text);
     return;
   }
+  // Alt+M: silence the lane under the cursor whatever its marks say (the pair of Alt+S); again to bring it back.
+  if (e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey && e.code === 'KeyM' && project && (tabs.active === 'arrange' || tabs.active === 'patterns')) {
+    e.preventDefault();
+    const li = seqView.lane, name = project.lanes[li]?.id, on = project.editor.silence(li);
+    const text = on ? `${name} muted.` : `${name} is back on.`;
+    seqView.say(text); view.say(text);
+    seqView.draw?.(); view.draw?.();
+    return;
+  }
   const fKeys = { F5: () => setPlaying(true), F6: () => setPlaying(true, here()), F7: () => engine.playRow(here()), F8: () => setPlaying(false), F9: toggleFollow, Pause: togglePause };
   if (!e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey && fKeys[e.key]) {
     e.preventDefault();

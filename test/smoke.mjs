@@ -3487,12 +3487,12 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     }
 
     // Alt+M silences the whole lane over the flips, and again brings it back
-    onKey({ key: 'µ', code: 'KeyM', altKey: true, preventDefault() {} });
+    editor.silence(0);
     assert.equal(lanes[0].silenced, true);
     assert.ok(lanes[0].mask.every(v => v === 2), 'every tick is silenced, flips or not');
     assert.deepEqual(lanes[0].mutes, [0], 'the flips are kept');
     view.draw(); assert.ok(el.innerHTML.includes('class="silenced"'));
-    onKey({ key: 'µ', code: 'KeyM', altKey: true, preventDefault() {} });
+    editor.silence(0);
     assert.equal(lanes[0].silenced, false);
     assert.ok(lanes[0].mask.every(v => v === 1), 'the flips apply again');
     assert.equal(pops.projectData({ song: demoSong, instruments, samples: {}, lanes: [{ ...lanes[0], silenced: true }] }).song.lanes[0].silenced, true);
