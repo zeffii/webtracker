@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 437 · 2026-10-24
+
+- New demo **suite** (`?demo=suite`), written by Claude with the Wax tools and no direction: five short atonal studies, each with its own set of nodes and silences between. Plucked strings through tape; FM bells through a frequency shifter and plate; woodblock, comb percussion, clap and hat with echoes, crusher and gating; a wavetable drone through phaser, shimmer and spectral pan with a broken acid line; and a coda of ghosts.
+
 ## 436 · 2026-10-24
 
 - DSP view: the DSP circle sits halfway down the code with a thin arrow pointing left, to show the circuit unfolds that way.
