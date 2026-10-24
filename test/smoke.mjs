@@ -4268,11 +4268,10 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   console.log('ok: track list');
 }
 
-// The suite demo loads and every row parses.
+// The suite and phase demos load and every row parses.
 {
   const { validate } = await import('../tools/wax-mcp/core.mjs');
-  const v = validate('src/project/demos/suite.wax');
-  assert.ok(v.ok, `suite demo: ${v.problems.join('; ')}`);
+  for (const n of ['suite', 'phase']) { const v = validate(`src/project/demos/${n}.wax`); assert.ok(v.ok, `${n} demo: ${v.problems.join('; ')}`); }
   console.log('ok: suite demo');
 }
 

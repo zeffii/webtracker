@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 438 · 2026-10-24
+
+- New demo **phase** (`?demo=phase`), written by Claude from a brief of Aphex Twin, Curtis Roads, Stockhausen and Philip Glass: a Glass-style cell that grows one note at a time and is then eaten from the front; serial "points" (durations 1 2 3 5 8 13 21) through a frequency shifter and spatial rotation; microsound clouds that thicken into texture; a broken beat in sevens with an acid line, a warm pad and a tempo rush; and the cell again, thinned to one note.
+
 ## 437 · 2026-10-24
 
 - New demo **suite** (`?demo=suite`), written by Claude with the Wax tools and no direction: five short atonal studies, each with its own set of nodes and silences between. Plucked strings through tape; FM bells through a frequency shifter and plate; woodblock, comb percussion, clap and hat with echoes, crusher and gating; a wavetable drone through phaser, shimmer and spectral pan with a broken acid line; and a coda of ghosts.
