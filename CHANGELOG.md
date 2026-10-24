@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 426 · 2026-10-24
+
+- The first-screen line sits in an off-white, filled cartouche.
+
 ## 425 · 2026-10-24
 
 - The first screen now reads "musical spreadsheet - click to enter".

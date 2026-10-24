@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['426', ['The first-screen line sits in an off-white cartouche.']],
   ['425', ['The first screen reads "musical spreadsheet - click to enter".']],
   ['424', ['Prisma Canyon: a four-head tape echo with a pan and a damp per line, and a view in ticks.']],
   ['423', ['Duette: a note column keeps its voice by column number, not by pitch.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['419', ['Duette: no more clicks when a note starts over the last one; note cuts fade.']],
   ['418', ['Tape effect: six tape qualities, age, wow and flutter, saturation, hiss and dropouts.']],
   ['417', ['Duette is polyphonic: a note column keeps one voice, so glide and slide work per column.']],
-  ['416', ['Duette: a two-oscillator mono lead voice with sync, ring, one envelope and one LFO. Waveform redraws after Normalise and the other in-place edits.']],
 ];
