@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['427', ['The demo: a later, slower Shepard tone, the Arp node plays the arpeggio, plus a woodblock and Detroit-style Duette stabs.']],
   ['426', ['The first-screen line sits in an off-white cartouche.']],
   ['425', ['The first screen reads "musical spreadsheet - click to enter".']],
   ['424', ['Prisma Canyon: a four-head tape echo with a pan and a damp per line, and a view in ticks.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['420', ['Master limiter after the master volume, with a limiter meter in the meter band.']],
   ['419', ['Duette: no more clicks when a note starts over the last one; note cuts fade.']],
   ['418', ['Tape effect: six tape qualities, age, wow and flutter, saturation, hiss and dropouts.']],
-  ['417', ['Duette is polyphonic: a note column keeps one voice, so glide and slide work per column.']],
 ];

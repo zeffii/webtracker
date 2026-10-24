@@ -4228,7 +4228,12 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   assert.ok(boom.every(Number.isFinite) && peak(boom) > 0.02 && peak(boom) < 2, 'the depth charge sounds');
   const shut = heard('arp', { 'synth.cutoff': 90 }, 69), open = heard('arp', { 'synth.cutoff': 15000 }, 69);
   assert.ok(open.every(Number.isFinite) && brightness(open) > brightness(shut) * 3, 'the arp opens up');
-  assert.ok(Object.keys(loaded.instruments.arp.exposed).length === 5 && loaded.song.lanes.some(l => l.id === 'arp' && l.placements.length > 20), 'the arp lane is there');
+  assert.ok(Object.keys(loaded.instruments.arp.exposed).length === 6 && loaded.song.lanes.some(l => l.id === 'arp' && l.placements.length > 20), 'the arp lane is there');
+  assert.ok(loaded.instruments.arp.graph.nodes.some(n => n.type === 'arp'), 'and the Arp node plays the chords the lane holds');
+  const lane = id => loaded.song.lanes.find(l => l.id === id);
+  assert.ok(lane('shep').placements.find(p => p.puid === 'climb').start >= 32, 'the Shepard tone comes in late');
+  assert.ok(lane('wood')?.placements.length > 10 && lane('stab')?.placements.length > 5, 'the woodblock and the stabs are there');
+  assert.equal(loaded.instruments.stab.noteColumns, loaded.instruments.stab.graph.voices, 'the stabs have a voice for every note of the chord');
 }
 
 // 104. Pattern editor: transpose notes, transpose values, interpolate.

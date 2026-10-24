@@ -5,8 +5,12 @@
   "name": "interstellar",
   "bpm": 120,
   "ticksPerBeat": 4,
-  "length": 992,
-  "info": "Interstellar travel: a two minute soundscape, made only from webtracker nodes. 120 bpm, 62 bars.\n\nshep   a Shepard tone: an additive synth with only the octave partials lit rises six octaves in two minutes (an lfo on its pitch input) while two fixed band-pass filters are the window, so it climbs and never gets higher.\npad    the chords of the demo song (Em7, Dmaj7, Cmaj7, Am11, Bm7, Cmaj7, Em9, a second pass that swells higher, a breath on a long Em9, a third pass that builds to the biggest swells, and a long Em9 to end), six voices each, the outer notes quieter so the shape fades at both ends.\nsub    a sine under each chord.\nwind   pink noise through a band-pass an lfo breathes, in a big hall, widened with the spectral panner.\nrise   noise through a high-pass that climbs five octaves while it swells; a Shiva delay takes hold as it climbs (an envelope opens its mix and feedback), so the pattern goes on, wide, when the swell cuts, into a long shimmer tail (23 s, 31 s, 55 s, 95 s, 103 s and 119 s).\ntick   a clock every 1.25 s, always the same tick.\nstars  chord tones two octaves up, soft, through two echoes (dotted eighth and a quarter) and a shimmer; one melodic pattern per chord, denser in the second half.\nping   incidental: a glassy blip through a drifting band-pass, taps and a shimmer, from a third of the way in.\ndust   incidental: clusters of crackle in a long slow echo (its length drifts), only in the second half.\n\nEvery lane is built from short patterns cut where the notes start, and the same pattern is placed again where the music repeats.\n\ndepth  depth charges at the tops of the swells: a sine that falls from high to deep while an envelope drains it, through a lowpass and a long hall.\narp    from just before the middle, an arpeggio of each chord that starts out muted (its filter nearly shut, resonant) and quickens from quarters to sixteenths as the filter opens, then drowns in two choruses in series. Every one of those moves is written in the pattern columns (Cut, Res, Mix, Dep, Mx2)."
+  "length": 1104,
+  "loop": {
+   "start": 0,
+   "end": 992
+  },
+  "info": "Interstellar travel: a two minute soundscape, made only from webtracker nodes. 120 bpm, 62 bars.\n\nshep   a Shepard tone (it comes in after 8 s and fades in over 30 s, a ramp written in its Lvl column): an additive synth with only the octave partials lit rises six octaves in two minutes (an lfo on its pitch input) while two fixed band-pass filters are the window, so it climbs and never gets higher.\npad    the chords of the demo song (Em7, Dmaj7, Cmaj7, Am11, Bm7, Cmaj7, Em9, a second pass that swells higher, a breath on a long Em9, a third pass that builds to the biggest swells, and a long Em9 to end), six voices each, the outer notes quieter so the shape fades at both ends.\nsub    a sine under each chord.\nwind   pink noise through a band-pass an lfo breathes, in a big hall, widened with the spectral panner.\nrise   noise through a high-pass that climbs five octaves while it swells; a Shiva delay takes hold as it climbs (an envelope opens its mix and feedback), so the pattern goes on, wide, when the swell cuts, into a long shimmer tail (23 s, 31 s, 55 s, 95 s, 103 s and 119 s).\ntick   a clock every 1.25 s, always the same tick.\nstars  chord tones two octaves up, soft, through two echoes (dotted eighth and a quarter) and a shimmer; one melodic pattern per chord, denser in the second half.\nping   incidental: a glassy blip through a drifting band-pass, taps and a shimmer, from a third of the way in.\ndust   incidental: clusters of crackle in a long slow echo (its length drifts), only in the second half.\n\nEvery lane is built from short patterns cut where the notes start, and the same pattern is placed again where the music repeats.\n\ndepth  depth charges at the tops of the swells: a sine that falls from high to deep while an envelope drains it, through a lowpass and a long hall.\narp    from just before the middle, the Arp node plays each chord (held in the four note columns) up and down over three octaves; it starts out muted (its filter nearly shut, resonant) and quickens from quarters to sixteenths (its Rate column) as the filter opens, then drowns in two choruses in series. Every one of those moves is written in the pattern columns (Cut, Res, Mix, Dep, Mx2).\n\nwood   incidental: a struck woodblock on the notes of E minor pentatonic, at uneven distances from a quarter of the way in, through a Prisma Canyon echo set to a dotted eighth and a hall.\nstab   now and then from the middle on: Detroit-style chord stabs (Duette, five voices, one note column each), minor 9th, major 9th and minor 11th voicings of the chord that is playing, in a 3-3-2 syncopation, through a chorus, a dotted-eighth echo and a hall."
  },
  "instruments": {
   "master": {
@@ -55,6 +59,32 @@
      "node": "m",
      "param": "volume",
      "label": "Vol"
+    },
+    {
+     "node": "m",
+     "param": "limit",
+     "label": "Lim",
+     "long": "Limiter",
+     "bits": 4
+    },
+    {
+     "node": "m",
+     "param": "ceiling",
+     "label": "Ceil",
+     "long": "Ceiling"
+    },
+    {
+     "node": "m",
+     "param": "boost",
+     "label": "Gain",
+     "long": "Limiter gain"
+    },
+    {
+     "node": "m",
+     "param": "release",
+     "label": "Rel",
+     "long": "Limiter release",
+     "scale": "log"
     }
    ],
    "commands": []
@@ -74,7 +104,7 @@
        "reset": 1
       },
       "x": 20,
-      "y": 30
+      "y": 80
      },
      {
       "id": "synth",
@@ -128,7 +158,7 @@
        ]
       },
       "x": 170,
-      "y": 30
+      "y": 80
      },
      {
       "id": "win1",
@@ -139,7 +169,7 @@
        "mode": 1
       },
       "x": 320,
-      "y": 30
+      "y": 80
      },
      {
       "id": "win2",
@@ -150,7 +180,7 @@
        "mode": 1
       },
       "x": 470,
-      "y": 30
+      "y": 80
      },
      {
       "id": "hall",
@@ -166,7 +196,7 @@
        "mix": 0.4
       },
       "x": 620,
-      "y": 30
+      "y": 80
      },
      {
       "id": "wide",
@@ -178,7 +208,7 @@
        "rotate": 0.1
       },
       "x": 770,
-      "y": 30
+      "y": 80
      },
      {
       "id": "out",
@@ -187,7 +217,7 @@
        "gain": 1.5
       },
       "x": 920,
-      "y": 30
+      "y": 80
      }
     ],
     "connections": [
@@ -218,7 +248,13 @@
     ]
    },
    "noteColumns": 1,
-   "exposed": []
+   "exposed": [
+    {
+     "node": "synth",
+     "param": "level",
+     "label": "Lvl"
+    }
+   ]
   },
   "pad": {
    "graph": {
@@ -750,7 +786,9 @@
        "tilt": 2,
        "restart": 1,
        "level": 1
-      }
+      },
+      "x": 20,
+      "y": 80
      },
      {
       "id": "bp",
@@ -759,7 +797,9 @@
        "cutoff": 1900,
        "resonance": 0.5,
        "mode": 1
-      }
+      },
+      "x": 170,
+      "y": 80
      },
      {
       "id": "env",
@@ -770,11 +810,15 @@
        "sustain": 0,
        "release": 20,
        "vel": 0.9
-      }
+      },
+      "x": 20,
+      "y": 160
      },
      {
       "id": "vca",
-      "type": "gain"
+      "type": "gain",
+      "x": 320,
+      "y": 80
      },
      {
       "id": "drift",
@@ -785,7 +829,9 @@
        "range": 1,
        "min": 0.12,
        "max": 0.6
-      }
+      },
+      "x": 20,
+      "y": 240
      },
      {
       "id": "multi",
@@ -817,24 +863,49 @@
         0.35,
         -0.3
        ]
-      }
+      },
+      "x": 470,
+      "y": 80
      },
      {
       "id": "hall",
       "type": "hall",
       "params": {
-       "size": 0.9,
+       "size": 1.1788695771178321,
        "decay": 2.2,
-       "damp": 0.5,
+       "damp": 0.04529902832899959,
        "predelay": 10,
        "mix": 0.3
-      }
+      },
+      "x": 672,
+      "y": 144
      },
      {
       "id": "out",
       "type": "out",
       "params": {
        "gain": 1.5
+      },
+      "x": 1080,
+      "y": 120
+     },
+     {
+      "id": "prismacanyon1",
+      "type": "prismacanyon",
+      "x": 864,
+      "y": 144,
+      "params": {
+       "time": 568.9694813192829,
+       "intensity": 0.8377514711920075,
+       "cutoff": 7303.845627480498,
+       "bass": -0.9278773778568485,
+       "treble": 0.22827425756124242,
+       "echo": 1.0073217462706994,
+       "reverb": 0.42192418229095385,
+       "flutter": 0.2861639523744355,
+       "saturation": 0.40440673326946763,
+       "wow": 0.5270288764198714,
+       "level3": 0.6365129328041604
       }
      }
     ],
@@ -865,6 +936,10 @@
      ],
      [
       "hall.out",
+      "prismacanyon1.in"
+     ],
+     [
+      "prismacanyon1.out",
       "out.in"
      ]
     ]
@@ -1426,30 +1501,31 @@
       "type": "subsynth",
       "params": {
        "wave1": 0,
-       "wave2": 1,
-       "osc2": 0.49586647948837936,
+       "wave2": 0,
+       "osc2": 0.7065827288901054,
        "detune": 9,
-       "unison": 3,
-       "spread": 10.567774138199969,
+       "unison": 5,
+       "spread": 20.439304776241958,
        "width": 0.8,
        "cutoff": 90,
        "res": 0.5,
        "drive": 0.06660427390422712,
        "fenv": 1.4,
        "keytrack": 0.7803774762127593,
-       "fatk": 1.2895131089003156,
-       "fdec": 40.986217020875046,
-       "fsus": 0.5208235844642022,
-       "frel": 62.499999999999986,
+       "fatk": 0.216935050174764,
+       "fdec": 774.4859137927996,
+       "fsus": 0.6189954837826741,
+       "frel": 2.3886275225724805,
        "atk": 2,
-       "dec": 84.43272703561553,
+       "dec": 499.9999999999998,
        "sus": 0.2462954297301513,
        "rel": 499.9999999999998,
        "vel": 0.6,
        "level": 0.24,
-       "noise": 0.22632974574949305,
-       "pw": 0.3300655124005615,
-       "glide": 3.4316019341756356
+       "noise": 0.06281647735048583,
+       "pw": 0.6307444915834132,
+       "glide": 11.769536061311072,
+       "sub": 0.6627891063363898
       },
       "x": 20,
       "y": 124
@@ -1468,7 +1544,7 @@
        "depth": 2,
        "delay": 14,
        "voices": 4,
-       "width": 1,
+       "width": 0.4087860955248392,
        "mix": 0.1
       },
       "x": 320,
@@ -1478,9 +1554,9 @@
       "id": "chorus2",
       "type": "chorus",
       "params": {
-       "rate": 1.1,
-       "depth": 9,
-       "delay": 24,
+       "rate": 0.08400377751556158,
+       "depth": 1.9276036677158888,
+       "delay": 10.169016012043247,
        "voices": 4,
        "width": 1,
        "mix": 0
@@ -1510,8 +1586,8 @@
       "params": {
        "gain": 0.5
       },
-      "x": 782,
-      "y": 200
+      "x": 1032,
+      "y": 240
      },
      {
       "id": "specpan1",
@@ -1523,6 +1599,62 @@
        "rotate": 0.9201372640773671,
        "rate": 5.025737014506317,
        "sweep": 0.8320074871314928
+      }
+     },
+     {
+      "id": "prismacanyon1",
+      "type": "prismacanyon",
+      "x": 840,
+      "y": 240,
+      "params": {
+       "time": 545.1457506500616,
+       "bass": -1.9789243191460244,
+       "cutoff": 14911.673737511974,
+       "treble": 4.9579854933625285,
+       "wow": 0.4744765293554126,
+       "damp4": 0.41316545778021074,
+       "reverb": 0.2949226768851786,
+       "echo": 0.7182838374161763,
+       "level2": 0.2949226768851786,
+       "damp1": 0.3387162994388942,
+       "saturation": 0.5752018612289586,
+       "dry": 1
+      }
+     },
+     {
+      "id": "arp1",
+      "type": "arp",
+      "x": 20,
+      "y": 250,
+      "params": {
+       "mode": 2,
+       "rate": 8,
+       "gate": 0.55,
+       "octaves": 3,
+       "retrigger": 0,
+       "level": 1,
+       "veltype": 0,
+       "humanize": 0.1
+      },
+      "data": {
+       "gate": [
+        1,
+        0.6,
+        0.8,
+        0.6,
+        1,
+        0.6,
+        0.8,
+        0.6,
+        1,
+        0.6,
+        0.8,
+        0.6,
+        1,
+        0.6,
+        0.8,
+        0.6
+       ]
       }
      }
     ],
@@ -1540,21 +1672,25 @@
       "chorus2.in"
      ],
      [
-      "hall.out",
-      "out.in"
-     ],
-     [
       "chorus2.out",
       "specpan1.in"
      ],
      [
       "specpan1.out",
       "hall.in"
+     ],
+     [
+      "hall.out",
+      "prismacanyon1.in"
+     ],
+     [
+      "prismacanyon1.out",
+      "out.in"
      ]
     ],
     "voices": 6
    },
-   "noteColumns": 1,
+   "noteColumns": 4,
    "exposed": [
     {
      "node": "synth",
@@ -1581,6 +1717,413 @@
      "node": "chorus2",
      "param": "mix",
      "label": "Mx2"
+    },
+    {
+     "node": "arp1",
+     "param": "rate",
+     "label": "Rate",
+     "bits": 4
+    }
+   ]
+  },
+  "wood": {
+   "graph": {
+    "nodes": [
+     {
+      "id": "synth",
+      "type": "woodblock",
+      "x": 20,
+      "y": 108,
+      "params": {
+       "tone": 1100,
+       "hardness": 0.7,
+       "damping": 110,
+       "loss": 0.55,
+       "bend": 3,
+       "vel": 0.7,
+       "level": 0.8
+      }
+     },
+     {
+      "id": "poly",
+      "type": "voices",
+      "x": 170,
+      "y": 108
+     },
+     {
+      "id": "echo",
+      "type": "prismacanyon",
+      "x": 320,
+      "y": 108,
+      "params": {
+       "time": 375,
+       "intensity": 0.5,
+       "cutoff": 8000,
+       "echo": 0.9,
+       "reverb": 0.15,
+       "dry": 1,
+       "wow": 0.15,
+       "flutter": 0.1,
+       "saturation": 0.2
+      }
+     },
+     {
+      "id": "hall",
+      "type": "hall",
+      "x": 470,
+      "y": 108,
+      "params": {
+       "size": 1.4,
+       "decay": 5,
+       "damp": 0.5,
+       "predelay": 20,
+       "mix": 0.3
+      }
+     },
+     {
+      "id": "out",
+      "type": "out",
+      "x": 620,
+      "y": 108,
+      "params": {
+       "gain": 0.6
+      }
+     }
+    ],
+    "connections": [
+     [
+      "synth.out",
+      "poly.in"
+     ],
+     [
+      "poly.out",
+      "echo.in"
+     ],
+     [
+      "echo.out",
+      "hall.in"
+     ],
+     [
+      "hall.out",
+      "out.in"
+     ]
+    ],
+    "voices": 3
+   },
+   "noteColumns": 1,
+   "exposed": [
+    {
+     "node": "synth",
+     "param": "tone",
+     "label": "Ton"
+    },
+    {
+     "node": "synth",
+     "param": "hardness",
+     "label": "Har"
+    },
+    {
+     "node": "synth",
+     "param": "damping",
+     "label": "Dmp"
+    },
+    {
+     "node": "synth",
+     "param": "loss",
+     "label": "Los"
+    },
+    {
+     "node": "synth",
+     "param": "bend",
+     "label": "Bnd"
+    }
+   ],
+   "commands": [
+    {
+     "id": 1,
+     "node": "synth",
+     "param": "tone"
+    },
+    {
+     "id": 2,
+     "node": "synth",
+     "param": "hardness"
+    },
+    {
+     "id": 3,
+     "node": "synth",
+     "param": "damping"
+    },
+    {
+     "id": 4,
+     "node": "synth",
+     "param": "loss"
+    },
+    {
+     "id": 5,
+     "node": "synth",
+     "param": "bend"
+    },
+    {
+     "id": 6,
+     "node": "synth",
+     "param": "inharm"
+    }
+   ]
+  },
+  "stab": {
+   "graph": {
+    "nodes": [
+     {
+      "id": "du",
+      "type": "duette",
+      "x": 20,
+      "y": 108,
+      "params": {
+       "vco1wave": 0,
+       "vco1shape": 0.25,
+       "vco2wave": 0,
+       "vco2oct": 1,
+       "vco2pitch": 14,
+       "vco2shape": 0.2,
+       "mix1": 0.8,
+       "mix2": 0.75,
+       "cutoff": 1500,
+       "res": 0.3,
+       "egtype": 0,
+       "attack": 3,
+       "decay": 340,
+       "egint": 0.55,
+       "egtarget": 2,
+       "drive": 0.3,
+       "keytrack": 0.4,
+       "ampvel": 0.4,
+       "cutvel": 0.3,
+       "level": 0.55
+      }
+     },
+     {
+      "id": "poly",
+      "type": "voices",
+      "x": 170,
+      "y": 108
+     },
+     {
+      "id": "chorus",
+      "type": "chorus",
+      "x": 320,
+      "y": 108,
+      "params": {
+       "rate": 0.4,
+       "depth": 4,
+       "mix": 0.4
+      }
+     },
+     {
+      "id": "echo",
+      "type": "prismacanyon",
+      "x": 470,
+      "y": 108,
+      "params": {
+       "time": 375,
+       "intensity": 0.45,
+       "cutoff": 7000,
+       "echo": 0.5,
+       "reverb": 0.12,
+       "dry": 1,
+       "wow": 0.1,
+       "flutter": 0.08,
+       "saturation": 0.15
+      }
+     },
+     {
+      "id": "hall",
+      "type": "hall",
+      "x": 620,
+      "y": 108,
+      "params": {
+       "size": 1.4,
+       "decay": 3,
+       "damp": 0.5,
+       "predelay": 15,
+       "mix": 0.22
+      }
+     },
+     {
+      "id": "out",
+      "type": "out",
+      "x": 770,
+      "y": 108,
+      "params": {
+       "gain": 0.5
+      }
+     }
+    ],
+    "connections": [
+     [
+      "du.out",
+      "poly.in"
+     ],
+     [
+      "poly.out",
+      "chorus.in"
+     ],
+     [
+      "chorus.out",
+      "echo.in"
+     ],
+     [
+      "echo.out",
+      "hall.in"
+     ],
+     [
+      "hall.out",
+      "out.in"
+     ]
+    ],
+    "voices": 5
+   },
+   "noteColumns": 5,
+   "exposed": [
+    {
+     "node": "du",
+     "param": "sld",
+     "label": "Sld",
+     "bits": 4
+    },
+    {
+     "node": "du",
+     "param": "cutoff",
+     "label": "Cut",
+     "scale": "log"
+    },
+    {
+     "node": "du",
+     "param": "res",
+     "label": "Res"
+    },
+    {
+     "node": "du",
+     "param": "egint",
+     "label": "Int"
+    },
+    {
+     "node": "du",
+     "param": "decay",
+     "label": "Dec",
+     "scale": "log"
+    },
+    {
+     "node": "du",
+     "param": "vco1shape",
+     "label": "Sh1"
+    },
+    {
+     "node": "du",
+     "param": "vco2shape",
+     "label": "Sh2"
+    },
+    {
+     "node": "du",
+     "param": "drive",
+     "label": "Drv"
+    }
+   ],
+   "commands": [
+    {
+     "id": 1,
+     "node": "du",
+     "param": "cutoff",
+     "scale": "log"
+    },
+    {
+     "id": 2,
+     "node": "du",
+     "param": "res"
+    },
+    {
+     "id": 3,
+     "node": "du",
+     "param": "egint"
+    },
+    {
+     "id": 4,
+     "node": "du",
+     "param": "decay",
+     "scale": "log"
+    },
+    {
+     "id": 5,
+     "node": "du",
+     "param": "attack",
+     "scale": "log"
+    },
+    {
+     "id": 6,
+     "node": "du",
+     "param": "vco1shape"
+    },
+    {
+     "id": 7,
+     "node": "du",
+     "param": "vco2shape"
+    },
+    {
+     "id": 8,
+     "node": "du",
+     "param": "drive"
+    },
+    {
+     "id": 9,
+     "node": "du",
+     "param": "vco2pitch"
+    },
+    {
+     "id": 10,
+     "node": "du",
+     "param": "mix1"
+    },
+    {
+     "id": 11,
+     "node": "du",
+     "param": "mix2"
+    },
+    {
+     "id": 12,
+     "node": "du",
+     "param": "lforate"
+    },
+    {
+     "id": 13,
+     "node": "du",
+     "param": "lfoint"
+    },
+    {
+     "id": 14,
+     "node": "du",
+     "param": "port",
+     "scale": "log"
+    },
+    {
+     "id": 15,
+     "node": "du",
+     "param": "slide",
+     "scale": "log"
+    },
+    {
+     "id": 16,
+     "node": "du",
+     "param": "tune"
+    },
+    {
+     "id": 17,
+     "node": "du",
+     "param": "level"
+    },
+    {
+     "id": 18,
+     "node": "out",
+     "param": "gain"
     }
    ]
   }
@@ -1597,63 +2140,468 @@
    "id": "shep",
    "instrument": "shep",
    "patterns": {
-    "climb": {
-     "name": "climb",
+    "hush": {
+     "name": "hush",
      "index": 0,
      "rows": [
-      "E-1 F0",
-      "... ..",
-      "... ..",
-      "... ..",
-      "... ..",
-      "... ..",
-      "... ..",
-      "... ..",
-      "... ..",
-      "... ..",
-      "... ..",
-      "... ..",
-      "... ..",
-      "... ..",
-      "... ..",
-      "... .."
+      "... .. 00",
+      "... .. ..",
+      "... .. ..",
+      "... .. ..",
+      "... .. ..",
+      "... .. ..",
+      "... .. ..",
+      "... .. ..",
+      "... .. ..",
+      "... .. ..",
+      "... .. ..",
+      "... .. ..",
+      "... .. ..",
+      "... .. ..",
+      "... .. ..",
+      "... .. .."
+     ]
+    },
+    "climb": {
+     "name": "climb",
+     "index": 1,
+     "rows": [
+      "E-1 F0 00",
+      "... .. ..",
+      "... .. 00",
+      "... .. ..",
+      "... .. 00",
+      "... .. ..",
+      "... .. 00",
+      "... .. ..",
+      "... .. 00",
+      "... .. ..",
+      "... .. 00",
+      "... .. ..",
+      "... .. 01",
+      "... .. ..",
+      "... .. 01",
+      "... .. .."
+     ]
+    },
+    "fade-02": {
+     "name": "fade 02",
+     "index": 2,
+     "rows": [
+      "... .. 01",
+      "... .. ..",
+      "... .. 01",
+      "... .. ..",
+      "... .. 02",
+      "... .. ..",
+      "... .. 02",
+      "... .. ..",
+      "... .. 03",
+      "... .. ..",
+      "... .. 03",
+      "... .. ..",
+      "... .. 03",
+      "... .. ..",
+      "... .. 04",
+      "... .. .."
+     ]
+    },
+    "fade-03": {
+     "name": "fade 03",
+     "index": 3,
+     "rows": [
+      "... .. 05",
+      "... .. ..",
+      "... .. 05",
+      "... .. ..",
+      "... .. 06",
+      "... .. ..",
+      "... .. 06",
+      "... .. ..",
+      "... .. 07",
+      "... .. ..",
+      "... .. 08",
+      "... .. ..",
+      "... .. 09",
+      "... .. ..",
+      "... .. 09",
+      "... .. .."
+     ]
+    },
+    "fade-04": {
+     "name": "fade 04",
+     "index": 4,
+     "rows": [
+      "... .. 0A",
+      "... .. ..",
+      "... .. 0B",
+      "... .. ..",
+      "... .. 0C",
+      "... .. ..",
+      "... .. 0D",
+      "... .. ..",
+      "... .. 0E",
+      "... .. ..",
+      "... .. 0F",
+      "... .. ..",
+      "... .. 10",
+      "... .. ..",
+      "... .. 11",
+      "... .. .."
+     ]
+    },
+    "fade-05": {
+     "name": "fade 05",
+     "index": 5,
+     "rows": [
+      "... .. 12",
+      "... .. ..",
+      "... .. 13",
+      "... .. ..",
+      "... .. 14",
+      "... .. ..",
+      "... .. 16",
+      "... .. ..",
+      "... .. 17",
+      "... .. ..",
+      "... .. 18",
+      "... .. ..",
+      "... .. 1A",
+      "... .. ..",
+      "... .. 1B",
+      "... .. .."
+     ]
+    },
+    "fade-06": {
+     "name": "fade 06",
+     "index": 6,
+     "rows": [
+      "... .. 1C",
+      "... .. ..",
+      "... .. 1E",
+      "... .. ..",
+      "... .. 1F",
+      "... .. ..",
+      "... .. 21",
+      "... .. ..",
+      "... .. 22",
+      "... .. ..",
+      "... .. 24",
+      "... .. ..",
+      "... .. 25",
+      "... .. ..",
+      "... .. 27",
+      "... .. .."
+     ]
+    },
+    "fade-07": {
+     "name": "fade 07",
+     "index": 7,
+     "rows": [
+      "... .. 29",
+      "... .. ..",
+      "... .. 2B",
+      "... .. ..",
+      "... .. 2C",
+      "... .. ..",
+      "... .. 2E",
+      "... .. ..",
+      "... .. 30",
+      "... .. ..",
+      "... .. 32",
+      "... .. ..",
+      "... .. 34",
+      "... .. ..",
+      "... .. 36",
+      "... .. .."
+     ]
+    },
+    "fade-08": {
+     "name": "fade 08",
+     "index": 8,
+     "rows": [
+      "... .. 38",
+      "... .. ..",
+      "... .. 3A",
+      "... .. ..",
+      "... .. 3C",
+      "... .. ..",
+      "... .. 3E",
+      "... .. ..",
+      "... .. 40",
+      "... .. ..",
+      "... .. 42",
+      "... .. ..",
+      "... .. 44",
+      "... .. ..",
+      "... .. 46",
+      "... .. .."
+     ]
+    },
+    "fade-09": {
+     "name": "fade 09",
+     "index": 9,
+     "rows": [
+      "... .. 49",
+      "... .. ..",
+      "... .. 4B",
+      "... .. ..",
+      "... .. 4D",
+      "... .. ..",
+      "... .. 4F",
+      "... .. ..",
+      "... .. 52",
+      "... .. ..",
+      "... .. 54",
+      "... .. ..",
+      "... .. 57",
+      "... .. ..",
+      "... .. 59",
+      "... .. .."
+     ]
+    },
+    "fade-10": {
+     "name": "fade 10",
+     "index": 10,
+     "rows": [
+      "... .. 5C",
+      "... .. ..",
+      "... .. 5E",
+      "... .. ..",
+      "... .. 61",
+      "... .. ..",
+      "... .. 64",
+      "... .. ..",
+      "... .. 66",
+      "... .. ..",
+      "... .. 69",
+      "... .. ..",
+      "... .. 6C",
+      "... .. ..",
+      "... .. 6F",
+      "... .. .."
+     ]
+    },
+    "fade-11": {
+     "name": "fade 11",
+     "index": 11,
+     "rows": [
+      "... .. 71",
+      "... .. ..",
+      "... .. 74",
+      "... .. ..",
+      "... .. 77",
+      "... .. ..",
+      "... .. 7A",
+      "... .. ..",
+      "... .. 7D",
+      "... .. ..",
+      "... .. 80",
+      "... .. ..",
+      "... .. 83",
+      "... .. ..",
+      "... .. 86",
+      "... .. .."
+     ]
+    },
+    "fade-12": {
+     "name": "fade 12",
+     "index": 12,
+     "rows": [
+      "... .. 89",
+      "... .. ..",
+      "... .. 8C",
+      "... .. ..",
+      "... .. 8F",
+      "... .. ..",
+      "... .. 93",
+      "... .. ..",
+      "... .. 96",
+      "... .. ..",
+      "... .. 99",
+      "... .. ..",
+      "... .. 9C",
+      "... .. ..",
+      "... .. A0",
+      "... .. .."
+     ]
+    },
+    "fade-13": {
+     "name": "fade 13",
+     "index": 13,
+     "rows": [
+      "... .. A3",
+      "... .. ..",
+      "... .. A7",
+      "... .. ..",
+      "... .. AA",
+      "... .. ..",
+      "... .. AE",
+      "... .. ..",
+      "... .. B1",
+      "... .. ..",
+      "... .. B5",
+      "... .. ..",
+      "... .. B8",
+      "... .. ..",
+      "... .. BC",
+      "... .. .."
+     ]
+    },
+    "fade-14": {
+     "name": "fade 14",
+     "index": 14,
+     "rows": [
+      "... .. C0",
+      "... .. ..",
+      "... .. C3",
+      "... .. ..",
+      "... .. C7",
+      "... .. ..",
+      "... .. CB",
+      "... .. ..",
+      "... .. CF",
+      "... .. ..",
+      "... .. D2",
+      "... .. ..",
+      "... .. D6",
+      "... .. ..",
+      "... .. DA",
+      "... .. .."
+     ]
+    },
+    "fade-15": {
+     "name": "fade 15",
+     "index": 15,
+     "rows": [
+      "... .. DE",
+      "... .. ..",
+      "... .. E2",
+      "... .. ..",
+      "... .. E6",
+      "... .. ..",
+      "... .. EA",
+      "... .. ..",
+      "... .. EE",
+      "... .. ..",
+      "... .. F2",
+      "... .. ..",
+      "... .. F7",
+      "... .. ..",
+      "... .. FB",
+      "... .. FF"
      ]
     },
     "let-go": {
      "name": "let go",
-     "index": 1,
+     "index": 16,
      "rows": [
-      "=== ..",
-      "... ..",
-      "... ..",
-      "... ..",
-      "... ..",
-      "... ..",
-      "... ..",
-      "... ..",
-      "... ..",
-      "... ..",
-      "... ..",
-      "... ..",
-      "... ..",
-      "... ..",
-      "... ..",
-      "... ..",
-      "... ..",
-      "... ..",
-      "... ..",
-      "... ..",
-      "... ..",
-      "... ..",
-      "... ..",
-      "... .."
+      "=== .. ..",
+      "... .. ..",
+      "... .. ..",
+      "... .. ..",
+      "... .. ..",
+      "... .. ..",
+      "... .. ..",
+      "... .. ..",
+      "... .. ..",
+      "... .. ..",
+      "... .. ..",
+      "... .. ..",
+      "... .. ..",
+      "... .. ..",
+      "... .. ..",
+      "... .. ..",
+      "... .. ..",
+      "... .. ..",
+      "... .. ..",
+      "... .. ..",
+      "... .. ..",
+      "... .. ..",
+      "... .. ..",
+      "... .. .."
      ]
     }
    },
    "placements": [
     {
-     "puid": "climb",
+     "puid": "hush",
      "start": 0,
+     "length": 16
+    },
+    {
+     "puid": "climb",
+     "start": 64,
+     "length": 16
+    },
+    {
+     "puid": "fade-02",
+     "start": 80,
+     "length": 16
+    },
+    {
+     "puid": "fade-03",
+     "start": 96,
+     "length": 16
+    },
+    {
+     "puid": "fade-04",
+     "start": 112,
+     "length": 16
+    },
+    {
+     "puid": "fade-05",
+     "start": 128,
+     "length": 16
+    },
+    {
+     "puid": "fade-06",
+     "start": 144,
+     "length": 16
+    },
+    {
+     "puid": "fade-07",
+     "start": 160,
+     "length": 16
+    },
+    {
+     "puid": "fade-08",
+     "start": 176,
+     "length": 16
+    },
+    {
+     "puid": "fade-09",
+     "start": 192,
+     "length": 16
+    },
+    {
+     "puid": "fade-10",
+     "start": 208,
+     "length": 16
+    },
+    {
+     "puid": "fade-11",
+     "start": 224,
+     "length": 16
+    },
+    {
+     "puid": "fade-12",
+     "start": 240,
+     "length": 16
+    },
+    {
+     "puid": "fade-13",
+     "start": 256,
+     "length": 16
+    },
+    {
+     "puid": "fade-14",
+     "start": 272,
+     "length": 16
+    },
+    {
+     "puid": "fade-15",
+     "start": 288,
      "length": 16
     },
     {
@@ -7623,748 +8571,748 @@
      "name": "arp 01",
      "index": 0,
      "rows": [
-      "E-3 78 38 8C 1A 22 00",
-      "... .. .. .. .. .. ..",
-      "... .. 38 .. .. .. ..",
-      "... .. .. .. .. .. ..",
-      "G-3 4C 38 .. 1A 22 00",
-      "... .. .. .. .. .. ..",
-      "... .. 38 .. .. .. ..",
-      "... .. .. .. .. .. ..",
-      "B-3 78 39 8C 1A 22 00",
-      "... .. .. .. .. .. ..",
-      "... .. 39 .. .. .. ..",
-      "... .. .. .. .. .. ..",
-      "E-5 4C 3A .. 1A 22 00",
-      "... .. .. .. .. .. ..",
-      "... .. 3B .. .. .. ..",
-      "... .. .. .. .. .. .."
+      "E-3 6C G-3 6C B-3 6C E-4 6C 38 8C 1A 22 00 8",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. 38 .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. 38 .. 1A 22 00 .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. 38 .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. 39 8C 1A 22 00 .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. 39 .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. 3A .. 1A 22 00 .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. 3B .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. ."
      ]
     },
     "arp 02": {
      "name": "arp 02",
      "index": 1,
      "rows": [
-      "B-4 78 3C 8C 1A 22 00",
-      "... .. .. .. .. .. ..",
-      "... .. 3D .. .. .. ..",
-      "... .. .. .. .. .. ..",
-      "E-4 4C 3E .. 1A 22 00",
-      "... .. .. .. .. .. ..",
-      "... .. 40 .. .. .. ..",
-      "... .. .. .. .. .. ..",
-      "G-4 78 41 8C 1A 22 00",
-      "... .. .. .. .. .. ..",
-      "... .. 43 .. .. .. ..",
-      "... .. .. .. .. .. ..",
-      "B-5 4C 44 .. 1A 22 00",
-      "... .. .. .. .. .. ..",
-      "... .. 46 .. .. .. ..",
-      "... .. .. .. .. .. .."
+      "... .. ... .. ... .. ... .. 3C 8C 1A 22 00 .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. 3D .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. 3E .. 1A 22 00 .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. 40 .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. 41 8C 1A 22 00 .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. 43 .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. 44 .. 1A 22 00 .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. 46 .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. ."
      ]
     },
     "arp 03": {
      "name": "arp 03",
      "index": 2,
      "rows": [
-      "E-5 78 48 8C 1A 22 00",
-      "... .. .. .. .. .. ..",
-      "... .. 4A .. .. .. ..",
-      "... .. .. .. .. .. ..",
-      "B-5 4C 4C .. 1A 22 00",
-      "... .. .. .. .. .. ..",
-      "... .. 4E .. .. .. ..",
-      "... .. .. .. .. .. ..",
-      "E-5 78 50 8C 1A 22 00",
-      "... .. .. .. .. .. ..",
-      "... .. 53 .. .. .. ..",
-      "... .. .. .. .. .. ..",
-      "B-5 4C 55 .. 1A 22 00",
-      "... .. .. .. .. .. ..",
-      "... .. 57 .. .. .. ..",
-      "... .. .. .. .. .. .."
+      "... .. ... .. ... .. ... .. 48 8C 1A 22 00 .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. 4A .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. 4C .. 1A 22 00 .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. 4E .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. 50 8C 1A 22 00 .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. 53 .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. 55 .. 1A 22 00 .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. 57 .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. ."
      ]
     },
     "arp 04": {
      "name": "arp 04",
      "index": 3,
      "rows": [
-      "G-4 78 5A 8C 1A 22 00",
-      "... .. .. .. .. .. ..",
-      "E-4 4C 5D .. .. .. ..",
-      "... .. .. .. .. .. ..",
-      "B-4 78 5F .. 1A 22 00",
-      "... .. .. .. .. .. ..",
-      "E-5 4C 62 .. .. .. ..",
-      "... .. .. .. .. .. ..",
-      "B-3 78 65 8C 1A 22 00",
-      "... .. .. .. .. .. ..",
-      "G-3 4C 68 .. .. .. ..",
-      "... .. .. .. .. .. ..",
-      "E-3 78 6A .. 1A 22 00",
-      "... .. .. .. .. .. ..",
-      "G-4 4C 6D .. .. .. ..",
-      "... .. .. .. .. .. .."
+      "... .. ... .. ... .. ... .. 5A 8C 1A 22 00 6",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. 5D .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. 5F .. 1A 22 00 .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. 62 .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. 65 8C 1A 22 00 .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. 68 .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. 6A .. 1A 22 00 .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. 6D .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. ."
      ]
     },
     "arp 05": {
      "name": "arp 05",
      "index": 4,
      "rows": [
-      "E-4 78 70 8C 1A 22 00",
-      "... .. .. .. .. .. ..",
-      "F#4 4C 73 .. .. .. ..",
-      "... .. .. .. .. .. ..",
-      "A-4 78 76 .. 1A 22 00",
-      "... .. .. .. .. .. ..",
-      "A-5 4C 79 .. .. .. ..",
-      "... .. .. .. .. .. ..",
-      "C#5 78 7C 8C 1A 22 00",
-      "... .. .. .. .. .. ..",
-      "E-5 4C 80 .. .. .. ..",
-      "... .. .. .. .. .. ..",
-      "F#5 78 83 .. 1A 22 00",
-      "... .. .. .. .. .. ..",
-      "A-6 4C 86 .. .. .. ..",
-      "... .. .. .. .. .. .."
+      "A-3 6C C#4 6C E-4 6C F#4 6C 70 8C 1A 22 00 .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. 73 .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. 76 .. 1A 22 00 .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. 79 .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. 7C 8C 1A 22 00 .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. 80 .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. 83 .. 1A 22 00 .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. 86 .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. ."
      ]
     },
     "arp 06": {
      "name": "arp 06",
      "index": 5,
      "rows": [
-      "F#5 78 89 8C 1A 22 00",
-      "... .. .. .. .. .. ..",
-      "E-5 4C 8C .. .. .. ..",
-      "... .. .. .. .. .. ..",
-      "C#5 78 90 .. 1A 22 00",
-      "... .. .. .. .. .. ..",
-      "A-5 4C 93 .. .. .. ..",
-      "... .. .. .. .. .. ..",
-      "A-4 78 96 8C 1A 22 00",
-      "... .. .. .. .. .. ..",
-      "F#4 4C 99 .. .. .. ..",
-      "... .. .. .. .. .. ..",
-      "E-4 78 9C .. 1A 22 00",
-      "... .. .. .. .. .. ..",
-      "C#5 4C A0 .. .. .. ..",
-      "... .. .. .. .. .. .."
+      "... .. ... .. ... .. ... .. 89 8C 1A 22 00 .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. 8C .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. 90 .. 1A 22 00 .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. 93 .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. 96 8C 1A 22 00 .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. 99 .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. 9C .. 1A 22 00 .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. A0 .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. ."
      ]
     },
     "arp 07": {
      "name": "arp 07",
      "index": 6,
      "rows": [
-      "A-3 78 A3 8C 1A 22 00",
-      "... .. .. .. .. .. ..",
-      "C#4 4C A6 .. .. .. ..",
-      "... .. .. .. .. .. ..",
-      "E-4 78 A9 .. 1A 22 00",
-      "... .. .. .. .. .. ..",
-      "F#5 4C AC .. .. .. ..",
-      "... .. .. .. .. .. ..",
-      "A-4 78 AF 8C 1A 22 00",
-      "... .. .. .. .. .. ..",
-      "A-4 4C B3 .. .. .. ..",
-      "... .. .. .. .. .. ..",
-      "C#5 78 B6 .. 1A 22 00",
-      "... .. .. .. .. .. ..",
-      "E-6 4C B9 .. .. .. ..",
-      "... .. .. .. .. .. .."
+      "... .. ... .. ... .. ... .. A3 8C 1A 22 00 .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. A6 .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. A9 .. 1A 22 00 .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. AC .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. AF 8C 1A 22 00 .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. B3 .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. B6 .. 1A 22 00 .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. B9 .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. ."
      ]
     },
     "arp 08": {
      "name": "arp 08",
      "index": 7,
      "rows": [
-      "F#5 78 BC 8B 1A 22 00",
-      "A-5 4C .. .. .. .. ..",
-      "F#5 78 BF .. .. .. ..",
-      "E-6 4C .. .. .. .. ..",
-      "C#5 78 C1 .. 1A 22 00",
-      "A-4 4C .. .. .. .. ..",
-      "A-4 78 C4 .. .. .. ..",
-      "F#5 4C .. .. .. .. ..",
-      "E-4 78 C7 8A 1A 22 00",
-      "C#4 4C .. .. .. .. ..",
-      "A-3 78 CA .. .. .. ..",
-      "C#5 4C .. .. .. .. ..",
-      "E-4 78 CD .. 1B 22 00",
-      "F#4 4C .. .. .. .. ..",
-      "A-4 78 CF .. .. .. ..",
-      "A-5 4C .. .. .. .. .."
+      "... .. ... .. ... .. ... .. BC 8B 1A 22 00 4",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. BF .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. C1 .. 1A 22 00 .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. C4 .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. C7 8A 1A 22 00 .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. CA .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. CD .. 1B 22 00 .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. CF .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. ."
      ]
     },
     "arp 09": {
      "name": "arp 09",
      "index": 8,
      "rows": [
-      "D-5 78 D2 89 1E 22 00",
-      "E-5 4C .. .. .. .. ..",
-      "G-5 78 D4 .. .. .. ..",
-      "B-6 4C .. .. .. .. ..",
-      "G-5 78 D7 .. 23 23 00",
-      "E-5 4C .. .. .. .. ..",
-      "D-5 78 D9 .. .. .. ..",
-      "B-5 4C .. .. .. .. ..",
-      "B-4 78 DC 88 2B 24 00",
-      "G-4 4C .. .. .. .. ..",
-      "E-4 78 DE .. .. .. ..",
-      "D-5 4C .. .. .. .. ..",
-      "B-3 78 E0 .. 33 25 00",
-      "D-4 4C .. .. .. .. ..",
-      "E-4 78 E2 .. .. .. ..",
-      "G-5 4C .. .. .. .. .."
+      "B-3 6C D-4 6C E-4 6C G-4 6C D2 89 1E 22 00 .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. D4 .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. D7 .. 23 23 00 .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. D9 .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. DC 88 2B 24 00 .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. DE .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. E0 .. 33 25 00 .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. E2 .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. ."
      ]
     },
     "arp 10": {
      "name": "arp 10",
      "index": 9,
      "rows": [
-      "B-4 78 E4 86 3D 26 00",
-      "B-4 4C .. .. .. .. ..",
-      "D-5 78 E6 .. .. .. ..",
-      "E-6 4C .. .. .. .. ..",
-      "G-5 78 E8 .. 49 28 00",
-      "B-5 4C .. .. .. .. ..",
-      "G-5 78 E9 .. .. .. ..",
-      "E-6 4C .. .. .. .. ..",
-      "D-5 78 EB 83 55 29 00",
-      "B-4 4C .. .. .. .. ..",
-      "B-4 78 EC .. .. .. ..",
-      "G-5 4C .. .. .. .. ..",
-      "E-4 78 EE .. 62 2B 00",
-      "D-4 4C .. .. .. .. ..",
-      "B-3 78 EF .. .. .. ..",
-      "D-5 4C .. .. .. .. .."
+      "... .. ... .. ... .. ... .. E4 86 3D 26 00 .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. E6 .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. E8 .. 49 28 00 .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. E9 .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. EB 83 55 29 00 .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. EC .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. EE .. 62 2B 00 .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. EF .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. ."
      ]
     },
     "arp 11": {
      "name": "arp 11",
      "index": 10,
      "rows": [
-      "D-4 78 F0 81 70 2D 00",
-      "E-4 4C .. .. .. .. ..",
-      "G-4 78 F1 .. .. .. ..",
-      "G-5 4C .. .. .. .. ..",
-      "B-4 78 F2 .. 7E 30 00",
-      "D-5 4C .. .. .. .. ..",
-      "E-5 78 F3 .. .. .. ..",
-      "G-6 4C .. .. .. .. ..",
-      "E-5 78 F3 7E 8C 32 00",
-      "D-5 4C .. .. .. .. ..",
-      "B-4 78 F4 .. .. .. ..",
-      "G-5 4C .. .. .. .. ..",
-      "G-4 78 F4 .. 9B 34 00",
-      "E-4 4C .. .. .. .. ..",
-      "D-4 78 F4 .. .. .. ..",
-      "B-4 4C .. .. .. .. .."
+      "G-3 6C B-3 6C D-4 6C E-4 6C F0 81 70 2D 00 .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F1 .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F2 .. 7E 30 00 .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F3 .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F3 7E 8C 32 00 .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. 9B 34 00 .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. ."
      ]
     },
     "arp 12": {
      "name": "arp 12",
      "index": 11,
      "rows": [
-      "G-3 78 F4 7B A9 37 00",
-      "B-3 4C .. .. .. .. ..",
-      "D-4 78 F4 .. .. .. ..",
-      "E-5 4C .. .. .. .. ..",
-      "G-4 78 F4 .. B6 3A 00",
-      "G-4 4C .. .. .. .. ..",
-      "B-4 78 F4 .. .. .. ..",
-      "D-6 4C .. .. .. .. ..",
-      "E-5 78 F4 78 C3 3D 00",
-      "G-5 4C .. .. .. .. ..",
-      "E-5 78 F4 .. .. .. ..",
-      "D-6 4C .. .. .. .. ..",
-      "B-4 78 F4 .. D0 40 01",
-      "G-4 4C .. .. .. .. ..",
-      "G-4 78 F4 .. .. .. ..",
-      "E-5 4C .. .. .. .. .."
+      "... .. ... .. ... .. ... .. F4 7B A9 37 00 .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. B6 3A 00 .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 78 C3 3D 00 .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. D0 40 01 .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. ."
      ]
     },
     "arp 13": {
      "name": "arp 13",
      "index": 12,
      "rows": [
-      "D-4 78 F4 75 DB 44 02",
-      "B-3 4C .. .. .. .. ..",
-      "G-3 78 F4 .. .. .. ..",
-      "B-4 4C .. .. .. .. ..",
-      "D-4 78 F4 .. E5 47 05",
-      "E-4 4C .. .. .. .. ..",
-      "G-4 78 F4 .. .. .. ..",
-      "G-5 4C .. .. .. .. ..",
-      "B-4 78 F4 72 EE 4A 09",
-      "D-5 4C .. .. .. .. ..",
-      "E-5 78 F4 .. .. .. ..",
-      "G-6 4C .. .. .. .. ..",
-      "E-5 78 F4 .. F5 4E 0E",
-      "D-5 4C .. .. .. .. ..",
-      "B-4 78 F4 .. .. .. ..",
-      "G-5 4C .. .. .. .. .."
+      "... .. ... .. ... .. ... .. F4 75 DB 44 02 .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. E5 47 05 .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 72 EE 4A 09 .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. F5 4E 0E .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. ."
      ]
     },
     "arp 14": {
      "name": "arp 14",
      "index": 13,
      "rows": [
-      "G-4 78 F4 6F FA 52 14",
-      "E-4 4C .. .. .. .. ..",
-      "D-4 78 F4 .. .. .. ..",
-      "B-4 4C .. .. .. .. ..",
-      "G-3 78 F4 .. FE 56 1B",
-      "B-3 4C .. .. .. .. ..",
-      "D-4 78 F4 .. .. .. ..",
-      "E-5 4C .. .. .. .. ..",
-      "G-4 78 F4 6B FF 59 22",
-      "G-4 4C .. .. .. .. ..",
-      "B-4 78 F4 .. .. .. ..",
-      "D-6 4C .. .. .. .. ..",
-      "E-5 78 F4 .. FF 5D 2A",
-      "G-5 4C .. .. .. .. ..",
-      "E-5 78 F4 .. .. .. ..",
-      "D-6 4C .. .. .. .. .."
+      "... .. ... .. ... .. ... .. F4 6F FA 52 14 .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. FE 56 1B .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 6B FF 59 22 .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. FF 5D 2A .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. ."
      ]
     },
     "arp 15": {
      "name": "arp 15",
      "index": 14,
      "rows": [
-      "B-4 78 F4 68 FF 62 32",
-      "G-4 4C .. .. .. .. ..",
-      "G-4 78 F4 .. .. .. ..",
-      "E-5 4C .. .. .. .. ..",
-      "D-4 78 F4 .. FF 66 3B",
-      "B-3 4C .. .. .. .. ..",
-      "G-3 78 F4 .. .. .. ..",
-      "B-4 4C .. .. .. .. ..",
-      "D-4 78 F4 64 FF 6A 45",
-      "E-4 4C .. .. .. .. ..",
-      "G-4 78 F4 .. .. .. ..",
-      "G-5 4C .. .. .. .. ..",
-      "B-4 78 F4 .. FF 6E 4E",
-      "D-5 4C .. .. .. .. ..",
-      "E-5 78 F4 .. .. .. ..",
-      "G-6 4C .. .. .. .. .."
+      "... .. ... .. ... .. ... .. F4 68 FF 62 32 .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. FF 66 3B .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 64 FF 6A 45 .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. FF 6E 4E .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. ."
      ]
     },
     "arp 16": {
      "name": "arp 16",
      "index": 15,
      "rows": [
-      "E-5 78 F4 61 FF 72 58",
-      "D-5 4C .. .. .. .. ..",
-      "B-4 78 F4 .. .. .. ..",
-      "G-5 4C .. .. .. .. ..",
-      "G-4 78 F4 .. FF 77 62",
-      "E-4 4C .. .. .. .. ..",
-      "D-4 78 F4 .. .. .. ..",
-      "B-4 4C .. .. .. .. ..",
-      "G-3 78 F4 5D FF 7B 6C",
-      "B-3 4C .. .. .. .. ..",
-      "D-4 78 F4 .. .. .. ..",
-      "E-5 4C .. .. .. .. ..",
-      "G-4 78 F4 .. FF 7F 77",
-      "G-4 4C .. .. .. .. ..",
-      "B-4 78 F4 .. .. .. ..",
-      "D-6 4C .. .. .. .. .."
+      "... .. ... .. ... .. ... .. F4 61 FF 72 58 .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. FF 77 62 .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 5D FF 7B 6C .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. FF 7F 77 .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. ."
      ]
     },
     "arp 17": {
      "name": "arp 17",
      "index": 16,
      "rows": [
-      "E-4 78 F4 5A FF 84 81",
-      "C-4 4C .. .. .. .. ..",
-      "G-3 78 F4 .. .. .. ..",
-      "C-5 4C .. .. .. .. ..",
-      "E-4 78 F4 .. FF 88 8A",
-      "G-4 4C .. .. .. .. ..",
-      "C-5 78 F4 .. .. .. ..",
-      "E-6 4C .. .. .. .. ..",
-      "C-5 78 F4 57 FF 8C 94",
-      "G-4 4C .. .. .. .. ..",
-      "E-4 78 F4 .. .. .. ..",
-      "C-5 4C .. .. .. .. ..",
-      "G-3 78 F4 .. FF 91 9E",
-      "C-4 4C .. .. .. .. ..",
-      "E-4 78 F4 .. .. .. ..",
-      "G-5 4C .. .. .. .. .."
+      "G-3 6C C-4 6C E-4 6C === .. F4 5A FF 84 81 .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. FF 88 8A .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 57 FF 8C 94 .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. FF 91 9E .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. ."
      ]
     },
     "arp 18": {
      "name": "arp 18",
      "index": 17,
      "rows": [
-      "C-5 78 F4 54 FF 95 A6",
-      "E-5 4C .. .. .. .. ..",
-      "C-5 78 F4 .. .. .. ..",
-      "G-5 4C .. .. .. .. ..",
-      "E-4 78 F4 .. FF 99 AF",
-      "C-4 4C .. .. .. .. ..",
-      "G-3 78 F4 .. .. .. ..",
-      "C-5 4C .. .. .. .. ..",
-      "E-4 78 F4 51 FF 9E B7",
-      "G-4 4C .. .. .. .. ..",
-      "C-5 78 F4 .. .. .. ..",
-      "E-6 4C .. .. .. .. ..",
-      "C-5 78 F4 .. FF A2 BE",
-      "G-4 4C .. .. .. .. ..",
-      "E-4 78 F4 .. .. .. ..",
-      "C-5 4C .. .. .. .. .."
+      "... .. ... .. ... .. ... .. F4 54 FF 95 A6 .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. FF 99 AF .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 51 FF 9E B7 .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. FF A2 BE .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. ."
      ]
     },
     "arp 19": {
      "name": "arp 19",
      "index": 18,
      "rows": [
-      "G-3 78 F4 4E FF A6 C5",
-      "C-4 4C .. .. .. .. ..",
-      "E-4 78 F4 .. .. .. ..",
-      "G-5 4C .. .. .. .. ..",
-      "C-5 78 F4 .. FF AA CB",
-      "E-5 4C .. .. .. .. ..",
-      "C-5 78 F4 .. .. .. ..",
-      "G-5 4C .. .. .. .. ..",
-      "E-4 78 F4 4B FF AE CF",
-      "C-4 4C .. .. .. .. ..",
-      "G-3 78 F4 .. .. .. ..",
-      "C-5 4C .. .. .. .. ..",
-      "E-4 78 F4 .. FF B3 D3",
-      "G-4 4C .. .. .. .. ..",
-      "C-5 78 F4 .. .. .. ..",
-      "E-6 4C .. .. .. .. .."
+      "... .. ... .. ... .. ... .. F4 4E FF A6 C5 .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. FF AA CB .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 4B FF AE CF .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. FF B3 D3 .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. ."
      ]
     },
     "arp 20": {
      "name": "arp 20",
      "index": 19,
      "rows": [
-      "C-5 78 F4 49 FF B7 D6",
-      "G-4 4C .. .. .. .. ..",
-      "E-4 78 F4 .. .. .. ..",
-      "C-5 4C .. .. .. .. ..",
-      "G-3 78 F4 .. FF BA D8",
-      "C-4 4C .. .. .. .. ..",
-      "E-4 78 F4 .. .. .. ..",
-      "G-5 4C .. .. .. .. ..",
-      "C-5 78 F4 46 FF BE D9",
-      "E-5 4C .. .. .. .. ..",
-      "C-5 78 F4 .. .. .. ..",
-      "G-5 4C .. .. .. .. ..",
-      "E-4 78 F4 .. FF C2 D9",
-      "C-4 4C .. .. .. .. ..",
-      "G-3 78 F4 .. .. .. ..",
-      "C-5 4C .. .. .. .. .."
+      "... .. ... .. ... .. ... .. F4 49 FF B7 D6 .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. FF BA D8 .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 46 FF BE D9 .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. FF C2 D9 .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. ."
      ]
     },
     "arp 21": {
      "name": "arp 21",
      "index": 20,
      "rows": [
-      "F#3 78 F4 44 FF C6 D9",
-      "A-3 4C .. .. .. .. ..",
-      "D-4 78 F4 .. .. .. ..",
-      "A-5 4C .. .. .. .. ..",
-      "F#4 78 F4 .. FF C9 D9",
-      "A-4 4C .. .. .. .. ..",
-      "D-5 78 F4 .. .. .. ..",
-      "A-6 4C .. .. .. .. ..",
-      "D-5 78 F4 43 FF CC D9",
-      "A-4 4C .. .. .. .. ..",
-      "F#4 78 F4 .. .. .. ..",
-      "A-5 4C .. .. .. .. ..",
-      "D-4 78 F4 .. FF D0 D9",
-      "A-3 4C .. .. .. .. ..",
-      "F#3 78 F4 .. .. .. ..",
-      "A-4 4C .. .. .. .. .."
+      "F#3 6C A-3 6C D-4 6C === .. F4 44 FF C6 D9 .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. FF C9 D9 .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 43 FF CC D9 .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. FF D0 D9 .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. ."
      ]
     },
     "arp 22": {
      "name": "arp 22",
      "index": 21,
      "rows": [
-      "D-4 78 F4 42 FF D3 D9",
-      "A-4 4C .. .. .. .. ..",
-      "F#4 78 F4 .. .. .. ..",
-      "A-5 4C .. .. .. .. ..",
-      "D-5 78 F4 .. FF D6 D9",
-      "A-5 4C .. .. .. .. ..",
-      "D-5 78 F4 .. .. .. ..",
-      "A-5 4C .. .. .. .. ..",
-      "F#4 78 F4 41 FF D9 D9",
-      "A-4 4C .. .. .. .. ..",
-      "D-4 78 F4 .. .. .. ..",
-      "A-4 4C .. .. .. .. ..",
-      "F#3 78 F4 .. FF DC D9",
-      "A-3 4C .. .. .. .. ..",
-      "D-4 78 F4 .. .. .. ..",
-      "A-5 4C .. .. .. .. .."
+      "... .. ... .. ... .. ... .. F4 42 FF D3 D9 .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. FF D6 D9 .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 41 FF D9 D9 .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. FF DC D9 .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. ."
      ]
     },
     "arp 23": {
      "name": "arp 23",
      "index": 22,
      "rows": [
-      "F#4 78 F4 40 FF DE D9",
-      "A-4 4C .. .. .. .. ..",
-      "D-5 78 F4 .. .. .. ..",
-      "A-6 4C .. .. .. .. ..",
-      "D-5 78 F4 .. FF E0 D9",
-      "A-4 4C .. .. .. .. ..",
-      "F#4 78 F4 .. .. .. ..",
-      "A-5 4C .. .. .. .. ..",
-      "D-4 78 F4 40 FF E3 D9",
-      "A-3 4C .. .. .. .. ..",
-      "F#3 78 F4 .. .. .. ..",
-      "A-4 4C .. .. .. .. ..",
-      "D-4 78 F4 .. FF E5 D9",
-      "A-4 4C .. .. .. .. ..",
-      "F#4 78 F4 .. .. .. ..",
-      "A-5 4C .. .. .. .. .."
+      "... .. ... .. ... .. ... .. F4 40 FF DE D9 .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. FF E0 D9 .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 40 FF E3 D9 .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. FF E5 D9 .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. ."
      ]
     },
     "arp 24": {
      "name": "arp 24",
      "index": 23,
      "rows": [
-      "D-5 78 F4 40 FF E7 D9",
-      "A-5 4C .. .. .. .. ..",
-      "D-5 78 F4 .. .. .. ..",
-      "A-5 4C .. .. .. .. ..",
-      "F#4 78 F4 .. FF E8 D9",
-      "A-4 4C .. .. .. .. ..",
-      "D-4 78 F4 .. .. .. ..",
-      "A-4 4C .. .. .. .. ..",
-      "F#3 78 F4 40 FF EA D9",
-      "A-3 4C .. .. .. .. ..",
-      "D-4 78 F4 .. .. .. ..",
-      "A-5 4C .. .. .. .. ..",
-      "F#4 78 F4 .. FF EB D9",
-      "A-4 4C .. .. .. .. ..",
-      "D-5 78 F4 .. .. .. ..",
-      "A-6 4C .. .. .. .. .."
+      "... .. ... .. ... .. ... .. F4 40 FF E7 D9 .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. FF E8 D9 .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 40 FF EA D9 .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. FF EB D9 .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. ."
      ]
     },
     "arp 25": {
      "name": "arp 25",
      "index": 24,
      "rows": [
-      "G-5 78 F4 40 FF EC D9",
-      "E-5 4C .. .. .. .. ..",
-      "B-4 78 F4 .. .. .. ..",
-      "G-5 4C .. .. .. .. ..",
-      "B-4 78 F4 .. FF ED D9",
-      "G-4 4C .. .. .. .. ..",
-      "E-4 78 F4 .. .. .. ..",
-      "B-4 4C .. .. .. .. ..",
-      "G-3 78 F4 40 FF EE D9",
-      "B-3 4C .. .. .. .. ..",
-      "E-4 78 F4 .. .. .. ..",
-      "G-5 4C .. .. .. .. ..",
-      "B-4 78 F4 .. FF EE D9",
-      "G-4 4C .. .. .. .. ..",
-      "B-4 78 F4 .. .. .. ..",
-      "E-6 4C .. .. .. .. .."
+      "G-3 6C B-3 6C E-4 6C === .. F4 40 FF EC D9 .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. FF ED D9 .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 40 FF EE D9 .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. FF EE D9 .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. ."
      ]
     },
     "arp 26": {
      "name": "arp 26",
      "index": 25,
      "rows": [
-      "G-5 78 F4 40 FF EE D9",
-      "B-5 4C .. .. .. .. ..",
-      "G-5 78 F4 .. .. .. ..",
-      "E-6 4C .. .. .. .. ..",
-      "B-4 78 F4 .. FF EE D9",
-      "G-4 4C .. .. .. .. ..",
-      "B-4 78 F4 .. .. .. ..",
-      "G-5 4C .. .. .. .. ..",
-      "E-4 78 F4 40 FF EE D9",
-      "B-3 4C .. .. .. .. ..",
-      "G-3 78 F4 .. .. .. ..",
-      "B-4 4C .. .. .. .. ..",
-      "E-4 78 F4 .. FF EE D9",
-      "G-4 4C .. .. .. .. ..",
-      "B-4 78 F4 .. .. .. ..",
-      "G-5 4C .. .. .. .. .."
+      "... .. ... .. ... .. ... .. F4 40 FF EE D9 .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. FF EE D9 .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 40 FF EE D9 .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. FF EE D9 .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. ."
      ]
     },
     "arp 27": {
      "name": "arp 27",
      "index": 26,
      "rows": [
-      "B-4 78 F4 40 FF EE D9",
-      "E-5 4C .. .. .. .. ..",
-      "G-5 78 F4 .. .. .. ..",
-      "B-6 4C .. .. .. .. ..",
-      "G-5 78 F4 .. FF EE D9",
-      "E-5 4C .. .. .. .. ..",
-      "B-4 78 F4 .. .. .. ..",
-      "G-5 4C .. .. .. .. ..",
-      "B-4 78 F4 40 FF EE D9",
-      "G-4 4C .. .. .. .. ..",
-      "E-4 78 F4 .. .. .. ..",
-      "B-4 4C .. .. .. .. ..",
-      "G-3 78 F4 .. FF EE D9",
-      "B-3 4C .. .. .. .. ..",
-      "E-4 78 F4 .. .. .. ..",
-      "G-5 4C .. .. .. .. .."
+      "... .. ... .. ... .. ... .. F4 40 FF EE D9 .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. FF EE D9 .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 40 FF EE D9 .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. FF EE D9 .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. ."
      ]
     },
     "arp 28": {
      "name": "arp 28",
      "index": 27,
      "rows": [
-      "B-4 78 F4 40 FF EE D9",
-      "G-4 4C .. .. .. .. ..",
-      "B-4 78 F4 .. .. .. ..",
-      "E-6 4C .. .. .. .. ..",
-      "G-5 78 F4 .. FF EE D9",
-      "B-5 4C .. .. .. .. ..",
-      "G-5 78 F4 .. .. .. ..",
-      "E-6 4C .. .. .. .. ..",
-      "B-4 78 F4 40 FF EE D9",
-      "G-4 4C .. .. .. .. ..",
-      "B-4 78 F4 .. .. .. ..",
-      "G-5 4C .. .. .. .. ..",
-      "E-4 78 F4 .. FF EE D9",
-      "B-3 4C .. .. .. .. ..",
-      "G-3 78 F4 .. .. .. ..",
-      "B-4 4C .. .. .. .. .."
+      "... .. ... .. ... .. ... .. F4 40 FF EE D9 .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. FF EE D9 .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 40 FF EE D9 .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. FF EE D9 .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. ."
      ]
     },
     "arp 29": {
      "name": "arp 29",
      "index": 28,
      "rows": [
-      "D-4 78 F4 40 FF EE D9",
-      "F#4 4C .. .. .. .. ..",
-      "G-4 78 F4 .. .. .. ..",
-      "B-5 4C .. .. .. .. ..",
-      "D-5 78 F4 .. FF EE D9",
-      "F#5 4C .. .. .. .. ..",
-      "D-5 78 F4 .. .. .. ..",
-      "B-5 4C .. .. .. .. ..",
-      "G-4 78 F4 40 FF EE D9",
-      "F#4 4C .. .. .. .. ..",
-      "D-4 78 F4 .. .. .. ..",
-      "B-4 4C .. .. .. .. ..",
-      "G-3 78 F4 .. FF EE D9",
-      "B-3 4C .. .. .. .. ..",
-      "D-4 78 F4 .. .. .. ..",
-      "F#5 4C .. .. .. .. .."
+      "G-3 6C B-3 6C D-4 6C F#4 6C F4 40 FF EE D9 .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. FF EE D9 .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 40 FF EE D9 .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. FF EE D9 .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. ."
      ]
     },
     "arp 30": {
      "name": "arp 30",
      "index": 29,
      "rows": [
-      "G-4 78 F4 40 FF EE D9",
-      "B-4 4C .. .. .. .. ..",
-      "D-5 78 F4 .. .. .. ..",
-      "F#6 4C .. .. .. .. ..",
-      "D-5 78 F4 .. FF EE D9",
-      "B-4 4C .. .. .. .. ..",
-      "G-4 78 F4 .. .. .. ..",
-      "F#5 4C .. .. .. .. ..",
-      "D-4 78 F4 40 FF EE D9",
-      "B-3 4C .. .. .. .. ..",
-      "G-3 78 F4 .. .. .. ..",
-      "B-4 4C .. .. .. .. ..",
-      "D-4 78 F4 .. FF EE D9",
-      "F#4 4C .. .. .. .. ..",
-      "G-4 78 F4 .. .. .. ..",
-      "B-5 4C .. .. .. .. .."
+      "... .. ... .. ... .. ... .. F4 40 FF EE D9 .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. FF EE D9 .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 40 FF EE D9 .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. FF EE D9 .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. ."
      ]
     },
     "arp 31": {
      "name": "arp 31",
      "index": 30,
      "rows": [
-      "D-5 78 F4 40 FF EE D9",
-      "F#5 4C .. .. .. .. ..",
-      "D-5 78 F4 .. .. .. ..",
-      "B-5 4C .. .. .. .. ..",
-      "G-4 78 F4 .. FF EE D9",
-      "F#4 4C .. .. .. .. ..",
-      "D-4 78 F4 .. .. .. ..",
-      "B-4 4C .. .. .. .. ..",
-      "G-3 78 F4 40 FF EE D9",
-      "B-3 4C .. .. .. .. ..",
-      "D-4 78 F4 .. .. .. ..",
-      "F#5 4C .. .. .. .. ..",
-      "G-4 78 F4 .. FF EE D9",
-      "B-4 4C .. .. .. .. ..",
-      "D-5 78 F4 .. .. .. ..",
-      "F#6 4C .. .. .. .. .."
+      "... .. ... .. ... .. ... .. F4 40 FF EE D9 .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. FF EE D9 .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 40 FF EE D9 .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. FF EE D9 .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. ."
      ]
     },
     "arp 32": {
      "name": "arp 32",
      "index": 31,
      "rows": [
-      "D-5 78 F4 40 FF EE D9",
-      "B-4 4C .. .. .. .. ..",
-      "G-4 78 F4 .. .. .. ..",
-      "F#5 4C .. .. .. .. ..",
-      "D-4 78 F4 .. FF EE D9",
-      "B-3 4C .. .. .. .. ..",
-      "G-3 78 F4 .. .. .. ..",
-      "B-4 4C .. .. .. .. ..",
-      "D-4 78 F4 40 FF EE D9",
-      "F#4 4C .. .. .. .. ..",
-      "G-4 78 F4 .. .. .. ..",
-      "B-5 4C .. .. .. .. ..",
-      "D-5 78 F4 .. FF EE D9",
-      "F#5 4C .. .. .. .. ..",
-      "D-5 78 F4 .. .. .. ..",
-      "B-5 4C .. .. .. .. .."
+      "... .. ... .. ... .. ... .. F4 40 FF EE D9 .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. FF EE D9 .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 40 FF EE D9 .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. FF EE D9 .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. ."
      ]
     },
     "arp 33": {
      "name": "arp 33",
      "index": 32,
      "rows": [
-      "G-4 78 F4 40 FF EE D9",
-      "F#4 4C .. .. .. .. ..",
-      "D-4 78 F4 .. .. .. ..",
-      "B-4 4C .. .. .. .. ..",
-      "G-3 78 F4 .. FF EE D9",
-      "B-3 4C .. .. .. .. ..",
-      "D-4 78 F4 .. .. .. ..",
-      "F#5 4C .. .. .. .. ..",
-      "G-4 78 F4 40 FF EE D9",
-      "B-4 4C .. .. .. .. ..",
-      "D-5 78 F4 .. .. .. ..",
-      "F#6 4C .. .. .. .. ..",
-      "D-5 78 F4 .. FF EE D9",
-      "B-4 4C .. .. .. .. ..",
-      "G-4 78 F4 .. .. .. ..",
-      "F#5 4C .. .. .. .. .."
+      "... .. ... .. ... .. ... .. F4 40 FF EE D9 .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. FF EE D9 .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 40 FF EE D9 .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. FF EE D9 .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. ."
      ]
     },
     "arp 34": {
      "name": "arp 34",
      "index": 33,
      "rows": [
-      "D-4 78 F4 40 FF EE D9",
-      "B-3 4C .. .. .. .. ..",
-      "G-3 78 F4 .. .. .. ..",
-      "B-4 4C .. .. .. .. ..",
-      "D-4 78 F4 .. FF EE D9",
-      "F#4 4C .. .. .. .. ..",
-      "G-4 78 F4 .. .. .. ..",
-      "B-5 4C .. .. .. .. ..",
-      "D-5 78 F4 40 FF EE D9",
-      "F#5 4C .. .. .. .. ..",
-      "D-5 78 F4 .. .. .. ..",
-      "B-5 4C .. .. .. .. ..",
-      "G-4 78 F4 .. FF EE D9",
-      "F#4 4C .. .. .. .. ..",
-      "D-4 78 F4 .. .. .. ..",
-      "B-4 4C .. .. .. .. .."
+      "... .. ... .. ... .. ... .. F4 40 FF EE D9 .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. FF EE D9 .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 40 FF EE D9 .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. .. .. .. .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. FF EE D9 .",
+      "... .. ... .. ... .. ... .. .. .. .. .. .. .",
+      "... .. ... .. ... .. ... .. F4 .. .. .. .. .",
+      "=== .. === .. === .. === .. .. .. .. .. .. ."
      ]
     }
    },
@@ -8538,6 +9486,472 @@
      "puid": "arp 34",
      "start": 976,
      "length": 16
+    }
+   ]
+  },
+  {
+   "id": "wood",
+   "instrument": "wood",
+   "patterns": {
+    "wood-a": {
+     "name": "wood a",
+     "index": 0,
+     "rows": [
+      "E-5 60 .. .. .. .. .. ......",
+      "... .. .. .. .. .. .. ......",
+      "... .. .. .. .. .. .. ......",
+      "... .. .. .. .. .. .. ......",
+      "... .. .. .. .. .. .. ......",
+      "B-4 3C .. .. .. .. .. ......",
+      "... .. .. .. .. .. .. ......",
+      "... .. .. .. .. .. .. ......",
+      "... .. .. .. .. .. .. ......",
+      "... .. .. .. .. .. .. ......",
+      "... .. .. .. .. .. .. ......",
+      "... .. .. .. .. .. .. ......"
+     ]
+    },
+    "wood-b": {
+     "name": "wood b",
+     "index": 1,
+     "rows": [
+      "... .. .. .. .. .. .. ......",
+      "G-5 58 .. .. .. .. .. ......",
+      "D-5 34 .. .. .. .. .. ......",
+      "... .. .. .. .. .. .. ......",
+      "... .. .. .. .. .. .. ......",
+      "... .. .. .. .. .. .. ......",
+      "... .. .. .. .. .. .. ......",
+      "... .. .. .. .. .. .. ......",
+      "... .. .. .. .. .. .. ......",
+      "A-4 48 .. .. .. .. .. ......",
+      "... .. .. .. .. .. .. ......",
+      "... .. .. .. .. .. .. ......",
+      "... .. .. .. .. .. .. ......",
+      "... .. .. .. .. .. .. ......",
+      "... .. .. .. .. .. .. ......",
+      "... .. .. .. .. .. .. ......",
+      "... .. .. .. .. .. .. ......",
+      "E-5 30 .. .. .. .. .. ......",
+      "... .. .. .. .. .. .. ......",
+      "... .. .. .. .. .. .. ......"
+     ]
+    },
+    "wood-c": {
+     "name": "wood c",
+     "index": 2,
+     "rows": [
+      "A-4 54 .. .. .. .. .. ......",
+      "... .. .. .. .. .. .. ......",
+      "... .. .. .. .. .. .. ......",
+      "... .. .. .. .. .. .. ......",
+      "... .. .. .. .. .. .. ......",
+      "... .. .. .. .. .. .. ......",
+      "... .. .. .. .. .. .. ......",
+      "... .. .. .. .. .. .. ......"
+     ]
+    },
+    "wood-d": {
+     "name": "wood d",
+     "index": 3,
+     "rows": [
+      "D-5 5C .. .. .. .. .. ......",
+      "... .. .. .. .. .. .. ......",
+      "... .. .. .. .. .. .. ......",
+      "... .. .. .. .. .. .. ......",
+      "... .. .. .. .. .. .. ......",
+      "... .. .. .. .. .. .. ......",
+      "... .. .. .. .. .. .. ......",
+      "A-4 38 .. .. .. .. .. ......",
+      "... .. .. .. .. .. .. ......",
+      "... .. .. .. .. .. .. ......",
+      "... .. .. .. .. .. .. ......",
+      "E-5 44 .. .. .. .. .. ......",
+      "... .. .. .. .. .. .. ......",
+      "... .. .. .. .. .. .. ......",
+      "... .. .. .. .. .. .. ......",
+      "... .. .. .. .. .. .. ......"
+     ]
+    },
+    "wood-e": {
+     "name": "wood e",
+     "index": 4,
+     "rows": [
+      "B-4 50 .. .. .. .. .. ......",
+      "G-5 30 .. .. .. .. .. ......",
+      "... .. .. .. .. .. .. ......",
+      "... .. .. .. .. .. .. ......",
+      "... .. .. .. .. .. .. ......",
+      "... .. .. .. .. .. .. ......",
+      "... .. .. .. .. .. .. ......",
+      "... .. .. .. .. .. .. ......",
+      "... .. .. .. .. .. .. ......",
+      "... .. .. .. .. .. .. ......",
+      "... .. .. .. .. .. .. ......",
+      "... .. .. .. .. .. .. ......",
+      "... .. .. .. .. .. .. ......",
+      "... .. .. .. .. .. .. ......",
+      "E-5 58 .. .. .. .. .. ......",
+      "... .. .. .. .. .. .. ......",
+      "... .. .. .. .. .. .. ......",
+      "... .. .. .. .. .. .. ......",
+      "... .. .. .. .. .. .. ......",
+      "... .. .. .. .. .. .. ......",
+      "... .. .. .. .. .. .. ......",
+      "... .. .. .. .. .. .. ......",
+      "... .. .. .. .. .. .. ......",
+      "... .. .. .. .. .. .. ......"
+     ]
+    }
+   },
+   "placements": [
+    {
+     "puid": "wood-c",
+     "start": 212,
+     "length": 8
+    },
+    {
+     "puid": "wood-a",
+     "start": 247,
+     "length": 12
+    },
+    {
+     "puid": "wood-d",
+     "start": 301,
+     "length": 16
+    },
+    {
+     "puid": "wood-c",
+     "start": 333,
+     "length": 8
+    },
+    {
+     "puid": "wood-b",
+     "start": 389,
+     "length": 20
+    },
+    {
+     "puid": "wood-e",
+     "start": 418,
+     "length": 24
+    },
+    {
+     "puid": "wood-a",
+     "start": 471,
+     "length": 12
+    },
+    {
+     "puid": "wood-c",
+     "start": 503,
+     "length": 8
+    },
+    {
+     "puid": "wood-b",
+     "start": 547,
+     "length": 20
+    },
+    {
+     "puid": "wood-d",
+     "start": 589,
+     "length": 16
+    },
+    {
+     "puid": "wood-e",
+     "start": 634,
+     "length": 24
+    },
+    {
+     "puid": "wood-a",
+     "start": 668,
+     "length": 12
+    },
+    {
+     "puid": "wood-c",
+     "start": 715,
+     "length": 8
+    },
+    {
+     "puid": "wood-b",
+     "start": 741,
+     "length": 20
+    },
+    {
+     "puid": "wood-d",
+     "start": 790,
+     "length": 16
+    },
+    {
+     "puid": "wood-a",
+     "start": 823,
+     "length": 12
+    },
+    {
+     "puid": "wood-e",
+     "start": 871,
+     "length": 24
+    },
+    {
+     "puid": "wood-c",
+     "start": 912,
+     "length": 8
+    },
+    {
+     "puid": "wood-b",
+     "start": 939,
+     "length": 20
+    }
+   ]
+  },
+  {
+   "id": "stab",
+   "instrument": "stab",
+   "patterns": {
+    "stab-Cmaj9-C": {
+     "name": "stab Cmaj9 C",
+     "index": 0,
+     "rows": [
+      "... .. ... .. ... .. ... .. ... .. . .. .. .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. . .. .. .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. . .. .. .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. . .. .. .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. . .. .. .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. . .. .. .. .. .. .. .. ......",
+      "C-3 6A E-3 6A G-3 6A B-3 6A D-4 6A . .. .. .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. . .. .. .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. . .. .. .. .. .. .. .. ......",
+      "=== .. === .. === .. === .. === .. . .. .. .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. . .. .. .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. . .. .. .. .. .. .. .. ......"
+     ]
+    },
+    "stab-Em9-A": {
+     "name": "stab Em9 A",
+     "index": 1,
+     "rows": [
+      "E-3 6E G-3 6E B-3 6E D-4 6E F#4 6E . .. .. .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. . .. .. .. .. .. .. .. ......",
+      "=== .. === .. === .. === .. === .. . .. .. .. .. .. .. .. ......",
+      "E-3 5A G-3 5A B-3 5A D-4 5A F#4 5A . .. .. .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. . .. .. .. .. .. .. .. ......",
+      "=== .. === .. === .. === .. === .. . .. .. .. .. .. .. .. ......",
+      "E-3 60 G-3 60 B-3 60 D-4 60 F#4 60 . .. .. .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. . .. .. .. .. .. .. .. ......",
+      "=== .. === .. === .. === .. === .. . .. .. .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. . .. .. .. .. .. .. .. ......",
+      "E-3 52 G-3 52 B-3 52 D-4 52 F#4 52 . .. .. .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. . .. .. .. .. .. .. .. ......",
+      "=== .. === .. === .. === .. === .. . .. .. .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. . .. .. .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. . .. .. .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. . .. .. .. .. .. .. .. ......"
+     ]
+    },
+    "stab-Cmaj9-B": {
+     "name": "stab Cmaj9 B",
+     "index": 2,
+     "rows": [
+      "... .. ... .. ... .. ... .. ... .. . .. .. .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. . .. .. .. .. .. .. .. ......",
+      "C-3 64 E-3 64 G-3 64 B-3 64 D-4 64 . .. .. .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. . .. .. .. .. .. .. .. ......",
+      "=== .. === .. === .. === .. === .. . .. .. .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. . .. .. .. .. .. .. .. ......",
+      "C-3 5C E-3 5C G-3 5C B-3 5C D-4 5C . .. .. .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. . .. .. .. .. .. .. .. ......",
+      "=== .. === .. === .. === .. === .. . .. .. .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. . .. .. .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. . .. .. .. .. .. .. .. ......",
+      "C-3 58 E-3 58 G-3 58 B-3 58 D-4 58 . .. .. .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. . .. .. .. .. .. .. .. ......",
+      "=== .. === .. === .. === .. === .. . .. .. .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. . .. .. .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. . .. .. .. .. .. .. .. ......"
+     ]
+    },
+    "stab-Dmaj9-A": {
+     "name": "stab Dmaj9 A",
+     "index": 3,
+     "rows": [
+      "D-3 6E F#3 6E A-3 6E C#4 6E E-4 6E . .. .. .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. . .. .. .. .. .. .. .. ......",
+      "=== .. === .. === .. === .. === .. . .. .. .. .. .. .. .. ......",
+      "D-3 5A F#3 5A A-3 5A C#4 5A E-4 5A . .. .. .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. . .. .. .. .. .. .. .. ......",
+      "=== .. === .. === .. === .. === .. . .. .. .. .. .. .. .. ......",
+      "D-3 60 F#3 60 A-3 60 C#4 60 E-4 60 . .. .. .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. . .. .. .. .. .. .. .. ......",
+      "=== .. === .. === .. === .. === .. . .. .. .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. . .. .. .. .. .. .. .. ......",
+      "D-3 52 F#3 52 A-3 52 C#4 52 E-4 52 . .. .. .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. . .. .. .. .. .. .. .. ......",
+      "=== .. === .. === .. === .. === .. . .. .. .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. . .. .. .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. . .. .. .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. . .. .. .. .. .. .. .. ......"
+     ]
+    },
+    "stab-Em9-C": {
+     "name": "stab Em9 C",
+     "index": 4,
+     "rows": [
+      "... .. ... .. ... .. ... .. ... .. . .. .. .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. . .. .. .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. . .. .. .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. . .. .. .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. . .. .. .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. . .. .. .. .. .. .. .. ......",
+      "E-3 6A G-3 6A B-3 6A D-4 6A F#4 6A . .. .. .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. . .. .. .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. . .. .. .. .. .. .. .. ......",
+      "=== .. === .. === .. === .. === .. . .. .. .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. . .. .. .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. . .. .. .. .. .. .. .. ......"
+     ]
+    },
+    "stab-Cmaj9-A": {
+     "name": "stab Cmaj9 A",
+     "index": 5,
+     "rows": [
+      "C-3 6E E-3 6E G-3 6E B-3 6E D-4 6E . .. .. .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. . .. .. .. .. .. .. .. ......",
+      "=== .. === .. === .. === .. === .. . .. .. .. .. .. .. .. ......",
+      "C-3 5A E-3 5A G-3 5A B-3 5A D-4 5A . .. .. .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. . .. .. .. .. .. .. .. ......",
+      "=== .. === .. === .. === .. === .. . .. .. .. .. .. .. .. ......",
+      "C-3 60 E-3 60 G-3 60 B-3 60 D-4 60 . .. .. .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. . .. .. .. .. .. .. .. ......",
+      "=== .. === .. === .. === .. === .. . .. .. .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. . .. .. .. .. .. .. .. ......",
+      "C-3 52 E-3 52 G-3 52 B-3 52 D-4 52 . .. .. .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. . .. .. .. .. .. .. .. ......",
+      "=== .. === .. === .. === .. === .. . .. .. .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. . .. .. .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. . .. .. .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. . .. .. .. .. .. .. .. ......"
+     ]
+    },
+    "stab-Am11-A": {
+     "name": "stab Am11 A",
+     "index": 6,
+     "rows": [
+      "A-2 6E E-3 6E G-3 6E C-4 6E D-4 6E . .. .. .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. . .. .. .. .. .. .. .. ......",
+      "=== .. === .. === .. === .. === .. . .. .. .. .. .. .. .. ......",
+      "A-2 5A E-3 5A G-3 5A C-4 5A D-4 5A . .. .. .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. . .. .. .. .. .. .. .. ......",
+      "=== .. === .. === .. === .. === .. . .. .. .. .. .. .. .. ......",
+      "A-2 60 E-3 60 G-3 60 C-4 60 D-4 60 . .. .. .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. . .. .. .. .. .. .. .. ......",
+      "=== .. === .. === .. === .. === .. . .. .. .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. . .. .. .. .. .. .. .. ......",
+      "A-2 52 E-3 52 G-3 52 C-4 52 D-4 52 . .. .. .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. . .. .. .. .. .. .. .. ......",
+      "=== .. === .. === .. === .. === .. . .. .. .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. . .. .. .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. . .. .. .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. . .. .. .. .. .. .. .. ......"
+     ]
+    },
+    "stab-Bm9-B": {
+     "name": "stab Bm9 B",
+     "index": 7,
+     "rows": [
+      "... .. ... .. ... .. ... .. ... .. . .. .. .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. . .. .. .. .. .. .. .. ......",
+      "B-2 64 F#3 64 A-3 64 C#4 64 D-4 64 . .. .. .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. . .. .. .. .. .. .. .. ......",
+      "=== .. === .. === .. === .. === .. . .. .. .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. . .. .. .. .. .. .. .. ......",
+      "B-2 5C F#3 5C A-3 5C C#4 5C D-4 5C . .. .. .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. . .. .. .. .. .. .. .. ......",
+      "=== .. === .. === .. === .. === .. . .. .. .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. . .. .. .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. . .. .. .. .. .. .. .. ......",
+      "B-2 58 F#3 58 A-3 58 C#4 58 D-4 58 . .. .. .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. . .. .. .. .. .. .. .. ......",
+      "=== .. === .. === .. === .. === .. . .. .. .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. . .. .. .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. . .. .. .. .. .. .. .. ......"
+     ]
+    },
+    "stab-Em9-B": {
+     "name": "stab Em9 B",
+     "index": 8,
+     "rows": [
+      "... .. ... .. ... .. ... .. ... .. . .. .. .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. . .. .. .. .. .. .. .. ......",
+      "E-3 64 G-3 64 B-3 64 D-4 64 F#4 64 . .. .. .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. . .. .. .. .. .. .. .. ......",
+      "=== .. === .. === .. === .. === .. . .. .. .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. . .. .. .. .. .. .. .. ......",
+      "E-3 5C G-3 5C B-3 5C D-4 5C F#4 5C . .. .. .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. . .. .. .. .. .. .. .. ......",
+      "=== .. === .. === .. === .. === .. . .. .. .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. . .. .. .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. . .. .. .. .. .. .. .. ......",
+      "E-3 58 G-3 58 B-3 58 D-4 58 F#4 58 . .. .. .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. . .. .. .. .. .. .. .. ......",
+      "=== .. === .. === .. === .. === .. . .. .. .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. . .. .. .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. ... .. . .. .. .. .. .. .. .. ......"
+     ]
+    }
+   },
+   "placements": [
+    {
+     "puid": "stab-Cmaj9-C",
+     "start": 336,
+     "length": 12
+    },
+    {
+     "puid": "stab-Em9-A",
+     "start": 400,
+     "length": 16
+    },
+    {
+     "puid": "stab-Cmaj9-B",
+     "start": 464,
+     "length": 16
+    },
+    {
+     "puid": "stab-Dmaj9-A",
+     "start": 528,
+     "length": 16
+    },
+    {
+     "puid": "stab-Em9-C",
+     "start": 592,
+     "length": 12
+    },
+    {
+     "puid": "stab-Cmaj9-A",
+     "start": 624,
+     "length": 16
+    },
+    {
+     "puid": "stab-Am11-A",
+     "start": 720,
+     "length": 16
+    },
+    {
+     "puid": "stab-Bm9-B",
+     "start": 784,
+     "length": 16
+    },
+    {
+     "puid": "stab-Cmaj9-A",
+     "start": 848,
+     "length": 16
+    },
+    {
+     "puid": "stab-Em9-B",
+     "start": 912,
+     "length": 16
+    },
+    {
+     "puid": "stab-Em9-C",
+     "start": 944,
+     "length": 12
     }
    ]
   }
