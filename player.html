@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script>
+    // Static hosting cannot send the headers the audio engine needs: a service worker adds them, and the page reloads once.
+    if (!window.crossOriginIsolated && 'serviceWorker' in navigator && window.isSecureContext) {
+      navigator.serviceWorker.register('coi-serviceworker.js').then(reg => {
+        if (reg.active && !navigator.serviceWorker.controller) location.reload();
+        else reg.addEventListener('updatefound', () => reg.installing?.addEventListener('statechange', e => { if (e.target.state === 'activated') location.reload(); }));
+      }).catch(() => {});
+    }
+  </script>
+  <title>Wax player</title>
+  <link rel="icon" href="icon.ico" sizes="any">
+  <link rel="icon" type="image/png" href="icon.png">
+  <style>
+    :root { --bg: #c9ccd3; --fg: #2a2f36; --soft: #5d7b83; --wax-fg: #2a2f36; color-scheme: light dark; }
+    @media (prefers-color-scheme: dark) { :root { --bg: #1b2027; --fg: #dde2e8; --soft: #86a3ab; --wax-fg: #dde2e8; } }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--fg); font: 14px/1.5 ui-monospace, Consolas, monospace; min-height: 100vh; }
+    main { max-width: 1000px; margin: 0 auto; padding: 48px 16px 64px; }
+    header { display: flex; align-items: center; gap: 18px; margin-bottom: 44px; flex-wrap: wrap; }
+    .mark { height: 54px; width: auto; color: var(--soft); }
+    header p { margin: 0; letter-spacing: .08em; color: var(--soft); }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)); gap: 40px 32px; justify-items: start; }
+    .grid > wax-player { width: 100%; }
+    footer { margin-top: 56px; color: var(--soft); }
+    footer a { color: inherit; }
+    #say { color: var(--soft); }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <svg class="mark" xmlns="http://www.w3.org/2000/svg" viewBox="70 90 2320 820" fill="currentColor" fill-rule="evenodd" role="img" aria-label="Wax"><path transform="translate(280)" d="M40 850 L280 640 L310 800 L460 800 L850 130 L420 530 L380 360 L110 590 L-20 300 L-210 250 Z"/><path transform="translate(910)" d="M-140 800 L250 310 L454.7 311.2 L630 800 L440 800 L410 680 L130 720 L60 800 Z M200 610 L390 580 L347 414.8 Z"/><path transform="translate(1580)" d="M-20 650 L100 570 L-80 470 L-150 280 L230 480 L810 90 L630 400 L390 570 L540 650 L730 910 L240 650 L30 800 Z"/></svg>
+      <p id="sub">musical spreadsheet</p>
+    </header>
+    <div class="grid" id="grid"><span id="say">loading the list…</span></div>
+    <footer>made with <a href="index.html">Wax</a>, a tracker that lives in the browser</footer>
+  </main>
+  <script type="module">
+    import './src/player/wax-player.js';
+    import { parseTrackList } from './src/player/yaml.js';
+    // ?list=other.yaml shows another list; the default is tracks.yaml next to this page
+    const list = new URLSearchParams(location.search).get('list') || 'tracks.yaml';
+    const grid = document.getElementById('grid');
+    try {
+      const res = await fetch(list);
+      if (!res.ok) throw new Error(`${list}: ${res.status}`);
+      const data = parseTrackList(await res.text());
+      if (data.title) document.title = data.title;
+      if (data.subtitle) document.getElementById('sub').textContent = data.subtitle;
+      const base = new URL(list, location.href);
+      grid.replaceChildren(...(data.tracks ?? []).map(t => {
+        const el = document.createElement('wax-player');
+        el.setAttribute('src', new URL(t.wax, base).href);
+        if (t.art) el.setAttribute('art', new URL(t.art, base).href);
+        el.setAttribute('title', t.title ?? t.wax);
+        if (t.by) el.setAttribute('by', t.by);
+        if (t.loop) el.setAttribute('loop', '');
+        return el;
+      }));
+      // one after another
+      grid.addEventListener('wax-ended', e => { const next = e.target.nextElementSibling; if (next?.play) next.play(); });
+    } catch (err) { document.getElementById('say').textContent = err.message; }
+  </script>
+</body>
+</html>

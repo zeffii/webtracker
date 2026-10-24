@@ -31,7 +31,7 @@ jobs:
       - name: Assemble the site
         run: |
           mkdir _site
-          cp -r index.html themes.css icon.ico icon.png coi-serviceworker.js src _site/
+          cp -r index.html player.html tracks.yaml art themes.css icon.ico icon.png coi-serviceworker.js src _site/
       - name: Stamp
         # version.json: { build: the latest number in CHANGELOG.md, commit: short SHA, date }
         run: node scripts/stamp.mjs _site

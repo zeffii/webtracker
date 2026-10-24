@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['430', ['A player: <wax-player> plays a .wax song with no tracker around it; player.html lists songs from tracks.yaml.']],
   ['429', ['Graph: Alt+R takes a node out and joins the wires; R stays a keyjazz key.']],
   ['428', ['Wax tools for Claude: validate, outline, render offline and measure a song (an MCP server and a skill, in the repository).']],
   ['427', ['The demo: a later, slower Shepard tone, the Arp node plays the arpeggio, plus a woodblock and Detroit-style Duette stabs.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['423', ['Duette: a note column keeps its voice by column number, not by pitch.']],
   ['422', ['Limiter switch on the status bar; multiband compressor with four bands.']],
   ['421', ['The master limiter starts off.']],
-  ['420', ['Master limiter after the master volume, with a limiter meter in the meter band.']],
 ];

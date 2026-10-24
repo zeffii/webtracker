@@ -1,0 +1,13 @@
+# The tracks the player page lists: a title, the .wax file and a square picture (400 x 400 is ideal) for each.
+# Paths are relative to this file, or full addresses (a file on another site must allow cross-origin reads).
+title: Wax
+subtitle: musical spreadsheet
+tracks:
+  - title: Interstellar
+    by: a two minute soundscape
+    wax: src/project/demo.wax
+    art: art/interstellar.png
+  - title: Bug song
+    by: a small tracker tune
+    wax: src/project/demos/bugsong.wax
+    art: art/bugsong.png

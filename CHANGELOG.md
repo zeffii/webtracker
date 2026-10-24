@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 430 · 2026-10-24
+
+- A player: `<wax-player src="song.wax" art="cover.png" title="Name">`, a web component that plays a `.wax` song with the real engine and no tracker around it (square artwork, play/pause, a progress line you can click to seek, the length and tempo; one plays at a time). `player.html` is a page of them built from a small `tracks.yaml` in the root (title, `.wax` file, picture), and plays the list in order. It is published with the app.
+
 ## 429 · 2026-10-24
 
 - Graph view: taking a node out and joining the wires round it is now **Alt+R**; plain R is the keyjazz key it always was on a generator, so the two no longer collide.

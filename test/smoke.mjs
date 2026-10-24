@@ -4256,6 +4256,18 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   console.log('ok: wax tools');
 }
 
+// The player's track list: a small subset of YAML.
+{
+  const { parseTrackList } = await import('../src/player/yaml.js');
+  const { readFileSync } = await import('node:fs');
+  const list = parseTrackList('# songs\ntitle: Wax\nsubtitle: "musical spreadsheet"\ntracks:\n  - title: A\n    wax: a.wax   # the song\n    loop: yes\n  - title: B\n    wax: b.wax\n    art: b.png\n');
+  assert.deepEqual(list, { title: 'Wax', subtitle: 'musical spreadsheet', tracks: [{ title: 'A', wax: 'a.wax', loop: true }, { title: 'B', wax: 'b.wax', art: 'b.png' }] }, 'the track list reads');
+  const shipped = parseTrackList(readFileSync(new URL('../tracks.yaml', import.meta.url), 'utf8'));
+  assert.ok(shipped.tracks.length >= 2 && shipped.tracks.every(t => t.wax && readFileSync(new URL(`../${t.wax}`, import.meta.url)) && (!t.art || readFileSync(new URL(`../${t.art}`, import.meta.url)))), 'the shipped list points at files that are there');
+  assert.throws(() => parseTrackList('- stray: 1'), /no list/, 'a list item with no list is refused');
+  console.log('ok: track list');
+}
+
 // 104. Pattern editor: transpose notes, transpose values, interpolate.
 {
   const registry = new ParamRegistry();

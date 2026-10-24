@@ -278,3 +278,16 @@ Noise colours (m237): `tilt` in dB/oct (-6 brown, -3 pink, 0 white, +3 blue, +6 
 ## Claude and Wax
 
 `tools/wax-mcp` is an MCP server that checks, renders and measures `.wax` songs without a browser, and `.claude/skills/wax` teaches Claude the file format. See `tools/wax-mcp/README.md`.
+
+## The player
+
+`player.html` lists songs as a page of square artwork, each playable with the real engine and no tracker around it. The list is `tracks.yaml`:
+
+    title: Wax
+    subtitle: musical spreadsheet
+    tracks:
+      - title: Interstellar
+        wax: src/project/demo.wax
+        art: art/interstellar.png
+
+Any page can use the same piece alone: `<script type="module" src="src/player/wax-player.js"></script>` and `<wax-player src="song.wax" art="cover.png" title="Name"></wax-player>` (attributes: `src`, `art`, `title`, `by`, `loop`; events `wax-play`, `wax-pause`, `wax-ended`). The page must be cross-origin isolated (see the head of `player.html`).
