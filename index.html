@@ -581,6 +581,22 @@
     #inst-side .new input, #inst-side .new select { width: 100%; box-sizing: border-box; min-width: 0; }
     #inst-list { display: grid; gap: 0; margin-bottom: .5rem; outline: none; white-space: pre; }
     #inst-side { border-right: 1px solid color-mix(in srgb, currentColor 25%, transparent); padding-right: .75rem; min-height: 60vh; }
+    /* the left panel is styled like the sample screen: one flat panel, text-like controls, a brighter list and fields */
+    #inst-side { background: rgba(128, 128, 128, .22); border-right: 0; padding: 0 0 .6rem; min-height: 60vh; line-height: 1.35; }
+    #inst-side h2 { opacity: 1; margin: .7rem 0 0; padding: 0 .6ch; }
+    #inst-side > *, #inst-side .manage, #inst-side .new { padding-left: .6ch; padding-right: .6ch; box-sizing: border-box; }
+    #inst-side button, #inst-side select, #inst-side input { font: inherit; border: 0; border-radius: 0; background: rgba(128, 128, 128, .28); color: inherit; padding: 0 .6ch; height: auto; box-shadow: none; }
+    #inst-side button:hover:not(:disabled) { background: var(--hi); color: var(--hi-fg); }
+    #inst-side input::placeholder { color: inherit; opacity: .55; }
+    #inst-side input, #inst-side select { background: rgba(255, 255, 255, .34); }
+    #inst-side .help { opacity: .7; padding: 0 .6ch; }
+    #inst-side #inst-list { margin: 0 .6ch; padding: 1px 0; background: rgba(255, 255, 255, .34); border: 1px solid rgba(128, 128, 128, .28); }
+    #inst-side #inst-list button { background: transparent; display: block; width: 100%; padding: 0 .6ch; }
+    #inst-side #inst-list button.active { background: color-mix(in srgb, currentColor 22%, transparent); }
+    #inst-side #inst-list:focus button.active { background: var(--hi); color: var(--hi-fg); }
+    #preset-section { grid-template-columns: repeat(4, auto); gap: .25rem .3rem; }
+    #preset-section #preset-name { grid-column: 1 / -1; }
+    #preset-section button { padding: 0 .3ch; font-size: 12px; justify-self: stretch; }
     .manage { margin: .3rem 0; display: flex; flex-wrap: wrap; gap: 2px; }
     .manage input { box-sizing: border-box; font: inherit; }
     .manage.row input { flex: 1 1 10rem; }

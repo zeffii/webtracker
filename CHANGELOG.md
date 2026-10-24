@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 440 · 2026-10-24
+
+- Instruments tab: the left panel is styled like the Sample screen: one flat panel, flat text-like buttons, a brighter instrument list with a faint border, brighter text fields, and the four preset buttons (Save new, Overwrite, Rename, Remove) on one line.
+
 ## 439 · 2026-10-24
 
 - New node **route** (Effects, Routing): a small dot that passes a signal through unchanged, to branch a wire to any number of places or gather a tidy path. It is its own port: wires enter at its left edge and leave from its right, and its name shows only when selected. Stereo stays stereo.
