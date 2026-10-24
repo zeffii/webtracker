@@ -204,7 +204,7 @@ export function createDspView({ parts, getProject, nodeTypes, value = () => unde
 
   // The circuit beside the code: the per-sample loops that read as a signal flow, one tab each when there are several.
   function drawCircuit() {
-    const box = parts.diag;
+    const box = parts.diag?.querySelector('#dsp-circuit');
     if (!box) return;
     box.textContent = '';
     if (!shown) return;
@@ -213,6 +213,7 @@ export function createDspView({ parts, getProject, nodeTypes, value = () => unde
     if (!list.length) { box.append(Object.assign(document.createElement('div'), { className: 'note', textContent: 'No circuit: this node has no per-sample loop that reads as plain arithmetic.' })); return; }
     const c = list[Math.min(shown.pick, list.length - 1)];
     const tabs = document.createElement('div'); tabs.className = 'tabs';
+    const x = Object.assign(document.createElement('button'), { type: 'button', textContent: '×', title: 'Hide the circuit' }); x.addEventListener('click', () => setCirc(false)); tabs.append(x);
     tabs.append(Object.assign(document.createElement('span'), { textContent: `Loop on lines ${c.loop[0] + 1}–${c.loop[1] + 1}` }));
     if (list.length > 1) list.forEach((o, i) => { const b = Object.assign(document.createElement('button'), { type: 'button', textContent: String(i + 1) }); b.setAttribute('aria-pressed', String(o === c)); b.addEventListener('click', () => { shown.pick = i; drawCircuit(); }); tabs.append(b); });
     box.append(tabs);
@@ -221,7 +222,17 @@ export function createDspView({ parts, getProject, nodeTypes, value = () => unde
     holder.addEventListener('mouseover', e => { const s = e.target.closest?.('[data-line]'); if (s && shown) { const l = Number(s.dataset.line); if (shown.lit !== l) { shown.lit = l; render(); } } });
     holder.addEventListener('mouseleave', () => { if (shown && shown.lit >= 0) { shown.lit = -1; render(); } });
   }
-  parts.circ?.addEventListener('click', () => { const on = parts.circ.getAttribute('aria-pressed') !== 'true'; parts.circ.setAttribute('aria-pressed', String(on)); parts.code?.classList.toggle('nocirc', !on); });
+  function setCirc(on) { parts.circ?.setAttribute('aria-pressed', String(on)); parts.code?.classList.toggle('nocirc', !on); }
+  parts.circ?.addEventListener('click', () => setCirc(parts.circ.getAttribute('aria-pressed') !== 'true'));
+  parts.open?.addEventListener('click', () => setCirc(true));
+  try { const w = Number(localStorage.getItem('wax.dspDiagW')); if (w >= 200) parts.code?.style.setProperty('--diag-w', `${w}px`); } catch {}
+  const split = parts.diag?.querySelector('#dsp-split');
+  split?.addEventListener('pointerdown', e => {
+    e.preventDefault(); split.setPointerCapture(e.pointerId); split.classList.add('drag'); parts.code.classList.add('dragging');
+    const move = ev => { const r = parts.code.getBoundingClientRect(); const w = Math.max(200, Math.min(r.width - 220, r.right - ev.clientX)); parts.code.style.setProperty('--diag-w', `${Math.round(w)}px`); };
+    const up = () => { split.classList.remove('drag'); parts.code.classList.remove('dragging'); split.removeEventListener('pointermove', move); split.removeEventListener('pointerup', up); try { localStorage.setItem('wax.dspDiagW', String(parseInt(parts.code.style.getPropertyValue('--diag-w'), 10))); } catch {} };
+    split.addEventListener('pointermove', move); split.addEventListener('pointerup', up);
+  });
   const toggle = l => {
     if (!shown || !shown.regions.some(r => r.s === l)) return;
     if (shown.closed.has(l)) shown.closed.delete(l); else shown.closed.add(l);
