@@ -199,4 +199,46 @@ void main(){
   gl_FragColor = vec4(col, 1.);
 }`,
   },
+  cells: {
+    label: 'Cells: a Voronoi mosaic, a lane in every cell',
+    source: `// Voronoi cells drifting about: every cell belongs to one lane (by its hash). A hit lights that lane's cells, the pitch picks the colour,
+// a held note keeps them warm, and the walls between the cells flash with the beat.
+vec2 h2(vec2 p){
+  p = vec2(dot(p, vec2(127.1, 311.7)), dot(p, vec2(269.5, 183.3)));
+  return fract(sin(p) * 43758.5453);
+}
+void main(){
+  vec2 p = (gl_FragCoord.xy - .5 * R) / min(R.x, R.y) * 7.;
+  vec2 g = floor(p), f = fract(p);
+  float d1 = 9.;
+  vec2 id = vec2(0.), mr = vec2(0.);
+  for (int j = -1; j <= 1; j++) {
+    for (int i = -1; i <= 1; i++) {
+      vec2 o = vec2(float(i), float(j));
+      vec2 q = o + .5 + .4 * sin(T * .5 + 6.283 * h2(g + o)) - f;
+      float d = dot(q, q);
+      if (d < d1) { d1 = d; id = g + o; mr = q; }
+    }
+  }
+  // the exact distance to the nearest wall: a second look at the neighbours, to the line half way to each of them
+  float wall = 9.;
+  for (int j = -2; j <= 2; j++) {
+    for (int i = -2; i <= 2; i++) {
+      vec2 o = vec2(float(i), float(j));
+      vec2 q = o + .5 + .4 * sin(T * .5 + 6.283 * h2(g + o)) - f;
+      if (dot(q - mr, q - mr) > .00001) wall = min(wall, dot(.5 * (mr + q), normalize(q - mr)));
+    }
+  }
+  vec2 hh = h2(id);
+  float lane = floor(hh.x * max(NL, 1.));
+  vec4 L = vec4(0.);
+  for (int k = 0; k < 16; k++) if (float(k) == lane) L = LANE[k];
+  float pulse = 1. - fract(BEAT);
+  vec3 col = mix(C1 * .10, C1 * .26, hh.y);
+  col = mix(col, mix(C1, C2, L.y) * (.45 + .55 * L.z), clamp(L.x + .45 * L.w, 0., 1.) * (.55 + .45 * hh.y));
+  col += C2 * smoothstep(.05 + .03 * pulse, 0., wall) * (.35 + .5 * pulse + .5 * L.x);
+  col *= 1. - .35 * dot(p / 7., p / 7.);
+  gl_FragColor = vec4(col, 1.);
+}`,
+  },
 };

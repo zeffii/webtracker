@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 433 · 2026-10-24
+
+- Live picture: a new shader template, **Cells** (a Voronoi mosaic). Every cell belongs to one lane; a hit lights its cells, the pitch picks the colour, a held note keeps them warm, and the walls between the cells flash with the beat. Choose it from Config > Visual > Start from a template.
+
 ## 432 · 2026-10-24
 
 - **Alt+M** now works in the pattern editor too, as the pair of Alt+S: Alt+S solos the lane under the cursor, Alt+M mutes it (both in the sequence editor and the pattern editor).
