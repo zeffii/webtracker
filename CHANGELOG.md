@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 425 · 2026-10-24
+
+- The first screen now reads "musical spreadsheet - click to enter".
+
 ## 424 · 2026-10-24
 
 - New delay node, **Prisma Canyon**: a tape echo with four playback heads at 1, 2, 3 and 4 times the repeat time. Each head has its own level, its own pan and its own damp: a negative multiplier on the cutoff, so every line is darker than the one before (cutoff × 2^(−4·damp)). The loop has intensity (feedback, up to self-oscillation), tape saturation, wow and flutter, bass and treble shelves, an echo/dry/reverb mix, and the repeat time glides like a tape's.

@@ -1,4 +1,4 @@
-// The first screen: a white card with the logo turning behind a very faint "webtracker" and a quiet "click anywhere to enter".
+// The first screen: a white card with the logo turning behind a very faint "webtracker" and a quiet "musical spreadsheet - click to enter".
 // The browser needs a click before it will make sound, so a click on the card (or Enter / Space) is that click; it runs what the Start button runs. While
 // the engine starts, a few grey lines report the real steps, and the card fades to show the tracker (about a second).
 // The logo is fourteen identical slabs in one plane (from your 3D model), drawn as a wireframe on a plain canvas.
@@ -41,7 +41,7 @@ export function createSplash({ box, onStart }) {
   const size = () => { dpr = devicePixelRatio || 1; W = card.clientWidth; H = card.clientHeight; cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); };
   new ResizeObserver(size).observe(card); size();
 
-  // "click anywhere to enter" unrolls from its first letter; the unwritten rest keeps its width, so the line does not drift.
+  // "musical spreadsheet - click to enter" unrolls from its first letter; the unwritten rest keeps its width, so the line does not drift.
   {
     const full = go.textContent;
     const roll = async () => {
