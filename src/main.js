@@ -166,6 +166,9 @@ const tabs = createTabs({
   ],
 });
 document.addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && !e.altKey && (e.code === 'KeyZ' || e.code === 'KeyY') && tabs.active === 'instruments' && !e.target.matches?.('input:not([type=range]):not([type=checkbox]), textarea, select')) {   // undo and redo in the graph editor
+    e.preventDefault(); (e.code === 'KeyY' || e.shiftKey ? patcher.redo() : patcher.undo()); return;
+  }
   if (e.key === 'F1' && !e.ctrlKey && !e.altKey && !e.metaKey && !e.shiftKey && tabs.active === 'instruments' && (!nodeHelp.hidden ? (hideHelp(), true) : patcher.helpSelected())) { e.preventDefault(); return; }   // F1 on the instrument screen shows or hides the help of the selected node
   if (e.ctrlKey && e.altKey && !e.metaKey && !e.shiftKey && e.code === 'KeyD') { e.preventDefault(); toggleDock(); return; }
   if (tabs.handleKey(e)) return;

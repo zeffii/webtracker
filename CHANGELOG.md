@@ -2,6 +2,11 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 448 · 2026-10-24
+
+- Graph: **undo and redo** (Ctrl+Z, Ctrl+Y or Ctrl+Shift+Z) for nodes, wires, parameter values and exposed columns, with a history of up to 100 steps for each instrument. A finished edit (mouse up, key up, a field changed) is one step.
+- Graph: wires are easier to hit with the mouse (the whole length of a long wire now counts, not just a few points along it).
+
 ## 447 · 2026-10-24
 
 - Graph: right-click on a wire opens the node menu to put a node into that wire. The node is placed in the middle of the wire, connected to both ends, and the nodes to its right move over to make room.

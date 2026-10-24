@@ -4268,6 +4268,17 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   console.log('ok: track list');
 }
 
+// A long wire is hit all along its length, not only near a few sample points.
+{
+  const { hitTest } = await import('../src/graph/patcher.js');
+  const { NODE_TYPES } = await import('../tools/wax-mcp/core.mjs');
+  const desc = { nodes: [{ id: 'a', type: 'osc', x: 20, y: 40 }, { id: 'o', type: 'out', x: 900, y: 40 }], connections: [['a.out', 'o.in']] };
+  let missed = 0;
+  for (let x = 160; x <= 900; x += 7) { let hit = false; for (let y = 20; y <= 120 && !hit; y++) hit = hitTest(desc, NODE_TYPES, x, y)?.kind === 'link'; if (!hit) missed++; }
+  assert.equal(missed, 0, 'a wire 880 px long can be hit at every x along it');
+  console.log('ok: wire hit');
+}
+
 // The suite and phase demos load and every row parses.
 {
   const { validate } = await import('../tools/wax-mcp/core.mjs');

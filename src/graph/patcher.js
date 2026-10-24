@@ -134,7 +134,13 @@ export function hitTest(desc, nodeTypes, x, y) {
   }
   for (let i = 0; i < desc.connections.length; i++) {
     const { a, b } = linkEnds(desc, nodeTypes, desc.connections[i]);
-    for (let s = 0; s <= 24; s++) if (near(bezier(a, b, s / 24), 6)) return { kind: 'link', index: i };
+    let prev = bezier(a, b, 0);   // the distance to each short stretch of the wire, so a long wire has no gaps between sample points
+    for (let s = 1; s <= 40; s++) {
+      const q = bezier(a, b, s / 40), dx = q.x - prev.x, dy = q.y - prev.y, len2 = dx * dx + dy * dy;
+      const t = len2 ? Math.max(0, Math.min(1, ((x - prev.x) * dx + (y - prev.y) * dy) / len2)) : 0;
+      if (Math.hypot(prev.x + t * dx - x, prev.y + t * dy - y) <= 7) return { kind: 'link', index: i };
+      prev = q;
+    }
   }
   return null;
 }
@@ -222,6 +228,41 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
   const releaseKeys = () => { for (const note of held.values()) onNote(instId, note, false); held.clear(); };
   const say = text => { if (statusEl) statusEl.textContent = text; };
   const structure = () => { dirty = true; onStructure(instId); };
+
+  // ---- undo: a snapshot of the instrument (graph, exposed columns, commands, samples) after each edit the user finishes ----
+  const history = new Map();   // instrument id -> { undo: [json], redo: [json], last: json }
+  const snapshot = () => JSON.stringify(def());
+  const historyOf = () => { let h = history.get(instId); if (!h) { h = { undo: [], redo: [], last: snapshot() }; history.set(instId, h); } return h; };
+  const commit = () => {
+    if (!instId || !def()) return;
+    const h = historyOf(), now = snapshot();
+    if (now === h.last) return;
+    h.undo.push(h.last); if (h.undo.length > 100) h.undo.shift();
+    h.redo.length = 0; h.last = now;
+  };
+  const restore = json => {
+    const d = def(), obj = JSON.parse(json);
+    for (const k of Object.keys(d)) delete d[k];
+    Object.assign(d, obj);
+    if (selected?.kind === 'node' && !desc().nodes.some(n => n.id === selected.id)) selected = null;
+    else if (selected?.kind === 'link') selected = null;
+    for (const id of [...group]) if (!desc().nodes.some(n => n.id === id)) group.delete(id);
+    structure(); renderPanel();
+  };
+  const stepHistory = (from, to, word) => {
+    if (!instId || !def()) return false;
+    commit();
+    const h = historyOf();
+    if (!h[from].length) { say(`nothing to ${word}`); return true; }
+    h[to].push(h.last);
+    h.last = h[from].pop();
+    restore(h.last);
+    say(`${word} (${h.undo.length} step${h.undo.length === 1 ? '' : 's'} of history left)`);
+    return true;
+  };
+
+  // an edit is finished when a mouse button or key comes up or a field changes: that is when it becomes an undo step
+  for (const t of [canvas, panel, paramPanel, exposedDock, floatDock, toolsEl]) for (const ev of ['mouseup', 'pointerup', 'keyup', 'change']) t?.addEventListener?.(ev, () => setTimeout(commit, 0));
 
   // ---- the panel for the selected node ----
   const el = (tag, props = {}, ...kids) => {
@@ -1223,11 +1264,14 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
       dirty = true;
     },
     feedScope(id, node, l, r, sr) { if (id === instId) { scopeData.set(node, { l, r, sr }); dirty = true; } },
+    undo: () => stepHistory('undo', 'redo', 'undone'),
+    redo: () => stepHistory('redo', 'undo', 'redone'),
     show(id) {
       if (instId && instId !== id && def()) for (const n of desc().nodes) if (n.scope) onScope(instId, n.id, false);   // (the old instrument may be gone from a newly loaded project)
       if (instId && selected?.kind === 'node') lastSelected.set(instId, selected.id);   // coming back to an instrument finds the node you left selected
       const same = id === instId, kept = same && selected?.kind === 'node' ? selected.id : null;
       instId = id;
+      if (id && def()) { const h = history.get(id); if (h && h.last !== snapshot()) history.delete(id); historyOf(); }   // a history from before the project was reloaded is dropped
       scopeData.clear(); cloudData.clear();
       if (id) for (const n of desc().nodes) if (n.scope) onScope(id, n.id, true);
       // The node that should take the keyjazz: the one selected last time here, else the first generator (an oscillator, a
