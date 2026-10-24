@@ -80,7 +80,7 @@ export const portPos = (node, def, side, index) => {
 };
 const inside = (node, def, x, y) => {
   const { w, h } = nodeBox(def, node);
-  if (def.shape === 'circle') return Math.hypot(x - (node.x + w / 2), y - (node.y + h / 2)) <= w / 2 + 2;
+  if (def.shape === 'circle' || def.shape === 'dot') return Math.hypot(x - (node.x + w / 2), y - (node.y + h / 2)) <= w / 2 + 2;
   return x >= node.x && x <= node.x + w && y >= node.y && y <= node.y + h;
 };
 
@@ -125,7 +125,7 @@ export function hitTest(desc, nodeTypes, x, y) {
     const def = nodeTypes[node.type];
     for (const [side, names] of [['in', inputsOf(node, def)], ['out', def.outputs]]) {
       for (let i = 0; i < names.length; i++) {
-        if (near(portPos(node, def, side, i), PORT_R + 4)) return { kind: 'port', side, node: node.id, port: names[i] };
+        if (near(portPos(node, def, side, i), def.shape === 'dot' ? PORT_R - 0.5 : PORT_R + 4)) return { kind: 'port', side, node: node.id, port: names[i] };
       }
     }
   }
@@ -182,7 +182,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
   // a click on an eye or on an open scope's header; true when it was used
   function scopeClick(x, y) {
     for (const node of [...desc().nodes].reverse()) {
-      if (!nodeTypes[node.type].outputs.length) continue;
+      if (!nodeTypes[node.type].outputs.length || nodeTypes[node.type].shape === 'dot') continue;
       if (inside(eyeRect(node), x, y)) { setScope(node, !node.scope); return true; }
       if (!node.scope) continue;
       const box = scopeRectOf(node), part = headerHit(box, x, y, node.scope.mode, modesFor(node.type));
@@ -1082,7 +1082,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
       const type = nodeTypes[node.type], { w, h } = nodeBox(type, node);
       const chosen = (selected?.kind === 'node' && selected.id === node.id) || group.has(node.id);
       ctx.beginPath();
-      if (type.shape === 'circle') ctx.arc(node.x + w / 2, node.y + h / 2, w / 2, 0, 2 * Math.PI);
+      if (type.shape === 'circle' || type.shape === 'dot') ctx.arc(node.x + w / 2, node.y + h / 2, w / 2, 0, 2 * Math.PI);
       else if (type.shape === 'rounded') ctx.roundRect(node.x, node.y, w, h, 10);
       else if (type.shape === 'speaker') {   // a small back and a cone that opens to the right
         ctx.moveTo(node.x, node.y + 0.3 * h); ctx.lineTo(node.x + 0.38 * w, node.y + 0.3 * h);
@@ -1091,17 +1091,17 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
         ctx.closePath();
       }
       else ctx.rect(node.x, node.y, w, h);
-      ctx.fillStyle = 'rgba(128, 128, 128, 0.18)';
+      ctx.fillStyle = type.shape === 'dot' ? kindColour(kindOf(node, 'out')) : 'rgba(128, 128, 128, 0.18)';   // a route point is a solid dot in its wire's colour
       ctx.fill();
-      ctx.strokeStyle = chosen ? accent : 'rgba(128, 128, 128, 0.55)';   // a quiet grey until selected
-      ctx.lineWidth = chosen ? 2.5 : 1.5;
+      ctx.strokeStyle = chosen ? accent : type.shape === 'dot' ? ink : 'rgba(128, 128, 128, 0.55)';   // a quiet grey until selected
+      ctx.lineWidth = chosen ? 2.5 : type.shape === 'dot' ? 1 : 1.5;
       ctx.stroke();
 
       ctx.fillStyle = ink;
       ctx.font = '11px ui-monospace, Consolas, monospace';
       ctx.textBaseline = 'alphabetic';
       ctx.textAlign = 'center';
-      ctx.fillText(node.id, node.x + w / 2, node.y - 5);   // the name sits above the shape
+      if (type.shape !== 'dot' || chosen) ctx.fillText(node.id, node.x + w / 2, node.y - 5);   // the name sits above the shape (a route dot shows it only when chosen)
       if (node.type === 'tap') { const slot = Math.round(node.params?.smp ?? type.params.find(q => q.name === 'smp').def), copy = Math.round(node.params?.copy ?? 0); ctx.fillText(slot >= 1 && slot <= 16 ? `\u2192 tap${String(slot).padStart(2, '0')}${copy ? `, copy ${copy}` : ''}` : '\u2192 (off)', node.x + w / 2, node.y + h + 12); }   // where it writes
       if (node.type === 'sidechain') { ctx.fillText(node.source ? `\u2190 ${node.source}` : '\u2190 (none)', node.x + w / 2, node.y + h + 12); }   // where it listens to
 
@@ -1121,7 +1121,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
 
       ctx.font = '10px ui-monospace, Consolas, monospace';
       ctx.textBaseline = 'middle';
-      for (const [side, names] of [['in', inputsOf(node, type)], ['out', type.outputs]]) {
+      for (const [side, names] of type.shape === 'dot' ? [] : [['in', inputsOf(node, type)], ['out', type.outputs]]) {   // a route dot is its own port
         names.forEach((name, i) => {
           const p = portPos(node, type, side, i);
           ctx.beginPath();
@@ -1142,7 +1142,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
       }
     }
     for (const node of desc().nodes) {
-      if (!nodeTypes[node.type].outputs.length) continue;
+      if (!nodeTypes[node.type].outputs.length || nodeTypes[node.type].shape === 'dot') continue;
       const r = eyeRect(node), on = !!node.scope, cx = r.x + r.w / 2, cy = r.y + r.h / 2;
       ctx.save();
       ctx.strokeStyle = on ? accent : ink; ctx.fillStyle = on ? accent : ink; ctx.globalAlpha = on ? 1 : 0.3; ctx.lineWidth = 1.25;

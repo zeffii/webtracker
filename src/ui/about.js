@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['439', ['New node: route, a small dot to branch a wire to many places.']],
   ['438', ['New demo: phase, an additive-process, serial, microsound and broken-beat piece.']],
   ['437', ['New demo: suite, five short atonal studies for different sets of nodes.']],
   ['436', ['DSP view: the DSP circle sits mid-page with a left arrow.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['432', ['Alt+S solos and Alt+M mutes the lane under the cursor, in both editors.']],
   ['431', ['Sequence editor: Alt+M silences the whole lane (was Shift+M).']],
   ['430', ['A player: <wax-player> plays a .wax song with no tracker around it; player.html lists songs from tracks.yaml.']],
-  ['429', ['Graph: Alt+R takes a node out and joins the wires; R stays a keyjazz key.']],
 ];
