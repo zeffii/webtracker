@@ -898,7 +898,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
   // decay and release fall exponentially, and the node's times are to fall by 60 dB, so the drawing shows the
   // part that matters (down to 1%) and a sustain stage of a quarter of the whole length.
   const GROUP_COLOUR = ['hsl(35 85% 52%)', 'hsl(200 70% 50%)', 'hsl(145 55% 42%)', 'hsl(300 50% 55%)'];
-  const ENV_W = 230, ENV_H = 134;
+  const ENV_W = 204, ENV_H = 86;
   // below the node, where the row of the graph leaves room (above it when the node is low in the graph)
   function envRect(box) {
     const x = Math.min(Math.max(4, box.x + box.w / 2 - ENV_W / 2), Math.max(4, W - ENV_W - 4));
@@ -911,15 +911,18 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
     const widest = Math.max(...groups.map(g => g.a + g.d * 0.67 + g.r * 0.67));
     const total = widest * 1.33, hold = total * 0.25;   // the sustain stage is drawn a quarter as long as the rest
     const { x: x0, y: y0 } = envRect(box);
-    const px = x0 + 10, pw = ENV_W - 20, py = y0 + 18, ph = ENV_H - 56;
+    const px = x0 + 7, pw = ENV_W - 14, py = y0 + 17, ph = 50;
     ctx.save();
-    ctx.fillStyle = (typeof getComputedStyle === 'function' && getComputedStyle(canvas).backgroundColor) || '#d9dae0';   // opaque, so the wires behind it do not show through
-    ctx.fillRect(x0, y0, ENV_W, ENV_H);
-    ctx.fillStyle = 'rgba(128, 128, 128, 0.16)';
-    ctx.fillRect(x0, y0, ENV_W, ENV_H);
+    // no box: four corner ticks close around the drawing, so whatever lies under it stays visible
     ctx.strokeStyle = 'rgba(128, 128, 128, 0.7)';
     ctx.lineWidth = 1;
-    ctx.strokeRect(x0 + 0.5, y0 + 0.5, ENV_W - 1, ENV_H - 1);
+    const L = 8, r = x0 + ENV_W - 0.5, b = y0 + ENV_H - 0.5, l = x0 + 0.5, tp = y0 + 0.5;
+    ctx.beginPath();
+    ctx.moveTo(l, tp + L); ctx.lineTo(l, tp); ctx.lineTo(l + L, tp);
+    ctx.moveTo(r - L, tp); ctx.lineTo(r, tp); ctx.lineTo(r, tp + L);
+    ctx.moveTo(l, b - L); ctx.lineTo(l, b); ctx.lineTo(l + L, b);
+    ctx.moveTo(r - L, b); ctx.lineTo(r, b); ctx.lineTo(r, b - L);
+    ctx.stroke();
     ctx.fillStyle = ink;
     ctx.font = '11px ui-monospace, Consolas, monospace';
     ctx.textAlign = 'left';
@@ -941,19 +944,19 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
       ctx.lineTo(xt(sEnd), yv(g.s));
       for (let k = 1; k <= 24; k++) { const t = (g.r * 0.67 * k) / 24; ctx.lineTo(xt(sEnd + t), yv(g.s * Math.pow(0.001, t / g.r))); }
       ctx.stroke();
-      if (gi === 0) {   // the stage boundaries, and the stage names along the bottom
+      ctx.lineTo(xt(rEnd), yv(0)); ctx.lineTo(xt(0), yv(0));   // a faint fill under the curve
+      ctx.globalAlpha = 0.14; ctx.fillStyle = GROUP_COLOUR[gi % GROUP_COLOUR.length]; ctx.fill(); ctx.globalAlpha = 1;
+      if (gi === 0) {   // the stage boundaries
         ctx.globalAlpha = 0.3;
         ctx.strokeStyle = ink;
         ctx.lineWidth = 1;
         for (const e of [aEnd, dEnd, sEnd]) { ctx.beginPath(); ctx.moveTo(xt(e), py); ctx.lineTo(xt(e), py + ph); ctx.stroke(); }
         ctx.globalAlpha = 1;
-        ctx.fillStyle = ink;
-        [['A', 0, aEnd], ['D', aEnd, dEnd], ['S', dEnd, sEnd], ['R', sEnd, rEnd]].forEach(([name, a, b]) => ctx.fillText(name, (xt(a) + xt(b)) / 2 - 3, py + ph + 3));
       }
     });
     ctx.fillStyle = ink;
     const g = groups[0], ms = v => (v >= 100 ? Math.round(v) : v.toFixed(1));
-    ctx.fillText(`A ${ms(g.a)}  D ${ms(g.d)}  S ${g.s.toFixed(2)}  R ${ms(g.r)}`, x0 + 8, y0 + ENV_H - 18);
+    ctx.fillText(`A ${ms(g.a)}  D ${ms(g.d)}  S ${g.s.toFixed(2)}  R ${ms(g.r)}`, px, py + ph + 6);
     ctx.restore();
   }
 

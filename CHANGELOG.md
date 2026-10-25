@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 456 · 2026-10-25
+
+- Envelope drawing beside a selected node: no box, only four corner ticks close around the drawing, so nodes under it show through; a faint fill under the curve; the A D S R letters are gone and the readout sits right under the graph. About a third shorter.
+
 ## 455 · 2026-10-24
 
 - New `genexpr` node (Effects > Code): a node whose sound is code. A GenExpr-style language (History, Param, Data and Delay declarations, assignments, if / else, `?:`, around fifty operators including phasor, cycle, noise, delta, slide, mix, scale, wrap, fold, peek, poke and delay `.read` / `.write`) is compiled to JavaScript once per edit, never per block. `in1` `in2` come in, `out1` `out2` go out; each `Param` becomes a knob (p1 to p8) scaled to its own min and max.

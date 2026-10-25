@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['456', ['Envelope drawing: corner ticks instead of a box, a faint fill under the curve, a tighter layout.']],
   ['455', ['New genexpr node: a node whose sound is code, compiled once per edit, with every mistake underlined and explained.']],
   ['454', ['Dropdown lists: darker background and full-contrast text when open.']],
   ['453', ['New sweep filter node: one knob, lowpass below 0, highpass above, untouched at 0, no dry/wet seam.']],
@@ -15,6 +16,5 @@ export const CHANGELOG = [
   ['450', ['Instruments tab: NoteCols is Tracks; the preset box is headed "selected node preset".']],
   ['449', ['Instruments tab: Voices and NoteCols stacked, the node preset box right-aligned beside them.']],
   ['448', ['Graph: undo and redo (Ctrl+Z, Ctrl+Y); wires are easier to hit.']],
-  ['447', ['Graph: right-click a wire to put a node into it; the nodes to its right move over.']],
   ['442', ['Instruments tab: list and instrument controls in one panel on the left; the graph starts at the top.']],
 ];
