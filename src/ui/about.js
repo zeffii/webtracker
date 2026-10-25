@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['458', ['Rename an instrument with Ctrl+F2 or a right-click on it; the Name row is gone.']],
   ['457', ['Graph: wires run behind nodes. Node preset box: "(preset list)" with the delete cross beside it.']],
   ['456', ['Envelope drawing: corner ticks instead of a box, a faint fill under the curve, a tighter layout.']],
   ['455', ['New genexpr node: a node whose sound is code, compiled once per edit, with every mistake underlined and explained.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['451', ['Instruments tab: Voices and Tracks line up with the node preset box.']],
   ['450', ['Instruments tab: NoteCols is Tracks; the preset box is headed "selected node preset".']],
   ['449', ['Instruments tab: Voices and NoteCols stacked, the node preset box right-aligned beside them.']],
-  ['442', ['Instruments tab: list and instrument controls in one panel on the left; the graph starts at the top.']],
 ];

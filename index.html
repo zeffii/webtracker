@@ -639,8 +639,7 @@
     #inst-head { display: flex; flex-wrap: wrap; gap: .3rem; align-items: center; margin: .5rem 0 0; padding: 0 .6ch; min-height: 0; }
     #inst-head label { display: flex; gap: .6ch; align-items: center; white-space: nowrap; }
     #inst-head > label:first-child { flex: 1 1 calc(100% - 5rem); min-width: 0; }
-    #inst-head #inst-name { flex: 1; width: auto; min-width: 0; }
-    #inst-head #inst-rename { flex: none; }
+    .rename-box { position: fixed; z-index: 40; box-sizing: border-box; font: 12px/18px ui-monospace, Consolas, monospace; padding: 2px 6px; background: var(--bg); color: var(--fg); border: 1px solid var(--hi); box-shadow: 0 4px 14px rgb(0 0 0 / .35); outline: none; }
     #inst-head .vn, #inst-head #patch-tools { align-self: flex-start; }
     #inst-head .vn { flex: none; display: grid; gap: .3rem; }
     #inst-head .vn label { justify-content: flex-start; gap: .8ch; }
@@ -1236,8 +1235,6 @@
           <h2>Instruments</h2>
           <div id="inst-list" tabindex="0" aria-label="Instruments"></div>
             <div id="inst-head">
-              <label>Name <input id="inst-name" aria-label="Rename the selected instrument" disabled size="18"></label>
-              <button id="inst-rename" disabled>Rename</button>
               <div class="vn">
                 <label>Voices <input id="inst-voices" type="number" min="1" max="16" step="1" disabled></label>
                 <label>Tracks <input id="inst-notecols" type="number" min="1" max="8" step="1" disabled></label>
@@ -1321,6 +1318,7 @@
           <dt>Drag dot</dt><dd>from an output dot (right) to an input dot (left) to <b class="kw">wire</b> them</dd>
           <dt>Right-click a node</dt><dd><b class="kw">replace</b> it with another type from the same menu (sources and effects are not swapped for each other, so those rows are greyed): it keeps its place, its wires (to the ports of the same name, else the same position) and the parameters the two share</dd>
           <dt>Ctrl+Z, Ctrl+Y</dt><dd><b class="kw">undo</b> and redo in the graph: nodes, wires, parameter values, exposed columns (each instrument has its own history; Ctrl+Shift+Z also redoes)</dd>
+          <dt>Ctrl+F2, or right-click an instrument</dt><dd><b class="kw">rename</b> the selected instrument: type the new name, Enter</dd>
           <dt>Right-click a wire</dt><dd><b class="kw">insert</b> a node into it: it goes in the middle, wired to both ends, and the nodes to its right move over to make room</dd>
           <dt>Right-click, double-click</dt><dd>empty space in the graph: <b class="kw">insert</b> a node. In the menu: the underlined letter of a row opens or inserts it, arrows and Enter <b class="kw">move</b> and open, Left or Esc go up a level, / (or clicking the box) searches: type, then Up/Down and Enter</dd>
           <dt>Left/Right</dt><dd>on a slider: change the parameter (Shift for more)</dd>
@@ -1389,6 +1387,7 @@
           <dt>F5 F6 F7 F8</dt><dd><b class="kw">play</b> from the start (or the <b class="kw">loop</b>); play from the cursor; play just this row once; stop</dd>
           <dt>F9</dt><dd><b class="kw">follow</b> the song: the rows scroll with the playing row (highlighted). Moving the caret to another row <b class="kw">pauses</b> the following; F9 follows again</dd>
           <dt>Ctrl+Z, Ctrl+Y</dt><dd><b class="kw">undo</b>, redo</dd>
+          <dt>Ctrl+F2</dt><dd><b class="kw">rename</b> the selected instrument (also: right-click it in the list)</dd>
           <dt>O, Ctrl+1</dt><dd>put a note-off marker on this row (again to <b class="kw">remove</b> it): the lane lets go of what is sounding there, for patterns that end without a <b class="kw">note off</b></dd>
           <dt>Ctrl+B, Ctrl+E</dt><dd>start the <b class="kw">loop</b> at this row, end it at the start of this row, so this row is the first one after the loop (again on the same row to take it away); <b class="kw">play</b> starts at the loop and repeats it. L (or Ctrl+L) switches the loop <b class="kw">off</b> and on, keeping its points</dd>
           <dt>Click a tick number</dt><dd>puts the <b class="kw">playhead</b> on that tick (the row's height is its ticks): while playing it jumps there, stopped it <b class="kw">plays</b> from there</dd>

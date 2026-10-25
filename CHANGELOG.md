@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 458 · 2026-10-25
+
+- Instruments tab: the Name box and Rename button are gone. Ctrl+F2, or a right-click on an instrument in the list (a menu with one item, Rename), opens a small box over its row; Enter renames, Escape leaves it.
+
 ## 457 · 2026-10-25
 
 - Graph: wires always run behind the nodes; a node is filled with the graph's background first, so a wire under it no longer shows through.

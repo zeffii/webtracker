@@ -171,6 +171,7 @@ document.addEventListener('keydown', e => {
   }
   if (e.key === 'F1' && !e.ctrlKey && !e.altKey && !e.metaKey && !e.shiftKey && tabs.active === 'instruments' && (!nodeHelp.hidden ? (hideHelp(), true) : patcher.helpSelected())) { e.preventDefault(); return; }   // F1 on the instrument screen shows or hides the help of the selected node
   if (e.ctrlKey && e.altKey && !e.metaKey && !e.shiftKey && e.code === 'KeyD') { e.preventDefault(); toggleDock(); return; }
+  if (e.key === 'F2' && e.ctrlKey && !e.altKey && !e.metaKey && !e.shiftKey && tabs.active === 'instruments' && project) { e.preventDefault(); renameInstrumentBox(); return; }   // rename the selected instrument
   if (tabs.handleKey(e)) return;
   const here = () => (tabs.active === 'arrange' ? seqView : view).tick;   // the row the cursor is on
   // Ctrl+Shift+R arms and disarms MIDI recording; Alt+V switches MIDI velocity on and off.
@@ -740,7 +741,6 @@ function renderInstList() {
     return b;
   });
   $('inst-list').replaceChildren(...buttons);
-  $('inst-name').value = patcher.instrument ?? '';
   renderLaneInstruments();
   renderPresetList();
   syncPoly();
@@ -1154,11 +1154,31 @@ $('ins-n').addEventListener('keydown', e => { if (e.key === 'Enter') insertSilen
 for (const b of document.querySelectorAll('.ins-pre')) { b.disabled = false; b.addEventListener('click', () => { $('ins-n').value = b.dataset.n; insertSilence(b.dataset.n); }); }
 for (const id of ['length', 'ins-n', 'bpm', 'swing', 'bar', 'pname']) $(id).addEventListener('keydown', e => e.stopPropagation());
 
-$('inst-rename').addEventListener('click', () => {
+// Rename the selected instrument: Ctrl+F2, or right-click it in the list. A small box opens over its row; Enter renames, Escape or a click elsewhere leaves it.
+function renameInstrumentBox() {
   const id = patcher.instrument;
-  if (id) reshape(() => { const next = ops.renameInstrument(project, id, $('inst-name').value); return { instrument: next, message: `Renamed to ${next}.` }; });
+  if (!project || !id || document.querySelector('.rename-box')) return;
+  const row = $('inst-list').querySelector('button.active')?.getBoundingClientRect() ?? $('inst-list').getBoundingClientRect();
+  const box = document.createElement('input');
+  box.className = 'rename-box'; box.value = id; box.size = 18; box.setAttribute('aria-label', 'New name for the instrument');
+  Object.assign(box.style, { left: `${row.left}px`, top: `${row.top - 1}px`, width: `${Math.max(row.width, 180)}px`, height: `${row.height + 2}px` });
+  let done = false;
+  const finish = ok => {
+    if (done) return; done = true;
+    const text = box.value.trim(); box.remove(); $('inst-list').focus();
+    if (ok && text && text !== id) reshape(() => { const next = ops.renameInstrument(project, id, text); return { instrument: next, message: `Renamed to ${next}.` }; });
+  };
+  box.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') finish(true); else if (e.key === 'Escape') finish(false); });
+  box.addEventListener('blur', () => finish(false));
+  document.body.append(box); box.focus(); box.select();
+}
+$('inst-list').addEventListener('contextmenu', e => {
+  const b = e.target.closest?.('button'); if (!b || !project) return;
+  e.preventDefault();
+  const id = listedInstruments()[[...$('inst-list').children].indexOf(b)];
+  if (id && id !== patcher.instrument) { patcher.show(id); renderInstList(); }
+  showContextMenu(e, [{ label: 'Rename', hint: 'Ctrl+F2', run: renameInstrumentBox }]);
 });
-$('inst-name').addEventListener('keydown', e => { if (e.key === 'Enter') $('inst-rename').click(); e.stopPropagation(); });
 $('inst-up').addEventListener('click', () => { const id = patcher.instrument; if (id) reshape(() => { ops.moveInstrument(project, id, -1); }); });
 $('inst-down').addEventListener('click', () => { const id = patcher.instrument; if (id) reshape(() => { ops.moveInstrument(project, id, 1); }); });
 $('inst-dup').addEventListener('click', () => {
@@ -2158,7 +2178,7 @@ $('start').addEventListener('click', async () => {
     navigator.storage?.persist?.();   // ask the browser not to clear the snapshots when it is short of space
     for (const id of ['start']) $(id).disabled = true;
     $('logo').classList.remove('idle'); $('logo').removeAttribute('title'); $('logo').removeAttribute('role'); $('logo').removeAttribute('tabindex');
-    for (const id of ['play', 'pause', 'panic', 'cut', 'new', 'save', 'load', 'backups', 'export', 'load-samples', 'rec-take', 'rec-source', 'add-inst', 'add-lane', 'add-lane-inst', 'inst-voices', 'inst-notecols', 'inst-name', 'inst-rename', 'inst-up', 'inst-down', 'inst-dup', 'inst-remove', 'lane-name', 'lane-rename', 'lane-left', 'lane-right', 'lane-dup', 'lane-remove', 'lane-remove-all', 'length', 'ins-n', 'ins-go', 'bpm', 'swing', 'bar', 'preset-name', 'preset-save', 'preset-over', 'preset-rename', 'preset-remove', 'inst-export', 'inst-import', 'lib-load', 'lib-add', 'lib-save']) $(id).disabled = false;
+    for (const id of ['play', 'pause', 'panic', 'cut', 'new', 'save', 'load', 'backups', 'export', 'load-samples', 'rec-take', 'rec-source', 'add-inst', 'add-lane', 'add-lane-inst', 'inst-voices', 'inst-notecols', 'inst-up', 'inst-down', 'inst-dup', 'inst-remove', 'lane-name', 'lane-rename', 'lane-left', 'lane-right', 'lane-dup', 'lane-remove', 'lane-remove-all', 'length', 'ins-n', 'ins-go', 'bpm', 'swing', 'bar', 'preset-name', 'preset-save', 'preset-over', 'preset-rename', 'preset-remove', 'inst-export', 'inst-import', 'lib-load', 'lib-add', 'lib-save']) $(id).disabled = false;
     $('status').textContent =
       `Running at ${engine.ctx.sampleRate} Hz, base latency ${(engine.ctx.baseLatency * 1000).toFixed(1)} ms`;
     // Only the screen that is showing is drawn: a hidden one has nothing to measure or paint, and its work would only delay the one you are using.
