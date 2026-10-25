@@ -7,14 +7,14 @@
 // A shader reads them through the lane's name (its id, or its instrument's name) or its place in the lane list, which the preprocess
 // below turns into a look-up in the LANE array:  hit("kick")  pitch("acid")  vel(2)  held("pad")  hits()
 import { PAGE_TICKS } from '../audio/sequencer.js';
-import { MASTER, SHADER } from '../instruments.js';
+import { MASTER, SHADER, GRAPH } from '../instruments.js';
 import { EMPTY, CUT, OFF, decodeNote, decodeHex1, decodeHex2 } from '../seq/cells.js';
 
 export const MAX_LANES = 16;
 export const WIN = 32, BEHIND = 8;   // the pattern window a shader can read: WIN ticks across, the playhead BEHIND ticks from the left edge
 
 // The lanes a picture can see: every lane but the master lane, in order, at most MAX_LANES.
-export const visibleLanes = lanes => (lanes ?? []).filter(l => l.instrument !== MASTER && l.instrument !== SHADER).slice(0, MAX_LANES);
+export const visibleLanes = lanes => (lanes ?? []).filter(l => l.instrument !== MASTER && l.instrument !== SHADER && l.instrument !== GRAPH).slice(0, MAX_LANES);
 
 // The shader the picture shows at `tick`: the last Shd value the shader lane holds at or before it (0 when it holds none yet), so
 // starting or jumping into the middle of a song shows the right shader. The lane is the shader machine's; col is its Shd column.

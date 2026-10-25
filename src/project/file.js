@@ -4,7 +4,7 @@ import { SAMPLE_KEYS, isPool, ensurePool } from './ops.js';
 // {
 //   format: 'webtracker', version: 1,
 //   patterns carry an optional `color`: 0..15 for one of the pastel presets, or '#rrggbb'
-//   song: { name, bpm, ticksPerBeat, length, swing?, beatsPerBar?, loop?, info? },   (info: free text for notes and greetings)   (script: the song's script text)   (shaders: [{ name, glsl }], the live picture's GLSL shaders, at most 16; the shader lane's Shd column picks one by its place in the list, and an empty glsl is the built-in picture)   (loop: { start, end } in ticks, end not included; playing loops it, else the whole song)   (swing 0.5 to 0.75: how much of each pair of ticks the first lasts; 0.5 or none is straight)
+//   song: { name, bpm, ticksPerBeat, length, swing?, beatsPerBar?, loop?, info?, nodeseq? },   (nodeseq: the Node Sequencer's graph: { sub, groups: [{ name, on }], nodes: [{ id, type, x, y, group?, params?, data? }], wires: [{ from: "node.port", to: "node.port" }] })   (info: free text for notes and greetings)   (script: the song's script text)   (shaders: [{ name, glsl }], the live picture's GLSL shaders, at most 16; the shader lane's Shd column picks one by its place in the list, and an empty glsl is the built-in picture)   (loop: { start, end } in ticks, end not included; playing loops it, else the whole song)   (swing 0.5 to 0.75: how much of each pair of ticks the first lasts; 0.5 or none is straight)
 //   instruments: { id: { graph, exposed, commands, samples: { nodeId: sampleId | [sampleId, ...] }, noteColumns?,
 //                         presets?: [{ id, name, values: { 'node.param': number }, data?: { node: { curve?, spectrum? } } }] } },
 //   (graph.voices, 1 to 16, runs that many copies of the graph for polyphony; noteColumns, 1 to 8,
@@ -70,7 +70,7 @@ export function serializeProject({ song, instruments, samples, lanes }, { sample
   return JSON.stringify({
     format: FORMAT,
     version: VERSION,
-    song: { name: song.name ?? 'untitled', bpm: song.bpm, ticksPerBeat: song.ticksPerBeat, length: song.length, ...(song.swing && song.swing !== 0.5 ? { swing: song.swing } : {}), ...(song.beatsPerBar && song.beatsPerBar !== 4 ? { beatsPerBar: song.beatsPerBar } : {}), ...(song.loop ? { loop: { start: song.loop.start, end: song.loop.end, ...(song.loop.off ? { off: true } : {}) } } : {}), ...(song.info ? { info: song.info } : {}), ...(song.script ? { script: song.script } : {}), ...(song.shaders?.some(s => s.glsl) ? { shaders: song.shaders.map(s => ({ name: String(s.name ?? 'main'), glsl: String(s.glsl ?? '') })) } : {}) },
+    song: { name: song.name ?? 'untitled', bpm: song.bpm, ticksPerBeat: song.ticksPerBeat, length: song.length, ...(song.swing && song.swing !== 0.5 ? { swing: song.swing } : {}), ...(song.beatsPerBar && song.beatsPerBar !== 4 ? { beatsPerBar: song.beatsPerBar } : {}), ...(song.loop ? { loop: { start: song.loop.start, end: song.loop.end, ...(song.loop.off ? { off: true } : {}) } } : {}), ...(song.info ? { info: song.info } : {}), ...(song.script ? { script: song.script } : {}), ...(song.nodeseq?.nodes?.length ? { nodeseq: song.nodeseq } : {}), ...(song.shaders?.some(s => s.glsl) ? { shaders: song.shaders.map(s => ({ name: String(s.name ?? 'main'), glsl: String(s.glsl ?? '') })) } : {}) },
     instruments,
     samples: Object.fromEntries(Object.entries(samples).filter(([id]) => !isPool(id)).map(([id, s]) => [id, encodeSample(s, sampleFormat)])),
     lanes: lanes.map(l => ({

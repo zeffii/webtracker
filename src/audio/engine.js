@@ -44,6 +44,7 @@ export class Engine {
       else if (data.type === 'load') this.onLoad?.(data);
       else if (data.type === 'scope') this.onScope?.(data);
       else if (data.type === 'emit') this.onEmit?.(data);
+      else if (data.type.startsWith('ns')) this.onNodeseq?.(data);   // the Node Sequencer's activity, notes to record, mistakes
     };
     this.node.port.postMessage({ type: 'dither', on: this.dither });
     this.node.port.postMessage({ type: 'volfloor', on: this.volFloor });
@@ -123,12 +124,21 @@ export class Engine {
     this.node.port.postMessage({ type: 'cut' });
   }
 
-  setSong({ bpm, ticksPerBeat, length, swing = 0.5, loop }) {
+  setSong({ bpm, ticksPerBeat, length, swing = 0.5, loop, beatsPerBar }) {
     const slot = name => this.registry.slots.get(`master.m.${name}`);   // the master lane's parameters, once its instrument is loaded
     const master = slot('bpm') !== undefined ? { bpm: slot('bpm'), swing: slot('swing'), tpb: slot('tpb'), volume: slot('volume'), limit: slot('limit'), ceiling: slot('ceiling'), boost: slot('boost'), release: slot('release') } : undefined;
-    this.sent?.set('song', { type: 'song', song: { bpm, ticksPerBeat, length, swing, ...(master ? { master } : {}) } });
-    this.node.port.postMessage({ type: 'song', song: { bpm, ticksPerBeat, length, swing, ...(master ? { master } : {}), ...(loop && !loop.off ? { loop: { start: loop.start, end: loop.end } } : {}) } });
+    this.sent?.set('song', { type: 'song', song: { bpm, ticksPerBeat, length, swing, beatsPerBar, ...(master ? { master } : {}) } });
+    this.node.port.postMessage({ type: 'song', song: { bpm, ticksPerBeat, length, swing, beatsPerBar, ...(master ? { master } : {}), ...(loop && !loop.off ? { loop: { start: loop.start, end: loop.end } } : {}) } });
   }
+
+  // The Node Sequencer's graph and what its names mean here (see audio/nodeseq.js); live edits of one parameter or one node's data go on their own.
+  setNodeseq(graph, resolve) {
+    this.sent?.set('nodeseq', { type: 'nodeseq', graph, resolve });
+    this.node.port.postMessage({ type: 'nodeseq', graph, resolve });
+  }
+  nodeseqParam(id, name, value) { this.node.port.postMessage({ type: 'nsp', id, name, value }); }
+  nodeseqData(id, data) { this.node.port.postMessage({ type: 'nsd', id, data }); }
+  nodeseqFlags(flags) { this.node.port.postMessage({ type: 'nsflags', ...flags }); }
 
   // lane = { id, instrument, columns, pages }. The pages are shared memory.
   setLane(lane) {
@@ -139,7 +149,7 @@ export class Engine {
   // Everything an offline render needs: what the audio thread was told (graphs first, then node data, the song, the
   // lanes), a private copy of the parameter values, the compiled DSP and the sample rate.
   exportState() {
-    const order = { load: 0, node: 1, song: 2, lane: 3 };
+    const order = { load: 0, node: 1, song: 2, nodeseq: 3, lane: 4 };
     const messages = [...this.sent.values()].sort((a, b) => order[a.type] - order[b.type]);
     return { messages, params: new Float32Array(new Float32Array(this.registry.sab)), wasm: this.wasmModule, sampleRate: this.ctx?.sampleRate ?? 44100 };
   }

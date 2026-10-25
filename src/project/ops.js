@@ -1,4 +1,4 @@
-import { MASTER, SHADER, newSamplerInstrument, shaderInstrument, synthKinds } from '../instruments.js';
+import { MASTER, SHADER, GRAPH, newSamplerInstrument, shaderInstrument, graphInstrument, synthKinds } from '../instruments.js';
 import { clampLoop } from '../seq/loop.js';
 import { dropSource, renameSource } from '../graph/sidechain.js';
 import { slicePlacement } from '../seq/edit.js';
@@ -193,6 +193,13 @@ export function addLane(project, registry, instrumentId) {
   return lane;
 }
 
+// The group machine of the Node Sequencer: made the first time a pattern is wanted to start and stop groups. True when it was new
+// (its lane still has to be added).
+export function ensureGraphMachine(project) {
+  const first = !project.instruments[GRAPH];
+  if (first) project.instruments[GRAPH] = graphInstrument();
+  return first;
+}
 // ---- the shader machine: numbers of the live picture's shader that patterns can move ----
 // Each is one of the 16 values of the machine's `glsl` node, exposed as a pattern column of that name (so the shader lane's columns
 // are the exposed numbers, and nothing else). The machine is made the first time a number is exposed. Returns what the caller needs

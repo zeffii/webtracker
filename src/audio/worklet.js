@@ -14,6 +14,8 @@ class TrackerEngine extends AudioWorkletProcessor {
     this.rt = new GraphRuntime({ sampleRate, params, wasm });
     this.rt.onLane = (id, l, r, n) => { const k = slotOf.get(id); if (k !== undefined && lanes.wants(k)) lanes.write(k, l, r, n); };
     this.seq = new Sequencer({ sampleRate, runtime: this.rt, params, transport: new Int32Array(transport) });
+    this.seq.post = msg => this.port.postMessage(msg);
+    this.nsBlocks = 0;
     // Load meter. The worklet has no fine clock, only Date.now() in whole milliseconds, but the average of many such
     // readings is unbiased, so the load is exact on average; the peak is good to about a millisecond.
     this.budget = (128 / sampleRate) * 1000;
@@ -38,6 +40,10 @@ class TrackerEngine extends AudioWorkletProcessor {
         this.seq.reset(fresh);
       }
       else if (data.type === 'song') this.seq.setSong(data.song);
+      else if (data.type === 'nodeseq') this.seq.setNodeseq(data.graph, data.resolve);
+      else if (data.type === 'nsp') this.seq.ns.setParam(data.id, data.name, data.value);
+      else if (data.type === 'nsd') this.seq.ns.setData(data.id, data.data);
+      else if (data.type === 'nsflags') this.seq.ns.setFlags(data);
       else if (data.type === 'lane') this.seq.setLane(data.lane);
       else if (data.type === 'transport') {
         if (data.play || data.row !== undefined) this.halted = false;
@@ -58,6 +64,7 @@ class TrackerEngine extends AudioWorkletProcessor {
     }
     const t0 = Date.now();
     this.seq.process(out[0], out[1], out[0].length);
+    if (this.seq.ns.watch) this.seq.ns.flush(++this.nsBlocks % 10 === 0);   // activity for the Node Sequencer view, a few dozen times a second
     if (this.dither) {   // triangular noise of one 16-bit step (-96 dB): very quiet sound, fading in or out, is otherwise rounded by the sound card into crackle
       let z = this.noise, n = out[0].length;
       for (let c = 0; c < 2; c++) for (let i = 0; i < n; i++) {

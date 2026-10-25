@@ -28,7 +28,9 @@ import { LIBRARY_EXT, addToLibrary, importFromLibrary, newLibrary, parseLibrary,
 import { createRecorder } from './project/recorder.js';
 import { poolId, isPool, ensurePool, usersOfSample } from './project/ops.js';
 import { idFromName, uniqueId, addLane, addSample, addSamplerInstrument, addSynthInstrument, channelsOf, sampleMessage, slotsOf, syncSamplerStereo } from './project/ops.js';
-import { MASTER, SHADER, ensureMaster, synthKinds } from './instruments.js';
+import { MASTER, SHADER, GRAPH, ensureMaster, synthKinds } from './instruments.js';
+import { createNodeSeqEditor } from './nodeseq/editor.js';
+import { ensureGraph, cleanGraph } from './nodeseq/graphops.js';
 import { createSampleScreen } from './project/samplescreen.js';
 import { createWaveformView } from './project/waveform.js';
 import { showContextMenu } from './ui/ctxmenu.js';
@@ -78,6 +80,7 @@ const setPlaying = (value, from = null) => {
   $('play').title = playing ? 'Stop (F8)' : pausedAt !== null ? 'Play: carry on from the pause' : 'Play (F5)';
   $('play').setAttribute('aria-label', playing ? 'Stop' : 'Play');
   if (recording) { if (playing) writer.beginPass(); else writer.endPass(); }   // each run of the song is its own undo step
+  nsFlags(); if (!playing) nsView?.stopped();
 };
 const togglePlay = () => setPlaying(!playing);
 // Pause stops where the song is and keeps the place; Pause again, or Play, carries on from there (notes held across the pause start again).
@@ -149,10 +152,10 @@ $('dock-grip').addEventListener('mousedown', e => {
   }, 'webtracker.keysW');
 }
 // Full-screen panes. Switching with an F-key or a click focuses the pane's main element.
-let shaderView = null, dspView = null;
+let shaderView = null, dspView = null, nsView = null;
 let tabBefore = 'patterns', tabNow = 'patterns';   // where the Info close button goes back to
 const tabs = createTabs({
-  onChange: id => { if (id === 'dsp') dspView?.open(patcher?.instrument); if (id === 'shader') { shaderView?.load(); if (!vizOn) config.set('visualOn', true); } if (id !== tabNow) { tabBefore = tabNow; tabNow = id; } applyDock(id); keysRefresh(id); requestAnimationFrame(() => { fitArrangement(); syncFloat(); placeViz(); placeMeters(); }); },
+  onChange: id => { if (id === 'dsp') dspView?.open(patcher?.instrument); if (id === 'nodeseq') nsView?.refresh(); nsFlags(); if (id === 'shader') { shaderView?.load(); if (!vizOn) config.set('visualOn', true); } if (id !== tabNow) { tabBefore = tabNow; tabNow = id; } applyDock(id); keysRefresh(id); requestAnimationFrame(() => { fitArrangement(); syncFloat(); placeViz(); placeMeters(); }); },
   tabs: [
     { id: 'patterns', key: 'F1', el: $('pane-patterns'), button: $('tab-patterns'), focus: $('view') },
     { id: 'samples', key: 'F2', el: $('pane-samples'), button: $('tab-samples'), focus: $('smp') },
@@ -162,6 +165,7 @@ const tabs = createTabs({
     { id: 'script', key: null, combo: e => e.ctrlKey && e.altKey && !e.metaKey && !e.shiftKey && e.code === 'KeyS', el: $('pane-script'), button: $('tab-script'), focus: $('script') },
     { id: 'shader', key: null, combo: e => e.ctrlKey && e.altKey && !e.metaKey && !e.shiftKey && e.code === 'KeyG', el: $('pane-shader'), button: $('tab-shader'), focus: $('shader-input') },
     { id: 'dsp', key: null, combo: e => e.ctrlKey && e.altKey && !e.metaKey && !e.shiftKey && e.code === 'KeyI', el: $('pane-dsp'), button: $('tab-dsp'), focus: $('dsp-src') },
+    { id: 'nodeseq', key: null, combo: e => e.ctrlKey && e.altKey && !e.metaKey && !e.shiftKey && e.code === 'KeyN', el: $('pane-nodeseq'), button: $('tab-nodeseq'), focus: { focus: () => nsView?.focus() } },
     { id: 'info', key: 'F10', el: $('pane-info'), button: $('tab-info'), focus: { focus: () => (!$('info').hidden ? $('info') : $('info-view')).focus() } },
   ],
 });
@@ -438,6 +442,7 @@ const setRecording = on => {
   recording = on;
   $('rec').setAttribute('aria-pressed', String(on));
   if (on) writer.beginPass(); else writer.endPass();
+  nsFlags(); nsView?.refresh();
   midiSay(on ? (playing ? 'Recording: play on the MIDI keyboard.' : 'Rec armed: it records while the song plays.') : 'Recording off.');
 };
 $('rec').addEventListener('click', e => { setRecording(!recording); e.currentTarget.blur(); });
@@ -1450,6 +1455,7 @@ function reloadInstrument(id) {
     loadInst(id);
     sendSamples(id);
     refreshLanes(id);
+    nsPush();
   } catch (err) {
     $('patch-status').textContent = err.message;
   }
@@ -1458,6 +1464,7 @@ function reloadInstrument(id) {
 // Loads a project into the running engine: { song, instruments, samples }.
 function openProject({ song, instruments, samples }, { stay = false, instrument = null, lane = null } = {}) {
   ensureMaster({ song, instruments });
+  if (song.nodeseq) cleanGraph(ensureGraph(song));   // a hand-edited file cannot trip the engine
   if (playing) setPlaying(false);
   engine.reset();
   audition = null;
@@ -1475,6 +1482,7 @@ function openProject({ song, instruments, samples }, { stay = false, instrument 
   project = { song, instruments, samples, lanes, editor };
   patcher.load({ instruments });
   if (instrument in instruments) patcher.show(instrument);
+  nsPush(); nsView?.load();
   refreshProjectUi();
   seqView.load({ lanes, song, editor });
   view.load({ lanes, song, editor });
@@ -1598,6 +1606,54 @@ $('limit-btn').addEventListener('click', () => {
   paintLimit();
 });
 setInterval(paintLimit, 400);   // the pattern or the parameter panel can switch it too
+
+// ---- the Node Sequencer (nodeseq/editor.js, audio/nodeseq.js): a graph of event and control wires that runs beside the pattern lanes ----
+const nsSkip = new Set([MASTER, SHADER, GRAPH]);
+const nsNotes = () => Object.entries(project?.instruments ?? {}).filter(([id, d]) => !nsSkip.has(id) && (d.noteColumns ?? 1) > 0).map(([id]) => ({ value: id, label: id }));
+const nsParams = () => Object.entries(project?.instruments ?? {}).filter(([id]) => !nsSkip.has(id)).flatMap(([id, d]) => (d.exposed ?? []).map(e => ({ value: `${id}.${e.node}.${e.param}`, label: e.label ?? e.param, group: id })));
+// What the names in the graph mean on this machine: a `set` node's parameter slot and range, and the slots of the eight group columns.
+function nsResolve() {
+  const g = project?.song.nodeseq, slots = {}, reg = engine.registry;
+  for (const n of g?.nodes ?? []) {
+    if (n.type !== 'set' || !n.data?.target) continue;
+    const slot = reg.slots.get(n.data.target);
+    if (slot === undefined) continue;
+    const [inst, node, param] = n.data.target.split('.'), ex = project.instruments[inst]?.exposed?.find(e => e.node === node && e.param === param), m = reg.meta[slot];
+    slots[n.id] = { slot, min: m.min, max: m.max, int: !!m.int, log: ex?.scale === 'log' && m.min > 0 };
+  }
+  return { slots, groupSlots: Array.from({ length: 8 }, (_, i) => reg.slots.get(`${GRAPH}.g.g${i + 1}`) ?? -1) };
+}
+const nsEmpty = { sub: 4, groups: [], nodes: [], wires: [] };
+function nsPush() { if (!project || !engine.node) return; engine.setNodeseq(JSON.parse(JSON.stringify(project.song.nodeseq ?? nsEmpty)), nsResolve()); }
+function nsFlags() { if (engine.node) engine.nodeseqFlags({ watch: tabs.active === 'nodeseq' && playing, record: recording && playing }); }
+const nsSay = t => { $('proj-status').textContent = t; };
+function nsLane() {
+  if (!project) return;
+  if (project.lanes.some(l => l.instrument === GRAPH)) { nsSay('The pattern lane for the groups is there already (the "graph" lane).'); return; }
+  if (ops.ensureGraphMachine(project)) loadInst(GRAPH);
+  addLaneFor(GRAPH); patcher.load({ instruments: project.instruments }); refreshProjectUi(); nsPush(); scheduleCheck();
+  nsSay('Made the "graph" lane: a 1 in a G column starts that group, a 0 stops it.');
+}
+// Notes the graph plays are written into the lanes of their instrument while Rec is armed and the song plays.
+function nsRecord(m) {
+  if (!recording || !playing || !project) return;
+  const li = project.lanes.findIndex(l => l.instrument === m.target);
+  if (li < 0) return;
+  const subs = project.song.nodeseq?.sub ?? 4, pos = m.tick + m.sub / subs, vel = Math.max(1, Math.round(m.vel * 127));
+  const r = writer.recOn({ li, midi: m.note, vel, pos });
+  if (!r.wrote && r.message && !saidParam.has(r.message)) { saidParam.add(r.message); nsSay(r.message); }
+  writer.recOff({ midi: m.note, pos: pos + m.subs / subs });
+}
+nsView = createNodeSeqEditor({
+  root: $('pane-nodeseq'), getSong: () => project?.song, noteTargets: nsNotes, paramTargets: nsParams, say: nsSay,
+  isRecording: () => recording,
+  onStructure: () => { nsPush(); scheduleCheck(); },
+  onParam: (id, name, value) => { engine.nodeseqParam(id, name, value); scheduleCheck(); },
+  onData: (id, data) => { engine.nodeseqData(id, data); scheduleCheck(); },
+  onGroupLane: nsLane,
+});
+globalThis.waxDebug = { nsView, engine, project: () => project };   // for the browser tests
+engine.onNodeseq = m => { if (m.type === 'nsnote') nsRecord(m); else nsView.activity(m); };
 
 // The live picture: a 300 x 300 shader in the corner, fed by what the lanes play (ui/visdata.js, ui/visual.js).
 const vizBox = $('viz'), vizErr = $('viz-err');
@@ -2227,6 +2283,7 @@ $('start').addEventListener('click', async () => {
       if (tab === 'patterns' || !tab) view.draw();
       if (tab === 'instruments' || !tab) patcher.draw(); else if (floatWanted) patcher.live();
       if (tab === 'dsp') dspView?.live();
+      if (tab === 'nodeseq') nsView?.draw();
       if (tab === 'samples' || !tab) { sampleScreen.draw(); waveform.draw(); region.draw(); waveform.playhead(auditionHead()); }
       requestAnimationFrame(frame);
     };

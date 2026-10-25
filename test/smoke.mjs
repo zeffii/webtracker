@@ -3726,6 +3726,116 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     assert.ok(Math.abs(run({}) - 1) < 1e-6, 'without choke a one-shot rings on');
   }
 
+  // the Node Sequencer's engine: events on ticks and subticks, control values, groups, scripts
+  {
+    const { NodeSeq } = await import('../src/audio/nodeseq.js');
+    const make = (graph, resolve = {}, random = () => 0.5) => {
+      const log = [], posts = [], params = new Float32Array(64), stamps = new Uint32Array(64);
+      const ns = new NodeSeq({ sampleRate: 48000, io: { note: (instrument, m) => log.push({ at: ns.abs, instrument, type: m.type, note: m.note, vel: m.vel }), params, stamps, post: m => posts.push(m) }, random });
+      ns.load(graph, resolve); ns.start();
+      const run = (ticks, from = 0) => { for (let t = from; t < from + ticks; t++) { ns.onTick(t, { tpb: 4, barTicks: 16, tickSamples: 6000, bpm: 120 }); for (let k = 1; k < ns.subs; k++) ns.onSub(k); ns.control(6000); } };
+      return { ns, log, posts, params, stamps, run };
+    };
+    const ons = log => log.filter(e => e.type === 'noteOn');
+    // euclid 5 of 8 into a Pseq into a note: the hits fall on steps 0 2 4 5 7, and the notes step through the list
+    {
+      const t = make({ sub: 2, nodes: [{ id: 'c', type: 'clock' }, { id: 'e', type: 'euclid', params: { steps: 8, pulses: 5 } }, { id: 'q', type: 'Pseq', data: { text: '57 60 C-6' } }, { id: 'n', type: 'note', data: { target: 'bass' } }],
+        wires: [{ from: 'c.tick', to: 'e.in' }, { from: 'e.hit', to: 'q.next' }, { from: 'q.value', to: 'n.note' }] });
+      t.run(8);
+      assert.deepEqual(ons(t.log).map(e => e.at / 2), [0, 2, 4, 5, 7], 'euclid hits land on ticks 0 2 4 5 7');
+      assert.deepEqual(ons(t.log).map(e => e.note), [57, 60, 72, 57, 60], 'Pseq steps through its list (C-6 is 72)');
+      assert.equal(t.log.filter(e => e.type === 'noteOff').length, 4, 'each note but the last is let go (at the next note or after its length)');
+      assert.ok(t.log.every(e => e.instrument === 'bass'));
+    }
+    // subticks: a clock's sub output runs subs times a tick; a delay moves an event later by subticks
+    {
+      const t = make({ sub: 4, nodes: [{ id: 'c', type: 'clock' }, { id: 'd', type: 'delay', params: { subs: 3 } }, { id: 'n', type: 'note', data: { target: 'x' }, params: { pitch: 50 } }],
+        wires: [{ from: 'c.sub', to: 'd.in' }, { from: 'd.out', to: 'n.trig' }] });
+      t.run(2);
+      assert.deepEqual(ons(t.log).map(e => e.at), [3, 4, 5, 6, 7], 'one note per subtick, three subticks late, the last ones still to come');
+    }
+    // chance, math, every
+    {
+      const t = make({ sub: 1, nodes: [{ id: 'c', type: 'clock' }, { id: 'v', type: 'every', params: { n: 4, offset: 1 } }, { id: 'm', type: 'math', params: { add: 12 } }, { id: 'n', type: 'note', data: { target: 'x' }, params: { pitch: 40 } }],
+        wires: [{ from: 'c.tick', to: 'v.in' }, { from: 'v.out', to: 'm.in' }, { from: 'm.out', to: 'n.note' }] });
+      t.run(10);
+      assert.deepEqual(ons(t.log).map(e => e.at), [1, 5, 9], 'every 4th with an offset of 1');
+      assert.deepEqual(ons(t.log).map(e => e.note), [13, 17, 21], 'math adds 12 to the event value (the tick number)');
+    }
+    // groups: stopped nodes send nothing, a pattern can start a group (a write to its slot) and starting restarts it
+    {
+      const t = make({ sub: 1, groups: [{ on: true }, { on: false }], nodes: [{ id: 'c', type: 'clock' }, { id: 'n', type: 'note', group: 1, data: { target: 'g' }, params: { pitch: 60 } }], wires: [{ from: 'c.tick', to: 'n.trig' }] }, { groupSlots: [-1, 5] });
+      t.run(2);
+      assert.equal(ons(t.log).length, 0, 'a group that starts off is quiet');
+      t.params[5] = 1; t.stamps[5]++;
+      t.run(3, 2);
+      assert.deepEqual(ons(t.log).map(e => e.at), [2, 3, 4], 'a pattern write to its slot starts the group');
+      t.params[5] = 0; t.stamps[5]++;
+      t.run(2, 5);
+      assert.equal(ons(t.log).length, 3, 'and stops it again');
+      assert.ok(t.log.some(e => e.type === 'noteOff' && e.at >= 5), 'what was sounding is let go');
+    }
+    // script node: ev, out, state; a mistake is reported, not thrown
+    {
+      const code = 'state.n = (state.n ?? 0) + 1; out(ev.value + state.n * 10, 0.5); out2(ev.value);';
+      const t = make({ sub: 1, nodes: [{ id: 'c', type: 'clock' }, { id: 's', type: 'script', data: { code } }, { id: 'n', type: 'note', data: { target: 'x' } }, { id: 'o', type: 'note', data: { target: 'y' } }],
+        wires: [{ from: 'c.tick', to: 's.in' }, { from: 's.out', to: 'n.note' }, { from: 's.out2', to: 'o.note' }] });
+      t.run(3);
+      assert.deepEqual(ons(t.log).filter(e => e.instrument === 'x').map(e => e.note), [10, 21, 32], 'the script sees the event and keeps state');
+      assert.equal(ons(t.log).find(e => e.instrument === 'x').vel, 0.5, 'and sends a velocity');
+      const bad = make({ sub: 1, nodes: [{ id: 'c', type: 'clock' }, { id: 's', type: 'script', data: { code: 'out(1' } }], wires: [{ from: 'c.tick', to: 's.in' }] });
+      bad.run(2);
+      assert.ok(bad.posts.some(m => m.type === 'nserr' && m.id === 's' && m.message), 'a syntax mistake is reported to the page');
+      const boom = make({ sub: 1, nodes: [{ id: 'c', type: 'clock' }, { id: 's', type: 'script', data: { code: 'nope.x' } }], wires: [{ from: 'c.tick', to: 's.in' }] });
+      boom.run(2);
+      assert.ok(boom.posts.some(m => m.type === 'nserr' && /nope/.test(m.message)), 'so is a mistake at run time');
+    }
+    // control wires: an lfo moves a parameter through a set node, smoothly and within its range
+    {
+      const t = make({ sub: 1, nodes: [{ id: 'l', type: 'lfo', params: { rate: 2, shape: 2, depth: 1, center: 0.5 } }, { id: 's', type: 'set', params: { smooth: 0 }, data: { target: 'a.b.c' } }], wires: [{ from: 'l.out', to: 's.in' }] },
+        { slots: { s: { slot: 3, min: 100, max: 200, log: false, int: false } } });
+      const seen = [];
+      for (let b = 0; b < 40; b++) { t.ns.control(4800); seen.push(t.params[3]); }
+      assert.ok(Math.min(...seen) >= 100 && Math.max(...seen) <= 200, 'the parameter stays inside its range');
+      assert.ok(Math.max(...seen) - Math.min(...seen) > 50, 'and the lfo sweeps it');
+    }
+    // live edits keep the state of nodes that stay (an edit while it plays does not restart a sequence)
+    {
+      const g = { sub: 1, nodes: [{ id: 'c', type: 'clock' }, { id: 'q', type: 'Pseq', data: { text: '1 2 3' } }, { id: 'n', type: 'note', data: { target: 'x' } }], wires: [{ from: 'c.tick', to: 'q.next' }, { from: 'q.value', to: 'n.note' }] };
+      const t = make(g);
+      t.run(2);
+      t.ns.load({ ...g, nodes: g.nodes.map(n => (n.id === 'n' ? { ...n, params: { len: 2 } } : n)) });
+      t.run(2, 2);
+      assert.deepEqual(ons(t.log).map(e => e.note), [1, 2, 3, 1], 'the sequence goes on after an edit');
+    }
+    // a loop of wires stops itself
+    {
+      const t = make({ sub: 1, nodes: [{ id: 'c', type: 'clock' }, { id: 'a', type: 'math' }, { id: 'b', type: 'math' }], wires: [{ from: 'c.tick', to: 'a.in' }, { from: 'a.out', to: 'b.in' }, { from: 'b.out', to: 'a.in' }] });
+      t.run(2);
+      assert.ok(true, 'a feedback loop of events does not hang');
+    }
+  }
+
+  // the Node Sequencer on the sequencer's clock: subticks fall on the sample, split the swung ticks, and start and stop with the song
+  {
+    const { Sequencer } = await import('../src/audio/sequencer.js');
+    const run = swing => {
+      const log = []; let pos = 0;
+      const rt = { clock: { tickSamples: 0, stamps: new Uint32Array(8) }, note: (instrument, m) => { if (m.type === 'noteOn') log.push({ pos, note: m.note }); }, process: (_l, _r, n) => { pos += n; } };
+      const seq = new Sequencer({ sampleRate: 48000, runtime: rt, params: new Float32Array(8), transport: new Int32Array(new SharedArrayBuffer(24)) });
+      seq.setSong({ bpm: 120, ticksPerBeat: 4, length: 16, swing, lanes: [] });
+      seq.setNodeseq({ sub: 4, nodes: [{ id: 'c', type: 'clock' }, { id: 'n', type: 'note', data: { target: 'x' }, params: { pitch: 60 } }], wires: [{ from: 'c.sub', to: 'n.trig' }] }, {});
+      seq.play(0);
+      const L = new Float32Array(128), R = new Float32Array(128);
+      for (let i = 0; i < 400; i++) seq.process(L, R, 128);   // 51200 samples: eight ticks
+      return log.map(e => e.pos);
+    };
+    const straight = run(0.5);
+    assert.deepEqual(straight.slice(0, 9), [0, 1500, 3000, 4500, 6000, 7500, 9000, 10500, 12000], 'four subticks to a tick, on the sample');
+    const swung = run(0.6);   // ticks of 7200 and 4800 samples
+    assert.deepEqual(swung.slice(0, 9), [0, 1800, 3600, 5400, 7200, 8400, 9600, 10800, 12000], 'a swung tick is cut into equal subticks');
+  }
+
   // Note preview is ON by default, always: the schema says so and a fresh start has it on.
   {
     const spec = uiConfig.schemaOf('notePreview');
@@ -8360,5 +8470,38 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   assert.equal(lane.rows[free][cols[0]] !== undefined, true);
   assert.equal(ed.log()[0], 'detect chords', 'one undo entry');
   console.log('ok: detect chords');
+}
+// Node Sequencer graph operations and the project file
+{
+  const g = await import('../src/nodeseq/graphops.js');
+  const song = { name: 't', bpm: 120, ticksPerBeat: 4, length: 16 };
+  const gr = g.ensureGraph(song);
+  assert.equal(gr.sub, 4); assert.equal(gr.groups.length, 8);
+  const clock = g.addNode(gr, 'clock', 0, 0), steps = g.addNode(gr, 'steps', 100, 0), note = g.addNode(gr, 'note', 400, 0), lfo = g.addNode(gr, 'lfo', 0, 100);
+  assert.equal(note.data.target, '', 'a note starts with no target');
+  assert.deepEqual(steps.data.cells.length, 16);
+  assert.ok(g.connect(gr, `${clock.id}.tick`, `${steps.id}.in`));
+  assert.equal(g.connect(gr, `${clock.id}.tick`, `${steps.id}.in`), null, 'the same wire twice');
+  assert.equal(g.connect(gr, `${lfo.id}.out`, `${steps.id}.in`), null, 'a control cannot drive an event input');
+  assert.equal(g.connect(gr, `${clock.id}.tick`, `${clock.id}.tick`), null);
+  assert.ok(g.connect(gr, `${steps.id}.out`, `${note.id}.trig`));
+  assert.ok(g.connect(gr, `${lfo.id}.out`, `${note.id}.vel`));
+  const lfo2 = g.addNode(gr, 'lfo', 0, 200);
+  g.connect(gr, `${lfo2.id}.out`, `${note.id}.vel`);
+  assert.equal(gr.wires.filter(w => w.to === `${note.id}.vel`).length, 1, 'a control input takes one wire');
+  const made = g.duplicateNodes(gr, [clock.id, steps.id]);
+  assert.equal(made.length, 2); assert.ok(gr.wires.some(w => w.from === `${made[0].id}.tick` && w.to === `${made[1].id}.in`), 'duplicate keeps the wires between the copies');
+  g.removeNodes(gr, [steps.id]);
+  assert.ok(!gr.wires.some(w => w.from.startsWith(`${steps.id}.`) || w.to.startsWith(`${steps.id}.`)), 'removing a node removes its wires');
+  gr.wires.push({ from: 'ghost.out', to: 'nowhere.in' }); gr.nodes.push({ id: 'bad', type: 'nope', x: 0, y: 0 });
+  g.cleanGraph(gr);
+  assert.ok(!gr.nodes.some(n => n.id === 'bad') && !gr.wires.some(w => w.from === 'ghost.out'), 'cleanGraph drops what the engine cannot run');
+  assert.throws(() => g.addNode(gr, 'nope', 0, 0));
+  // a saved project keeps the graph, and one with no nodes saves without it
+  const text = serializeProject({ song, instruments: {}, samples: {}, lanes: [] });
+  assert.ok(JSON.parse(text).song.nodeseq.nodes.length === gr.nodes.length);
+  assert.ok(!text.includes('__c'));
+  assert.ok(!('nodeseq' in JSON.parse(serializeProject({ song: { ...song, nodeseq: g.newGraph() }, instruments: {}, samples: {}, lanes: [] })).song));
+  console.log('ok: node sequencer graph');
 }
 console.log('smoke test passed');

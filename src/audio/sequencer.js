@@ -2,6 +2,7 @@ import { EMPTY, CUT, OFF, decodeNote, decodeHex1, decodeHex2, decodeHex4 } from 
 import { loopRange } from '../seq/loop.js';
 import { RES } from '../seq/automation.js';
 import { Limiter } from './limiter.js';
+import { NodeSeq } from './nodeseq.js';
 
 // The sequence lives in fixed-size pages of ticks. Each lane has one buffer per
 // page, with one float channel per cell channel (see KINDS in cells.js).
@@ -34,6 +35,7 @@ export class Sequencer {
   preview = 0;     // samples left of a single played row, after which what it started is let go
 
   constructor({ sampleRate, runtime, params, transport, maxBlock = 512 }) {
+    const self = this;
     this.sampleRate = sampleRate;
     this.runtime = runtime;
     this.params = params;         // Float32Array over the shared parameter block
@@ -41,6 +43,10 @@ export class Sequencer {
     this.limiter = new Limiter(sampleRate);
     this.scratchL = new Float32Array(maxBlock);
     this.scratchR = new Float32Array(maxBlock);
+    // the Node Sequencer: its graph runs on the same clock, subdividing each tick (the swing of a tick carries into its subticks)
+    this.post = () => {};   // set by the worklet: messages to the page
+    this.ns = new NodeSeq({ sampleRate, io: { note: (instrument, msg) => this.runtime.note(instrument, msg), get params() { return self.params; }, get stamps() { return self.runtime.clock?.stamps; }, post: m => this.post(m) } });
+    this.subIdx = 0; this.subLen = 0; this.subCountdown = 0;
   }
 
   // song.master, when there is one, holds the parameter slots of the master lane ({ bpm, swing, tpb, volume }). The song's
@@ -53,6 +59,9 @@ export class Sequencer {
     if (song.master && changed) this.resetTempo();
     if (this.runtime.clock) this.runtime.clock.tickSamples = (this.sampleRate * 60) / (song.bpm * song.ticksPerBeat);
   }
+
+  // The graph of the Node Sequencer (see nodeseq.js), with what its names mean on this machine.
+  setNodeseq(graph, resolve) { this.ns.load(graph, resolve); }
 
   // A number for the meters that keeps the largest value since they last looked (they read it and clear it).
   report(slot, value) { if (value > Atomics.load(this.transport, slot)) Atomics.store(this.transport, slot, value); }
@@ -116,6 +125,7 @@ export class Sequencer {
   reset(params) {
     this.params = params;
     this.lanes.clear();
+    this.ns.stop();
     this.playing = false;
     this.tick = 0;
     this.transport[0] = 0;
@@ -131,6 +141,8 @@ export class Sequencer {
     this.songPos = this.tick;
     for (const lane of this.lanes.values()) { this.restoreAmp(lane); lane.autoCur.fill(NaN); }
     this.countdown = 0;
+    this.subIdx = 0; this.subLen = 0; this.subCountdown = 0;
+    this.ns.start();
     this.playing = true;
     this.transport[1] = 1;
   }
@@ -144,6 +156,7 @@ export class Sequencer {
   stop() {
     for (const lane of this.lanes.values()) this.restoreAmp(lane);
     this.releaseAll();
+    this.ns.stop();
     this.preview = 0;
     this.playing = false;
     this.transport[1] = 0;
@@ -316,6 +329,10 @@ export class Sequencer {
     const clock = this.runtime.clock;
     if (clock) clock.tickId = (clock.tickId | 0) + 1;   // nodes that count song ticks (the MOD channel) watch this
     for (const lane of this.lanes.values()) this.playRow(lane);
+    if (this.ns.list.length) {   // the Node Sequencer's tick, after the patterns have written their parameters (a cell can start or stop a group)
+      const { bpm, tpb } = this.tempo();
+      this.ns.onTick(this.tick, { tpb, barTicks: Math.max(1, Math.round(this.song.beatsPerBar ?? 4)) * tpb, tickSamples: this.sampleRate * 60 / (bpm * tpb), bpm });
+    }
     Atomics.store(this.transport, 0, this.tick);   // the tick now sounding
     if (Math.abs(this.songPos - this.tick) > 1.5) this.songPos = this.tick;   // a loop or the end of the song: back on the grid
     if (this.song.loop) {   // the loop: back to its start when its end is reached
@@ -344,12 +361,14 @@ export class Sequencer {
           group = Math.max(1, Math.round(tpb / 4));
           this.tickLen = 2 * samplesPerTick * (first ? swing : 1 - swing);
           this.countdown += this.tickLen;
+          this.subIdx = 0; this.subLen = this.tickLen / this.ns.subs; this.subCountdown = this.subLen;
         }
         span = Math.min(span, Math.max(1, Math.ceil(this.countdown)));
+        if (this.ns.subs > 1 && this.ns.list.length) span = Math.min(span, Math.max(1, Math.ceil(this.subCountdown)));   // the next subtick
       }
       const clock = this.runtime.clock;
       if (clock) { clock.playing = this.playing; clock.songPos = this.songPos; clock.tickSamples = samplesPerTick; }
-      if (this.playing) this.applyCurves(span);
+      if (this.playing) { this.applyCurves(span); if (this.ns.list.length) this.ns.control(span); }
       this.runtime.process(this.scratchL, this.scratchR, span);
       const m = this.song.master;
       if (m) {   // the master volume, eased across the span
@@ -374,7 +393,13 @@ export class Sequencer {
         left[done + i] = this.scratchL[i];
         right[done + i] = this.scratchR[i];
       }
-      if (this.playing) this.countdown -= span;
+      if (this.playing) {
+        this.countdown -= span;
+        if (this.ns.list.length && this.ns.subs > 1) {   // a subtick starts (the first of a tick came with the tick itself; the last ends where the next tick begins)
+          this.subCountdown -= span;
+          if (this.subCountdown <= 0 && this.subIdx + 1 < this.ns.subs) { this.subIdx++; this.ns.onSub(this.subIdx); this.subCountdown += this.subLen; }
+        }
+      }
       if (this.preview > 0 && (this.preview -= span) <= 0) this.releaseAll();
       done += span;
     }

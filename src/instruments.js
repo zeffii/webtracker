@@ -716,6 +716,22 @@ const limiterColumns = () => [
   { node: 'm', param: 'release', label: 'Rel', long: 'Limiter release', scale: 'log' },
 ];
 
+// The group machine: the Node Sequencer's groups as pattern columns, G1 to G8. A 1 in a cell starts that group of nodes (from its beginning), a 0
+// stops it. Its lane is made from the Node Sequencer view, and the sequencer reads the slots (see audio/nodeseq.js).
+export const GRAPH = 'graph';
+export const graphInstrument = () => ({
+  graph: {
+    nodes: [
+      { id: 'g', type: 'nsgroups', x: 40, y: 40, params: {} },
+      { id: 'out', type: 'out', x: 240, y: 40 },
+    ],
+    connections: [],
+  },
+  noteColumns: 0,
+  exposed: Array.from({ length: 8 }, (_, i) => ({ node: 'g', param: `g${i + 1}`, label: `G${i + 1}`, long: `Group ${i + 1}`, bits: 4 })),
+  commands: [],
+});
+
 // The shader machine: one `glsl` node holding sixteen values the live picture reads (see ui/visdata.js). It starts with no pattern
 // columns; each number exposed from the Shader view adds one, named as the number is (see addShaderKnob in project/ops.js). Its lane is
 // drawn hatched.

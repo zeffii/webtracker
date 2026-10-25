@@ -309,6 +309,32 @@
     #script-run { font: inherit; }
     .pane { padding: .5rem .75rem 2rem; }
 
+    /* node sequencer */
+    #pane-nodeseq:not([hidden]) { display: flex; flex-direction: column; padding: 0; height: calc(100vh - 2.2rem); }
+    #ns-bar { display: flex; flex-wrap: wrap; gap: .4rem .8rem; align-items: center; padding: .4rem .75rem; font-size: 12px; border-bottom: 1px solid color-mix(in srgb, var(--fg) 25%, transparent); }
+    #ns-bar input[type=number] { font: inherit; }
+    .ns-groups { display: inline-flex; gap: .2rem; }
+    .ns-g { font: inherit; font-size: 11px; padding: 0 .4rem; border: 1px solid var(--gc); background: transparent; color: inherit; cursor: pointer; opacity: .45; }
+    .ns-g.used { opacity: .8; } .ns-g.on { background: color-mix(in srgb, var(--gc) 35%, transparent); opacity: 1; } .ns-g.live { box-shadow: 0 0 0 1px var(--gc); }
+    .ns-rec { color: #e5484d; }
+    #ns-layout { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) 17rem; }
+    #ns-stage { position: relative; min-width: 0; min-height: 0; background: var(--panel); overflow: hidden; }
+    #ns-canvas { position: absolute; inset: 0; display: block; outline: none; color: var(--fg); }
+    #ns-side { background: var(--panel); border-left: 1px solid color-mix(in srgb, var(--fg) 25%, transparent); padding: .5rem .7rem; font-size: 12px; overflow: auto; display: flex; flex-direction: column; gap: .5rem; }
+    #ns-side h3 { margin: 0; font-size: 13px; } #ns-side h3 small, .ns-dim { opacity: .6; font-weight: normal; } #ns-side p { margin: 0; }
+    .ns-row { display: grid; grid-template-columns: 4.5rem minmax(0, 1fr); gap: .4rem; align-items: center; }
+    .ns-ctl { display: flex; gap: .3rem; min-width: 0; } .ns-ctl input[type=range] { flex: 1; min-width: 0; } .ns-ctl input[type=number] { width: 4.5rem; }
+    .ns-block { display: grid; gap: .25rem; } .ns-block textarea { font: 11px ui-monospace, Consolas, monospace; width: 100%; box-sizing: border-box; resize: vertical; }
+    .ns-err { color: #e5484d; } .ns-btns { display: flex; gap: .4rem; }
+    .ns-steps { display: flex; gap: 2px; flex-wrap: wrap; } .ns-step { width: 1rem; height: 2rem; padding: 0; border: 1px solid color-mix(in srgb, var(--fg) 35%, transparent); background: transparent; position: relative; cursor: ns-resize; }
+    .ns-step i { position: absolute; left: 0; right: 0; bottom: 0; background: #f0b04a; display: block; }
+    .ns-mon { margin: 0; font-size: 11px; max-height: 10rem; overflow: auto; opacity: .85; }
+    #ns-palette { position: absolute; width: 17rem; max-height: 20rem; display: flex; flex-direction: column; background: var(--panel); border: 1px solid var(--fg); z-index: 5; box-shadow: 0 4px 14px rgba(0,0,0,.35); font-size: 12px; }
+    #ns-palette[hidden] { display: none; } #ns-palette input { font: inherit; border: 0; border-bottom: 1px solid color-mix(in srgb, var(--fg) 30%, transparent); padding: .35rem .5rem; background: transparent; color: inherit; outline: none; }
+    .ns-pal-list { overflow: auto; } .ns-pal-cat { font-size: 10px; text-transform: uppercase; letter-spacing: .08em; opacity: .55; padding: .3rem .5rem 0; }
+    .ns-pal-row { display: flex; gap: .5rem; padding: .15rem .5rem; cursor: pointer; } .ns-pal-row span { opacity: .6; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .ns-pal-row.on, .ns-pal-row:hover { background: var(--hi); color: var(--hi-fg); }
+    @media (max-width: 800px) { #ns-layout { grid-template-columns: minmax(0, 1fr); grid-template-rows: 1fr auto; } #ns-side { border-left: 0; max-height: 14rem; } }
+
     /* patterns and arrangement */
     #view, #seq, #smp, #patch, #wave, #seq-side { background: var(--panel); }
     #view, #seq { margin-bottom: 0; }
@@ -1058,6 +1084,7 @@
       <button id="script-dock" title="Dock: show the Script panel beside the pattern editor (Ctrl+Alt+D)" aria-label="Dock" aria-pressed="false"><svg class="ri" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 4h18v16H3z M3 14h18"/></svg></button>
       <button id="tab-shader" title="Shader: the GLSL of the live picture (Ctrl+Alt+G)" aria-label="Shader"><svg class="ri" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 5v8l-8 5-8-5V8z M12 3v18 M4 8l8 5 8-5"/></svg></button>
       <button id="tab-dsp" title="DSP: the code of an instrument's nodes, read only (Ctrl+Alt+I)" aria-label="DSP"><svg class="ri" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12h5 M8 6l9 6-9 6z M17 6v12 M17 12h4"/></svg></button>
+      <button id="tab-nodeseq" title="Node Sequencer: events and controls wired between nodes, beside the patterns (Ctrl+Alt+N)" aria-label="Node Sequencer"><svg class="ri" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="7" height="6"/><rect x="14" y="14" width="7" height="6"/><path d="M10 7h4a3 3 0 0 1 3 3v4"/></svg></button>
       <button id="tab-info" title="Song info (F10)" aria-label="Info"><svg class="ri" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h9l4 4v14H6z M15 3v4h4 M9 12h7 M9 16h7"/></svg></button>
     </nav>
     <span class="grow"></span>
@@ -1440,6 +1467,7 @@
     </div>
   </section>
 
+  <section id="pane-nodeseq" class="pane" hidden></section>
   <section id="pane-dsp" class="pane" hidden>
     <div class="pane-main">
       <div class="help">The DSP view: the code behind the sound, read only. The strip lists the instrument's nodes in the order they run; pick one to read its file. The shaded lines are its per-sample loop, where the work is done. The parameters on the right move with the live values.</div>

@@ -2,6 +2,12 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 466 · 2026-10-25
+
+- Node Sequencer, a new screen (Ctrl+Alt+N): a graph of nodes that plays beside the pattern lanes, which can stay empty. Amber square ports carry events on ticks and subticks, cyan round ports carry controls at signal rate; wires are drawn behind the nodes and a light runs along one each time an event passes.
+- Nodes: clock, steps, euclid, Pseq and Prand lists, random, math, probability, delay, gate, counter, lfo, envelope, scale and more, a script node (a few lines of JavaScript per event), and the outputs: note (plays any instrument) and set (moves any exposed parameter). Press A or right-click for the palette; drag a wire onto empty space to add a node for it.
+- Subticks are set per project (1 to 16). Nodes belong to one of eight groups (A to H); "Pattern lane" adds a lane whose G1 to G8 columns start and stop the groups from a pattern. With Rec armed, the notes the graph plays are written into the lanes of their instrument. The graph is saved in the .wax file and is part of WAV export.
+
 ## 465 · 2026-10-25
 
 - Test: Note preview must default to on. The smoke test fails if the setting's default is anything but true, if a fresh start (nothing saved) has it off, or if its definition in config.js says `def: false`.

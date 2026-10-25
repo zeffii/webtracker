@@ -26,6 +26,7 @@ export async function renderSong(state, { tail = 10, onProgress = () => {}, canc
     if (m.type === 'load') rt.load(m.graph);
     else if (m.type === 'node') rt.message(m.instrument, m.node, m.msg);
     else if (m.type === 'song') seq.setSong({ ...m.song, loop: undefined });
+    else if (m.type === 'nodeseq') seq.setNodeseq(m.graph, m.resolve);
     else if (m.type === 'lane') seq.setLane(m.lane);
   }
   if (!seq.song?.length) throw new Error('There is no song to render.');
