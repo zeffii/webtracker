@@ -7,6 +7,10 @@ Full history, newest first. The About page shows only the latest 10 builds.
 - Graph: wires always run behind the nodes; a node is filled with the graph's background first, so a wire under it no longer shows through.
 - Instruments tab: the node preset drop-down reads "(preset list)", with the delete cross beside it and the name box and Save button on the row below.
 
+## 457 · 2026-10-25
+
+- Instruments tab, selected node preset: the list and its ✕ share a row, the name and Save the row below, each running to the right edge.
+
 ## 456 · 2026-10-25
 
 - Envelope drawing beside a selected node: no box, only four corner ticks close around the drawing, so nodes under it show through; a faint fill under the curve; the A D S R letters are gone and the readout sits right under the graph. About a third shorter.

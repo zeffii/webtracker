@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['457', ['Selected node preset: the list and its delete button on one row, the name and Save on the next.']],
   ['457', ['Graph: wires run behind nodes. Node preset box: "(preset list)" with the delete cross beside it.']],
   ['456', ['Envelope drawing: corner ticks instead of a box, a faint fill under the curve, a tighter layout.']],
   ['455', ['New genexpr node: a node whose sound is code, compiled once per edit, with every mistake underlined and explained.']],
