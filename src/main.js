@@ -1273,6 +1273,7 @@ const waveform = createWaveformView({
     showContextMenu(e, [
       { label: 'Trim to selection', hint: has ? 'Shift+C' : 'no selection: loop region', run: edit('crop') },
       { label: 'Cut selection', hint: 'Shift+X', disabled: !has, run: edit('cut') },
+      { label: 'Copy selection to a new sample', disabled: !has, run: copySelection },
       { label: 'Silence', hint: `Shift+S · ${scope}`, run: edit('silence') },
       { separator: true },
       { label: 'Reverse', hint: `Shift+R · ${scope}`, run: edit('reverse') },
@@ -1389,6 +1390,18 @@ const sampleScreen = createSampleScreen({
   onView: mode => waveform.setMode(mode),
   onEdited: () => waveform.invalidate(),
 });
+
+// The selection on the Samples screen, copied into a new sample of its own (the original is left as it is); markers inside it come along.
+function copySelection() {
+  const id = sampleScreen.selected, s = project?.samples[id], [from, to] = sampleScreen.selection;
+  if (!s || !(to > from)) return projStatus('Select a stretch of the sample first.');
+  const a = Math.max(0, Math.round(from)), z = Math.min(s.data.length, Math.round(to));
+  const copy = addSample(project, `${id}_sel`, s.rate, s.data.slice(a, z), s.right?.slice(a, z));
+  for (const k of ['volume', 'globalVolume', 'pan']) if (s[k] !== undefined) project.samples[copy][k] = s[k];
+  const marks = (s.slices ?? []).filter(m => m >= a && m < z).map(m => m - a);
+  if (marks.length) project.samples[copy].slices = marks;
+  refreshProjectUi(); sampleScreen.select(copy); projStatus(`Copied ${z - a} frames of ${id} to ${copy}.`);
+}
 
 // A new empty lane for an instrument that is already loaded in the engine.
 // Post-transient resynthesis of the sample on the Samples screen (its selection, else the whole sample): the attack is kept
