@@ -647,11 +647,11 @@
     #inst-head .vn input[type=number] { width: 2.6ch; box-sizing: content-box; text-align: center; -moz-appearance: textfield; appearance: textfield; padding: 0; }
     #inst-head .vn input[type=number]::-webkit-inner-spin-button, #inst-head .vn input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
     #inst-head #patch-tools { flex: 1 1 0; min-width: 0; margin-left: auto; text-align: right; }
-    #patch-tools .prow.presets { display: flex; flex-direction: column; gap: .25rem; margin: 0; width: 100%; }
+    #patch-tools .prow.presets { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .25rem; margin: 0; justify-items: stretch; width: 100%; }
     #patch-tools .prow.presets > span { text-align: right; }
-    #patch-tools .prow.presets .pr { display: flex; gap: .25rem; align-items: stretch; min-width: 0; }   /* the list and its ✕, then the name and Save: each row runs to the right edge */
-    #patch-tools .prow.presets select, #patch-tools .prow.presets input { flex: 1 1 0; width: auto; min-width: 0; box-sizing: border-box; }
-    #patch-tools .prow.presets button { flex: none; }
+    #patch-tools .prow.presets > span { grid-column: 1 / -1; }
+    #patch-tools .prow.presets select { grid-column: 1; width: 100%; min-width: 0; }
+    #patch-tools .prow.presets input { grid-column: 1; width: 100%; min-width: 0; box-sizing: border-box; }
     #inst-head button, #inst-head select, #inst-head input { font: inherit; border: 0; border-radius: 0; background: rgba(128, 128, 128, .28); color: inherit; padding: 0 .6ch; box-shadow: none; }
     #inst-head input, #inst-head select { background: rgba(255, 255, 255, .34); }
     #inst-head button:hover:not(:disabled) { background: var(--hi); color: var(--hi-fg); }
@@ -670,7 +670,7 @@
     #inst-head input, #inst-head button, #inst-head select { font: inherit; }
     #inst-head { min-height: 2.1rem; }
     #patch-tools { display: flex; flex-wrap: wrap; gap: .5rem .75rem; align-items: center; min-width: 0; }
-    #patch-tools .prow.presets { margin: 0; gap: .4rem; } #patch-tools .prow.presets > span { width: auto; } #patch-tools .prow.presets input { width: auto; }
+    #patch-tools .prow.presets { margin: 0; gap: .4rem; } #patch-tools .prow.presets > span { width: auto; } #patch-tools .prow.presets input { width: 7rem; }
     #inst-main { --form-w: 42rem; }
     #patch-panel, #preset-list, #preset-section { max-width: var(--form-w); }
     #patch-panel .help { opacity: .7; }
