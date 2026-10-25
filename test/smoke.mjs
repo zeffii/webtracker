@@ -7577,6 +7577,21 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   const screen = createSampleScreen({ el, statusEl: { textContent: '' }, getProject: () => project });
   screen.draw();
   const click = (dataset, extra = {}) => on.mousedown({ target: { closest: () => ({ dataset, getBoundingClientRect: () => ({ left: 0, width: 100 }) }) }, preventDefault() {}, clientX: 0, ...extra });
+  {   // the slice row buttons: play from a marker to the next one, or to the end; a second click on the same button stops it
+    const notes = [];
+    const el2 = { addEventListener: (type, f) => { on2[type] = f; }, focus() {}, innerHTML: '' }, on2 = {};
+    const sc = createSampleScreen({ el: el2, statusEl: { textContent: '' }, getProject: () => project, onNote: (id, note, down, frame) => notes.push([down, frame]) });
+    sc.select('pluck'); project.samples.pluck.slices = [100, 400]; sc.draw();
+    assert.ok(el2.innerHTML.includes('data-play="0:seg"') && el2.innerHTML.includes('data-play="1:end"'), 'each marker row has both buttons');
+    on2.mousedown({ target: { closest: () => ({ dataset: { play: '0:seg' } }) }, preventDefault() {} });
+    assert.deepEqual(notes.at(-1), [true, 100], 'the first button plays from the marker');
+    on2.mousedown({ target: { closest: () => ({ dataset: { play: '0:seg' } }) }, preventDefault() {} });
+    assert.equal(notes.at(-1)[0], false, 'the same button again stops it');
+    on2.mousedown({ target: { closest: () => ({ dataset: { play: '1:end' } }) }, preventDefault() {} });
+    assert.deepEqual(notes.at(-1), [true, 400], 'the second button plays from its marker to the end');
+    on2.mousedown({ target: { closest: () => ({ dataset: { play: '1:end' } }) }, preventDefault() {} });
+    delete project.samples.pluck.slices;
+  }
   click({ f: 'susEnd' }); assert.equal(screen.focus, 'susEnd');
   on.keydown({ key: '1', preventDefault() {} }); on.keydown({ key: '2', preventDefault() {} }); on.keydown({ key: 'Enter', preventDefault() {} });
   assert.equal(project.samples.pluck.susEnd, 12, 'typing straight after a click sets the field');

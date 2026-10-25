@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 462 · 2026-10-25
+
+- Sample screen: every slice marker in the list has two icon buttons. The first plays from that marker to the next one (to the end of the sample for the last marker); the second plays from the marker to the end of the sample. Clicking a button that is playing stops it, and the clicked marker becomes the active one.
+
 ## 461 · 2026-10-25
 
 - Instruments tab: hovering an instrument in the list tints the row quietly and keeps its text colour, instead of the bright highlight that was hard to read on the light themes.

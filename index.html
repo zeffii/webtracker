@@ -70,6 +70,13 @@
     #smp { position: relative; }
     #smp .slbox { position: absolute; top: 0; overflow-y: auto; white-space: pre; padding: 0 .6ch 0 0; scrollbar-width: thin; }
     #smp .sl-act { background: var(--hi); color: var(--hi-fg); }
+    #smp .sl-b { position: relative; display: inline-block; cursor: pointer; opacity: .7; }   /* the two icons are drawn in the text colour, so they follow the theme */
+    #smp .sl-b:hover { opacity: 1; }
+    #smp .sl-b::before, #smp .sl-b::after { content: ''; position: absolute; top: .22em; bottom: .22em; background: currentColor; }
+    #smp .sl-seg::before { left: .2ch; width: 1.2ch; clip-path: polygon(0 0, 100% 50%, 0 100%); }   /* play, then stop at the next marker */
+    #smp .sl-seg::after { left: 1.7ch; width: .35ch; }
+    #smp .sl-end::before { left: .1ch; width: 1.3ch; clip-path: polygon(0 0, 100% 50%, 0 100%); }   /* play on to the end */
+    #smp .sl-end::after { left: 1.4ch; width: 1.3ch; clip-path: polygon(0 0, 100% 50%, 0 100%); }
     #smp .sf { background: rgba(128, 128, 128, .22); }
     #smp .sf.on { background: var(--hi); color: var(--hi-fg); }
     #smp .sf.ed { outline: 1px solid currentColor; }

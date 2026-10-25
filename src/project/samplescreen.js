@@ -184,6 +184,23 @@ export function createSampleScreen({ el, statusEl, getProject, onChange = () => 
     onNote(sel, held.get(code), false);
     held.delete(code);
   }
+  // The two buttons on a slice row: play from the marker to the next one, or on to the end of the sample. Clicking a button
+  // that is playing stops it; the note is also stopped at the next marker by a timer (the sampler has no end point of its own).
+  let sliceTimer = 0, sliceBtn = '';
+  const stopSlice = () => { clearTimeout(sliceTimer); stopNote('slice-audition'); sliceBtn = ''; };
+  const playSlice = (i, toEnd) => {
+    const s = sample(), sl = s?.slices ?? [];
+    if (!s || i < 0 || i >= sl.length) return;
+    const btn = `${i}:${toEnd ? 'end' : 'seg'}`, was = sliceBtn;
+    stopSlice();
+    if (was === btn) return;
+    const end = toEnd ? s.data.length : (sl[i + 1] ?? s.data.length);
+    setActive(i);
+    if (!playFrom('slice-audition', sl[i])) return;
+    sliceBtn = btn;
+    sliceTimer = setTimeout(stopSlice, Math.max(30, (end - sl[i]) / s.rate * 1000));
+    say(`Playing slice ${i.toString(16).toUpperCase().padStart(2, '0')} ${toEnd ? 'to the end' : 'to the next marker'}.`);
+  };
   const pianoNote = e => {
     if (e.shiftKey || e.ctrlKey) return null;
     const k = String(e.key).toLowerCase();
@@ -317,6 +334,8 @@ export function createSampleScreen({ el, statusEl, getProject, onChange = () => 
     else if (buf.trim() !== '' && Number.isFinite(Number(buf))) setField(field, Number(buf));
   };
   el.addEventListener('mousedown', e => {
+    const play = e.target.closest?.('[data-play]');
+    if (play?.dataset?.play !== undefined && sample()) { e.preventDefault(); el.focus(); const [i, how] = play.dataset.play.split(':'); playSlice(Number(i), how === 'end'); draw(); return; }
     const hit = e.target.closest?.('[data-f], [data-id]');
     if (!hit || !sample()) return;
     e.preventDefault();
@@ -373,7 +392,7 @@ export function createSampleScreen({ el, statusEl, getProject, onChange = () => 
       const sliceLines = d => {
         const sl = d.slices ?? [];
         return [line(` Slices    ${sl.length ? sl.length : 'none'}${sl.length ? '' : '  (Shift+M marks one at the selection start;'}`), ...(sl.length ? [] : [line('           Alt+click the display)')]),
-          ...sl.map((f, i) => { const l = line(`${i === activeSlice ? ' >' : '  '} ${i.toString(16).toUpperCase().padStart(2, '0')}  ${placeHex(f, d.data.length, config.get('hexMode'))}  ${String(f).padStart(8, '0')}  ${(f / d.rate).toFixed(3)}s`); return i === activeSlice ? { t: l.t, h: `<span class="sl-act">${l.h}</span>` } : l; })];
+          ...sl.map((f, i) => { const l = line(`${i === activeSlice ? ' >' : '  '} ${i.toString(16).toUpperCase().padStart(2, '0')}  ${placeHex(f, d.data.length, config.get('hexMode'))}  ${String(f).padStart(8, '0')}  ${(f / d.rate).toFixed(3)}s`, '  ', seg('   ', 'sl-b sl-seg', ` data-play="${i}:seg" title="Play from this slice to the next"`), ' ', seg('   ', 'sl-b sl-end', ` data-play="${i}:end" title="Play from this slice to the end of the sample"`)); return i === activeSlice ? { t: l.t, h: `<span class="sl-act">${l.h}</span>` } : l; })];
       };
       const numCell = field => fieldCell(field, frameValue(s, field).toString().padStart(8, '0'), 8);
       const loopLine = (label, p, onField, begField, endField, xfField, hideField) => line(
