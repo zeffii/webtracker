@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 467 · 2026-10-25
+
+- Left rail: the Dock button sits at the bottom of the screen buttons, below a thin divider line.
+
 ## 466 · 2026-10-25
 
 - Node Sequencer, a new screen (Ctrl+Alt+N): a graph of nodes that plays beside the pattern lanes, which can stay empty. Amber square ports carry events on ticks and subticks, cyan round ports carry controls at signal rate; wires are drawn behind the nodes and a light runs along one each time an event passes.
