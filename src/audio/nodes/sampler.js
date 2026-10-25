@@ -157,6 +157,7 @@ export default {
     const lastVs = new Float64Array(VS_KINDS.length);   // the slide values seen last, to notice a new one written to a sound that is playing
     const cutLeft = new Float64Array(VOICES).fill(Infinity), relLeft = new Float64Array(VOICES).fill(Infinity);   // samples until the sound is cut / released
     const portLeft = new Float64Array(VOICES), portMul = new Float64Array(VOICES).fill(1);   // a pitch slide: samples left and the factor per sample
+    const cutIn = new Float64Array(VOICES).fill(Infinity);   // a note that cuts itself after this many samples (the slice buttons in the sample screen)
     const from = new Int32Array(VOICES).fill(-1), choke = new Uint8Array(VOICES);   // the note a new one follows in its column; whether it chokes the others
     const lastPs = new Float64Array(PORT_KINDS.length);
     // The filter of each voice (a biquad per channel), and the phases of its vibrato and cutoff LFO.
@@ -221,7 +222,7 @@ export default {
           active[v] = 1; mode[v] = PLAYING; note[v] = msg.note; inSus[v] = 0; loopy[v] = 0;
           pos[v] = 0; gain[v] = msg.vel ?? 1; env[v] = 0; age[v] = ++stamp;
           fresh[v] = 1; dir[v] = 1; skip[v] = 0; cutAt[v] = Infinity; grainLeft[v] = Infinity;
-          from[v] = msg.from ?? -1; choke[v] = msg.choke ? 1 : 0;
+          from[v] = msg.from ?? -1; choke[v] = msg.choke ? 1 : 0; cutIn[v] = msg.cutIn > 0 ? msg.cutIn * sampleRate : Infinity;
         } else if (msg.type === 'noteOff') {
           for (const c of chains) if (c.note === msg.note) c.alive = false;
           if (!msg.implied) {   // an implied release (a new note in the same column) is left to nnaFade
@@ -350,7 +351,7 @@ export default {
           // Stretch: the whole sample over a length, each repeat starting that much further along (negative: backwards).
           const sSub = Math.floor(P(STRETCH)) - 32768, sTk = Math.floor(P(STRETCH + 1)) - 32768, sKeep = Math.floor(P(STRETCH + 2)) - 32768;
           cfg.stretch = sKeep ? { L: sKeep * tickSamples, keep: true } : sTk ? { L: sTk * tickSamples, keep: false } : sSub ? { L: sSub * sub, keep: false } : null;
-          const st = { cutAdd: 0, si, note: note[v], dir: P(REVERSE) >= 1 ? -1 : 1, fromSlice: marker !== undefined, base: off, gain: gain[v], pitch: 0, cfg, cutT: P(CUTAFTER) / 16 * tickSamples, relT: P(RELAFTER) / 16 * tickSamples };
+          const st = { cutAdd: 0, si, note: note[v], dir: P(REVERSE) >= 1 ? -1 : 1, fromSlice: marker !== undefined, base: off, gain: gain[v], pitch: 0, cfg, cutT: Math.min(cutIn[v], P(CUTAFTER) > 0 ? P(CUTAFTER) / 16 * tickSamples : Infinity), relT: P(RELAFTER) / 16 * tickSamples };
           begin(v, st, 0);
           const every = P(RETRIG) * tickSamples;
           if (every >= 1) {

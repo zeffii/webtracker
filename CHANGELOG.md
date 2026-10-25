@@ -2,6 +2,12 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 463 · 2026-10-25
+
+- Sample screen: a playhead, a thin translucent red line over the waveform, runs while a sample plays (keys, Space, the slice buttons). It follows the sample's loops and is an estimate from the clock, so it is not exact if the sound is tuned or has effects that change its speed.
+- The slice button "play to the next marker" now stops at the next marker (a one-shot ignored the stop and played to the end). Clicking a playing button cuts it at once.
+- Fixed: letting go of a key in the sample screen never released a looping sample (the note-off was lost in a comment); it is released now.
+
 ## 462 · 2026-10-25
 
 - Sample screen: every slice marker in the list has two icon buttons. The first plays from that marker to the next one (to the end of the sample for the last marker); the second plays from the marker to the end of the sample. Clicking a button that is playing stops it, and the clicked marker becomes the active one.

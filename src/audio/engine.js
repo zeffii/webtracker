@@ -95,6 +95,9 @@ export class Engine {
     this.node.port.postMessage({ type: 'node', instrument, node, msg }, transfer);
   }
 
+  noteCut(instrument) {   // every voice of the instrument stops at once
+    this.node.port.postMessage({ type: 'note', instrument, msg: { type: 'noteCut' } });
+  }
   noteOn(instrument, note, vel = 1, extra = {}) {
     this.node.port.postMessage({ type: 'note', instrument, msg: { type: 'noteOn', note, vel, ...extra } });
   }

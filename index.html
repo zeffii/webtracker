@@ -587,7 +587,8 @@
     /* samples */
     .srow { display: flex; flex-wrap: wrap; gap: .5rem 1rem; align-items: center; margin: .25rem 0; }
     .srow input[type=number] { width: 7rem; }
-    #wave-row { display: flex; gap: 4px; align-items: flex-start; }
+    #wave-row { display: flex; gap: 4px; align-items: flex-start; position: relative; }
+    .wave-play { position: absolute; width: 1px; background: rgba(255, 70, 70, .75); pointer-events: none; z-index: 3; }
     #region { border: 1px solid; display: block; flex: none; background: var(--panel); }
     #wave { border: 1px solid; max-width: 100%; display: block; cursor: default; }   /* col-resize over a slice marker that a drag would move (waveform.js) */
 

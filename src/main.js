@@ -1307,9 +1307,34 @@ const prepareAudition = id => {
   }
   if (auditionDirty) { engine.sendToNode(AUDITION, 'sampler', sampleMessage(s)); auditionDirty = false; }
 };
-const playSample = (id, note, on, frame = 0) => {   // frame: where in the sample the note starts (0 is the beginning)
+// The sample screen's playhead is an estimate from the clock: where the note started, how fast it plays, and the loops it is in (the audio
+// thread reports no voice positions). It ends with the sample, with a cut, or a moment after the key is let go of a looping sample.
+let run = null;
+const auditionHead = () => {
+  if (!run) return null;
+  const s = project?.samples?.[run.id], now = performance.now();
+  if (!s) { run = null; return null; }
+  const dt = (now - run.t) / 1000; run.t = now;
+  run.pos += dt * s.rate * run.speed;
+  const len = s.data.length;
+  if (run.held && s.susOn && run.pos >= s.susEnd) run.pos = s.susStart + (run.pos - s.susStart) % Math.max(1, s.susEnd - s.susStart);
+  else if (s.loopOn && !(run.held && s.susOn) && run.pos >= s.loopEnd) run.pos = s.loopStart + (run.pos - s.loopStart) % Math.max(1, s.loopEnd - s.loopStart);
+  if (run.pos >= len - 1 || (run.cut !== undefined && now >= run.cut) || (run.until !== undefined && now >= run.until)) run = null;
+  return run ? run.pos : null;
+};
+const playSample = (id, note, on, frame = 0, cutIn = 0) => {   // frame: where in the sample the note starts (0 is the beginning); cutIn: seconds after which it stops by itself
   if (!started || !(id in project.samples)) return;
-  if (on) { prepareAudition(id); engine.set(`${AUDITION}.sampler.offset`, Math.min(1, Math.max(0, frame / Math.max(1, project.samples[id].data.length - 1)))); engine.noteOn(AUDITION, note, 1, { choke: true }); }   // a new note fades the old one, loop or not else if (audition) engine.noteOff(AUDITION, note);
+  const s = project.samples[id];
+  if (on) {
+    prepareAudition(id);
+    engine.set(`${AUDITION}.sampler.offset`, Math.min(1, Math.max(0, frame / Math.max(1, s.data.length - 1))));
+    engine.noteOn(AUDITION, note, 1, { choke: true, ...(cutIn > 0 ? { cutIn } : {}) });   // a new note fades the old one, loop or not
+    run = { id, pos: frame, t: performance.now(), speed: Math.pow(2, (note - 60) / 12), held: true, note, ...(cutIn > 0 ? { cut: performance.now() + cutIn * 1000 } : {}) };
+  } else if (audition && cutIn < 0) { engine.noteCut(AUDITION); run = null; }
+  else if (audition) {
+    engine.noteOff(AUDITION, note);
+    if (run?.note === note) { run.held = false; if (s.loopOn || s.susOn) run.until = performance.now() + 200; }
+  }
 };
 // Space with the mouse over the waveform plays the sample from its start; Alt+Space (or Ctrl+Space, as some systems keep Alt+Space for
 // the window menu) from the slice marker at or to the left of the mouse. The note lasts while the key is held.
@@ -2201,7 +2226,7 @@ $('start').addEventListener('click', async () => {
       if (tab === 'patterns' || !tab) view.draw();
       if (tab === 'instruments' || !tab) patcher.draw(); else if (floatWanted) patcher.live();
       if (tab === 'dsp') dspView?.live();
-      if (tab === 'samples' || !tab) { sampleScreen.draw(); waveform.draw(); region.draw(); }
+      if (tab === 'samples' || !tab) { sampleScreen.draw(); waveform.draw(); region.draw(); waveform.playhead(auditionHead()); }
       requestAnimationFrame(frame);
     };
     frame();

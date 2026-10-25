@@ -187,16 +187,21 @@ export function createSampleScreen({ el, statusEl, getProject, onChange = () => 
   // The two buttons on a slice row: play from the marker to the next one, or on to the end of the sample. Clicking a button
   // that is playing stops it; the note is also stopped at the next marker by a timer (the sampler has no end point of its own).
   let sliceTimer = 0, sliceBtn = '';
-  const stopSlice = () => { clearTimeout(sliceTimer); stopNote('slice-audition'); sliceBtn = ''; };
+  const stopSlice = (hard = false) => {
+    clearTimeout(sliceTimer);
+    if (hard && held.has('slice-audition')) { held.delete('slice-audition'); onNote(sel, ROOT, false, 0, -1); }   // a cut: a one-shot would otherwise play on after the note off
+    else stopNote('slice-audition');
+    sliceBtn = '';
+  };
   const playSlice = (i, toEnd) => {
     const s = sample(), sl = s?.slices ?? [];
     if (!s || i < 0 || i >= sl.length) return;
     const btn = `${i}:${toEnd ? 'end' : 'seg'}`, was = sliceBtn;
-    stopSlice();
+    stopSlice(true);
     if (was === btn) return;
     const end = toEnd ? s.data.length : (sl[i + 1] ?? s.data.length);
     setActive(i);
-    if (!playFrom('slice-audition', sl[i])) return;
+    if (!playFrom('slice-audition', sl[i], toEnd ? 0 : (end - sl[i]) / s.rate)) return;
     sliceBtn = btn;
     sliceTimer = setTimeout(stopSlice, Math.max(30, (end - sl[i]) / s.rate * 1000));
     say(`Playing slice ${i.toString(16).toUpperCase().padStart(2, '0')} ${toEnd ? 'to the end' : 'to the next marker'}.`);
@@ -442,7 +447,7 @@ export function createSampleScreen({ el, statusEl, getProject, onChange = () => 
   // Auto-slice: a marker on every hit of the sample, or of the selection (markers inside it are replaced). preview finds them without
   // touching the sample, so a dialog can show how many a setting gives; apply puts the markers in. Both take sensitivity (0 to 100) and gap (ms).
   // Plays the selected sample from a frame, for as long as the key that started it is held (main.js: Space over the waveform).
-  const playFrom = (code, frame) => { if (!sel || held.has(code)) return false; held.set(code, ROOT); onNote(sel, ROOT, true, frame); return true; };
+  const playFrom = (code, frame, seconds = 0) => { if (!sel || held.has(code)) return false; held.set(code, ROOT); onNote(sel, ROOT, true, frame, seconds); return true; };
   const autoSlice = {
     preview({ sensitivity = config.get('sliceSensitivity'), gap = config.get('sliceMinGap'), replace = config.get('sliceReplace') } = {}) {
       const s = sample();

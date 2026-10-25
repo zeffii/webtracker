@@ -323,7 +323,22 @@ export function createWaveformView({ canvas, statusEl, getProject, onLoop, onSel
     ctx.fillText(`${id}  ${s.data.length} frames${s.right ? '  stereo' : ''}${vb0 < s.data.length || va0 > 0 ? `  view ${va0}-${vb0}` : ''}`, 4, H - 2);
   }
 
+  // The playhead: a thin translucent red line over the canvas (its own element, so the waveform is not redrawn for it). `frame` is null to hide it.
+  const head = typeof document !== 'undefined' ? document.createElement('div') : null;
+  if (head) head.className = 'wave-play';
+  const playhead = frame => {
+    if (!head || !canvas.parentNode?.appendChild) return;
+    const s = sample();
+    const [a, b] = s ? range() : [0, 1];
+    if (frame === null || frame === undefined || !s || frame < a || frame >= b) { if (head.parentNode) head.remove(); return; }
+    head.style.left = `${canvas.offsetLeft + canvas.clientLeft + ((frame - a) / (b - a)) * canvas.clientWidth}px`;
+    head.style.top = `${canvas.offsetTop + canvas.clientTop}px`;
+    head.style.height = `${canvas.clientHeight}px`;
+    if (head.parentNode !== canvas.parentNode) canvas.parentNode.appendChild(head);
+  };
+
   return {
+    playhead,
     show(next) { id = next; drag = null; lastKey = null; active = -1; va = 0; vb = 0; },
     // Zoom: 'selection' fits the selection (else the loop), 'out' doubles the view, 'all' shows the whole sample. Returns a message when nothing happened.
     zoom(kind) {

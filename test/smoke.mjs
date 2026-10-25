@@ -3726,6 +3726,22 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     assert.ok(Math.abs(run({}) - 1) < 1e-6, 'without choke a one-shot rings on');
   }
 
+  // a note with cutIn stops itself after that many seconds, a one-shot included (the slice buttons play to the next marker this way)
+  {
+    const sampler = (await import('../src/audio/nodes/sampler.js')).default;
+    const hold = Float32Array.from({ length: 40000 }, () => 0.5);
+    const run = extra => {
+      const node = sampler.create({ sampleRate: sr });
+      node.message({ type: 'sample', data: hold, rate: sr });
+      node.note({ type: 'noteOn', note: 60, vel: 1, ...extra });
+      const out = new Float32Array(block);
+      for (let at = 0; at < 8192; at += block) node.process([], [out], block, [1, 60, 150, 20, 0, 0, 0, 0, 0, 1], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
+      return out[block - 1];
+    };
+    assert.ok(Math.abs(run({}) - 0.5) < 1e-6, 'without a cut the one-shot is still playing');
+    assert.equal(run({ cutIn: 4096 / sr }), 0, 'with cutIn it has stopped');
+  }
+
   // trim with no selection keeps the loop region; with neither it refuses
   {
     const t = { rate: sr, data: Float32Array.from({ length: 1000 }, (_, i) => i), loopStart: 200, loopEnd: 600, susStart: 700, susEnd: 800 };
