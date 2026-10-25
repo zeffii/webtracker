@@ -1097,7 +1097,7 @@ showTheme(config.get('theme'));
 $('loopbtn').addEventListener('click', () => { if (!project) return; const m = toggleLoop(project.song); songChanged(); (tabs.active === 'arrange' ? seqView : view).say?.(m); (tabs.active === 'arrange' ? seqView : view).draw?.(); $('loopbtn').blur(); });
 const songChanged = () => { engine.setSong(project.song); songInfo(); };
 $('bpm').addEventListener('change', () => {
-  project.song.bpm = Math.max(20, Math.min(400, Math.round(Number($('bpm').value)) || project.song.bpm));
+  project.song.bpm = Math.max(1, Math.min(800, Math.round(Number($('bpm').value) * 100) / 100 || project.song.bpm));
   $('bpm').value = project.song.bpm;
   songChanged();
 });
@@ -1106,6 +1106,16 @@ $('swing').addEventListener('change', () => {
   project.song.swing = pct / 100;
   $('swing').value = pct;
   songChanged();
+});
+// Ticks per beat: the bpm readout follows so a tick keeps its length and the music its tempo.
+$('tpb').addEventListener('change', () => {
+  const old = project.song.ticksPerBeat ?? 4, n = Math.max(1, Math.min(32, Math.round(Number($('tpb').value)) || old));
+  $('tpb').value = n;
+  if (n === old) return;
+  project.song.bpm = Math.max(1, Math.min(800, Math.round(project.song.bpm * old / n * 100) / 100));
+  project.song.ticksPerBeat = n;
+  $('bpm').value = project.song.bpm;
+  songChanged(); seqView.draw(); view.draw?.();
 });
 $('bar').addEventListener('change', () => {
   const n = Math.max(1, Math.min(16, Math.round(Number($('bar').value)) || 4));
@@ -1152,7 +1162,7 @@ config.onChange((k, v) => { if (k === 'insertCut') $('ins-cut').checked = v; els
 $('ins-go').addEventListener('click', () => insertSilence($('ins-n').value));
 $('ins-n').addEventListener('keydown', e => { if (e.key === 'Enter') insertSilence($('ins-n').value); });
 for (const b of document.querySelectorAll('.ins-pre')) { b.disabled = false; b.addEventListener('click', () => { $('ins-n').value = b.dataset.n; insertSilence(b.dataset.n); }); }
-for (const id of ['length', 'ins-n', 'bpm', 'swing', 'bar', 'pname']) $(id).addEventListener('keydown', e => e.stopPropagation());
+for (const id of ['length', 'ins-n', 'bpm', 'swing', 'tpb', 'bar', 'pname']) $(id).addEventListener('keydown', e => e.stopPropagation());
 
 // Rename the selected instrument: Ctrl+F2, or right-click it in the list. A small box opens over its row; Enter renames, Escape or a click elsewhere leaves it.
 function renameInstrumentBox() {
@@ -1453,6 +1463,7 @@ function openProject({ song, instruments, samples }, { stay = false, instrument 
   $('length').value = song.length;
   $('bpm').value = song.bpm;
   $('swing').value = Math.round((song.swing ?? 0.5) * 100);
+  $('tpb').value = song.ticksPerBeat ?? 4;
   $('bar').value = song.beatsPerBar ?? 4;
   $('pname').value = song.name ?? 'untitled'; $('pname').disabled = false;
   if (!stay) markSaved(); else scheduleCheck();
@@ -2178,7 +2189,7 @@ $('start').addEventListener('click', async () => {
     navigator.storage?.persist?.();   // ask the browser not to clear the snapshots when it is short of space
     for (const id of ['start']) $(id).disabled = true;
     $('logo').classList.remove('idle'); $('logo').removeAttribute('title'); $('logo').removeAttribute('role'); $('logo').removeAttribute('tabindex');
-    for (const id of ['play', 'pause', 'panic', 'cut', 'new', 'save', 'load', 'backups', 'export', 'load-samples', 'rec-take', 'rec-source', 'add-inst', 'add-lane', 'add-lane-inst', 'inst-voices', 'inst-notecols', 'inst-up', 'inst-down', 'inst-dup', 'inst-remove', 'lane-name', 'lane-rename', 'lane-left', 'lane-right', 'lane-dup', 'lane-remove', 'lane-remove-all', 'length', 'ins-n', 'ins-go', 'bpm', 'swing', 'bar', 'preset-name', 'preset-save', 'preset-over', 'preset-rename', 'preset-remove', 'inst-export', 'inst-import', 'lib-load', 'lib-add', 'lib-save']) $(id).disabled = false;
+    for (const id of ['play', 'pause', 'panic', 'cut', 'new', 'save', 'load', 'backups', 'export', 'load-samples', 'rec-take', 'rec-source', 'add-inst', 'add-lane', 'add-lane-inst', 'inst-voices', 'inst-notecols', 'inst-up', 'inst-down', 'inst-dup', 'inst-remove', 'lane-name', 'lane-rename', 'lane-left', 'lane-right', 'lane-dup', 'lane-remove', 'lane-remove-all', 'length', 'ins-n', 'ins-go', 'bpm', 'swing', 'tpb', 'bar', 'preset-name', 'preset-save', 'preset-over', 'preset-rename', 'preset-remove', 'inst-export', 'inst-import', 'lib-load', 'lib-add', 'lib-save']) $(id).disabled = false;
     $('status').textContent =
       `Running at ${engine.ctx.sampleRate} Hz, base latency ${(engine.ctx.baseLatency * 1000).toFixed(1)} ms`;
     // Only the screen that is showing is drawn: a hidden one has nothing to measure or paint, and its work would only delay the one you are using.

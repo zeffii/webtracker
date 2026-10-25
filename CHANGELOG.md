@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 460 · 2026-10-25
+
+- New `tpb` field (ticks per beat) beside bpm. Changing it rescales the bpm readout so a tick keeps its length and the music its tempo: a kick every 8 ticks at tpb 8 sounds like one every 4 ticks at tpb 4, and reads half the bpm. The bpm field now takes decimals (rescaling 125 bpm to tpb 8 gives 62.5) and a wider range, 1 to 800.
+
 ## 459 · 2026-10-25
 
 - Sample editor: the cursor says what a drag would do. Over a slice marker (within a few pixels) it turns to the move cursor when Alt is held, or whenever the loop, sustain loop and selection are all hidden, and then a plain drag moves the marker without Alt. Away from the markers it is a regular pointer.
