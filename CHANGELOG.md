@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 465 · 2026-10-25
+
+- Test: Note preview must default to on. The smoke test fails if the setting's default is anything but true, if a fresh start (nothing saved) has it off, or if its definition in config.js says `def: false`.
+
 ## 464 · 2026-10-25
 
 - GenExpr code box: a full syntax suite. Declarations, control words, built-in operators, constants, inputs and outputs, numbers, operators, punctuation and comments each have a colour, and the names you declare are coloured by what they are (a Param, a History, a Data or Delay) wherever they are used. The colours are mixed toward the theme's text colour, so they read on the dark and the light themes alike.

@@ -3726,6 +3726,17 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     assert.ok(Math.abs(run({}) - 1) < 1e-6, 'without choke a one-shot rings on');
   }
 
+  // Note preview is ON by default, always: the schema says so and a fresh start has it on.
+  {
+    const spec = uiConfig.schemaOf('notePreview');
+    assert.ok(spec, 'the Note preview setting exists');
+    assert.equal(spec.type, 'bool');
+    assert.strictEqual(spec.def, true, 'Note preview must default to on, under no circumstance off');
+    const fresh = await import('../src/ui/config.js?fresh-start');   // a second copy of the module, as on a first visit with nothing saved
+    assert.strictEqual(fresh.get('notePreview'), true, 'a fresh start has Note preview on');
+    assert.ok(!/key:\s*'notePreview'[^}]*def:\s*false/.test((await import('node:fs')).readFileSync(new URL('../src/ui/config.js', import.meta.url), 'utf8')), 'no definition of Note preview defaults it to off');
+  }
+
   // genexpr highlighting: every part of the language is coloured by what it is, names by how they were declared, brackets pair up; every word has help
   {
     const { classify, bracketAt, wordAt, sameWords } = await import('../src/genexpr/highlight.js');
