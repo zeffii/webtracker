@@ -615,7 +615,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
       const pick = el('select', { ariaLabel: 'Node preset' });
       const fill = chosen => {
         const f = factoryPresets(type), u = userPresets(node.type);
-        pick.replaceChildren(el('option', { value: '', textContent: '(choose a preset)' }),
+        pick.replaceChildren(el('option', { value: '', textContent: '(preset list)' }),
           ...(f.length ? [el('optgroup', { label: 'factory' }, ...f.map(x => el('option', { value: `f:${x.name}`, textContent: x.name })))] : []),
           ...(u.length ? [el('optgroup', { label: 'yours' }, ...u.map(x => el('option', { value: `u:${x.name}`, textContent: x.name })))] : []));
         pick.value = chosen ?? '';
@@ -637,7 +637,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
       });
       const drop = el('button', { textContent: '✕', title: 'Delete the chosen preset of yours' });
       drop.addEventListener('click', () => { if (pick.value.startsWith('u:')) { deleteUserPreset(node.type, pick.value.slice(2)); fill(); } });
-      items.unshift(el('div', { className: 'prow presets' }, el('span', { textContent: 'selected node preset' }), pick, name, save, drop));
+      items.unshift(el('div', { className: 'prow presets' }, el('span', { textContent: 'selected node preset' }), pick, drop, name, save));
     }
     // the preset row and the duplicate and delete buttons live in the bar above the graph, next to Add node
     const tool = x => x.classList?.contains('presets') || x.classList?.contains('tool');
@@ -1094,6 +1094,11 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
       ctx.globalAlpha = 1;
     }
     const accent = (typeof getComputedStyle === 'function' && getComputedStyle(canvas).getPropertyValue('--accent').trim()) || 'hsl(210 70% 55%)';
+    const backdrop = (() => {   // what is behind the graph, so a node can be filled with it and hide the wires that pass under it
+      if (typeof getComputedStyle !== 'function') return null;
+      for (let e = canvas; e; e = e.parentElement) { const c = getComputedStyle(e).backgroundColor; if (c && c !== 'transparent' && !/rgba\(.*,\s*0\)$/.test(c)) return c; }
+      return null;
+    })();
     ctx.font = '12px ui-monospace, Consolas, monospace';
     ctx.lineWidth = 1.5;
 
@@ -1147,6 +1152,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
         ctx.closePath();
       }
       else ctx.rect(node.x, node.y, w, h);
+      if (backdrop && type.shape !== 'dot') { ctx.fillStyle = backdrop; ctx.fill(); }   // wires run behind a node, not through it
       ctx.fillStyle = type.shape === 'dot' ? kindColour(kindOf(node, 'out')) : 'rgba(128, 128, 128, 0.18)';   // a route point is a solid dot in its wire's colour
       ctx.fill();
       ctx.strokeStyle = chosen ? accent : type.shape === 'dot' ? ink : 'rgba(128, 128, 128, 0.55)';   // a quiet grey until selected
