@@ -42,6 +42,8 @@ const FUNCS = {
 };
 const BUFFER_FUNCS = new Set(['peek', 'poke', 'dim']);
 const WORDS = new Set(['if', 'else', 'History', 'Param', 'Data', 'Delay']);
+// What the language is made of, for the editor's highlighting and hover help: every operator, constant and word the compiler knows.
+export const BUILTINS = { funcs: Object.keys(FUNCS), bufferFuncs: [...BUFFER_FUNCS], consts: [...Object.keys(CONSTS), 'samplerate'], declarations: ['History', 'Param', 'Data', 'Delay'], control: ['if', 'else'], methods: ['read', 'write'], inputs: ['in1', 'in2'], outputs: ['out1', 'out2'] };
 
 const PRELUDE = `
 const TAU = Math.PI * 2;

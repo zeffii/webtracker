@@ -981,7 +981,8 @@ $('inst-file').addEventListener('change', async e => {
         for (const o of s.options) input.append(Object.assign(document.createElement('option'), { value: o, textContent: s.labels?.[o] ?? o }));
         input.value = config.get(s.key);
         input.addEventListener('change', () => config.set(s.key, input.value));
-      } else if (s.type === 'code') {   // a text box for a shader: kept when you leave it
+      } else if (s.type === 'code') {   // a text box for a shader: kept when you leave it; the text runs the full width, the box under it
+        label.classList.add('cfg-code');
         input = Object.assign(document.createElement('textarea'), { value: config.get(s.key), spellcheck: false, rows: 14, ariaLabel: s.label });
         input.style.cssText = 'width:100%;font:12px ui-monospace,Consolas,monospace;white-space:pre;tab-size:2';
         input.addEventListener('change', () => config.set(s.key, input.value));

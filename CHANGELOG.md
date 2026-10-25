@@ -2,6 +2,14 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 464 · 2026-10-25
+
+- GenExpr code box: a full syntax suite. Declarations, control words, built-in operators, constants, inputs and outputs, numbers, operators, punctuation and comments each have a colour, and the names you declare are coloured by what they are (a Param, a History, a Data or Delay) wherever they are used. The colours are mixed toward the theme's text colour, so they read on the dark and the light themes alike.
+- The bracket beside the caret and its partner are outlined, a bracket with no partner is underlined, and the other uses of the word under the caret are shaded.
+- Rest the pointer on a word for its help: an operator's signature and what it does, or what a name in the code is (a knob shows its number, range and default).
+- Fixed: on every named theme the theme's textarea colour put the plain text over the colours, so the highlighting was hidden; the code box now keeps its text transparent.
+- Config, Picture: default shader: the explanation runs the full width with the code box under it, instead of the box being squeezed beside the text.
+
 ## 463 · 2026-10-25
 
 - Sample screen: a playhead, a thin translucent red line over the waveform, runs while a sample plays (keys, Space, the slice buttons). It follows the sample's loops and is an estimate from the clock, so it is not exact if the sound is tuned or has effects that change its speed.

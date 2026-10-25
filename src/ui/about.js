@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['464', ['GenExpr code box: full syntax colours (operators, constants, declared names by kind), bracket pairing, hover help, and it now shows on every theme. Config: the default shader box sits under its text.']],
   ['463', ['Sample screen: a playhead (thin translucent red line) while a sample plays; the slice button "to the next marker" really stops there; a held looping sample is released when the key is let go.']],
   ['462', ['Slice marker list: two buttons per marker, play to the next marker and play to the end of the sample.']],
   ['461', ['Instrument list: the hover colour is a quiet tint with readable text on the light themes.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['457', ['Graph: wires run behind nodes. Node preset box: "(preset list)" with the delete cross beside it.']],
   ['456', ['Envelope drawing: corner ticks instead of a box, a faint fill under the curve, a tighter layout.']],
   ['455', ['New genexpr node: a node whose sound is code, compiled once per edit, with every mistake underlined and explained.']],
-  ['454', ['Dropdown lists: darker background and full-contrast text when open.']],
 ];

@@ -2,26 +2,25 @@
 // list of them below with the line, the column and a hint. It compiles a moment after typing stops (the same compiler the
 // audio side uses), so what the list says is what the sound will do. The knobs the code declares are listed under it.
 import { compile, DEFAULT_CODE } from '../genexpr/compile.js';
+import { classify, bracketAt, wordAt, sameWords } from '../genexpr/highlight.js';
+import { DOCS } from '../genexpr/docs.js';
 
-const KEYWORDS = /^(History|Param|Data|Delay|if|else)$/;
 const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
-// One class per character: comment, keyword, number, name of an operator; then runs of equal class are wrapped in spans.
-function paint(text, marks) {
-  const cls = new Array(text.length).fill('');
-  const re = /(\/\/[^\n]*|\/\*[\s\S]*?(?:\*\/|$))|\b([A-Za-z_]\w*)\b|(\b\d+\.?\d*(?:[eE][+-]?\d+)?\b|\.\d+)/g;
-  let m;
-  while ((m = re.exec(text))) {
-    const c = m[1] ? 'c' : m[3] ? 'n' : KEYWORDS.test(m[2]) ? 'k' : /^(in|out)[12]$/.test(m[2]) ? 'io' : '';
-    if (c) cls.fill(c, m.index, m.index + m[0].length);
-  }
+// One class per character from the highlighter (comment, keyword, function, constant, names by kind ...), then the flags drawn over it: mistakes
+// and warnings (`marks`), the bracket pair at the caret, loose brackets and other uses of the word at the caret (`extra`). Runs of equal
+// class are wrapped in spans.
+function paint(text, info, marks, extra = {}) {
+  const cls = info.cls;
   const lineStart = [0]; for (let i = 0; i < text.length; i++) if (text[i] === '\n') lineStart.push(i + 1);
   const flag = new Array(text.length).fill('');
+  for (const i of info.loose) flag[i] = 'brx';
+  for (const i of extra.same ?? []) flag.fill('same', i, i + extra.sameLen);
+  for (const i of extra.pair ?? []) flag[i] = 'br';
   for (const [list, kind] of marks) for (const e of list) {
     const base = lineStart[e.line - 1]; if (base === undefined) continue;
     const a = base + e.col - 1, b = Math.min(base + Math.max(e.end - 1, e.col), lineStart[e.line] !== undefined ? lineStart[e.line] - 1 : text.length);
     for (let i = a; i < Math.max(b, a + 1) && i < text.length; i++) if (flag[i] !== 'e') flag[i] = kind;
-    if (a >= text.length || text[a] === '\n') { /* an error at the very end of a line: mark nothing, the list still says it */ }
   }
   let out = '', i = 0;
   while (i < text.length) {
@@ -41,12 +40,20 @@ export function createGenexprEditor({ doc = document, code, onChange = () => {},
   const status = el('div', { className: 'ge-status' }), list = el('div', { className: 'ge-errors' }), knobs = el('div', { className: 'ge-knobs' });
   const root = el('div', { className: 'ge' }, el('div', { className: 'ge-code' }, gutter, wrap), status, list, knobs);
 
-  let prev = compile(text).params, timer = 0, last = null;
+  let prev = compile(text).params, timer = 0, last = null, info = classify(text);
+  // At the caret: the bracket that pairs with the one beside it, and the other places the word under it is used.
+  const caretExtra = () => {
+    if (doc.activeElement !== area || area.selectionStart !== area.selectionEnd) return {};
+    const at = area.selectionStart, pr = bracketAt(info, at), w = wordAt(text, info, at);
+    return { pair: pr ?? undefined, same: w ? sameWords(text, info, w) : undefined, sameLen: w ? w.to - w.from : 0 };
+  };
+  const repaint = () => { if (last) mirror.innerHTML = paint(text, info, [[last.warnings, 'w'], [last.errors, 'e']], caretExtra()); };
   const cap = typeof setTimeout === 'function';
 
   const draw = r => {
     last = r;
-    mirror.innerHTML = paint(text, [[r.warnings, 'w'], [r.errors, 'e']]);
+    info = classify(text);
+    mirror.innerHTML = paint(text, info, [[r.warnings, 'w'], [r.errors, 'e']], caretExtra());
     const lines = text.split('\n').length, bad = new Set(r.errors.map(e => e.line));
     gutter.innerHTML = Array.from({ length: lines }, (_, i) => `<span${bad.has(i + 1) ? ' class="bad"' : ''}>${i + 1}</span>`).join('');
     status.className = `ge-status ${r.ok ? 'ok' : 'bad'}`;
@@ -80,7 +87,39 @@ export function createGenexprEditor({ doc = document, code, onChange = () => {},
     text = area.value; draw(last ?? compile(text));   // keep the lines and the highlight in step while typing; the compile follows
     if (cap) { clearTimeout(timer); timer = setTimeout(run, 280); } else run();
   });
-  area.addEventListener('scroll', () => { mirror.scrollTop = gutter.scrollTop = area.scrollTop; mirror.scrollLeft = area.scrollLeft; });
+  // Rest the pointer on a word for its help: what an operator does, or what a name in the code is.
+  const tip = el('div', { className: 'ge-tip', hidden: true });
+  wrap.append(tip);
+  let cw = 0;
+  const charWidth = () => {
+    if (!cw) { const probe = el('span', { textContent: '0'.repeat(20) }); probe.style.cssText = 'position:absolute;visibility:hidden;white-space:pre;font:inherit'; mirror.append(probe); cw = probe.getBoundingClientRect().width / 20; probe.remove(); }
+    return cw || 7;
+  };
+  const help = w => {
+    const d = info.decls.get(w.word);
+    if (d) {
+      const p = d.kind === 'Param' ? last?.params.find(q => q.name === w.word) : null, k = last?.params.findIndex(q => q.name === w.word);
+      return [`${d.kind} ${w.word}`, d.kind === 'Param' ? (p ? `knob p${k + 1}, ${p.min} to ${p.max}, starts at ${p.def}` : 'a knob on the node') : `${DOCS[d.kind][1]} (declared on line ${d.line})`];
+    }
+    return DOCS[w.word] ?? null;
+  };
+  const hideTip = () => { tip.hidden = true; };
+  area.addEventListener('mousemove', e => {
+    const r = area.getBoundingClientRect(), cs = typeof getComputedStyle === 'function' ? getComputedStyle(area) : null;
+    const x = e.clientX - r.left + area.scrollLeft - (parseFloat(cs?.paddingLeft) || 8), y = e.clientY - r.top + area.scrollTop - (parseFloat(cs?.paddingTop) || 6);
+    const lines = text.split('\n'), row = Math.floor(y / 18), col = Math.floor(x / charWidth());
+    if (row < 0 || row >= lines.length || col < 0 || col >= lines[row].length) return hideTip();
+    let at = col; for (let i = 0; i < row; i++) at += lines[i].length + 1;
+    const w = wordAt(text, info, at), h = w && info.cls[at] !== 'c' ? help(w) : null;
+    if (!h) return hideTip();
+    tip.replaceChildren(el('b', { textContent: h[0] }), el('span', { textContent: h[1] }));
+    tip.style.left = `${Math.max(0, Math.min(e.clientX - r.left, r.width - 200))}px`; tip.style.top = `${e.clientY - r.top + 16}px`;
+    tip.hidden = false;
+  });
+  area.addEventListener('mouseleave', hideTip);
+  area.addEventListener('input', hideTip);
+  for (const ev of ['keyup', 'click', 'focus', 'blur']) area.addEventListener(ev, repaint);
+  area.addEventListener('scroll', () => { hideTip(); mirror.scrollTop = gutter.scrollTop = area.scrollTop; mirror.scrollLeft = area.scrollLeft; });
   area.addEventListener('keydown', e => {
     e.stopPropagation();   // typing here is not a shortcut for the patcher
     if (e.key === 'Tab') {

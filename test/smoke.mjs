@@ -3726,6 +3726,27 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     assert.ok(Math.abs(run({}) - 1) < 1e-6, 'without choke a one-shot rings on');
   }
 
+  // genexpr highlighting: every part of the language is coloured by what it is, names by how they were declared, brackets pair up; every word has help
+  {
+    const { classify, bracketAt, wordAt, sameWords } = await import('../src/genexpr/highlight.js');
+    const { DOCS } = await import('../src/genexpr/docs.js');
+    const { BUILTINS } = await import('../src/genexpr/compile.js');
+    for (const n of [...BUILTINS.funcs, ...BUILTINS.bufferFuncs, ...BUILTINS.consts, ...BUILTINS.declarations, ...BUILTINS.control, ...BUILTINS.methods, ...BUILTINS.inputs, ...BUILTINS.outputs]) assert.ok(DOCS[n], `${n} has help`);
+    const t = 'Param amt(1);\nHistory h(0);\nDelay d(10);\n// note\nif (h) { out1 = mix(in1, d.read(amt * 2), sin(pi)) + 0x1F; }\n';
+    const info = classify(t), at = w => info.cls[t.indexOf(w)];
+    assert.deepEqual(['Param', 'amt', 'History', 'h', 'Delay', 'd', '// note', 'if', 'out1', 'mix', 'read', 'sin(', 'pi', '0x1F', '+'].map(at),
+      ['k', 'dp', 'k', 'dh', 'k', 'dd', 'c', 'kc', 'io', 'f', 'm', 'f', 'cn', 'n', 'op'], 'each word has its class');
+    assert.equal(info.cls[t.lastIndexOf('amt')], 'dp', 'a declared name is coloured where it is used');
+    assert.equal(info.loose.length, 0, 'the brackets all pair');
+    const open = t.indexOf('(', t.indexOf('mix')), shut = info.pairs.get(open);
+    assert.equal(t[shut], ')'); assert.deepEqual(bracketAt(info, open + 1), [open, shut], 'the bracket beside the caret pairs');
+    assert.equal(classify('a = (1 + 2;').loose.length, 1, 'a loose bracket is found');
+    assert.equal(classify('x = 1; // (').loose.length, 0, 'a bracket in a comment is not counted');
+    const w = wordAt(t, info, t.lastIndexOf('amt') + 1);
+    assert.equal(w.word, 'amt'); assert.equal(sameWords(t, info, w).length, 1, 'the other use of the word');
+    assert.equal(wordAt(t, info, t.indexOf('// note') + 3), null, 'no word in a comment');
+  }
+
   // a note with cutIn stops itself after that many seconds, a one-shot included (the slice buttons play to the next marker this way)
   {
     const sampler = (await import('../src/audio/nodes/sampler.js')).default;

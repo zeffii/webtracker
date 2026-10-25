@@ -550,6 +550,9 @@
     .cfg-card label, .cfg-row { display: flex; align-items: center; gap: 10px; padding: 6px 12px; border-top: 1px solid color-mix(in srgb, var(--fg) 12%, transparent); }
     .cfg-card > :first-child { border-top: 0; }
     .cfg-card label > span:first-child, .cfg-row > span:first-child { flex: 1; }
+    .cfg-card label.cfg-code { flex-direction: column; align-items: stretch; gap: 6px; }
+    .cfg-card label.cfg-code > span:first-child { flex: none; }
+    .cfg-card label.cfg-code textarea { box-sizing: border-box; max-width: 100%; }
     .cfg-card small { opacity: .6; font-size: 11px; }
     .cfg-card label:focus-within, .cfg-card label:hover { background: color-mix(in srgb, var(--fg) 7%, transparent); }
     .cfg-card input[type=number] { width: 5em; }
@@ -615,12 +618,28 @@
     .ge-wrap { position: relative; flex: 1 1 auto; min-width: 0; }
     .ge-mirror, .ge-text { position: absolute; inset: 0; width: 100%; box-sizing: border-box; padding-left: 8px; padding-right: 8px; white-space: pre; overflow: auto; border: 0; }
     .ge-mirror { pointer-events: none; color: var(--fg); overflow: hidden; }
-    .ge-text { background: transparent; color: transparent; caret-color: var(--fg); resize: none; outline: none; }
+    .ge-text { background: transparent !important; color: transparent !important; border: 0 !important; border-radius: 0 !important; font: 12px/18px ui-monospace, Consolas, monospace !important; caret-color: var(--fg); resize: none; outline: none; }   /* !important: the themes colour every textarea, which put the plain text over the colours */
     .ge-text::selection { background: color-mix(in srgb, var(--hi) 55%, transparent); }
-    .ge-mirror .g-c { opacity: .5; font-style: italic; }
-    .ge-mirror .g-k { color: #c792ea; font-weight: 600; }
-    .ge-mirror .g-n { color: #e0a84a; }
-    .ge-mirror .g-io { color: #4fc3d9; }
+    /* the code colours: each hue is pulled toward the text colour, so it is light on the dark themes and dark on the light ones */
+    .ge-mirror { --gh-k: #b07be0; --gh-kc: #e5669c; --gh-f: #4f9cf0; --gh-cn: #2fb8a0; --gh-io: #2bb3d6; --gh-n: #d99a2b; --gh-dp: #4cbf5c; --gh-dh: #ee7d5c; --gh-dd: #8a96f2; }
+    .ge-mirror .g-c { opacity: .55; font-style: italic; }
+    .ge-mirror .g-k { color: color-mix(in oklab, var(--gh-k) 72%, var(--fg)); font-weight: 600; }
+    .ge-mirror .g-kc { color: color-mix(in oklab, var(--gh-kc) 72%, var(--fg)); font-weight: 600; }
+    .ge-mirror .g-f, .ge-mirror .g-m { color: color-mix(in oklab, var(--gh-f) 72%, var(--fg)); }
+    .ge-mirror .g-cn { color: color-mix(in oklab, var(--gh-cn) 72%, var(--fg)); }
+    .ge-mirror .g-io { color: color-mix(in oklab, var(--gh-io) 72%, var(--fg)); }
+    .ge-mirror .g-n { color: color-mix(in oklab, var(--gh-n) 72%, var(--fg)); }
+    .ge-mirror .g-dp { color: color-mix(in oklab, var(--gh-dp) 72%, var(--fg)); font-weight: 600; }
+    .ge-mirror .g-dh { color: color-mix(in oklab, var(--gh-dh) 72%, var(--fg)); font-weight: 600; }
+    .ge-mirror .g-dd { color: color-mix(in oklab, var(--gh-dd) 72%, var(--fg)); font-weight: 600; }
+    .ge-mirror .g-op { opacity: .75; }
+    .ge-mirror .g-pu { opacity: .55; }
+    .ge-mirror .g-br { outline: 1px solid color-mix(in srgb, var(--fg) 60%, transparent); background: color-mix(in srgb, var(--fg) 14%, transparent); opacity: 1; }
+    .ge-mirror .g-brx { text-decoration: underline wavy #e5484d; text-underline-offset: 2px; opacity: 1; }
+    .ge-mirror .g-same { background: color-mix(in srgb, var(--fg) 12%, transparent); }
+    .ge-tip { position: absolute; z-index: 5; max-width: 26em; padding: 4px 8px; border: 1px solid color-mix(in srgb, var(--fg) 30%, transparent); background: color-mix(in srgb, var(--bg) 92%, var(--fg)); color: var(--fg); font: 12px/16px system-ui, sans-serif; pointer-events: none; box-shadow: 0 2px 8px rgba(0, 0, 0, .25); }
+    .ge-tip b { display: block; font: 600 12px ui-monospace, Consolas, monospace; }
+    .ge-tip[hidden] { display: none; }
     .ge-mirror .g-e { text-decoration: underline wavy #e5484d; text-decoration-skip-ink: none; text-underline-offset: 2px; background: color-mix(in srgb, #e5484d 18%, transparent); }
     .ge-mirror .g-w { text-decoration: underline wavy #d9a441; text-underline-offset: 2px; }
     .ge-status { font: 11px ui-monospace, Consolas, monospace; opacity: .75; }
