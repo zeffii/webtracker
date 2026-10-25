@@ -634,6 +634,7 @@
     #inst-side .help { opacity: .7; padding: 0 .6ch; }
     #inst-side #inst-list { margin: 0 .6ch; padding: 1px 0; background: rgba(255, 255, 255, .34); border: 1px solid rgba(128, 128, 128, .28); }
     #inst-side #inst-list button { background: transparent; display: block; width: 100%; padding: 0 .6ch; }
+    #inst-side #inst-list button:hover:not(:disabled) { background: color-mix(in srgb, currentColor 12%, transparent); color: inherit; }   /* a quiet tint: the bright highlight is hard to read on the light themes */
     #inst-side #inst-list button.active { background: color-mix(in srgb, currentColor 22%, transparent); }
     #inst-side #inst-list:focus button.active { background: var(--hi); color: var(--hi-fg); }
     #inst-head { display: flex; flex-wrap: wrap; gap: .3rem; align-items: center; margin: .5rem 0 0; padding: 0 .6ch; min-height: 0; }

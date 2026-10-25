@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['461', ['Instrument list: the hover colour is a quiet tint with readable text on the light themes.']],
   ['460', ['New tpb (ticks per beat) field: changing it rescales the bpm readout so the tempo stays the same.']],
   ['459', ['Sample editor: the cursor shows when a slice marker can be moved; with every region hidden no Alt is needed.']],
   ['458', ['Rename an instrument with Ctrl+F2 or a right-click on it; the Name row is gone.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['454', ['Dropdown lists: darker background and full-contrast text when open.']],
   ['453', ['New sweep filter node: one knob, lowpass below 0, highpass above, untouched at 0, no dry/wet seam.']],
   ['452', ['New ladder filter node: 24 dB lowpass with a built-in LFO (log-scale rate) and a smooth dry/wet mix.']],
-  ['451', ['Instruments tab: Voices and Tracks line up with the node preset box.']],
 ];

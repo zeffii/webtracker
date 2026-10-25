@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 461 · 2026-10-25
+
+- Instruments tab: hovering an instrument in the list tints the row quietly and keeps its text colour, instead of the bright highlight that was hard to read on the light themes.
+
 ## 460 · 2026-10-25
 
 - New `tpb` field (ticks per beat) beside bpm. Changing it rescales the bpm readout so a tick keeps its length and the music its tempo: a kick every 8 ticks at tpb 8 sounds like one every 4 ticks at tpb 4, and reads half the bpm. The bpm field now takes decimals (rescaling 125 bpm to tpb 8 gives 62.5) and a wider range, 1 to 800.
