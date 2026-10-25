@@ -81,6 +81,18 @@ export function createWaveformView({ canvas, statusEl, getProject, onLoop, onSel
     (s.slices ?? []).forEach((f, i) => { const d = Math.abs(x - frameToX(f)); if (d <= reach && (best < 0 || d < Math.abs(x - frameToX(s.slices[best])))) best = i; });
     return best;
   };
+  // With the loop, the sustain loop and the selection all hidden, a plain drag has nothing else to do, so it moves the marker under the mouse.
+  const regionsHidden = () => hidden(0) && hidden(1) && config.get('waveHideSel');
+  // The cursor says what a drag would do: a marker within reach (and free to grab: Alt held, or every region hidden) shows the move cursor.
+  let lastX = -1e9;
+  const showCursor = () => {
+    const s = sample();
+    const over = !drag && s && frames() && (altHeld || regionsHidden()) && nearestSlice(s, lastX, GRAB) >= 0;
+    canvas.style.cursor = drag?.kind === 'slice' || over ? 'col-resize' : 'default';
+  };
+  let altHeld = false;
+  globalThis.addEventListener?.('keydown', e => { if (e.key === 'Alt') { altHeld = true; showCursor(); } });
+  globalThis.addEventListener?.('keyup', e => { if (e.key === 'Alt') { altHeld = false; showCursor(); } });
   const commitSlices = (list, grabbed) => {
     try {
       const users = setSlices(getProject(), id, list);
@@ -125,7 +137,8 @@ export function createWaveformView({ canvas, statusEl, getProject, onLoop, onSel
       else if (end > start && Math.abs(e.offsetX - frameToX(end)) <= GRAB) drag = { kind: 'end', target, preview: { start, end } };
       else drag = { kind: 'region', target, anchor: xToFrame(e.offsetX), preview: null, markOnClick };
     };
-    if (e.altKey) {
+    const bare = !e.ctrlKey && !e.metaKey && !e.shiftKey;
+    if (e.altKey || (bare && regionsHidden() && nearestSlice(s, e.offsetX, GRAB) >= 0)) {   // with every region hidden a marker can be grabbed without Alt
       const at = nearestSlice(s, e.offsetX, GRAB);
       if (at >= 0) { drag = { kind: 'slice', i: at, preview: [...(s.slices ?? [])] }; return; }
       region('loop', Math.min(xToFrame(e.offsetX), frames() - 1));
@@ -146,7 +159,7 @@ export function createWaveformView({ canvas, statusEl, getProject, onLoop, onSel
     else if (drag.kind === 'end') drag.preview = { start: drag.preview.start, end: Math.max(f, drag.preview.start + 2) };
     else if (Math.abs(f - drag.anchor) >= 2) drag.preview = { start: Math.min(f, drag.anchor), end: Math.max(f, drag.anchor) };
   };
-  canvas.addEventListener('mousemove', e => move(e.offsetX));
+  canvas.addEventListener('mousemove', e => { move(e.offsetX); lastX = e.offsetX; altHeld = !!e.altKey; showCursor(); });
   // a drag goes on outside the display: the pointer past either edge holds the selection at the first or last frame of the view
   // (it used to be cancelled the moment the mouse left, which threw away selections reaching the edge)
   globalThis.addEventListener?.('mousemove', e => { if (drag && e.target !== canvas) move(e.clientX - canvas.getBoundingClientRect().left); });

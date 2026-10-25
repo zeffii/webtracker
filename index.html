@@ -582,7 +582,7 @@
     .srow input[type=number] { width: 7rem; }
     #wave-row { display: flex; gap: 4px; align-items: flex-start; }
     #region { border: 1px solid; display: block; flex: none; background: var(--panel); }
-    #wave { border: 1px solid; max-width: 100%; display: block; cursor: col-resize; }
+    #wave { border: 1px solid; max-width: 100%; display: block; cursor: default; }   /* col-resize over a slice marker that a drag would move (waveform.js) */
 
     /* instruments: a narrow list, the graph on the right */
     #inst-layout { display: grid; grid-template-columns: 17rem minmax(0, 1fr); gap: 1rem; align-items: start; }

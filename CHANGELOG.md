@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 459 · 2026-10-25
+
+- Sample editor: the cursor says what a drag would do. Over a slice marker (within a few pixels) it turns to the move cursor when Alt is held, or whenever the loop, sustain loop and selection are all hidden, and then a plain drag moves the marker without Alt. Away from the markers it is a regular pointer.
+
 ## 458 · 2026-10-25
 
 - Instruments tab: the Name box and Rename button are gone. Ctrl+F2, or a right-click on an instrument in the list (a menu with one item, Rename), opens a small box over its row; Enter renames, Escape leaves it.

@@ -1493,6 +1493,24 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   fire('mousedown', 598, alt); fire('mousemove', 0); fire('mouseup', 0);        // the end cannot pass the start
   assert.equal(project.samples.s.loopStart, 500);
   assert.ok(project.samples.s.loopEnd >= 502);
+  // the cursor says what a drag would do: a marker within reach shows the move cursor when Alt is held or every region is hidden
+  {
+    project.samples.s.slices = [1000, 4000];
+    const moveTo = (x, extra = {}) => { fire('mousemove', x, extra); return canvas.style.cursor; };
+    uiConfig.set('waveHideLoop', false); uiConfig.set('waveHideSus', false); uiConfig.set('waveHideSel', false);
+    assert.equal(moveTo(101), 'default', 'regions showing: a marker is not grabbed without Alt');
+    assert.equal(moveTo(101, alt), 'col-resize', 'Alt over a marker');
+    assert.equal(moveTo(200, alt), 'default', 'Alt, but away from every marker');
+    uiConfig.set('waveHideLoop', true); uiConfig.set('waveHideSus', true); uiConfig.set('waveHideSel', true);
+    assert.equal(moveTo(103), 'col-resize', 'every region hidden: the marker shows the move cursor');
+    assert.equal(moveTo(250), 'default', 'and a regular pointer away from the markers');
+    fire('mousedown', 399); fire('mousemove', 450); fire('mouseup', 450);   // no Alt needed
+    assert.deepEqual(project.samples.s.slices, [1000, 4500], 'a plain drag moved the marker');
+    fire('mousedown', 700); fire('mousemove', 800); fire('mouseup', 800);   // away from a marker it is a selection
+    assert.deepEqual(project.samples.s.slices, [1000, 4500]);
+    uiConfig.set('waveHideLoop', false); uiConfig.set('waveHideSus', false); uiConfig.set('waveHideSel', false);
+    project.samples.s.slices = [];
+  }
   // Ctrl+drag is the sustain loop, which has its own handles; a plain drag only selects
   fire('mousedown', 100, ctrl); fire('mousemove', 200); fire('mouseup', 200);
   assert.deepEqual([project.samples.s.susStart, project.samples.s.susEnd], [1000, 2000]);

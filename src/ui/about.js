@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['459', ['Sample editor: the cursor shows when a slice marker can be moved; with every region hidden no Alt is needed.']],
   ['458', ['Rename an instrument with Ctrl+F2 or a right-click on it; the Name row is gone.']],
   ['457', ['Graph: wires run behind nodes. Node preset box: "(preset list)" with the delete cross beside it.']],
   ['456', ['Envelope drawing: corner ticks instead of a box, a faint fill under the curve, a tighter layout.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['452', ['New ladder filter node: 24 dB lowpass with a built-in LFO (log-scale rate) and a smooth dry/wet mix.']],
   ['451', ['Instruments tab: Voices and Tracks line up with the node preset box.']],
   ['450', ['Instruments tab: NoteCols is Tracks; the preset box is headed "selected node preset".']],
-  ['449', ['Instruments tab: Voices and NoteCols stacked, the node preset box right-aligned beside them.']],
 ];
