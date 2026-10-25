@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['468', ['Stream Manager: an eye button in the bottom bar (or Ctrl+Alt+E) slides a drawer up from the bar\'s top border. Every lane shows its machine, live voices, level and its share of the audio block, with Reset and Cut buttons (and Reset all, Cut all, Resume all). Cut stops a machine and skips it, so it costs no CPU, until Play is pressed again; Reset rebuilds it (voices, delay tails, filter state). Hidden by default; nothing is timed while it is closed. Wax runs one AudioWorklet for everything, so the lanes are shown as parts of it.']],
   ['467', ['Left rail: the Dock button moved below the screen buttons, under a thin divider.']],
   ['466', ['Node Sequencer, a new screen (Ctrl+Alt+N): a graph of nodes that plays beside the pattern lanes, which can stay empty. Amber square ports carry events on ticks and subticks, cyan round ports carry controls at signal rate; wires are drawn behind the nodes and a light runs along one each time an event passes.', 'Nodes: clock, steps, euclid, Pseq and Prand lists, random, math, probability, delay, gate, counter, lfo, envelope, scale and more, a script node (a few lines of JavaScript per event), and the outputs: note (plays any instrument) and set (moves any exposed parameter). Press A or right-click for the palette; drag a wire onto empty space to add a node for it.', 'Subticks are set per project (1 to 16). Nodes belong to one of eight groups (A to H); "Pattern lane" adds a lane whose G1 to G8 columns start and stop the groups from a pattern. With Rec armed, the notes the graph plays are written into the lanes of their instrument. The graph is saved in the .wax file and is part of WAV export.']],
   ['465', ['A test now guards that Note preview is on by default.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['461', ['Instrument list: the hover colour is a quiet tint with readable text on the light themes.']],
   ['460', ['New tpb (ticks per beat) field: changing it rescales the bpm readout so the tempo stays the same.']],
   ['459', ['Sample editor: the cursor shows when a slice marker can be moved; with every region hidden no Alt is needed.']],
-  ['458', ['Rename an instrument with Ctrl+F2 or a right-click on it; the Name row is gone.']],
 ];

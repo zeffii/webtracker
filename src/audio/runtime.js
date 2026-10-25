@@ -15,6 +15,8 @@ export class GraphRuntime {
   onFault = null;          // called with an instrument id when it is rebuilt
   onEmit = null;           // called with (instrument id, node id, message, transfer list): what a node sends the page (the tap node's takes)
   onScope = null;          // called with (instrument id, node id, left, right): the last SCOPE_N samples a watched node put out
+  cut = new Set();         // instruments the Stream Manager has switched off: not run, and deaf to notes, until Play (see worklet.js)
+  prof = null;             // while the Stream Manager is open: id -> { ms, peak }, what each instrument cost since the last report
   scopes = new Map();      // watched nodes: key -> { instrument, node, l, r, at, since }
 
   constructor({ sampleRate, params, maxBlock = 512, wasm = null }) {
@@ -36,6 +38,7 @@ export class GraphRuntime {
 
   // Drops every instrument and switches to a new parameter block.
   reset(params) {
+    this.cut.clear();
     this.params = params;
     this.instruments.clear();
     this.graphs.clear();
@@ -184,7 +187,7 @@ export class GraphRuntime {
   // off releases the newest voice playing that note; all-off releases them all; a cut stops them.
   note(instrument, msg) {
     const inst = this.instruments.get(instrument);
-    if (!inst) return;
+    if (!inst || this.cut.has(instrument)) return;
     if (inst.arp === undefined) {   // an arp node takes the notes first and plays what it makes (see deliver)
       const id = this.graphs.get(instrument)?.nodes.find(n => NODE_TYPES[n.type]?.noteFilter)?.id;
       inst.arp = id !== undefined ? inst.byId.get(id)?.[0] ?? null : null;
@@ -233,6 +236,22 @@ export class GraphRuntime {
     }
   }
 
+  // Switches one instrument off (its voices stop, it is skipped, notes for it are dropped) or back on.
+  setCut(id, on) {
+    if (on) { this.note(id, { type: 'noteCut' }); this.cut.add(id); const inst = this.instruments.get(id); if (inst) { inst.left.fill(0); inst.right.fill(0); } }
+    else this.cut.delete(id);
+  }
+
+  // What each instrument is doing now, for the Stream Manager: live voices, the voices it has, and the peak of its last block.
+  streamStats() {
+    const rows = {};
+    for (const [id, inst] of this.instruments) {
+      const p = this.prof?.get(id);
+      rows[id] = { v: inst.sets.length ? inst.sets.filter(s => s.active).length : 0, vt: inst.sets.length, peak: p?.peak ?? 0, ms: p?.ms ?? 0, cut: this.cut.has(id) };
+    }
+    return rows;
+  }
+
   // Every voice of every instrument stops at once.
   panic() {
     for (const id of this.instruments.keys()) this.note(id, { type: 'noteCut' });
@@ -267,6 +286,8 @@ export class GraphRuntime {
     for (const id of this.runOrder()) {
       const inst = this.instruments.get(id);
       if (!inst) continue;
+      if (this.cut.has(id)) { this.onLane?.(id, inst.left, inst.right, n); continue; }   // switched off in the Stream Manager: it runs nothing, and its buffers hold silence
+      const t0 = this.prof ? Date.now() : 0;
       for (const node of inst.pre) node.instance.process(node.inputs, node.outputs, n, this.params, node.slots);
       if (inst.sets.length) {
         if (inst.mixing) { inst.left.fill(0, 0, n); inst.right.fill(0, 0, n); }
@@ -299,6 +320,12 @@ export class GraphRuntime {
         continue;
       }
       inst.block = this.blockNo;
+      if (this.prof) {
+        let pk = 0;
+        for (let i = 0; i < n; i++) { const a = Math.abs(inst.left[i]), b = Math.abs(inst.right[i]); if (a > pk) pk = a; if (b > pk) pk = b; }
+        const p = this.prof.get(id) ?? this.prof.set(id, { ms: 0, peak: 0 }).get(id);
+        p.ms += Date.now() - t0; if (pk > p.peak) p.peak = pk;
+      }
       this.onLane?.(id, inst.left, inst.right, n);   // the page's layered spectrum, when it is on
       if (this.scopes.size) for (const scope of this.scopes.values()) if (scope.instrument === id) this.watch(scope, inst, n);
       for (let i = 0; i < n; i++) {

@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 468 · 2026-10-25
+
+- Stream Manager: an eye button in the bottom bar (or Ctrl+Alt+E) slides a drawer up from the bar's top border. Every lane shows its machine, live voices, level and its share of the audio block, with Reset and Cut buttons (and Reset all, Cut all, Resume all). Cut stops a machine and skips it, so it costs no CPU, until Play is pressed again; Reset rebuilds it (voices, delay tails, filter state). Hidden by default; nothing is timed while it is closed. Wax runs one AudioWorklet for everything, so the lanes are shown as parts of it.
+
 ## 467 · 2026-10-25
 
 - Left rail: the Dock button sits at the bottom of the screen buttons, below a thin divider line.

@@ -44,6 +44,7 @@ export class Engine {
       else if (data.type === 'load') this.onLoad?.(data);
       else if (data.type === 'scope') this.onScope?.(data);
       else if (data.type === 'emit') this.onEmit?.(data);
+      else if (data.type === 'streams') this.onStreams?.(data.rows);
       else if (data.type.startsWith('ns')) this.onNodeseq?.(data);   // the Node Sequencer's activity, notes to record, mistakes
     };
     this.node.port.postMessage({ type: 'dither', on: this.dither });
@@ -57,6 +58,10 @@ export class Engine {
   // Which instrument each slot of the per-instrument rings follows.
   setVolFloor(on) { this.volFloor = on; this.node?.port.postMessage({ type: 'volfloor', on }); }
   setDither(on) { this.dither = on; this.node?.port.postMessage({ type: 'dither', on }); }
+  // The Stream Manager: watching (the engine times each instrument while it is on), and switching instruments off and on, or rebuilding them.
+  watchStreams(on) { this.node?.port.postMessage({ type: 'streamwatch', on }); }
+  cutStreams(ids, on) { this.node?.port.postMessage({ type: 'streamcut', ids, on }); }
+  resetStreams(ids) { this.node?.port.postMessage({ type: 'streamreset', ids }); }
   setLaneTaps(ids) { this.laneIds = ids; this.node?.port.postMessage({ type: 'lanetaps', ids }); }
 
   // Where the audio stack says we stand: output latency in ms and, where the browser reports it, how many times it

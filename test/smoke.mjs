@@ -8504,4 +8504,26 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   assert.ok(!('nodeseq' in JSON.parse(serializeProject({ song: { ...song, nodeseq: g.newGraph() }, instruments: {}, samples: {}, lanes: [] })).song));
   console.log('ok: node sequencer graph');
 }
+// Stream Manager: a cut machine is silent and deaf to notes until it is switched back on; a reset drops its voices; stats report them
+{
+  const { rt } = setup();
+  const peak = a => a.reduce((m, x) => Math.max(m, Math.abs(x)), 0);
+  rt.prof = new Map();
+  rt.note('lead', { type: 'noteOn', note: 60, vel: 1 });
+  const on = render(rt, 0.2);
+  assert.ok(peak(on.left) > 0.01, 'it sounds before the cut');
+  const st = rt.streamStats().lead;
+  assert.ok(st.peak > 0.01 && st.ms >= 0 && st.cut === false, 'stats report the level');
+  rt.setCut('lead', true);
+  assert.equal(peak(render(rt, 0.1).left), 0, 'a cut machine is silent');
+  rt.note('lead', { type: 'noteOn', note: 64, vel: 1 });
+  assert.equal(peak(render(rt, 0.1).left), 0, 'and drops notes while cut');
+  assert.equal(rt.streamStats().lead.cut, true);
+  rt.setCut('lead', false);
+  rt.note('lead', { type: 'noteOn', note: 64, vel: 1 });
+  assert.ok(peak(render(rt, 0.2).left) > 0.01, 'it sounds again once switched back on');
+  rt.rebuild('lead');
+  assert.equal(rt.streamStats().lead.v, 0, 'a reset leaves no voices');
+  console.log('ok: stream manager engine');
+}
 console.log('smoke test passed');

@@ -29,6 +29,7 @@ import { createRecorder } from './project/recorder.js';
 import { poolId, isPool, ensurePool, usersOfSample } from './project/ops.js';
 import { idFromName, uniqueId, addLane, addSample, addSamplerInstrument, addSynthInstrument, channelsOf, sampleMessage, slotsOf, syncSamplerStereo } from './project/ops.js';
 import { MASTER, SHADER, GRAPH, ensureMaster, synthKinds } from './instruments.js';
+import { createStreams } from './ui/streams.js';
 import { createNodeSeqEditor } from './nodeseq/editor.js';
 import { ensureGraph, cleanGraph } from './nodeseq/graphops.js';
 import { createSampleScreen } from './project/samplescreen.js';
@@ -1607,6 +1608,14 @@ $('limit-btn').addEventListener('click', () => {
 });
 setInterval(paintLimit, 400);   // the pattern or the parameter panel can switch it too
 
+// The Stream Manager (ui/streams.js): hidden until the eye button in the bottom bar opens it.
+const streams = createStreams({
+  root: $('streams'), button: $('streams-btn'), footer: $('footer'), engine, lanes: () => project?.lanes ?? [], instruments: () => project?.instruments ?? {}, nodeTypes: NODE_TYPES,
+  sampleRate: () => engine.ctx?.sampleRate ?? 44100, skip: [MASTER], silent: [SHADER, GRAPH],
+});
+engine.onStreams = rows => streams.update(rows);
+document.addEventListener('keydown', e => { if (e.ctrlKey && e.altKey && !e.shiftKey && !e.metaKey && e.code === 'KeyE') { e.preventDefault(); streams.toggle(); } });
+
 // ---- the Node Sequencer (nodeseq/editor.js, audio/nodeseq.js): a graph of event and control wires that runs beside the pattern lanes ----
 const nsSkip = new Set([MASTER, SHADER, GRAPH]);
 const nsNotes = () => Object.entries(project?.instruments ?? {}).filter(([id, d]) => !nsSkip.has(id) && (d.noteColumns ?? 1) > 0).map(([id]) => ({ value: id, label: id }));
@@ -2284,6 +2293,7 @@ $('start').addEventListener('click', async () => {
       if (tab === 'instruments' || !tab) patcher.draw(); else if (floatWanted) patcher.live();
       if (tab === 'dsp') dspView?.live();
       if (tab === 'nodeseq') nsView?.draw();
+      if (streams.open) streams.place();
       if (tab === 'samples' || !tab) { sampleScreen.draw(); waveform.draw(); region.draw(); waveform.playhead(auditionHead()); }
       requestAnimationFrame(frame);
     };

@@ -31,6 +31,9 @@ class TrackerEngine extends AudioWorkletProcessor {
       else if (data.type === 'scope') this.rt.setScope(data.instrument, data.node, data.on);
       else if (data.type === 'cut') { this.rt.panic(); this.seq.stop(); this.halted = true; }
       else if (data.type === 'panic') this.rt.panic();
+      else if (data.type === 'streamwatch') { this.rt.prof = data.on ? new Map() : null; this.streamBlocks = 0; if (data.on) this.postStreams(); }
+      else if (data.type === 'streamcut') { for (const id of data.ids) this.rt.setCut(id, data.on); this.postStreams(); }
+      else if (data.type === 'streamreset') { for (const id of data.ids) this.rt.rebuild(id); this.postStreams(); }
       else if (data.type === 'dither') this.dither = data.on;
       else if (data.type === 'volfloor') this.seq.volFloor = data.on ? 0.003 : 0;
       else if (data.type === 'lanetaps') this.setLaneIds(data.ids);
@@ -47,11 +50,21 @@ class TrackerEngine extends AudioWorkletProcessor {
       else if (data.type === 'lane') this.seq.setLane(data.lane);
       else if (data.type === 'transport') {
         if (data.play || data.row !== undefined) this.halted = false;
+        if (data.play && this.rt.cut.size) { this.rt.cut.clear(); this.postStreams(); }   // Play brings back every lane the Stream Manager switched off
         if (data.row !== undefined) this.seq.row(data.row);
         else if (data.play) this.seq.play(data.from ?? null);
         else this.seq.stop();
       }
     };
+  }
+
+  // The Stream Manager's report: every instrument's voices, level and share of the block budget since the last one.
+  postStreams() {
+    const rows = this.rt.streamStats(), blocks = Math.max(1, this.streamBlocks ?? 1);
+    for (const r of Object.values(rows)) r.ms = r.ms / blocks / this.budget;
+    this.rt.prof?.clear();
+    this.streamBlocks = 0;
+    this.port.postMessage({ type: 'streams', rows });
   }
 
   process(_inputs, outputs) {
@@ -64,6 +77,7 @@ class TrackerEngine extends AudioWorkletProcessor {
     }
     const t0 = Date.now();
     this.seq.process(out[0], out[1], out[0].length);
+    if (this.rt.prof && ++this.streamBlocks >= 32) this.postStreams();   // about twenty reports a second, only while the manager is open
     if (this.seq.ns.watch) this.seq.ns.flush(++this.nsBlocks % 10 === 0);   // activity for the Node Sequencer view, a few dozen times a second
     if (this.dither) {   // triangular noise of one 16-bit step (-96 dB): very quiet sound, fading in or out, is otherwise rounded by the sound card into crackle
       let z = this.noise, n = out[0].length;
