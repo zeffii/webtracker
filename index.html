@@ -396,7 +396,7 @@
     /* a pattern is one rect from its first row to its last; opaque, so one placed over another hides it */
     #seq .L { background-color: var(--panel); background-image: linear-gradient(var(--c, transparent), var(--c, transparent)); }
     /* each pattern is a rectangle with a one pixel outline; where the next one starts right below, its top line is the shared edge */
-    #seq .L { --o: color-mix(in srgb, var(--fg) 45%, transparent); box-shadow: inset 1px 0 0 var(--o), inset -1px 0 0 var(--o); }
+    #seq .L { --o: color-mix(in srgb, var(--fg) 22%, transparent); box-shadow: inset 1px 0 0 var(--o), inset -1px 0 0 var(--o); }
     #seq .L.st { box-shadow: inset 1px 0 0 var(--o), inset -1px 0 0 var(--o), inset 0 1px 0 var(--o); }
     #seq .L.en { box-shadow: inset 1px 0 0 var(--o), inset -1px 0 0 var(--o), inset 0 -1px 0 var(--o); }
     #seq .L.st.en { box-shadow: inset 1px 0 0 var(--o), inset -1px 0 0 var(--o), inset 0 1px 0 var(--o), inset 0 -1px 0 var(--o); }
