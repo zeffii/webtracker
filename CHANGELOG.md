@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 478 · 2026-10-28
+
+- The line under the toolbar at the top, running across the whole window, is much fainter.
+
 ## 477 · 2026-10-28
 
 - Arrangement and pattern grids: the frame shown while the grid has the keyboard focus (the lines along its top and left edge) is much fainter.
