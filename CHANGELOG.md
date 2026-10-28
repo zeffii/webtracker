@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 493 · 2026-10-28
+
+- New demo song for the Chord node, chords (open it with ?demo=chords): 84 bpm, 24 bars. One Chord node holds your seventeen chords in slots 00 to 10; every chord row is a single trigger note plus the Chd, Oct and Str columns. A bass comes in at bar 4 and the drums at bar 8, and the last eight bars move down an octave.
+
 ## 492 · 2026-10-28
 
 - New Chord node and instrument kind (Chords). Type chord names into 256 hex slots (00 to FF), such as F# 13sus, Eb 9sus4, E min9(11), G Major 7th, Db 7#9(no5), Db 7(#9#5), Cm7/Bb, plus the classical symbols for major, diminished and half-diminished, bass notes after a slash, sus, add, altered and left-out notes. The Chd column picks the slot a note plays (an empty slot plays the note as it is) and the one-digit Oct column sets the octave of the root. Also inversion, a limit on the number of notes, a strum in ms from the lowest or highest note, and a follow switch that moves the chord with the note. The editor lists every slot in pages of 16 with the notes it makes (bad names are marked) and a reference of what can be typed.
