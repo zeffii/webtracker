@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['472', ['Arrangement screen: the page no longer shows a scroll bar down the right edge when nothing is off screen (the arrangement already runs down to the status bar, and 6 pixels of extra padding below it made the page just taller than the window).']],
   ['471', ['Add instrument list: a new group, Samplers, comes first and holds the Sampler and the MOD channel (ProTracker); Synths follow.']],
   ['470', ['Drum synth, a new node for the Graph editor (and an instrument kind in Add instrument): a drum hit built from a body, noise and a click. The body is a sine whose pitch falls from a start pitch to an end pitch along its own ADSR pitch envelope, with a pitch multiplier and key tracking from a root note. The noise has an amount, a colour (white, pink, brown, blue, violet), a low-pass and its own volume envelope. The click is either synthesized or the start of a sample from the node\'s sample list; for a sample click, Click tail smoothing fades its end so it does not tick. The node panel draws the three envelopes, the click on its own (with the smoothed stretch shaded) and the whole root note as composed from the current settings, with its first 25 ms enlarged. The pictures are the node\'s own code run offline, so they show what is heard.']],
   ['469', ['Sample editor: right-click with a selection offers "Copy selection to a new sample", which makes a sample of its own in the list from just that stretch (slice markers inside it come along) and leaves the original alone.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['465', ['A test now guards that Note preview is on by default.']],
   ['464', ['GenExpr code box: full syntax colours (operators, constants, declared names by kind), bracket pairing, hover help, and it now shows on every theme. Config: the default shader box sits under its text.']],
   ['463', ['Sample screen: a playhead (thin translucent red line) while a sample plays; the slice button "to the next marker" really stops there; a held looping sample is released when the key is let go.']],
-  ['462', ['Slice marker list: two buttons per marker, play to the next marker and play to the end of the sample.']],
 ];
