@@ -7581,6 +7581,29 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   } finally { uiConfig.set('laneWrap', was); }
 }
 
+// Up and Down at the first and last row stop, unless Config asks them to wrap round.
+{
+  const registry = new ParamRegistry();
+  for (const [id, def] of Object.entries(instruments)) compile(def.graph, { instrument: id, nodeTypes: NODE_TYPES, registry });
+  const lanes = prepareSong(demoSong, instruments, registry);
+  let onKey;
+  const el = { addEventListener: (type, f) => { if (type === 'keydown') onKey = f; }, innerHTML: '' };
+  const view = createTrackerView({ el, statusEl: { set innerHTML(h) {} }, transport: new Int32Array(new SharedArrayBuffer(8)), onToggle: () => {}, onBack() {} });
+  view.load({ lanes, song: demoSong, editor: createEditor(lanes, demoSong.length) });
+  const press = (key, extra = {}) => onKey({ key, preventDefault() {}, ...extra });
+  const was = uiConfig.get('rowWrap');
+  try {
+    uiConfig.set('rowWrap', false);
+    press('Home'); const top = view.tick;
+    press('ArrowUp'); assert.equal(view.tick, top, 'Up on the first row stays there');
+    press('End'); const bottom = view.tick;
+    press('ArrowDown'); assert.equal(view.tick, bottom, 'Down on the last row stays there');
+    uiConfig.set('rowWrap', true);
+    press('ArrowDown'); assert.equal(view.tick, top, 'with wrapping on Down goes back to the top');
+    press('ArrowUp'); assert.equal(view.tick, bottom, 'and Up to the bottom');
+  } finally { uiConfig.set('rowWrap', was); }
+}
+
 // Sampler grains: grain length, overlap, probability, pitch step, slide and jitter.
 {
   const sampler = (await import('../src/audio/nodes/sampler.js')).default;

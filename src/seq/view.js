@@ -158,7 +158,8 @@ export function createTrackerView({ showMenu = (e, items) => showContextMenu(e, 
   const neighbour = (li, ci, dir) => { const v = visibleCols(li), i = v.indexOf(ci); return i < 0 ? nearest(v, ci) : v[i + dir] ?? -1; };
   const snapCol = () => { cur.col = nearest(visibleCols(cur.lane, -1), Math.min(cur.col, lanes[cur.lane].columns.length - 1)); };
 
-  const moveRow = d => { const n = hi - lo; cur.tick = lo + ((cur.tick - lo + d) % n + n) % n; };
+  // Up and Down (and the step after typing a note): wrap round from the last row to the first and back, or stop at the ends (Config)
+  const moveRow = d => { const n = hi - lo; cur.tick = config.get('rowWrap') ? lo + ((cur.tick - lo + d) % n + n) % n : clamp(cur.tick + d, lo, hi - 1); };
   const hopLane = d => (solo ? solo.lane : (cur.lane + d + lanes.length) % lanes.length);   // the lane a step off the end of one lands in
   // Left and Right at the first or last column of the first or last lane (or of the lane in solo-edit): wrap round to the other end, or stop (Config)
   const stopsAtEnd = d => !config.get('laneWrap') && (solo !== null || cur.lane + d < 0 || cur.lane + d >= lanes.length);
