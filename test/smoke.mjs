@@ -1072,7 +1072,7 @@ const hit = 'C-2 .. .. ..';
   const patcher = createPatcher({ canvas, panel, statusEl: {}, doc, nodeTypes: NODE_TYPES, onStructure: id => structures.push(id), onParam() {} });
   patcher.load({ instruments: defs });
   patcher.show('kick');
-  patcher.load({ instruments: { other: structuredClone(instruments.kick) } });   // a new project without the shown instrument loads fine (Clear everything)
+  patcher.load({ instruments: { other: structuredClone(instruments.kick) } });   // a new project without the shown instrument loads fine (New file)
   patcher.load({ instruments: defs });
   patcher.show('kick');
   const osc = defs.kick.graph.nodes.find(n => n.id === 'osc');

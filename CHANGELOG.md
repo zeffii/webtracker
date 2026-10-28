@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 491 · 2026-10-28
+
+- The New menu item that cleared everything is now called New file.
+
 ## 490 · 2026-10-28
 
 - Pattern editor: the Insert key no longer switches note preview on and off (the backslash key still does).
