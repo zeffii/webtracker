@@ -44,6 +44,7 @@ const TYPE_UNIT = {
   hat808: { tune: 'st', tone: 'Hz', cdec: 'ms', odec: 'ms' },
   sampler: { release: 'ms', nnaFade: 'ms', retrig: 'ticks', root: '' },
   ctrl: { time: 'subticks' },
+  times: { by: 'x' },
   drumsynth: { startPitch: 'Hz', endPitch: 'Hz', pitchMul: 'x', patk: 'ms', pdec: 'ms', prel: 'ms', attack: 'ms', decay: 'ms', release: 'ms', drive: '%', noise: '%', noiseTone: 'Hz', natk: 'ms', ndec: 'ms', nrel: 'ms', click: '%', clickLen: 'ms', clickTone: 'Hz', clickTail: 'ms', body: '%' },
   woodblock: { tone: 'Hz', damping: 'ms', loss: '%', bend: 'st', attack: 'ms', decay: 'ms', release: 'ms', patk: 'ms', pdec: 'ms', prel: 'ms' },
   granular: { size: 'ms', pitchRand: 'ct', spread: '%', attack: 'ms', decay: 'ms', release: 'ms' },

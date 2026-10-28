@@ -24,6 +24,9 @@ const GROUPS = {
     ['Code', ['genexpr']],
   ],
 };
+GROUPS.Control = [
+  ['Operators', ['range', 'add', 'times', 'int', 'float']],
+];
 const ORDER = ['Sources', 'Effects', 'Control', 'Mix & level'];
 
 // The hotkey of each row of a menu level: the first letter or digit of its label that no earlier row has taken.

@@ -19,6 +19,8 @@ import { createParamView } from './paramview.js';
 import { createSpecPanView } from './specpaneditor.js';
 import { createCanyonView } from './canyonview.js';
 import { createDrumView } from './drumview.js';
+import { rangeTargetOf } from './rangetarget.js';
+import { createIntView } from './intview.js';
 import { createCurveEditor } from './curveeditor.js';
 import { createTapEditor } from './tapeditor.js';
 import { createDxView } from './dxview.js';
@@ -159,6 +161,7 @@ const fmt = v => String(Number(v.toPrecision(4)));
 export function createPatcher({ getTiming = () => null, onHelp = () => {}, canvas, panel, toolsEl = null, paramPanel = null, exposedDock = null, floatDock = null, onScope = () => {}, onEscape = () => {}, statusEl, doc = document, nodeTypes, onStructure, onParam, onData = () => {}, onContext = () => {}, onNote = () => {}, getSampleIds = () => [], getSample = () => null, getGrainSource = () => null, readLive = () => undefined }) {
   let gateEditor = null;    // the step pattern of a trance gate, redrawn when its length moves
   let dxView = null;        // the bank loader and algorithm view of a DVIIloader
+  let intView = null;
   let drumView = null;      // the envelopes, the click and the composed root note of a drum synth, redrawn when its parameters move
   let canyonView = null;    // the echoes of a Prisma Canyon against the song's ticks, redrawn when its parameters move
   let specView = null;      // the pan-against-frequency view of a spectral panner, redrawn when its parameters move
@@ -293,7 +296,11 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
   // The rows as shown: with "hide command parameters" on, those that a CC command writes are left out.
   const shownRows = rows => (config.get('pvHideCc') ? rows.filter(r => r.cc === undefined) : rows);
   function rowsFor(node, type) {
-    return type.params.map(spec => {
+    const tgt = type.type === 'range' ? rangeTargetOf(desc(), nodeTypes, node.id) : null;
+    return type.params.map(base => {
+      const ruled = !!tgt && base.name !== 'at';   // a range node's lo and hi are in the units of the port it feeds
+      const spec = ruled ? { ...base, min: tgt.min, max: tgt.max, int: tgt.int, def: base.name === 'lo' ? tgt.min : tgt.max } : base;
+      const uType = ruled ? tgt.type : node.type, uName = ruled ? tgt.param : spec.name;
       const get = () => readLive(instId, node.id, spec.name) ?? node.params?.[spec.name] ?? spec.def;
       const entry = () => def().exposed.find(e => e.node === node.id && e.param === spec.name);
       const span = spec.max - spec.min;
@@ -307,23 +314,24 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
         if (type.editor === 'specpan') specView?.refresh();
         if (type.editor === 'canyon') canyonView?.refresh();
         if (type.editor === 'drumsynth') drumView?.refresh();
+        if (type.editor === 'int') intView?.refresh();
         if (type.editor === 'dx' && spec.name === 'voice') dxView?.refresh();
         if (entry()) exposedView?.refresh();   // repaint in place: rebuilding the dock would drop a drag that is under way
       };
-      const names = choices(node.type, spec.name);
+      const names = choices(uType, uName);
       return {
         name: spec.name,
         cc: (() => { const c = (def().commands ?? []).find(k => k.node === node.id && k.param === spec.name); return c ? c.id.toString(16).toUpperCase().padStart(2, '0') : undefined; })(),   // the command that writes it from a pattern
         pos: () => clamp01(toPos(spec, get())),
         setPos: p => apply(toValue(spec, p)),
-        display: () => display(node.type, spec, get()),
-        text: () => (unitOf(node.type, spec.name) === '%' ? String(Math.round(get() * 100)) : names ? names[Math.round(get() - spec.min)] ?? fmt(get()) : fmt(get())),
+        display: () => display(uType, { ...spec, name: uName }, get()),
+        text: () => (unitOf(uType, uName) === '%' ? String(Math.round(get() * 100)) : names ? names[Math.round(get() - spec.min)] ?? fmt(get()) : fmt(get())),
         type: text => {
           const t = String(text).trim().toLowerCase();
           const named = names?.findIndex(n => n.toLowerCase() === t);
           let v = named >= 0 ? spec.min + named : Number.parseFloat(t);
           if (!Number.isFinite(v)) return false;
-          if (unitOf(node.type, spec.name) === '%' && named === undefined) v /= 100;
+          if (unitOf(uType, uName) === '%' && named === undefined) v /= 100;
           apply(Math.min(spec.max, Math.max(spec.min, spec.int ? Math.round(v) : v)));
           return true;
         },
@@ -347,7 +355,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
         get exposed() { return !!entry(); },
         get bits() { return entry()?.bits ?? 8; },
         get ported() { return (node.ports ?? []).includes(spec.name); },
-        hint: () => ({ title: spec.name, text: hintFor(node.type, spec), facts: factsFor(spec) }),
+        hint: () => ({ title: spec.name, text: hintFor(node.type, base) + (ruled ? ` Now in the units of ${tgt.node}.${tgt.param}.` : ''), facts: factsFor(spec) }),
         reset: () => apply(spec.def),
         expose: on => { setExposed(def(), nodeTypes, node.id, spec.name, on); structure(); renderPanel(); },
         setBits: bits => { setBits(def(), node.id, spec.name, bits); structure(); renderPanel(); },
@@ -566,6 +574,16 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
         getClickSample: () => { const cur = def().samples?.[node.id], list = Array.isArray(cur) ? cur : cur === undefined ? [] : [cur]; const id = list[Math.round(param('clickSample'))]; return id === undefined ? null : getSample(id); },
       });
       items.splice(1, 0, drumView.el);
+    }
+    intView = null;
+    if (type.editor === 'int') {   // a number box with - and + buttons
+      const spec = type.params[0];
+      intView = createIntView({
+        doc, min: spec.min, max: spec.max,
+        get: () => readLive(instId, node.id, 'value') ?? node.params?.value ?? spec.def,
+        set: v => { setParam(desc(), node.id, 'value', v); onParam(instId, node.id, 'value', v); paramView?.refresh(); exposedView?.refresh(); dirty = true; },
+      });
+      items.splice(1, 0, intView.el);
     }
     canyonView = null;
     if (type.editor === 'canyon') {   // the four delay lines and their echoes against the ticks, drawn from the parameters
@@ -1059,7 +1077,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
     const sig = parts.join(',');
     if (sig === liveSig) return;
     liveSig = sig;
-    paramView?.refresh(); exposedView?.refresh(); floatView?.refresh(); tapEditor?.refresh(); gateEditor?.refresh(); specView?.refresh(); canyonView?.refresh(); drumView?.refresh(); dxView?.refresh();
+    paramView?.refresh(); exposedView?.refresh(); floatView?.refresh(); tapEditor?.refresh(); gateEditor?.refresh(); specView?.refresh(); canyonView?.refresh(); drumView?.refresh(); intView?.refresh(); dxView?.refresh();
   }
 
   // A graph is moved clear of the exposed-parameters dock once when its instrument is first shown after a load (the file

@@ -787,6 +787,15 @@ const HINTS = {
     vel: 'How much note velocity changes the level.',
     level: 'Overall level.',
   },
+  range: {
+    lo: 'The real value the port gets when the input is at 0 (Hz, ms, dB ... as the port it feeds uses them).',
+    hi: 'The real value the port gets when the input is at 1. On a log port such as a frequency the input sweeps evenly across octaves between lo and hi.',
+    at: 'Where between lo and hi the output sits while nothing is wired into the input: a knob in real units.',
+  },
+  add: { value: 'Added to the signal at control rate. Negative values lower it.' },
+  times: { by: 'The signal is multiplied by this (and by the mod input, if wired). Negative flips it.' },
+  int: { value: 'A whole number as a control signal. Type it, drag it, or use the + and - buttons.' },
+  float: { value: 'A number as a control signal. Type it or drag it.' },
   drumsynth: {
     startPitch: 'Pitch in Hz at the top of the pitch envelope, at the root note: where the hit begins.',
     endPitch: 'Pitch in Hz the body falls to as the pitch envelope dies away: the note you hear in the tail.',

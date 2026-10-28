@@ -10,8 +10,10 @@
 // a stereo wire into a mono input is averaged (a hidden fold node); several wires into
 // one input are added (a hidden sum node).
 import { inputsOf, isLogSpec, resolveKinds } from './kinds.js';
+import { expandRanges, rangeTargetOf } from './rangetarget.js';
 
-export function compile(desc, { instrument, nodeTypes, registry }) {
+export function compile(source, { instrument, nodeTypes, registry }) {
+  const desc = expandRanges(source, nodeTypes);
   const byId = new Map();
   for (const n of desc.nodes) {
     if (byId.has(n.id)) throw new Error(`duplicate node id "${n.id}"`);
@@ -87,7 +89,7 @@ export function compile(desc, { instrument, nodeTypes, registry }) {
   for (const id of order) {
     const n = byId.get(id);
     const slots = n.def.params.map(p =>
-      registry.allocate(`${instrument}.${id}.${p.name}`, n.params?.[p.name] ?? p.def, p.min, p.max, p.int === true));
+      registry.allocate(`${instrument}.${n.alias ?? id}.${p.name}`, n.params?.[p.name] ?? p.def, p.min, p.max, p.int === true));
     const inNames = inputsOf(n, n.def);
     const inputs = inNames.map((name, i) => {
       const stereo = kindOf(n, name) === 'stereo';
@@ -110,7 +112,7 @@ export function compile(desc, { instrument, nodeTypes, registry }) {
       const at = n.def.params.findIndex(p => p.name === name), spec = n.def.params[at];
       return { input: n.def.inputs.length + k, slot: slots[at], min: spec.min, max: spec.max, log: isLogSpec(spec), int: spec.int === true };
     }).filter(p => live(inputs[p.input]));
-    nodes.push({ id, type: n.type, slots, inputs, outputs: outBufs.get(id), connected: inputs.map(live), ...(paramPorts.length ? { paramPorts } : {}), ...(hints.get(id) !== undefined ? { init: hints.get(id) } : {}), ...(wide.has(id) ? { dual: true } : {}), ...(n.stereo ? { stereo: true } : {}), ...(n.source ? { source: n.source } : {}), ...(n.data ? { data: n.data } : {}) });
+    nodes.push({ id, type: n.type, slots, inputs, outputs: outBufs.get(id), connected: inputs.map(live), ...(paramPorts.length ? { paramPorts } : {}), ...(hints.get(id) !== undefined ? { init: hints.get(id) } : {}), ...(wide.has(id) ? { dual: true } : {}), ...(n.stereo ? { stereo: true } : {}), ...(n.source ? { source: n.source } : {}), ...(n.data ? { data: n.data } : {}), ...(n.type === 'range' && rangeTargetOf(desc, nodeTypes, id) ? { target: (({ min, max, log, int }) => ({ min, max, log, int }))(rangeTargetOf(desc, nodeTypes, id)) } : {}) });
   }
 
   const masters = order.filter(id => byId.get(id).def.master);

@@ -190,6 +190,17 @@ export const GLYPHS = {
     curve(ctx, cx, cy, w, h, t => 0.2 * Math.sin(t * Math.PI * 5) + (t < 0.35 ? 0.28 : t < 0.65 ? 0.28 * (0.65 - t) / 0.3 : 0) - 0.04, 40);
   },
   ctrl: (ctx, cx, cy, w, h) => line(ctx, [[cx - w / 2, cy + h * 0.3], [cx - w * 0.1, cy + h * 0.3], [cx + w * 0.1, cy - h * 0.3], [cx + w / 2, cy - h * 0.3]]),   // a glide from one level to another
+  range: (ctx, cx, cy, w, h) => {   // a short span mapped onto a taller one
+    line(ctx, [[cx - w / 2, cy + h * 0.1], [cx - w / 2, cy - h * 0.1]]);
+    line(ctx, [[cx - w / 2, cy], [cx - w * 0.1, cy]]);
+    line(ctx, [[cx - w * 0.1, cy], [cx + w * 0.15, cy - h * 0.4]]);
+    line(ctx, [[cx - w * 0.1, cy], [cx + w * 0.15, cy + h * 0.4]]);
+    line(ctx, [[cx + w / 2, cy - h * 0.4], [cx + w / 2, cy + h * 0.4]]);
+  },
+  add: (ctx, cx, cy, w, h) => { line(ctx, [[cx - w * 0.3, cy], [cx + w * 0.3, cy]]); line(ctx, [[cx, cy - h * 0.3], [cx, cy + h * 0.3]]); },
+  times: (ctx, cx, cy, w, h) => { line(ctx, [[cx - w * 0.25, cy - h * 0.25], [cx + w * 0.25, cy + h * 0.25]]); line(ctx, [[cx - w * 0.25, cy + h * 0.25], [cx + w * 0.25, cy - h * 0.25]]); },
+  int: (ctx, cx, cy, w, h) => line(ctx, [[cx - w / 2, cy + h * 0.3], [cx - w * 0.2, cy + h * 0.3], [cx - w * 0.2, cy], [cx + w * 0.1, cy], [cx + w * 0.1, cy - h * 0.3], [cx + w / 2, cy - h * 0.3]]),   // a staircase
+  float: (ctx, cx, cy, w, h) => curve(ctx, cx, cy, w, h, t => 0.3 - 0.6 * t, 20),   // a smooth ramp
   gate: (ctx, cx, cy, w, h) => {   // a signal chopped into blocks
     const x = f => cx - w / 2 + f * w, y = f => cy + h / 2 - f * h;
     line(ctx, [[x(0), y(0.5)], [x(0.05), y(0.95)], [x(0.15), y(0.05)], [x(0.25), y(0.9)], [x(0.3), y(0.5)], [x(0.45), y(0.5)], [x(0.5), y(0.95)], [x(0.6), y(0.05)], [x(0.7), y(0.9)], [x(0.75), y(0.5)], [x(1), y(0.5)]]);

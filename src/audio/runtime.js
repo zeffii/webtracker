@@ -59,7 +59,7 @@ export class GraphRuntime {
     const fresh = () => Array.from({ length: compiled.bufferCount }, () => new Float32Array(this.maxBlock));
     const resolver = buffers => ref => (Array.isArray(ref) ? ref.map(b => buffers[b]) : buffers[ref]);   // stereo ports are [left, right]
     const make = (n, resolve) => {
-      const create = () => NODE_TYPES[n.type].create({ sampleRate: this.sampleRate, maxBlock: this.maxBlock, connected: n.connected, wasm: this.wasm, data: n.data, init: n.init, stereo: n.stereo === true, clock: this.clock, notes: msg => this.deliver(compiled.instrument, msg), source: n.source, tap: id => this.tap(id), emit: (msg, transfer) => this.onEmit?.(compiled.instrument, n.id, msg, transfer) });
+      const create = () => NODE_TYPES[n.type].create({ sampleRate: this.sampleRate, maxBlock: this.maxBlock, connected: n.connected, wasm: this.wasm, data: n.data, init: n.init, target: n.target, stereo: n.stereo === true, clock: this.clock, notes: msg => this.deliver(compiled.instrument, msg), source: n.source, tap: id => this.tap(id), emit: (msg, transfer) => this.onEmit?.(compiled.instrument, n.id, msg, transfer) });
       const node = { id: n.id, instance: create(), slots: Int32Array.from(n.slots), inputs: n.inputs.map(resolve), outputs: n.outputs.map(resolve) };
       if (n.dual) {   // a mono node on a stereo signal: one copy per channel over the same parameters
         const left = node.instance, right = create();

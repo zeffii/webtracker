@@ -8556,4 +8556,44 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   assert.deepEqual(Array.from(synthTail[0]), Array.from(synthTail[1]), 'tail smoothing does nothing to a synthesized click');
   console.log('ok: drum synth');
 }
+
+{
+  // control operators: range scales per wire into the port's own units
+  const registry = new ParamRegistry();
+  const desc = {
+    nodes: [{ id: 'o', type: 'osc' }, { id: 'f', type: 'filter', ports: ['cutoff', 'resonance'] }, { id: 'out', type: 'out' },
+      { id: 'n', type: 'float', params: { value: 0.5 } }, { id: 'r', type: 'range', params: { lo: 200, hi: 2000 } }],
+    connections: [['o.out', 'f.in'], ['f.out', 'out.in'], ['n.out', 'r.in'], ['r.out', 'f.@cutoff'], ['r.out', 'f.@resonance']],
+  };
+  const c = compile(desc, { instrument: 'x', nodeTypes: NODE_TYPES, registry });
+  const ranges = c.nodes.filter(n => n.type === 'range');
+  assert.equal(ranges.length, 2, 'a range feeding two ports is one copy per wire');
+  assert.deepEqual(ranges.map(n => n.target.log).sort(), [false, true], 'each copy knows its own port (cutoff is log, resonance is not)');
+  assert.equal(ranges[0].slots[0], ranges[1].slots[0], 'the copies share their lo and hi');
+  const run = (target, params, input) => {
+    const inst = NODE_TYPES.range.create({ connected: [input !== undefined], target });
+    const out = new Float32Array(4), slots = [0, 1, 2];
+    inst.process([new Float32Array(4).fill(input ?? 0)], [out], 4, params, slots);
+    return out[3];
+  };
+  const cut = { min: 20, max: 18000, log: true, int: false };
+  assert.ok(Math.abs(run(cut, [20, 18000, 0.5], 0) - 0) < 1e-6 && Math.abs(run(cut, [20, 18000, 0.5], 1) - 1) < 1e-6, 'lo and hi land on the ends of the port');
+  const mid = run(cut, [200, 2000, 0.5], 0.5);
+  assert.ok(Math.abs(18000 * 0 + 20 * Math.pow(900, mid) - Math.sqrt(200 * 2000)) < 1, 'a log port reads the middle of 200..2000 in Hz');
+  assert.ok(Math.abs(run({ min: 0, max: 10, log: false, int: true }, [2, 6, 0.5], undefined) - 0.4) < 1e-6, 'with nothing wired, at picks the spot and an integer port rounds');
+  assert.equal(run(null, [3, 5, 0.5], 1), 5, 'with no port it outputs the real number');
+  const op = (type, params, input, mod) => {
+    const inst = NODE_TYPES[type].create({ connected: [true, mod !== undefined] });
+    const out = new Float32Array(2);
+    inst.process([new Float32Array(2).fill(input), new Float32Array(2).fill(mod ?? 0)], [out], 2, params, [0]);
+    return out[1];
+  };
+  assert.equal(op('add', [-0.25], 1), 0.75, 'add lowers a signal');
+  assert.equal(op('times', [3], 2), 6, 'times multiplies');
+  assert.equal(op('times', [3], 2, 0.5), 3, 'times with a mod wire multiplies the two');
+  const num = NODE_TYPES.int.create({}), nout = new Float32Array(2);
+  num.process([], [nout], 2, [4.6], [0]);
+  assert.equal(nout[0], 5, 'int rounds');
+  console.log('ok: control operators');
+}
 console.log('smoke test passed');
