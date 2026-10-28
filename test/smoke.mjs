@@ -4140,9 +4140,10 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   press('x'); assert.equal(played.length, 1);
   assert.deepEqual(played[0].slice(0, 3), [lanes[0].instrument, 50, true], 'the typed note sounds on the lane instrument, at the pitch the pattern will play (D-3 is MIDI 50)');
   release('x'); assert.deepEqual(played.at(-1).slice(0, 3), [lanes[0].instrument, 50, false], 'and stops when the key is let go');
-  press('Insert'); assert.equal(view.preview, false, 'Insert turns it off again');
+  press('Insert'); assert.equal(view.preview, true, 'Insert does not touch the preview setting');
+  press('\\'); assert.equal(view.preview, false, 'backslash turns it off again');
   press('c'); assert.equal(played.length, 2, 'nothing more plays');
-  press('Insert'); press('1'); assert.equal(played.length, 2, 'a note-off entry is not a note to hear');
+  press('1'); assert.equal(played.length, 2, 'a note-off entry is not a note to hear');
 }
 
 // 95. The sequencer tells a new note which note its column was playing, for slides

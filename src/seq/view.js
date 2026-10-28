@@ -849,7 +849,7 @@ export function createTrackerView({ showMenu = (e, items) => showContextMenu(e, 
       case ' ': insertLive(false); break;   // the live value of the parameter under the cursor (F7 plays the row)
       case '[': octave = Math.max(0, octave - 1); message = `Octave ${octave}`; break;
       case ']': octave = Math.min(9, octave + 1); message = `Octave ${octave}`; break;
-      case '\\': case 'Insert':   // note preview on or off
+      case '\\':   // note preview on or off
         preview = !preview;
         config.set('notePreview', preview);
         message = `Note preview ${preview ? 'on: typed notes sound' : 'off'}.`;
