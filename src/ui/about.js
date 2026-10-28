@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['470', ['Drum synth, a new node for the Graph editor (and an instrument kind in Add instrument): a drum hit built from a body, noise and a click. The body is a sine whose pitch falls from a start pitch to an end pitch along its own ADSR pitch envelope, with a pitch multiplier and key tracking from a root note. The noise has an amount, a colour (white, pink, brown, blue, violet), a low-pass and its own volume envelope. The click is either synthesized or the start of a sample from the node\'s sample list; for a sample click, Click tail smoothing fades its end so it does not tick. The node panel draws the three envelopes, the click on its own (with the smoothed stretch shaded) and the whole root note as composed from the current settings, with its first 25 ms enlarged. The pictures are the node\'s own code run offline, so they show what is heard.']],
   ['469', ['Sample editor: right-click with a selection offers "Copy selection to a new sample", which makes a sample of its own in the list from just that stretch (slice markers inside it come along) and leaves the original alone.']],
   ['468', ['Stream Manager: an eye button in the bottom bar (or Ctrl+Alt+E) slides a drawer up from the bar\'s top border. Every lane shows its machine, live voices, level and its share of the audio block, with Reset and Cut buttons (and Reset all, Cut all, Resume all). Cut stops a machine and skips it, so it costs no CPU, until Play is pressed again; Reset rebuilds it (voices, delay tails, filter state). Hidden by default; nothing is timed while it is closed. Wax runs one AudioWorklet for everything, so the lanes are shown as parts of it.']],
   ['467', ['Left rail: the Dock button moved below the screen buttons, under a thin divider.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['463', ['Sample screen: a playhead (thin translucent red line) while a sample plays; the slice button "to the next marker" really stops there; a held looping sample is released when the key is let go.']],
   ['462', ['Slice marker list: two buttons per marker, play to the next marker and play to the end of the sample.']],
   ['461', ['Instrument list: the hover colour is a quiet tint with readable text on the light themes.']],
-  ['460', ['New tpb (ticks per beat) field: changing it rescales the bpm readout so the tempo stays the same.']],
 ];

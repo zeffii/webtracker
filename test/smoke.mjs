@@ -8526,4 +8526,34 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   assert.equal(rt.streamStats().lead.v, 0, 'a reset leaves no voices');
   console.log('ok: stream manager engine');
 }
+// Drum synth: sounds, finite, the pitch sweeps, noise types differ, the click is synthesized or a sample whose tail can be smoothed
+{
+  const { renderPreview } = await import('../src/audio/nodes/drumsynth.js');
+  const crossings = (a, from, to) => { let c = 0; for (let i = from + 1; i < to; i++) if (a[i - 1] < 0 && a[i] >= 0) c++; return c; };
+  const rms = a => Math.sqrt(a.reduce((s, x) => s + x * x, 0) / a.length);
+  const plain = renderPreview({ click: 0, noise: 0 }, { ms: 400 });
+  assert.ok(plain.every(Number.isFinite) && rms(plain.slice(0, 2000)) > 0.05, 'a hit sounds and stays finite');
+  assert.ok(rms(plain.slice(-4000)) < 0.002, 'and dies away');
+  const sweep = renderPreview({ click: 0, noise: 0, pdec: 400, decay: 1500, endPitch: 40 }, { ms: 500 });
+  assert.ok(crossings(sweep, 0, 2646) / 0.06 > crossings(sweep, 8820, 13230) / 0.1 * 1.8, 'the pitch falls from the start pitch to the end pitch');
+  const dull = renderPreview({ click: 0, noise: 1, body: 0, noiseType: 2, noiseTone: 16000 }, { ms: 100 }), thin = renderPreview({ click: 0, noise: 1, body: 0, noiseType: 3, noiseTone: 16000 }, { ms: 100 });
+  assert.ok(crossings(thin, 0, 4000) > crossings(dull, 0, 4000) * 2, 'blue noise is thinner than brown');
+  assert.ok(rms(renderPreview({ click: 0, noise: 0, body: 0 }, { ms: 100 })) === 0, 'with every part off it is silent');
+  const doubled = renderPreview({ click: 0, noise: 0, pitchMul: 2 }, { ms: 100 });
+  assert.ok(crossings(doubled, 0, 4410) > crossings(plain, 0, 4410) * 1.5, 'the pitch multiplier raises the pitch');
+  const synth = renderPreview({ body: 0, noise: 0, click: 1, drive: 0, clickLen: 6, vel: 0 }, { ms: 40 });
+  assert.ok(rms(synth.slice(0, 260)) > 0.05 && rms(synth.slice(600)) < 1e-4, 'a synthesized click is short');
+  const flat = { data: new Float32Array(2000).fill(0.5), rate: 44100 };
+  const lastOf = a => { let i = a.length - 1; while (i > 0 && Math.abs(a[i]) < 1e-9) i--; return { at: i, v: Math.abs(a[i]) }; };
+  const raw = renderPreview({ body: 0, noise: 0, click: 1, drive: 0, clickMode: 1, clickLen: 8, clickTail: 0, vel: 0 }, { sample: flat, ms: 20 });
+  const soft = renderPreview({ body: 0, noise: 0, click: 1, drive: 0, clickMode: 1, clickLen: 8, clickTail: 4, vel: 0 }, { sample: flat, ms: 20 });
+  assert.ok(lastOf(raw).v > 0.3, 'a sample click with no tail smoothing ends on a step');
+  assert.ok(lastOf(soft).v < 0.05, 'with tail smoothing it fades to nothing');
+  assert.ok(Math.abs(raw[10] - soft[10]) < 1e-6 && soft[300] < raw[300], 'the fade only touches the end');
+  const none = renderPreview({ body: 0, noise: 0, click: 1, clickMode: 1 }, { sample: null, ms: 20 });
+  assert.equal(rms(none), 0, 'a sample click with no sample is silent');
+  const synthTail = [renderPreview({ body: 0, noise: 0, click: 1, drive: 0, clickTail: 0, vel: 0 }, { ms: 20 }), renderPreview({ body: 0, noise: 0, click: 1, drive: 0, clickTail: 30, vel: 0 }, { ms: 20 })];
+  assert.deepEqual(Array.from(synthTail[0]), Array.from(synthTail[1]), 'tail smoothing does nothing to a synthesized click');
+  console.log('ok: drum synth');
+}
 console.log('smoke test passed');

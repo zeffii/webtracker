@@ -18,6 +18,7 @@ import { timeKind, toTicks, fromTicks, tickMarks, snapTo, tickText } from './tic
 import { createParamView } from './paramview.js';
 import { createSpecPanView } from './specpaneditor.js';
 import { createCanyonView } from './canyonview.js';
+import { createDrumView } from './drumview.js';
 import { createCurveEditor } from './curveeditor.js';
 import { createTapEditor } from './tapeditor.js';
 import { createDxView } from './dxview.js';
@@ -158,6 +159,7 @@ const fmt = v => String(Number(v.toPrecision(4)));
 export function createPatcher({ getTiming = () => null, onHelp = () => {}, canvas, panel, toolsEl = null, paramPanel = null, exposedDock = null, floatDock = null, onScope = () => {}, onEscape = () => {}, statusEl, doc = document, nodeTypes, onStructure, onParam, onData = () => {}, onContext = () => {}, onNote = () => {}, getSampleIds = () => [], getSample = () => null, getGrainSource = () => null, readLive = () => undefined }) {
   let gateEditor = null;    // the step pattern of a trance gate, redrawn when its length moves
   let dxView = null;        // the bank loader and algorithm view of a DVIIloader
+  let drumView = null;      // the envelopes, the click and the composed root note of a drum synth, redrawn when its parameters move
   let canyonView = null;    // the echoes of a Prisma Canyon against the song's ticks, redrawn when its parameters move
   let specView = null;      // the pan-against-frequency view of a spectral panner, redrawn when its parameters move
   let tapEditor = null;     // the tap view of a Shiva delay, redrawn when its parameters move
@@ -304,6 +306,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
         if (type.editor === 'gate') gateEditor?.refresh();
         if (type.editor === 'specpan') specView?.refresh();
         if (type.editor === 'canyon') canyonView?.refresh();
+        if (type.editor === 'drumsynth') drumView?.refresh();
         if (type.editor === 'dx' && spec.name === 'voice') dxView?.refresh();
         if (entry()) exposedView?.refresh();   // repaint in place: rebuilding the dock would drop a drag that is under way
       };
@@ -554,6 +557,15 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
     if (type.editor === 'specpan') {   // the pan of each band against frequency, drawn from the parameters
       specView = createSpecPanView({ doc, getParam: name => readLive(instId, node.id, name) ?? node.params?.[name] ?? type.params.find(p => p.name === name)?.def ?? 0 });
       items.splice(1, 0, specView.el);
+    }
+    drumView = null;
+    if (type.editor === 'drumsynth') {   // the envelopes, the click and the composed note, drawn from the parameters and the click sample
+      const param = name => readLive(instId, node.id, name) ?? node.params?.[name] ?? type.params.find(p => p.name === name)?.def ?? 0;
+      drumView = createDrumView({
+        doc, getParam: param,
+        getClickSample: () => { const cur = def().samples?.[node.id], list = Array.isArray(cur) ? cur : cur === undefined ? [] : [cur]; const id = list[Math.round(param('clickSample'))]; return id === undefined ? null : getSample(id); },
+      });
+      items.splice(1, 0, drumView.el);
     }
     canyonView = null;
     if (type.editor === 'canyon') {   // the four delay lines and their echoes against the ticks, drawn from the parameters
@@ -1047,7 +1059,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
     const sig = parts.join(',');
     if (sig === liveSig) return;
     liveSig = sig;
-    paramView?.refresh(); exposedView?.refresh(); floatView?.refresh(); tapEditor?.refresh(); gateEditor?.refresh(); specView?.refresh(); canyonView?.refresh(); dxView?.refresh();
+    paramView?.refresh(); exposedView?.refresh(); floatView?.refresh(); tapEditor?.refresh(); gateEditor?.refresh(); specView?.refresh(); canyonView?.refresh(); drumView?.refresh(); dxView?.refresh();
   }
 
   // A graph is moved clear of the exposed-parameters dock once when its instrument is first shown after a load (the file

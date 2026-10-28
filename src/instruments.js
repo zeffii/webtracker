@@ -597,6 +597,32 @@ export const synthKinds = {
       ],
     }),
   },
+  drumsynth: {
+    label: 'Drum synth (pitch sweep, noise, click)',
+    make: () => ({
+      graph: { nodes: [{ id: 'drum', type: 'drumsynth' }, { id: 'poly', type: 'voices' }, { id: 'out', type: 'out', params: { gain: 0.6 } }], connections: [['drum.out', 'poly.in'], ['poly.out', 'out.in']], voices: 2 },
+      noteColumns: 1,
+      exposed: [
+        { node: 'drum', param: 'startPitch', label: 'Sta', scale: 'log' },
+        { node: 'drum', param: 'endPitch', label: 'End', scale: 'log' },
+        { node: 'drum', param: 'decay', label: 'Dec', scale: 'log' },
+        { node: 'drum', param: 'noise', label: 'Nse' },
+        { node: 'drum', param: 'click', label: 'Clk' },
+      ],
+      commands: [
+        { id: 0x01, node: 'drum', param: 'startPitch', scale: 'log' },
+        { id: 0x02, node: 'drum', param: 'endPitch', scale: 'log' },
+        { id: 0x03, node: 'drum', param: 'pdec', scale: 'log' },
+        { id: 0x04, node: 'drum', param: 'decay', scale: 'log' },
+        { id: 0x05, node: 'drum', param: 'noise' },
+        { id: 0x06, node: 'drum', param: 'ndec', scale: 'log' },
+        { id: 0x07, node: 'drum', param: 'click' },
+        { id: 0x08, node: 'drum', param: 'clickLen', scale: 'log' },
+        { id: 0x09, node: 'drum', param: 'pitchMul', scale: 'log' },
+        { id: 0x0A, node: 'drum', param: 'drive' },
+      ],
+    }),
+  },
   woodblock: {
     label: 'Woodblock (struck wood, energy loss)',
     make: () => ({
