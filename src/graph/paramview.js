@@ -149,7 +149,7 @@ export function createParamView({ doc = document, el: host, side = 'right', show
     if (head) host.append(strip(head, pin));
     all().forEach((row, i) => {
       if (starts.has(i)) host.append(starts.get(i));
-      const line = make('div', `pv-row${row.cc !== undefined ? ' cc' : ''}${row.wired ? ' wired' : ''}${row.exposed ? ' ex' : ''}${row.ported ? ' pt' : ''}`);
+      const line = make('div', `pv-row${row.cc !== undefined || row.adv ? ' cc' : ''}${row.wired ? ' wired' : ''}${row.exposed ? ' ex' : ''}${row.ported ? ' pt' : ''}`);
       const name = make('span', 'pv-name', row.name);   // long names are cut short by the stylesheet, wider panels show more
       name.addEventListener('mouseenter', () => showTip(name, row.hint()));
       name.addEventListener('mouseleave', hideTip);

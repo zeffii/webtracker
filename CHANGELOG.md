@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 498 · 2026-10-28
+
+- A sampler node added to any instrument (Basic, sampler) now has the cc button in its parameter panel, and Parameter view: hide command parameters hides its 70 or so repeat, retrigger, vibrato, jump and jitter parameters, as it does for a sampler instrument. They come back with the same button.
+
 ## 497 · 2026-10-28
 
 - New Amp node (Effects, Distortion group): a valve guitar amplifier in one node. A preamp of 1 to 4 valve stages (gain, bias for the even harmonics, a bright lift), a tone stack with bass, mid and treble in three voicings (scooped, cutting, chiming), a power stage with master and sag (the supply gives under load), depth and presence, and a speaker cabinet (open 1x12, closed 2x12, stack 4x12, or none for use with a Convolver), then level and mix. The two distortion stages run at 1x, 2x or 4x oversampling. It has a help page (F1) and a glyph.

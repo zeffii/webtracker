@@ -28,6 +28,7 @@ import { createTapEditor } from './tapeditor.js';
 import { createDxView } from './dxview.js';
 import { createGateEditor } from './gateeditor.js';
 import { createChordView } from './chordview.js';
+import { samplerCommands } from '../instruments.js';
 import { createSpectrumEditor } from './spectrumeditor.js';
 import { createWaveEditor } from './waveeditor.js';
 import { createWavetableEditor } from './wavetableeditor.js';
@@ -300,7 +301,10 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
 
   // The panel rows of one node: each reads and writes the node's parameter, and carries the row's menu actions.
   // The rows as shown: with "hide command parameters" on, those that a CC command writes are left out.
-  const shownRows = rows => (config.get('pvHideCc') ? rows.filter(r => r.cc === undefined) : rows);
+  // A sampler node in any instrument has the sampler's command parameters, even where the instrument has no command table
+  // to give them ids: they count as command parameters for hiding.
+  const SAMPLER_CMD = new Set(samplerCommands.filter(c => c.node === 'sampler' && c.param).map(c => c.param));
+  const shownRows = rows => (config.get('pvHideCc') ? rows.filter(r => r.cc === undefined && !r.adv) : rows);
   function rowsFor(node, type) {
     const tgt = type.type === 'range' ? rangeTargetOf(desc(), nodeTypes, node.id) : null;
     return type.params.map(base => {
@@ -331,6 +335,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
       return {
         name: spec.name,
         cc: (() => { const c = (def().commands ?? []).find(k => k.node === node.id && k.param === spec.name); return c ? c.id.toString(16).toUpperCase().padStart(2, '0') : undefined; })(),   // the command that writes it from a pattern
+        adv: node.type === 'sampler' && SAMPLER_CMD.has(spec.name),
         pos: () => clamp01(toPos(spec, get())),
         setPos: p => apply(toValue(spec, p)),
         display: () => display(uType, { ...spec, name: uName }, get()),
@@ -491,7 +496,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
     const type = nodeTypes[node.type];
     if (paramView) {
       if (shownNode && shownNode !== node.id) cursorMemo.set(shownNode, paramView.cursor);
-      paramView.show(`${node.id} · ${node.type}`, shownRows(rowsFor(node, type)), shownNode === node.id ? paramView.cursor : cursorMemo.get(node.id) ?? 0, '', { on: pinsOf().has(node.id), toggle: () => togglePin(node.id), help: () => onHelp(node.type), cc: def()?.commands?.length ? { hidden: config.get('pvHideCc'), toggle: () => { config.set('pvHideCc', !config.get('pvHideCc')); renderPanel(); } } : null }, pinnedList(node.id));
+      paramView.show(`${node.id} · ${node.type}`, shownRows(rowsFor(node, type)), shownNode === node.id ? paramView.cursor : cursorMemo.get(node.id) ?? 0, '', { on: pinsOf().has(node.id), toggle: () => togglePin(node.id), help: () => onHelp(node.type), cc: def()?.commands?.length || node.type === 'sampler' ? { hidden: config.get('pvHideCc'), toggle: () => { config.set('pvHideCc', !config.get('pvHideCc')); renderPanel(); } } : null }, pinnedList(node.id));
       shownNode = node.id;
     }
     const items = [];
