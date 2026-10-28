@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['480', ['Arrangement: the top edge of the grid now lines up with the top edge of the pattern list panel (it was 8 pixels lower).']],
   ['479', ['Arrangement: the grid and the pattern list beside it now start at the same height.']],
   ['478', ['The line under the toolbar at the top, running across the whole window, is much fainter.']],
   ['477', ['Arrangement and pattern grids: the frame shown while the grid has the keyboard focus (the lines along its top and left edge) is much fainter.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['473', ['Graph editor: control operators in the Control menu. Range scales a 0..1 signal onto real values (type Hz, ms, dB ...) and hands the port it feeds the 0..1 it expects: lo and hi take the port\'s own limits and units, a frequency port sweeps evenly across octaves, and each wire out of a Range is scaled to its own port. With nothing on its input, Range is a knob in real units. Add and Times work at control rate (lower an LFO, scale it, multiply two controls). Int is a number box with slider, typing and + / - buttons; Float is the same without the buttons.']],
   ['472', ['Arrangement screen: the page no longer shows a scroll bar down the right edge when nothing is off screen (the arrangement already runs down to the status bar, and 6 pixels of extra padding below it made the page just taller than the window).']],
   ['471', ['Add instrument list: a new group, Samplers, comes first and holds the Sampler and the MOD channel (ProTracker); Synths follow.']],
-  ['470', ['Drum synth, a new node for the Graph editor (and an instrument kind in Add instrument): a drum hit built from a body, noise and a click. The body is a sine whose pitch falls from a start pitch to an end pitch along its own ADSR pitch envelope, with a pitch multiplier and key tracking from a root note. The noise has an amount, a colour (white, pink, brown, blue, violet), a low-pass and its own volume envelope. The click is either synthesized or the start of a sample from the node\'s sample list; for a sample click, Click tail smoothing fades its end so it does not tick. The node panel draws the three envelopes, the click on its own (with the smoothed stretch shaded) and the whole root note as composed from the current settings, with its first 25 ms enlarged. The pictures are the node\'s own code run offline, so they show what is heard.']],
 ];

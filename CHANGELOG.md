@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 480 · 2026-10-28
+
+- Arrangement: the top edge of the grid now lines up with the top edge of the pattern list panel (it was 8 pixels lower).
+
 ## 479 · 2026-10-28
 
 - Arrangement: the grid and the pattern list beside it now start at the same height.
