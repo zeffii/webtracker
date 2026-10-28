@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 475 · 2026-10-28
+
+- Insert menu: searching for scale (or map) finds the Range node.
+
 ## 474 · 2026-10-28
 
 - Range node: a picture under the sliders shows which port it feeds, the whole span of that port (in Hz, ms ...) and the stretch lo..hi lit up on it; unwired it says so.

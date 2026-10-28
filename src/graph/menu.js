@@ -69,8 +69,8 @@ export function createInsertMenu({ parent, nodeTypes, onPick, doc = document }) 
     const q = text.trim().toLowerCase();
     return Object.entries(nodeTypes)
       .filter(([, d]) => !d.master && !d.hidden)
-      .map(([type, d]) => ({ type, category: d.category ?? 'Other' }))
-      .filter(e => !q || e.type.includes(q) || e.category.toLowerCase().includes(q))
+      .map(([type, d]) => ({ type, category: d.category ?? 'Other', words: d.aliases ?? [] }))
+      .filter(e => !q || e.type.includes(q) || e.category.toLowerCase().includes(q) || e.words.some(w => w.includes(q)))
       .sort((a, b) => a.category.localeCompare(b.category) || a.type.localeCompare(b.type));
   };
   // The same, best match first: names that start with the text, then names that contain it, then categories.

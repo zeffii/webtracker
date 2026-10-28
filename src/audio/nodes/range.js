@@ -6,6 +6,7 @@
 const LO = 0, HI = 1, AT = 2;
 export default {
   type: 'range',
+  aliases: ['scale', 'map', 'scale range'],   // what the insert menu's search also finds it by
   inputs: ['in'],
   outputs: ['out'],
   category: 'Control',
