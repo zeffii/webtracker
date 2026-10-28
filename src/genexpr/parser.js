@@ -89,6 +89,24 @@ export function parse(text) {
         expect(')', '")" to close the declaration'); expect(';', '";" after the declaration');
         return { k: 'decl', kind: tk.v, name: name.v, nameAt: pos(name), args, ...pos(tk) };
       }
+      // a, b, c = x, y, z;  every value is worked out first, then the names are set (so  a, b = b, a;  swaps)
+      if (tk.t === 'id' && toks[p + 1].t === 'op' && toks[p + 1].v === ',') {
+        let q = p, names = 0;
+        while (toks[q].t === 'id' && toks[q + 1].t === 'op' && toks[q + 1].v === ',') { q += 2; names++; }
+        if (toks[q].t === 'id' && toks[q + 1].t === 'op' && toks[q + 1].v === '=') {
+          const targets = [];
+          for (let i = 0; i <= names; i++) { const n = next(); targets.push(n); if (i < names) next(); }
+          next();
+          const values = [expr()];
+          while (is(',')) { next(); values.push(expr()); }
+          expect(';', '";" at the end of the statement');
+          if (values.length !== targets.length) {
+            errors.push({ line: tk.line, col: tk.col, end: tk.col + 1, message: `${targets.length} names on the left but ${values.length} value${values.length === 1 ? '' : 's'} on the right`, hint: 'write one value for each name: a, b = 1, 2;' });
+            return { k: 'tuple', sets: targets.map(n => ({ k: 'set', name: n.v, op: '=', value: { k: 'num', v: 0, ...pos(n) }, ...pos(n), nameAt: pos(n) })), ...pos(tk) };
+          }
+          return { k: 'tuple', sets: targets.map((n, i) => ({ k: 'set', name: n.v, op: '=', value: values[i], ...span(n, values[i]), nameAt: pos(n) })), ...pos(tk) };
+        }
+      }
       if (tk.t === 'id' && toks[p + 1].t === 'op' && ['=', '+=', '-=', '*=', '/='].includes(toks[p + 1].v)) {
         next(); const op = next().v, value = expr(); expect(';', '";" at the end of the statement');
         return { k: 'set', name: tk.v, op, value, ...span(tk, value), nameAt: pos(tk) };

@@ -6689,6 +6689,15 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     nd.process([null, null], o, 4, pv, slots);
     assert.equal(o[1][0], 5, 'gate falls, freq stays'); assert.ok(Math.abs(o[0][0] - 880) < 1e-9);
   }
+  // tuple assignment: a, b = x, y;  values first, then the names (a swap works); a count mismatch is an error
+  {
+    const r = compile('History a(1);\nHistory b(2);\na, b = b, a;\nx, y = in1 * 2, 5;\nout1 = a * 10 + b + x + y; out2 = 0;');
+    assert.ok(r.ok, `tuple compiles: ${JSON.stringify(r.errors)}`);
+    const run = r.build(48000), a1 = new Float32Array(2), a2 = new Float32Array(2);
+    run(Float32Array.from([1, 1]), null, a1, a2, 2, new Float64Array(8), [440, 0, 1, 69, 0]);
+    assert.deepEqual(Array.from(a1), [28, 19], 'a, b = b, a swaps each sample');
+    assert.ok(compile('a, b = 1;\nout1 = a;').errors.some(e => /2 names on the left but 1 value/.test(e.message)), 'a tuple with too few values is an error');
+  }
   // the templates: every one compiles, instruments sound from a note, none makes a bad number
   {
     const { TEMPLATES } = await import('../src/genexpr/templates.js');

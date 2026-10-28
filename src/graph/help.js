@@ -343,6 +343,7 @@ export const PAGES = {
         ],
         rows: [
           ["x = a + b;", "sets x. A name you set is a variable for this sample only: it is not remembered for the next. Also += -= *= /=."],
+          ["a, b, c = x, y, z;", "sets several at once. All the values on the right are worked out first, then the names are set, so a, b = b, a; swaps them. One value for each name."],
           ["History h(0);", "a value that is kept from one sample to the next, starting at the number given. h = h + 1; counts. Put them at the top, one to a line."],
           ["Param name(def, min=0, max=1);", "a knob, p1 to p8 in the order declared. Read it by its name, never set it. Without min and max they are 0 and 1 (or the default if it is outside)."],
           ["Delay d(size);", "a delay line of size samples (size can be samplerate or arithmetic on it). d.write(x); puts a value in, d.read(t) reads what was written t samples ago; t can be fractional."],

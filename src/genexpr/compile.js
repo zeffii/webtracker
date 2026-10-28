@@ -107,7 +107,7 @@ export function compile(text, { sampleRate = 48000 } = {}) {
 
   // locals are every name that is set somewhere and is not declared; found first so "used before set" can be told from "unknown"
   const setNames = new Set();
-  (function scan(list) { for (const s of list) { if (s.k === 'set') setNames.add(s.name); else if (s.k === 'if') { scan(s.then); if (s.other) scan(s.other); } } })(body);
+  (function scan(list) { for (const s of list) { if (s.k === 'set') setNames.add(s.name); else if (s.k === 'tuple') scan(s.sets); else if (s.k === 'if') { scan(s.then); if (s.other) scan(s.other); } } })(body);
 
   // constants for declarations
   function constant(e) {
@@ -158,6 +158,7 @@ export function compile(text, { sampleRate = 48000 } = {}) {
   const ctx = { state };
   function gen(e) {
     switch (e.k) {
+      case 'raw': return e.js;
       case 'num': return Number.isFinite(e.v) ? String(e.v) : '0';
       case 'id': {
         const s = syms.get(e.name);
@@ -222,6 +223,7 @@ export function compile(text, { sampleRate = 48000 } = {}) {
     return '0';
   }
 
+  let tupleId = 0;
   function stmts(list, depth) {
     const pad = '    '.repeat(depth + 1); let out = '';
     for (const s of list) {
@@ -237,6 +239,11 @@ export function compile(text, { sampleRate = 48000 } = {}) {
         else if (sym?.kind === 'history') out += `${pad}S[${sym.k}] = ${value};\n`;
         else if (FUNCS[s.name] || BUFFER_FUNCS.has(s.name) || WORDS.has(s.name)) err(s.nameAt, `"${s.name}" is a GenExpr word and cannot be a variable name`);
         else { assigned.add(s.name); locals.add(s.name); out += `${pad}v_${s.name} = ${value};\n`; }
+      } else if (s.k === 'tuple') {
+        const vals = s.sets.map(x => gen(x.value)), tmp = vals.map((_, i) => `t${tupleId}_${i}`);
+        tupleId++;
+        const inner = stmts(s.sets.map((x, i) => ({ ...x, value: { k: 'raw', js: tmp[i] } })), depth + 1);
+        out += `${pad}{\n${pad}    const ${vals.map((v, i) => `${tmp[i]} = ${v}`).join(', ')};\n${inner}${pad}}\n`;
       } else if (s.k === 'if') {
         const c = gen(s.cond);
         out += `${pad}if (${c} !== 0) {\n${stmts(s.then, depth + 1)}${pad}}`;

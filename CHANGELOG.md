@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 503 · 2026-10-28
+
+- Code node: tuple assignment, `a, b, c = x, y, z;`. All values on the right are worked out first, so `a, b = b, a;` swaps. A wrong count gives an error.
+
 ## 502 · 2026-10-28
 
 - Code node (GenExpr): plays from notes. New read-only names freq (Hz), gate (1 while a key is held), vel, note and trig (1 for the first sample of a new note). In front of a Voices node every voice is its own copy of the code.
