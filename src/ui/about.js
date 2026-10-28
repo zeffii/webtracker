@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['474', ['Range node: a picture under the sliders shows which port it feeds, that port's whole span (in Hz, ms ...) and the stretch lo..hi lit up on it; unwired it says so.']],
   ['473', ['Graph editor: control operators in the Control menu. Range scales a 0..1 signal onto real values (type Hz, ms, dB ...) and hands the port it feeds the 0..1 it expects: lo and hi take the port\'s own limits and units, a frequency port sweeps evenly across octaves, and each wire out of a Range is scaled to its own port. With nothing on its input, Range is a knob in real units. Add and Times work at control rate (lower an LFO, scale it, multiply two controls). Int is a number box with slider, typing and + / - buttons; Float is the same without the buttons.']],
   ['472', ['Arrangement screen: the page no longer shows a scroll bar down the right edge when nothing is off screen (the arrangement already runs down to the status bar, and 6 pixels of extra padding below it made the page just taller than the window).']],
   ['471', ['Add instrument list: a new group, Samplers, comes first and holds the Sampler and the MOD channel (ProTracker); Synths follow.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['467', ['Left rail: the Dock button moved below the screen buttons, under a thin divider.']],
   ['466', ['Node Sequencer, a new screen (Ctrl+Alt+N): a graph of nodes that plays beside the pattern lanes, which can stay empty. Amber square ports carry events on ticks and subticks, cyan round ports carry controls at signal rate; wires are drawn behind the nodes and a light runs along one each time an event passes.', 'Nodes: clock, steps, euclid, Pseq and Prand lists, random, math, probability, delay, gate, counter, lfo, envelope, scale and more, a script node (a few lines of JavaScript per event), and the outputs: note (plays any instrument) and set (moves any exposed parameter). Press A or right-click for the palette; drag a wire onto empty space to add a node for it.', 'Subticks are set per project (1 to 16). Nodes belong to one of eight groups (A to H); "Pattern lane" adds a lane whose G1 to G8 columns start and stop the groups from a pattern. With Rec armed, the notes the graph plays are written into the lanes of their instrument. The graph is saved in the .wax file and is part of WAV export.']],
   ['465', ['A test now guards that Note preview is on by default.']],
-  ['464', ['GenExpr code box: full syntax colours (operators, constants, declared names by kind), bracket pairing, hover help, and it now shows on every theme. Config: the default shader box sits under its text.']],
 ];

@@ -725,6 +725,11 @@
     #patch-tools .prow.presets > span { text-align: right; }
     #patch-tools .prow.presets > span { grid-column: 1 / -1; }
     #patch-tools .prow.presets select { grid-column: 1; width: 100%; min-width: 0; }
+    .rangeview { margin: .3rem 0; font-size: .8rem; display: flex; flex-direction: column; gap: .2rem; }
+    .rangeview-title { font-weight: 600; }
+    .rangeview-bar { position: relative; height: .7rem; background: color-mix(in srgb, currentColor 14%, transparent); border-radius: 2px; }
+    .rangeview-fill { position: absolute; top: 0; bottom: 0; background: hsl(35 85% 52%); border-radius: 2px; }
+    .rangeview-ends, .rangeview-note { opacity: .75; }
     .intview { display: flex; gap: .3rem; align-items: stretch; margin: .3rem 0; }
     .intview-box { flex: 1; min-width: 0; text-align: center; font: 600 1.1rem var(--mono, monospace); }
     .intview-btn { width: 2.4rem; font: 600 1.2rem var(--mono, monospace); cursor: pointer; }
