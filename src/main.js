@@ -2212,8 +2212,8 @@ function makeInstrument(value, name = '', side = null) {
   const kinds = $('new-inst-kind'), sample = $('new-inst-sample');
   const option = (value, text) => Object.assign(document.createElement('option'), { value, textContent: text });
   const group = (label, entries) => { const g = document.createElement('optgroup'); g.label = label; g.append(...entries); return g; };
-  const synths = Object.entries(synthKinds).filter(([k]) => k !== 'empty').map(([k, { label }]) => option(`synth:${k}`, label));
-  kinds.replaceChildren(group('Synths', synths), group('Sampler', [option('sampler', 'Sampler (plays a sample)')]), group('Blank', [option('synth:empty', synthKinds.empty.label)]));
+  const synths = Object.entries(synthKinds).filter(([k]) => k !== 'empty' && k !== 'modchan').map(([k, { label }]) => option(`synth:${k}`, label));
+  kinds.replaceChildren(group('Samplers', [option('sampler', 'Sampler (plays a sample)'), option('synth:modchan', synthKinds.modchan.label)]), group('Synths', synths), group('Blank', [option('synth:empty', synthKinds.empty.label)]));
   const showSample = () => { sample.hidden = kinds.value !== 'sampler'; };
   kinds.addEventListener('change', showSample);
   showSample();
