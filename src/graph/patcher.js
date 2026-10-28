@@ -27,6 +27,7 @@ import { createCurveEditor } from './curveeditor.js';
 import { createTapEditor } from './tapeditor.js';
 import { createDxView } from './dxview.js';
 import { createGateEditor } from './gateeditor.js';
+import { createChordView } from './chordview.js';
 import { createSpectrumEditor } from './spectrumeditor.js';
 import { createWaveEditor } from './waveeditor.js';
 import { createWavetableEditor } from './wavetableeditor.js';
@@ -164,6 +165,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
   let gateEditor = null;    // the step pattern of a trance gate, redrawn when its length moves
   let dxView = null;        // the bank loader and algorithm view of a DVIIloader
   let intView = null;
+  let chordView = null;
   let rangeView = null;
   let cardinalView = null;   // the oscillators, filter, envelopes and LFOs of a Cardinal synth
   let drumView = null;      // the envelopes, the click and the composed root note of a drum synth, redrawn when its parameters move
@@ -320,6 +322,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
         if (type.editor === 'drumsynth') drumView?.refresh();
         if (type.editor === 'cardinal') cardinalView?.refresh();
         if (type.editor === 'int') intView?.refresh();
+        if (type.editor === 'chord') chordView?.refresh();
         if (type.type === 'range') rangeView?.refresh();
         if (type.editor === 'dx' && spec.name === 'voice') dxView?.refresh();
         if (entry()) exposedView?.refresh();   // repaint in place: rebuilding the dock would drop a drag that is under way
@@ -603,6 +606,24 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
         set: v => { setParam(desc(), node.id, 'value', v); onParam(instId, node.id, 'value', v); paramView?.refresh(); exposedView?.refresh(); dirty = true; },
       });
       items.splice(1, 0, intView.el);
+    }
+    chordView = null;
+    if (type.editor === 'chord') {   // the 256 chord names, kept on the node and sent live
+      const live = name => readLive(instId, node.id, name) ?? node.params?.[name] ?? type.params.find(q => q.name === name)?.def ?? 0;
+      chordView = createChordView({
+        doc,
+        get: i => node.data?.chords?.[i.toString(16).toUpperCase().padStart(2, '0')],
+        set: (i, text) => {
+          const slots = { ...node.data?.chords };
+          const key = i.toString(16).toUpperCase().padStart(2, '0');
+          if (text) slots[key] = text; else delete slots[key];
+          node.data = { ...node.data, chords: slots };
+          onData(instId, node.id, { type: 'chords', points: slots });
+        },
+        current: () => Math.round(live('chord')),
+        octave: () => Math.round(live('octave')),
+      });
+      items.splice(1, 0, chordView.el);
     }
     canyonView = null;
     if (type.editor === 'canyon') {   // the four delay lines and their echoes against the ticks, drawn from the parameters
@@ -1175,7 +1196,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
     const sig = parts.join(',');
     if (sig === liveSig) return;
     liveSig = sig;
-    paramView?.refresh(); exposedView?.refresh(); floatView?.refresh(); tapEditor?.refresh(); gateEditor?.refresh(); specView?.refresh(); canyonView?.refresh(); drumView?.refresh(); cardinalView?.refresh(); intView?.refresh(); rangeView?.refresh(); dxView?.refresh();
+    paramView?.refresh(); exposedView?.refresh(); floatView?.refresh(); tapEditor?.refresh(); gateEditor?.refresh(); specView?.refresh(); canyonView?.refresh(); drumView?.refresh(); cardinalView?.refresh(); intView?.refresh(); chordView?.refresh(); rangeView?.refresh(); dxView?.refresh();
   }
 
   // A graph is moved clear of the exposed-parameters dock once when its instrument is first shown after a load (the file

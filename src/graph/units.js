@@ -61,6 +61,7 @@ const TYPE_UNIT = {
   blur: { time: 'ms' },
   gater: { smooth: 'ms', depth: '%' },
   arp: { rate: '', gate: '%', swing: '', transpose: 'st', cycle1: 'st', cycle2: 'st', humanize: '%', level: '' },
+  chord: { strum: 'ms', level: '' },
   freqshift: { shift: 'Hz' },
   specpan: { lowMono: 'Hz', rotate: '', spread: '%', mix: '%', rate: 'Hz', sweep: '', wave: ['sine', 'triangle', 'saw', 'square'] },
 };
@@ -89,6 +90,7 @@ const NAMES = {
   notetrig: { legato: ONOFF },
   oscout: { mode: ['Renoise addresses', 'Wax addresses'], instrument: '', track: '', transpose: 'st' },
   arp: { mode: ARP_MODES, rate: ARP_RATES, retrigger: ARP_RETRIG, veltype: ['played', 'fixed'], hold: ONOFF, thru: ONOFF },
+  chord: { follow: ONOFF, direction: ['from the lowest', 'from the highest'] },
   sampler: { reverse: ONOFF },
   fourpole: {
     wave1: ['sine', 'triangle', 'square', 'upsaw', 'downsaw', 'sawoid 1', 'sawoid 2', 'sawoid 3', 'noise 1', 'noise 2'],

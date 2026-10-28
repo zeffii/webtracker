@@ -8622,4 +8622,50 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   assert.equal(lfoShape(3, 0.25), 1, 'a square LFO is up in its first half');
   console.log('ok: cardinal');
 }
+{
+  // Chord: names to notes, and a node that plays them
+  const { parseChord, chordNotes, noteName } = await import('../src/seq/chordname.js');
+  const spell = (name, o) => { const c = parseChord(name); return c.error ? c.error : chordNotes(c, o).map(noteName).join(' '); };
+  const mine = {
+    'F# 13sus': 'F#4 B4 C#5 E5 G#5 D#6', 'Eb 9sus4': 'D#4 G#4 A#4 C#5 F5', 'E 9sus4': 'E4 A4 B4 D5 F#5', 'E min9(11)': 'E4 G4 B4 D5 F#5 A5',
+    'G Major 7th': 'G4 B4 D5 F#5', 'A 13sus': 'A4 D5 E5 G5 B5 F#6', 'D Maj9': 'D4 F#4 A4 C#5 E5', 'Db 7#9(no5)': 'C#4 F4 B4 E5',
+    'Db 7(#9#5)': 'C#4 F4 A4 B4 E5', 'F# min9': 'F#4 A4 C#5 E5 G#5',
+  };
+  for (const [name, notes] of Object.entries(mine)) assert.equal(spell(name), notes, `chord ${name}`);
+  const more = { C: 'C4 E4 G4', Cm7: 'C4 D#4 G4 A#4', 'C\u03947': 'C4 E4 G4 B4', 'C\u00B07': 'C4 D#4 F#4 A4', 'C\u00F87': 'C4 D#4 F#4 A#4', 'C6/9': 'C4 E4 G4 A4 D5', 'C/E': 'E3 C4 E4 G4', 'Am7/G': 'G3 A4 C5 E5 G5', C5: 'C4 G4', Csus2: 'C4 D4 G4', CmMaj7: 'C4 D#4 G4 B4' };
+  for (const [name, notes] of Object.entries(more)) assert.equal(spell(name), notes, `chord ${name}`);
+  assert.ok(parseChord('Xm').error && parseChord('C7foo').error && parseChord('').error, 'bad names are reported');
+  assert.equal(spell('C', { octave: 2 }), 'C2 E2 G2', 'the octave moves the chord');
+  assert.equal(spell('C', { inversion: 1 }), 'E4 G4 C5', 'an inversion lifts the lowest note');
+  assert.equal(spell('Cmaj9', { max: 4 }), 'C4 E4 B4 D5', 'the fifth goes first when there are too many notes');
+
+  const node = NODE_TYPES.chord, sent = [];
+  const inst = node.create({ sampleRate: 48000, data: { chords: { '00': 'C', '01': 'Dm7', '02': 'nonsense' } }, notes: m => sent.push(m) });
+  const slots = node.params.map((_, i) => i);
+  const params = () => node.params.map(q => q.def);
+  const ons = () => sent.filter(m => m.type === 'noteOn').map(m => m.note);
+  const play = (over, note = 72, vel = 0.8) => { const v = params(); for (const [k, x] of Object.entries(over)) v[node.params.findIndex(q => q.name === k)] = x; sent.length = 0; inst.input({ type: 'noteOn', note, vel }, v, slots); return v; };
+  play({});
+  assert.deepEqual(ons(), [60, 64, 67], 'slot 00 plays C as typed, whatever note triggers it');
+  inst.input({ type: 'noteOff', note: 72 }, params(), slots);
+  assert.deepEqual(sent.slice(3).map(m => m.type), ['noteOff', 'noteOff', 'noteOff'], 'the note off releases the chord');
+  play({ chord: 1 }); assert.deepEqual(ons(), [62, 65, 69, 72], 'slot 01 plays D minor 7');
+  play({ chord: 5 }); assert.deepEqual(ons(), [72], 'an empty slot plays the note as it is');
+  play({ chord: 2 }); assert.deepEqual(ons(), [72], 'a slot with an unreadable name plays the note');
+  play({ follow: 1 }, 74); assert.deepEqual(ons(), [74, 78, 81], 'follow moves the chord with the note');
+  play({ direction: 1 }); assert.deepEqual(ons(), [67, 64, 60], 'the other direction starts from the top');
+  play({ strum: 20 }); assert.equal(ons().length, 1, 'a strum starts with the first note only');
+  inst.process([], [], 960, params(), slots);
+  assert.equal(ons().length, 1, 'the next note waits for its time');
+  inst.process([], [], 1024, params(), slots);
+  assert.equal(ons().length, 3, 'and the others follow 20 ms apart');
+  inst.message({ type: 'chords', points: { '05': 'G7' } });
+  play({ chord: 5 }); assert.deepEqual(ons(), [67, 71, 74, 77], 'chords sent while running are used at once');
+
+  const def = synthKinds.chords.make(), registry = new ParamRegistry();
+  compile(def.graph, { instrument: 'ch', nodeTypes: NODE_TYPES, registry });
+  const cols = buildColumns('ch', def, registry);
+  assert.ok(cols.some(c => c.kind === 'note') && cols.filter(c => c.kind === 'param').length >= 3, 'the chord instrument has note, Chd and Oct columns');
+  console.log('ok: chord');
+}
 console.log('smoke test passed');

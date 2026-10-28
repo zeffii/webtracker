@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['492', ['New Chord node and instrument kind (Chords). Type chord names into 256 hex slots (00 to FF), such as F# 13sus, Eb 9sus4, E min9(11), G Major 7th, Db 7#9(no5), Db 7(#9#5), Cm7/Bb, plus the classical symbols for major, diminished and half-diminished, bass notes after a slash, sus, add, altered and left-out notes. The Chd column picks the slot a note plays (an empty slot plays the note as it is) and the one-digit Oct column sets the octave of the root. Also inversion, a limit on the number of notes, a strum in ms from the lowest or highest note, and a follow switch that moves the chord with the note. The editor lists every slot in pages of 16 with the notes it makes (bad names are marked) and a reference of what can be typed.']],
   ['491', ['The New menu item that cleared everything is now called New file.']],
   ['490', ['Pattern editor: the Insert key no longer switches note preview on and off (the backslash key still does).']],
   ['489', ['New synth node and instrument kind, Cardinal: a monophonic virtual-analogue lead (behind the voices node for chords). Two oscillators (triangle, saw, pulse, sine, noise) with semitone and fine tune, key tracking, hard sync, fm from osc 1 into osc 2, ring modulation, a mix, noise and 1 to 5 unison voices; a filter that is lowpass 24 or 12, bandpass, highpass or notch with cutoff, resonance, key tracking and distortion; an amp envelope and a mod envelope (sweeping cutoff, osc 2 pitch, fm and pulse width); two LFOs with five waves and six destinations; glide and slide. Beside it are pictures of the oscillators (the real output), the filter response, both envelopes and both LFOs.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['485', ['Graph editor: Alt+V on a selected node (or group) keeps the picture beside it (a filter response, an envelope shape) showing when it is not selected; a small dot marks such nodes. Alt+V again stops.']],
   ['484', ['Graph editor: dragging from a free input port now draws a wire from it (drop it on an output) instead of moving the node; Shift+drag on a port that already has wires also starts a new wire. Grab the node by its body to move it.']],
   ['483', ['Graph editor: dragging from an output port that has wires now picks a wire up too (Tab chooses which); Shift+drag from it starts a new wire. Wires being dragged are drawn as curves like the others.']],
-  ['482', ['Graph editor: Tab over a port with several wires now always chooses the wire (it was swallowed when the canvas did not have the keyboard focus or a node panel took the key).']],
 ];

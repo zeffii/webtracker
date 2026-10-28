@@ -238,6 +238,11 @@ export const GLYPHS = {
     [[0, 0.1], [0.25, 0.35], [0.5, 0.6], [0.75, 0.85]].forEach(([f, v]) => line(ctx, [[x(f), y(v)], [x(f + 0.18), y(v)]]));
     line(ctx, [[x(0.18), y(0.1)], [x(0.25), y(0.35)]]); line(ctx, [[x(0.43), y(0.35)], [x(0.5), y(0.6)]]); line(ctx, [[x(0.68), y(0.6)], [x(0.75), y(0.85)]]);
   },
+  chord: (ctx, cx, cy, w, h) => {   // three notes stacked on one stem: a chord
+    const x = f => cx - w / 2 + f * w, y = f => cy + h / 2 - f * h;
+    for (const v of [0.2, 0.5, 0.8]) { ctx.beginPath(); ctx.ellipse(x(0.4), y(v), w * 0.14, h * 0.09, -0.3, 0, 7); ctx.fill(); }
+    line(ctx, [[x(0.54), y(0.2)], [x(0.54), y(1)]]);
+  },
   oscout: (ctx, cx, cy, w, h) => {   // a dot sending rings outwards: a signal leaving the program
     const x = f => cx - w / 2 + f * w, y = f => cy + h / 2 - f * h;
     ctx.beginPath(); ctx.arc(x(0.2), y(0.5), h * 0.07, 0, 7); ctx.fill();

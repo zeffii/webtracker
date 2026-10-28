@@ -17,7 +17,7 @@ export function capturePreset(def, nodeTypes, read, name = '') {
       const live = read?.(node.id, spec.name);
       values[`${node.id}.${spec.name}`] = Number.isFinite(live) ? live : node.params?.[spec.name] ?? spec.def;
     }
-    for (const key of ['curve', 'spectrum', 'waves', 'table', 'pair', 'taps', 'gate', 'code', 'meta']) if (node.data?.[key]) data[node.id] = { ...data[node.id], [key]: copyData(node.data[key]) };
+    for (const key of ['curve', 'spectrum', 'waves', 'table', 'pair', 'taps', 'gate', 'chords', 'code', 'meta']) if (node.data?.[key]) data[node.id] = { ...data[node.id], [key]: copyData(node.data[key]) };
   }
   return { name, values, ...(Object.keys(data).length ? { data } : {}) };
 }

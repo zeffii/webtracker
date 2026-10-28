@@ -731,6 +731,25 @@
     .rangeview-bar { position: relative; height: .7rem; background: color-mix(in srgb, currentColor 14%, transparent); border-radius: 2px; }
     .rangeview-fill { position: absolute; top: 0; bottom: 0; background: hsl(35 85% 52%); border-radius: 2px; }
     .rangeview-ends, .rangeview-note { opacity: .75; }
+    .chordview { margin: .3rem 0; font-size: .8rem; display: flex; flex-direction: column; gap: .3rem; }
+    .chordview-pages { display: grid; grid-template-columns: repeat(16, 1fr); gap: 1px; }
+    .chordview-page { padding: 1px 0; font: 600 .7rem var(--mono, monospace); cursor: pointer; opacity: .55; }
+    .chordview-page.used { opacity: .9; }
+    .chordview-page.on { outline: 1px solid hsl(35 85% 52%); opacity: 1; }
+    .chordview-page.now { background: color-mix(in srgb, hsl(35 85% 52%) 35%, transparent); }
+    .chordview-list { display: flex; flex-direction: column; gap: 2px; }
+    .chordview-row { display: grid; grid-template-columns: 1.6rem minmax(7rem, 12rem) 1fr; gap: .4rem; align-items: center; }
+    .chordview-idx { font: 600 .75rem var(--mono, monospace); opacity: .6; }
+    .chordview-idx.now { color: hsl(35 85% 52%); opacity: 1; }
+    .chordview-box { min-width: 0; font: .8rem var(--mono, monospace); }
+    .chordview-box.bad { outline: 1px solid hsl(0 70% 55%); }
+    .chordview-notes { font: .75rem var(--mono, monospace); opacity: .85; overflow-wrap: anywhere; }
+    .chordview-notes.empty { opacity: .4; }
+    .chordview-notes.bad { color: hsl(0 70% 60%); }
+    .chordview-syntax summary { cursor: pointer; font-weight: 600; }
+    .chordview-ref { display: grid; grid-template-columns: max-content 1fr; gap: .15rem .7rem; margin-top: .3rem; }
+    .chordview-ref .what { font-weight: 600; opacity: .85; }
+    .chordview-ref .how { font-family: var(--mono, monospace); font-size: .75rem; opacity: .85; }
     .intview { display: flex; gap: .3rem; align-items: stretch; margin: .3rem 0; }
     .intview-box { flex: 1; min-width: 0; text-align: center; font: 600 1.1rem var(--mono, monospace); }
     .intview-btn { width: 2.4rem; font: 600 1.2rem var(--mono, monospace); cursor: pointer; }

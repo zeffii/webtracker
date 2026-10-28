@@ -26,6 +26,7 @@ const GROUPS = {
 };
 GROUPS.Control = [
   ['Operators', ['range', 'add', 'times', 'int', 'float']],
+  ['Notes', ['arp', 'chord']],
 ];
 const ORDER = ['Sources', 'Effects', 'Control', 'Mix & level'];
 

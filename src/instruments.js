@@ -273,6 +273,29 @@ export const synthKinds = {
       ],
     }),
   },
+  chords: {
+    label: 'Chords (type chord names, play them with a note)',
+    make: () => ({
+      graph: { nodes: [{ id: 'chord', type: 'chord' }, { id: 'synth', type: 'subsynth' }, { id: 'poly', type: 'voices' }, { id: 'out', type: 'out', params: { gain: 0.4 } }], connections: [['synth.out', 'poly.in'], ['poly.out', 'out.in']], voices: 12 },
+      noteColumns: 1,
+      exposed: [
+        { node: 'chord', param: 'chord', label: 'Chd' },
+        { node: 'chord', param: 'octave', label: 'Oct', bits: 4 },
+        { node: 'chord', param: 'strum', label: 'Str' },
+        { node: 'synth', param: 'cutoff', label: 'Cut', scale: 'log' },
+        { node: 'synth', param: 'res', label: 'Res' },
+      ],
+      commands: [
+        { id: 0x01, node: 'synth', param: 'cutoff', scale: 'log' },
+        { id: 0x02, node: 'synth', param: 'res' },
+        { id: 0x03, node: 'synth', param: 'fenv' },
+        { id: 0x10, node: 'chord', param: 'chord' },
+        { id: 0x11, node: 'chord', param: 'octave' },
+        { id: 0x12, node: 'chord', param: 'inversion' },
+        { id: 0x13, node: 'chord', param: 'strum' },
+      ],
+    }),
+  },
   fourpole: {
     label: 'Fourpole (4 filters, 2 envelopes)',
     make: () => ({

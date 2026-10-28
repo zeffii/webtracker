@@ -479,6 +479,16 @@ const HINTS = {
     steps: 'For the random stagger: how many random steps the value takes to arrive.',
     wobble: 'For the random stagger: how far the steps may stray from the straight path.',
   },
+  chord: {
+    chord: 'Which of the 256 chord slots (hex 00 to FF) plays. Put it in a pattern with the Chd column. A slot with no name plays the note as it is.',
+    octave: 'The octave the chord is built in: its root sits here (4 is the octave of middle C). The Oct column writes it, one hex digit; 2 to 9 is the useful range.',
+    inversion: 'Moves the lowest notes up an octave, one at a time: 1 is the first inversion, 2 the second. Lifts the whole chord a little each time without changing the harmony.',
+    notes: 'The most notes the chord may have, for a synth with few voices. The fifth is dropped first (the way a pianist leaves it out), then the highest notes.',
+    strum: 'Time between one note of the chord and the next, in ms. 0 plays them together; 20 to 40 is a guitar-like strum.',
+    direction: 'Which end of the chord the strum starts from: the lowest note (a down-strum) or the highest (an up-strum).',
+    follow: '0: the chord is played as typed, whatever note is pressed; the note only triggers it. 1: the chord moves with the note, so C4 plays it as typed and D4 a tone higher.',
+    level: 'Scales the velocity of the chord notes.',
+  },
   arp: {
     mode: 'The order the held notes are played in. up, down, up/down, down/up (the ends play once); up/down+ and down/up+ (the ends play twice); converge (lowest, highest, next lowest, next highest...); diverge (the same, backwards: from the middle out); converge/diverge; as played (the order the keys went down); random (a free pick each step); random other (every note once in a random order, then again); random once (one random order, kept until the keys change); chord (all notes at once on every step); repeat x2, repeat x4 (each note twice or four times, ascending); pinky up and thumb up (the highest, or the lowest, note between every other note), and their up/down versions; interval cycle (each held note, then +cycle1, then +cycle2: the tracker 0xy arpeggio).',
     rate: 'How long a step is, in ticks. 1 tick is a sixteenth with 4 ticks to the beat; 1/2 tick is a thirty-second; 2/3 and 1/3 give triplet-like grids; 4 ticks is a quarter note.',
