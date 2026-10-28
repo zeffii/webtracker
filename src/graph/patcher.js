@@ -1292,7 +1292,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
           const p = portPos(node, type, side, i);
           ctx.beginPath();
           const hov = hoverPort && hoverPort.node === node.id && hoverPort.port === name && hoverPort.side === side;
-          ctx.arc(p.x, p.y, PORT_R + (hov ? 1 + 2.5 * (0.5 + 0.5 * Math.sin(Date.now() / 260)) : 0), 0, 2 * Math.PI);
+          ctx.arc(p.x, p.y, PORT_R + (hov ? 0.4 + 1 * (0.5 + 0.5 * Math.sin(Date.now() / 260)) : 0), 0, 2 * Math.PI);
           ctx.fillStyle = kindColour(kindOf(node, name));
           ctx.fill();
           ctx.strokeStyle = ink;

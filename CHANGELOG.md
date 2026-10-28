@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 481 · 2026-10-28
+
+- Graph editor: the pulse of a hovered port is gentler (about a pixel instead of up to three and a half).
+
 ## 480 · 2026-10-28
 
 - Arrangement: the top edge of the grid now lines up with the top edge of the pattern list panel (it was 8 pixels lower).
