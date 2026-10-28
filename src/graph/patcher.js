@@ -697,6 +697,23 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
     return { a: linkEnds(desc(), nodeTypes, [f[0], inn]).a, b: linkEnds(desc(), nodeTypes, [out, t[1]]).b };
   }
 
+  // ---- port hover, and picking a wire up by its end ----
+  // The port under the mouse pulses; with several wires on it, Tab chooses which one is lit (the one that a click on the port picks up).
+  let hoverPort = null, pickWire = 0;
+  const wiresAt = h => (h ? desc().connections.map((c, i) => [c, i]).filter(([c]) => c[h.side === 'in' ? 1 : 0] === `${h.node}.${h.port}`).map(([, i]) => i) : []);
+  const litWire = () => { const ws = wiresAt(hoverPort); return ws.length ? ws[pickWire % ws.length] : -1; };
+  function setHover(e) {
+    const h = hitTest(desc(), nodeTypes, e.offsetX, e.offsetY), p = h?.kind === 'port' ? h : null;
+    const same = p && hoverPort && p.node === hoverPort.node && p.port === hoverPort.port && p.side === hoverPort.side;
+    if (!same) { hoverPort = p; pickWire = 0; dirty = true; if (p && (!doc.activeElement || doc.activeElement === doc.body)) canvas.focus?.(); }
+    return h;
+  }
+  const portRef = (ref, side) => { const [id, port] = ref.split('.'), node = desc().nodes.find(n => n.id === id), type = nodeTypes[node.type]; return portPos(node, type, side, side === 'out' ? type.outputs.indexOf(port) : inputsOf(node, type).indexOf(port)); };
+  function dropWire(d, restore) {   // puts a picked-up wire back (or, restore false, leaves it removed)
+    if (d.started && restore) { try { connect(desc(), nodeTypes, d.link[0], d.link[1]); } catch {} }
+    if (d.started) structure();
+  }
+
   canvas.addEventListener('mousedown', e => {
     if (!instId) return;
     canvas.focus?.();
@@ -733,6 +750,12 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
       return;
     }
     group.clear();
+    if (hit?.kind === 'port' && (hit.side === 'in' || e.shiftKey) && wiresAt(hit).length && e.button === 0) {   // a wire's end: drag it away (Shift for an output)
+      const at = litWire() >= 0 && hoverPort && hoverPort.node === hit.node && hoverPort.port === hit.port ? litWire() : wiresAt(hit)[0];
+      drag = { kind: 'rewire', link: [...desc().connections[at]], moving: hit.side === 'in' ? 'to' : 'from', node: hit.node, x, y, x0: x, y0: y, started: false };
+      selected = { kind: 'node', id: hit.node };
+      return;
+    }
     if (hit?.kind === 'port' && hit.side === 'out') {
       drag = { kind: 'connect', from: `${hit.node}.${hit.port}`, x, y };
     } else if (hit?.kind === 'port' || hit?.kind === 'node') {
@@ -755,7 +778,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
   canvas.addEventListener('mousemove', e => {
     if (drag) return;
     let text = '';
-    const h = hitTest(desc(), nodeTypes, e.offsetX, e.offsetY);
+    const h = setHover(e);
     if (h?.kind === 'link' || h?.kind === 'port') {
       const { kindOf } = resolveKinds(desc(), nodeTypes);
       if (h.kind === 'link') {
@@ -766,6 +789,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
         text = `${h.side === 'in' ? 'Input' : 'Output'} ${h.node}.${h.port}, ${KIND_TEXT[kindOf(node, h.port)]}`;
       }
     }
+    if (h?.kind === 'port') { const n = wiresAt(h).length; if (n) text += n > 1 ? ` — ${n} wires: Tab picks one, then drag the port to move it` : ' — drag to move its wire'; }
     if (text) { hoverText = text; say(text); }
     else if (hoverText) { if (statusEl?.textContent === hoverText) say(''); hoverText = ''; }
   });
@@ -791,7 +815,16 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
       gridOff.x += dx; gridOff.y += dy;
     } else if (drag.kind === 'lasso') {
       drag.x = e.offsetX; drag.y = e.offsetY;
+    } else if (drag.kind === 'rewire') {
+      drag.x = e.offsetX; drag.y = e.offsetY;
+      if (!drag.started && Math.hypot(drag.x - drag.x0, drag.y - drag.y0) > 4) {
+        drag.started = true;
+        disconnect(desc(), drag.link[0], drag.link[1]);
+        say('Drop it on another port, or anywhere else to leave it unplugged (Esc puts it back)');
+      }
+      setHover(e);
     } else {
+      if (drag.kind === 'connect') setHover(e);
       drag.x = e.offsetX;
       drag.y = e.offsetY;
     }
@@ -830,6 +863,19 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
       }
       return;
     }
+    if (d.kind === 'rewire') {
+      if (!d.started) { renderPanel(); return; }   // only a click: the node is selected
+      const hit = hitTest(desc(), nodeTypes, e.offsetX, e.offsetY), want = d.moving === 'to' ? 'in' : 'out';
+      if (hit?.kind === 'port' && hit.side === want) {
+        const ref = `${hit.node}.${hit.port}`;
+        try {
+          if (d.moving === 'to') connect(desc(), nodeTypes, d.link[0], ref); else connect(desc(), nodeTypes, ref, d.link[1]);
+          say(`Wire moved to ${ref}`);
+        } catch (err) { say(err.message); try { connect(desc(), nodeTypes, d.link[0], d.link[1]); } catch {} }
+      } else say('Wire unplugged');
+      structure(); renderPanel();
+      return;
+    }
     if (d.kind !== 'connect') return;
     const hit = hitTest(desc(), nodeTypes, e.offsetX, e.offsetY);
     if (hit?.kind !== 'port' || hit.side !== 'in') return;
@@ -860,7 +906,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
     if (instId && !hitTest(desc(), nodeTypes, e.offsetX, e.offsetY)) onContext({ x: e.offsetX, y: e.offsetY });
   });
 
-  canvas.addEventListener('mouseleave', () => { drag = null; dirty = true; });
+  canvas.addEventListener('mouseleave', () => { if (drag?.kind === 'rewire') dropWire(drag, true); drag = null; hoverPort = null; dirty = true; });
 
   // Moves the selection to the nearest node in a direction ('left', 'right', 'up', 'down'), or to the next one
   // ('next', 'prev') in left-to-right order. With nothing selected the leftmost node is chosen.
@@ -897,6 +943,16 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
   canvas.addEventListener('keydown', e => {
     // With a node selected, its parameter panel takes the arrows, Home/End, PageUp/PageDown and Enter (Alt+arrows move between nodes)
     if (paramView && selected?.kind === 'node' && !e.altKey && !e.metaKey && paramView.key(e)) { e.preventDefault?.(); return; }
+    if (e.key === 'Tab' && !e.ctrlKey && !e.altKey && !e.metaKey && hoverPort && !drag) {   // several wires on the port under the mouse: choose one
+      const ws = wiresAt(hoverPort);
+      if (ws.length > 1) {
+        pickWire = (pickWire + (e.shiftKey ? -1 : 1) + ws.length * 8) % ws.length;
+        const [f, t] = desc().connections[ws[pickWire]];
+        say(`Wire ${pickWire + 1} of ${ws.length}: ${f} to ${t}. Drag the port to move it`);
+        dirty = true; e.preventDefault(); return;
+      }
+    }
+    if (e.key === 'Escape' && drag?.kind === 'rewire') { dropWire(drag, true); drag = null; say('Wire put back'); dirty = true; e.preventDefault?.(); return; }
     if (e.key === 'Escape' && drag?.kind === 'move') {   // Esc while dragging a node: just move it, leave the wires alone
       drag.free = true;
       if (drag.ids.length === 1) updateDrop();
@@ -1118,6 +1174,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
   function draw() {
     tidy();
     followLive();
+    if (hoverPort) dirty = true;   // the hovered port pulses
     if (!dirty) return;
     dirty = false;
     ctx.clearRect(0, 0, W, H);
@@ -1147,10 +1204,11 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
     desc().connections.forEach((link, i) => {
       const { a, b, kind } = linkEnds(desc(), nodeTypes, link, kindOf);
       const hot = drag?.kind === 'move' && drag.hover === i;
-      const chosen = hot || (selected?.kind === 'link' && selected.index === i);
+      const lit = hoverPort && litWire() === i && !drag;
+      const chosen = hot || lit || (selected?.kind === 'link' && selected.index === i);
       ctx.beginPath();
       ctx.strokeStyle = chosen ? accent : kindColour(kind);
-      ctx.lineWidth = hot ? 5 : chosen ? 3.5 : kind === 'stereo' ? 3 : 1.75;   // a stereo pair is drawn heavier
+      ctx.lineWidth = hot ? 5 : lit ? 4.5 : chosen ? 3.5 : kind === 'stereo' ? 3 : 1.75;   // a stereo pair is drawn heavier
       ctx.setLineDash((kind === 'control' || kind === 'param') && config.get('wireDashed') ? [7, 5] : []);   // control wires dashed
       ctx.moveTo(a.x, a.y);
       { const k = arm(a, b); ctx.bezierCurveTo(a.x + k, a.y, b.x - k, b.y, b.x, b.y); }
@@ -1167,6 +1225,11 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
       { const k = arm(drag.inline.a, drag.inline.b); ctx.bezierCurveTo(drag.inline.a.x + k, drag.inline.a.y, drag.inline.b.x - k, drag.inline.b.y, drag.inline.b.x, drag.inline.b.y); }
       ctx.stroke();
       ctx.restore();
+    }
+    if (drag?.kind === 'rewire' && drag.started) {   // the picked-up wire, still held by its other end
+      const fixed = drag.moving === 'to' ? portRef(drag.link[0], 'out') : portRef(drag.link[1], 'in');
+      ctx.beginPath(); ctx.strokeStyle = accent; ctx.lineWidth = 2.25; ctx.setLineDash([6, 4]);
+      ctx.moveTo(fixed.x, fixed.y); ctx.lineTo(drag.x, drag.y); ctx.stroke(); ctx.setLineDash([]);
     }
     if (drag?.kind === 'connect') {
       const [id, port] = drag.from.split('.');
@@ -1228,7 +1291,8 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
         names.forEach((name, i) => {
           const p = portPos(node, type, side, i);
           ctx.beginPath();
-          ctx.arc(p.x, p.y, PORT_R, 0, 2 * Math.PI);
+          const hov = hoverPort && hoverPort.node === node.id && hoverPort.port === name && hoverPort.side === side;
+          ctx.arc(p.x, p.y, PORT_R + (hov ? 1 + 2.5 * (0.5 + 0.5 * Math.sin(Date.now() / 260)) : 0), 0, 2 * Math.PI);
           ctx.fillStyle = kindColour(kindOf(node, name));
           ctx.fill();
           ctx.strokeStyle = ink;
