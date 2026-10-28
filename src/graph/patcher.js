@@ -979,6 +979,15 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
       e.preventDefault();
       return;
     }
+    if (e.altKey && !e.ctrlKey && !e.metaKey && e.code === 'KeyV' && (group.size || selected?.kind === 'node')) {   // Alt+V keeps (or stops keeping) the pictures beside the node(s)
+      const ids = group.size ? [...group] : [selected.id], nodes = desc().nodes.filter(n => ids.includes(n.id) && (nodeTypes[n.type]?.curves || nodeTypes[n.type]?.adsr?.length));
+      if (nodes.length) {
+        const on = !nodes.every(n => n.keepView);
+        for (const n of nodes) { if (on) n.keepView = true; else delete n.keepView; }
+        say(on ? 'Its picture stays on when it is not selected (Alt+V again to stop)' : 'Its picture shows only while it is selected');
+        dirty = true; e.preventDefault(); return;
+      }
+    }
     if (e.altKey && !e.ctrlKey && !e.metaKey && e.code === 'KeyR' && (group.size || selected?.kind === 'node')) {   // Alt+R takes a node out and joins the wires round it (plain R is a keyjazz key)
       removeSelected(true);
       e.preventDefault();
@@ -1288,6 +1297,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
       ctx.textBaseline = 'alphabetic';
       ctx.textAlign = 'center';
       if (type.shape !== 'dot' || chosen) ctx.fillText(node.id, node.x + w / 2, node.y - 5);   // the name sits above the shape (a route dot shows it only when chosen)
+      if (node.keepView) { ctx.beginPath(); ctx.arc(node.x + w - 4, node.y + 4, 2.2, 0, 2 * Math.PI); ctx.fillStyle = accent; ctx.fill(); }   // a dot: its pictures stay on
       if (node.type === 'tap') { const slot = Math.round(node.params?.smp ?? type.params.find(q => q.name === 'smp').def), copy = Math.round(node.params?.copy ?? 0); ctx.fillText(slot >= 1 && slot <= 16 ? `\u2192 tap${String(slot).padStart(2, '0')}${copy ? `, copy ${copy}` : ''}` : '\u2192 (off)', node.x + w / 2, node.y + h + 12); }   // where it writes
       if (node.type === 'sidechain') { ctx.fillText(node.source ? `\u2190 ${node.source}` : '\u2190 (none)', node.x + w / 2, node.y + h + 12); }   // where it listens to
 
@@ -1368,10 +1378,15 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
       ctx.strokeRect(drag.x0, drag.y0, drag.x - drag.x0, drag.y - drag.y0);
       ctx.restore();
     }
-    const chosenNode = selected?.kind === 'node' ? desc().nodes.find(n => n.id === selected.id) : null;
-    const chosenType = chosenNode && nodeTypes[chosenNode.type];
-    if (chosenType?.curves) drawResponse(chosenNode, chosenType, { x: chosenNode.x, y: chosenNode.y, ...nodeBox(chosenType, chosenNode) }, ink);
-    if (chosenType?.adsr?.length) drawEnvelopes(chosenNode, chosenType, { x: chosenNode.x, y: chosenNode.y, ...nodeBox(chosenType, chosenNode) }, ink);
+    // The pictures beside a node (a filter's response, an envelope's shape) show for the selected node, and stay for every node
+    // that was told to keep them (Alt+V).
+    for (const n of desc().nodes) {
+      const t = nodeTypes[n.type];
+      if (!t || !(n.keepView || (selected?.kind === 'node' && selected.id === n.id))) continue;
+      const box = { x: n.x, y: n.y, ...nodeBox(t, n) };
+      if (t.curves) drawResponse(n, t, box, ink);
+      if (t.adsr?.length) drawEnvelopes(n, t, box, ink);
+    }
   }
 
   return {
