@@ -19,6 +19,7 @@ import { createParamView } from './paramview.js';
 import { createSpecPanView } from './specpaneditor.js';
 import { createCanyonView } from './canyonview.js';
 import { createDrumView } from './drumview.js';
+import { createCardinalView } from './cardinalview.js';
 import { rangeTargetOf } from './rangetarget.js';
 import { createIntView } from './intview.js';
 import { createRangeView } from './rangeview.js';
@@ -164,6 +165,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
   let dxView = null;        // the bank loader and algorithm view of a DVIIloader
   let intView = null;
   let rangeView = null;
+  let cardinalView = null;   // the oscillators, filter, envelopes and LFOs of a Cardinal synth
   let drumView = null;      // the envelopes, the click and the composed root note of a drum synth, redrawn when its parameters move
   let canyonView = null;    // the echoes of a Prisma Canyon against the song's ticks, redrawn when its parameters move
   let specView = null;      // the pan-against-frequency view of a spectral panner, redrawn when its parameters move
@@ -316,6 +318,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
         if (type.editor === 'specpan') specView?.refresh();
         if (type.editor === 'canyon') canyonView?.refresh();
         if (type.editor === 'drumsynth') drumView?.refresh();
+        if (type.editor === 'cardinal') cardinalView?.refresh();
         if (type.editor === 'int') intView?.refresh();
         if (type.type === 'range') rangeView?.refresh();
         if (type.editor === 'dx' && spec.name === 'voice') dxView?.refresh();
@@ -568,6 +571,11 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
     if (type.editor === 'specpan') {   // the pan of each band against frequency, drawn from the parameters
       specView = createSpecPanView({ doc, getParam: name => readLive(instId, node.id, name) ?? node.params?.[name] ?? type.params.find(p => p.name === name)?.def ?? 0 });
       items.splice(1, 0, specView.el);
+    }
+    cardinalView = null;
+    if (type.editor === 'cardinal') {   // the oscillators, filter, envelopes and LFOs, drawn from the parameters
+      cardinalView = createCardinalView({ doc, getParam: name => readLive(instId, node.id, name) ?? node.params?.[name] ?? type.params.find(q => q.name === name)?.def ?? 0 });
+      items.splice(1, 0, cardinalView.el);
     }
     drumView = null;
     if (type.editor === 'drumsynth') {   // the envelopes, the click and the composed note, drawn from the parameters and the click sample
@@ -1167,7 +1175,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
     const sig = parts.join(',');
     if (sig === liveSig) return;
     liveSig = sig;
-    paramView?.refresh(); exposedView?.refresh(); floatView?.refresh(); tapEditor?.refresh(); gateEditor?.refresh(); specView?.refresh(); canyonView?.refresh(); drumView?.refresh(); intView?.refresh(); rangeView?.refresh(); dxView?.refresh();
+    paramView?.refresh(); exposedView?.refresh(); floatView?.refresh(); tapEditor?.refresh(); gateEditor?.refresh(); specView?.refresh(); canyonView?.refresh(); drumView?.refresh(); cardinalView?.refresh(); intView?.refresh(); rangeView?.refresh(); dxView?.refresh();
   }
 
   // A graph is moved clear of the exposed-parameters dock once when its instrument is first shown after a load (the file

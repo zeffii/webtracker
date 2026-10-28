@@ -623,6 +623,34 @@ export const synthKinds = {
       ],
     }),
   },
+  cardinal: {
+    label: 'Cardinal (virtual analogue lead)',
+    make: () => ({
+      graph: { nodes: [{ id: 'lead', type: 'cardinal' }, { id: 'poly', type: 'voices' }, { id: 'out', type: 'out', params: { gain: 0.6 } }], connections: [['lead.out', 'poly.in'], ['poly.out', 'out.in']], voices: 4 },
+      noteColumns: 1,
+      exposed: [
+        { node: 'lead', param: 'cutoff', label: 'Cut', scale: 'log' },
+        { node: 'lead', param: 'res', label: 'Res' },
+        { node: 'lead', param: 'e2cut', label: 'Env' },
+        { node: 'lead', param: 'mix', label: 'Mix' },
+        { node: 'lead', param: 'fm', label: 'FM' },
+      ],
+      commands: [
+        { id: 0x01, node: 'lead', param: 'cutoff', scale: 'log' },
+        { id: 0x02, node: 'lead', param: 'res' },
+        { id: 0x03, node: 'lead', param: 'e2cut' },
+        { id: 0x04, node: 'lead', param: 'mix' },
+        { id: 0x05, node: 'lead', param: 'fm' },
+        { id: 0x06, node: 'lead', param: 'o2semi' },
+        { id: 0x07, node: 'lead', param: 'o2fine' },
+        { id: 0x08, node: 'lead', param: 'mdec', scale: 'log' },
+        { id: 0x09, node: 'lead', param: 'dec', scale: 'log' },
+        { id: 0x0A, node: 'lead', param: 'detune' },
+        { id: 0x0B, node: 'lead', param: 'l1amt' },
+        { id: 0x0C, node: 'lead', param: 'l1rate', scale: 'log' },
+      ],
+    }),
+  },
   woodblock: {
     label: 'Woodblock (struck wood, energy loss)',
     make: () => ({

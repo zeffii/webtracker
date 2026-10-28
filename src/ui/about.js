@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['489', ['New synth node and instrument kind, Cardinal: a monophonic virtual-analogue lead (behind the voices node for chords). Two oscillators (triangle, saw, pulse, sine, noise) with semitone and fine tune, key tracking, hard sync, fm from osc 1 into osc 2, ring modulation, a mix, noise and 1 to 5 unison voices; a filter that is lowpass 24 or 12, bandpass, highpass or notch with cutoff, resonance, key tracking and distortion; an amp envelope and a mod envelope (sweeping cutoff, osc 2 pitch, fm and pulse width); two LFOs with five waves and six destinations; glide and slide. Beside it are pictures of the oscillators (the real output), the filter response, both envelopes and both LFOs.']],
   ['488', ['Shader view: choosing Built-in (the button or the dropdown) now stores a real copy of the built-in metaballs in the project shader, so it can no longer turn into whatever the Config default shader holds, and editing it changes only that copy.']],
   ['487', ['Live picture: if the browser drops the graphics context (after a long idle, a sleep or a driver reset) the picture now comes back by itself instead of staying blank until the page is reloaded.']],
   ['486', ['Audio: after a long idle the browser can suspend the audio context, and Play then seemed to do nothing. Play now wakes the context first (and coming back to the tab does too); if the audio device still does not answer, the status line says so.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['482', ['Graph editor: Tab over a port with several wires now always chooses the wire (it was swallowed when the canvas did not have the keyboard focus or a node panel took the key).']],
   ['481', ['Graph editor: the pulse of a hovered port is gentler (about a pixel instead of up to three and a half).']],
   ['480', ['Arrangement: the top edge of the grid now lines up with the top edge of the pattern list panel (it was 8 pixels lower).']],
-  ['479', ['Arrangement: the grid and the pattern list beside it now start at the same height.']],
 ];

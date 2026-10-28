@@ -7,7 +7,7 @@
 // How the nodes of a category are grouped. A node that is not listed here still shows up, at the end of its category.
 const GROUPS = {
   Sources: [
-    ['Synths', ['subsynth', 'fourpole', 'oberheim', 'piano', 'addsynth', 'fmsynth', 'dvii', 'wavetable', 'granular', 'woodblock', 'drumsynth', 'specsynth', 'string', 'hat808', 'clap', 'combperc', 'squelch', 'duette', 'modchan']],
+    ['Synths', ['subsynth', 'fourpole', 'oberheim', 'piano', 'addsynth', 'fmsynth', 'dvii', 'wavetable', 'granular', 'woodblock', 'drumsynth', 'cardinal', 'specsynth', 'string', 'hat808', 'clap', 'combperc', 'squelch', 'duette', 'modchan']],
     ['Basic', ['osc', 'noise', 'sampler']],
     ['Modulators', ['env', 'lfo']],
     ['Routing', ['sidechain']],

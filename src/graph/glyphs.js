@@ -281,6 +281,11 @@ export const GLYPHS = {
     }
     line(ctx, pts);
   },
+  cardinal: (ctx, cx, cy, w, h) => {   // a saw wave over a filter slope
+    const x = f => cx - w / 2 + f * w, y = f => cy + h / 2 - f * h;
+    ctx.beginPath(); for (let i = 0; i < 3; i++) { ctx.moveTo(x(0.08 + i * 0.28), y(0.15)); ctx.lineTo(x(0.08 + i * 0.28), y(0.85)); ctx.lineTo(x(0.36 + i * 0.28), y(0.15)); } ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x(0.05), y(0.95)); ctx.lineTo(x(0.6), y(0.95)); ctx.quadraticCurveTo(x(0.75), y(0.95), x(0.95), y(0.45)); ctx.stroke();
+  },
   drumsynth: (ctx, cx, cy, w, h) => {   // a falling pitch sweep, with a spike at the start
     const x = f => cx - w / 2 + f * w, y = f => cy + h / 2 - f * h;
     ctx.beginPath(); for (let i = 0; i <= 14; i++) { const t = i / 14; const Y = y(0.2 + 0.65 * Math.exp(-t * 4)); i ? ctx.lineTo(x(0.12 + t * 0.8), Y) : ctx.moveTo(x(0.12 + t * 0.8), Y); } ctx.stroke();

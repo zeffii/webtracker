@@ -8596,4 +8596,29 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   assert.equal(nout[0], 5, 'int rounds');
   console.log('ok: control operators');
 }
+
+{
+  // Cardinal: the virtual analogue lead
+  const { renderPreview, oscPreview, filterResponse, lfoShape } = await import('../src/audio/nodes/cardinal.js');
+  const rms = a => Math.sqrt(a.reduce((x, y) => x + y * y, 0) / a.length);
+  const base = renderPreview({}, { ms: 300 });
+  assert.ok(base.every(Number.isFinite) && rms(base) > 0.03, 'a note sounds and stays finite');
+  for (const ftype of [0, 1, 2, 3, 4]) assert.ok(renderPreview({ ftype }, { ms: 120 }).every(Number.isFinite), `filter type ${ftype} stays finite`);
+  const dark = renderPreview({ cutoff: 200, e2cut: 0, fkey: 0 }, { ms: 200 }), bright = renderPreview({ cutoff: 12000, e2cut: 0, fkey: 0 }, { ms: 200 });
+  const rough = a => rms(a.slice(1).map((x, i) => x - a[i]));   // the energy in the highs
+  assert.ok(rough(dark) < rough(bright) * 0.3, 'a low cutoff takes the highs off a saw');
+  const hp = renderPreview({ ftype: 3, cutoff: 6000, e2cut: 0, fkey: 0 }, { ms: 200 });
+  assert.ok(rms(hp) < rms(bright) * 0.5, 'a highpass takes the low body off');
+  const plain = oscPreview({ o2sync: 0, o2semi: 7, mix: 0.5 }), synced = oscPreview({ o2sync: 1, o2semi: 7, mix: 0.5 });
+  assert.ok(plain.some((x, i) => Math.abs(x - synced[i]) > 0.05), 'sync changes the shape of the combined wave');
+  assert.ok(oscPreview({ fm: 0.8, o2semi: 7, mix: 1 }).some((x, i) => Math.abs(x - oscPreview({ fm: 0, o2semi: 7, mix: 1 })[i]) > 0.05), 'fm changes oscillator 2');
+  const ringed = oscPreview({ ring: 1, o2semi: 7 }), ring0 = oscPreview({ ring: 0, o2semi: 7 });
+  assert.ok(ringed.some((x, i) => Math.abs(x - ring0[i]) > 0.05), 'ring modulation changes the sound');
+  const vib = renderPreview({ l1amt: 1, l1dest: 0, l1rate: 6, o1wave: 3, mix: 0 }, { ms: 400 }), steady = renderPreview({ l1amt: 0, o1wave: 3, mix: 0 }, { ms: 400 });
+  assert.ok(vib.some((x, i) => Math.abs(x - steady[i]) > 0.1), 'an LFO on pitch bends the note');
+  assert.ok(filterResponse({ ftype: 0, cutoff: 1000, res: 0 }, 100) > 0.95 && filterResponse({ ftype: 0, cutoff: 1000, res: 0 }, 8000) < 0.01, 'the picture of the lowpass passes lows and stops highs');
+  assert.ok(filterResponse({ ftype: 2, cutoff: 1000, res: 0.5 }, 1000) > 4 * filterResponse({ ftype: 2, cutoff: 1000, res: 0.5 }, 100), 'the picture of the bandpass peaks at the cutoff');
+  assert.equal(lfoShape(3, 0.25), 1, 'a square LFO is up in its first half');
+  console.log('ok: cardinal');
+}
 console.log('smoke test passed');
