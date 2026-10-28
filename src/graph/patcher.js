@@ -940,18 +940,23 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
     return true;
   }
 
+  // Tab with the mouse over a port that has several wires: choose the one that is lit and would be picked up.
+  function tabPick(e) {
+    if (e.key !== 'Tab' || e.ctrlKey || e.altKey || e.metaKey || !hoverPort || drag) return false;
+    const ws = wiresAt(hoverPort);
+    if (ws.length < 2) return false;
+    pickWire = (pickWire + (e.shiftKey ? -1 : 1) + ws.length * 8) % ws.length;
+    const [f, t] = desc().connections[ws[pickWire]];
+    say(`Wire ${pickWire + 1} of ${ws.length}: ${f} to ${t}. Drag the port to move it`);
+    dirty = true; e.preventDefault(); e.stopPropagation?.();
+    return true;
+  }
+  doc.addEventListener?.('keydown', e => { if (e.target !== canvas && !/^(INPUT|TEXTAREA|SELECT)$/.test(e.target?.tagName ?? '')) tabPick(e); }, true);   // the canvas need not have the focus
+
   canvas.addEventListener('keydown', e => {
+    if (tabPick(e)) return;
     // With a node selected, its parameter panel takes the arrows, Home/End, PageUp/PageDown and Enter (Alt+arrows move between nodes)
     if (paramView && selected?.kind === 'node' && !e.altKey && !e.metaKey && paramView.key(e)) { e.preventDefault?.(); return; }
-    if (e.key === 'Tab' && !e.ctrlKey && !e.altKey && !e.metaKey && hoverPort && !drag) {   // several wires on the port under the mouse: choose one
-      const ws = wiresAt(hoverPort);
-      if (ws.length > 1) {
-        pickWire = (pickWire + (e.shiftKey ? -1 : 1) + ws.length * 8) % ws.length;
-        const [f, t] = desc().connections[ws[pickWire]];
-        say(`Wire ${pickWire + 1} of ${ws.length}: ${f} to ${t}. Drag the port to move it`);
-        dirty = true; e.preventDefault(); return;
-      }
-    }
     if (e.key === 'Escape' && drag?.kind === 'rewire') { dropWire(drag, true); drag = null; say('Wire put back'); dirty = true; e.preventDefault?.(); return; }
     if (e.key === 'Escape' && drag?.kind === 'move') {   // Esc while dragging a node: just move it, leave the wires alone
       drag.free = true;

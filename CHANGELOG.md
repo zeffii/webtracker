@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 482 · 2026-10-28
+
+- Graph editor: Tab over a port with several wires now always chooses the wire (it was swallowed when the canvas did not have the keyboard focus or a node panel took the key).
+
 ## 481 · 2026-10-28
 
 - Graph editor: the pulse of a hovered port is gentler (about a pixel instead of up to three and a half).
