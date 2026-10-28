@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 494 · 2026-10-28
+
+- Help (F1) page for the Chord node: how to use it, the full list of what can be typed in a chord name, how the notes are placed, the Chd, Oct and Str columns, how to put a Chord node into any instrument (for example one built on Cardinal), and its limits.
+
 ## 493 · 2026-10-28
 
 - New demo song for the Chord node, chords (open it with ?demo=chords): 84 bpm, 24 bars. One Chord node holds your seventeen chords in slots 00 to 10; every chord row is a single trigger note plus the Chd, Oct and Str columns. A bass comes in at bar 4 and the drums at bar 8, and the last eight bars move down an octave.

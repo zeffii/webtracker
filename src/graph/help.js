@@ -2,6 +2,7 @@
 // The ones written by hand are in PAGES; for the rest the page is built from the node's own definition (its ports and the
 // hint of each parameter), so F1 always shows something and the hand-written ones can be added a few at a time.
 import { hintFor, factsFor } from './hints.js';
+import { SYNTAX } from '../seq/chordname.js';
 
 // summary: one or two sentences. best: ways to get the most out of it. limits: what it will not do well.
 export const PAGES = {
@@ -218,6 +219,50 @@ export const PAGES = {
     summary: 'Smears the sound across frequency and time, so it melts into a breathy wash.',
     best: ['Use it on a send, with mix partly open, to turn a sound into a pad.', 'Freeze holds the moment, so the sound hangs in the air until you release it.'],
     limits: ['It works in frames, so it adds delay (bigger size, more delay), and attacks are smeared whatever you do.'],
+  },
+  chord: {
+    summary: "Turns every note into a chord you have typed as a name. Put it in an instrument's graph (it has no wires), the same way as the arp, and the notes the instrument is given (from patterns, the keyboard and MIDI) become chords before the voices hear them. The chords live in 256 slots, 00 to FF; the chord parameter (the Chd column in a pattern) says which slot plays, and the octave parameter (the Oct column) says where the root sits.",
+    best: [
+      "Type names into the slots in the node's panel: F# 13sus, Eb 9sus4, E min9(11), G Major 7th, Db 7#9(no5), Cm7/Bb. Each slot shows the notes it makes, and a name that cannot be read is marked red with the reason.",
+      "By default the pattern note only triggers the chord: C-4 and F#-2 play the same notes, exactly as typed. Turn follow on and the chord moves with the note (C4 plays it as typed, D4 a tone higher), which gives you a chord keyboard.",
+      "Set the chord in a row with the Chd column and the octave of its root with Oct (one hex digit, 2 to 9 is the useful range). Both stay until written again, so one pattern per chord, reused, is the tidy way to write a progression.",
+      "A slot left empty plays the note as it is, so slot 00 can be left empty to switch chords off for a bar.",
+      "Strum spreads the notes out in time, in ms between one note and the next; 20 to 40 ms is a guitar-like strum. Direction chooses whether it starts from the lowest note or the highest.",
+      "Inversion lifts the lowest notes an octave, one at a time, and a slash chord (C/E) puts a bass note under the chord. Notes limits the size of the chord for a synth with few voices: the fifth is dropped first, then the highest notes.",
+      "It works with any sound. To put a chord node in front of another instrument (Cardinal, for one), insert the Chord node into that instrument's graph, leave it unwired, set the voices node high enough for your biggest chord (7 for a 13th chord), and expose the chord and octave parameters as columns (width 2 hex for chord, 1 hex for octave).",
+      "Every parameter can be written from a pattern column or driven by a wire, so the strum or the inversion can change during the song.",
+    ],
+    limits: [
+      "Only one node that takes notes is used per instrument (the first of the chord and the arp), so a chord cannot be fed into an arp yet.",
+      "The notes it makes keep the velocity of the note that triggered the chord, scaled by level; there is no velocity per chord note.",
+      "A note column plays one note at a time, but the chord notes are made after the column, so a chord of many notes needs enough voices (the voices node) or the extra notes take voices from each other.",
+      "A strum is timed in audio blocks (about 3 ms), so a note may sit a few ms off its ideal place.",
+      "Chord names are for tertian chords: stacked thirds with the usual alterations. Cluster chords or exact voicings are best written as notes in several note columns.",
+      "The notes are limited to the 0 to 127 range: a chord that would go above it is moved down an octave as a whole.",
+    ],
+    sections: [
+      {
+        title: 'What can be typed',
+        text: ['Spaces and brackets are free, so "E min9 (11)" is the same as "Emin9(11)". A name is a root, then pieces in any order; a slash at the end names a bass note.'],
+        rows: SYNTAX,
+      },
+      {
+        title: 'How the notes are placed',
+        text: [
+          'The root sits in the octave of the octave parameter (4 is the octave of middle C) and the other notes are stacked above it, lowest to highest. The 9th, 11th and 13th are an octave up. A 13th chord leaves out the 11th, which fights the third, and a suspended chord leaves out the third (a suspended 4th chord also leaves out the 11th, since it is the same note). Name any note you want back with add, for example 13add11.',
+          'A bass note (the part after a slash) goes below the lowest note, an octave lower if it would be only a second or less under it. Inversion lifts the lowest notes first, and the bass note is added after that.',
+        ],
+      },
+      {
+        title: 'In a pattern',
+        rows: [
+          ['Chd', 'which slot plays, 2 hex digits: 00 to FF'],
+          ['Oct', 'the octave of the root, 1 hex digit'],
+          ['Str', 'the strum in ms, if it is exposed as a column (00 none, FF is 120 ms)'],
+          ['the note', 'only triggers (unless follow is on); the note off releases the whole chord'],
+        ],
+      },
+    ],
   },
   arp: {
     summary: 'An arpeggiator. Put it in an instrument\'s graph (it has no wires) and the instrument no longer sounds held notes together: they become a pool, and the arp plays them one at a time, one step at a time, in the order the mode gives, locked to the song\'s tempo. It takes notes from patterns, the keyboard and MIDI alike.',

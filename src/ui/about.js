@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['494', ['Help (F1) page for the Chord node: how to use it, the full list of what can be typed in a chord name, how the notes are placed, the Chd, Oct and Str columns, how to put a Chord node into any instrument (for example one built on Cardinal), and its limits.']],
   ['493', ['New demo song for the Chord node, chords (open it with ?demo=chords): 84 bpm, 24 bars. One Chord node holds your seventeen chords in slots 00 to 10; every chord row is a single trigger note plus the Chd, Oct and Str columns. A bass comes in at bar 4 and the drums at bar 8, and the last eight bars move down an octave.']],
   ['492', ['New Chord node and instrument kind (Chords). Type chord names into 256 hex slots (00 to FF), such as F# 13sus, Eb 9sus4, E min9(11), G Major 7th, Db 7#9(no5), Db 7(#9#5), Cm7/Bb, plus the classical symbols for major, diminished and half-diminished, bass notes after a slash, sus, add, altered and left-out notes. The Chd column picks the slot a note plays (an empty slot plays the note as it is) and the one-digit Oct column sets the octave of the root. Also inversion, a limit on the number of notes, a strum in ms from the lowest or highest note, and a follow switch that moves the chord with the note. The editor lists every slot in pages of 16 with the notes it makes (bad names are marked) and a reference of what can be typed.']],
   ['491', ['The New menu item that cleared everything is now called New file.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['487', ['Live picture: if the browser drops the graphics context (after a long idle, a sleep or a driver reset) the picture now comes back by itself instead of staying blank until the page is reloaded.']],
   ['486', ['Audio: after a long idle the browser can suspend the audio context, and Play then seemed to do nothing. Play now wakes the context first (and coming back to the tab does too); if the audio device still does not answer, the status line says so.']],
   ['485', ['Graph editor: Alt+V on a selected node (or group) keeps the picture beside it (a filter response, an envelope shape) showing when it is not selected; a small dot marks such nodes. Alt+V again stops.']],
-  ['484', ['Graph editor: dragging from a free input port now draws a wire from it (drop it on an output) instead of moving the node; Shift+drag on a port that already has wires also starts a new wire. Grab the node by its body to move it.']],
 ];
