@@ -1836,7 +1836,7 @@ const placeViz = () => { if (pip) return; vizBox.style.bottom = `${$('footer').o
 const showViz = on => {
   vizOn = on;
   if (on && !visual) {
-    visual = createVisual($('viz-canvas'), { onError: text => { vizErr.hidden = !text; vizErr.textContent = text; shaderView?.error(text); } });
+    visual = createVisual($('viz-canvas'), { onRestore: () => { visual = null; showViz(vizOn); }, onError: text => { vizErr.hidden = !text; vizErr.textContent = text; shaderView?.error(text); } });
     if (!visual) { vizOn = false; $('status').textContent = 'The live picture needs WebGL, which this browser does not have.'; }
     else { visual.resize(Number(config.get('visualSize'))); pushShaders(); labels = createLabels($('viz-text'), Number(config.get('visualSize'))); }
   }

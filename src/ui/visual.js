@@ -96,9 +96,13 @@ export function createLabels(canvas, size = 300) {
 
 // canvas: a canvas (its size is set here); data: createVisData's out object, read every draw; onError(text) hears compile errors (and ''
 // when the shader is fine). Returns null without WebGL.
-export function createVisual(canvas, { size = 300, colours = [[.30, .74, .80], [.62, .97, .98]], onError = () => {} } = {}) {
+export function createVisual(canvas, { size = 300, colours = [[.30, .74, .80], [.62, .97, .98]], onError = () => {}, onRestore = () => {} } = {}) {
   const gl = canvas.getContext('webgl', { antialias: false, alpha: false, preserveDrawingBuffer: true });
   if (!gl) return null;
+  // After a long idle (or a sleep, or the graphics driver resetting) the browser can drop the graphics context and the picture
+  // goes blank for good. Saying the loss is fine lets the browser bring it back; onRestore then builds the picture again.
+  canvas.addEventListener('webglcontextlost', e => e.preventDefault());
+  canvas.addEventListener('webglcontextrestored', () => onRestore());
   canvas.width = size; canvas.height = size;
   gl.viewport(0, 0, size, size);
   gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());

@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 487 · 2026-10-28
+
+- Live picture: if the browser drops the graphics context (after a long idle, a sleep or a driver reset) the picture now comes back by itself instead of staying blank until the page is reloaded.
+
 ## 486 · 2026-10-28
 
 - Audio: after a long idle the browser can suspend the audio context, and Play then seemed to do nothing. Play now wakes the context first (and coming back to the tab does too); if the audio device still does not answer, the status line says so.
