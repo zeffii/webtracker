@@ -1158,6 +1158,7 @@
         <label title="How much of each pair of rows the first one lasts: 50 is straight, 67 is a triplet shuffle"><span>swing</span> <span class="field"><input id="swing" type="number" min="50" max="75" step="1" style="width:2.6em" disabled><span class="unit">%</span></span></label>
         <label title="Ticks in a beat. Changing it keeps the tempo of your music: the <span>bpm</span> readout is rescaled so a tick lasts just as long (a kick every 8 ticks at tpb 8 sounds like one every 4 at tpb 4)"><span>tpb</span> <input id="tpb" type="number" min="1" max="32" step="1" style="width:3em" disabled></label>
         <label title="Beats in a bar, the top number of the time signature: the rows of the arrangement are one <span>bar</span> tall and its shading follows (Ctrl+wheel there changes the row size)"><span>bar</span> <input id="bar" type="number" min="1" max="16" step="1" style="width:3em" disabled></label>
+        <label id="songtime-label" title="Estimated length of the song at the current tempo"><span>time</span> <span id="songtime" class="field">-</span></label>
       </div>
       <i class="sep"></i>
       <button id="save" disabled title="Save the project (.wax)" aria-label="Save"><svg class="ri" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 3h11l3 3v15H5z M8 3v6h8V3 M8 21v-7h8v7"/></svg></button>

@@ -49,7 +49,7 @@ import { createMidiWriter } from './seq/midiwrite.js';
 import { createMarkerRegionView } from './project/markerregion.js';
 import { FILE_EXT, INSTRUMENT_EXT, parseInstrument, parseProject, serializeInstrument, serializeProject } from './project/file.js';
 import { createEditor } from './seq/editor.js';
-import { toggleLoop } from './seq/loop.js';
+import { toggleLoop, loopRange, loopActive } from './seq/loop.js';
 import { prepareSong, rebuildInstrumentLanes } from './seq/lane.js';
 import * as config from './ui/config.js';
 import { createSequenceView } from './seq/seqview.js';
@@ -698,6 +698,12 @@ const songInfo = () => {
   if (!project) return;
   const looping = String(!!project.song.loop && !project.song.loop.off);
   if ($('loopbtn').getAttribute('aria-pressed') !== looping) $('loopbtn').setAttribute('aria-pressed', looping);
+  // the estimated length: the loop when it is on, else the whole song, at the song's tempo (a tempo written in the master lane is not counted)
+  const song = project.song, loop = loopActive(song), { start, end } = loopRange(song), ticks = loop ? end - start : song.length;
+  const seconds = Math.round(ticks * 60 / (song.bpm * (song.ticksPerBeat ?? 4)));
+  const clock = `${seconds >= 3600 ? `${Math.floor(seconds / 3600)}:${String(Math.floor(seconds / 60) % 60).padStart(2, '0')}` : Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
+  $('songtime').textContent = `~${clock}${loop ? ' loop' : ''}`;
+  $('songtime-label').title = `Estimated length at ${song.bpm} bpm: ${ticks} ticks, ${loop ? `the loop (ticks ${start} to ${end - 1})` : 'the whole song'}. A tempo set in the master lane is not counted.`;
   const { name, length } = project.song;
   const tick = Atomics.load(engine.transport, 0);
   $('song-info').textContent = `${name ?? 'untitled'} · row ${String(tick).padStart(2, '0')}/${length}`;
