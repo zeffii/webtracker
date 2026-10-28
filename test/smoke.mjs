@@ -6667,6 +6667,57 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   inst.message({ type: 'code', text: 'out1 = in1 * 7;' });
   inst.process([Float32Array.from([1, 1, 1, 1]), null], outs, 4, pv, slots);
   assert.deepEqual(Array.from(outs[0]), [7, 7, 7, 7], 'a good edit takes over');
+  // regression: sin / cos / min / max and friends compile (the builder once appended its context argument)
+  {
+    const r = compile('out1 = min(max(sin(in1) + cos(in1) + abs(tanh(in1)), -1), 1) + round(in1); out2 = 0;');
+    assert.ok(r.ok, `math functions compile: ${JSON.stringify(r.errors)}`);
+  }
+  // notes: freq gate vel note trig, defaults without a note, noteOn / noteOff, trig lasts one block
+  {
+    assert.ok(!compile('freq = 1; out1 = 0;').ok, 'a note name cannot be set');
+    const nd = gx.create({ sampleRate: 48000, data: { code: 'out1 = freq; out2 = gate + vel * 10 + trig * 100;' } });
+    const o = [new Float32Array(4), new Float32Array(4)];
+    nd.process([null, null], o, 4, pv, slots);
+    assert.equal(o[0][0], 440, 'freq is 440 with no note'); assert.equal(o[1][0], 10, 'gate 0, vel 1, trig 0');
+    nd.note({ type: 'noteOn', note: 69 + 12, vel: 0.5 });
+    nd.process([null, null], o, 4, pv, slots);
+    assert.ok(Math.abs(o[0][0] - 880) < 1e-9, 'freq follows the note'); assert.equal(o[1][0], 1 + 5 + 100, 'gate, vel and trig on the first sample');
+    assert.equal(o[1][1], 1 + 5, 'trig is only the first sample');
+    nd.process([null, null], o, 4, pv, slots);
+    assert.equal(o[1][0], 6, 'trig is gone in the next block');
+    nd.note({ type: 'noteOff', note: 81 });
+    nd.process([null, null], o, 4, pv, slots);
+    assert.equal(o[1][0], 5, 'gate falls, freq stays'); assert.ok(Math.abs(o[0][0] - 880) < 1e-9);
+  }
+  // the templates: every one compiles, instruments sound from a note, none makes a bad number
+  {
+    const { TEMPLATES } = await import('../src/genexpr/templates.js');
+    assert.ok(TEMPLATES.length >= 8);
+    for (const tp of TEMPLATES) {
+      const r = compile(tp.code);
+      assert.ok(r.ok, `template ${tp.name} compiles: ${JSON.stringify(r.errors)}`);
+      const nd = gx.create({ sampleRate: 48000, data: { code: tp.code } });
+      const o = [new Float32Array(128), new Float32Array(128)], ps = gx.params.map(() => 0.5);
+      let peak = 0, bad = false;
+      if (tp.kind === 'instrument') nd.note({ type: 'noteOn', note: 57, vel: 1 });
+      for (let b = 0; b < 40; b++) {
+        const inp = tp.kind === 'effect' ? [Float32Array.from({ length: 128 }, (_, i) => Math.sin((b * 128 + i) * 0.05) * 0.5), Float32Array.from({ length: 128 }, (_, i) => Math.sin((b * 128 + i) * 0.05) * 0.5)] : [null, null];
+        nd.process(inp, o, 128, ps, slots);
+        for (const ch of o) for (const v of ch) { if (!Number.isFinite(v)) bad = true; peak = Math.max(peak, Math.abs(v)); }
+      }
+      assert.ok(!bad, `template ${tp.name} stays finite`);
+      assert.ok(peak > 0.01 && peak < 4, `template ${tp.name} makes sound (peak ${peak})`);
+    }
+  }
+  // the Code instrument kind builds
+  {
+    const { synthKinds } = await import('../src/instruments.js');
+    const k = synthKinds.code;
+    assert.ok(k, 'the code kind exists');
+    const g = k.graph ?? k.make?.().graph;
+    const node = g?.nodes?.find(n => n.type === 'genexpr');
+    assert.ok(node && compile(node.data.code).ok, 'the code kind holds a program that compiles');
+  }
   console.log('ok: genexpr');
 }
 

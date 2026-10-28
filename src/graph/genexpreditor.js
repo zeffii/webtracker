@@ -4,6 +4,7 @@
 import { compile, DEFAULT_CODE } from '../genexpr/compile.js';
 import { classify, bracketAt, wordAt, sameWords } from '../genexpr/highlight.js';
 import { DOCS } from '../genexpr/docs.js';
+import { TEMPLATES } from '../genexpr/templates.js';
 
 const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
@@ -38,7 +39,24 @@ export function createGenexprEditor({ doc = document, code, onChange = () => {},
   area.setAttribute('autocapitalize', 'off'); area.setAttribute('autocomplete', 'off'); area.setAttribute('aria-label', 'GenExpr code');
   const wrap = el('div', { className: 'ge-wrap' }, mirror, area);
   const status = el('div', { className: 'ge-status' }), list = el('div', { className: 'ge-errors' }), knobs = el('div', { className: 'ge-knobs' });
-  const root = el('div', { className: 'ge' }, el('div', { className: 'ge-code' }, gutter, wrap), status, list, knobs);
+  // Templates: working programs to start from. Choosing one replaces the code; the code you had is kept one step back.
+  const picker = el('select', { className: 'ge-templates', ariaLabel: 'Load a template' }, el('option', { value: '', textContent: 'Templates…' }));
+  for (const [kind, label] of [['instrument', 'Instruments (in front of Voices)'], ['effect', 'Effects']]) {
+    const group = el('optgroup', { label });
+    TEMPLATES.forEach((t, i) => { if (t.kind === kind) group.append(el('option', { value: String(i), textContent: t.name })); });
+    picker.append(group);
+  }
+  const backOption = el('option', { value: 'back', textContent: '↩ the code I had before', hidden: true });
+  picker.append(backOption);
+  let before = null;
+  picker.addEventListener('change', () => {
+    const v = picker.value; picker.value = '';
+    if (v === '') return;
+    if (v === 'back') { if (before !== null) { const now = text; api.setText(before); before = now; } return; }
+    before = text; backOption.hidden = false;
+    api.setText(TEMPLATES[Number(v)].code);
+  });
+  const root = el('div', { className: 'ge' }, picker, el('div', { className: 'ge-code' }, gutter, wrap), status, list, knobs);
 
   let prev = compile(text).params, timer = 0, last = null, info = classify(text);
   // At the caret: the bracket that pairs with the one beside it, and the other places the word under it is used.
@@ -133,9 +151,10 @@ export function createGenexprEditor({ doc = document, code, onChange = () => {},
     }
   });
   draw(compile(text));
-  return {
+  const api = {
     el: root,
     refresh() { if (area.value !== text) area.value = text; },
     setText(next) { text = next; area.value = next; run(); },
   };
+  return api;
 }

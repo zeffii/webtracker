@@ -2,6 +2,14 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 502 · 2026-10-28
+
+- Code node (GenExpr): plays from notes. New read-only names freq (Hz), gate (1 while a key is held), vel, note and trig (1 for the first sample of a new note). In front of a Voices node every voice is its own copy of the code.
+- Templates list above the code box: sine voice, detuned saw pad, FM bell, plucked string, kick drum, hi-hat, echo, bitcrusher, ring modulator, soft clipper. "The code I had before" undoes a template.
+- New instrument kind Code: the code node (sine voice) into Voices, with four knobs exposed as columns.
+- Fixed a compiler bug: sin, cos, tan, abs, min, max, round, floor, tanh and other math functions failed with an internal compiler error.
+- Help page for the code node with the language, the note inputs, recipes and the limits.
+
 ## 501 · 2026-10-28
 
 - Top row: the thin line under the value fields (len, bpm, swing, tpb, bar) is gone. A field that you are editing still shows a faint highlight.

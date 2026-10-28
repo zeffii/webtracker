@@ -1,4 +1,5 @@
 import { samplerPreset } from './presets.js';
+import { TEMPLATES } from './genexpr/templates.js';
 
 // The sampler's pattern format is fixed by these lists. Each exposed entry becomes
 // a column that writes the named node parameter (2hex, or 4hex with bits: 16).
@@ -293,6 +294,25 @@ export const synthKinds = {
         { id: 0x11, node: 'chord', param: 'octave' },
         { id: 0x12, node: 'chord', param: 'inversion' },
         { id: 0x13, node: 'chord', param: 'strum' },
+      ],
+    }),
+  },
+  code: {
+    label: 'Code (a synth you write in GenExpr)',
+    make: () => ({
+      graph: { nodes: [{ id: 'code', type: 'genexpr', data: { code: TEMPLATES[0].code } }, { id: 'poly', type: 'voices' }, { id: 'out', type: 'out', params: { gain: 0.6 } }], connections: [['code.out1', 'poly.in'], ['poly.out', 'out.in']], voices: 6 },
+      noteColumns: 1,
+      exposed: [
+        { node: 'code', param: 'p1', label: 'P1' },
+        { node: 'code', param: 'p2', label: 'P2' },
+        { node: 'code', param: 'p3', label: 'P3' },
+        { node: 'code', param: 'p4', label: 'P4' },
+      ],
+      commands: [
+        { id: 0x01, node: 'code', param: 'p1' },
+        { id: 0x02, node: 'code', param: 'p2' },
+        { id: 0x03, node: 'code', param: 'p3' },
+        { id: 0x04, node: 'code', param: 'p4' },
       ],
     }),
   },

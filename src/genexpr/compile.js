@@ -1,11 +1,13 @@
 // GenExpr compiler: text in, a JavaScript function out, once per edit (never per audio block).
 // A subset of the gen~ code language: History, Param, Data and Delay declarations, assignments, if / else, the usual
-// operators and a library of functions. `in1` `in2` come in, `out1` `out2` go out. Every mistake is reported with its
+// operators and a library of functions. `in1` `in2` come in, `out1` `out2` go out; `freq` `gate` `vel` `note` `trig` come from the
+// notes played on the instrument (see the genexpr node). Every mistake is reported with its
 // line, column and a hint, and a program with mistakes produces no code, so the last good one keeps running.
 import { parse } from './parser.js';
 
 export const MAX_PARAMS = 8, MAX_BUFFER = 1 << 22;
 export const DEFAULT_CODE = `// GenExpr: in1 and in2 come in, out1 and out2 go out.
+// (To play it from notes: freq, gate, vel, note and trig; see the templates.)
 // A Param becomes a knob, p1 to p8 in the order they are declared.
 Param amount(0.5, min=0, max=1);
 History smooth(0);
@@ -18,7 +20,7 @@ out2 = in2;
 const CONSTS = { pi: Math.PI, twopi: Math.PI * 2, halfpi: Math.PI / 2, invpi: 1 / Math.PI, e: Math.E, ln2: Math.LN2, ln10: Math.LN10, sqrt2: Math.SQRT2, sqrt1_2: Math.SQRT1_2 };
 
 // name: [min args, max args, builder(args, ctx)]; args are JavaScript source strings; ctx.state(n) reserves state slots
-const M = name => (...a) => `Math.${name}(${a.join(', ')})`;
+const M = name => (...a) => `Math.${name}(${a.slice(0, -1).join(', ')})`;   // the last argument is ctx, which Math does not take
 const FUNCS = {
   sin: [1, 1, M('sin')], cos: [1, 1, M('cos')], tan: [1, 1, M('tan')], asin: [1, 1, a => `Math.asin($c(${a}, -1, 1))`], acos: [1, 1, a => `Math.acos($c(${a}, -1, 1))`], atan: [1, 1, M('atan')], atan2: [2, 2, M('atan2')],
   sinh: [1, 1, M('sinh')], cosh: [1, 1, M('cosh')], tanh: [1, 1, M('tanh')],
@@ -41,9 +43,12 @@ const FUNCS = {
   dcblock: [1, 1, (x, c) => { const k = c.state(2); return `$dcblock(S, ${k}, ${x})`; }],
 };
 const BUFFER_FUNCS = new Set(['peek', 'poke', 'dim']);
+// What the notes played on the instrument give the code, in the order of the N array the node passes in.
+export const NOTE_NAMES = ['freq', 'gate', 'vel', 'note', 'trig'];
+export const NOTE_DEFAULTS = [440, 0, 1, 69, 0];   // before any note: A4, not held, full velocity, no trigger
 const WORDS = new Set(['if', 'else', 'History', 'Param', 'Data', 'Delay']);
 // What the language is made of, for the editor's highlighting and hover help: every operator, constant and word the compiler knows.
-export const BUILTINS = { funcs: Object.keys(FUNCS), bufferFuncs: [...BUFFER_FUNCS], consts: [...Object.keys(CONSTS), 'samplerate'], declarations: ['History', 'Param', 'Data', 'Delay'], control: ['if', 'else'], methods: ['read', 'write'], inputs: ['in1', 'in2'], outputs: ['out1', 'out2'] };
+export const BUILTINS = { funcs: Object.keys(FUNCS), bufferFuncs: [...BUFFER_FUNCS], consts: [...Object.keys(CONSTS), 'samplerate'], declarations: ['History', 'Param', 'Data', 'Delay'], control: ['if', 'else'], methods: ['read', 'write'], inputs: ['in1', 'in2', ...NOTE_NAMES], outputs: ['out1', 'out2'] };
 
 const PRELUDE = `
 const TAU = Math.PI * 2;
@@ -91,12 +96,13 @@ export function compile(text, { sampleRate = 48000 } = {}) {
   const syms = new Map();   // name -> { kind, ... }
   syms.set('in1', { kind: 'in', n: 0 }); syms.set('in2', { kind: 'in', n: 1 });
   syms.set('out1', { kind: 'out', n: 0 }); syms.set('out2', { kind: 'out', n: 1 });
+  NOTE_NAMES.forEach((name, n) => syms.set(name, { kind: 'note', n }));
   for (const [k, v] of Object.entries(CONSTS)) syms.set(k, { kind: 'const', v });
   syms.set('samplerate', { kind: 'const', v: sampleRate });
   const reserved = () => [...syms.keys(), ...Object.keys(FUNCS), ...BUFFER_FUNCS, ...WORDS];
 
   let nState = 0; const inits = [], buffers = [], params = [], locals = new Set(), assigned = new Set();
-  const used = { in: [false, false], out: [false, false], params: new Set() };
+  const used = { in: [false, false], out: [false, false], params: new Set(), note: false };
   const state = n => { const k = nState; nState += n; return k; };
 
   // locals are every name that is set somewhere and is not declared; found first so "used before set" can be told from "unknown"
@@ -115,7 +121,7 @@ export function compile(text, { sampleRate = 48000 } = {}) {
 
   function declare(s) {
     const clash = syms.get(s.name) || FUNCS[s.name] || BUFFER_FUNCS.has(s.name) || WORDS.has(s.name);
-    if (clash) { err(s.nameAt, syms.has(s.name) && syms.get(s.name).kind !== 'const' && syms.get(s.name).kind !== 'in' && syms.get(s.name).kind !== 'out' ? `"${s.name}" is declared twice` : `"${s.name}" is already a name in GenExpr`); return; }
+    if (clash) { err(s.nameAt, syms.has(s.name) && !['const', 'in', 'out', 'note'].includes(syms.get(s.name).kind) ? `"${s.name}" is declared twice` : `"${s.name}" is already a name in GenExpr`); return; }
     const pos = s.args.filter(a => !a.key), named = Object.fromEntries(s.args.filter(a => a.key).map(a => [a.key, a]));
     const only = (allowed, tail = '') => { for (const a of s.args.filter(a => a.key)) if (!allowed.includes(a.key)) err(a.at, `${s.kind} has no "${a.key}" setting; it takes ${allowed.join(', ')}${tail}`); };
     if (s.kind === 'History') {
@@ -158,6 +164,7 @@ export function compile(text, { sampleRate = 48000 } = {}) {
         if (s) {
           if (s.kind === 'const') return String(s.v);
           if (s.kind === 'in') { used.in[s.n] = true; return `i${s.n + 1}`; }
+          if (s.kind === 'note') { used.note = true; return s.n === 4 ? '(i === 0 ? N[4] : 0)' : `nt${s.n}`; }   // trig is 1 for the first sample of the block a note started in
           if (s.kind === 'out') { used.out[s.n] = true; return `o${s.n + 1}`; }
           if (s.kind === 'param') { used.params.add(s.idx); return `p${s.idx}`; }
           if (s.kind === 'history') return `S[${s.k}]`;
@@ -222,7 +229,7 @@ export function compile(text, { sampleRate = 48000 } = {}) {
       else if (s.k === 'set') {
         const sym = syms.get(s.name);
         const value = (() => { const prior = s.op === '=' ? null : gen({ k: 'id', name: s.name, line: s.nameAt.line, col: s.nameAt.col, end: s.nameAt.end }); const v = gen(s.value); return prior === null ? v : `(${prior} ${s.op[0]} ${v})`; })();
-        if (sym?.kind === 'in') err(s.nameAt, `"${s.name}" is an input and cannot be set`, 'read it, or copy it into a variable');
+        if (sym?.kind === 'in' || sym?.kind === 'note') err(s.nameAt, `"${s.name}" is an input and cannot be set`, 'read it, or copy it into a variable');
         else if (sym?.kind === 'const') err(s.nameAt, `"${s.name}" is a constant and cannot be set`);
         else if (sym?.kind === 'param') err(s.nameAt, `"${s.name}" is a Param: it is set by its knob, not in the code`, `read it in an expression, or copy it: x = ${s.name};`);
         else if (sym?.kind === 'data' || sym?.kind === 'delay') err(s.nameAt, `"${s.name}" is a buffer; write to it with ${sym.kind === 'data' ? 'poke(' + s.name + ', value, index)' : s.name + '.write(value)'}`);
@@ -248,9 +255,11 @@ export function compile(text, { sampleRate = 48000 } = {}) {
 
   const src = `"use strict";${PRELUDE}
 let ZERO = new Float32Array(256);
-return function (I1, I2, O1, O2, n, P) {
+return function (I1, I2, O1, O2, n, P, N) {
   if (ZERO.length < n) ZERO = new Float32Array(n);
   const A1 = I1 || ZERO, A2 = I2 || ZERO;
+  N = N || ${JSON.stringify(NOTE_DEFAULTS)};
+  const nt0 = N[0], nt1 = N[1], nt2 = N[2], nt3 = N[3];
 ${params.map((_, i) => `  const p${i} = P[${i}];`).join('\n')}
   for (let i = 0; i < n; i++) {
     const i1 = A1[i], i2 = A2[i];

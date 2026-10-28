@@ -27,6 +27,11 @@ export const DOCS = {
   samplerate: ['samplerate', 'samples a second of the engine'],
   // inputs, outputs, words
   in1: ['in1', 'the first input, the signal arriving at "in"'], in2: ['in2', 'the second input, the signal arriving at "mod"'], out1: ['out1', 'the first output: set it, once a sample'], out2: ['out2', 'the second output'],
+  freq: ['freq', 'the frequency in Hz of the note being played (and of the last one after it ends); 440 before any note'],
+  gate: ['gate', '1 while a key is held, 0 when the last one is let go; use it to open and close an envelope'],
+  vel: ['vel', 'the velocity of the latest note, 0 to 1'],
+  note: ['note', 'the note number of the latest note (60 is middle C, 69 is A 440)'],
+  trig: ['trig', '1 for the first sample after a note starts, else 0: restart an envelope or fill a delay with it'],
   Param: ['Param name(default, min=0, max=1)', 'a knob on the node, p1 to p8 in the order they are declared'], History: ['History name(start)', 'a value that is kept from one sample to the next'],
   Data: ['Data name(size)', 'a buffer of size samples to read and write by index'], Delay: ['Delay name(size)', 'a delay line of size samples: name.write(x), name.read(time)'],
   if: ['if (cond) { ... } else { ... }', 'runs the first block while cond is not 0, the second otherwise'], else: ['else', 'the block that runs when the if was false'],
