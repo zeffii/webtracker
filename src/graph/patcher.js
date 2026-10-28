@@ -750,13 +750,16 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
       return;
     }
     group.clear();
-    if (hit?.kind === 'port' && (hit.side === 'in' || !e.shiftKey) && wiresAt(hit).length && e.button === 0) {   // a wire's end: drag it away (on an output with wires, Shift starts a new wire instead)
+    if (hit?.kind === 'port' && !e.shiftKey && wiresAt(hit).length && e.button === 0) {   // a wire's end: drag it away (Shift starts a new wire instead)
       const at = litWire() >= 0 && hoverPort && hoverPort.node === hit.node && hoverPort.port === hit.port ? litWire() : wiresAt(hit)[0];
       drag = { kind: 'rewire', link: [...desc().connections[at]], moving: hit.side === 'in' ? 'to' : 'from', node: hit.node, x, y, x0: x, y0: y, started: false };
       selected = { kind: 'node', id: hit.node };
       return;
     }
-    if (hit?.kind === 'port' && hit.side === 'out') {
+    if (hit?.kind === 'port' && hit.side === 'in' && e.button === 0) {   // a free input: drag a wire from it to an output
+      drag = { kind: 'connectin', to: `${hit.node}.${hit.port}`, x, y };
+      selected = { kind: 'node', id: hit.node };
+    } else if (hit?.kind === 'port' && hit.side === 'out') {
       drag = { kind: 'connect', from: `${hit.node}.${hit.port}`, x, y };
     } else if (hit?.kind === 'port' || hit?.kind === 'node') {
       const id = hit.kind === 'node' ? hit.id : hit.node;
@@ -789,7 +792,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
         text = `${h.side === 'in' ? 'Input' : 'Output'} ${h.node}.${h.port}, ${KIND_TEXT[kindOf(node, h.port)]}`;
       }
     }
-    if (h?.kind === 'port') { const n = wiresAt(h).length; if (n) text += n > 1 ? ` — ${n} wires: Tab picks one, then drag the port to move it (Shift+drag on an output makes a new wire)` : ' — drag to move its wire'; }
+    if (h?.kind === 'port') { const n = wiresAt(h).length; if (n) text += n > 1 ? ` — ${n} wires: Tab picks one, then drag the port to move it (Shift+drag makes a new wire)` : ' — drag to move its wire'; }
     if (text) { hoverText = text; say(text); }
     else if (hoverText) { if (statusEl?.textContent === hoverText) say(''); hoverText = ''; }
   });
@@ -824,7 +827,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
       }
       setHover(e);
     } else {
-      if (drag.kind === 'connect') setHover(e);
+      if (drag.kind === 'connect' || drag.kind === 'connectin') setHover(e);
       drag.x = e.offsetX;
       drag.y = e.offsetY;
     }
@@ -874,6 +877,12 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
         } catch (err) { say(err.message); try { connect(desc(), nodeTypes, d.link[0], d.link[1]); } catch {} }
       } else say('Wire unplugged');
       structure(); renderPanel();
+      return;
+    }
+    if (d.kind === 'connectin') {
+      const hit = hitTest(desc(), nodeTypes, e.offsetX, e.offsetY);
+      if (hit?.kind !== 'port' || hit.side !== 'out') { renderPanel(); return; }
+      try { connect(desc(), nodeTypes, `${hit.node}.${hit.port}`, d.to); say(''); structure(); } catch (err) { say(err.message); }
       return;
     }
     if (d.kind !== 'connect') return;
@@ -1236,6 +1245,11 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
       const cur = { x: drag.x, y: drag.y }, [a, b] = drag.moving === 'to' ? [fixed, cur] : [cur, fixed];
       ctx.beginPath(); ctx.strokeStyle = accent; ctx.lineWidth = 2.25; ctx.setLineDash([6, 4]);
       ctx.moveTo(a.x, a.y); { const k = arm(a, b); ctx.bezierCurveTo(a.x + k, a.y, b.x - k, b.y, b.x, b.y); } ctx.stroke(); ctx.setLineDash([]);
+    }
+    if (drag?.kind === 'connectin') {
+      const b = portRef(drag.to, 'in'), a = { x: drag.x, y: drag.y };
+      ctx.beginPath(); ctx.strokeStyle = accent; ctx.lineWidth = 1.75;
+      ctx.moveTo(a.x, a.y); { const k = arm(a, b); ctx.bezierCurveTo(a.x + k, a.y, b.x - k, b.y, b.x, b.y); } ctx.stroke();
     }
     if (drag?.kind === 'connect') {
       const [id, port] = drag.from.split('.');

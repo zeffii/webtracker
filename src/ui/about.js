@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['484', ['Graph editor: dragging from a free input port now draws a wire from it (drop it on an output) instead of moving the node; Shift+drag on a port that already has wires also starts a new wire. Grab the node by its body to move it.']],
   ['483', ['Graph editor: dragging from an output port that has wires now picks a wire up too (Tab chooses which); Shift+drag from it starts a new wire. Wires being dragged are drawn as curves like the others.']],
   ['482', ['Graph editor: Tab over a port with several wires now always chooses the wire (it was swallowed when the canvas did not have the keyboard focus or a node panel took the key).']],
   ['481', ['Graph editor: the pulse of a hovered port is gentler (about a pixel instead of up to three and a half).']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['477', ['Arrangement and pattern grids: the frame shown while the grid has the keyboard focus (the lines along its top and left edge) is much fainter.']],
   ['476', ['Graph editor wires: the port under the mouse pulses slowly. Drag from an input port to pick its wire up and drop it on another input, or anywhere else to unplug it (Esc puts it back); Shift+drag does the same from an output port (a plain drag from an output still makes a new wire). With several wires on a port, Tab (Shift+Tab back) chooses which one is lit and picked up.']],
   ['475', ['Insert menu: searching for scale (or map) finds the Range node.']],
-  ['474', ['Range node: a picture under the sliders shows which port it feeds, the whole span of that port (in Hz, ms ...) and the stretch lo..hi lit up on it; unwired it says so.']],
 ];
