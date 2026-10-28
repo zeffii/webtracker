@@ -750,7 +750,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
       return;
     }
     group.clear();
-    if (hit?.kind === 'port' && (hit.side === 'in' || e.shiftKey) && wiresAt(hit).length && e.button === 0) {   // a wire's end: drag it away (Shift for an output)
+    if (hit?.kind === 'port' && (hit.side === 'in' || !e.shiftKey) && wiresAt(hit).length && e.button === 0) {   // a wire's end: drag it away (on an output with wires, Shift starts a new wire instead)
       const at = litWire() >= 0 && hoverPort && hoverPort.node === hit.node && hoverPort.port === hit.port ? litWire() : wiresAt(hit)[0];
       drag = { kind: 'rewire', link: [...desc().connections[at]], moving: hit.side === 'in' ? 'to' : 'from', node: hit.node, x, y, x0: x, y0: y, started: false };
       selected = { kind: 'node', id: hit.node };
@@ -789,7 +789,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
         text = `${h.side === 'in' ? 'Input' : 'Output'} ${h.node}.${h.port}, ${KIND_TEXT[kindOf(node, h.port)]}`;
       }
     }
-    if (h?.kind === 'port') { const n = wiresAt(h).length; if (n) text += n > 1 ? ` — ${n} wires: Tab picks one, then drag the port to move it` : ' — drag to move its wire'; }
+    if (h?.kind === 'port') { const n = wiresAt(h).length; if (n) text += n > 1 ? ` — ${n} wires: Tab picks one, then drag the port to move it (Shift+drag on an output makes a new wire)` : ' — drag to move its wire'; }
     if (text) { hoverText = text; say(text); }
     else if (hoverText) { if (statusEl?.textContent === hoverText) say(''); hoverText = ''; }
   });
@@ -1233,8 +1233,9 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
     }
     if (drag?.kind === 'rewire' && drag.started) {   // the picked-up wire, still held by its other end
       const fixed = drag.moving === 'to' ? portRef(drag.link[0], 'out') : portRef(drag.link[1], 'in');
+      const cur = { x: drag.x, y: drag.y }, [a, b] = drag.moving === 'to' ? [fixed, cur] : [cur, fixed];
       ctx.beginPath(); ctx.strokeStyle = accent; ctx.lineWidth = 2.25; ctx.setLineDash([6, 4]);
-      ctx.moveTo(fixed.x, fixed.y); ctx.lineTo(drag.x, drag.y); ctx.stroke(); ctx.setLineDash([]);
+      ctx.moveTo(a.x, a.y); { const k = arm(a, b); ctx.bezierCurveTo(a.x + k, a.y, b.x - k, b.y, b.x, b.y); } ctx.stroke(); ctx.setLineDash([]);
     }
     if (drag?.kind === 'connect') {
       const [id, port] = drag.from.split('.');
@@ -1244,7 +1245,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
       ctx.strokeStyle = accent;
       ctx.lineWidth = 1.75;
       ctx.moveTo(a.x, a.y);
-      ctx.lineTo(drag.x, drag.y);
+      { const b = { x: drag.x, y: drag.y }, k = arm(a, b); ctx.bezierCurveTo(a.x + k, a.y, b.x - k, b.y, b.x, b.y); }
       ctx.stroke();
     }
 
