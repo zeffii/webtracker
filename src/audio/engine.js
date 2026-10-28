@@ -52,7 +52,19 @@ export class Engine {
     if (this.laneIds.length) this.node.port.postMessage({ type: 'lanetaps', ids: this.laneIds });
     for (const key of this.watching) { const [instrument, node] = key.split('\u0000'); this.node.port.postMessage({ type: 'scope', instrument, node, on: true }); }
     this.node.connect(this.ctx.destination);
+    this.ctx.onstatechange = () => this.onState?.(this.ctx.state);
     await this.ctx.resume();
+  }
+
+  // After a long idle (or a sleep, or the output device changing) the browser may have suspended the audio context: the
+  // worklet then does not run at all and Play seems to do nothing. This wakes it; it answers whether the context runs.
+  async wake() {
+    const ctx = this.ctx;
+    if (!ctx) return false;
+    if (ctx.state !== 'running') {
+      try { await Promise.race([ctx.resume(), new Promise(done => setTimeout(done, 1500))]); } catch { /* it stays as it was */ }
+    }
+    return ctx.state === 'running';
   }
 
   // Which instrument each slot of the per-instrument rings follows.

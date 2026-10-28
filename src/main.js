@@ -77,6 +77,7 @@ const setPlaying = (value, from = null) => {
   playing = value;
   if (playing) scratch?.stop?.();
   if (playing) engine.play(from); else engine.stop();
+  if (playing) engine.wake().then(ok => { if (!ok && playing) $('status').textContent = `The audio context is ${engine.ctx.state}, so nothing can sound: press Play again, and if it stays silent reload the page (the audio device may have changed).`; });
   $('play').innerHTML = playing ? STOP_ICON : PLAY_ICON;
   $('play').title = playing ? 'Stop (F8)' : pausedAt !== null ? 'Play: carry on from the pause' : 'Play (F5)';
   $('play').setAttribute('aria-label', playing ? 'Stop' : 'Play');
@@ -2244,6 +2245,7 @@ document.addEventListener('keydown', e => {
 }
 const splash = config.get('splash') ? createSplash({ box: $('splash'), onStart: () => $('start').click() }) : null;
 document.documentElement.classList.remove('pre-splash');   // the first screen (if any) now covers the page itself
+document.addEventListener('visibilitychange', () => { if (!document.hidden && started) engine.wake(); });   // coming back to the tab wakes a context the browser put to sleep
 $('start').addEventListener('click', async () => {
   try {
     splash?.say('checking cross-origin isolation', crossOriginIsolated ? 'ok' : 'no');
