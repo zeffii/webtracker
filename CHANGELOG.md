@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 497 · 2026-10-28
+
+- New Amp node (Effects, Distortion group): a valve guitar amplifier in one node. A preamp of 1 to 4 valve stages (gain, bias for the even harmonics, a bright lift), a tone stack with bass, mid and treble in three voicings (scooped, cutting, chiming), a power stage with master and sag (the supply gives under load), depth and presence, and a speaker cabinet (open 1x12, closed 2x12, stack 4x12, or none for use with a Convolver), then level and mix. The two distortion stages run at 1x, 2x or 4x oversampling. It has a help page (F1) and a glyph.
+
 ## 496 · 2026-10-28
 
 - The bpm box in the top row is wide enough for five digits and the decimals (such as 128.25) while you edit it, and the tempo now follows every nudge, spinner step and typed digit at once instead of when you leave the box.

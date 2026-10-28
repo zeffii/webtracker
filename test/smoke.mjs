@@ -8691,4 +8691,37 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   assert.ok(cols.some(c => c.kind === 'note') && cols.filter(c => c.kind === 'param').length >= 3, 'the chord instrument has note, Chd and Oct columns');
   console.log('ok: chord');
 }
+{
+  // Amp: the valve amplifier chain
+  const node = NODE_TYPES.amp, sr = 48000;
+  const render = (over, input, n = 24000) => {
+    const inst = node.create({ sampleRate: sr });
+    const v = node.params.map(q => q.def);
+    for (const [k, x] of Object.entries(over)) v[node.params.findIndex(q => q.name === k)] = x;
+    const slots = node.params.map((_, i) => i), x = Float32Array.from({ length: n }, (_, i) => input(i)), out = new Float32Array(n);
+    for (let s = 0; s < n; s += 128) { const m = Math.min(128, n - s); inst.process([[x.subarray(s, s + m), x.subarray(s, s + m)]], [[out.subarray(s, s + m), new Float32Array(m)]], m, v, slots); }
+    return out;
+  };
+  const bin = (a, f) => { let re = 0, im = 0; const s = 4000, n = a.length - s; for (let i = 0; i < n; i++) { const w = 2 * Math.PI * f * (i + s) / sr; re += a[i + s] * Math.cos(w); im += a[i + s] * Math.sin(w); } return Math.hypot(re, im) / n * 2; };
+  const band = (a, lo, hi) => { let e = 0; for (let f = lo; f <= hi; f += 50) e += bin(a, f) ** 2; return e; };
+  const sine = (f, a) => i => a * Math.sin(2 * Math.PI * f * i / sr);
+  const hash = i => ((Math.sin(i * 12.9898) * 43758.5453) % 1) * 0.2;
+  const thd = o => Math.hypot(bin(o, 440), bin(o, 660), bin(o, 880), bin(o, 1100)) / bin(o, 220);
+  const clean = render({ gain: 0 }, sine(220, 0.3)), crunch = render({ gain: 6 }, sine(220, 0.3));
+  assert.ok(clean.every(Number.isFinite) && crunch.every(Number.isFinite), 'the amp stays finite');
+  assert.ok(thd(clean) < 0.12, 'gain 0 is nearly clean');
+  assert.ok(thd(crunch) > 3 * thd(clean), 'more gain adds harmonics');
+  const bias0 = render({ gain: 6, bias: 0, cab: 0 }, sine(220, 0.3)), bias1 = render({ gain: 6, bias: 0.8, cab: 0 }, sine(220, 0.3));
+  assert.ok(bin(bias1, 440) > 3 * bin(bias0, 440), 'bias makes the even harmonics');
+  const flat = render({ gain: 0, cab: 0 }, hash);
+  assert.ok(band(render({ gain: 0, cab: 0, treble: 10 }, hash), 3000, 8000) > 3 * band(flat, 3000, 8000), 'treble lifts the highs');
+  assert.ok(band(render({ gain: 0, cab: 0, bass: 10 }, hash), 60, 300) > 3 * band(flat, 60, 300), 'bass lifts the lows');
+  assert.ok(band(render({ gain: 0, cab: 2 }, hash), 6000, 12000) < 0.1 * band(flat, 6000, 12000), 'the cabinet takes the top off');
+  const loud = render({ gain: 10, stages: 4, master: 10, sag: 1, presence: 10, depth: 10, treble: 10, bass: 10 }, sine(110, 1));
+  assert.ok(loud.every(Number.isFinite) && Math.max(...loud.map(Math.abs)) < 2, 'the hardest settings stay bounded');
+  const quiet = render({ mix: 0.5, level: 1 }, sine(220, 0.2));
+  assert.ok(quiet.every(Number.isFinite), 'mix works');
+  for (const os of [0, 1, 2]) assert.ok(render({ oversample: os }, sine(220, 0.3), 6000).every(Number.isFinite), `oversample ${os} is finite`);
+  console.log('ok: amp');
+}
 console.log('smoke test passed');

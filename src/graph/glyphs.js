@@ -98,6 +98,12 @@ export const GLYPHS = {
   },
   phaser: (ctx, cx, cy, w, h) => curve(ctx, cx, cy, w, h, t => 0.8 - 1.8 * Math.abs(Math.sin(t * Math.PI * 2.5)) * (0.4 + t * 0.6)),   // a response with moving notches
   flanger: (ctx, cx, cy, w, h) => curve(ctx, cx, cy, w, h, t => Math.sin(Math.PI * 2 * (1.5 * t + 3 * t * t)) * 0.85, 40),   // a wave sweeping upwards
+  amp: (ctx, cx, cy, w, h) => {   // a valve: the glass dome on its base, with the plates inside
+    const x = f => cx - w / 2 + f * w, y = f => cy + h / 2 - f * h;
+    ctx.beginPath(); ctx.moveTo(x(0.2), y(0.3)); ctx.lineTo(x(0.2), y(0.62)); ctx.arc(x(0.5), y(0.62), w * 0.3, Math.PI, 0); ctx.lineTo(x(0.8), y(0.3)); ctx.closePath(); ctx.stroke();
+    line(ctx, [[x(0.4), y(0.3)], [x(0.4), y(0.72)]]); line(ctx, [[x(0.6), y(0.3)], [x(0.6), y(0.72)]]);
+    line(ctx, [[x(0.3), y(0.3)], [x(0.3), y(0.08)]]); line(ctx, [[x(0.5), y(0.3)], [x(0.5), y(0.08)]]); line(ctx, [[x(0.7), y(0.3)], [x(0.7), y(0.08)]]);
+  },
   distortion: (ctx, cx, cy, w, h) => curve(ctx, cx, cy, w, h, t => Math.max(-0.55, Math.min(0.55, 1.7 * Math.sin(t * Math.PI * 2))) / 0.55 * 0.8),   // a sine with its peaks cut off
   shiva: (ctx, cx, cy, w, h) => {   // stems of different heights, a dot on each for its pan
     line(ctx, [[cx - w / 2, cy + h * 0.35], [cx + w / 2, cy + h * 0.35]]);

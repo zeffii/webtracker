@@ -1,6 +1,7 @@
 // How a parameter's value is shown in real units: "200 ms", "1.2 kHz", "+7 st", "triangle". A unit is looked up by
 // node type and parameter name, then by the name alone; a parameter with named choices shows the name instead.
 import { ALGORITHMS } from '../audio/nodes/fmsynth.js';
+import { VOICINGS as AMP_VOICINGS, CABS as AMP_CABS } from '../audio/nodes/amp.js';
 import { MODES as ARP_MODES, RATE_NAMES as ARP_RATES, RETRIGGER as ARP_RETRIG } from '../audio/nodes/arp.js';
 
 const UNIT = {
@@ -22,6 +23,7 @@ const TYPE_UNIT = {
   shiva: { length: 'ms', damp: '%' },
   hall: { decay: 's' }, plate: { decay: 's' }, shimmer: { decay: 's', pitch: 'st' }, string: { decay: 's', release: 'ms' },
   env: {}, lfo: {},
+  amp: { gain: '', bass: '', mid: '', treble: '', master: '', presence: '', depth: '', level: '' },
   distortion: { tone: 'Hz' },
   exciter: { freq: 'Hz' },
   transient: { attack: '', sustain: '', speed: 'x' },
@@ -84,6 +86,7 @@ const NAMES = {
   sweep: { slope: ['12 dB', '24 dB'] },
   ladder: { shape: ['sine', 'triangle', 'saw down', 'square'] },
   filterpro: { mode: ['lowpass', 'bandpass', 'highpass', 'notch', 'peak', 'allpass', 'morph', 'lowpass 24', 'ladder', 'vowel', 'comb +', 'comb -'] },
+  amp: { voicing: AMP_VOICINGS, cab: AMP_CABS, oversample: ['1x', '2x', '4x'] },
   distortion: { mode: ['soft', 'hard', 'tube', 'fuzz'], oversample: ['1x', '2x', '4x'] },
   waveshaper: { oversample: ['1x', '2x', '4x'] },
   follower: { mode: ['peak', 'rms'], invert: ONOFF },

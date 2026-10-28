@@ -264,6 +264,27 @@ export const PAGES = {
       },
     ],
   },
+  amp: {
+    summary: "A valve guitar amplifier in one node: preamp, tone stack, power stage and speaker cabinet. It is a model of the way such an amp works (stages of valve-like gain that squash and round the signal, a passive three-band tone stack, a power stage that gives under load, a speaker that cuts everything above a few kHz), not a copy of one amp, and it makes no claim to any particular make. Put it after any sound; guitars, but also bass, synths, drums and vocals.",
+    best: [
+      "Start with gain 5, stages 2, master 4 and the cabinet on, then move gain: below 3 is clean, 4 to 6 is crunch, 7 and up is a lead sound. More stages make the same gain tighter and more compressed.",
+      "The tone controls come after the preamp, as in a real amp, so they change the character of the distortion as well as the level: turning treble up does not just make it brighter, it makes the clipped top end buzzier. The three voicings move where the controls work.",
+      "Bias is the valve's colour. 0 is symmetrical, harsh and fuzzy; 0.3 to 0.6 is warm, with even harmonics an octave above the notes, which is what makes a chord sound fuller.",
+      "Sag is the feel of the amp. With sag up, loud chords squash for a moment and then bloom as they decay; with it at 0 the amp is stiff and tight, better for fast palm-muted playing. Sag matters most when master is high.",
+      "Presence and depth are the output stage's top and bottom. Presence gives bite after heavy distortion; depth adds thump. They come after the power stage, before the speaker.",
+      "The cabinet matters as much as the amp: without it the distortion sounds like a harsh buzz. Choose open 1x12 for loose and airy, closed 2x12 for tight, stack 4x12 for big and dark. If you want a real speaker, set cab to none and follow the amp with a Convolver loaded with a speaker impulse response.",
+      "Use mix below 1 for a little of the dry sound back: the pick attack stays clear through heavy gain.",
+      "It works on a synth too: a saw lead through gain 7, a cabinet and a little sag is a rock lead; a clean pad through gain 2 and the open cabinet is a gentle tube warmth.",
+    ],
+    limits: [
+      "It is a sound model, not a circuit simulation: it does not solve the circuit, so it has no interaction between the stages and the speaker, and no microphone placement.",
+      "The cabinet is a few filters, not a recorded speaker. It gets the broad shape right (the low bump, the mid peak, the steep top) but not the detail. A Convolver with a real impulse response is better when it matters.",
+      "It adds a little delay (a few samples, more with 4x oversampling). The dry signal for mix is delayed to match, but a parallel path in the graph is not.",
+      "It is loud and changes loudness with every setting; set level last, and watch the output.",
+      "High gain amplifies noise and any hum in the input. Use a gate node before the amp for a quiet sound, the way a noise gate sits before a guitar amp.",
+      "With gain at 10 and four stages the result is extremely compressed: the dynamics of the playing are mostly gone.",
+    ],
+  },
   arp: {
     summary: 'An arpeggiator. Put it in an instrument\'s graph (it has no wires) and the instrument no longer sounds held notes together: they become a pool, and the arp plays them one at a time, one step at a time, in the order the mode gives, locked to the song\'s tempo. It takes notes from patterns, the keyboard and MIDI alike.',
     best: [
