@@ -4,7 +4,7 @@ Full history, newest first. The About page shows only the latest 10 builds.
 
 ## 474 · 2026-10-28
 
-- Range node: a picture under the sliders shows which port it feeds, that port's whole span (in Hz, ms ...) and the stretch lo..hi lit up on it; unwired it says so.
+- Range node: a picture under the sliders shows which port it feeds, the whole span of that port (in Hz, ms ...) and the stretch lo..hi lit up on it; unwired it says so.
 
 ## 473 · 2026-10-28
 
