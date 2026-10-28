@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 479 · 2026-10-28
+
+- Arrangement: the grid and the pattern list beside it now start at the same height.
+
 ## 478 · 2026-10-28
 
 - The line under the toolbar at the top, running across the whole window, is much fainter.
