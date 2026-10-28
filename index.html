@@ -382,7 +382,7 @@
     #seq-side .pi.here { background: color-mix(in srgb, currentColor 22%, transparent); }
     #seq-side .pi.pick { outline: 1px solid var(--hi); outline-offset: -1px; }
     #seq-side .sw { width: 11px; height: 11px; margin: 0; }
-    #view:focus, #seq:focus { outline: 1px solid; }
+    #view:focus, #seq:focus { outline: 1px solid color-mix(in srgb, var(--fg) 16%, transparent); }   /* the focus frame of the grids: only a hint */
     #seq { overflow-x: auto; line-height: 18px; isolation: isolate; }
     #seq .t { position: relative; z-index: 2; }
     #seq .sg { position: sticky; left: 0; z-index: 4; display: inline-block; background: var(--panel); }   /* the tick numbers stay put when the lanes are scrolled sideways */
