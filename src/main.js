@@ -1104,6 +1104,13 @@ showTheme(config.get('theme'));
 // ---- tempo and swing ----
 $('loopbtn').addEventListener('click', () => { if (!project) return; const m = toggleLoop(project.song); songChanged(); (tabs.active === 'arrange' ? seqView : view).say?.(m); (tabs.active === 'arrange' ? seqView : view).draw?.(); $('loopbtn').blur(); });
 const songChanged = () => { engine.setSong(project.song); songInfo(); };
+// the tempo follows every step of the box (arrows, spinner, typing) at once, not only when it is left
+$('bpm').addEventListener('input', () => {
+  const v = Math.round(Number($('bpm').value) * 100) / 100;
+  if (!project || !Number.isFinite(v) || v < 1 || v > 800 || v === project.song.bpm) return;
+  project.song.bpm = v;
+  songChanged();
+});
 $('bpm').addEventListener('change', () => {
   project.song.bpm = Math.max(1, Math.min(800, Math.round(Number($('bpm').value) * 100) / 100 || project.song.bpm));
   $('bpm').value = project.song.bpm;

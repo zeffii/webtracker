@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['496', ['The bpm box in the top row is wide enough for five digits and the decimals (such as 128.25) while you edit it, and the tempo now follows every nudge, spinner step and typed digit at once instead of when you leave the box.']],
   ['495', ['Pattern editor: Up on the first row and Down on the last row now stop there instead of jumping to the other end of the song. A new Config option, Up and Down wrap round the ends, brings the wrapping back.']],
   ['494', ['Help (F1) page for the Chord node: how to use it, the full list of what can be typed in a chord name, how the notes are placed, the Chd, Oct and Str columns, how to put a Chord node into any instrument (for example one built on Cardinal), and its limits.']],
   ['493', ['New demo song for the Chord node, chords (open it with ?demo=chords): 84 bpm, 24 bars. One Chord node holds your seventeen chords in slots 00 to 10; every chord row is a single trigger note plus the Chd, Oct and Str columns. A bass comes in at bar 4 and the drums at bar 8, and the last eight bars move down an octave.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['489', ['New synth node and instrument kind, Cardinal: a monophonic virtual-analogue lead (behind the voices node for chords). Two oscillators (triangle, saw, pulse, sine, noise) with semitone and fine tune, key tracking, hard sync, fm from osc 1 into osc 2, ring modulation, a mix, noise and 1 to 5 unison voices; a filter that is lowpass 24 or 12, bandpass, highpass or notch with cutoff, resonance, key tracking and distortion; an amp envelope and a mod envelope (sweeping cutoff, osc 2 pitch, fm and pulse width); two LFOs with five waves and six destinations; glide and slide. Beside it are pictures of the oscillators (the real output), the filter response, both envelopes and both LFOs.']],
   ['488', ['Shader view: choosing Built-in (the button or the dropdown) now stores a real copy of the built-in metaballs in the project shader, so it can no longer turn into whatever the Config default shader holds, and editing it changes only that copy.']],
   ['487', ['Live picture: if the browser drops the graphics context (after a long idle, a sleep or a driver reset) the picture now comes back by itself instead of staying blank until the page is reloaded.']],
-  ['486', ['Audio: after a long idle the browser can suspend the audio context, and Play then seemed to do nothing. Play now wakes the context first (and coming back to the tab does too); if the audio device still does not answer, the status line says so.']],
 ];

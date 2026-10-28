@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 496 · 2026-10-28
+
+- The bpm box in the top row is wide enough for five digits and the decimals (such as 128.25) while you edit it, and the tempo now follows every nudge, spinner step and typed digit at once instead of when you leave the box.
+
 ## 495 · 2026-10-28
 
 - Pattern editor: Up on the first row and Down on the last row now stop there instead of jumping to the other end of the song. A new Config option, Up and Down wrap round the ends, brings the wrapping back.
