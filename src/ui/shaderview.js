@@ -385,10 +385,10 @@ export function createShaderView({ parts, config, store, defaultSource, template
     const id = parts.templates.value; parts.templates.value = '';
     if (!id) return;
     clearTimeout(timer); timer = null;
-    store.set(id === 'builtin' ? '' : templates[id].source);
+    store.set(id === 'builtin' ? defaultSource : templates[id].source);   // a copy of the built-in is stored, so it cannot turn into whatever the Config default says
     load();
   });
-  parts.reset.addEventListener('click', () => { clearTimeout(timer); timer = null; store.set(''); load(); });
+  parts.reset.addEventListener('click', () => { clearTimeout(timer); timer = null; store.set(defaultSource); load(); });
   // the shaders of the project: pick the one to edit (the picture shows it while this screen is open; a pattern's Shd column picks it while playing)
   const pick = parts.pick;
   const fillPick = () => {
