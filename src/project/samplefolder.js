@@ -41,6 +41,25 @@ export function dirEntryFromFiles(files, name = 'Chosen files') {
   return { kind: 'dir', name, list: async () => sorted([], list) };
 }
 
+// Files from an <input webkitdirectory>: each File has a webkitRelativePath ("folder/sub/a.wav"), so the folders can be rebuilt from it.
+export function dirEntryFromTree(files) {
+  const all = [...files].filter(f => isAudioName(f.name) && !f.name.startsWith('.'));
+  const rootName = (all[0]?.webkitRelativePath || '').split('/')[0] || 'Chosen folder';
+  const build = (name, items, depth) => ({
+    kind: 'dir', name,
+    async list() {
+      const here = [], groups = new Map();
+      for (const f of items) {
+        const parts = (f.webkitRelativePath || f.name).split('/');
+        if (parts.length - 1 <= depth) here.push(fileEntry(f.name, () => f));
+        else if (!parts[depth].startsWith('.')) { const g = groups.get(parts[depth]) ?? []; g.push(f); groups.set(parts[depth], g); }
+      }
+      return sorted([...groups].map(([n, g]) => build(n, g, depth + 1)), here);
+    },
+  });
+  return build(rootName, all, 1);
+}
+
 // The picked folder is kept in IndexedDB. `open` is indexedDB.open, passed in so a test can use its own.
 const DB = 'webtracker-samplefolder', STORE = 'handles', KEY = 'root';
 const request = r => new Promise((resolve, reject) => { r.onsuccess = () => resolve(r.result); r.onerror = () => reject(r.error); });

@@ -7981,6 +7981,13 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   assert.deepEqual((await root.list()).map(e => e.name), ['Aa', 'zz', 'kick 2.wav', 'kick 10.wav'], 'folders first, natural order, no dotfiles or non-audio');
   const flat = dirEntryFromFiles([{ name: 'b.wav' }, { name: 'x.doc' }, { name: 'a.mp3' }]);
   assert.deepEqual((await flat.list()).map(e => e.name), ['a.mp3', 'b.wav'], 'fallback list');
+  const { dirEntryFromTree } = await import('../src/project/samplefolder.js');
+  const tf = (rel) => ({ name: rel.split('/').pop(), webkitRelativePath: rel });
+  const tree = dirEntryFromTree([tf('S/b.wav'), tf('S/d/x.wav'), tf('S/d/e/y.flac'), tf('S/n.txt'), tf('S/.h/z.wav')]);
+  assert.equal(tree.name, 'S');
+  const top = await tree.list();
+  assert.deepEqual(top.map(e => e.name), ['d', 'b.wav'], 'folder picked through an input: subfolders rebuilt');
+  assert.deepEqual((await (await top[0].list())[0].list()).map(e => e.name), ['y.flac'], 'and nested');
   console.log('ok: sample browser pieces');
 }
 // 110. The About page's text loads (a stray quote in it once broke the whole app) and shows at most ten builds.

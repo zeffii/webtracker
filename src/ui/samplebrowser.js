@@ -7,7 +7,7 @@
 //
 // The folder is picked with showDirectoryPicker (Chromium) and its handle kept in IndexedDB, so it comes back next time (the browser may ask
 // once to allow reading it again). Elsewhere a plain "Choose files" button gives a flat list for as long as the page is open.
-import { dirEntryFromHandle, dirEntryFromFiles, createHandleStore, needsAsk, sizeText, isAudioName } from '../project/samplefolder.js';
+import { dirEntryFromHandle, dirEntryFromFiles, dirEntryFromTree, createHandleStore, needsAsk, sizeText, isAudioName } from '../project/samplefolder.js';
 import { readPreview, createPlayer, drawWave, lengthText } from '../project/samplepreview.js';
 import { rateText } from '../project/audioinfo.js';
 
@@ -22,6 +22,8 @@ export function createSampleBrowser({ root, getCtx, limitMB = () => 10, onLoad, 
   // ---- the page ----
   const pick = el('button', { type: 'button', className: 'sb-pick', textContent: 'Choose folder…' });
   const reopen = el('button', { type: 'button', className: 'sb-reopen', hidden: true });
+  const folderInput = el('input', { type: 'file', webkitdirectory: true, hidden: true });
+  const filesBtn = el('button', { type: 'button', className: 'sb-pick', textContent: 'Choose files…', hidden: true });
   const files = el('input', { type: 'file', accept: 'audio/*,.wav,.aif,.aiff,.flac,.mp3,.ogg,.opus', multiple: true, hidden: true });
   const up = el('button', { type: 'button', className: 'sb-up', textContent: 'Up', title: 'Up one folder (Left, Backspace)', disabled: true });
   const path = el('span', { className: 'sb-path' });
@@ -34,7 +36,7 @@ export function createSampleBrowser({ root, getCtx, limitMB = () => 10, onLoad, 
   const askLoad = el('button', { type: 'button', textContent: 'Load as a new sample' });
   ask.append(askText, askPreview, askLoad);
   const hint = el('p', { className: 'sb-hint', textContent: 'Up and Down move and play · Enter loads · Right opens a folder, Left goes up · Space plays again · letters jump' });
-  root.replaceChildren(el('div', { className: 'sb-bar' }, pick, reopen, up, path, files), el('div', { className: 'sb-main' }, list, el('div', { className: 'sb-side' }, canvas, info, ask)), hint);
+  root.replaceChildren(el('div', { className: 'sb-bar' }, pick, reopen, filesBtn, up, path, files, folderInput), el('div', { className: 'sb-main' }, list, el('div', { className: 'sb-side' }, canvas, info, ask)), hint);
 
   // ---- state ----
   const player = createPlayer({ getCtx });
@@ -217,7 +219,7 @@ export function createSampleBrowser({ root, getCtx, limitMB = () => 10, onLoad, 
   // ---- choosing where to look ----
   const start = async entry => { trail = []; cache.clear(); stopAll(); await open(entry); list.focus(); };
   pick.addEventListener('click', async () => {
-    if (typeof picker !== 'function') { files.click(); return; }
+    if (typeof picker !== 'function') { folderInput.click(); return; }
     try {
       const handle = await picker({ id: 'wax-samples', mode: 'read', startIn: 'music' });
       try { await handles.save(handle); } catch { /* it still works for this visit */ }
@@ -225,13 +227,20 @@ export function createSampleBrowser({ root, getCtx, limitMB = () => 10, onLoad, 
       await start(dirEntryFromHandle(handle));
     } catch (err) { if (err?.name !== 'AbortError') say(`Could not open the folder: ${err.message ?? err}`); }
   });
+  folderInput.addEventListener('change', async () => {
+    const chosen = [...folderInput.files]; folderInput.value = '';
+    const entry = dirEntryFromTree(chosen);
+    if (!(await entry.list()).length) { say('No audio files in that folder.'); return; }
+    await start(entry);
+  });
   files.addEventListener('change', async () => {
     const chosen = [...files.files].filter(f => isAudioName(f.name)); files.value = '';
     if (!chosen.length) { say('No audio files in that choice.'); return; }
     await start(dirEntryFromFiles(chosen));
   });
   up.addEventListener('click', () => { goUp(); list.focus(); });
-  if (typeof picker !== 'function') pick.textContent = 'Choose files…';
+  if (typeof picker !== 'function') { pick.textContent = 'Choose folder…'; pick.title = 'This browser cannot remember the folder, so it is asked for again each visit'; filesBtn.hidden = false; }
+  filesBtn.addEventListener('click', () => files.click());
 
   // the folder from last time: straight in when the browser still allows it, else one click to allow it again
   (async () => {
