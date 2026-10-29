@@ -425,5 +425,7 @@ export function createShaderView({ parts, config, store, defaultSource, template
       draw();
     },
     focus: () => input.focus(),
+    // Puts a whole shader into the editor as typing would, so Ctrl+Z brings the old text back.
+    tryText(text) { input.focus(); input.select(); document.execCommand('insertText', false, text); },
   };
 }

@@ -17,6 +17,7 @@ import { artCanvas, encodeMp4 } from './audio/mp4.js';
 import { createVisData } from './ui/visdata.js';
 import { createVisual, createLabels, DEFAULT_GLSL } from './ui/visual.js';
 import { TEMPLATES } from './ui/vistemplates.js';
+import { GUIDE } from './ui/shaderguide.js';
 import { createShaderView } from './ui/shaderview.js';
 import { mountConfig } from './ui/quickconfig.js';
 import { createDspView } from './ui/dspview.js';
@@ -1759,6 +1760,20 @@ shaderView = createShaderView({
   config, store: shaderStore, defaultSource: DEFAULT_GLSL, templates: TEMPLATES, machine: shaderMachine,
 });
 $('shader-pop').addEventListener('click', () => popOut());
+{   // the guide under the editor: built the first time it is opened; each whole example has a button that puts it in the editor (Ctrl+Z undoes)
+  const box = $('shader-guide'), body = $('shader-guide-body');
+  box.addEventListener('toggle', () => {
+    if (!box.open || body.childElementCount) return;
+    body.innerHTML = renderMarkdown(GUIDE);
+    for (const pre of body.querySelectorAll('pre')) {
+      const text = pre.textContent.trim();
+      if (!/void\s+main\s*\(/.test(text)) continue;
+      const button = Object.assign(document.createElement('button'), { type: 'button', className: 'try', textContent: 'Try it in the editor', title: 'Replaces the shader in the editor with this one; Ctrl+Z in the editor brings yours back' });
+      button.addEventListener('click', () => shaderView.tryText(`${text}\n`));
+      pre.after(button);
+    }
+  });
+}
 dspView = createDspView({
   parts: { inst: $('dsp-inst'), chain: $('dsp-chain'), gut: $('dsp-gut'), src: $('dsp-src'), prm: $('dsp-prm'), ports: $('dsp-ports'), kern: $('dsp-kern'), foot: $('dsp-foot'), foldAll: $('dsp-fold'), unfoldAll: $('dsp-unfold'), diag: $('dsp-diag'), circ: $('dsp-circ'), open: $('dsp-open'), code: $('dsp-code') },
   getProject: () => project, nodeTypes: NODE_TYPES,

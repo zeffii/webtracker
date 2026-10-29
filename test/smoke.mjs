@@ -7914,6 +7914,25 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   render(seq, 0.5); assert.equal(at(), 0, 'A1: the retrigger settings reset');
   console.log('ok: reset and settings commands');
 }
+// 110a. The shader templates and the shader guide: every template is a whole main() that sets the colour, and the guide names everything the
+// shader is given and turns into markdown without trouble (compiling needs a graphics card, which a test here does not have).
+{
+  const { TEMPLATES } = await import('../src/ui/vistemplates.js');
+  const { preprocess } = await import('../src/ui/visdata.js');
+  const { GUIDE } = await import('../src/ui/shaderguide.js');
+  const { renderMarkdown } = await import('../src/ui/markdown.js');
+  const ids = Object.keys(TEMPLATES);
+  for (const name of ['ripples', 'marble', 'truchet', 'sunburst', 'moire', 'lissajous', 'waves']) assert.ok(ids.includes(name), `the ${name} template exists`);
+  for (const [id, tp] of Object.entries(TEMPLATES)) {
+    assert.ok(tp.label && /void\s+main\s*\(/.test(tp.source) && tp.source.includes('gl_FragColor'), `template ${id} is a whole main that sets the colour`);
+    assert.ok(!/\buniform\b/.test(tp.source), `template ${id} does not redeclare the uniforms`);
+    assert.doesNotThrow(() => preprocess(tp.source, [['a', 'a']], []), `template ${id} goes through the look-up rewriting`);
+  }
+  for (const word of ['R', 'T', 'BEAT', 'HITS', 'NL', 'C1', 'C2', 'LANE[16]', 'gl_FragCoord', 'hit("kick")', 'cell("kick", dx)', 'kn("name"', 'smoothstep', 'thebookofshaders.com', 'iquilezles.org', 'shadertoy.com']) assert.ok(GUIDE.includes(word), `the guide mentions ${word}`);
+  const html = renderMarkdown(GUIDE);
+  assert.ok((html.match(/<h2>/g) ?? []).length >= 7 && html.includes('<pre>'), 'the guide has its sections and its examples');
+  console.log('ok: shader templates and guide');
+}
 // 110. The About page's text loads (a stray quote in it once broke the whole app) and shows at most ten builds.
 {
   const about = await import('../src/ui/about.js');

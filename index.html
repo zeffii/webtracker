@@ -838,6 +838,18 @@
     #viz[hidden] { display: none; }
     #viz canvas { width: 300px; height: 300px; display: block; }
     #viz #viz-text { position: absolute; left: 0; top: 0; pointer-events: none; }
+    #shader-guide { margin: .8rem 0 2rem; max-width: 90ch; }
+    #shader-guide > summary { cursor: pointer; font: 600 13px/1.5 system-ui, sans-serif; opacity: .85; padding: .2rem 0; }
+    #shader-guide-body { font: 13px/1.55 system-ui, sans-serif; padding: .2rem 0 0 .2rem; }
+    #shader-guide-body h1 { display: none; }
+    #shader-guide-body h2 { font-size: 15px; margin: 1.2rem 0 .3rem; }
+    #shader-guide-body h3 { font-size: 13px; margin: .9rem 0 .2rem; opacity: .85; }
+    #shader-guide-body p { margin: .35rem 0; }
+    #shader-guide-body ul, #shader-guide-body ol { margin: .3rem 0 .3rem 1.2rem; padding: 0; }
+    #shader-guide-body li { margin: .15rem 0; }
+    #shader-guide-body pre { margin: .4rem 0 .1rem; padding: .5rem .7rem; overflow-x: auto; font: 12px/1.45 ui-monospace, Consolas, monospace; background: var(--panel); border: 1px solid color-mix(in srgb, var(--fg) 20%, transparent); }
+    #shader-guide-body code { font: 12px ui-monospace, Consolas, monospace; }
+    #shader-guide-body .try { margin: 0 0 .5rem; font-size: 11px; }
     #shader-bar { display: flex; gap: .4rem; align-items: center; margin: .3rem 0; }
     #dsp-bar { display: flex; gap: 1rem; align-items: center; margin: .3rem 0; }
     #dsp-gut a.fo { display: inline-block; width: 1.3ch; margin-right: .5ch; text-align: center; cursor: pointer; opacity: .55; text-decoration: none; user-select: none; }
@@ -1516,6 +1528,7 @@
       <div id="shader-cfg" class="qcs" aria-label="Picture settings"><b>Picture</b></div>
       <div id="shader-main"><div id="shader-box"><div id="shader-gutter" aria-hidden="true"></div><div id="shader-clip"><pre id="shader-paint" aria-hidden="true"></pre><textarea id="shader-input" spellcheck="false" autocomplete="off" autocapitalize="off" wrap="off" aria-label="Shader source"></textarea></div></div><div id="shader-knobs" hidden aria-label="Knobs"></div></div>
       <div id="shader-status" class="statusbar"></div>
+      <details id="shader-guide"><summary>Shader guide: how it works, writing one, built-in functions, further reading</summary><div id="shader-guide-body" class="md"></div></details>
     </div>
   </section>
 

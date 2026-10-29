@@ -241,4 +241,160 @@ void main(){
   gl_FragColor = vec4(col, 1.);
 }`,
   },
+  ripples: {
+    label: 'Ripples: a pond, a spot for each lane',
+    source: `// every lane has a spot on a ring; a hit sends a ripple out from it, and the ripple fades as it spreads (hit() falls from 1 to 0 after a note)
+void main(){
+  vec2 p = (gl_FragCoord.xy - .5 * R) / min(R.x, R.y);
+  vec3 col = mix(C1 * .24, C1 * .07, clamp(length(p) * 1.5, 0., 1.));
+  for (int i = 0; i < 16; i++) {
+    if (float(i) >= NL) break;
+    float a = 6.2832 * float(i) / max(NL, 1.) + T * .04;
+    vec2 c = .24 * vec2(cos(a), sin(a)) * step(1.5, NL);
+    float hit = LANE[i].x;
+    float age = 1. - hit;                       // 0 at the hit, towards 1 as it fades
+    float d = length(p - c);
+    float r1 = age * .55, r2 = age * .32;       // two rings, the second one behind the first
+    float w = .008 + .02 * age;
+    float ring = smoothstep(w, 0., abs(d - r1)) + .5 * smoothstep(w, 0., abs(d - r2));
+    vec3 tint = mix(C1, C2, LANE[i].y);
+    col += tint * ring * hit * (.4 + .6 * LANE[i].z);
+    col += C2 * exp(-d * 45.) * (.12 + .5 * hit + .3 * LANE[i].w);   // the spot itself
+  }
+  gl_FragColor = vec4(col, 1.);
+}`,
+  },
+  marble: {
+    label: 'Marble: ink swirling in water',
+    source: `// noise bent by noise, twice (a domain warp): slow marbled swirls in the two colours. Every hit stirs it harder
+float h(vec2 p){ p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
+float n(vec2 p){
+  vec2 i = floor(p), f = fract(p);
+  f = f * f * (3. - 2. * f);
+  return mix(mix(h(i), h(i + vec2(1., 0.)), f.x), mix(h(i + vec2(0., 1.)), h(i + vec2(1., 1.)), f.x), f.y);
+}
+float fbm(vec2 p){
+  float s = 0., a = .5;
+  for (int i = 0; i < 4; i++) { s += a * n(p); p = p * 2.03 + vec2(1.7, 9.2); a *= .5; }
+  return s;
+}
+void main(){
+  vec2 p = (gl_FragCoord.xy - .5 * R) / min(R.x, R.y) * 3.;
+  float t = T * .08 + BEAT * .03;
+  vec2 q = vec2(fbm(p + t), fbm(p + vec2(5.2, 1.3) - t));
+  float f = fbm(p + (2. + 3. * HITS) * q + t);
+  vec3 col = mix(C1 * .2, C2, smoothstep(.2, .85, f));
+  col = mix(col, C1, clamp(dot(q, q) * 1.3, 0., 1.) * .45);
+  col += C2 * .18 * pow(f, 5.);
+  gl_FragColor = vec4(col, 1.);
+}`,
+  },
+  truchet: {
+    label: 'Truchet: a maze of arcs that scrolls with the beat',
+    source: `// tiles with two quarter-circle arcs, each tile flipped by chance, so the arcs join into winding paths. A row of tiles belongs to a lane:
+// its hit lights the path and thickens it. The pattern drifts one tile every four beats.
+float h(vec2 p){ p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
+void main(){
+  vec2 p = (gl_FragCoord.xy - .5 * R) / min(R.x, R.y) * 6. + vec2(BEAT * .25, T * .03);
+  vec2 id = floor(p), f = fract(p);
+  if (h(id) > .5) f.x = 1. - f.x;               // flip half of the tiles
+  float d = min(abs(length(f) - .5), abs(length(f - 1.) - .5));   // distance to the nearest arc
+  float lane = mod(id.y, max(NL, 1.));
+  vec4 L = vec4(0.);
+  for (int k = 0; k < 16; k++) if (float(k) == lane) L = LANE[k];
+  float w = .06 + .09 * L.x + .02 * L.w;
+  float line = smoothstep(w, w - .035, d);
+  vec3 col = C1 * .10 + C1 * .05 * h(id + 7.);
+  col += mix(C1, C2, L.y) * line * (.5 + .5 * L.x + .3 * L.w);
+  col += C2 * smoothstep(.12, 0., d) * L.x * .5;   // a bright core while it plays
+  gl_FragColor = vec4(col, 1.);
+}`,
+  },
+  sunburst: {
+    label: 'Sunburst: a ray for each lane',
+    source: `// the circle is cut into one wedge per lane; each wedge has a ray whose length follows the last hit and its velocity, with a dot at the end
+// that rides on the pitch. The whole thing turns slowly with the beat.
+void main(){
+  vec2 p = (gl_FragCoord.xy - .5 * R) / min(R.x, R.y);
+  float r = length(p);
+  float a = atan(p.y, p.x) / 6.2832 + .5 + BEAT * .01;
+  float n = max(NL, 1.);
+  float x = fract(a) * n, id = floor(x), fx = fract(x);
+  vec4 L = vec4(0.);
+  for (int k = 0; k < 16; k++) if (float(k) == id) L = LANE[k];
+  float len = .10 + .30 * L.x * (.4 + .6 * L.z) + .06 * L.w;
+  float edge = smoothstep(0., .1, fx) * smoothstep(0., .1, 1. - fx);       // a gap between the wedges
+  float ray = step(.07, r) * smoothstep(len, len - .02, r) * edge;
+  vec3 tint = mix(C1, C2, L.y);
+  vec3 col = C1 * .10 * (1. - r);
+  col += tint * ray * (.35 + .65 * (r - .07) / max(len - .07, .01)) * (.5 + .5 * L.x + .4 * L.w);
+  float dotR = .10 + .30 * L.y + .02;                                       // the pitch dot sits further out for a higher note
+  col += C2 * smoothstep(.025, .0, length(vec2(r - dotR, (fx - .5) * r * 6.2832 / n))) * (.3 + .7 * L.x);
+  col += C2 * smoothstep(.006, 0., abs(r - .06)) * (.2 + .8 * HITS);        // the hub
+  gl_FragColor = vec4(col, 1.);
+}`,
+  },
+  moire: {
+    label: 'Moire: two sets of rings that beat against each other',
+    source: `// two sets of circles around two centres drift past each other; where they meet the bands flicker (the moire pattern).
+// The first two lanes push the centres when they hit, and the ring spacing changes slowly with the beat.
+void main(){
+  vec2 p = (gl_FragCoord.xy - .5 * R) / min(R.x, R.y);
+  vec2 a = .2 * vec2(cos(T * .31), sin(T * .23)) + vec2(.06 * LANE[0].x, 0.);
+  vec2 b = -a + vec2(0., .06 * LANE[1].x);
+  float k = 70. + 30. * sin(BEAT * .12);
+  float s = .25 * (sin(length(p - a) * k) + sin(length(p - b) * k)) + .5;   // 0 to 1
+  vec3 col = mix(C1 * .12, C2, smoothstep(.45, .95, s));
+  col += C1 * .25 * smoothstep(.3, 0., abs(s - .35));
+  col *= 1. - .5 * dot(p, p);
+  col += C2 * .12 * HITS;
+  gl_FragColor = vec4(col, 1.);
+}`,
+  },
+  lissajous: {
+    label: 'Lissajous: a looping curve drawn by the pitch',
+    source: `// a glowing Lissajous curve: x and y swing at two different rates. The pitch of the first lane sets one rate and the second lane's the other,
+// so the curve changes shape when the notes do. Hits make the line thicker and the glow wider.
+void main(){
+  vec2 p = (gl_FragCoord.xy - .5 * R) / min(R.x, R.y);
+  float fa = 2. + floor(LANE[0].y * 4. + .5);
+  float fb = 3. + floor(LANE[1].y * 4. + .5);
+  float ph = T * .3 + BEAT * .05;
+  float d = 9.;
+  vec2 prev = vec2(.38 * sin(ph), 0.);
+  for (int i = 1; i <= 96; i++) {
+    float t = 6.2832 * float(i) / 96.;
+    vec2 cur = .38 * vec2(sin(fa * t + ph), sin(fb * t));
+    vec2 e = cur - prev, w = p - prev;
+    float s = clamp(dot(w, e) / max(dot(e, e), 1e-6), 0., 1.);
+    d = min(d, length(w - e * s));              // distance to this piece of the curve
+    prev = cur;
+  }
+  float th = .004 + .008 * HITS;
+  vec3 col = C1 * .08;
+  col += mix(C1, C2, .5) * smoothstep(th * 2., th, d);
+  col += C2 * exp(-d * (45. - 20. * HITS)) * .45;
+  gl_FragColor = vec4(col, 1.);
+}`,
+  },
+  waves: {
+    label: 'Waves: a wobbling line for each lane',
+    source: `// one line for each lane, stacked from bottom to top. A hit makes its line swing wide, the pitch of the last note sets how fast it wobbles,
+// and a held note keeps a little of the swing. The ends are pinned down.
+void main(){
+  vec2 uv = gl_FragCoord.xy / R;
+  float n = max(NL, 1.);
+  vec3 col = mix(C1 * .14, C1 * .05, uv.y);
+  for (int i = 0; i < 16; i++) {
+    if (float(i) >= n) break;
+    float yc = (float(i) + .5) / n;
+    float amp = (.012 + .45 / n * (LANE[i].x * (.4 + .6 * LANE[i].z) + .25 * LANE[i].w)) * sin(uv.x * 3.1416);
+    float y = yc + amp * sin(uv.x * (8. + 36. * LANE[i].y) + T * 3. + float(i) * 1.7);
+    float d = abs(uv.y - y);
+    vec3 tint = mix(C1, C2, LANE[i].y);
+    col += tint * (smoothstep(.006, 0., d) + .3 * exp(-d * 70.)) * (.35 + .65 * LANE[i].x + .3 * LANE[i].w);
+  }
+  gl_FragColor = vec4(col, 1.);
+}`,
+  },
 };

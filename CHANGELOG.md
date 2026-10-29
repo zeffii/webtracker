@@ -2,6 +2,11 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 505 · 2026-10-29
+
+- Shader screen: seven new light shaders in the template list (Ripples, Marble, Truchet, Sunburst, Moire, Lissajous, Waves). Most cost a tenth or less of the built-in metaballs.
+- Shader screen: a guide under the editor (open it from the line below the status bar). What the shader is given, the look-ups, writing one in small steps, the rules of GLSL ES 1.00, the built-in functions, what things cost, what each template teaches, and where to read more. The whole examples have a "Try it in the editor" button (Ctrl+Z gets your own text back).
+
 ## 504 · 2026-10-29
 
 - Shader screen: dragging a number slider (or typing) no longer makes the picture stutter. A changed shader is now compiled in the background (KHR_parallel_shader_compile, where the browser has it) and the old picture keeps running until the new one is ready; only one build is in flight at a time, so a slider cannot pile them up. A mistake in the text still falls back to the built-in picture, as before. Browsers without the extension build as they did.
