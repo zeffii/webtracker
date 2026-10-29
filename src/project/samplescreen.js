@@ -18,7 +18,7 @@ import { LOWER, UPPER } from '../seq/piano.js';
 // Ctrl a much bigger one); digits type a value and Enter sets it (Enter on a field starts editing it).
 // Every parameter, slider or number, answers to the same keys.
 
-const LIST_ROWS = 13, LEFT = 38;
+const LIST_ROWS = 13, LEFT = 50, NAMEW = 18;
 const FIELDS = ['name', 'loopOn', 'loopBeg', 'loopEnd', 'loopXf', 'loopHide', 'susOn', 'susBeg', 'susEnd', 'susXf', 'susHide', 'selBeg', 'selEnd', 'selHide', 'volume', 'globalVolume', 'pan', 'view'];
 const SLIDERS = { volume: 'Default volume', globalVolume: 'Global volume', pan: 'Default pan' };
 const SWITCH = ['loopOn', 'susOn', 'loopHide', 'susHide', 'selHide', 'view'];   // fields that are switches: Space, Enter and a click flip them
@@ -33,7 +33,7 @@ const EDITS = { C: 'crop', T: 'crop', X: 'cut', S: 'silence', R: 'reverse', N: '
 const ROOT = 60;
 const round2 = v => Math.round(v * 100) / 100;
 
-export function createSampleScreen({ el, statusEl, getProject, onChange = () => {}, onSelect = () => {}, onRemove = () => {}, onRename = () => {}, onNote = () => {}, onLoad = () => {}, onKeep = () => {}, onView = () => {}, onSelection = () => {}, onSlice = () => {}, onZoom = () => '', onAutoSlice = null, onChords = null, onEdited = () => {} }) {
+export function createSampleScreen({ el, statusEl, getProject, onChange = () => {}, onSelect = () => {}, onRemove = () => {}, onRename = () => {}, onNote = () => {}, onLoad = () => {}, onReplace = () => {}, onKeep = () => {}, onView = () => {}, onSelection = () => {}, onSlice = () => {}, onZoom = () => '', onAutoSlice = null, onChords = null, onEdited = () => {} }) {
   let sel = null, focus = 'list', edit = null, mode = 'wave', announced = null, last = null, top = 0;
   let selFrom = 0, selTo = 0, octave = 5, activeSlice = -1;   // the slice marker + and - move
   const held = new Map();   // key -> note it is playing
@@ -165,6 +165,16 @@ export function createSampleScreen({ el, statusEl, getProject, onChange = () => 
     return String(frameValue(s, field));
   };
 
+  // Delete, or the × on a slot: the sample goes (an instrument that plays it stops that, with a message), and the list selects its neighbour.
+  function removeAt(gone, at = ids().indexOf(gone)) {
+    if (!attempt(() => removeSample(getProject(), gone))) return;
+    const rest = ids().filter(id => id !== gone);
+    history.drop(gone);
+    sel = null;
+    select(rest[Math.min(at, rest.length - 1)]);
+    onRemove(gone);
+  }
+
   function select(id) {
     if (!id || !(id in getProject().samples)) return;
     if (id !== sel) { selFrom = 0; selTo = 0; onSelection(0, 0); activeSlice = -1; onSlice(-1); }
@@ -273,17 +283,7 @@ export function createSampleScreen({ el, statusEl, getProject, onChange = () => 
       if (k === 'Home') return go(0);
       if (k === 'End') return go(list.length - 1);
       if (k === 'Tab' && !e.shiftKey || k === 'ArrowRight' || k === 'Enter') { focus = FIELDS[0]; return eat(); }
-      if (k === 'Delete') {
-        const gone = sel;
-        if (attempt(() => removeSample(getProject(), gone))) {
-          const rest = list.filter(id => id !== gone);
-          history.drop(gone);
-          sel = null;
-          select(rest[Math.min(at, rest.length - 1)]);
-          onRemove(gone);
-        }
-        return eat();
-      }
+      if (k === 'Delete') { removeAt(sel, at); return eat(); }
       if ((k === '+' || k === '=' || k === '-' || k === '_') && sample().slices?.length) { nudgeSlice((k === '+' || k === '=' ? 1 : -1) * (e.ctrlKey ? 100 : 1)); return eat(); }
       if ((k === '<' || k === '>') && sample().slices?.length) {   // choose the previous or next marker
         const n = sample().slices.length;
@@ -338,7 +338,22 @@ export function createSampleScreen({ el, statusEl, getProject, onChange = () => 
     if (field === 'name') attempt(() => { const next = renameSample(getProject(), sel, buf); const was = sel; sel = next; history.rename(was, next); onRename(was, next); });
     else if (buf.trim() !== '' && Number.isFinite(Number(buf))) setField(field, Number(buf));
   };
+  // the buttons on the slots: ▶ plays while the mouse is held, Replace and Load… ask for a file, × removes the sample
   el.addEventListener('mousedown', e => {
+    const act = e.target.closest?.('[data-act]');
+    if (act?.dataset?.act) {
+      e.preventDefault(); el.focus();
+      const id = act.dataset.sid, what = act.dataset.act;
+      if (what === 'load') onLoad();
+      else if (what === 'replace') { commit(); select(id); onReplace(id); }
+      else if (what === 'remove') { commit(); removeAt(id); }
+      else if (what === 'play') {
+        commit(); select(id);
+        const code = 'slot-play';
+        if (playFrom(code, 0)) window.addEventListener('mouseup', () => { stopNote(code); draw(); }, { once: true });
+      }
+      draw(); return;
+    }
     const play = e.target.closest?.('[data-play]');
     if (play?.dataset?.play !== undefined && sample()) { e.preventDefault(); el.focus(); const [i, how] = play.dataset.play.split(':'); playSlice(Number(i), how === 'end'); draw(); return; }
     const hit = e.target.closest?.('[data-f], [data-id]');
@@ -357,6 +372,12 @@ export function createSampleScreen({ el, statusEl, getProject, onChange = () => 
     } else if (again) edit = { field, buf: field === 'name' ? sel : '' };
     draw();
   });
+  el.addEventListener('wheel', e => {   // the slot list scrolls when the pointer is over it
+    if (!e.target.closest?.('.lc')) return;
+    const total = Math.max(LIST_ROWS, ids().length + 1), next = Math.min(total - LIST_ROWS, Math.max(0, top + Math.sign(e.deltaY) * 3));
+    if (next !== top) { top = next; draw(); }
+    e.preventDefault();
+  }, { passive: false });
   el.addEventListener('keyup', e => stopNote(String(e.key).toLowerCase()));
   el.addEventListener('blur', () => { for (const code of [...held.keys()]) stopNote(code); });
 
@@ -383,15 +404,27 @@ export function createSampleScreen({ el, statusEl, getProject, onChange = () => 
     if (!sel && list.length) select(list[0]);
     if (sel !== announced) { announced = sel; onSelect(sel); }
     let html;
-    if (!list.length) html = ' Sample list\n\n No samples loaded. Press L, or use the Load button, to add audio files.\n';
-    else {
-      const s = sample();
-      const left = [line(' Sample list')];
-      for (let i = top; i < Math.min(list.length, top + LIST_ROWS); i++) {
-        const id = list[i], d = project.samples[id];
-        const cls = id === sel ? (focus === 'list' ? 'sf on' : 'sf') : '';
-        left.push(line(seg(`${id === sel ? '>' : ' '} ${String(i + 1).padStart(2, '0')} ${id.padEnd(22).slice(0, 22)} ${(d.data.length / d.rate).toFixed(2).padStart(6)}s `, cls, ` data-id="${esc(id)}"`)));
+    // The slots, numbered like Impulse Tracker's: a sample in each, then empty ones with a Load… button. A new sample always takes the first empty slot.
+    const slotRows = () => {
+      const rows = [line(' Sample list')], total = Math.max(LIST_ROWS, list.length + 1);
+      top = Math.min(top, total - LIST_ROWS);
+      for (let i = top; i < Math.min(total, top + LIST_ROWS); i++) {
+        const no = String(i + 1).padStart(2, '0'), id = list[i];
+        if (id === undefined) { rows.push(line(seg(`  ${no} ${'· · · empty'.padEnd(NAMEW)} ${' '.repeat(8)} `, 'sdim'), seg(' Load… ', 'sbtn load', ' data-act="load" title="Pick audio files: they fill this and the next empty slots"'))); continue; }
+        const d = project.samples[id], cls = id === sel ? (focus === 'list' ? 'sf on' : 'sf') : '', sid = ` data-sid="${esc(id)}"`;
+        rows.push(line(seg(`${id === sel ? '>' : ' '} ${no} ${id.padEnd(NAMEW).slice(0, NAMEW)} ${(d.data.length / d.rate).toFixed(2).padStart(6)}s `, cls, ` data-id="${esc(id)}"`), ' ',
+          seg(' ▶ ', 'sbtn', ` data-act="play"${sid} title="Hear it (held)"`), ' ', seg(' Replace ', 'sbtn', ` data-act="replace"${sid} title="Put a different audio file in this slot: instruments that play it follow"`), ' ', seg(' × ', 'sbtn', ` data-act="remove"${sid} title="Remove this sample (Delete)"`)));
       }
+      return rows;
+    };
+    if (!list.length) {
+      const left = slotRows(), right = [line(' Sample'), line(''), line(' No samples yet. Load… a slot, drop audio files on this screen,'), line(' or use the Record and Browse tabs below.')];
+      const out = [];
+      for (let i = 0; i < Math.max(left.length, right.length); i++) out.push(`<span class="lc">${i < left.length ? padTo(left[i], LEFT) : ' '.repeat(LEFT)}</span> ${i < right.length ? right[i].h : ''}`);
+      html = out.join('\n');
+    } else {
+      const s = sample();
+      const left = slotRows();
       // Slice markers: number, the hex value an Off cell would hold, the frame and the time. The slice command
       // (10 0000 is the first) starts a note at one.
       const sliceLines = d => {

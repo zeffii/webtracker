@@ -15,7 +15,7 @@ const SETTLE = 70;       // ms the selection must rest before a file is read, so
 const CONFIRM = 5000;    // ms a first press of Enter or Space on a large file stays "asked"
 const CACHE = 6;         // decoded files kept for going back and forth
 
-export function createSampleBrowser({ root, getCtx, limitMB = () => 10, onLoad, say = () => {}, doc = document, picker = globalThis.showDirectoryPicker, store = null, waveColour = () => '#4dbccc' }) {
+export function createSampleBrowser({ root, getCtx, limitMB = () => 10, onLoad, onReplace = null, say = () => {}, doc = document, picker = globalThis.showDirectoryPicker, store = null, waveColour = () => '#4dbccc' }) {
   const handles = store ?? createHandleStore();
   const el = (tag, props = {}, ...kids) => { const e = doc.createElement(tag); Object.assign(e, props); for (const k of kids) e.append(k); return e; };
 
@@ -39,7 +39,7 @@ export function createSampleBrowser({ root, getCtx, limitMB = () => 10, onLoad, 
   const askPreview = el('button', { type: 'button', textContent: 'Preview' });
   const askLoad = el('button', { type: 'button', textContent: 'Load as a new sample' });
   ask.append(askText, askPreview, askLoad);
-  const hint = el('p', { className: 'sb-hint', textContent: 'Up and Down move and play · Enter loads · Right opens a folder, Left goes up · Space plays again · letters jump' });
+  const hint = el('p', { className: 'sb-hint', textContent: 'Up and Down move and play · Enter adds a new sample · Shift+Enter replaces the selected slot · Right opens a folder, Left goes up · Space plays again · letters jump' });
   let side;
   root.replaceChildren(el('div', { className: 'sb-bar' }, el('span', { className: 'sb-k', textContent: 'Browse' }), path, pick, reopen, filesBtn, up, files, folderInput), el('div', { className: 'sb-main' }, list, side = el('div', { className: 'sb-side' }, facts, waveBox, info, ask)), hint);
 
@@ -208,18 +208,18 @@ export function createSampleBrowser({ root, getCtx, limitMB = () => 10, onLoad, 
     return true;
   };
 
-  const loadCurrent = async () => {
+  const loadCurrent = async (replace = false) => {
     const entry = current();
     if (entry?.kind !== 'file') return;
     stopAll();
-    try { await onLoad(await entry.file()); } catch (err) { say(`${entry.name}: ${err.message ?? err}`); }
+    try { await (replace && onReplace ? onReplace : onLoad)(await entry.file()); } catch (err) { say(`${entry.name}: ${err.message ?? err}`); }
   };
-  async function activate() {
+  async function activate(replace = false) {
     const entry = current();
     if (!entry) return;
     if (entry.kind === 'dir') { open(entry); return; }
     try { if (await tooBig(entry) && !confirmed('load')) return; } catch (err) { setInfo(`Cannot open ${entry.name}: ${err.message ?? err}`, 'bad'); return; }
-    loadCurrent();
+    loadCurrent(replace);
   }
   async function replay() {
     const entry = current();
@@ -238,7 +238,7 @@ export function createSampleBrowser({ root, getCtx, limitMB = () => 10, onLoad, 
     if (step) select((t?.index ?? 0) + step);
     else if (e.key === 'Home') select(0);
     else if (e.key === 'End') select((t?.entries.length ?? 1) - 1);
-    else if (e.key === 'Enter') activate();
+    else if (e.key === 'Enter') activate(e.shiftKey);
     else if (e.key === 'ArrowRight') { if (current()?.kind === 'dir') open(current()); }
     else if (e.key === 'ArrowLeft' || e.key === 'Backspace') goUp();
     else if (e.key === 'Escape') { stopAll(); if (t && current()?.kind === 'file') select(t.index, { play: false }); }

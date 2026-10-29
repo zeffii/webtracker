@@ -30,7 +30,7 @@ import * as presets from './project/presets.js';
 import { LIBRARY_EXT, addToLibrary, importFromLibrary, newLibrary, parseLibrary, serializeLibrary } from './project/library.js';
 import { createRecorder } from './project/recorder.js';
 import { poolId, isPool, ensurePool, usersOfSample } from './project/ops.js';
-import { idFromName, uniqueId, addLane, addSample, addSamplerInstrument, addSynthInstrument, channelsOf, sampleMessage, slotsOf, syncSamplerStereo } from './project/ops.js';
+import { idFromName, uniqueId, addLane, addSample, replaceSample, addSamplerInstrument, addSynthInstrument, channelsOf, sampleMessage, slotsOf, syncSamplerStereo } from './project/ops.js';
 import { MASTER, SHADER, GRAPH, ensureMaster, synthKinds } from './instruments.js';
 import { createStreams } from './ui/streams.js';
 import { createNodeSeqEditor } from './nodeseq/editor.js';
@@ -158,7 +158,8 @@ $('dock-grip').addEventListener('mousedown', e => {
 }
 // Full-screen panes. Switching with an F-key or a click focuses the pane's main element.
 let shaderView = null, dspView = null, nsView = null;
-let sampleBrowser = null;   // the sample browser (made further down); leaving the Samples screen stops what it is playing
+let sampleBrowser = null;
+let replaceTarget = null;   // the slot a Replace button was pressed on, while the file chooser is open   // the sample browser (made further down); leaving the Samples screen stops what it is playing
 let tabBefore = 'patterns', tabNow = 'patterns';   // where the Info close button goes back to
 const tabs = createTabs({
   onChange: id => { if (id !== 'samples') sampleBrowser?.stop(); if (id === 'dsp') dspView?.open(patcher?.instrument); if (id === 'nodeseq') nsView?.refresh(); nsFlags(); if (id === 'shader') { shaderView?.load(); if (!vizOn) config.set('visualOn', true); } if (id !== tabNow) { tabBefore = tabNow; tabNow = id; } applyDock(id); keysRefresh(id); requestAnimationFrame(() => { fitArrangement(); syncFloat(); placeViz(); placeMeters(); }); },
@@ -1398,6 +1399,7 @@ const sampleScreen = createSampleScreen({
   onAutoSlice: () => autoSliceOpen(),
   onChords: () => chordScanOpen(),
   onLoad: () => $('sample-file').click(),
+  onReplace: id => { replaceTarget = id; $('replace-file').click(); },
   onKeep: id => {   // K: copy the sample under the cursor into a new normal sample
     const s = project.samples[id];
     if (!s) return;
@@ -2079,7 +2081,6 @@ $('file').addEventListener('change', async e => {
   }
 });
 
-$('load-samples').addEventListener('click', () => $('sample-file').click());
 $('sample-file').addEventListener('change', e => { const files = [...e.target.files]; e.target.value = ''; loadSampleFiles(files); });
 async function loadSampleFiles(files) {
   if (!engine.ctx) { projStatus('Start the engine first (press Start), then drop the files again.'); return; }
@@ -2097,11 +2098,49 @@ async function loadSampleFiles(files) {
   refreshProjectUi();
 }
 
+// Replace: the file's audio goes into the slot the button belongs to. The sample keeps its name, so every instrument that plays it
+// is sent the new audio (and rebuilt when the sample went from mono to stereo or back).
+async function replaceFromFile(file, id) {
+  if (!engine.ctx) { projStatus('Start the engine first (press Start), then try again.'); return; }
+  if (!id || !project.samples[id]) { projStatus('Pick a slot to replace first.'); return; }
+  try {
+    const buffer = await engine.ctx.decodeAudioData(await file.arrayBuffer());
+    const { data, right } = channelsOf(buffer);
+    const users = replaceSample(project, id, buffer.sampleRate, data, right);
+    sampleScreen.history.drop(id);
+    const touched = [...new Set(users.map(u => u.instrument))];
+    for (const inst of touched) {
+      const before = JSON.stringify((project.instruments[inst].graph?.nodes ?? []).map(n => n.stereo));
+      syncSamplerStereo(project.instruments[inst], project.samples);
+      if (before !== JSON.stringify((project.instruments[inst].graph?.nodes ?? []).map(n => n.stereo))) { loadInst(inst); sendSamples(inst); }
+    }
+    sendLoop(users);
+    auditionDirty = true; waveform.invalidate(); sampleScreen.select(id); sampleScreen.setSelection(0, 0);
+    refreshProjectUi();
+    projStatus(`Replaced ${id} with ${file.name}${users.length ? ` (${touched.length} instrument${touched.length === 1 ? '' : 's'} follow${touched.length === 1 ? 's' : ''})` : ''}.`);
+  } catch (err) { projStatus(`${file.name}: ${err.message}`); }
+}
+$('replace-file').addEventListener('change', e => { const [file] = e.target.files; e.target.value = ''; if (file) replaceFromFile(file, replaceTarget); replaceTarget = null; });
+
 // The sample browser on the same screen: pick a folder once, arrow through it to hear the files, Enter adds one as a new sample.
 sampleBrowser = createSampleBrowser({
   root: $('smp-browse-body'), getCtx: () => engine.ctx, limitMB: () => config.get('sampleAskMB'), say: projStatus,
-  onLoad: file => loadSampleFiles([file]), waveColour: () => getComputedStyle($('smp-browse-body')).color || '#cfd3da',
+  onLoad: file => loadSampleFiles([file]), onReplace: file => replaceFromFile(file, sampleScreen.selected), waveColour: () => getComputedStyle($('smp-browse-body')).color || '#cfd3da',
 });
+
+// The strip under the slots: Record or Browse, one at a time. The choice is remembered.
+{
+  const tabs = [...document.querySelectorAll('.sl-tabs [data-tab]')], panels = { record: $('rec-panel'), browse: $('smp-browse-body') };
+  const show = name => {
+    for (const t of tabs) t.setAttribute('aria-selected', String(t.dataset.tab === name));
+    for (const [key, panel] of Object.entries(panels)) panel.hidden = key !== name;
+    if (name !== 'browse') sampleBrowser?.stop();
+    try { localStorage.setItem('wax.sampleTab', name); } catch { /* not kept */ }
+  };
+  for (const t of tabs) t.addEventListener('click', () => show(t.dataset.tab));
+  let first = 'browse'; try { first = localStorage.getItem('wax.sampleTab') === 'record' ? 'record' : 'browse'; } catch { /* default */ }
+  show(first);
+}
 
 // Audio files can be dragged onto the sample screen. Dropping a file anywhere else would make the browser open it and
 // leave the page, so the rest of the page just refuses.
@@ -2332,7 +2371,7 @@ $('start').addEventListener('click', async () => {
     navigator.storage?.persist?.();   // ask the browser not to clear the snapshots when it is short of space
     for (const id of ['start']) $(id).disabled = true;
     $('logo').classList.remove('idle'); $('logo').removeAttribute('title'); $('logo').removeAttribute('role'); $('logo').removeAttribute('tabindex');
-    for (const id of ['play', 'pause', 'panic', 'cut', 'new', 'save', 'load', 'backups', 'export', 'load-samples', 'rec-take', 'rec-source', 'add-inst', 'add-lane', 'add-lane-inst', 'inst-voices', 'inst-notecols', 'inst-up', 'inst-down', 'inst-dup', 'inst-remove', 'lane-name', 'lane-rename', 'lane-left', 'lane-right', 'lane-dup', 'lane-remove', 'lane-remove-all', 'length', 'ins-n', 'ins-go', 'bpm', 'swing', 'tpb', 'bar', 'preset-name', 'preset-save', 'preset-over', 'preset-rename', 'preset-remove', 'inst-export', 'inst-import', 'lib-load', 'lib-add', 'lib-save']) $(id).disabled = false;
+    for (const id of ['play', 'pause', 'panic', 'cut', 'new', 'save', 'load', 'backups', 'export', 'rec-take', 'rec-source', 'add-inst', 'add-lane', 'add-lane-inst', 'inst-voices', 'inst-notecols', 'inst-up', 'inst-down', 'inst-dup', 'inst-remove', 'lane-name', 'lane-rename', 'lane-left', 'lane-right', 'lane-dup', 'lane-remove', 'lane-remove-all', 'length', 'ins-n', 'ins-go', 'bpm', 'swing', 'tpb', 'bar', 'preset-name', 'preset-save', 'preset-over', 'preset-rename', 'preset-remove', 'inst-export', 'inst-import', 'lib-load', 'lib-add', 'lib-save']) $(id).disabled = false;
     $('status').textContent =
       `Running at ${engine.ctx.sampleRate} Hz, base latency ${(engine.ctx.baseLatency * 1000).toFixed(1)} ms`;
     // Only the screen that is showing is drawn: a hidden one has nothing to measure or paint, and its work would only delay the one you are using.

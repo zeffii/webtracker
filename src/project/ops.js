@@ -74,6 +74,18 @@ export function addSample(project, name, rate, data, right) {
   return id;
 }
 
+// Puts new audio into an existing sample and keeps its name, level and pan, so every instrument that plays it picks the new audio up.
+// The loop points, the sustain loop and the slice markers were frame positions in the old audio, so they go. Returns the users.
+export function replaceSample(project, id, rate, data, right) {
+  const old = project.samples[id];
+  if (!old) throw new Error(`No sample called "${id}".`);
+  const next = right ? { rate, data, right } : { rate, data };
+  for (const key of ['volume', 'globalVolume', 'pan']) if (old[key] !== undefined) next[key] = old[key];
+  if (old.pool) { next.pool = true; next.taken = true; }
+  project.samples[id] = next;
+  return usersOfSample(project, id);
+}
+
 // Every { instrument, node } that plays the sample.
 export function usersOfSample(project, id) {
   return Object.entries(project.instruments).flatMap(([instrument, def]) =>

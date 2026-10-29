@@ -66,7 +66,7 @@
     #rec-meter { background: color-mix(in srgb, currentColor 10%, transparent); }
     #rec-take.live { background: #d03040; color: #fff; }
     /* the list and the fields are split by one continuous, dim line, as in the instrument screen */
-    #smp .lc { display: inline-block; width: 38ch; height: 1.35em; vertical-align: top; overflow: hidden; border-right: 1px solid color-mix(in srgb, currentColor 25%, transparent); }
+    #smp .lc { display: inline-block; width: 50ch; height: 1.35em; vertical-align: top; overflow: hidden; border-right: 1px solid color-mix(in srgb, currentColor 25%, transparent); }
     #smp { position: relative; }
     #smp .slbox { position: absolute; top: 0; overflow-y: auto; white-space: pre; padding: 0 .6ch 0 0; scrollbar-width: thin; }
     #smp .sl-act { background: var(--hi); color: var(--hi-fg); }
@@ -78,6 +78,10 @@
     #smp .sl-end::before { left: .1ch; width: 1.3ch; clip-path: polygon(0 0, 100% 50%, 0 100%); }   /* play on to the end */
     #smp .sl-end::after { left: 1.4ch; width: 1.3ch; clip-path: polygon(0 0, 100% 50%, 0 100%); }
     #smp .sf { background: rgba(128, 128, 128, .22); }
+    #smp .sdim { opacity: .45; }
+    #smp .sbtn { background: rgba(128, 128, 128, .22); cursor: pointer; }
+    #smp .sbtn:hover { background: rgba(128, 128, 128, .42); }
+    #smp .sbtn.load { background: color-mix(in srgb, var(--hi) 35%, transparent); }
     #smp .sf.on { background: var(--hi); color: var(--hi-fg); }
     #smp .sf.ed { outline: 1px solid currentColor; }
     #smp .sl { display: inline-block; width: 24ch; height: 1em; border: 1px solid; box-sizing: border-box; vertical-align: -.15em; opacity: .55; }
@@ -856,7 +860,10 @@
     #smp-slate button:disabled, #smp-slate select:disabled { opacity: .4; cursor: default; }
     #smp-slate button:focus-visible, #smp-slate select:focus-visible, #smp-slate input:focus-visible { outline: 1px solid var(--hi); }
     #smp-slate input[type=checkbox] { accent-color: var(--hi); vertical-align: -.1em; }
-    .sl-top { display: flex; flex-wrap: wrap; gap: .2rem 2.5ch; justify-content: space-between; align-items: center; margin-bottom: .5rem; }
+    .sl-tabs { display: flex; flex-wrap: wrap; gap: .2rem 1ch; align-items: center; margin-bottom: .45rem; }
+    #smp-slate .sl-tabs button[aria-selected=true] { background: var(--hi); color: var(--hi-fg); }
+    .sl-tabs #proj-status { margin-left: auto; }
+    .sl-kv { display: grid; grid-template-columns: 8ch 1fr; gap: .15rem 0; align-items: center; min-height: 6em; }
     .sl-grp { display: inline-flex; flex-wrap: wrap; gap: .2rem 1ch; align-items: center; }
     .sl-k, .sb-k { opacity: .55; }
     #proj-status { opacity: .85; }
@@ -1335,15 +1342,21 @@
       <div id="wave-row"><canvas id="wave" width="900" height="160"></canvas><canvas id="region" width="60" height="160" title="marker region"></canvas></div>
       <div id="wave-grip" class="grip" tabindex="0" role="separator" aria-orientation="horizontal" aria-label="Waveform height: drag, or use Up and Down" title="Drag to change the height of the waveform"></div>
       <pre id="smp" tabindex="0"></pre>
-      <section id="smp-slate" aria-label="Load, record and browse samples">
-        <div class="sl-top">
-          <span class="sl-grp"><span class="sl-k">Load</span><button id="load-samples" disabled>Load samples…</button>
-            <input id="sample-file" type="file" accept="audio/*" multiple hidden>
-            <span id="proj-status"></span></span>
-          <span id="rec-row" class="sl-grp"><span class="sl-k">Record</span><button id="rec-take" disabled title="Record a new sample from another tab, the computer's audio or an input">Record</button>
-            <select id="rec-source" disabled aria-label="Record from"></select>
-            <label title="Hold the take until something is heard"><input type="checkbox" id="rec-wait" checked> start on sound</label>
-            <canvas id="rec-meter" width="120" height="12" aria-label="Input level"></canvas> <span id="rec-time"></span></span>
+      <section id="smp-slate" aria-label="Record and browse samples">
+        <input id="sample-file" type="file" accept="audio/*" multiple hidden>
+        <input id="replace-file" type="file" accept="audio/*" hidden>
+        <div class="sl-tabs" role="tablist">
+          <button type="button" role="tab" id="tab-record" data-tab="record" aria-selected="false">Record</button>
+          <button type="button" role="tab" id="tab-browse" data-tab="browse" aria-selected="true">Browse</button>
+          <span id="proj-status"></span>
+        </div>
+        <div id="rec-panel" role="tabpanel" hidden>
+          <div class="sl-kv">
+            <span class="sl-k">Input</span><span class="sl-grp"><button id="rec-take" disabled title="Record a new sample from another tab, the computer's audio or an input">Record</button> <select id="rec-source" disabled aria-label="Record from"></select></span>
+            <span class="sl-k">Start</span><label title="Hold the take until something is heard"><input type="checkbox" id="rec-wait" checked> start on sound</label>
+            <span class="sl-k">Level</span><span class="sl-grp"><canvas id="rec-meter" width="160" height="12" aria-label="Input level"></canvas> <span id="rec-time"></span></span>
+          </div>
+          <p class="sb-hint">A take is added as a new sample, in the first empty slot.</p>
         </div>
         <div id="smp-browse-body"></div>
       </section>

@@ -7992,6 +7992,28 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   assert.deepEqual((await (await top[0].list())[0].list()).map(e => e.name), ['y.flac'], 'and nested');
   console.log('ok: sample browser pieces');
 }
+// 110d. Replacing a slot's audio keeps its name, level and pan, drops frame-bound data, and reports who plays it; the slot buttons are drawn.
+{
+  const { project } = makeProject();
+  pops.addSample(project, 'one.wav', 44100, new Float32Array(100).fill(0.5));
+  const id = Object.keys(project.samples).find(k => !pops.isPool(k) && project.samples[k].data.length === 100);
+  Object.assign(project.samples[id], { volume: 0.7, pan: -0.5, loopStart: 10, loopEnd: 50, loopOn: true, slices: [5, 20] });
+  const users = pops.replaceSample(project, id, 48000, new Float32Array(300), new Float32Array(300));
+  const now = project.samples[id];
+  assert.deepEqual([now.rate, now.data.length, !!now.right, now.volume, now.pan], [48000, 300, true, 0.7, -0.5], 'new audio, same level and pan');
+  assert.ok(now.loopStart === undefined && now.slices === undefined, 'loops and slices belonged to the old audio');
+  assert.ok(Array.isArray(users), 'the users are returned');
+  assert.throws(() => pops.replaceSample(project, 'nope', 44100, new Float32Array(1)), /No sample/);
+  const on = {}, el = { addEventListener: (type, f) => { on[type] = f; }, focus() {}, innerHTML: '' };
+  const calls = [];
+  const sc = createSampleScreen({ el, statusEl: { textContent: '' }, getProject: () => project, onLoad: () => calls.push('load'), onReplace: x => calls.push(`replace ${x}`) });
+  sc.draw();
+  assert.ok(el.innerHTML.includes('data-act="load"') && el.innerHTML.includes('data-act="replace"') && el.innerHTML.includes('empty'), 'filled slots have Replace, empty ones Load…');
+  on.mousedown({ target: { closest: () => ({ dataset: { act: 'load' } }) }, preventDefault() {} });
+  on.mousedown({ target: { closest: () => ({ dataset: { act: 'replace', sid: id } }) }, preventDefault() {} });
+  assert.deepEqual(calls, ['load', `replace ${id}`], 'the buttons call back');
+  console.log('ok: slot buttons and replace');
+}
 // 110. The About page's text loads (a stray quote in it once broke the whole app) and shows at most ten builds.
 {
   const about = await import('../src/ui/about.js');

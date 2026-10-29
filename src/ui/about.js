@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['510', ['Samples screen: numbered slots with Load on empty ones and Replace on filled ones (instruments follow a replace). Record and Browse are tabs under the list.']],
   ['509', ['Samples screen: Load, Record and Browse restyled to match the sample editor (slate panel, flat buttons, readout with exact frame count).']],
   ['508', ['Sample browser: a thin red playhead while a sample plays, and the waveform can be dragged bigger with the grip in its corner.']],
   ['507', ['Sample browser: Choose folder now works in Brave too (it lists subfolders), without remembering the folder.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['503', ['Code node: several assignments in one line, a, b, c = x, y, z; All values on the right are worked out first, so a, b = b, a; swaps them.']],
   ['502', ['The code node (GenExpr) can now make sound from notes: new names freq, gate, vel, note and trig. A Templates list above the code box loads working examples: sine voice, detuned pad, FM bell, plucked string, kick, hi-hat, echo, bitcrusher, ring modulator and soft clipper. New Code instrument in the new-instrument list. Fixed: sin, cos, min, max, abs, round, tanh and the other math functions did not compile. Full help page for the node.']],
   ['501', ['Top row: the thin line under the value fields (len, bpm, swing, tpb, bar) is gone. A field that you are editing still shows a faint highlight.']],
-  ['500', ['New time readout at the right of the top row (after tpb and bar): the estimated length of the song at the current tempo, as minutes and seconds, from the song length in ticks, or from the loop when the loop is on (then it says loop). A tempo set in the master lane is not counted.']],
 ];

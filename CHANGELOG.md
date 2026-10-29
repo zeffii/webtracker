@@ -2,6 +2,12 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 510 · 2026-10-29
+
+- Samples screen: the sample list is now a row of numbered slots, like Impulse Tracker's. A filled slot has ▶ (hold to hear it), Replace and × buttons; an empty slot is dimmed and has a Load… button (the files fill that slot and the next empty ones). The separate Load samples button is gone (L still works, and you can drop files on the screen).
+- Replace puts a new audio file into the slot and keeps its name, level and pan, so every instrument that plays the sample follows (and is rebuilt when it goes between mono and stereo). The sample's loop points and slice markers are cleared, as they belonged to the old audio. The sample browser does the same with Shift+Enter.
+- Record has its own tab, next to Browse, under the slots; the last tab used is remembered. The mouse wheel scrolls the slot list.
+
 ## 509 · 2026-10-29
 
 - Samples screen: Load, Record and Browse now share one slate panel in the style of the sample editor above it: dim labels, flat tinted buttons, a `>` selection bar in the list, and a Name / Speed / Length / Size readout (exact frame count for WAV files) beside the waveform. Load and Record sit on one line. Same keys, playhead and resizable waveform as before; the waveform is drawn in the text colour.
