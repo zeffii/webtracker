@@ -136,9 +136,8 @@ export function createVisual(canvas, { size = 300, colours = [[.30, .74, .80], [
     if (!gl.getProgramParameter(pr, gl.LINK_STATUS)) { const error = gl.getProgramInfoLog(pr) || 'the shader did not link'; drop(b); return { error }; }
     gl.deleteShader(vs); gl.deleteShader(fs);
     gl.useProgram(pr);
-    gl.uniform3fv(gl.getUniformLocation(pr, 'C1'), colours[0]); gl.uniform3fv(gl.getUniformLocation(pr, 'C2'), colours[1]);
     const u = n => gl.getUniformLocation(pr, n);
-    return { pr, knobDefs: knobs, locs: { NL: u('NL'), SKEL: u('SKEL'), PAT: u('PAT'), R: u('R'), T: u('T'), BEAT: u('BEAT'), HITS: u('HITS'), LANE: u('LANE'), KN: u('KN[0]') }, at: gl.getAttribLocation(pr, 'a') };
+    return { pr, knobDefs: knobs, locs: { C1: u('C1'), C2: u('C2'), NL: u('NL'), SKEL: u('SKEL'), PAT: u('PAT'), R: u('R'), T: u('T'), BEAT: u('BEAT'), HITS: u('HITS'), LANE: u('LANE'), KN: u('KN[0]') }, at: gl.getAttribLocation(pr, 'a') };
   }
   const build = (src, laneNames) => { const b = start(src, laneNames); return finish(b); };   // all at once, for the built-in picture
   const sameNames = (a, b) => a.length === b.length && a.every((x, i) => x[0] === b[i][0] && x[1] === b[i][1]);
@@ -173,12 +172,15 @@ export function createVisual(canvas, { size = 300, colours = [[.30, .74, .80], [
       sources = next; shown = null;
     },
     setSource(text) { this.setSources([text]); },
+    // the two colours the shaders get as C1 and C2, each [r, g, b] in 0 to 1; shown from the next frame
+    setColours(pair) { colours = pair; },
     draw(data) {
       const e = entryFor(Math.max(0, Math.min(sources.length - 1, Math.floor(data.shader ?? 0))), data.names.map(n => [...n]));
       if (e && shown !== e) { shown = e; fallback = e.fell; onError(e.err); }
       if (!e?.pr) return;
       const { locs } = e;
       gl.useProgram(e.pr); gl.enableVertexAttribArray(e.at); gl.vertexAttribPointer(e.at, 2, gl.FLOAT, false, 0, 0);
+      gl.uniform3fv(locs.C1, colours[0]); gl.uniform3fv(locs.C2, colours[1]);   // every frame, so a new palette shows at once
       gl.uniform2f(locs.R, size, size); gl.uniform1f(locs.T, data.T); gl.uniform1f(locs.BEAT, data.BEAT); gl.uniform1f(locs.HITS, data.HITS);
       gl.uniform4fv(locs.LANE, data.lane);
       if (locs.KN) {   // exposed numbers: what the shader machine holds (0 to 1) stretched to the range the call gave, or the number it started as

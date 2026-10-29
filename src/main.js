@@ -18,6 +18,8 @@ import { createVisData } from './ui/visdata.js';
 import { createVisual, createLabels, DEFAULT_GLSL } from './ui/visual.js';
 import { TEMPLATES } from './ui/vistemplates.js';
 import { GUIDE } from './ui/shaderguide.js';
+import { paletteColours } from './ui/palettes.js';
+import { createSampleBrowser } from './ui/samplebrowser.js';
 import { createShaderView } from './ui/shaderview.js';
 import { mountConfig } from './ui/quickconfig.js';
 import { createDspView } from './ui/dspview.js';
@@ -156,9 +158,10 @@ $('dock-grip').addEventListener('mousedown', e => {
 }
 // Full-screen panes. Switching with an F-key or a click focuses the pane's main element.
 let shaderView = null, dspView = null, nsView = null;
+let sampleBrowser = null;   // the sample browser (made further down); leaving the Samples screen stops what it is playing
 let tabBefore = 'patterns', tabNow = 'patterns';   // where the Info close button goes back to
 const tabs = createTabs({
-  onChange: id => { if (id === 'dsp') dspView?.open(patcher?.instrument); if (id === 'nodeseq') nsView?.refresh(); nsFlags(); if (id === 'shader') { shaderView?.load(); if (!vizOn) config.set('visualOn', true); } if (id !== tabNow) { tabBefore = tabNow; tabNow = id; } applyDock(id); keysRefresh(id); requestAnimationFrame(() => { fitArrangement(); syncFloat(); placeViz(); placeMeters(); }); },
+  onChange: id => { if (id !== 'samples') sampleBrowser?.stop(); if (id === 'dsp') dspView?.open(patcher?.instrument); if (id === 'nodeseq') nsView?.refresh(); nsFlags(); if (id === 'shader') { shaderView?.load(); if (!vizOn) config.set('visualOn', true); } if (id !== tabNow) { tabBefore = tabNow; tabNow = id; } applyDock(id); keysRefresh(id); requestAnimationFrame(() => { fitArrangement(); syncFloat(); placeViz(); placeMeters(); }); },
   tabs: [
     { id: 'patterns', key: 'F1', el: $('pane-patterns'), button: $('tab-patterns'), focus: $('view') },
     { id: 'samples', key: 'F2', el: $('pane-samples'), button: $('tab-samples'), focus: $('smp') },
@@ -1864,7 +1867,7 @@ const placeViz = () => { if (pip) return; vizBox.style.bottom = `${$('footer').o
 const showViz = on => {
   vizOn = on;
   if (on && !visual) {
-    visual = createVisual($('viz-canvas'), { onRestore: () => { visual = null; showViz(vizOn); }, onError: text => { vizErr.hidden = !text; vizErr.textContent = text; shaderView?.error(text); } });
+    visual = createVisual($('viz-canvas'), { colours: paletteColours(config.get), onRestore: () => { visual = null; showViz(vizOn); }, onError: text => { vizErr.hidden = !text; vizErr.textContent = text; shaderView?.error(text); } });
     if (!visual) { vizOn = false; $('status').textContent = 'The live picture needs WebGL, which this browser does not have.'; }
     else { visual.resize(Number(config.get('visualSize'))); pushShaders(); labels = createLabels($('viz-text'), Number(config.get('visualSize'))); }
   }
@@ -1955,7 +1958,7 @@ document.addEventListener('keydown', e => {
   if (/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName ?? '')) return;
   e.preventDefault(); e.stopPropagation(); openCmd();
 }, true);
-config.onChange((k, v) => { if (k === 'visualOn') showViz(v); else if (k === 'visualGlsl') { pushShaders(); shaderView?.load(); } else if (k === 'visualSize') { visual?.resize(Number(v)); labels?.resize(Number(v)); } else if (k === 'meterOn') { showMeters(v); placeViz(); } else if (k.startsWith('meter')) { meters.rebuild(); placeMeters(); } });
+config.onChange((k, v) => { if (k === 'visualOn') showViz(v); else if (k === 'visualPalette' || k === 'visualColour1' || k === 'visualColour2') visual?.setColours(paletteColours(config.get)); else if (k === 'visualGlsl') { pushShaders(); shaderView?.load(); } else if (k === 'visualSize') { visual?.resize(Number(v)); labels?.resize(Number(v)); } else if (k === 'meterOn') { showMeters(v); placeViz(); } else if (k.startsWith('meter')) { meters.rebuild(); placeMeters(); } });
 $('meters-btn').addEventListener('click', toggleMeters);
 addEventListener('resize', placeMeters);
 showMeters(config.get('meterOn'));
@@ -2093,6 +2096,12 @@ async function loadSampleFiles(files) {
   }
   refreshProjectUi();
 }
+
+// The sample browser on the same screen: pick a folder once, arrow through it to hear the files, Enter adds one as a new sample.
+sampleBrowser = createSampleBrowser({
+  root: $('smp-browse-body'), getCtx: () => engine.ctx, limitMB: () => config.get('sampleAskMB'), say: projStatus,
+  onLoad: file => loadSampleFiles([file]), waveColour: () => getComputedStyle($('smp-browse-body')).getPropertyValue('--hi').trim() || '#4a90d9',
+});
 
 // Audio files can be dragged onto the sample screen. Dropping a file anywhere else would make the browser open it and
 // leave the page, so the rest of the page just refuses.

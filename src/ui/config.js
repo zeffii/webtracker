@@ -3,6 +3,7 @@
 // that should react to a change subscribes with onChange(), so the panel, the keyboard shortcuts and the
 // toolbar buttons all stay in step.
 import { DEFAULT_RULES } from './console.js';
+import { PALETTES } from './palettes.js';
 const KEY = 'webtracker.config';
 export const THEMES = ['system', 'dark', 'black', 'bright', 'neon', 'amber', 'phosphor', 'ice', 'synthwave'];
 
@@ -76,6 +77,7 @@ export const SCHEMA = [
   { key: 'insertLength', label: 'Insert silence: default length', hint: 'in ticks', type: 'int', min: 1, max: 65536, def: 128 },
   { key: 'insertCut', label: 'Insert silence: cut patterns across the cursor', hint: 'off: a pattern crossing the cursor row stays whole', type: 'bool', def: false },
   { group: 'Sample', key: 'chordSplit', label: 'Detect chords: cut the recording', hint: 'at every onset (a new chord or note), or into steps of whole beats at the recording\'s tempo', type: 'choice', options: ['onsets', '1', '2', '4'], labels: { onsets: 'at every onset', 1: 'every beat', 2: 'every 2 beats', 4: 'every bar (4 beats)' }, def: 'onsets' },
+  { key: 'sampleAskMB', label: 'Sample browser: ask before reading files over (MB)', hint: 'in the sample browser a file bigger than this is not read (so not played, and its shape not drawn) until you say so, with Preview or Load', type: 'int', min: 1, max: 2000, def: 10 },
   { key: 'chordMaxNotes', label: 'Detect chords: most notes in a chord', type: 'int', min: 1, max: 8, def: 5 },
   { key: 'chordThreshold', label: 'Detect chords: weakest note kept (%)', hint: 'a note must be at least this strong next to the strongest of its chord: lower finds more notes, and more wrong ones', type: 'int', min: 5, max: 90, def: 35 },
   { key: 'chordBpm', label: 'Detect chords: tempo of the recording', hint: 'sets where the chords land in the pattern; 0 is the song\'s tempo', type: 'int', min: 0, max: 400, def: 0 },
@@ -109,6 +111,9 @@ export const SCHEMA = [
   { key: 'shaderSliders', label: 'Shader view: number sliders', hint: 'numbers in the shader are drawn on a faint chip (orange for floats, green for ints); click one, or drag it sideways, for a slider that writes into the text', type: 'bool', def: true },
   { key: 'shaderKnobs', label: 'Shader view: knobs panel', hint: 'a list of every number in the shader, each with its own slider and tick box; unticking puts the number back as it was', type: 'bool', def: false },
   { key: 'visualSize', label: 'Picture: resolution', hint: 'pixels each way (the shader sees it as R). The picture keeps its place on the page and in the pop-out window, which is sharper with more pixels; a big one costs graphics power', type: 'choice', options: ['300', '480', '720', '1080'], labels: { 300: '300 x 300', 480: '480 x 480', 720: '720 x 720', 1080: '1080 x 1080' }, def: '300' },
+  { key: 'visualPalette', label: 'Picture: colours', hint: 'the two colours every shader gets as C1 (deep) and C2 (light). Custom uses the two colour boxes below', type: 'choice', options: [...Object.keys(PALETTES), 'custom'], labels: { ...Object.fromEntries(Object.entries(PALETTES).map(([id, p]) => [id, p.label])), custom: 'Custom (the two boxes below)' }, def: 'teal' },
+  { key: 'visualColour1', label: 'Picture: custom deep colour (C1)', hint: 'used when Picture: colours is Custom', type: 'colour', def: '#4dbccc' },
+  { key: 'visualColour2', label: 'Picture: custom light colour (C2)', hint: 'used when Picture: colours is Custom', type: 'colour', def: '#9ef7fa' },
   { key: 'visualDecay', label: 'Picture: hit fade (ms)', hint: 'how long a lane\'s hit takes to fade from 1 (about a third of it is left after this long)', type: 'int', min: 50, max: 1000, def: 220 },
   { key: 'visualGlsl', label: 'Picture: default shader', hint: 'used by projects that have no shader of their own. A project keeps its shader with it: edit that in the Shader view (Ctrl+Alt+G), with templates and colours for the code. GLSL ES 1.00, a whole main(). Empty uses the built-in metaballs. Ready to use: uniforms R (size), T (seconds), BEAT (beats), HITS (all hits, 0 to 1), C1 and C2 (colours), LANE[16]; and the look-ups hit("kick"), pitch("acid"), vel(2), held("pad") by lane name or number from 0, and hits(). A mistake in it shows as a line at the foot of the picture and the built-in picture keeps running.', type: 'code', def: '' },
   { group: 'Meters', key: 'meterOn', label: 'Meter band', hint: 'a strip along the bottom of the window (Ctrl+Alt+M, or the Meters button)', type: 'bool', def: false },

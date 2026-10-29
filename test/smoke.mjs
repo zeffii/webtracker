@@ -7933,6 +7933,56 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   assert.ok((html.match(/<h2>/g) ?? []).length >= 7 && html.includes('<pre>'), 'the guide has its sections and its examples');
   console.log('ok: shader templates and guide');
 }
+// 110b. The picture's palettes: every palette is two valid colours, the settings offer each of them and Custom, and the colour pair follows the choice.
+{
+  const { PALETTES, paletteColours, hexToRgb } = await import('../src/ui/palettes.js');
+  const cfg = await import('../src/ui/config.js');
+  assert.ok(Object.keys(PALETTES).length >= 8, 'a good number of palettes');
+  for (const [id, p] of Object.entries(PALETTES)) assert.ok(/^#[0-9a-f]{6}$/.test(p.c1) && /^#[0-9a-f]{6}$/.test(p.c2) && p.label, `palette ${id} is two colours and a name`);
+  const choice = cfg.schemaOf('visualPalette');
+  assert.deepEqual(choice.options, [...Object.keys(PALETTES), 'custom'], 'the setting offers every palette and Custom');
+  assert.equal(choice.def, 'teal', 'the picture still starts teal');
+  assert.deepEqual(hexToRgb('#ff8000'), [1, 128 / 255, 0], 'hex to 0..1');
+  const teal = paletteColours(k => ({ visualPalette: 'teal' })[k]);
+  assert.deepEqual(teal[0], hexToRgb(PALETTES.teal.c1));
+  const custom = paletteColours(k => ({ visualPalette: 'custom', visualColour1: '#000000', visualColour2: '#ffffff' })[k]);
+  assert.deepEqual(custom, [[0, 0, 0], [1, 1, 1]], 'Custom takes the two boxes');
+  console.log('ok: picture palettes');
+}
+// 110c. The sample browser's pieces: header read-out without decoding, the ask-first size rule, folder listing and order.
+{
+  const { audioInfo, rateText } = await import('../src/project/audioinfo.js');
+  const { needsAsk, sizeText, MB, isAudioName, dirEntryFromHandle, dirEntryFromFiles } = await import('../src/project/samplefolder.js');
+  const cfg = await import('../src/ui/config.js');
+  const wav = new Uint8Array(44), dv = new DataView(wav.buffer);
+  wav.set([...'RIFF'].map(c => c.charCodeAt(0)), 0); wav.set([...'WAVEfmt '].map(c => c.charCodeAt(0)), 8);
+  dv.setUint32(16, 16, true); dv.setUint16(20, 1, true); dv.setUint16(22, 2, true); dv.setUint32(24, 44100, true); dv.setUint16(34, 16, true);
+  const w = audioInfo(wav);
+  assert.deepEqual([w.format, w.rate, w.channels, w.bits], ['wav', 44100, 2, 16], 'wav header');
+  const aif = new Uint8Array(54), av = new DataView(aif.buffer);
+  aif.set([...'FORM'].map(c => c.charCodeAt(0)), 0); aif.set([...'AIFF'].map(c => c.charCodeAt(0)), 8); aif.set([...'COMM'].map(c => c.charCodeAt(0)), 12);
+  av.setUint32(16, 18); av.setUint16(20, 1); av.setUint16(26, 16);
+  aif.set([0x40, 0x0E, 0xAC, 0x44, 0, 0, 0, 0, 0, 0], 28);
+  assert.equal(audioInfo(aif).rate, 44100, 'aiff 80-bit rate');
+  const flac = new Uint8Array(42); flac.set([0x66, 0x4C, 0x61, 0x43], 0);
+  const packed = (48000n << 44n) | (1n << 41n) | (23n << 36n);
+  for (let i = 0; i < 8; i++) flac[18 + i] = Number((packed >> BigInt(56 - 8 * i)) & 0xffn);
+  const f = audioInfo(flac);
+  assert.deepEqual([f.format, f.rate, f.channels], ['flac', 48000, 2], 'flac header');
+  assert.ok(!audioInfo(new Uint8Array(20)), 'junk is not audio');
+  assert.equal(rateText(44100), '44.1 kHz');
+  assert.ok(!needsAsk(10 * MB, 10) && needsAsk(10 * MB + 1, 10), 'over the limit asks, at it does not');
+  assert.equal(cfg.schemaOf('sampleAskMB').def, 10, 'ask above 10 MB by default');
+  assert.equal(sizeText(11 * MB), '11.0 MB');
+  assert.ok(isAudioName('A.FLAC') && !isAudioName('notes.txt'));
+  const file = name => ({ kind: 'file', name, getFile: async () => ({ name, size: 1 }) });
+  const dir = (name, kids) => ({ kind: 'directory', name, async *entries() { for (const k of kids) yield [k.name, k]; } });
+  const root = dirEntryFromHandle(dir('r', [file('kick 10.wav'), file('kick 2.wav'), file('.hid.wav'), file('a.txt'), dir('zz', []), dir('Aa', [])]));
+  assert.deepEqual((await root.list()).map(e => e.name), ['Aa', 'zz', 'kick 2.wav', 'kick 10.wav'], 'folders first, natural order, no dotfiles or non-audio');
+  const flat = dirEntryFromFiles([{ name: 'b.wav' }, { name: 'x.doc' }, { name: 'a.mp3' }]);
+  assert.deepEqual((await flat.list()).map(e => e.name), ['a.mp3', 'b.wav'], 'fallback list');
+  console.log('ok: sample browser pieces');
+}
 // 110. The About page's text loads (a stray quote in it once broke the whole app) and shows at most ten builds.
 {
   const about = await import('../src/ui/about.js');

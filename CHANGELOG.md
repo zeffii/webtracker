@@ -2,6 +2,12 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 506 · 2026-10-29
+
+- Picture colours: the picture on the splash and the shader screen now has eleven palettes (Teal as before, Ember, Sunset, Rose, Gold, Lime, Forest, Aurora, Ice, Violet, Mono) and a Custom choice with two colour boxes, all in Config.
+- Samples (F2): a Browse section. Choose a folder once (Chromium keeps it, with one Reopen click after a restart; other browsers get a multi-file chooser). Up and Down move and play each sample; Enter, or a double click, loads it as a new sample; Right opens a folder, Left or Backspace goes up, Space replays, Esc stops, letters jump to a name. A small waveform shows beside the file with its size, native sample rate, channels, bits and length.
+- Browser: a file bigger than 10 MB (Config: Sample browser ask limit) is not read at all until you say so; Space or the Preview button plays it, Enter twice or the Load button loads it.
+
 ## 505 · 2026-10-29
 
 - Shader screen: seven new light shaders in the template list (Ripples, Marble, Truchet, Sunburst, Moire, Lissajous, Waves). Most cost a tenth or less of the built-in metaballs.
