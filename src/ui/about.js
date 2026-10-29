@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['523', ['Arrangement: pattern names on a small dark chip, readable over the minimaps.']],
   ['522', ['Pattern minimaps keep the first four characters of a cell clear for the pattern name and scale everything into the rest.']],
   ['521', ['New demo: ?demo=acid, eight bars of acid techno played by one meta machine, with accents, slides and a filter that opens up.']],
   ['520', ['Arrangement minimaps of a meta machine lane stay inside their pattern, and show relative notes as notes.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['516', ['New demo: ?demo=concrete, 64 ticks of techno from five percussion machines, with parameter changes on all of them.']],
   ['515', ['Meta machine, engine only: a lane whose columns play other instruments (notes, relative notes with a root, velocities, triggers, parameters). Its editor comes next.']],
   ['514', ['Shader knobs list: the row you last used stays shaded until you use another.']],
-  ['513', ['Shader screen: two new piano-roll shaders for all lanes at once, one flat and one stacked in space as sheets, each lane in its own colour.']],
 ];

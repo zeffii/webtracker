@@ -612,6 +612,10 @@ export function createSequenceView({ el, statusEl, listEl, transport, onToggle, 
         if (label) text = `${(pl && pl.start >= t ? text.slice(0, room - 1).trimEnd() : '').padEnd(room)}${label} `;
         const classes = ['cell', w < COLW && 'nr', l.instrument === SHADER && 'shd', level === 2 ? 'silenced' : muted && 'muted', isCur && 'cur', picked && li >= picked.l0 && li <= picked.l1 && t >= picked.t0 && t <= picked.t1 && 'sel'].filter(Boolean).join(' ');
         let inner = esc(text);
+        if (pl && pl.start >= t && !label) {   // the pattern's number and name on a small dark chip, so the minimap behind it does not clutter them
+          const name = (config.get('seqNames') ? `${hex2(l.patterns[pl.puid].index)} ${l.patterns[pl.puid].name}` : hex2(l.patterns[pl.puid].index)).slice(0, w - (pl.more ? 1 : 0));
+          inner = `<span class="pn">${esc(name)}</span>${esc(text.slice(name.length))}`;
+        }
         if (label) {
           inner = `${esc(text.slice(0, room))}<span class="mk ${muted ? 'mm' : 'mu'}">${esc(label)}</span> `;
         }

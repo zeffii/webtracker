@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 523 · 2026-10-29
+
+- Arrangement: a pattern's number and name sit on a small dark chip in a small bold font (as wide as the name), so the minimap behind it no longer clutters them.
+
 ## 522 · 2026-10-29
 
 - Arrangement minimaps: the first four characters of every pattern cell are left alone (the pattern's number and name are written there), and the picture uses the space from there to the right edge: notes, note lengths, caps and the parameter strip are all scaled into it, so even a lane with dozens of parameter columns stays inside its pattern. A cell with less than one character left shows no picture.
