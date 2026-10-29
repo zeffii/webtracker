@@ -2100,7 +2100,7 @@ async function loadSampleFiles(files) {
 // The sample browser on the same screen: pick a folder once, arrow through it to hear the files, Enter adds one as a new sample.
 sampleBrowser = createSampleBrowser({
   root: $('smp-browse-body'), getCtx: () => engine.ctx, limitMB: () => config.get('sampleAskMB'), say: projStatus,
-  onLoad: file => loadSampleFiles([file]), waveColour: () => getComputedStyle($('smp-browse-body')).getPropertyValue('--hi').trim() || '#4a90d9',
+  onLoad: file => loadSampleFiles([file]), waveColour: () => getComputedStyle($('smp-browse-body')).color || '#cfd3da',
 });
 
 // Audio files can be dragged onto the sample screen. Dropping a file anywhere else would make the browser open it and

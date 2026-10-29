@@ -33,6 +33,7 @@ export function createSampleBrowser({ root, getCtx, limitMB = () => 10, onLoad, 
   const grip = el('div', { className: 'sb-grip', title: 'Drag to make the waveform bigger or smaller (double-click resets)' });
   const waveBox = el('div', { className: 'sb-wavebox' }, canvas, playhead, grip);
   const info = el('div', { className: 'sb-info' });
+  const facts = el('div', { className: 'sb-kv' });
   const ask = el('div', { className: 'sb-ask', hidden: true });
   const askText = el('p', { className: 'sb-ask-text' });
   const askPreview = el('button', { type: 'button', textContent: 'Preview' });
@@ -40,7 +41,7 @@ export function createSampleBrowser({ root, getCtx, limitMB = () => 10, onLoad, 
   ask.append(askText, askPreview, askLoad);
   const hint = el('p', { className: 'sb-hint', textContent: 'Up and Down move and play · Enter loads · Right opens a folder, Left goes up · Space plays again · letters jump' });
   let side;
-  root.replaceChildren(el('div', { className: 'sb-bar' }, pick, reopen, filesBtn, up, path, files, folderInput), el('div', { className: 'sb-main' }, list, side = el('div', { className: 'sb-side' }, waveBox, info, ask)), hint);
+  root.replaceChildren(el('div', { className: 'sb-bar' }, el('span', { className: 'sb-k', textContent: 'Browse' }), path, pick, reopen, filesBtn, up, files, folderInput), el('div', { className: 'sb-main' }, list, side = el('div', { className: 'sb-side' }, facts, waveBox, info, ask)), hint);
 
   // ---- state ----
   const player = createPlayer({ getCtx });
@@ -77,7 +78,13 @@ export function createSampleBrowser({ root, getCtx, limitMB = () => 10, onLoad, 
   const here = () => trail[trail.length - 1];
   const current = () => here()?.entries[here().index] ?? null;
 
-  const setInfo = (text, cls = '') => { info.textContent = text; info.className = `sb-info ${cls}`.trim(); };
+  const setInfo = (text, cls = '') => { facts.replaceChildren(); info.textContent = text; info.className = `sb-info ${cls}`.trim(); };
+  // the readout is label / value rows, like the sample screen's
+  const setFacts = (name, rows) => {
+    info.textContent = ''; info.className = 'sb-info';
+    facts.replaceChildren(el('span', { className: 'sb-k', textContent: 'Name' }), el('span', { className: 'sb-name-box', textContent: name }),
+      ...rows.flatMap(([k, v]) => [el('span', { className: 'sb-k', textContent: k }), el('span', { className: 'sb-v', textContent: v })]));
+  };
   const clearPreview = () => { shown = null; paint(); playhead.hidden = true; setInfo(''); ask.hidden = true; asked = null; };
 
   const render = () => {
@@ -157,20 +164,21 @@ export function createSampleBrowser({ root, getCtx, limitMB = () => 10, onLoad, 
     const ctx = getCtx();
     if (!ctx) { setInfo('Press Start first: the audio engine is not running yet.', 'bad'); return; }
     ask.hidden = true;
-    setInfo(`${entry.name}  ·  ${sizeText(file.size)}  ·  reading…`);
+    setFacts(entry.name, [['Size', sizeText(file.size)], ['Speed', 'reading…']]);
     try {
       let got = cache.get(file);
       if (got) { cache.delete(file); } else got = await readPreview(file, ctx);
       cache.set(file, got);
       if (cache.size > CACHE) cache.delete(cache.keys().next().value);
       if (mine !== token) return;
-      const { buffer, info: head } = got, parts = [sizeText(file.size)];
-      if (head?.rate) parts.push(rateText(head.rate));
-      else parts.push(`${rateText(buffer.sampleRate)} (as played here)`);
-      parts.push(`${buffer.numberOfChannels === 1 ? 'mono' : buffer.numberOfChannels === 2 ? 'stereo' : `${buffer.numberOfChannels} channels`}`);
-      if (head?.bits) parts.push(`${head.bits} bit`);
-      parts.push(lengthText(buffer.duration));
-      setInfo(`${entry.name}\n${parts.join('  ·  ')}`);
+      const { buffer, info: head } = got;
+      const chans = buffer.numberOfChannels === 1 ? 'mono' : buffer.numberOfChannels === 2 ? 'stereo' : `${buffer.numberOfChannels} channels`;
+      const frames = head?.frames ?? (head?.rate ? Math.round(buffer.duration * head.rate) : buffer.length);
+      setFacts(entry.name, [
+        ['Speed', `${head?.rate ? rateText(head.rate) : `${rateText(buffer.sampleRate)} (as played here)`}   ${chans}`],
+        ['Length', `${String(frames).padStart(8, '0')} frames   ${lengthText(buffer.duration)}`],
+        ['Size', `${sizeText(file.size)}${head?.bits ? `   ${head.bits} bit` : ''}`],
+      ]);
       shown = buffer; paint();
       player.play(buffer); follow();
     } catch (err) {
@@ -179,7 +187,7 @@ export function createSampleBrowser({ root, getCtx, limitMB = () => 10, onLoad, 
   }
   function askAbout(entry, file) {
     shown = null; paint();
-    setInfo(entry.name);
+    setFacts(entry.name, [['Size', sizeText(file.size)], ['Speed', 'not read yet']]);
     askText.textContent = `${sizeText(file.size)} is over the ${limitMB()} MB limit, so nothing has been read from this file. Space previews it, Enter loads it (press twice), or use the buttons.`;
     ask.hidden = false;
     asked = { entry, size: file.size, until: 0, action: '' };

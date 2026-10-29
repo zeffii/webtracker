@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 509 · 2026-10-29
+
+- Samples screen: Load, Record and Browse now share one slate panel in the style of the sample editor above it: dim labels, flat tinted buttons, a `>` selection bar in the list, and a Name / Speed / Length / Size readout (exact frame count for WAV files) beside the waveform. Load and Record sit on one line. Same keys, playhead and resizable waveform as before; the waveform is drawn in the text colour.
+
 ## 508 · 2026-10-29
 
 - Sample browser: a thin red playhead runs across the waveform while a sample plays. The waveform can be dragged bigger or smaller with the grip in its bottom-left corner (drag left and down to grow it; double-click the grip to reset); the size is remembered.

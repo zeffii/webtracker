@@ -7959,6 +7959,8 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   dv.setUint32(16, 16, true); dv.setUint16(20, 1, true); dv.setUint16(22, 2, true); dv.setUint32(24, 44100, true); dv.setUint16(34, 16, true);
   const w = audioInfo(wav);
   assert.deepEqual([w.format, w.rate, w.channels, w.bits], ['wav', 44100, 2, 16], 'wav header');
+  const wd = new Uint8Array(52); wd.set(wav); wd.set([...'data'].map(c => c.charCodeAt(0)), 36); new DataView(wd.buffer).setUint32(40, 4000, true);
+  assert.equal(audioInfo(wd).frames, 1000, 'wav length in frames from the data chunk');
   const aif = new Uint8Array(54), av = new DataView(aif.buffer);
   aif.set([...'FORM'].map(c => c.charCodeAt(0)), 0); aif.set([...'AIFF'].map(c => c.charCodeAt(0)), 8); aif.set([...'COMM'].map(c => c.charCodeAt(0)), 12);
   av.setUint32(16, 18); av.setUint16(20, 1); av.setUint16(26, 16);

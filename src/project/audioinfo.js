@@ -10,12 +10,18 @@ const tag = (b, i, text) => text.split('').every((c, k) => b[i + k] === c.charCo
 
 // RIFF chunks one after the other: 4 letters, a 4 byte length, the data (padded to an even length).
 function wav(b) {
+  let found = null;
   for (let i = 12; i + 8 <= b.length;) {
     const size = u32le(b, i + 4);
-    if (tag(b, i, 'fmt ') && i + 24 <= b.length) return { format: 'wav', channels: u16le(b, i + 10), rate: u32le(b, i + 12), bits: u16le(b, i + 22) };
+    if (tag(b, i, 'fmt ') && i + 24 <= b.length) found = { format: 'wav', channels: u16le(b, i + 10), rate: u32le(b, i + 12), bits: u16le(b, i + 22) };
+    else if (found && tag(b, i, 'data')) {
+      const bytes = found.channels * found.bits / 8;
+      if (bytes && size && size !== 0xffffffff) found.frames = Math.floor(size / bytes);   // the exact length, when the header gives it
+      break;
+    }
     i += 8 + size + (size & 1);
   }
-  return null;
+  return found;
 }
 
 // FORM chunks, the same way but big-endian. The rate is an 80 bit extended float: 15 bits of exponent, then 64 bits of mantissa.
