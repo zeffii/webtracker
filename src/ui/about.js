@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['516', ['New demo: ?demo=concrete, 64 ticks of techno from five percussion machines, with parameter changes on all of them.']],
   ['515', ['Meta machine, engine only: a lane whose columns play other instruments (notes, relative notes with a root, velocities, triggers, parameters). Its editor comes next.']],
   ['514', ['Shader knobs list: the row you last used stays shaded until you use another.']],
   ['513', ['Shader screen: two new piano-roll shaders for all lanes at once, one flat and one stacked in space as sheets, each lane in its own colour.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['509', ['Samples screen: Load, Record and Browse restyled to match the sample editor (slate panel, flat buttons, readout with exact frame count).']],
   ['508', ['Sample browser: a thin red playhead while a sample plays, and the waveform can be dragged bigger with the grip in its corner.']],
   ['507', ['Sample browser: Choose folder now works in Brave too (it lists subfolders), without remembering the folder.']],
-  ['506', ['Picture colours: eleven palettes plus Custom in Config. Samples screen: a folder browser with arrow-key audition, waveform and sample rate, Enter loads a new sample. Files over 10 MB ask before anything is read.']],
 ];

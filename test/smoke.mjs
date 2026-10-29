@@ -8949,4 +8949,27 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   console.log('ok: meta machine');
 }
 
+// 112. The techno demo (concrete.wax): 64 ticks, five percussion machines, every lane plays, and the mix stays under full scale.
+{
+  const { readFileSync } = await import('node:fs');
+  const { song, instruments: defs } = parseProject(readFileSync(new URL('../src/project/demos/concrete.wax', import.meta.url), 'utf8'));
+  assert.equal(song.length, 64);
+  assert.deepEqual(Object.keys(defs).sort(), ['clap', 'hat', 'kick', 'metal', 'tom']);
+  const registry = new ParamRegistry();
+  const rt = new GraphRuntime({ sampleRate: sr, params: registry.values });
+  const seq = new Sequencer({ sampleRate: sr, runtime: rt, params: registry.values, transport: new Int32Array(new SharedArrayBuffer(8)) });
+  for (const [id, def] of Object.entries(defs)) rt.load(compile(def.graph, { instrument: id, nodeTypes: NODE_TYPES, registry }));
+  seq.setSong(song);
+  const lanes = prepareSong(song, defs, registry);
+  const heard = new Set();
+  const note = rt.note.bind(rt);
+  rt.note = (id, msg) => { if (msg.type === 'noteOn') heard.add(id); note(id, msg); };
+  lanes.forEach(l => seq.setLane(l));
+  seq.play();
+  const out = render(seq, 64 / 4 * 60 / 134);
+  assert.deepEqual([...heard].sort(), ['clap', 'hat', 'kick', 'metal', 'tom']);
+  assert.ok(peak(out.left) > 0.2 && peak(out.left) < 1, `peak ${peak(out.left)}`);
+  console.log('ok: concrete demo');
+}
+
 console.log('smoke test passed');
