@@ -66,7 +66,7 @@
     #rec-meter { background: color-mix(in srgb, currentColor 10%, transparent); }
     #rec-take.live { background: #d03040; color: #fff; }
     /* the list and the fields are split by one continuous, dim line, as in the instrument screen */
-    #smp .lc { display: inline-block; width: 50ch; height: 1.35em; vertical-align: top; overflow: hidden; border-right: 1px solid color-mix(in srgb, currentColor 25%, transparent); }
+    #smp .lc { display: inline-block; width: 54ch; height: 1.35em; vertical-align: top; overflow: hidden; border-right: 1px solid color-mix(in srgb, currentColor 25%, transparent); }
     #smp { position: relative; }
     #smp .slbox { position: absolute; top: 0; overflow-y: auto; white-space: pre; padding: 0 .6ch 0 0; scrollbar-width: thin; }
     #smp .sl-act { background: var(--hi); color: var(--hi-fg); }
@@ -856,6 +856,12 @@
     #shader-guide-body .try { margin: 0 0 .5rem; font-size: 11px; }
     #smp-slate { margin: .5rem 0 1.2rem; max-width: 120ch; padding: .45rem .8rem .5rem; background: var(--panel); font: 13px/1.5 ui-monospace, Consolas, monospace; }
     #smp-slate button, #smp-slate select { font: inherit; color: inherit; background: rgba(128, 128, 128, .22); border: 0; border-radius: 0; padding: 0 .8ch; cursor: pointer; }
+    #smp-slate #rec-take { background: #8a2f33; color: #fff; }
+    #smp-slate #rec-take::before { content: '● '; color: #ff6a6a; }
+    #smp-slate #rec-take:hover:not(:disabled) { background: #a63a3f; }
+    #smp-slate #rec-take.live { background: #d03040; animation: rec-pulse 1s ease-in-out infinite; }
+    #smp-slate #rec-take.live::before { content: '■ '; color: #fff; }
+    @keyframes rec-pulse { 50% { background: #a02030; } }
     #smp-slate button:hover:not(:disabled) { background: rgba(128, 128, 128, .38); }
     #smp-slate button:disabled, #smp-slate select:disabled { opacity: .4; cursor: default; }
     #smp-slate button:focus-visible, #smp-slate select:focus-visible, #smp-slate input:focus-visible { outline: 1px solid var(--hi); }

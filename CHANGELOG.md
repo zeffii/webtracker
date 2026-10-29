@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 511 · 2026-10-29
+
+- Samples screen: the Record button is red again (with a dot, and a pulsing Stop while it records). The slot list is wider, so the × button has room.
+
 ## 510 · 2026-10-29
 
 - Samples screen: the sample list is now a row of numbered slots, like Impulse Tracker's. A filled slot has ▶ (hold to hear it), Replace and × buttons; an empty slot is dimmed and has a Load… button (the files fill that slot and the next empty ones). The separate Load samples button is gone (L still works, and you can drop files on the screen).

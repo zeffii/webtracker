@@ -18,7 +18,7 @@ import { LOWER, UPPER } from '../seq/piano.js';
 // Ctrl a much bigger one); digits type a value and Enter sets it (Enter on a field starts editing it).
 // Every parameter, slider or number, answers to the same keys.
 
-const LIST_ROWS = 13, LEFT = 50, NAMEW = 18;
+const LIST_ROWS = 13, LEFT = 54, NAMEW = 20;
 const FIELDS = ['name', 'loopOn', 'loopBeg', 'loopEnd', 'loopXf', 'loopHide', 'susOn', 'susBeg', 'susEnd', 'susXf', 'susHide', 'selBeg', 'selEnd', 'selHide', 'volume', 'globalVolume', 'pan', 'view'];
 const SLIDERS = { volume: 'Default volume', globalVolume: 'Global volume', pan: 'Default pan' };
 const SWITCH = ['loopOn', 'susOn', 'loopHide', 'susHide', 'selHide', 'view'];   // fields that are switches: Space, Enter and a click flip them
