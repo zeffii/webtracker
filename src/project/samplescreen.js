@@ -444,7 +444,7 @@ export function createSampleScreen({ el, statusEl, getProject, onChange = () => 
         line(''),
         loopLine('Loop', 'loop', 'loopOn', 'loopBeg', 'loopEnd', 'loopXf', 'loopHide'),
         loopLine('SusLoop', 'sus', 'susOn', 'susBeg', 'susEnd', 'susXf', 'susHide'),
-        line(' Select   ', seg('    ', ''), ' Beg ', numCell('selBeg'), ' End ', numCell('selEnd'), ' '.repeat(7 + 8 + 2), fieldCell('selHide', config.get('waveHideSel') ? 'show' : 'hide', 4), selTo > selFrom ? '' : '  (whole sample)'),   // hide lines up with the ones above
+        line(' Select   ', seg('    ', ''), ' Beg ', numCell('selBeg'), ' End ', numCell('selEnd'), (selTo > selFrom ? '' : '(whole sample)').padStart(7 + 8 + 1) + ' ', fieldCell('selHide', config.get('waveHideSel') ? 'show' : 'hide', 4)),   // hide lines up with the ones above
         line(''),
         line(' Levels'),
         ...Object.keys(SLIDERS).map(f => line(' ', slider(f))),

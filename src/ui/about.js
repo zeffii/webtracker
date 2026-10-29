@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['512', ['Samples screen: (whole sample) moved to the left of the hide button on the Select row.']],
   ['511', ['Samples screen: a red Record button, and a wider slot list so the remove button fits.']],
   ['510', ['Samples screen: numbered slots with Load on empty ones and Replace on filled ones (instruments follow a replace). Record and Browse are tabs under the list.']],
   ['509', ['Samples screen: Load, Record and Browse restyled to match the sample editor (slate panel, flat buttons, readout with exact frame count).']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['505', ['Shader screen: seven new light shaders (Ripples, Marble, Truchet, Sunburst, Moire, Lissajous, Waves) and a guide under the editor: how it works, writing one step by step, the built-in functions, what things cost and where to read more. The examples have a Try it button.']],
   ['504', ['Shader screen: dragging a number slider no longer makes the picture stutter. A changed shader is compiled in the background and the old picture keeps running until the new one is ready.']],
   ['503', ['Code node: several assignments in one line, a, b, c = x, y, z; All values on the right are worked out first, so a, b = b, a; swaps them.']],
-  ['502', ['The code node (GenExpr) can now make sound from notes: new names freq, gate, vel, note and trig. A Templates list above the code box loads working examples: sine voice, detuned pad, FM bell, plucked string, kick, hi-hat, echo, bitcrusher, ring modulator and soft clipper. New Code instrument in the new-instrument list. Fixed: sin, cos, min, max, abs, round, tanh and the other math functions did not compile. Full help page for the node.']],
 ];

@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 512 · 2026-10-29
+
+- Samples screen: "(whole sample)" now stands to the left of the Select row's hide button, so the slice list no longer runs into it.
+
 ## 511 · 2026-10-29
 
 - Samples screen: the Record button is red again (with a dot, and a pulsing Stop while it records). The slot list is wider, so the × button has room.
