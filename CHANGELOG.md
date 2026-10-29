@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 521 · 2026-10-29
+
+- New demo, open it with `?demo=acid`: "acid rain", eight bars (128 ticks) of acid techno at 138 bpm. One meta machine plays five machines (kick, hat, clap, a 303-style squelch and a comb-resonator metal), with a spacer carrying the machine's name between the groups of columns. The drums start alone, the squelch line comes in at bar 3 with accents and slides and its filter opens up through the song, claps and metal join at bar 5, and a hat and clap roll closes the loop.
+
 ## 520 · 2026-10-29
 
 - Arrangement minimaps of a meta machine's lane: the parameter strip no longer runs out of the pattern's cell (with 29 parameter columns it drew past the right edge, over the next lane); it squeezes all columns inside. Relative notes are drawn as notes (80 is the root, 00 a note off) and spacers are left out.

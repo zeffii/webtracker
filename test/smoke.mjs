@@ -9028,4 +9028,29 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   console.log('ok: concrete demo');
 }
 
+// 113. The acid techno demo (acid.wax): 128 ticks, five machines played by one meta machine, a squelch line with accents and slides, no lane of its own for any of them.
+{
+  const { readFileSync } = await import('node:fs');
+  const { song, instruments: defs } = parseProject(readFileSync(new URL('../src/project/demos/acid.wax', import.meta.url), 'utf8'));
+  assert.equal(song.length, 128);
+  assert.deepEqual(song.lanes.map(l => l.id), ['grid']);
+  const registry = new ParamRegistry();
+  const rt = new GraphRuntime({ sampleRate: sr, params: registry.values });
+  const seq = new Sequencer({ sampleRate: sr, runtime: rt, params: registry.values, transport: new Int32Array(new SharedArrayBuffer(8)) });
+  for (const [id, def] of Object.entries(defs)) rt.load(compile(def.graph, { instrument: id, nodeTypes: NODE_TYPES, registry }));
+  seq.setSong(song);
+  const lanes = prepareSong(song, defs, registry);
+  assert.equal(lanes[0].columns.filter(c => c.kind === 'spacer').length, 4);
+  const heard = new Set();
+  const note = rt.note.bind(rt);
+  rt.note = (id, msg) => { if (msg.type === 'noteOn') heard.add(id); note(id, msg); };
+  lanes.forEach(l => seq.setLane(l));
+  seq.play();
+  const out = render(seq, 128 / 4 * 60 / 138);
+  assert.deepEqual([...heard].sort(), ['acid', 'clap', 'hat', 'kick', 'metal']);
+  assert.ok(out.left.every(Number.isFinite), 'the render is finite');
+  assert.ok(peak(out.left) > 0.2 && peak(out.left) < 1, `peak ${peak(out.left)}`);
+  console.log('ok: acid demo');
+}
+
 console.log('smoke test passed');
