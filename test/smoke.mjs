@@ -8991,6 +8991,15 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     const lane3 = prepareSong(song3, defs3, reg3)[0];
     assert.equal(lane3.rows[0][1], '|');
   }
+  {   // the arrangement's minimap reads a relative note as a note (80 is its root) and 00 as a note off, and leaves spacers out
+    const { infoOf } = await import('../src/seq/minimap.js');
+    const mc = [{ token: '2hex', kind: 'note', rel: true, root: 60, label: 'n1' }, { token: '2hex', kind: 'vel', label: 'v1' }, { token: 'spacer', kind: 'spacer', label: '' }, { token: '2hex', kind: 'param', label: 'p1' }];
+    const hit = infoOf(['82', 'FF', '|', '40'], mc), off = infoOf(['00', '..', '|', '..'], mc);
+    assert.equal(hit.notes[0].pitch, 62);
+    assert.equal(hit.notes[0].vel, 1);
+    assert.equal(hit.par.length, 1);   // only the parameter: neither the velocity nor the spacer
+    assert.equal(off.notes[0].kind, 'off');
+  }
   console.log('ok: meta machine');
 }
 

@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['520', ['Arrangement minimaps of a meta machine lane stay inside their pattern, and show relative notes as notes.']],
   ['519', ['Meta machine: spacer columns (a rule with an optional group name) between groups of columns, and the machines it plays lose their empty lanes.']],
   ['518', ['Meta machine editor: pick which notes, triggers and parameters of other instruments its columns play, and change them later. 00 in a relative note column is a note off, in the accent colour.']],
   ['517', ['The ?demo=concrete techno now runs on one meta machine lane that plays all five percussion machines.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['513', ['Shader screen: two new piano-roll shaders for all lanes at once, one flat and one stacked in space as sheets, each lane in its own colour.']],
   ['512', ['Samples screen: (whole sample) moved to the left of the hide button on the Select row.']],
   ['511', ['Samples screen: a red Record button, and a wider slot list so the remove button fits.']],
-  ['510', ['Samples screen: numbered slots with Load on empty ones and Replace on filled ones (instruments follow a replace). Record and Browse are tabs under the list.']],
 ];

@@ -16,11 +16,11 @@ function planOf(columns) {
   if (p) return p;
   const notes = [], pars = [], vel = new Set();
   columns.forEach((c, i) => {
-    if (c.token !== 'note') return;
-    const v = columns[i + 1], hasVel = v && v.token === '2hex' && /^v/i.test(`${v.label ?? ''}`);
-    notes.push({ i, v: hasVel ? i + 1 : -1 }); if (hasVel) vel.add(i + 1);
+    if (c.token !== 'note' && !c.rel) return;   // (a meta machine's relative notes are notes too, 80 being their root)
+    const v = columns[i + 1], hasVel = v && v.token === '2hex' && (v.kind === 'vel' || /^v/i.test(`${v.label ?? ''}`));
+    notes.push({ i, v: hasVel ? i + 1 : -1, ...(c.rel ? { root: c.root } : {}) }); if (hasVel) vel.add(i + 1);
   });
-  columns.forEach((c, i) => { if (c.token !== 'note' && !vel.has(i)) pars.push(i); });
+  columns.forEach((c, i) => { if (c.token !== 'note' && !c.rel && c.kind !== 'spacer' && !vel.has(i)) pars.push(i); });
   plans.set(columns, p = { notes, pars });
   return p;
 }
@@ -38,7 +38,13 @@ export function infoOf(row, columns) {
   const plan = planOf(columns), notes = [], par = [];
   for (const n of plan.notes) {
     const tok = row[n.i];
-    if (tok === '===') notes.push({ col: n.i, kind: 'off' });
+    if (n.root !== undefined) {   // a relative note: 00 is a note off, otherwise the root and the steps above or below it
+      if (tok === '00') notes.push({ col: n.i, kind: 'off' });
+      else if (/^[0-9a-f]{2}$/i.test(tok)) {
+        const vt = n.v >= 0 ? row[n.v] : null, vel = vt && /^[0-9a-f]+$/i.test(vt) ? parseInt(vt, 16) / 255 : 0.8;
+        notes.push({ col: n.i, kind: 'note', pitch: Math.max(0, Math.min(127, n.root + parseInt(tok, 16) - 0x80)), vel });
+      }
+    } else if (tok === '===') notes.push({ col: n.i, kind: 'off' });
     else if (tok === '^^^') notes.push({ col: n.i, kind: 'cut' });
     else {
       const s = noteSemitones(tok);
@@ -129,10 +135,10 @@ export function createMinimap(el) {
     if (opts.lengths) for (const o of live.values()) { g.fillStyle = ink(0.28 * (0.4 + o.vel)); g.fillRect(o.x - 0.5, Math.max(o.from, y0), 1, y0 + h - Math.max(o.from, y0)); }
     // parameters: a narrow column each at the right edge, one cell per tick that sets a value
     if (parW) {
-      const cw = Math.max(1.5, Math.min(4, (parW - 3) / plan.pars.length - 1)), left = x0 + w - parW + 2;
+      const each = (parW - 3) / plan.pars.length, cw = Math.max(0.6, Math.min(4, each - 1)), left = x0 + w - parW + 2;   // (every parameter fits in the strip, however many there are)
       for (let k = 0; k < CELL; k++) {
         const par = infoOf(lane.rows[t0 + k], lane.columns).par, y = y0 + k * step;
-        for (let c = 0; c < par.length; c++) if (par[c] >= 0) { g.fillStyle = ink(0.14 + 0.72 * par[c]); g.fillRect(left + c * (cw + 1), y, cw, Math.max(1.4, step)); }
+        for (let c = 0; c < par.length; c++) if (par[c] >= 0) { g.fillStyle = ink(0.14 + 0.72 * par[c]); g.fillRect(left + c * Math.min(cw + 1, each), y, cw, Math.max(1.4, step)); }
       }
     }
   }

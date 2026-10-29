@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 520 · 2026-10-29
+
+- Arrangement minimaps of a meta machine's lane: the parameter strip no longer runs out of the pattern's cell (with 29 parameter columns it drew past the right edge, over the next lane); it squeezes all columns inside. Relative notes are drawn as notes (80 is the root, 00 a note off) and spacers are left out.
+
 ## 519 · 2026-10-29
 
 - Meta machine, third build: spacer columns. "+ Spacer" at the top of the Selections editor adds a gap between groups of columns; it is drawn as a thin rule in the pattern editor and the cursor skips it. Give it a header and the name is written over it, naming the group that follows. It is a column like the others in the list (move, duplicate, remove; "ticking adds after the selected column" puts it where you want).
