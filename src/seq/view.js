@@ -141,6 +141,7 @@ export function createTrackerView({ showMenu = (e, items) => showContextMenu(e, 
     widths = lanes.map(lane => lane.columns.map(c => Math.max((c.short ?? c.label).length, KINDS[c.token].width)));
     cur.col = Math.min(cur.col, lanes[cur.lane].columns.length - 1);
     cur.ch = Math.min(cur.ch, KINDS[lanes[cur.lane].columns[cur.col].token].width - 1);
+    if (lanes[cur.lane].columns[cur.col].kind === 'spacer') snapCol();   // (a column was added where the cursor stands)
   };
 
   const column = (li = cur.lane, ci = cur.col) => lanes[li].columns[ci];
@@ -154,9 +155,11 @@ export function createTrackerView({ showMenu = (e, items) => showContextMenu(e, 
     const rows = lanes[li].rows, shown = all.filter(ci => ci === keep || rows.some(r => !isBlank(r[ci])));
     return shown.length ? shown : [keep >= 0 ? keep : 0];
   };
+  // The columns the cursor can stand in: the spacers of a meta machine are skipped.
+  const navCols = (li, keep) => { const all = visibleCols(li, keep), real = all.filter(ci => lanes[li].columns[ci].kind !== 'spacer'); return real.length ? real : all; };
   const nearest = (cols, ci) => cols.reduce((best, c) => (Math.abs(c - ci) < Math.abs(best - ci) ? c : best), cols[0]);
-  const neighbour = (li, ci, dir) => { const v = visibleCols(li), i = v.indexOf(ci); return i < 0 ? nearest(v, ci) : v[i + dir] ?? -1; };
-  const snapCol = () => { cur.col = nearest(visibleCols(cur.lane, -1), Math.min(cur.col, lanes[cur.lane].columns.length - 1)); };
+  const neighbour = (li, ci, dir) => { const v = navCols(li), i = v.indexOf(ci); return i < 0 ? nearest(v, ci) : v[i + dir] ?? -1; };
+  const snapCol = () => { cur.col = nearest(navCols(cur.lane, -1), Math.min(cur.col, lanes[cur.lane].columns.length - 1)); };
 
   // Up and Down (and the step after typing a note): wrap round from the last row to the first and back, or stop at the ends (Config)
   const moveRow = d => { const n = hi - lo; cur.tick = config.get('rowWrap') ? lo + ((cur.tick - lo + d) % n + n) % n : clamp(cur.tick + d, lo, hi - 1); };
@@ -177,7 +180,7 @@ export function createTrackerView({ showMenu = (e, items) => showContextMenu(e, 
       if (prev < 0) {
         if (stopsAtEnd(-1)) { cur.ch = 0; return; }
         cur.lane = hopLane(-1);
-        cur.col = visibleCols(cur.lane, -1).at(-1);
+        cur.col = navCols(cur.lane, -1).at(-1);
       } else cur.col = prev;
       cur.ch = cellWidth() - 1;
     } else if (cur.ch >= cellWidth()) {
@@ -185,7 +188,7 @@ export function createTrackerView({ showMenu = (e, items) => showContextMenu(e, 
       if (next < 0) {
         if (stopsAtEnd(1)) { cur.ch = cellWidth() - 1; return; }
         cur.lane = hopLane(1);
-        cur.col = visibleCols(cur.lane, -1)[0];
+        cur.col = navCols(cur.lane, -1)[0];
       } else cur.col = next;
       cur.ch = 0;
     }
@@ -200,7 +203,7 @@ export function createTrackerView({ showMenu = (e, items) => showContextMenu(e, 
     else {
       if (stopsAtEnd(d)) return;
       cur.lane = hopLane(d);
-      const cols = visibleCols(cur.lane, -1);
+      const cols = navCols(cur.lane, -1);
       cur.col = d > 0 ? cols[0] : cols.at(-1);
     }
     cur.ch = 0;
@@ -213,7 +216,7 @@ export function createTrackerView({ showMenu = (e, items) => showContextMenu(e, 
     else {
       if (stopsAtEnd(d)) return;
       cur.lane = hopLane(d);
-      const cols = visibleCols(cur.lane, -1);
+      const cols = navCols(cur.lane, -1);
       cur.col = d > 0 ? cols[0] : cols.at(-1);
     }
     cur.ch = 0;
@@ -640,7 +643,9 @@ export function createTrackerView({ showMenu = (e, items) => showContextMenu(e, 
     const hit = cellAt({ widths: windowed() ? [shown[solo.lane]] : shown, x: Math.floor(x), line: Math.floor(y), top, len: showHi() });
     if (hit && windowed()) hit.lane = solo.lane;
     if (hit && solo && (hit.lane !== solo.lane || hit.tick < lo || hit.tick >= hi)) return null;   // the locked part cannot be clicked
-    return hit && { ...hit, col: (vis[hit.lane] ?? [])[hit.col] ?? hit.col };
+    if (!hit) return hit;
+    const col = (vis[hit.lane] ?? [])[hit.col] ?? hit.col;
+    return { ...hit, col: lanes[hit.lane].columns[col]?.kind === 'spacer' ? nearest(navCols(hit.lane, -1), col) : col };   // a click on a spacer goes to the nearest column
   };
   el.addEventListener('mousedown', e => {
     if (!lanes || e.button !== 0) return;
@@ -932,11 +937,11 @@ export function createTrackerView({ showMenu = (e, items) => showContextMenu(e, 
         const locked = solo && soloStyle === 'hatch' && (li !== solo.lane || t < lo || t >= hi);
         const html = mark + vis[li].map(ci => {
           const c = lane.columns[ci];
-          const text = lane.rows[t][ci].padEnd(widths[li][ci]);
+          const text = (c.kind === 'spacer' ? '│' : lane.rows[t][ci]).padEnd(widths[li][ci]);
           const isCur = li === cur.lane && ci === cur.col && t === cur.tick;
           // Characters one at a time so the cursor and the command id can each be styled.
           const html = Array.from(text, (ch, i) => {
-            const cls = [isCur && i === cur.ch ? 'cur' : '', c.token === 'cmd' && i < 2 ? 'cc' : '', c.rel && text.trimEnd() === '00' ? 'noff' : ''].filter(Boolean).join(' ');   // 00 in a relative note column is a note off, in the accent colour
+            const cls = [isCur && i === cur.ch ? 'cur' : '', c.token === 'cmd' && i < 2 ? 'cc' : '', c.kind === 'spacer' ? 'spc' : '', c.rel && text.trimEnd() === '00' ? 'noff' : ''].filter(Boolean).join(' ');   // 00 in a relative note column is a note off, in the accent colour
             return cls ? `<span class="${cls}">${esc(ch)}</span>` : esc(ch);
           }).join('').replace(/\.+/g, dots => `<span class="d">${dots}</span>`);   // empty digits, dimmer
           const picked = r && li === r.lane && t >= r.t0 && t <= r.t1 && ci >= r.c0 && ci <= r.c1;

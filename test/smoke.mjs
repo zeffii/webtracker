@@ -8974,6 +8974,23 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     assert.match(describeColumn(l, 0, 0), /81 = C#4/);
     assert.match(describeColumn(l, 1, 0), /00 = note off/);
   }
+  // build 3: a spacer holds nothing, is not a note, trigger or parameter, and costs the sequencer nothing
+  {
+    const defs3 = { lead: structuredClone(defs.lead), grid: synthKinds.meta.make() };
+    const reg3 = new ParamRegistry();
+    for (const [id, def] of Object.entries(defs3)) compile(def.graph, { instrument: id, nodeTypes: NODE_TYPES, registry: reg3 });
+    defs3.grid.meta.columns = [{ id: 'a', instrument: 'lead', role: 'note', nc: 0 }, { id: 'b', role: 'spacer', header: 'bass' }, { id: 'c', instrument: 'lead', role: 'vel', nc: 0 }];
+    const cols3 = buildColumns('grid', defs3.grid, reg3, defs3);
+    assert.deepEqual(cols3.map(c => c.short), ['n1', 'bass', 'v1']);
+    assert.equal(cols3[1].kind, 'spacer');
+    assert.deepEqual(encodeCell('|', 'spacer'), [EMPTY]);
+    const p3 = { instruments: structuredClone(defs3), lanes: [] };
+    assert.ok(pops.addMetaColumn(p3, 'grid', { role: 'spacer' }, 0));   // a spacer needs no instrument
+    assert.equal(pops.columnHasData({ columns: cols3, patterns: { a: { rows: [['C-4', '|', '..']] } } }, cols3[1].key), false);
+    const song3 = { bpm: 120, ticksPerBeat: 4, length: 16, lanes: [{ id: 'grid', instrument: 'grid', patterns: { a: { text: 'C-4 | FF\n... | ..' } }, placements: [{ puid: 'a', start: 0, length: 2 }] }] };
+    const lane3 = prepareSong(song3, defs3, reg3)[0];
+    assert.equal(lane3.rows[0][1], '|');
+  }
   console.log('ok: meta machine');
 }
 

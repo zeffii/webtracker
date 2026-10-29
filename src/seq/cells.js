@@ -11,6 +11,7 @@ export const KINDS = {
   '2hex': { width: 2, channels: 1, blank: '..' },
   '4hex': { width: 4, channels: 1, blank: '....' },
   cmd: { width: 6, channels: 2, blank: '......' },
+  spacer: { width: 1, channels: 1, blank: '|' },   // a meta machine's gap between groups of columns: holds nothing
 };
 
 const hexCell = (token, digits, denom) => {
@@ -35,6 +36,7 @@ export function encodeCell(token, kind) {
   if (kind === '1hex') return [hexCell(token, 1, 15)];
   if (kind === '2hex') return [hexCell(token, 2, 255)];
   if (kind === '4hex') return [hexCell(token, 4, 65535)];
+  if (kind === 'spacer') return [EMPTY];
   if (kind === 'cmd') {
     if (token === KINDS.cmd.blank) return [EMPTY, EMPTY];
     return [hexCell(token.slice(0, 2), 2, 255), hexCell(token.slice(2), 4, 65535)];

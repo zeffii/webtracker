@@ -755,6 +755,14 @@ const metaEditor = createMetaEditor({
   getProject: () => project,
   onChange: id => refreshLanes(id),
   onAddLane: id => { addLaneFor(id); refreshProjectUi(); },
+  // A machine that a meta machine plays for the first time has no use for an empty lane of its own: it goes from the arrangement
+  // (a lane that holds patterns stays, and can be removed by hand).
+  onBind: id => {
+    const empty = project.lanes.filter(l => l.instrument === id && l.placements.length === 0);
+    if (!empty.length) return;
+    reshape(() => { for (const l of empty) ops.removeLane(project, l.id); });
+    metaEditor.render(`Added. The empty lane of ${id} is gone from the arrangement: the meta machine plays it now.`);
+  },
 });
 function syncMetaEditor() {
   const id = patcher.instrument, meta = !!project?.instruments[id]?.meta;

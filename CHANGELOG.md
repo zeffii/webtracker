@@ -2,6 +2,11 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 519 · 2026-10-29
+
+- Meta machine, third build: spacer columns. "+ Spacer" at the top of the Selections editor adds a gap between groups of columns; it is drawn as a thin rule in the pattern editor and the cursor skips it. Give it a header and the name is written over it, naming the group that follows. It is a column like the others in the list (move, duplicate, remove; "ticking adds after the selected column" puts it where you want).
+- A machine that a meta machine plays for the first time loses its lane if that lane is empty, so the bound machines do not take up room in the arrangement. A lane that holds patterns stays (remove it by hand if you want it gone).
+
 ## 518 · 2026-10-29
 
 - Meta machine, second build: the Selections editor. Select a meta machine on the Instruments screen and it stands where the graph would. On the left the other instruments of the song, unfold one to see what it offers (note, note relative to a root, velocity, triggers, exposed parameters) and tick a thing to add a column for it; untick to remove it. On the right the columns in order, with a header of your own, the kind of a note (as it is, or relative; switching clears that column's cells), the width of a parameter, and the root of a relative note (80 is the root), and ◀ ▶ Remove Duplicate (two columns may drive one parameter). Removing a column that holds data asks first. A new column is empty in every existing pattern and nothing moves.

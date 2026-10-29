@@ -451,7 +451,7 @@ const metaOf = (project, metaId) => {
 // Adds a proxy column (a spec from proxyChoices) at position `at` (the end when left out). Returns the spec with its id.
 export function addMetaColumn(project, metaId, spec, at) {
   const list = metaOf(project, metaId);
-  if (!project.instruments[spec.instrument] || spec.instrument === metaId) throw new Error('Pick another instrument to play.');
+  if (spec.role !== 'spacer' && (!project.instruments[spec.instrument] || spec.instrument === metaId)) throw new Error('Pick another instrument to play.');
   const taken = new Set(list.map(c => c.id));
   let n = list.length + 1;
   while (taken.has(`c${n}`)) n++;

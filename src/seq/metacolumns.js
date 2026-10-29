@@ -6,6 +6,7 @@
 //     'rnote'  the same, as a 2hex cell relative to a root note: 80 is the root, 81 a semitone above, 7F one below, 00 a note off
 //     'vel'    the velocity of the note column nc (it goes with the 'note' or 'rnote' column of that instrument and nc)
 //     'trig'   trigger tc of the instrument (a hit, 1 to F loud)
+//     'spacer' a gap between groups of columns (no instrument; its header, if any, is drawn over it)
 //     'param'  an exposed parameter (node, param), as wide as the instrument shows it, or `bits` 4, 8 or 16
 //   header: a short name of your own for the column; otherwise n1 n2 (notes), v1 (velocities), t1 (triggers), p1 p2 (parameters),
 //   numbered in the order they stand. root: the MIDI number of an 'rnote' column's root note (60 is C-4).
@@ -32,6 +33,10 @@ export function metaColumns(selfId, def, registry, instruments) {
     columns.push({ ...col, key: `m:${spec.id}${kinded ? `:${col.token}` : ''}`, base: kinded ? `m:${spec.id}` : undefined, label: spec.header || `${letter}${n}`, short: spec.header || `${letter}${n}`, spec: spec.id });
   };
   for (const spec of def.meta?.columns ?? []) {
+    if (spec.role === 'spacer') {   // a gap between groups of columns, its header (if any) names the group to its right
+      columns.push({ kind: 'spacer', token: 'spacer', key: `m:${spec.id}`, label: spec.header ?? '', short: spec.header ?? '', spec: spec.id, long: spec.header ? `spacer · ${spec.header}` : 'spacer' });
+      continue;
+    }
     const target = instruments[spec.instrument];
     if (!target || spec.instrument === selfId) continue;   // a machine that is gone has no column
     const nc = spec.nc ?? 0, name = spec.instrument;

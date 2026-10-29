@@ -7,10 +7,10 @@ import { noteSemitones } from '../seq/cells.js';
 import { MASTER } from '../instruments.js';
 
 const same = (a, b) => a.instrument === b.instrument && (a.role === b.role) && (a.nc ?? 0) === (b.nc ?? 0) && (a.tc ?? 0) === (b.tc ?? 0) && a.node === b.node && a.param === b.param;
-const KIND_NAME = { note: 'Note, as is', rnote: 'Note, relative', vel: 'Velocity', trig: 'Trigger', param: 'Value' };
+const KIND_NAME = { spacer: 'Spacer', note: 'Note, as is', rnote: 'Note, relative', vel: 'Velocity', trig: 'Trigger', param: 'Value' };
 const BITS = [[4, '1hex'], [8, '2hex'], [16, '4hex']];
 
-export function createMetaEditor({ root, doc = document, getProject, onChange = () => {}, onAddLane = () => {} }) {
+export function createMetaEditor({ root, doc = document, getProject, onChange = () => {}, onAddLane = () => {}, onBind = () => {} }) {
   let metaId = null, selected = null, pending = null, insertAfter = false;
   const open = new Set();   // the instruments whose list is unfolded
 
@@ -26,6 +26,13 @@ export function createMetaEditor({ root, doc = document, getProject, onChange = 
   const instrumentList = () => {
     const box = el('div', { className: 'me-tree' });
     const p = project();
+    const gap = el('button', { type: 'button', className: 'me-pick me-gap', textContent: '+ Spacer (a gap between groups)', title: 'A rule between groups of columns; its header, if you give it one, names the group to its right' });
+    gap.addEventListener('click', () => {
+      const at = insertAfter && selected ? specs().findIndex(s => s.id === selected) + 1 : undefined;
+      selected = ops.addMetaColumn(project(), metaId, { role: 'spacer' }, at).id;
+      changed('Added a spacer. Give it a header to name the group after it.');
+    });
+    box.append(gap);
     for (const [id, def] of Object.entries(p.instruments)) {
       if (id === metaId || id === MASTER || def.meta) continue;
       const choices = proxyChoices(id, def), used = choices.filter(c => specs().some(s => same(s, c.spec))).length;
@@ -59,6 +66,7 @@ export function createMetaEditor({ root, doc = document, getProject, onChange = 
     const at = insertAfter && selected ? specs().findIndex(s => s.id === selected) + 1 : undefined;
     selected = ops.addMetaColumn(project(), metaId, choice.spec, at).id;
     changed(`Added a column for ${choice.label}.`);
+    if (specs().filter(s => s.instrument === choice.spec.instrument).length === 1) onBind(choice.spec.instrument);   // the first one: the machine is played from here now
   };
 
   // ---- the right side: the columns
@@ -67,10 +75,10 @@ export function createMetaEditor({ root, doc = document, getProject, onChange = 
     t.append(el('thead', {}, el('tr', {}, ...['#', 'Header', 'Source', 'Kind', 'Width', 'Root'].map(h => el('th', { textContent: h })))));
     const body = el('tbody');
     specs().forEach((s, i) => {
-      const c = built(s.id);
+      const c = built(s.id), spacer = s.role === 'spacer';
       const tr = el('tr', { className: s.id === selected ? 'sel' : '' });
       tr.addEventListener('click', e => { if (e.target.closest('input, select')) return; selected = s.id; pending = null; render(); });
-      const header = el('input', { type: 'text', value: s.header ?? '', placeholder: c?.short ?? '', maxLength: 8, size: 8 });
+      const header = el('input', { type: 'text', value: s.header ?? '', placeholder: spacer ? 'group' : c?.short ?? '', maxLength: 8, size: 8 });
       header.setAttribute('aria-label', `Header of column ${i + 1}`);
       header.addEventListener('focus', () => { selected = s.id; });
       header.addEventListener('keydown', e => e.stopPropagation());
@@ -81,7 +89,7 @@ export function createMetaEditor({ root, doc = document, getProject, onChange = 
         kind.setAttribute('aria-label', `Kind of column ${i + 1}`);
         kind.addEventListener('change', () => { ops.setMetaColumn(project(), metaId, s.id, { role: kind.value }); changed('The cells of that column are cleared, as a note and a relative note are not the same.'); });
       }
-      let width = el('span', { className: 'me-dim', textContent: c ? c.token : '' });
+      let width = el('span', { className: 'me-dim', textContent: spacer ? 'as wide as its header' : c ? c.token : '' });
       if (s.role === 'param') {
         const bits = s.bits ?? project().instruments[s.instrument]?.exposed?.find(e => e.node === s.node && e.param === s.param)?.bits ?? 8;
         width = el('select', {}, ...BITS.map(([b, name]) => el('option', { value: b, textContent: name, selected: b === bits })));
@@ -101,7 +109,7 @@ export function createMetaEditor({ root, doc = document, getProject, onChange = 
         });
         rootCell = el('span', {}, input, el('span', { className: 'me-dim', textContent: ' 80 = root' }));
       }
-      tr.append(el('td', { textContent: String(i + 1) }), el('td', {}, header), el('td', { textContent: c ? c.long : `${s.instrument} (not there)` }), el('td', {}, kind), el('td', {}, width), el('td', {}, rootCell));
+      tr.append(el('td', { textContent: String(i + 1) }), el('td', {}, header), el('td', { textContent: spacer ? '(spacer)' : c ? c.long : `${s.instrument} (not there)` }), el('td', {}, kind), el('td', {}, width), el('td', {}, rootCell));
       body.append(tr);
     });
     t.append(body);
