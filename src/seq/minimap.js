@@ -6,6 +6,7 @@
 // place, so a row array is a safe cache key) and the canvas is redrawn only when something it shows has changed.
 import { noteSemitones } from './cells.js';
 
+const RESERVED = 4;   // characters at the left of a cell that the picture leaves alone (the pattern's number and name are written there)
 const LO = 24, HI = 96;   // the pitch range across a cell: C-1 to C-7, as MIDI numbers
 const OFFC = '#17b8d4', CUTC = '#ff3fa4';
 const HEX = { '1hex': 15, '2hex': 255, '4hex': 65535 };
@@ -64,6 +65,13 @@ export function infoOf(row, columns) {
   return info;
 }
 
+// The part of a cell the picture may use: the left RESERVED characters are skipped, the rest (to the right edge) is the picture's.
+// Nothing at all when less than one character is left.
+export function freeArea(x0, w, cw) {
+  const skip = Math.min(w, RESERVED * cw);
+  return w - skip < cw ? null : { x0: x0 + skip, w: w - skip };
+}
+
 export function createMinimap(el) {
   const canvas = typeof document !== 'undefined' ? document.createElement('canvas') : null;
   if (canvas) canvas.className = 'minimap';
@@ -80,7 +88,10 @@ export function createMinimap(el) {
     let stamp = 0;
     for (const l of lanes) for (let r = first; r < last; r++) for (let k = 0; k < CELL; k++) stamp = (stamp * 31 + idOf(l.rows[r * CELL + k] ?? BLANK_ROW)) | 0;
     const dpr = devicePixelRatio || 1, fg = getComputedStyle(el).color, w = Math.max(el.scrollWidth, el.clientWidth), h = Math.max(el.scrollHeight, el.clientHeight);
-    const next = `${html.length}:${stamp}:${w}x${h}:${opts.lengths}${opts.caps}${opts.params}:${fg}:${dpr}`;
+    const cs = getComputedStyle(el), probe = canvas.getContext('2d');
+    probe.font = `${cs.fontStyle} ${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
+    const cw = probe.measureText('0').width || parseFloat(cs.fontSize) * 0.6;   // one character's width in pixels
+    const next = `${html.length}:${stamp}:${w}x${h}:${opts.lengths}${opts.caps}${opts.params}:${fg}:${dpr}:${cw}`;
     const fresh = canvas.parentNode !== el;
     if (fresh) el.appendChild(canvas);
     if (next === key && !fresh) return;
@@ -97,7 +108,8 @@ export function createMinimap(el) {
       cells.forEach((cell, li) => {
         const lane = lanes[li];
         if (!lane) return;
-        drawCell(g, lane, r * CELL, CELL, cell.offsetLeft, rowEl.offsetTop, cell.offsetWidth, rowEl.offsetHeight, opts, ink);
+        const free = freeArea(cell.offsetLeft, cell.offsetWidth, cw);
+        if (free) drawCell(g, lane, r * CELL, CELL, free.x0, rowEl.offsetTop, free.w, rowEl.offsetHeight, opts, ink);
       });
     }
   }

@@ -9000,6 +9000,12 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     assert.equal(hit.par.length, 1);   // only the parameter: neither the velocity nor the spacer
     assert.equal(off.notes[0].kind, 'off');
   }
+  {   // the minimap leaves the first four characters of a cell alone and uses the rest; a cell with less than a character left gets none
+    const { freeArea } = await import('../src/seq/minimap.js');
+    assert.deepEqual(freeArea(100, 130, 10), { x0: 140, w: 90 });
+    assert.equal(freeArea(0, 45, 10), null);
+    assert.deepEqual(freeArea(0, 50, 10), { x0: 40, w: 10 });
+  }
   console.log('ok: meta machine');
 }
 

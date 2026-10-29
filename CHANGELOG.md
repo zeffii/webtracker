@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 522 · 2026-10-29
+
+- Arrangement minimaps: the first four characters of every pattern cell are left alone (the pattern's number and name are written there), and the picture uses the space from there to the right edge: notes, note lengths, caps and the parameter strip are all scaled into it, so even a lane with dozens of parameter columns stays inside its pattern. A cell with less than one character left shows no picture.
+
 ## 521 · 2026-10-29
 
 - New demo, open it with `?demo=acid`: "acid rain", eight bars (128 ticks) of acid techno at 138 bpm. One meta machine plays five machines (kick, hat, clap, a 303-style squelch and a comb-resonator metal), with a spacer carrying the machine's name between the groups of columns. The drums start alone, the squelch line comes in at bar 3 with accents and slides and its filter opens up through the song, claps and metal join at bar 5, and a hat and clap roll closes the loop.
