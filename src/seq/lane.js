@@ -209,7 +209,7 @@ export function prepareSong(song, instruments, registry) {
 // A cell moved to a column of another width for the same parameter keeps its meaning:
 // a whole-number parameter keeps its number, any other keeps its place in the range.
 function convertCell(token, from, to) {
-  if (token === KINDS[from.token].blank) return KINDS[to.token].blank;
+  if (token === KINDS[from.token].blank || from.token === 'note' || to.token === 'note') return KINDS[to.token].blank;   // (a note and a relative note are not the same cell)
   const n = parseInt(token, 16), digits = KINDS[to.token].width;
   const value = to.int ? Math.min(n, 16 ** digits - 1) : Math.round(n / from.denom * to.denom);
   return value.toString(16).toUpperCase().padStart(digits, '0');

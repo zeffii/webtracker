@@ -2,6 +2,11 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 518 · 2026-10-29
+
+- Meta machine, second build: the Selections editor. Select a meta machine on the Instruments screen and it stands where the graph would. On the left the other instruments of the song, unfold one to see what it offers (note, note relative to a root, velocity, triggers, exposed parameters) and tick a thing to add a column for it; untick to remove it. On the right the columns in order, with a header of your own, the kind of a note (as it is, or relative; switching clears that column's cells), the width of a parameter, and the root of a relative note (80 is the root), and ◀ ▶ Remove Duplicate (two columns may drive one parameter). Removing a column that holds data asks first. A new column is empty in every existing pattern and nothing moves.
+- In the pattern editor 00 in a relative note column is drawn in the accent colour (a note off), the status line says which column of a meta lane the cursor is in ("grid · col 3 t1") with its full name, and a relative note reads as the note it plays ("81 = C#4"). Renaming an instrument keeps the meta machine playing it; removing one takes its columns away.
+
 ## 517 · 2026-10-29
 
 - The `?demo=concrete` techno is now played by one meta machine: a single "grid" lane whose 29 columns proxy the kick, hat, clap, metal and tom (their notes, velocities, hits and parameters), and the five machines have no lanes of their own. The metal and the tom are 2hex notes relative to a root (E-5 and C-3, 80 is the root). The patterns are four rows long and placed where the music goes. (The first version's hat tone sweep at tick 51 was lost to two overlapping patterns; it now plays.)

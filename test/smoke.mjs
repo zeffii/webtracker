@@ -8946,6 +8946,34 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   const bare = buildColumns('grid', synthKinds.meta.make(), registry, defs);
   assert.equal(bare.length, 0);
   assert.equal(buildPages([], bare).length, 1);
+  // build 2: duplicating, a kind switch that clears the cells, data checks, renames and removals that the meta machine follows
+  const dup = pops.duplicateMetaColumn(proj, 'grid', b.id);
+  assert.deepEqual(proj.instruments.grid.meta.columns.map(c => c.id).slice(0, 2), [b.id, dup.id]);
+  {
+    const defs2 = { lead: structuredClone(defs.lead), grid: synthKinds.meta.make() };
+    const reg2 = new ParamRegistry();
+    for (const [id, def] of Object.entries(defs2)) compile(def.graph, { instrument: id, nodeTypes: NODE_TYPES, registry: reg2 });
+    defs2.grid.meta.columns = [{ id: 'x', instrument: 'lead', role: 'note', nc: 0 }];
+    const cols2 = buildColumns('grid', defs2.grid, reg2, defs2);
+    const lane2 = { id: 'grid', instrument: 'grid', columns: cols2, patterns: { a: { rows: [['C-4'], ['...']] } }, placements: [], mutes: [], offs: [], curves: [] };
+    assert.ok(pops.columnHasData(lane2, cols2[0].key));
+    pops.setMetaColumn({ instruments: defs2 }, 'grid', 'x', { role: 'rnote', root: 48 });
+    const song2 = { length: 2 };
+    rebuildInstrumentLanes([lane2], song2, defs2, reg2, 'grid');
+    assert.equal(lane2.columns[0].token, '2hex');
+    assert.deepEqual(lane2.patterns.a.rows, [['..'], ['..']]);   // a note is not a relative note: the cells are cleared, not misread
+    const p2 = { instruments: defs2, lanes: [] };
+    assert.equal(pops.renameInstrument(p2, 'lead', 'bass'), 'bass');
+    assert.equal(defs2.grid.meta.columns[0].instrument, 'bass');
+    pops.removeInstrument(p2, 'bass');
+    assert.equal(defs2.grid.meta.columns.length, 0);
+  }
+  {
+    const { describeColumn } = await import('../src/seq/describe.js');
+    const l = { columns: [cols[0]], rows: [['81'], ['00'], ['..']] };
+    assert.match(describeColumn(l, 0, 0), /81 = C#4/);
+    assert.match(describeColumn(l, 1, 0), /00 = note off/);
+  }
   console.log('ok: meta machine');
 }
 

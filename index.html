@@ -559,6 +559,30 @@
     #view .g { position: sticky; left: 0; display: inline-block; background: var(--panel); }   /* the tick numbers stay put when scrolled sideways */
     #view .cell { background: color-mix(in srgb, var(--hi) 25%, transparent); }
     #view .cc { color: var(--cc); }
+    #meta-editor { padding: 6px 8px; font-size: 13px; }
+    #meta-editor .me-head { padding: 2px 0 8px; opacity: .85; }
+    #meta-editor .me-body { display: flex; gap: 14px; align-items: flex-start; flex-wrap: wrap; }
+    #meta-editor .me-left { flex: 0 0 250px; max-height: 60vh; overflow: auto; }
+    #meta-editor .me-right { flex: 1 1 420px; min-width: 0; overflow-x: auto; }
+    #meta-editor h3 { margin: 0 0 4px; font-size: 11px; font-weight: normal; letter-spacing: .06em; text-transform: uppercase; opacity: .6; }
+    #meta-editor .me-tree { display: flex; flex-direction: column; }
+    #meta-editor .me-tree button { text-align: left; font: inherit; border: 0; background: none; color: inherit; padding: 2px 4px; cursor: pointer; white-space: pre; }
+    #meta-editor .me-tree button:hover { background: color-mix(in srgb, var(--hi) 18%, transparent); }
+    #meta-editor .me-inst { font-weight: bold; margin-top: 4px; }
+    #meta-editor .me-pick { padding-left: 18px; }
+    #meta-editor .me-pick.on { color: var(--accent); }
+    #meta-editor .me-dim { opacity: .55; font-weight: normal; }
+    #meta-editor .me-table { border-collapse: collapse; width: 100%; }
+    #meta-editor .me-table th { text-align: left; font-weight: normal; font-size: 11px; opacity: .6; border-bottom: 1px solid var(--line); padding: 2px 6px; }
+    #meta-editor .me-table td { padding: 2px 6px; white-space: nowrap; }
+    #meta-editor .me-table tr.sel td { background: color-mix(in srgb, var(--hi) 30%, transparent); }
+    #meta-editor .me-table tbody tr { cursor: pointer; }
+    #meta-editor .me-table input[type=text] { font: inherit; width: 8ch; }
+    #meta-editor .me-buttons { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin: 8px 0; }
+    #meta-editor .me-after { margin-left: 8px; opacity: .75; }
+    #meta-editor .me-note { min-height: 1.3em; color: var(--accent); margin: 4px 0; }
+    #meta-editor .me-help { opacity: .65; max-width: 70ch; }
+    #view .noff { color: var(--accent); font-weight: bold; }   /* 00 in a relative note column: a note off */
     #view .off { opacity: .3; }
     #view .r4 { opacity: .7; }   /* every 4th tick, and every 16th a little more, to help the eye keep its place */
     #view .r16 { color: #f0707a; }   /* every 16th tick, the bar line, in the accent red */
@@ -1465,6 +1489,7 @@
           </div>
         </div>
         <div id="inst-main">
+          <div id="meta-editor" hidden></div>
           <div id="patch-wrap">
             <canvas id="patch" width="900" height="460" tabindex="0"></canvas>
             <div id="patch-params" style="display:none"><div class="pv-grip" tabindex="0" role="separator" aria-orientation="vertical" aria-label="Parameter panel width: drag, or use Left and Right" title="Drag to change the width of the parameter panel"></div><div id="patch-scroll"></div></div>

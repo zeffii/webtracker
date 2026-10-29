@@ -936,7 +936,7 @@ export function createTrackerView({ showMenu = (e, items) => showContextMenu(e, 
           const isCur = li === cur.lane && ci === cur.col && t === cur.tick;
           // Characters one at a time so the cursor and the command id can each be styled.
           const html = Array.from(text, (ch, i) => {
-            const cls = [isCur && i === cur.ch ? 'cur' : '', c.token === 'cmd' && i < 2 ? 'cc' : ''].filter(Boolean).join(' ');
+            const cls = [isCur && i === cur.ch ? 'cur' : '', c.token === 'cmd' && i < 2 ? 'cc' : '', c.rel && text.trimEnd() === '00' ? 'noff' : ''].filter(Boolean).join(' ');   // 00 in a relative note column is a note off, in the accent colour
             return cls ? `<span class="${cls}">${esc(ch)}</span>` : esc(ch);
           }).join('').replace(/\.+/g, dots => `<span class="d">${dots}</span>`);   // empty digits, dimmer
           const picked = r && li === r.lane && t >= r.t0 && t <= r.t1 && ci >= r.c0 && ci <= r.c1;
@@ -992,7 +992,7 @@ export function createTrackerView({ showMenu = (e, items) => showContextMenu(e, 
     // its range, the value, and the range and the hex it is written as.
     const where1 = [
       solo && `SOLO${lanes[solo.lane].placements.filter(p => p.puid === solo.puid).length > 1 ? ` (shared by ${lanes[solo.lane].placements.filter(p => p.puid === solo.puid).length} placements)` : ''}`,
-      lanes[cur.lane].id, compact.has(cur.lane) ? 'empty columns hidden' : '', `row ${cur.tick - base}`, patternName(), `char ${cur.ch + 1}/${cellWidth()}`, preview ? 'preview on' : '',
+      lanes[cur.lane].id, lanes[cur.lane].columns[cur.col]?.spec ? `col ${cur.col + 1} ${lanes[cur.lane].columns[cur.col].short}` : '', compact.has(cur.lane) ? 'empty columns hidden' : '', `row ${cur.tick - base}`, patternName(), `char ${cur.ch + 1}/${cellWidth()}`, preview ? 'preview on' : '',
       sel ? `selected ${size(rect())}` : '', `octave ${octave}`,
     ].filter(Boolean).join(' · ');
     const d = describeParts(lanes[cur.lane], cur.tick, cur.col);

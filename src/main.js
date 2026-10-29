@@ -32,6 +32,7 @@ import { createRecorder } from './project/recorder.js';
 import { poolId, isPool, ensurePool, usersOfSample } from './project/ops.js';
 import { idFromName, uniqueId, addLane, addSample, replaceSample, addSamplerInstrument, addSynthInstrument, channelsOf, sampleMessage, slotsOf, syncSamplerStereo } from './project/ops.js';
 import { MASTER, SHADER, GRAPH, ensureMaster, synthKinds } from './instruments.js';
+import { createMetaEditor } from './ui/metaeditor.js';
 import { createStreams } from './ui/streams.js';
 import { createNodeSeqEditor } from './nodeseq/editor.js';
 import { ensureGraph, cleanGraph } from './nodeseq/graphops.js';
@@ -748,6 +749,19 @@ $('inst-list').addEventListener('keydown', e => {
   else if (e.key === 'Enter' || e.key === 'ArrowRight' || e.key === 'Tab' && !e.shiftKey) { $('patch').focus(); e.preventDefault(); }
 });
 
+// A meta machine has no graph to patch: its Selections editor stands where the patcher does.
+const metaEditor = createMetaEditor({
+  root: $('meta-editor'),
+  getProject: () => project,
+  onChange: id => refreshLanes(id),
+  onAddLane: id => { addLaneFor(id); refreshProjectUi(); },
+});
+function syncMetaEditor() {
+  const id = patcher.instrument, meta = !!project?.instruments[id]?.meta;
+  if (meta) metaEditor.show(id); else metaEditor.hide();
+  for (const part of ['patch-wrap', 'patch-status', 'patch-panel']) $(part).hidden = meta;
+}
+
 // The narrow instrument list beside the patcher.
 function renderInstList() {
   const buttons = listedInstruments().map((id, i) => {
@@ -762,6 +776,7 @@ function renderInstList() {
   renderLaneInstruments();
   renderPresetList();
   syncPoly();
+  syncMetaEditor();
 }
 
 // The lane the buttons under the arrangement act on: the one the arrangement cursor is in.

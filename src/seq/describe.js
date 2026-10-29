@@ -1,11 +1,19 @@
 import { display } from '../graph/units.js';
-import { KINDS } from './cells.js';
+import { KINDS, noteToken } from './cells.js';
 
 const isBlank = token => !token || /^\.+$/.test(token);
 
 // What the status bar says about the column under the caret: its long name, the range of the real value, and the cell's
 // value as hex and in real units. A blank cell shows what holds there: the last value written above it in the lane, or
 // the parameter's default when the column has never been written.
+
+// A relative note cell as the note it plays: 80 is the root, 81 a semitone above, 00 a note off.
+const relativeName = (token, root) => {
+  const h = parseInt(token, 16);
+  if (h === 0) return 'note off';
+  const midi = Math.max(0, Math.min(127, root + h - 0x80));
+  return midi < 12 ? `MIDI ${midi}` : noteToken(midi - 12);
+};
 
 const hexOf = (n, width) => Math.round(n).toString(16).toUpperCase().padStart(width, '0');
 const spec = c => ({ name: c.param, min: c.min, max: c.max, int: c.int });
@@ -51,6 +59,9 @@ export function describeParts(lane, tick, ci) {
       out.value = `${Math.round(out.frac * 100)}%`;
       out.details.push(`${hex === null ? 'default ' : 'held '}${hex ?? 'FF'}`);
     }
+  } else if (c.rel) {
+    out.details.push('80 is the root note, 81 a semitone above, 7F one below, 00 a note off');
+    if (!isBlank(token)) { out.value = relativeName(token, c.root); out.details.push(token); }
   } else if (c.kind === 'cmd') {
     const id = isBlank(token) ? null : parseInt(token.slice(0, 2), 16), t = id === null ? null : c.commands.find(x => x.id === id);
     if (t && (t.reset || t.setting)) { out.details.push(`${token.slice(0, 2)}: ${t.reset ? 'reset settings (1 retrigger, 2 humanize, 4 filter, 8 vibrato and LFO; A0 all)' : `${t.setting}: XX = settings added up, YY = slot 00 to 0F`}`); out.value = t.reset ? 'reset' : token.slice(2); }
@@ -87,6 +98,8 @@ export function describeColumn(lane, tick, ci) {
       for (let t = tick - 1; t >= 0 && hex === null; t--) if (!isBlank(lane.rows[t]?.[ci])) hex = lane.rows[t][ci];
       parts.push(`${hex === null ? 'default' : 'held'} ${hex ?? 'FF'} = ${Math.round(parseInt(hex ?? 'FF', 16) / 255 * 100)}%`);
     }
+  } else if (c.rel) {
+    if (!isBlank(token)) parts.push(`${token} = ${relativeName(token, c.root)}`);
   } else if (c.kind === 'cmd') {
     const id = isBlank(token) ? null : parseInt(token.slice(0, 2), 16), t = id === null ? null : c.commands.find(x => x.id === id);
     if (t && (t.reset || t.setting)) parts.push(`${token.slice(0, 2)}: ${t.reset ? 'reset settings' : `${t.setting} settings (XX groups, YY slot)`}`);

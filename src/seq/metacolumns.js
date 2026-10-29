@@ -15,18 +15,27 @@ import { noteToken } from './cells.js';
 import { longName } from './names.js';
 
 export const DEFAULT_ROOT = 60;
+// What a parameter is called: its own name, and its node's when the instrument exposes parameters of several nodes.
+const paramLabel = (def, e) => e.long ?? `${longName(e.param)}${new Set(def.exposed.map(x => x.node)).size > 1 ? ` · ${e.node}` : ''}`;
+
 export const rootName = root => noteToken(Math.max(0, Math.min(127, root)) - 12);   // 60 -> "C-4"
 
 export function metaColumns(selfId, def, registry, instruments) {
   const columns = [], counts = { n: 0, v: 0, t: 0, p: 0 }, noteAt = new Map();
   let notes = 0, trigs = 0;
-  const add = (letter, spec, col) => { const n = ++counts[letter]; columns.push({ ...col, key: `m:${spec.id}${col.kind === 'param' ? `:${col.token}` : ''}`, base: col.kind === 'param' ? `m:${spec.id}` : undefined, label: spec.header || `${letter}${n}`, short: spec.header || `${letter}${n}`, spec: spec.id }); };
+  // where each instrument's note columns stand among the lane's, so a velocity finds its note wherever it was put
+  for (const spec of def.meta?.columns ?? []) if ((spec.role === 'note' || spec.role === 'rnote') && instruments[spec.instrument] && spec.instrument !== selfId) noteAt.set(`${spec.instrument}:${spec.nc ?? 0}`, noteAt.size);
+  // A column's key holds its cell kind where a cell can change kind (a note as it is or relative, a parameter's width), so the cells are
+  // converted, or emptied, and never read as the wrong thing; `base` is the same column whatever its kind.
+  const add = (letter, spec, col) => {
+    const n = ++counts[letter], kinded = col.kind === 'param' || col.kind === 'note';
+    columns.push({ ...col, key: `m:${spec.id}${kinded ? `:${col.token}` : ''}`, base: kinded ? `m:${spec.id}` : undefined, label: spec.header || `${letter}${n}`, short: spec.header || `${letter}${n}`, spec: spec.id });
+  };
   for (const spec of def.meta?.columns ?? []) {
     const target = instruments[spec.instrument];
     if (!target || spec.instrument === selfId) continue;   // a machine that is gone has no column
     const nc = spec.nc ?? 0, name = spec.instrument;
     if (spec.role === 'note' || spec.role === 'rnote') {
-      noteAt.set(`${name}:${nc}`, notes);
       const rel = spec.role === 'rnote', root = spec.root ?? DEFAULT_ROOT;
       add('n', spec, {
         kind: 'note', token: rel ? '2hex' : 'note', nc: notes++, target: name, long: rel ? `${name} · note, 80 = ${rootName(root)}, 00 = off` : `${name} · note`,
@@ -45,7 +54,7 @@ export function metaColumns(selfId, def, registry, instruments) {
       const node = target.graph.nodes.find(n => n.id === e.node);
       add('p', spec, {
         kind: 'param', token, slot, min, max, int, denom: { '4hex': 65535, '1hex': 15, '2hex': 255 }[token], log: e.scale === 'log',
-        long: `${name} · ${e.long ?? longName(e.param)}`, node: e.node, param: e.param, type: node?.type, dflt: node?.params?.[e.param] ?? registry.values[slot], target: name,
+        long: `${name} · ${paramLabel(target, e)}`, node: e.node, param: e.param, type: node?.type, dflt: node?.params?.[e.param] ?? registry.values[slot], target: name,
       });
     }
   }
@@ -63,6 +72,6 @@ export function proxyChoices(instrumentId, def) {
     if (!def.noVel) out.push({ label: `Velocity${suffix}`, spec: { instrument: instrumentId, role: 'vel', nc } });
   }
   (def.triggers ?? []).forEach((t, tc) => out.push({ label: t.long ?? t.label, spec: { instrument: instrumentId, role: 'trig', tc } }));
-  for (const e of def.exposed ?? []) out.push({ label: e.long ?? longName(e.param), spec: { instrument: instrumentId, role: 'param', node: e.node, param: e.param } });
+  for (const e of def.exposed ?? []) out.push({ label: paramLabel(def, e), spec: { instrument: instrumentId, role: 'param', node: e.node, param: e.param } });
   return out;
 }

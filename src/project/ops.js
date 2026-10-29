@@ -2,6 +2,7 @@ import { MASTER, SHADER, GRAPH, newSamplerInstrument, shaderInstrument, graphIns
 import { clampLoop } from '../seq/loop.js';
 import { dropSource, renameSource } from '../graph/sidechain.js';
 import { slicePlacement } from '../seq/edit.js';
+import { KINDS } from '../seq/cells.js';
 import { buildPages, createLane, flattenLane, writeMask } from '../seq/lane.js';
 
 // Changes to the shape of a project: samples, instruments, lanes. Plain functions on the
@@ -373,6 +374,7 @@ export function renameInstrument(project, id, name) {
   if (next === id) return id;
   project.instruments = Object.fromEntries(Object.entries(project.instruments).map(([k, v]) => [k === id ? next : k, v]));
   for (const lane of project.lanes) if (lane.instrument === id) lane.instrument = next;
+  for (const def of Object.values(project.instruments)) for (const c of def.meta?.columns ?? []) if (c.instrument === id) c.instrument = next;   // a meta machine keeps playing it
   renameSource(project.instruments, id, next);   // sidechain nodes that listened to it follow
   return next;
 }
@@ -384,6 +386,7 @@ export function removeInstrument(project, id) {
   const users = project.lanes.filter(l => l.instrument === id).map(l => l.id);
   if (users.length) throw new Error(`"${id}" is played by ${users.length > 1 ? 'lanes' : 'lane'} ${users.join(', ')}; remove ${users.length > 1 ? 'those lanes' : 'that lane'} first.`);
   delete project.instruments[id];
+  for (const def of Object.values(project.instruments)) if (def.meta) def.meta.columns = def.meta.columns.filter(c => c.instrument !== id);   // and the meta machines stop playing it
   dropSource(project.instruments, id);
 }
 
@@ -476,6 +479,28 @@ export function moveMetaColumn(project, metaId, id, to) {
 export function setMetaColumn(project, metaId, id, changes) {
   const col = metaOf(project, metaId).find(c => c.id === id);
   if (!col) return false;
+  if (changes.role && ['note', 'rnote'].includes(changes.role) && ['note', 'rnote'].includes(col.role)) col.role = changes.role;   // a note as it is, or relative to a root
   for (const k of ['header', 'root', 'bits']) if (k in changes) { if (changes[k] === undefined || changes[k] === '') delete col[k]; else col[k] = changes[k]; }
   return true;
+}
+
+// Does a column of a lane hold anything? (Removing it would lose that.) `key` is the column's key.
+export function columnHasData(lane, key) {
+  const at = lane.columns.findIndex(c => c.key === key);
+  if (at < 0) return false;
+  const blank = KINDS[lane.columns[at].token].blank;
+  return Object.values(lane.patterns).some(p => p.rows.some(r => r[at] !== blank));
+}
+
+// A copy of a column, standing right after it.
+export function duplicateMetaColumn(project, metaId, id) {
+  const list = metaOf(project, metaId), i = list.findIndex(c => c.id === id);
+  if (i < 0) return null;
+  const taken = new Set(list.map(c => c.id));
+  let n = list.length + 1;
+  while (taken.has(`c${n}`)) n++;
+  const copy = { ...structuredClone(list[i]), id: `c${n}` };
+  delete copy.header;
+  list.splice(i + 1, 0, copy);
+  return copy;
 }
