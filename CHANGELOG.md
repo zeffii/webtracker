@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 524 · 2026-10-29
+
+- Arrangement: the pattern name chip is easier to read: 11 px regular instead of 9 px bold (small bold text blurred on Windows), white on near-black, a little taller. It covers a bit more of the minimap behind it.
+
 ## 523 · 2026-10-29
 
 - Arrangement: a pattern's number and name sit on a small dark chip in a small bold font (as wide as the name), so the minimap behind it no longer clutters them.

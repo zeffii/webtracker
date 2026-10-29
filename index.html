@@ -407,7 +407,7 @@
     #seq .cb { background: var(--hi); }
     #seq .t { position: relative; padding-left: 4px; }
     #seq .cell.cur .t { color: var(--hi-fg); }
-    #seq .pn { display: inline-block; vertical-align: top; margin: 2px 0 0 -4px; padding: 0 4px; font-size: 9px; font-weight: bold; line-height: 13px; background: #14161c; color: #f2eaf9; }   /* the pattern's number and name: a small dark chip */
+    #seq .pn { display: inline-block; vertical-align: top; margin: 1px 0 0 -4px; padding: 0 5px 0 4px; font-size: 11px; font-weight: normal; line-height: 16px; letter-spacing: .02em; background: #0f1015; color: #ffffff; border-radius: 0 0 2px 0; }   /* the pattern's number and name: a small dark chip */
     /* pattern colours follow the theme: the hue says which pattern, the theme sets how bright, how saturated and how strong the tint is (see --pat-* in themes.css) */
     #seq .L { --c: hsl(calc(var(--pat-hue, 0) + (var(--h, 0) - var(--pat-hue, 0)) * var(--pat-spread, 1)) calc(var(--s, 65%) + var(--pat-ds, 0%)) calc(var(--l, 72%) + var(--pat-dl, 0%)) / calc(var(--a, .6) * var(--pat-am, 1))); }
     #seq .L.p0 { --h: 210; --s: 70%; --l: 55%; --a: .35; }
