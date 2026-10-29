@@ -530,6 +530,23 @@ export function createSequenceView({ el, statusEl, listEl, transport, onToggle, 
   };
 
   const playline = createPlayline(el), looplines = createLoopLines(el), minimap = createMinimap(el);
+  // The name of the pattern under the mouse or the caret, on a dark label at the top of that pattern (when the cells show only
+  // their numbers). One element, moved about, so hovering never redraws the view.
+  const tag = typeof document !== 'undefined' ? Object.assign(document.createElement('div'), { className: 'pname' }) : null;
+  let hover = null;   // the cell the mouse is over: { lane, tick }
+  const updateTag = () => {
+    if (!tag || !lanes || !el.children || !el.appendChild) return;
+    const at = hover ?? { lane: cur.lane, tick: cur.tick }, lane = lanes[at.lane], pl = lane && placementAt(lane, at.tick), pat = pl && lane.patterns[pl.puid];
+    const rowEl = pat && !config.get('seqNames') ? el.children[Math.max(Math.floor(pl.start / CELL), top) - top + 1] : null;   // the pattern's first row, or the top of the view if it starts above it
+    const cell = rowEl?.classList?.contains('r') ? rowEl.querySelectorAll('.cell')[at.lane] : null;
+    if (!cell) { tag.remove(); return; }
+    if (tag.parentNode !== el) el.appendChild(tag);
+    tag.textContent = `${hex2(pat.index)} ${pat.name}`;
+    tag.style.left = `${cell.offsetLeft}px`;
+    tag.style.top = `${rowEl.offsetTop}px`;
+  };
+  el.addEventListener('mousemove', e => { const at = pointed(e); if (at?.lane !== hover?.lane || at?.tick !== hover?.tick) { hover = at; updateTag(); } });
+  el.addEventListener('mouseleave', () => { hover = null; updateTag(); });
   const curves = createCurveView({
     el, lanes: () => lanes, top: () => top, CELL: () => CELL, len: () => len, get editor() { return editor; },
     say: m => { message = m; statusEl.textContent = m; }, shape: li => onShape(li), menu: (e, items) => showContextMenu(e, items),
@@ -612,10 +629,6 @@ export function createSequenceView({ el, statusEl, listEl, transport, onToggle, 
         if (label) text = `${(pl && pl.start >= t ? text.slice(0, room - 1).trimEnd() : '').padEnd(room)}${label} `;
         const classes = ['cell', w < COLW && 'nr', l.instrument === SHADER && 'shd', level === 2 ? 'silenced' : muted && 'muted', isCur && 'cur', picked && li >= picked.l0 && li <= picked.l1 && t >= picked.t0 && t <= picked.t1 && 'sel'].filter(Boolean).join(' ');
         let inner = esc(text);
-        if (pl && pl.start >= t && !label) {   // the pattern's number and name on a small dark chip, so the minimap behind it does not clutter them
-          const name = (config.get('seqNames') ? `${hex2(l.patterns[pl.puid].index)} ${l.patterns[pl.puid].name}` : hex2(l.patterns[pl.puid].index)).slice(0, w - (pl.more ? 1 : 0));
-          inner = `<span class="pn">${esc(name)}</span>${esc(text.slice(name.length))}`;
-        }
         if (label) {
           inner = `${esc(text.slice(0, room))}<span class="mk ${muted ? 'mm' : 'mu'}">${esc(label)}</span> `;
         }
@@ -641,6 +654,7 @@ export function createSequenceView({ el, statusEl, listEl, transport, onToggle, 
     }
     curves.paint();
 
+    updateTag();
     if (config.get('minimapOn')) minimap.paint({ lanes, first: top, last: Math.min(rows, top + rowCount), CELL, html, opts: { lengths: config.get('minimapLengths'), caps: config.get('minimapCaps'), params: config.get('minimapParams') } });
     else minimap.hide();
 

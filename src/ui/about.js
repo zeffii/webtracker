@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['525', ['Arrangement: patterns show only their number; the name of the pattern under the mouse or caret appears on a dark label (H shows all names).']],
   ['524', ['Pattern name chips: larger, regular weight, easier to read.']],
   ['523', ['Arrangement: pattern names on a small dark chip, readable over the minimaps.']],
   ['522', ['Pattern minimaps keep the first four characters of a cell clear for the pattern name and scale everything into the rest.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['518', ['Meta machine editor: pick which notes, triggers and parameters of other instruments its columns play, and change them later. 00 in a relative note column is a note off, in the accent colour.']],
   ['517', ['The ?demo=concrete techno now runs on one meta machine lane that plays all five percussion machines.']],
   ['516', ['New demo: ?demo=concrete, 64 ticks of techno from five percussion machines, with parameter changes on all of them.']],
-  ['515', ['Meta machine, engine only: a lane whose columns play other instruments (notes, relative notes with a root, velocities, triggers, parameters). Its editor comes next.']],
 ];

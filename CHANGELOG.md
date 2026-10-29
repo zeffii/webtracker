@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 525 · 2026-10-29
+
+- Arrangement: the pattern name chip (523, 524) is gone again, and pattern names are off by default: a pattern's cell shows its two-digit number, in the left four characters that the minimap leaves clear. The name of the pattern under the mouse, or under the caret when the mouse is elsewhere, shows on a dark label at regular size at the top of that pattern. H (or "Sequence editor: show pattern names" in Config) puts every name in the cells; the statusbar always gives the name.
+
 ## 524 · 2026-10-29
 
 - Arrangement: the pattern name chip is easier to read: 11 px regular instead of 9 px bold (small bold text blurred on Windows), white on near-black, a little taller. It covers a bit more of the minimap behind it.

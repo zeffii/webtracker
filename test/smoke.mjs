@@ -551,7 +551,9 @@ const firstSound = x => x.findIndex(v => Math.abs(v) > 1e-9);
   const press = (key, extra = {}) => onKey({ key, preventDefault() {}, ...extra });
   const lead = lanes[0];
 
+  uiConfig.set('seqNames', true);   // (names are off by default)
   view.draw();
+  uiConfig.set('seqNames', false);
   assert.ok(el.innerHTML.includes('&lt;script&gt;') && !el.innerHTML.includes('<script>'), 'pattern name not escaped');
   assert.ok(el.innerHTML.includes('&lt;b&gt;x') && !el.innerHTML.includes('<b>x'), 'lane name not escaped');
 
