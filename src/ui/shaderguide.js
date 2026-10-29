@@ -119,7 +119,7 @@ Most work on \`float\`, \`vec2\`, \`vec3\` and \`vec4\`, component by component.
 
 The cost is roughly pixels times work per pixel. Halving the resolution in Config makes everything about four times lighter, and a soft picture rarely needs more than 300. Loops, \`pow\`, \`exp\`, \`sin\` and \`atan\` are the expensive parts; ray marching (many steps per pixel) is the most expensive of all.
 
-Rough weight of the templates, measured on a software renderer, so the ratios only: the built-in metaballs 100, Flock 42, Cells 30, Lissajous 22, Ripples, Waves, Sunburst, Rings, Truchet, Bars, Lava and Marble between 6 and 11, and Tunnel, Moire, Roll, Leds, Plasma, Kaleido and Stars under 4. On a real graphics card all of them are far lighter, but the order holds.
+Rough weight of the templates, measured on a software renderer, so the ratios only: the built-in metaballs 100, Flock 42, Cells 30, Lissajous 22, Ripples, Waves, Sunburst, Rings, Truchet, Bars, Lava and Marble between 6 and 11, Roll all lanes and Roll stacked (a look-back along every lane for every pixel, so they cost more with many lanes), and Tunnel, Moire, Roll, Leds, Plasma, Kaleido and Stars under 4. On a real graphics card all of them are far lighter, but the order holds.
 
 If a shader makes the interface stutter, lower the resolution first, then cut the loop counts, then replace \`pow(x, 2.)\` with \`x * x\`.
 

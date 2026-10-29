@@ -74,6 +74,119 @@ void main(){
   gl_FragColor = vec4(col, 1.);
 }`,
   },
+  rollall: {
+    label: 'Roll, all lanes: one piano roll, every lane its own colour',
+    source: `// one piano roll for the whole song: time runs left to right with the playhead at the bright line (what has played is dimmer), pitch runs
+// up, and every lane has its own colour, so notes of different lanes can overlap and still be told apart (where they overlap it glows).
+// A note lasts until the next note or note off of its lane, at most "note length" ticks, which keeps a drum hit short.
+vec3 laneCol(float i){ float h = fract(.08 + i * .382); vec3 k = clamp(abs(mod(h * 6. + vec3(0., 4., 2.), 6.) - 3.) - 1., 0., 1.); return mix(vec3(1.), k, .65); }
+// the note lane i is sounding at tick d: (pitch 0..1, velocity, ticks since it started), or pitch -1 for none
+vec3 noteAt(float lane, float d, float cap){
+  for (int k = 0; k < 16; k++) {
+    if (float(k) >= cap) break;
+    vec4 c = cell(lane, d - float(k));
+    if (c.x > .5) return vec3(c.y, c.z, float(k));
+    if (c.w > .5) break;
+  }
+  return vec3(-1., 0., 0.);
+}
+void main(){
+  vec2 uv = gl_FragCoord.xy / R;
+  float cap = kn("note length", 5., 1., 16.);
+  float span = kn("octaves", 4., 1., 8.) * 12.;
+  float mid = kn("centre", .47, 0., 1.) * 127.;
+  float sy = (uv.y - .5) * span + mid;            // the pitch of this pixel, in semitones
+  float r = floor(sy + .5), fy = fract(sy + .5);
+  float pc = mod(r, 12.);
+  float black = (pc == 1. || pc == 3. || pc == 6. || pc == 8. || pc == 10.) ? 1. : 0.;
+  float cx = uv.x * WIN, dx = floor(cx) - BEHIND, fx = fract(cx);
+  vec3 col = C1 * (.16 - .07 * black);
+  col += C1 * .22 * step(pc, .5) * step(fy, .08);   // a line along every C
+  col += C1 * .07 * step(mod(dx, 4.), .5) * step(fx, .06);   // and one at every fourth tick
+  float cover = 0.;
+  for (int i = 0; i < 16; i++) {
+    if (float(i) >= NL) break;
+    vec3 n = noteAt(float(i), dx, cap);
+    if (n.x < 0. || floor(n.x * 127. + .5) != r) continue;
+    float body = step(.1, fy) * step(fy, .9) * (n.z < .5 ? step(.1, fx) : 1.);
+    if (body < .5) continue;
+    vec3 lc = laneCol(float(i)) * (.55 + .45 * n.y) * (dx < 0. ? .45 : 1.);
+    lc += vec3(.35) * step(n.z, .5) * step(abs(dx), .5) * (1. - fx);   // a flash as the note starts at the playhead
+    col = mix(col, lc, .9);
+    cover += 1.;
+  }
+  col += .08 * max(cover - 1., 0.);
+  col += C2 * .4 * smoothstep(.004, 0., abs(uv.x - BEHIND / WIN));
+  gl_FragColor = vec4(col, 1.);
+}`,
+  },
+  rollstack: {
+    label: 'Roll, stacked: the lanes as sheets in space (isometric)',
+    source: `// every lane is its own piano roll, drawn as a sheet; the sheets stand one behind the other in space (the first lane at the back and the
+// top), so notes that sound together in several lanes are all visible. The "angle" knob turns the view: 30 is an isometric one, 90 stacks
+// the sheets straight up. A note is a slab with a darker side; the line across each sheet is the playhead, and a sheet lights up when its
+// lane plays. Each lane has its own colour. Each sheet is found by turning the pixel back into the sheet's own time and pitch.
+vec3 laneCol(float i){ float h = fract(.08 + i * .382); vec3 k = clamp(abs(mod(h * 6. + vec3(0., 4., 2.), 6.) - 3.) - 1., 0., 1.); return mix(vec3(1.), k, .65); }
+vec3 noteAt(float lane, float d, float cap){
+  for (int k = 0; k < 16; k++) {
+    if (float(k) >= cap) break;
+    vec4 c = cell(lane, d - float(k));
+    if (c.x > .5) return vec3(c.y, c.z, float(k));
+    if (c.w > .5) break;
+  }
+  return vec3(-1., 0., 0.);
+}
+// 1 when lane i has a note on this pixel: dx the tick, fx the place across it, sy the pitch in semitones; v is (velocity, ticks since it started)
+float bar(float i, float dx, float fx, float sy, float cap, out vec2 v){
+  vec3 n = noteAt(i, dx, cap);
+  v = n.yz;
+  float r = floor(sy + .5), fy = fract(sy + .5);
+  if (n.x < 0. || floor(n.x * 127. + .5) != r) return 0.;
+  return step(.08, fy) * step(fy, .92) * (n.z < .5 ? step(.1, fx) : 1.);
+}
+void main(){
+  vec2 p = (gl_FragCoord.xy - .5 * R) / R.y;
+  float cap = kn("note length", 5., 1., 16.);
+  float span = kn("octaves", 3., 1., 6.) * 12.;
+  float mid = kn("centre", .47, 0., 1.) * 127.;
+  float ang = radians(kn("angle", 70., 25., 90.));  // the direction the sheets recede in: 30 is a true isometric view, 90 stacks them straight up
+  float n = max(NL, 1.);
+  float s = min(.75 / n * kn("spread", 1., .5, 1.8), .14);   // the step from one sheet to the next
+  vec2 ez = vec2(cos(ang), sin(ang)) * s;
+  float ux = (.92 - cos(ang) * s * (n - 1.)) / WIN;          // the width of a tick, so the whole stack fits
+  float uy = ux * .3;                                        // the time axis runs a little downhill
+  float H = min(s * 3.2, .22);                               // the height of a sheet (they overlap a little, and the sheets are see-through)
+  vec3 col = mix(C1 * .22, C1 * .05, gl_FragCoord.y / R.y);
+  for (int i = 0; i < 16; i++) {
+    if (float(i) >= n) break;
+    vec4 L = LANE[i];
+    float zi = (n - 1. - float(i)) - (n - 1.) * .5;          // the first lane is the farthest and highest
+    float tc = (p.x - zi * ez.x) / ux;                       // ticks from the middle of the window
+    float dxf = tc + BEHIND;                                 // ticks from the playhead
+    float q = (p.y - zi * ez.y + tc * uy) / H + .5;          // 0 to 1 up the sheet
+    if (dxf < -BEHIND || dxf >= WIN - BEHIND || q < 0. || q > 1.) continue;
+    float dx = floor(dxf), fx = fract(dxf);
+    float sy = (q - .5) * span + mid;
+    vec3 lc = laneCol(float(i));
+    float pc = mod(floor(sy + .5), 12.);
+    float black = (pc == 1. || pc == 3. || pc == 6. || pc == 8. || pc == 10.) ? 1. : 0.;
+    vec3 sheet = lc * (.14 - .05 * black + .25 * L.x);
+    sheet += lc * .10 * step(pc, .5) * step(fract(sy + .5), .1);
+    sheet += lc * .06 * step(mod(dx, 4.), .5) * step(fx, .08);
+    col = mix(col, sheet, .5);
+    vec2 v, v2;
+    float top = bar(float(i), dx, fx, sy, cap, v);
+    float side = bar(float(i), dx, fx, sy + .9, cap, v2);   // the same note seen a little higher: the slab's side
+    float dim = dx < 0. ? .5 : 1.;
+    if (top > .5) col = lc * (.65 + .5 * v.x) * dim + vec3(.4) * step(v.y, .5) * step(abs(dx), .5);
+    else if (side > .5) col = lc * .28 * dim;
+    float edge = min(min(dxf + BEHIND, WIN - BEHIND - dxf), min(q, 1. - q) * 12.);
+    col += lc * .45 * step(edge, .12);                       // the sheet's rim
+    col += C2 * .5 * step(abs(dxf), .09);                    // the playhead
+  }
+  gl_FragColor = vec4(col, 1.);
+}`,
+  },
   plasma: {
     label: 'Plasma: soft colour waves',
     source: `// slow overlapping waves in the two colours; the first lane's hit and all hits together push ripples through them
