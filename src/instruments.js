@@ -245,6 +245,16 @@ export const synthKinds = {
       ],
     }),
   },
+  meta: {
+    label: 'Meta machine (plays other instruments)',
+    make: () => ({
+      graph: { nodes: [{ id: 'out', type: 'out', x: 200, y: 80, params: { gain: 0.5 } }], connections: [] },
+      noteColumns: 0,
+      exposed: [],
+      commands: [],
+      meta: { columns: [] },   // see seq/metacolumns.js
+    }),
+  },
   empty: {
     label: 'Empty graph (out and voices only)',
     make: () => ({

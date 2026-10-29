@@ -8884,4 +8884,69 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   for (const os of [0, 1, 2]) assert.ok(render({ oversample: os }, sine(220, 0.3), 6000).every(Number.isFinite), `oversample ${os} is finite`);
   console.log('ok: amp');
 }
+// 111. The meta machine: its columns proxy other machines' notes (plain or relative to a root), velocities, triggers and parameters.
+{
+  const { relativeNote } = await import('../src/seq/cells.js');
+  assert.equal(relativeNote(128 / 255, 60), 60 / 127);          // 80 is the root
+  assert.equal(Math.round(relativeNote(129 / 255, 60) * 127), 61);   // 81 a semitone above
+  assert.equal(Math.round(relativeNote(127 / 255, 60) * 127), 59);   // 7F one below
+  assert.equal(relativeNote(0, 60), -0.5);                      // 00 is a note off
+  const { metaColumns, proxyChoices } = await import('../src/seq/metacolumns.js');
+  const defs = { lead: structuredClone(instruments.lead), clap: synthKinds.clap.make(), grid: synthKinds.meta.make() };
+  const registry = new ParamRegistry();
+  for (const [id, def] of Object.entries(defs)) compile(def.graph, { instrument: id, nodeTypes: NODE_TYPES, registry });
+  const param = defs.clap.exposed[0];
+  assert.ok(proxyChoices('clap', defs.clap).some(c => c.spec.role === 'trig'));
+  assert.ok(proxyChoices('lead', defs.lead).some(c => c.spec.role === 'rnote'));
+  defs.grid.meta.columns = [
+    { id: 'a', instrument: 'lead', role: 'rnote', nc: 0, root: 60 },
+    { id: 'b', instrument: 'lead', role: 'vel', nc: 0 },
+    { id: 'c', instrument: 'clap', role: 'trig', tc: 0 },
+    { id: 'd', instrument: 'clap', role: 'param', node: param.node, param: param.param },
+    { id: 'e', instrument: 'lead', role: 'note', nc: 0 },
+    { id: 'f', instrument: 'gone', role: 'note', nc: 0 },       // a machine that is not there has no column
+    { id: 'g', instrument: 'clap', role: 'param', node: param.node, param: param.param },   // two columns may drive one parameter
+  ];
+  const cols = buildColumns('grid', defs.grid, registry, defs);
+  assert.deepEqual(cols.map(c => c.short), ['n1', 'v1', 't1', 'p1', 'n2', 'p2']);
+  assert.deepEqual(cols.map(c => c.ch), [0, 1, 2, 3, 4, 5]);
+  assert.match(cols[0].long, /lead · note.*80 = C-4.*00 = off/);
+  const rt = new GraphRuntime({ sampleRate: sr, params: registry.values });
+  const sent = [];
+  const note = rt.note.bind(rt);
+  rt.note = (id, msg) => { sent.push([id, msg.type, msg.note, msg.vel]); note(id, msg); };
+  const seq = new Sequencer({ sampleRate: sr, runtime: rt, params: registry.values, transport: new Int32Array(new SharedArrayBuffer(8)) });
+  for (const [id, def] of Object.entries(defs)) rt.load(compile(def.graph, { instrument: id, nodeTypes: NODE_TYPES, registry }));
+  const song = song120([oneLane('grid', 'grid', Array.from({ length: 16 }, (_, i) => ({
+    0: '81 80 F 40 ... 20',
+    1: '7F .. . .. ... ..',
+    2: '00 .. . .. ... ..',
+  })[i] ?? '.. .. . .. ... ..').join('\n'))]);
+  seq.setSong(song);
+  const lanes = prepareSong(song, defs, registry);
+  assert.equal(lanes[0].columns.length, 6);
+  seq.setLane(lanes[0]);
+  seq.play();
+  render(seq, 0.3);
+  const ons = sent.filter(m => m[1] === 'noteOn');
+  assert.deepEqual(ons.filter(m => m[0] === 'lead').slice(0, 2).map(m => m[2]), [61, 59]);
+  assert.ok(ons.some(m => m[0] === 'clap' && Math.abs(m[3] - 1) < 1e-6), 'trigger F hit the clap');
+  assert.ok(sent.some(m => m[0] === 'lead' && m[1] === 'noteOff' && m[2] === 59), 'the 00 note off ended the lead note');
+  assert.ok(!sent.some(m => m[0] === 'grid'), 'nothing is sent to the meta machine itself');
+  assert.ok(Math.abs(registry.values[cols[3].slot] - (cols[3].min + (cols[3].max - cols[3].min) * 0x20 / 255)) < 1e-3 || cols[3].log, 'parameter value reached the clap');
+  // the ops keep the list in order, and a meta machine without columns is a lane that builds
+  const proj = { instruments: { lead: defs.lead, grid: { meta: { columns: [] } } } };
+  const a = pops.addMetaColumn(proj, 'grid', { instrument: 'lead', role: 'note', nc: 0 });
+  const b = pops.addMetaColumn(proj, 'grid', { instrument: 'lead', role: 'vel', nc: 0 }, 0);
+  assert.deepEqual(proj.instruments.grid.meta.columns.map(c => c.id), [b.id, a.id]);
+  assert.ok(pops.moveMetaColumn(proj, 'grid', b.id, 1) && proj.instruments.grid.meta.columns[1].id === b.id);
+  assert.ok(pops.setMetaColumn(proj, 'grid', a.id, { header: 'bass' }) && proj.instruments.grid.meta.columns[0].header === 'bass');
+  assert.ok(pops.removeMetaColumn(proj, 'grid', a.id) && proj.instruments.grid.meta.columns.length === 1);
+  assert.throws(() => pops.addMetaColumn(proj, 'grid', { instrument: 'grid', role: 'note' }));
+  const bare = buildColumns('grid', synthKinds.meta.make(), registry, defs);
+  assert.equal(bare.length, 0);
+  assert.equal(buildPages([], bare).length, 1);
+  console.log('ok: meta machine');
+}
+
 console.log('smoke test passed');

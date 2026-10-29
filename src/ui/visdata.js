@@ -8,7 +8,7 @@
 // below turns into a look-up in the LANE array:  hit("kick")  pitch("acid")  vel(2)  held("pad")  hits()
 import { PAGE_TICKS } from '../audio/sequencer.js';
 import { MASTER, SHADER, GRAPH } from '../instruments.js';
-import { EMPTY, CUT, OFF, decodeNote, decodeHex1, decodeHex2 } from '../seq/cells.js';
+import { EMPTY, CUT, OFF, relativeNote, decodeNote, decodeHex1, decodeHex2 } from '../seq/cells.js';
 
 export const MAX_LANES = 16;
 export const WIN = 32, BEHIND = 8;   // the pattern window a shader can read: WIN ticks across, the playhead BEHIND ticks from the left edge
@@ -44,7 +44,7 @@ export function readTick(lane, state, tick) {
     if (v === EMPTY) continue;
     if (col.kind === 'vel') vels[col.nc] = decodeHex2(v) / 255;
     else if (col.kind === 'trig') { const g = decodeHex1(v) / 15; if (g > 0) { state.hit = 1; state.vel = g; state.pitch = Math.max(0, Math.min(1, (col.note ?? 60) / 127)); hit = true; } }
-    else if (col.kind === 'note') notes[col.nc] = v;
+    else if (col.kind === 'note') notes[col.nc] = col.rel ? relativeNote(v, col.root) : v;
   }
   for (let k = 0; k < notes.length; k++) {
     const note = notes[k];
@@ -68,7 +68,7 @@ export function peek(lane, tick) {
     if (v === EMPTY) continue;
     if (col.kind === 'vel') vel = decodeHex2(v) / 255;
     else if (col.kind === 'trig') { if (decodeHex1(v) > 0) { hit = 1; pitch = Math.max(pitch, (col.note ?? 60) / 127); vel = decodeHex1(v) / 15; any = true; } }
-    else if (col.kind === 'note') { any = true; if (v === CUT || v === OFF) off = 1; else { hit = 1; pitch = Math.max(pitch, decodeNote(v) / 127); } }
+    else if (col.kind === 'note') { any = true; const n = col.rel ? relativeNote(v, col.root) : v; if (n === CUT || n === OFF) off = 1; else { hit = 1; pitch = Math.max(pitch, decodeNote(n) / 127); } }
   }
   return any ? [hit, Math.min(1, pitch), Math.min(1, vel), off] : null;
 }

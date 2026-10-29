@@ -8,7 +8,7 @@ const POS = 'webtracker.helpPos';
 
 // What a column holds, in a few words.
 export function columnNote(c) {
-  if (c.kind === 'note') return 'a note; === ends it';
+  if (c.kind === 'note') return c.rel ? `80 is the root note, 81 a semitone above, 7F one below; 00 ends the note` : 'a note; === ends it';
   if (c.kind === 'vel') return '00 to FF, FF full volume; keeps its value until changed';
   if (c.kind === 'trig') return '1 to F: how hard it hits';
   if (c.kind === 'param') return rangeText(c);

@@ -2,12 +2,14 @@ import { PAGE_TICKS } from '../audio/sequencer.js';
 import { EMPTY, KINDS, encodeCell } from './cells.js';
 import { longName, shortName } from './names.js';
 import { buildAutomation } from './automation.js';
+import { metaColumns } from './metacolumns.js';
 
 // An instrument's pattern columns: note and velocity (repeated for each note column), then one column per exposed
 // parameter (2hex, 4hex with bits: 16, or 1hex with bits: 4), then one CCXXYY column if the instrument
 // has a command table. For the sampler the lists are fixed; for a graph instrument
 // they follow whatever the graph exposes. Each column knows its first channel (ch).
-export function buildColumns(instrument, def, registry) {
+export function buildColumns(instrument, def, registry, instruments = {}) {
+  if (def.meta) return finishColumns(metaColumns(instrument, def, registry, instruments));   // a meta machine: proxies of other instruments
   const target = (node, param) => {
     const slot = registry.slots.get(`${instrument}.${node}.${param}`);
     if (slot === undefined) throw new Error(`"${instrument}" does not expose ${node}.${param}`);
@@ -66,13 +68,21 @@ export function buildColumns(instrument, def, registry) {
       presets,
     });
   }
-  // The header text: the label squeezed to the cell's width, and different from the others in the lane.
+  return finishColumns(columns);
+}
+
+// The header text of each column (the label squeezed to the cell's width, and different from the others in the lane; a header that was
+// given stays as it is) and where each column starts in the lane's channels.
+function finishColumns(columns) {
   const taken = new Set();
   for (const c of columns) {
-    const width = KINDS[c.token].width;
-    let short = shortName(c.label, width);
-    if (taken.has(short)) short = c.label.slice(0, width).toLowerCase();
-    taken.add(c.short = short);
+    if (c.short === undefined) {
+      const width = KINDS[c.token].width;
+      let short = shortName(c.label, width);
+      if (taken.has(short)) short = c.label.slice(0, width).toLowerCase();
+      c.short = short;
+    }
+    taken.add(c.short);
   }
   let ch = 0;
   for (const c of columns) { c.ch = ch; ch += KINDS[c.token].channels; }
@@ -167,7 +177,7 @@ export function uniqueStarts(placements) {
 // that the editor changes; the song description itself is left alone.
 export function prepareSong(song, instruments, registry) {
   return song.lanes.map(src => {
-    const columns = buildColumns(src.instrument, instruments[src.instrument], registry);
+    const columns = buildColumns(src.instrument, instruments[src.instrument], registry, instruments);
     const taken = new Set(Object.values(src.patterns).map(p => p.index).filter(i => i !== undefined));
     const lane = {
       id: src.id,
@@ -212,8 +222,9 @@ function convertCell(token, from, to) {
 export function rebuildInstrumentLanes(lanes, song, instruments, registry, instrumentId) {
   const changed = [];
   for (const lane of lanes) {
-    if (lane.instrument !== instrumentId) continue;
-    const columns = buildColumns(instrumentId, instruments[instrumentId], registry);
+    const metaOf = instruments[lane.instrument]?.meta?.columns?.some(c => c.instrument === instrumentId);   // a meta machine that plays it
+    if (lane.instrument !== instrumentId && !metaOf) continue;
+    const columns = buildColumns(lane.instrument, instruments[lane.instrument], registry, instruments);
     const from = columns.map(c => {
       let i = lane.columns.findIndex(o => o.key === c.key);
       if (i >= 0) return { i };
@@ -238,7 +249,7 @@ export function rebuildInstrumentLanes(lanes, song, instruments, registry, instr
 
 // A new empty lane for an instrument (which must already be compiled).
 export function createLane(id, instrumentId, instruments, registry, length) {
-  const columns = buildColumns(instrumentId, instruments[instrumentId], registry);
+  const columns = buildColumns(instrumentId, instruments[instrumentId], registry, instruments);
   const lane = { id, instrument: instrumentId, columns, patterns: {}, placements: [], mutes: [], offs: [], curves: [] };
   lane.rows = flattenLane(lane, columns, length);
   lane.pages = buildPages(lane.rows, columns);

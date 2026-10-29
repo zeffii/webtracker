@@ -437,3 +437,45 @@ export function importInstrument(project, { name, instrument, samples }) {
   project.instruments[id] = def;
   return id;
 }
+
+// ---- the meta machine: columns that play other instruments (see seq/metacolumns.js) ----
+const metaOf = (project, metaId) => {
+  const meta = project.instruments[metaId]?.meta;
+  if (!meta) throw new Error(`"${metaId}" is not a meta machine`);
+  return meta.columns;
+};
+
+// Adds a proxy column (a spec from proxyChoices) at position `at` (the end when left out). Returns the spec with its id.
+export function addMetaColumn(project, metaId, spec, at) {
+  const list = metaOf(project, metaId);
+  if (!project.instruments[spec.instrument] || spec.instrument === metaId) throw new Error('Pick another instrument to play.');
+  const taken = new Set(list.map(c => c.id));
+  let n = list.length + 1;
+  while (taken.has(`c${n}`)) n++;
+  const col = { ...spec, id: `c${n}` };
+  list.splice(at ?? list.length, 0, col);
+  return col;
+}
+
+export function removeMetaColumn(project, metaId, id) {
+  const list = metaOf(project, metaId), i = list.findIndex(c => c.id === id);
+  if (i >= 0) list.splice(i, 1);
+  return i >= 0;
+}
+
+// Moves a column to position `to` among the proxy columns.
+export function moveMetaColumn(project, metaId, id, to) {
+  const list = metaOf(project, metaId), i = list.findIndex(c => c.id === id);
+  if (i < 0) return false;
+  const [col] = list.splice(i, 1);
+  list.splice(Math.max(0, Math.min(list.length, to)), 0, col);
+  return true;
+}
+
+// Changes a column's header, root note or width.
+export function setMetaColumn(project, metaId, id, changes) {
+  const col = metaOf(project, metaId).find(c => c.id === id);
+  if (!col) return false;
+  for (const k of ['header', 'root', 'bits']) if (k in changes) { if (changes[k] === undefined || changes[k] === '') delete col[k]; else col[k] = changes[k]; }
+  return true;
+}

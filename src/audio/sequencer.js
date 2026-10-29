@@ -1,4 +1,4 @@
-import { EMPTY, CUT, OFF, decodeNote, decodeHex1, decodeHex2, decodeHex4 } from '../seq/cells.js';
+import { EMPTY, CUT, OFF, relativeNote, decodeNote, decodeHex1, decodeHex2, decodeHex4 } from '../seq/cells.js';
 import { loopRange } from '../seq/loop.js';
 import { RES } from '../seq/automation.js';
 import { Limiter } from './limiter.js';
@@ -104,6 +104,8 @@ export class Sequencer {
       prev: new Int16Array(cols.reduce((n, c) => (c.kind === 'note' ? n + 1 : n), 0)).fill(-1),   // the note each note column last started
       notes: new Float32Array(cols.reduce((n, c) => (c.kind === 'note' ? n + 1 : n), 0)),
       vels: new Float32Array(cols.reduce((n, c) => (c.kind === 'note' ? n + 1 : n), 0)),
+      noteTargets: cols.filter(c => c.kind === 'note').map(c => c.target ?? instrument),   // the machine each note column plays (a meta machine's columns play other machines)
+      targets: [...new Set(cols.filter(c => c.target).map(c => c.target))],   // every machine the lane plays; just its own when no column names one
       colKeys: cols.filter(c => c.kind === 'note').map((_, k) => `${id}:${k}`),   // which note column a note came from, for machines that keep a column on one voice
       trigCols: cols.filter(c => c.kind === 'trig'),
       trigs: new Float32Array(cols.reduce((n, c) => (c.kind === 'trig' ? n + 1 : n), 0)),
@@ -114,9 +116,9 @@ export class Sequencer {
     };
     // A lane that is replaced while it plays (its machine was rewired, a column changed) keeps what it was sounding, so the
     // note-offs still find their notes; with a different set of note columns everything of that machine is let go instead.
-    if (before && before.instrument === instrument) {
+    if (before && before.instrument === instrument) {   // (a meta machine's columns are matched by key when they change, not here)
       if (before.prev.length === fresh.prev.length) { fresh.prev.set(before.prev); fresh.notes.set(before.notes); fresh.vels.set(before.vels); fresh.muted = before.muted; fresh.settings = before.settings; }
-      else if (before.prev.some(n => n >= 0)) this.runtime.note(instrument, before.all);
+      else if (before.prev.some(n => n >= 0)) this.allOff(before);
     }
     this.lanes.set(id, fresh);
   }
@@ -162,9 +164,15 @@ export class Sequencer {
     this.transport[1] = 0;
   }
 
+  // Lets go of everything a lane is sounding, on every machine it plays.
+  allOff(lane) {
+    if (lane.targets.length === 0) this.runtime.note(lane.instrument, lane.all);
+    else for (const t of lane.targets) this.runtime.note(t, lane.all);
+  }
+
   releaseAll() {
     for (const lane of this.lanes.values()) {
-      this.runtime.note(lane.instrument, lane.all);
+      this.allOff(lane);
       lane.prev.fill(-1);
     }
   }
@@ -189,7 +197,7 @@ export class Sequencer {
     if (lane.prev[k] < 0) return;
     lane.off.note = lane.prev[k];
     lane.off.implied = implied;
-    this.runtime.note(lane.instrument, lane.off);
+    this.runtime.note(lane.noteTargets[k], lane.off);
     lane.prev[k] = -1;
   }
 
@@ -254,15 +262,15 @@ export class Sequencer {
       } else if (col.kind === 'vel') {
         lane.vels[col.nc] = decodeHex2(v) / 255;
       } else {
-        lane.notes[col.nc] = v;
+        lane.notes[col.nc] = col.rel ? relativeNote(v, col.root) : v;
       }
     }
     // A muted lane still writes its parameters but plays no notes; muting lets what is sounding go.
-    if (lane.mask[this.tick] & 4) { this.runtime.note(lane.instrument, lane.all); lane.prev.fill(-1); }   // a note-off marker
+    if (lane.mask[this.tick] & 4) { this.allOff(lane); lane.prev.fill(-1); }   // a note-off marker
     const muted = (lane.mask[this.tick] & 3) > 0;
     if (muted !== lane.muted) {
       lane.muted = muted;
-      if (muted) { this.runtime.note(lane.instrument, lane.all); lane.prev.fill(-1); }
+      if (muted) { this.allOff(lane); lane.prev.fill(-1); }
     }
     if (muted) return;
     for (let k = 0; k < lane.trigs.length; k++) {   // a trigger cell is a hit of its own: velocity is the digit, 0 is nothing
@@ -272,14 +280,15 @@ export class Sequencer {
       lane.on.col = undefined;
       lane.on.note = lane.trigCols[k].note;
       lane.on.vel = vel;
-      this.runtime.note(lane.instrument, lane.on);
+      this.runtime.note(lane.trigCols[k].target ?? lane.instrument, lane.on);
     }
     for (let k = 0; k < lane.noteCols; k++) {
       const note = lane.notes[k];
       if (note === EMPTY) continue;
       if (note === CUT) {
-        this.runtime.note(lane.instrument, lane.cut);
-        lane.prev.fill(-1);
+        this.runtime.note(lane.noteTargets[k], lane.cut);
+        if (lane.targets.length === 0) lane.prev.fill(-1);
+        else for (let j = 0; j < lane.noteCols; j++) if (lane.noteTargets[j] === lane.noteTargets[k]) lane.prev[j] = -1;
         continue;
       }
       // A note off ends the column's last note. So does a new note, if the last one has not been
@@ -293,7 +302,7 @@ export class Sequencer {
       lane.on.col = lane.colKeys[k];
       lane.on.note = decodeNote(note);
       lane.on.vel = lane.vels[k];
-      this.runtime.note(lane.instrument, lane.on);
+      this.runtime.note(lane.noteTargets[k], lane.on);
       lane.prev[k] = lane.on.note;
     }
   }

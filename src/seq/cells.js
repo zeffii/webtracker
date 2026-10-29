@@ -59,3 +59,9 @@ export const decodeNote = v => Math.round(v * 127);
 export const decodeHex1 = v => Math.round(v * 15);
 export const decodeHex2 = v => Math.round(v * 255);
 export const decodeHex4 = v => Math.round(v * 65535);
+
+// A relative note cell (a 2hex value, 80 the root note) as the float a note cell holds: 00 is a note off, 81 a semitone above the root.
+export const relativeNote = (v, root) => {
+  const h = decodeHex2(v);
+  return h === 0 ? OFF : Math.max(0, Math.min(127, root + h - 0x80)) / 127;
+};

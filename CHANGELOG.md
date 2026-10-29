@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 515 · 2026-10-29
+
+- Meta machine, first build (the engine; its editor comes next): a new instrument kind, "Meta machine (plays other instruments)", whose pattern columns are proxies of other instruments. A column can play an instrument's notes as they are, or as a 2hex cell relative to a root note (80 is the root, 81 a semitone above, 7F one below, 00 a note off), or carry its velocity, a trigger (the hat's Cl and Op) or any exposed parameter. Two columns may drive the same parameter. Headers are short and numbered per kind in column order: n1 n2 (notes), v1 (velocity), t1 (trigger), p1 p2 (parameters); a column can have a header of its own. Columns of a machine that has been removed are left out. There is no screen for choosing the columns yet.
+
 ## 514 · 2026-10-29
 
 - Shader screen, Knobs list: the row you last used (dragged, ticked, reset, exposed) is shaded, with an accent bar on its left, and stays shaded until you use another row, also when the list is rebuilt after you edit the code.
