@@ -300,6 +300,28 @@
     .eg-key { display: flex; flex-direction: column; gap: 2px; padding-left: .4rem; min-width: 0; }
     .eg-key div { display: flex; gap: .35rem; align-items: center; } .eg-key i { width: 9px; height: 9px; display: inline-block; flex: none; }
     .eg-key code { opacity: .75; white-space: nowrap; }
+    .cl-lab { flex-direction: row; flex-wrap: wrap; gap: .8rem; align-items: flex-start; }
+    .cl-wheel { width: 300px; max-width: 100%; height: auto; flex: 0 0 auto; }
+    .cl-wheel text { font: 600 11px ui-monospace, Consolas, monospace; fill: var(--fg); text-anchor: middle; dominant-baseline: central; pointer-events: none; }
+    .cl-wheel .cl-rn { font-weight: 400; font-size: 9px; opacity: .7; } .cl-wheel .cl-key { font-size: 14px; }
+    .cl-k { fill: color-mix(in srgb, var(--fg) 7%, var(--panel)); stroke: var(--line); cursor: pointer; } .cl-k:hover { stroke: var(--accent); }
+    .cl-k.d { fill: color-mix(in srgb, var(--accent) 24%, var(--panel)); stroke: var(--accent); }
+    .cl-k.t { fill: var(--accent); } .cl-k.t + text, .cl-k.t + text + text { fill: #111; opacity: 1; }
+    .cl-path { fill: none; stroke: var(--hi); stroke-width: 1.5; stroke-dasharray: 3 3; pointer-events: none; }
+    .cl-side { display: flex; flex-direction: column; gap: .45rem; flex: 1 1 15rem; min-width: 0; font: 12px/1.4 ui-monospace, Consolas, monospace; }
+    .cl-chips { display: flex; flex-wrap: wrap; gap: .25rem; align-items: center; }
+    .cl-chips button, .cl-chips select { font: inherit; color: inherit; background: var(--panel); border: 1px solid var(--line); padding: .2rem .5rem; cursor: pointer; }
+    .cl-chips button:hover { border-color: var(--accent); } .cl-chips button[aria-pressed="true"] { background: var(--hi); color: var(--hi-fg); border-color: var(--hi); }
+    .cl-chips button:disabled { opacity: .4; cursor: default; }
+    .cl-strip { display: flex; flex-wrap: wrap; gap: .25rem; min-height: 1.9rem; align-items: center; }
+    .cl-chord { border: 1px solid var(--accent); padding: .15rem .5rem; background: color-mix(in srgb, var(--accent) 14%, transparent); }
+    .cl-strip i { opacity: .5; font-style: normal; } .cl-empty, .cl-hint, .cl-info { opacity: .65; }
+    .cl-line { display: block; padding: .3rem .4rem; background: var(--bg); border: 1px solid var(--line); overflow-x: auto; white-space: pre; min-height: 1.2em; }
+    .cv-card { flex: 1 1 100%; }
+    .cv-row { display: flex; flex-wrap: wrap; gap: .3rem; margin-top: .15rem; }
+    .cv-chord { display: flex; flex-direction: column; gap: 1px; padding: .15rem .4rem; border: 1px solid var(--line); background: var(--bg); }
+    .cv-chord b { color: var(--accent); } .cv-chord small { opacity: .75; font-size: 11px; }
+    .cv-err { color: var(--bad, #e5484d); opacity: 1 !important; }
     .ev-more { align-self: center; opacity: .6; font: 12px ui-monospace, Consolas, monospace; }
     #script-out { box-sizing: border-box; width: 100%; max-width: 110ch; height: 9em; margin: .3rem 0; padding: .3rem .6rem; overflow: auto; font: 12px/1.45 ui-monospace, Consolas, monospace; background: color-mix(in srgb, var(--panel) 85%, var(--fg)); white-space: pre-wrap; }
     #script-out .err { color: #e0405a; }

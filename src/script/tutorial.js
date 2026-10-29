@@ -66,6 +66,34 @@ A \`?\` in the pattern plays half the time. Use \`seed(5)\` to get the same resu
 tbin('x?x? x?x?', 'F#3')
 \`\`\`
 
+### Chords and progressions
+\`chord('Am7')\` is the notes of one chord, ready for \`tbin\`. \`chords('Am7 Fmaj7 C G')\` is one chord per hit, round and round; the lane needs a note column for each note of the biggest chord (a smaller chord switches the spare columns off). Under the editor, every \`chords('...')\` written with plain text shows the names and the notes they play.
+
+\`\`\`
+tbin('x... x... x... x...', chords('Am F C G'), { lead: true })
+\`\`\`
+
+\`lead: true\` turns each chord to the inversion that moves the fewest notes from the one before, so the progression glides. \`octave\`, \`inversion\`, \`max\` (the most notes in a chord: a seventh chord with max: 3 drops its fifth) and \`spread\` (\`'close'\`, \`'open'\` or \`'drop2'\`) shape the voicing. Chord names are the ones the Chord node reads: \`F#13sus\`, \`Cm7b5\`, \`E min9 (11)\`, \`C/E\`. Put a \`|\` between names when a name has spaces.
+
+**Roman numerals** say where in the key a chord sits, so the same progression works in any key. Capitals are major, lower case is minor, \`°\` is diminished, \`ø\` half-diminished, \`b\` or \`#\` in front moves a numeral, and \`V7/ii\` is the dominant of the ii chord.
+
+\`\`\`
+tbin('x... x... x... x...', chords(prog('i VI III VII', 'A', 'minor')), { lead: true })
+\`\`\`
+
+The **circle of fifths** puts the keys a fifth apart, so the keys next to each other share nearly all their chords. Click a chord in the wheel to build a progression, click a key to move round, and press the button to put the line in the try-a-line box:
+
+::chord-lab::
+
+The same moves are in the script: \`fifths('C', 4)\` is C G D A (a negative count goes the flat way), \`cycle('C', 4, '7')\` is C7 F7 Bb7 Eb7, \`relative('C')\` is Am, \`parallel('C')\` is Cm, \`triads('C')\` the seven chords of a key, \`neighbours('C')\` the chords next to it on the circle, \`dom('D')\` is A7, \`tritone('G7')\` is Db7 and \`pivot('C', 'G')\` the chords two keys share.
+
+**Suggest a progression:** \`progression(8, 'A', 'minor', { style: 'pop', seed: 3 })\` walks the likely moves from chord to chord and bends to come back to the home chord, so it loops cleanly. The styles are \`'pop'\`, \`'jazz'\` (ii-V-I chains, with sevenths) and \`'techno'\` (one or two chords and the home chord between). \`sevenths: true\` adds sevenths and \`spice: 0.3\` swaps some chords for the dominant of the next. The same seed gives the same progression.
+
+\`\`\`
+seed(4);
+tbin('x... x... x... x... x... x... x... x...', chords(progression(8, 'A', 'minor', { style: 'jazz' }), { lead: true, max: 3 }))
+\`\`\`
+
 ### Scatter samples at random
 \`scatter\` puts hits at random rows of the selection. Every option is a value, a list (one is picked each time), \`{ min, max }\` or a function. In a sampler lane, \`samples\` fills the Smp column, \`offset\` and \`retrig\` the Off and Rtg columns (0 to 65535), and \`cmd\` is a command cell, or a list of them, that goes on some of the hits (\`cmdChance\`).
 

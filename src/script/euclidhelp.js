@@ -2,6 +2,7 @@
 // sliders, ::euclid-gallery:: lists traditional rhythms to click. `put(text)` drops a line into the try-a-line box.
 import { euclid } from './lib.js';
 import { ring, strip } from './euclidviz.js';
+import { chordLab } from './chordhelp.js';
 
 const GALLERY = [
   [2, 3, 'Common in Latin American and jazz bass lines'], [3, 4, 'Calypso and cumbia'],
@@ -78,5 +79,6 @@ export function mountWidgets(root, { put }) {
     const [k, n, r = 0] = w.dataset.args.split(/\s+/).map(Number);
     if (w.dataset.widget === 'euclid' && Number.isInteger(k) && Number.isInteger(n) && n >= 1 && n <= 64) w.replaceWith(figure(k, n, r));
     else if (w.dataset.widget === 'euclid-gallery') w.replaceWith(gallery(labBox));
+    else if (w.dataset.widget === 'chord-lab') w.replaceWith(chordLab(put));
   }
 }

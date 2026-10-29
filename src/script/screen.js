@@ -5,6 +5,7 @@
 // The page gives `target()`: { error } or { request, apply(edits), label }.
 import { highlight } from './highlight.js';
 import { findPatterns, renderViz } from './euclidviz.js';
+import { findChords, appendChords } from './chordviz.js';
 import { noteToken } from '../seq/cells.js';
 
 export function createScriptScreen({ area, hl, viz = null, runButton, status, out, line, runner, target, onText = () => {}, midi = () => ({ window: 60, order: 'pitch' }) }) {
@@ -14,10 +15,14 @@ export function createScriptScreen({ area, hl, viz = null, runButton, status, ou
 
   const paint = () => { hl.innerHTML = `${highlight(area.value)}\n`; hl.scrollTop = area.scrollTop; hl.scrollLeft = area.scrollLeft; };
   // The Euclidean preview under the editor: redrawn as you type (and when the caret changes line, to mark the card of that line).
-  let patterns = [];
+  let patterns = [], chordCards = [];
   const caretLine = () => area.value.slice(0, area.selectionStart).split('\n').length;
-  const drawViz = () => { if (viz) renderViz(viz, patterns, caretLine()); };
-  const scanViz = () => { if (viz) { patterns = findPatterns(area.value); drawViz(); } };
+  const drawViz = () => {
+    if (!viz) return;
+    renderViz(viz, patterns, caretLine());
+    if (chordCards.length) { viz.hidden = false; appendChords(viz, chordCards, caretLine()); }
+  };
+  const scanViz = () => { if (viz) { patterns = findPatterns(area.value); chordCards = findChords(area.value); drawViz(); } };
   const info = () => { status.textContent = `${area.value ? area.value.split('\n').length : 0} lines · ${area.value.length} characters`; };
 
   const show = (lines, error = false) => {

@@ -7202,6 +7202,28 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   // a note off and a skipped step
   assert.equal(cells(run("tbin('xx', ['C-3', '==='], { loop: false })")), '0:0=C-3 1:0====');
   assert.equal(cells(run("tbin('xxx', voices('C-3 ... E-3'), { loop: false })")), '0:0=C-3 2:0=E-3');
+  // chords: names to notes, one chord a hit, a smaller chord switches the spare column off
+  assert.equal(run("chord('Am7')", { expr: true }).value, 'A-3 C-4 E-4 G-4');
+  assert.equal(run("chord('C', { octave: 2, inversion: 1 })", { expr: true }).value, 'E-2 G-2 C-3');
+  assert.equal(cells(run("tbin('x.x.', chords('C5 G5'), { loop: false })")), '0:0=C-3 0:2=G-3 2:0=G-3 2:2=D-4');
+  assert.deepEqual(JSON.parse(run("chords('C C5')", { expr: true }).value), ['C-3 E-3 G-3', 'C-3 G-3 ==='], 'a smaller chord switches the spare note off');
+  assert.deepEqual(run("chords('Am7 Fmaj7', { lead: true })", { expr: true }).value, JSON.stringify(['A-3 C-4 E-4 G-4', 'A-3 C-4 E-4 F-4']));
+  assert.match(run("chord('H')", { expr: true }).error.message, /chord "H"/);
+  // roman numerals, the circle of fifths and the generator
+  assert.equal(run("prog('I vi IV V', 'C').join(' ') + '|' + prog('i VI III VII', 'A', 'minor').join(' ') + '|' + prog('ii7 V7/ii viiø', 'C').join(' ')", { expr: true }).value, 'C Am F G|Am F C G|Dm7 A7 Bm7b5');
+  assert.equal(run("[fifths('C', 4), fifths('C', -3), cycle('C', 3, '7'), relative('C'), relative('Am'), parallel('Cm'), neighbours('C'), neighbours('Am'), dom('D'), tritone('G7'), pivot('C', 'G')].map(x => [].concat(x).join(' ')).join('|')", { expr: true }).value,
+    'C G D A|C F Bb|C7 F7 Bb7|Am|C|C|G F Am Em Dm|Em Dm C G F|A7|Db7|C Em G Am');
+  for (const style of ['pop', 'jazz', 'techno']) for (const mode of ['major', 'minor']) for (const seed of [1, 2, 3, 4, 5, 6]) {
+    const names = JSON.parse(run(`progression(8, 'A', '${mode}', { style: '${style}', seed: ${seed} })`, { expr: true }).value);
+    assert.equal(names.length, 8); assert.equal(names[0], mode === 'major' ? (style === 'jazz' ? 'Amaj7' : 'A') : (style === 'jazz' ? 'Am7' : 'Am'), `${style} ${mode} starts at home`);
+    assert.notEqual(names[6], names[7], `${style} ${mode} ${seed}: the last chord is not a repeat`);
+  }
+  assert.equal(run("progression(6, 'C', 'major', { seed: 9 }).join(' ')", { expr: true }).value, run("progression(6, 'C', 'major', { seed: 9 }).join(' ')", { expr: true }).value, 'same seed, same progression');
+  // the preview under the editor finds chords(...) calls written with plain text, and reports a bad name
+  { const { findChords } = await import('../src/script/chordviz.js');
+    const found = findChords("tbin('x...', chords('Am7 Fmaj7', { lead: true }))\nchords(prog('i VI', 'A', 'minor'))\nchords('Zm')\n// chords('C')");
+    assert.deepEqual(found.map(f => [f.line, f.names.join(' ')]), [[1, 'Am7 Fmaj7'], [2, 'Am F'], [3, 'Zm']]);
+    assert.deepEqual(found[0].notes[0], ['A-3', 'C-4', 'E-4', 'G-4']); assert.match(found[2].error, /note name/); }
   // bit helpers
   assert.equal(run("rot('x...', 1)", { expr: true }).ok, true);
   assert.equal(run("both('xx..', 'x.x.') + either('xx..', 'x.x.') + xor('xx..', 'x.x.')", { expr: true }).value, 'x...xxx..xx.');
@@ -9059,6 +9081,30 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   assert.ok(out.left.every(Number.isFinite), 'the render is finite');
   assert.ok(peak(out.left) > 0.2 && peak(out.left) < 1, `peak ${peak(out.left)}`);
   console.log('ok: acid demo');
+}
+
+// 114. The chord helpers demo (progression.wax): pad, bass and arpeggio lanes written by the script helpers; the script is in the project.
+{
+  const { readFileSync } = await import('node:fs');
+  const { song, instruments: defs } = parseProject(readFileSync(new URL('../src/project/demos/progression.wax', import.meta.url), 'utf8'));
+  assert.equal(song.length, 256);
+  assert.deepEqual(song.lanes.map(l => l.id), ['pad', 'bass', 'arp', 'kick', 'hat']);
+  assert.match(song.script, /progression\(8, 'A', 'minor'/);
+  const registry = new ParamRegistry();
+  const rt = new GraphRuntime({ sampleRate: sr, params: registry.values });
+  const seq = new Sequencer({ sampleRate: sr, runtime: rt, params: registry.values, transport: new Int32Array(new SharedArrayBuffer(8)) });
+  for (const [id, def] of Object.entries(defs)) rt.load(compile(def.graph, { instrument: id, nodeTypes: NODE_TYPES, registry }));
+  seq.setSong(song);
+  const heard = new Set();
+  const note = rt.note.bind(rt);
+  rt.note = (id, msg) => { if (msg.type === 'noteOn') heard.add(id); note(id, msg); };
+  prepareSong(song, defs, registry).forEach(l => seq.setLane(l));
+  seq.play();
+  const out = render(seq, 256 / 4 * 60 / 118);
+  assert.deepEqual([...heard].sort(), ['arp', 'bass', 'hat', 'kick', 'pad']);
+  assert.ok(out.left.every(Number.isFinite), 'the render is finite');
+  assert.ok(peak(out.left) > 0.2 && peak(out.left) < 1, `peak ${peak(out.left)}`);
+  console.log('ok: progression demo');
 }
 
 console.log('smoke test passed');

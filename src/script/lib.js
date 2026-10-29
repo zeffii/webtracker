@@ -5,6 +5,7 @@
 // few helpers: tbin and voices (bit patterns that become notes), euclid, ramp and sine, scale, a seeded random, and
 // log. Nothing it does touches the song until it has finished without an error: the result is a list of edits.
 import { KINDS, encodeCell, noteToken } from '../seq/cells.js';
+import { chordMidi, chordList, namesOf, prog, progression, fifths, cycle, relative, parallel, triads, neighbours, dom, tritone, pivot } from './chords.js';
 
 // ---- bit patterns ----
 const REST = '.0-~_', HIT = 'xX1';
@@ -287,6 +288,15 @@ export function execute(req) {
     euclid, bitsOf, rot, inv, rev, both, either, xor,
     ramp: (a, b) => (i, n) => Math.round(n > 1 ? a + ((b - a) * i) / (n - 1) : a),
     sine: (lo, hi, cycles = 1) => (i, n) => Math.round(lo + ((hi - lo) * (1 + Math.sin((2 * Math.PI * cycles * i) / Math.max(n, 1)))) / 2),
+    // chords: chord('Am7') is the notes of one chord for tbin; chords('Am7 Fmaj7 C G') is one chord per hit (all the same width:
+    // a smaller chord switches the extra columns off); options are octave, inversion, spread (close, open, drop2), max and lead
+    chord: (name, o) => chordMidi(name, o).map(noteOf).join(' '),
+    chords: (src, o = {}) => {
+      const lists = chordList(namesOf(src), o), width = Math.max(...lists.map(l => l.length));
+      return lists.map(l => [...l.map(noteOf), ...Array(width - l.length).fill('===')].join(' '));
+    },
+    prog, fifths, cycle, relative, parallel, triads, neighbours, dom, tritone, pivot,
+    progression: (length, key, mode, o = {}) => { if (o.seed !== undefined) { seedNow = o.seed >>> 0; rand = makeRandom(seedNow); } return progression(rand, length, key, mode, o); },
     scale, note: noteOf, midi: v => { const t = noteOf(v); return (Number(t[2]) + 1) * 12 + ['C-', 'C#', 'D-', 'D#', 'E-', 'F-', 'F#', 'G-', 'G#', 'A-', 'A#', 'B-'].indexOf(t.slice(0, 2)); },
     step: n => { const was = stepDefault; if (n !== undefined) { if (!Number.isInteger(n) || n < 1) throw new Error('step(n): a whole number of rows, 1 or more'); stepDefault = n; } return was; },
     seed: n => { if (n !== undefined) { seedNow = n >>> 0; rand = makeRandom(seedNow); } return seedNow; },

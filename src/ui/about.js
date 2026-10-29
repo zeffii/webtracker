@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['528', ['Script: chords, roman numerals, circle of fifths helpers and a progression generator, a chord lab in the tutorial, and the ?demo=progression song.']],
   ['527', ['Arrangement: hold Shift over a pattern to see its name; let go and it hides.']],
   ['526', ['Pattern name label follows whichever of the mouse and the caret moved last, so it no longer pops up for the highlighted pattern.']],
   ['525', ['Arrangement: patterns show only their number; the name of the pattern under the mouse or caret appears on a dark label (H shows all names).']],
@@ -15,6 +16,5 @@ export const CHANGELOG = [
   ['522', ['Pattern minimaps keep the first four characters of a cell clear for the pattern name and scale everything into the rest.']],
   ['521', ['New demo: ?demo=acid, eight bars of acid techno played by one meta machine, with accents, slides and a filter that opens up.']],
   ['520', ['Arrangement minimaps of a meta machine lane stay inside their pattern, and show relative notes as notes.']],
-  ['519', ['Meta machine: spacer columns (a rule with an optional group name) between groups of columns, and the machines it plays lose their empty lanes.']],
   ['517', ['The ?demo=concrete techno now runs on one meta machine lane that plays all five percussion machines.']],
 ];
