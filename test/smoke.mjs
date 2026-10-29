@@ -8742,6 +8742,23 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   const plain = renderPreview({ click: 0, noise: 0 }, { ms: 400 });
   assert.ok(plain.every(Number.isFinite) && rms(plain.slice(0, 2000)) > 0.05, 'a hit sounds and stays finite');
   assert.ok(rms(plain.slice(-4000)) < 0.002, 'and dies away');
+  { // a new hit on a voice that is still ringing does not step: the sine restarts at phase 0, the old output runs on and dies away
+    const mod = await import('../src/audio/nodes/drumsynth.js'), spec = mod.default.params, slots = spec.map((_, i) => i);
+    const vals = new Float32Array(spec.map(x => ({ sustain: 0.22, decay: 1200, release: 2000, drive: 0.7, endPitch: 61, startPitch: 400, pdec: 120, click: 0.08, noise: 0 })[x.name] ?? x.def));
+    const L = new Float32Array(128), R = new Float32Array(128);
+    const steps = hitAt => {   // the biggest step between samples in the 6 blocks after a second hit, and in the first 6 blocks of a fresh one
+      const node = mod.default.create({ sampleRate: 48000 }); let prev = 0, worst = 0;
+      node.note({ type: 'noteOn', note: 60, vel: 1 });
+      for (let b = 0; b < hitAt + 6; b++) {
+        if (b === hitAt) node.note({ type: 'noteOn', note: 60, vel: 1 });
+        node.process([], [[L, R]], 128, vals, slots);
+        for (let i = 0; i < 128; i++) { if (b >= hitAt) worst = Math.max(worst, Math.abs(L[i] - prev)); prev = L[i]; }
+      }
+      return worst;
+    };
+    const fresh = steps(0);
+    for (const at of [190, 197, 203, 211, 230]) assert.ok(steps(at) < fresh * 1.5, `a retrigger at block ${at} steps no more than a fresh hit does`);
+  }
   const sweep = renderPreview({ click: 0, noise: 0, pdec: 400, decay: 1500, endPitch: 40 }, { ms: 500 });
   assert.ok(crossings(sweep, 0, 2646) / 0.06 > crossings(sweep, 8820, 13230) / 0.1 * 1.8, 'the pitch falls from the start pitch to the end pitch');
   const dull = renderPreview({ click: 0, noise: 1, body: 0, noiseType: 2, noiseTone: 16000 }, { ms: 100 }), thin = renderPreview({ click: 0, noise: 1, body: 0, noiseType: 3, noiseTone: 16000 }, { ms: 100 });

@@ -8,7 +8,8 @@
 //           first `clickLen` ms of a sample from the node's list (`clickSample` picks which), and `clickTail` ms of that end in a smooth fade so
 //           a cut-off sample does not click (it does nothing for the synthesized click).
 // The velocity is `vel` of the level. A hit restarts the sound; the node is monophonic and the voices node makes it polyphonic. A note off
-// releases all three envelopes; with their sustain at 0 (the start) a hit ends by itself.
+// releases all three envelopes; with their sustain at 0 (the start) a hit ends by itself. A hit on a voice that is still sounding restarts the
+// sine at phase 0; the old output carries on into the new hit and dies away in about a millisecond, so there is no step (no click).
 import { Adsr } from './adsr.js';
 
 const SPEC = [
@@ -66,6 +67,7 @@ const NODE = {
     let note = 60, velocity = 1, hit = false, phase = 0, seed = 0x9e3779b9;
     let kOn = false, k = 0, kLen = 0, kNorm = 1, kTail = 0, kSample = null;
     let b0 = 0, b1 = 0, b2 = 0, brown = 0, w1 = 0, w2 = 0, lp = 0;
+    let last = 0, carry = 0;   // the last sample out, and what is left of it when a new hit cuts in
     const white = () => { seed ^= seed << 13; seed ^= seed >>> 17; seed ^= seed << 5; return (seed >>> 0) / 2147483648 - 1; };
     return {
       // { type: 'sample', slot?, data, right?, rate }: the click's sample, mixed down to one channel
@@ -78,11 +80,11 @@ const NODE = {
       note(msg) {
         if (msg.type === 'noteOn') { note = msg.note; velocity = msg.vel ?? 1; hit = true; amp.on(); pit.on(); noi.on(); }
         else if (msg.type === 'noteOff' || msg.type === 'allOff') { amp.off(); pit.off(); noi.off(); }
-        else if (msg.type === 'noteCut') { amp.cut(); pit.cut(); noi.cut(); kOn = false; hit = false; }
+        else if (msg.type === 'noteCut') { amp.cut(); pit.cut(); noi.cut(); kOn = false; hit = false; last = carry = 0; }
       },
       process(inputs, outputs, n, params, slots) {
         const [outL, outR] = outputs[0];
-        if (amp.idle && noi.idle && !kOn && !hit) { outL.fill(0, 0, n); outR.fill(0, 0, n); return; }
+        if (amp.idle && noi.idle && !kOn && !hit) { outL.fill(0, 0, n); outR.fill(0, 0, n); last = carry = 0; return; }
         const g = name => params[slots[P[name]]];
         amp.set(g('attack'), g('decay'), g('sustain'), g('release'));
         pit.set(g('patk'), g('pdec'), g('psus'), g('prel'));
@@ -93,7 +95,7 @@ const NODE = {
         const nf = 1 - Math.exp(-2 * Math.PI * Math.min(g('noiseTone'), sampleRate * 0.45) / sampleRate);
         const v = 1 - g('vel') + g('vel') * velocity, level = g('level') * v, d = 1 + g('drive') * 4, dn = 1 / Math.tanh(d);
         if (hit) {   // a new hit: the click starts, from its sample when that is what it is
-          hit = false; phase = 0; k = 0; kLen = Math.max(1, Math.round(g('clickLen') * ms)); kSample = null; kNorm = 1; kOn = clickAmt > 0;
+          hit = false; phase = 0; k = 0; carry = last; kLen = Math.max(1, Math.round(g('clickLen') * ms)); kSample = null; kNorm = 1; kOn = clickAmt > 0;
           if (g('clickMode') >= 1) {
             kSample = bank[Math.round(g('clickSample'))] ?? null;
             if (!kSample) kOn = false;
@@ -106,7 +108,7 @@ const NODE = {
           }
           kTail = Math.min(kLen, g('clickTail') * ms);
         }
-        const tone = 2 * Math.PI * g('clickTone') / sampleRate, kEnd = kSample ? kLen : kLen * 1.5;
+        const cd = Math.exp(-1 / (0.0015 * sampleRate)), tone = 2 * Math.PI * g('clickTone') / sampleRate, kEnd = kSample ? kLen : kLen * 1.5;
         for (let i = 0; i < n; i++) {
           const pe = pit.next(), f = (f0 + (f1 - f0) * pe) * mul;
           phase += f / sampleRate; if (phase >= 1) phase -= Math.floor(phase);
@@ -132,9 +134,12 @@ const NODE = {
             click *= clickAmt * 0.9;
             if (++k >= kEnd) kOn = false;
           }
-          const y = Math.tanh((body + noise * 0.7 + click) * d) * dn * level;
+          const fresh = Math.tanh((body + noise * 0.7 + click) * d) * dn * level;
+          const y = fresh + carry;
+          carry *= cd; last = fresh;
           outL[i] = y; outR[i] = y;
         }
+        if (Math.abs(carry) < 1e-6) carry = 0;
         if (!Number.isFinite(lp + brown + b0 + b1 + b2)) { lp = brown = b0 = b1 = b2 = 0; }
       },
     };

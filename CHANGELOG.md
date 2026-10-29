@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 529 · 2026-10-29
+
+- Drum synth: no more clicks when a hit lands on a voice that is still ringing (a long decay, or a sustain above 0, with a hit before the last one has died away). The sine restarts at phase 0 on every hit, so the output jumped from wherever the old tone was to zero, by an amount that depended on where in its cycle the old tone happened to be; that is the click that came and went. The old output now carries on into the new hit and fades in about 1.5 ms, so the step is no bigger than a fresh hit's own start.
+
 ## 528 · 2026-10-29
 
 - Script: chords and progressions. `chord('Am7')` and `chords('Am7 Fmaj7 C G')` give chords for `tbin`, one per hit (names as the Chord node reads them; options `octave`, `inversion`, `spread` close/open/drop2, `max`, and `lead: true` to turn each chord to the inversion that moves the fewest notes from the one before; a smaller chord switches the spare note columns off). `prog('I vi IV V', 'C', 'major')` turns roman numerals into chord names (any mode, sevenths, `bVII`, `vii°`, `V7/ii`). The circle of fifths: `fifths`, `cycle`, `relative`, `parallel`, `triads`, `neighbours`, `dom`, `tritone`, `pivot`. `progression(8, 'A', 'minor', { style, sevenths, spice, seed })` suggests chords by likely moves (styles pop, jazz, techno) and bends to end back on the home chord.
