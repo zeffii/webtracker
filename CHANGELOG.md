@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 508 · 2026-10-29
+
+- Sample browser: a thin red playhead runs across the waveform while a sample plays. The waveform can be dragged bigger or smaller with the grip in its bottom-left corner (drag left and down to grow it; double-click the grip to reset); the size is remembered.
+
 ## 507 · 2026-10-29
 
 - Sample browser: in browsers without the folder picker (Brave switches it off by default) Choose folder now opens the ordinary folder chooser and lists everything below it, subfolders included. It cannot remember the folder between visits; a small Choose files button is still there. To get the remembered folder in Brave, turn on brave://flags/#file-system-access-api.

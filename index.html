@@ -865,14 +865,17 @@
     .sb-list:not(:focus) .sb-row.on { background: color-mix(in srgb, var(--fg) 14%, transparent); }
     .sb-empty { padding: .6rem; opacity: .6; }
     .sb-side { flex: 0 0 20rem; display: flex; flex-direction: column; gap: .35rem; min-width: 0; }
-    .sb-wave { width: 100%; height: 72px; background: var(--panel); border: 1px solid color-mix(in srgb, var(--fg) 25%, transparent); color: var(--hi, #4a90d9); }
+    .sb-wavebox { position: relative; height: 72px; }
+    .sb-wave { display: block; width: 100%; height: 100%; background: var(--panel); border: 1px solid color-mix(in srgb, var(--fg) 25%, transparent); box-sizing: border-box; color: var(--hi, #4a90d9); }
+    .sb-playhead { position: absolute; top: 1px; bottom: 1px; width: 1px; background: #ff3b30; pointer-events: none; }
+    .sb-grip { position: absolute; left: 0; bottom: 0; width: 14px; height: 14px; cursor: nesw-resize; touch-action: none; background: linear-gradient(45deg, transparent 50%, color-mix(in srgb, var(--fg) 45%, transparent) 50%, color-mix(in srgb, var(--fg) 45%, transparent) 58%, transparent 58%, transparent 70%, color-mix(in srgb, var(--fg) 45%, transparent) 70%, color-mix(in srgb, var(--fg) 45%, transparent) 78%, transparent 78%); transform: scaleX(-1); }
     .sb-info { white-space: pre-line; font: 12px/1.5 ui-monospace, Consolas, monospace; overflow-wrap: anywhere; }
     .sb-info.bad { color: #e5534b; }
     .sb-ask { border: 1px solid color-mix(in srgb, #d9a441 70%, transparent); background: color-mix(in srgb, #d9a441 10%, transparent); padding: .4rem .5rem; font-size: 12px; }
     .sb-ask-text { margin: 0 0 .4rem; }
     .sb-ask button { margin-right: .4rem; }
     .sb-hint { margin: .3rem 0 0; font-size: 11px; opacity: .6; }
-    @media (max-width: 760px) { .sb-main { flex-direction: column; } .sb-side { flex-basis: auto; } }
+    @media (max-width: 760px) { .sb-main { flex-direction: column; } .sb-side { flex-basis: auto !important; } }
     #shader-bar { display: flex; gap: .4rem; align-items: center; margin: .3rem 0; }
     #dsp-bar { display: flex; gap: 1rem; align-items: center; margin: .3rem 0; }
     #dsp-gut a.fo { display: inline-block; width: 1.3ch; margin-right: .5ch; text-align: center; cursor: pointer; opacity: .55; text-decoration: none; user-select: none; }

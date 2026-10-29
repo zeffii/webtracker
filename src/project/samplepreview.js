@@ -14,7 +14,7 @@ export async function readPreview(file, ctx) {
 
 // One voice: playing a new buffer stops the old one (with a very short fade, so it does not click).
 export function createPlayer({ getCtx, level = 0.8 }) {
-  let source = null, gain = null;
+  let source = null, gain = null, startedAt = 0, length = 0;
   const stop = () => {
     if (!source) return;
     const ctx = getCtx(), now = ctx?.currentTime ?? 0, s = source, g = gain;
@@ -25,6 +25,8 @@ export function createPlayer({ getCtx, level = 0.8 }) {
   return {
     stop,
     get playing() { return !!source; },
+    // how far through the sample it is, 0..1, or -1 when nothing is playing
+    progress() { const ctx = getCtx(); return source && ctx && length ? Math.min(1, Math.max(0, (ctx.currentTime - startedAt) / length)) : -1; },
     play(buffer, onEnd = () => {}) {
       stop();
       const ctx = getCtx();
@@ -33,7 +35,7 @@ export function createPlayer({ getCtx, level = 0.8 }) {
       s.buffer = buffer; g.gain.value = level;
       s.connect(g); g.connect(ctx.destination);
       s.onended = () => { if (source === s) { source = gain = null; onEnd(); } s.disconnect(); g.disconnect(); };
-      source = s; gain = g;
+      source = s; gain = g; length = buffer.duration; startedAt = ctx.currentTime;
       s.start();
       return true;
     },

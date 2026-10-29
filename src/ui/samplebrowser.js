@@ -29,6 +29,9 @@ export function createSampleBrowser({ root, getCtx, limitMB = () => 10, onLoad, 
   const path = el('span', { className: 'sb-path' });
   const list = el('div', { className: 'sb-list', tabIndex: 0, role: 'listbox', ariaLabel: 'Audio files and folders' });
   const canvas = el('canvas', { className: 'sb-wave', width: 320, height: 72 });
+  const playhead = el('div', { className: 'sb-playhead', hidden: true });
+  const grip = el('div', { className: 'sb-grip', title: 'Drag to make the waveform bigger or smaller (double-click resets)' });
+  const waveBox = el('div', { className: 'sb-wavebox' }, canvas, playhead, grip);
   const info = el('div', { className: 'sb-info' });
   const ask = el('div', { className: 'sb-ask', hidden: true });
   const askText = el('p', { className: 'sb-ask-text' });
@@ -36,10 +39,38 @@ export function createSampleBrowser({ root, getCtx, limitMB = () => 10, onLoad, 
   const askLoad = el('button', { type: 'button', textContent: 'Load as a new sample' });
   ask.append(askText, askPreview, askLoad);
   const hint = el('p', { className: 'sb-hint', textContent: 'Up and Down move and play · Enter loads · Right opens a folder, Left goes up · Space plays again · letters jump' });
-  root.replaceChildren(el('div', { className: 'sb-bar' }, pick, reopen, filesBtn, up, path, files, folderInput), el('div', { className: 'sb-main' }, list, el('div', { className: 'sb-side' }, canvas, info, ask)), hint);
+  let side;
+  root.replaceChildren(el('div', { className: 'sb-bar' }, pick, reopen, filesBtn, up, path, files, folderInput), el('div', { className: 'sb-main' }, list, side = el('div', { className: 'sb-side' }, waveBox, info, ask)), hint);
 
   // ---- state ----
   const player = createPlayer({ getCtx });
+  let shown = null;   // the buffer in the picture, so it can be redrawn at a new size
+  const paint = () => { drawWave(canvas, shown, shown ? waveColour() : null); };
+  const sizeKey = 'wax.sampleBrowserWave';
+  const sizes = { w: 320, h: 72 };
+  try { Object.assign(sizes, JSON.parse(localStorage.getItem(sizeKey) ?? '{}')); } catch { /* defaults */ }
+  const applySize = () => {
+    sizes.w = Math.min(900, Math.max(200, sizes.w)); sizes.h = Math.min(400, Math.max(48, sizes.h));
+    side.style.flexBasis = `${sizes.w}px`; waveBox.style.height = `${sizes.h}px`;
+    canvas.width = Math.round(sizes.w); canvas.height = Math.round(sizes.h);   // one bitmap pixel per screen pixel
+    paint();
+  };
+  grip.addEventListener('pointerdown', e => {
+    e.preventDefault(); grip.setPointerCapture(e.pointerId);
+    const x0 = e.clientX, y0 = e.clientY, w0 = sizes.w, h0 = sizes.h;
+    const move = m => { sizes.w = w0 - (m.clientX - x0); sizes.h = h0 + (m.clientY - y0); applySize(); };   // the picture is on the right, so dragging left makes it wider
+    const done = () => { grip.removeEventListener('pointermove', move); grip.removeEventListener('pointerup', done); try { localStorage.setItem(sizeKey, JSON.stringify(sizes)); } catch { /* not kept */ } };
+    grip.addEventListener('pointermove', move); grip.addEventListener('pointerup', done);
+  });
+  grip.addEventListener('dblclick', () => { sizes.w = 320; sizes.h = 72; applySize(); try { localStorage.removeItem(sizeKey); } catch { /* fine */ } });
+  applySize();
+  let raf = 0;
+  const tick = () => {
+    const at = player.progress();
+    playhead.hidden = at < 0;
+    if (at >= 0) { playhead.style.left = `${at * 100}%`; raf = requestAnimationFrame(tick); } else raf = 0;
+  };
+  const follow = () => { if (!raf) raf = requestAnimationFrame(tick); };
   const cache = new Map();            // File -> its decoded preview, newest last
   let trail = [];                     // the folders we are inside: { entry, entries, index }
   let token = 0, timer = 0, typed = '', typedAt = 0, asked = null;
@@ -47,7 +78,7 @@ export function createSampleBrowser({ root, getCtx, limitMB = () => 10, onLoad, 
   const current = () => here()?.entries[here().index] ?? null;
 
   const setInfo = (text, cls = '') => { info.textContent = text; info.className = `sb-info ${cls}`.trim(); };
-  const clearPreview = () => { drawWave(canvas, null); setInfo(''); ask.hidden = true; asked = null; };
+  const clearPreview = () => { shown = null; paint(); playhead.hidden = true; setInfo(''); ask.hidden = true; asked = null; };
 
   const render = () => {
     const t = here();
@@ -140,14 +171,14 @@ export function createSampleBrowser({ root, getCtx, limitMB = () => 10, onLoad, 
       if (head?.bits) parts.push(`${head.bits} bit`);
       parts.push(lengthText(buffer.duration));
       setInfo(`${entry.name}\n${parts.join('  ·  ')}`);
-      drawWave(canvas, buffer, waveColour());
-      player.play(buffer);
+      shown = buffer; paint();
+      player.play(buffer); follow();
     } catch (err) {
-      if (mine === token) { drawWave(canvas, null); setInfo(`${entry.name}\nCannot decode this file${err?.message ? `: ${err.message}` : '.'}`, 'bad'); }
+      if (mine === token) { shown = null; paint(); setInfo(`${entry.name}\nCannot decode this file${err?.message ? `: ${err.message}` : '.'}`, 'bad'); }
     }
   }
   function askAbout(entry, file) {
-    drawWave(canvas, null);
+    shown = null; paint();
     setInfo(entry.name);
     askText.textContent = `${sizeText(file.size)} is over the ${limitMB()} MB limit, so nothing has been read from this file. Space previews it, Enter loads it (press twice), or use the buttons.`;
     ask.hidden = false;

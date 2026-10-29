@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['508', ['Sample browser: a thin red playhead while a sample plays, and the waveform can be dragged bigger with the grip in its corner.']],
   ['507', ['Sample browser: Choose folder now works in Brave too (it lists subfolders), without remembering the folder.']],
   ['506', ['Picture colours: eleven palettes plus Custom in Config. Samples screen: a folder browser with arrow-key audition, waveform and sample rate, Enter loads a new sample. Files over 10 MB ask before anything is read.']],
   ['505', ['Shader screen: seven new light shaders (Ripples, Marble, Truchet, Sunburst, Moire, Lissajous, Waves) and a guide under the editor: how it works, writing one step by step, the built-in functions, what things cost and where to read more. The examples have a Try it button.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['501', ['Top row: the thin line under the value fields (len, bpm, swing, tpb, bar) is gone. A field that you are editing still shows a faint highlight.']],
   ['500', ['New time readout at the right of the top row (after tpb and bar): the estimated length of the song at the current tempo, as minutes and seconds, from the song length in ticks, or from the loop when the loop is on (then it says loop). A tempo set in the master lane is not counted.']],
   ['499', ['Sequence editor: the outlines of the patterns are 50 percent more transparent (their opacity went from 45 to 22 percent). Nothing else changes.']],
-  ['498', ['A sampler node added to any instrument (Basic, sampler) now has the cc button in its parameter panel, and Parameter view: hide command parameters hides its 70 or so repeat, retrigger, vibrato, jump and jitter parameters, as it does for a sampler instrument. They come back with the same button.']],
 ];
