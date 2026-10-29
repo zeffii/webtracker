@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 517 · 2026-10-29
+
+- The `?demo=concrete` techno is now played by one meta machine: a single "grid" lane whose 29 columns proxy the kick, hat, clap, metal and tom (their notes, velocities, hits and parameters), and the five machines have no lanes of their own. The metal and the tom are 2hex notes relative to a root (E-5 and C-3, 80 is the root). The patterns are four rows long and placed where the music goes. (The first version's hat tone sweep at tick 51 was lost to two overlapping patterns; it now plays.)
+
 ## 516 · 2026-10-29
 
 - New demo, open it with `?demo=concrete`: four bars (64 ticks) of techno at 134 bpm from five percussion machines, a kick, a hi-hat, a clap, a comb-resonator metal percussion and a tuned tom. Each pattern holds only one hit or a few rows and is placed again and again, some early, some late; the sound moves through parameter cells on every machine.

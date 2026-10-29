@@ -2,7 +2,7 @@
  "format": "webtracker",
  "version": 1,
  "song": {
-  "name": "concrete",
+  "name": "concrete (meta)",
   "bpm": 134,
   "ticksPerBeat": 4,
   "length": 64,
@@ -10,7 +10,7 @@
    "start": 0,
    "end": 64
   },
-  "info": "Four bars of techno from five percussion machines: a kick, a hi-hat, a clap, a comb-resonator metal percussion and a tuned tom. Every pattern is only as long as the hit it holds (one or a few rows) and is placed again and again, some of them early, some late, and the sound moves through parameter cells (kick pitch envelope and decay, hat tone and decays, clap bursts and spacing, the comb resonance of the metal and the tom)."
+  "info": "Four bars of techno from five percussion machines (a kick, a hi-hat, a clap, a comb-resonator metal percussion and a tuned tom), all played by one meta machine. The grid lane has no notes of its own: each of its columns is a proxy of one thing of another machine, so the kick, hat, clap, metal and tom have no lanes at all. n1 v1 are the kick note and velocity, then its pitch envelope, pitch decay, decay and tune; t1 t2 the hat hits (closed, open) and its decays, tone and tune; t3 the clap and its tone, tail, bursts and spacing; n2 is the metal as a 2hex note relative to E-5 (80 is E-5, 83 is G-5, 87 is B-5, 00 would be a note off); n3 is the tom relative to C-3. The sound moves through the parameter columns. Each pattern is four rows and is placed again where the music repeats."
  },
  "instruments": {
   "kick": {
@@ -577,995 +577,474 @@
      "param": "gain"
     }
    ]
+  },
+  "grid": {
+   "graph": {
+    "nodes": [
+     {
+      "id": "out",
+      "type": "out",
+      "x": 200,
+      "y": 80,
+      "params": {
+       "gain": 0.5
+      }
+     }
+    ],
+    "connections": []
+   },
+   "noteColumns": 0,
+   "exposed": [],
+   "commands": [],
+   "meta": {
+    "columns": [
+     {
+      "id": "c1",
+      "instrument": "kick",
+      "role": "note",
+      "nc": 0
+     },
+     {
+      "id": "c2",
+      "instrument": "kick",
+      "role": "vel",
+      "nc": 0
+     },
+     {
+      "id": "c3",
+      "instrument": "kick",
+      "role": "param",
+      "node": "pitchEnv",
+      "param": "amount"
+     },
+     {
+      "id": "c4",
+      "instrument": "kick",
+      "role": "param",
+      "node": "pitchEnv",
+      "param": "decay"
+     },
+     {
+      "id": "c5",
+      "instrument": "kick",
+      "role": "param",
+      "node": "ampEnv",
+      "param": "decay"
+     },
+     {
+      "id": "c6",
+      "instrument": "kick",
+      "role": "param",
+      "node": "osc",
+      "param": "tune"
+     },
+     {
+      "id": "c7",
+      "instrument": "hat",
+      "role": "trig",
+      "tc": 0
+     },
+     {
+      "id": "c8",
+      "instrument": "hat",
+      "role": "trig",
+      "tc": 1
+     },
+     {
+      "id": "c9",
+      "instrument": "hat",
+      "role": "param",
+      "node": "hat",
+      "param": "cdec"
+     },
+     {
+      "id": "c10",
+      "instrument": "hat",
+      "role": "param",
+      "node": "hat",
+      "param": "odec"
+     },
+     {
+      "id": "c11",
+      "instrument": "hat",
+      "role": "param",
+      "node": "hat",
+      "param": "tone"
+     },
+     {
+      "id": "c12",
+      "instrument": "hat",
+      "role": "param",
+      "node": "hat",
+      "param": "tune"
+     },
+     {
+      "id": "c13",
+      "instrument": "clap",
+      "role": "trig",
+      "tc": 0
+     },
+     {
+      "id": "c14",
+      "instrument": "clap",
+      "role": "param",
+      "node": "clap",
+      "param": "tone"
+     },
+     {
+      "id": "c15",
+      "instrument": "clap",
+      "role": "param",
+      "node": "clap",
+      "param": "tailDecay"
+     },
+     {
+      "id": "c16",
+      "instrument": "clap",
+      "role": "param",
+      "node": "clap",
+      "param": "bursts"
+     },
+     {
+      "id": "c17",
+      "instrument": "clap",
+      "role": "param",
+      "node": "clap",
+      "param": "spacing"
+     },
+     {
+      "id": "c18",
+      "instrument": "metal",
+      "role": "rnote",
+      "nc": 0,
+      "root": 76
+     },
+     {
+      "id": "c19",
+      "instrument": "metal",
+      "role": "vel",
+      "nc": 0
+     },
+     {
+      "id": "c20",
+      "instrument": "metal",
+      "role": "param",
+      "node": "perc",
+      "param": "decay"
+     },
+     {
+      "id": "c21",
+      "instrument": "metal",
+      "role": "param",
+      "node": "perc",
+      "param": "sweep"
+     },
+     {
+      "id": "c22",
+      "instrument": "metal",
+      "role": "param",
+      "node": "perc",
+      "param": "spread"
+     },
+     {
+      "id": "c23",
+      "instrument": "metal",
+      "role": "param",
+      "node": "perc",
+      "param": "damp"
+     },
+     {
+      "id": "c24",
+      "instrument": "tom",
+      "role": "rnote",
+      "nc": 0,
+      "root": 48
+     },
+     {
+      "id": "c25",
+      "instrument": "tom",
+      "role": "vel",
+      "nc": 0
+     },
+     {
+      "id": "c26",
+      "instrument": "tom",
+      "role": "param",
+      "node": "perc",
+      "param": "decay"
+     },
+     {
+      "id": "c27",
+      "instrument": "tom",
+      "role": "param",
+      "node": "perc",
+      "param": "sweep"
+     },
+     {
+      "id": "c28",
+      "instrument": "tom",
+      "role": "param",
+      "node": "perc",
+      "param": "spread"
+     },
+     {
+      "id": "c29",
+      "instrument": "tom",
+      "role": "param",
+      "node": "perc",
+      "param": "damp"
+     }
+    ]
+   }
   }
  },
  "samples": {},
  "lanes": [
   {
-   "id": "kick",
-   "instrument": "kick",
+   "id": "grid",
+   "instrument": "grid",
    "patterns": {
-    "a": {
-     "name": "a",
+    "p01": {
+     "name": "p01",
      "index": 0,
      "rows": [
-      "C-2 F0 .. .. .. ..",
-      "... .. .. .. .. .."
+      "C-2 F0 .. .. .. .. A . .. .. .. .. . .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..",
+      "... .. .. .. .. .. 4 . .. .. .. .. . .. .. .. .. .. .. 50 20 C0 30 .. .. .. .. .. ..",
+      "... .. .. .. .. .. . 9 .. .. .. .. . .. 50 80 60 .. .. .. .. .. .. .. .. .. .. .. ..",
+      "... .. .. .. .. .. . . 20 60 60 80 . .. .. .. .. 80 A0 .. .. .. .. .. .. .. .. .. .."
      ]
     },
-    "b": {
-     "name": "b",
+    "p02": {
+     "name": "p02",
      "index": 1,
      "rows": [
-      "C-2 FF B0 50 90 84",
-      "... .. .. .. .. .."
+      "C-2 F0 .. .. .. .. A . .. .. .. .. D .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..",
+      "... .. .. .. .. .. 4 . .. .. .. .. . .. .. .. .. .. .. .. .. .. .. .. .. 60 40 20 40",
+      "... .. .. .. .. .. . 9 .. .. .. .. . .. .. .. .. 80 A0 .. .. .. .. .. .. .. .. .. ..",
+      "... .. .. .. .. .. . . .. .. .. .. . .. .. .. .. .. .. .. .. .. .. 89 C0 .. .. .. .."
      ]
     },
-    "c": {
-     "name": "c",
+    "p03": {
+     "name": "p03",
      "index": 2,
      "rows": [
-      "C-2 FF 40 A0 E8 70",
-      "... .. .. .. .. .."
+      "C-2 F0 .. .. .. .. A . .. .. .. .. . .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..",
+      "... .. .. .. .. .. 4 . .. .. .. .. . .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..",
+      "... .. .. .. .. .. . 9 .. .. .. .. . .. .. .. .. 80 A0 .. .. .. .. 82 A0 .. .. .. ..",
+      "... .. .. .. .. .. . . .. .. .. .. . .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .."
      ]
     },
-    "g": {
-     "name": "g",
+    "p04": {
+     "name": "p04",
      "index": 3,
      "rows": [
-      "C-2 48 80 30 38 .."
-     ]
-    }
-   },
-   "placements": [
-    {
-     "puid": "a",
-     "start": 0,
-     "length": 2
-    },
-    {
-     "puid": "a",
-     "start": 4,
-     "length": 2
-    },
-    {
-     "puid": "a",
-     "start": 8,
-     "length": 2
-    },
-    {
-     "puid": "a",
-     "start": 12,
-     "length": 2
-    },
-    {
-     "puid": "g",
-     "start": 14,
-     "length": 1
-    },
-    {
-     "puid": "a",
-     "start": 16,
-     "length": 2
-    },
-    {
-     "puid": "a",
-     "start": 20,
-     "length": 2
-    },
-    {
-     "puid": "a",
-     "start": 24,
-     "length": 2
-    },
-    {
-     "puid": "a",
-     "start": 28,
-     "length": 2
-    },
-    {
-     "puid": "g",
-     "start": 30,
-     "length": 1
-    },
-    {
-     "puid": "b",
-     "start": 32,
-     "length": 2
-    },
-    {
-     "puid": "b",
-     "start": 36,
-     "length": 2
-    },
-    {
-     "puid": "b",
-     "start": 40,
-     "length": 2
-    },
-    {
-     "puid": "b",
-     "start": 44,
-     "length": 2
-    },
-    {
-     "puid": "g",
-     "start": 46,
-     "length": 1
-    },
-    {
-     "puid": "b",
-     "start": 48,
-     "length": 2
-    },
-    {
-     "puid": "b",
-     "start": 52,
-     "length": 2
-    },
-    {
-     "puid": "b",
-     "start": 56,
-     "length": 2
-    },
-    {
-     "puid": "g",
-     "start": 59,
-     "length": 1
-    },
-    {
-     "puid": "c",
-     "start": 60,
-     "length": 2
-    },
-    {
-     "puid": "g",
-     "start": 62,
-     "length": 1
-    }
-   ]
-  },
-  {
-   "id": "hat",
-   "instrument": "hat",
-   "patterns": {
-    "c": {
-     "name": "c",
-     "index": 0,
-     "rows": [
-      "A . .. .. .. .."
+      "C-2 F0 .. .. .. .. A . .. .. .. .. D .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..",
+      "... .. .. .. .. .. 4 . .. .. .. .. . .. .. .. .. 80 A0 .. .. .. .. .. .. .. .. .. ..",
+      "C-2 48 80 30 38 .. . 9 .. .. .. .. . .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..",
+      "... .. .. .. .. .. . . .. .. .. .. . .. .. .. .. 87 D0 .. .. .. .. 85 90 .. .. .. .."
      ]
     },
-    "s": {
-     "name": "s",
-     "index": 1,
-     "rows": [
-      "4 . .. .. .. .."
-     ]
-    },
-    "o": {
-     "name": "o",
-     "index": 2,
-     "rows": [
-      ". 9 .. .. .. .."
-     ]
-    },
-    "r": {
-     "name": "r",
-     "index": 3,
-     "rows": [
-      "A . .. .. .. ..",
-      "C . .. .. .. ..",
-      "E . .. .. .. ..",
-      "F . .. .. .. .."
-     ]
-    },
-    "q": {
-     "name": "q",
+    "p05": {
+     "name": "p05",
      "index": 4,
      "rows": [
-      "D . .. .. .. ..",
-      "F . .. .. .. .."
+      "C-2 F0 .. .. .. .. A . .. .. .. .. . .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..",
+      "... .. .. .. .. .. 4 . .. .. .. .. . .. .. .. .. .. .. 80 60 40 60 .. .. .. .. .. ..",
+      "... .. .. .. .. .. . 9 .. .. .. .. . A0 90 .. .. .. .. .. .. .. .. .. .. .. .. .. ..",
+      "... .. .. .. .. .. . . 30 70 80 88 . .. .. .. .. 80 A0 .. .. .. .. .. .. .. .. .. .."
      ]
     },
-    "p1": {
-     "name": "p1",
+    "p06": {
+     "name": "p06",
      "index": 5,
      "rows": [
-      ". . 20 60 60 80"
+      "C-2 F0 .. .. .. .. A . .. .. .. .. D .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..",
+      "... .. .. .. .. .. 4 . .. .. .. .. . .. .. .. .. .. .. .. .. .. .. .. .. A0 80 30 20",
+      "... .. .. .. .. .. . 9 .. .. .. .. . .. .. .. .. 80 A0 .. .. .. .. .. .. .. .. .. ..",
+      "... .. .. .. .. .. . . .. .. .. .. 5 .. .. .. .. .. .. .. .. .. .. 89 C0 .. .. .. .."
      ]
     },
-    "p2": {
-     "name": "p2",
+    "p07": {
+     "name": "p07",
      "index": 6,
      "rows": [
-      ". . 30 70 80 88"
+      "C-2 F0 .. .. .. .. A . .. .. .. .. . .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..",
+      "... .. .. .. .. .. 4 . .. .. .. .. . .. .. .. .. .. .. B0 A0 90 20 .. .. .. .. .. ..",
+      "... .. .. .. .. .. . 9 .. .. .. .. . .. .. .. .. 80 A0 .. .. .. .. 82 A0 .. .. .. ..",
+      "... .. .. .. .. .. . . .. .. .. .. . .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .."
      ]
     },
-    "p3": {
-     "name": "p3",
+    "p08": {
+     "name": "p08",
      "index": 7,
      "rows": [
-      ". . 38 A0 A0 90"
+      "C-2 F0 .. .. .. .. A . .. .. .. .. D .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..",
+      "... .. .. .. .. .. 4 . .. .. .. .. . .. .. .. .. 80 A0 .. .. .. .. .. .. .. .. .. ..",
+      "C-2 48 80 30 38 .. D . .. .. .. .. . .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..",
+      "... .. .. .. .. .. F . .. .. .. .. . .. .. .. .. 87 D0 .. .. .. .. 85 90 .. .. .. .."
      ]
     },
-    "p4": {
-     "name": "p4",
+    "p09": {
+     "name": "p09",
      "index": 8,
      "rows": [
-      ". . 60 D0 D0 A0"
-     ]
-    }
-   },
-   "placements": [
-    {
-     "puid": "c",
-     "start": 0,
-     "length": 1
-    },
-    {
-     "puid": "s",
-     "start": 1,
-     "length": 1
-    },
-    {
-     "puid": "o",
-     "start": 2,
-     "length": 1
-    },
-    {
-     "puid": "p1",
-     "start": 3,
-     "length": 1
-    },
-    {
-     "puid": "c",
-     "start": 4,
-     "length": 1
-    },
-    {
-     "puid": "s",
-     "start": 5,
-     "length": 1
-    },
-    {
-     "puid": "o",
-     "start": 6,
-     "length": 1
-    },
-    {
-     "puid": "c",
-     "start": 8,
-     "length": 1
-    },
-    {
-     "puid": "s",
-     "start": 9,
-     "length": 1
-    },
-    {
-     "puid": "o",
-     "start": 10,
-     "length": 1
-    },
-    {
-     "puid": "c",
-     "start": 12,
-     "length": 1
-    },
-    {
-     "puid": "s",
-     "start": 13,
-     "length": 1
-    },
-    {
-     "puid": "o",
-     "start": 14,
-     "length": 1
-    },
-    {
-     "puid": "c",
-     "start": 16,
-     "length": 1
-    },
-    {
-     "puid": "s",
-     "start": 17,
-     "length": 1
-    },
-    {
-     "puid": "o",
-     "start": 18,
-     "length": 1
-    },
-    {
-     "puid": "p2",
-     "start": 19,
-     "length": 1
-    },
-    {
-     "puid": "c",
-     "start": 20,
-     "length": 1
-    },
-    {
-     "puid": "s",
-     "start": 21,
-     "length": 1
-    },
-    {
-     "puid": "o",
-     "start": 22,
-     "length": 1
-    },
-    {
-     "puid": "c",
-     "start": 24,
-     "length": 1
-    },
-    {
-     "puid": "s",
-     "start": 25,
-     "length": 1
-    },
-    {
-     "puid": "o",
-     "start": 26,
-     "length": 1
-    },
-    {
-     "puid": "c",
-     "start": 28,
-     "length": 1
-    },
-    {
-     "puid": "s",
-     "start": 29,
-     "length": 1
-    },
-    {
-     "puid": "q",
-     "start": 30,
-     "length": 2
-    },
-    {
-     "puid": "c",
-     "start": 32,
-     "length": 1
-    },
-    {
-     "puid": "s",
-     "start": 33,
-     "length": 1
-    },
-    {
-     "puid": "o",
-     "start": 34,
-     "length": 1
-    },
-    {
-     "puid": "p3",
-     "start": 35,
-     "length": 1
-    },
-    {
-     "puid": "c",
-     "start": 36,
-     "length": 1
-    },
-    {
-     "puid": "s",
-     "start": 37,
-     "length": 1
-    },
-    {
-     "puid": "o",
-     "start": 38,
-     "length": 1
-    },
-    {
-     "puid": "c",
-     "start": 40,
-     "length": 1
-    },
-    {
-     "puid": "s",
-     "start": 41,
-     "length": 1
-    },
-    {
-     "puid": "o",
-     "start": 42,
-     "length": 1
-    },
-    {
-     "puid": "c",
-     "start": 44,
-     "length": 1
-    },
-    {
-     "puid": "s",
-     "start": 45,
-     "length": 1
-    },
-    {
-     "puid": "o",
-     "start": 46,
-     "length": 1
-    },
-    {
-     "puid": "c",
-     "start": 48,
-     "length": 1
-    },
-    {
-     "puid": "s",
-     "start": 49,
-     "length": 1
-    },
-    {
-     "puid": "o",
-     "start": 50,
-     "length": 1
-    },
-    {
-     "puid": "s",
-     "start": 51,
-     "length": 1
-    },
-    {
-     "puid": "p4",
-     "start": 51,
-     "length": 1
-    },
-    {
-     "puid": "c",
-     "start": 52,
-     "length": 1
-    },
-    {
-     "puid": "s",
-     "start": 53,
-     "length": 1
-    },
-    {
-     "puid": "o",
-     "start": 54,
-     "length": 1
-    },
-    {
-     "puid": "c",
-     "start": 56,
-     "length": 1
-    },
-    {
-     "puid": "s",
-     "start": 57,
-     "length": 1
-    },
-    {
-     "puid": "o",
-     "start": 58,
-     "length": 1
-    },
-    {
-     "puid": "s",
-     "start": 59,
-     "length": 1
-    },
-    {
-     "puid": "r",
-     "start": 60,
-     "length": 4
-    }
-   ]
-  },
-  {
-   "id": "clap",
-   "instrument": "clap",
-   "patterns": {
-    "a": {
-     "name": "a",
-     "index": 0,
-     "rows": [
-      "D .. .. .. .."
+      "C-2 FF B0 50 90 84 A . .. .. .. .. . .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..",
+      "... .. .. .. .. .. 4 . .. .. .. .. . .. .. .. .. .. .. 40 F0 E0 70 .. .. .. .. .. ..",
+      "... .. .. .. .. .. . 9 .. .. .. .. . .. .. E0 20 .. .. .. .. .. .. .. .. .. .. .. ..",
+      "... .. .. .. .. .. . . 38 A0 A0 90 . .. .. .. .. 83 80 .. .. .. .. .. .. .. .. .. .."
      ]
     },
-    "g": {
-     "name": "g",
-     "index": 1,
-     "rows": [
-      "5 .. .. .. .."
-     ]
-    },
-    "d": {
-     "name": "d",
-     "index": 2,
-     "rows": [
-      "F .. .. .. ..",
-      "8 .. .. .. .."
-     ]
-    },
-    "p1": {
-     "name": "p1",
-     "index": 3,
-     "rows": [
-      ". .. 50 80 60"
-     ]
-    },
-    "p2": {
-     "name": "p2",
-     "index": 4,
-     "rows": [
-      ". A0 90 .. .."
-     ]
-    },
-    "p3": {
-     "name": "p3",
-     "index": 5,
-     "rows": [
-      ". .. .. E0 20"
-     ]
-    },
-    "p4": {
-     "name": "p4",
-     "index": 6,
-     "rows": [
-      ". 60 D0 FF 40"
-     ]
-    }
-   },
-   "placements": [
-    {
-     "puid": "p1",
-     "start": 2,
-     "length": 1
-    },
-    {
-     "puid": "a",
-     "start": 4,
-     "length": 1
-    },
-    {
-     "puid": "a",
-     "start": 12,
-     "length": 1
-    },
-    {
-     "puid": "p2",
-     "start": 18,
-     "length": 1
-    },
-    {
-     "puid": "a",
-     "start": 20,
-     "length": 1
-    },
-    {
-     "puid": "g",
-     "start": 23,
-     "length": 1
-    },
-    {
-     "puid": "a",
-     "start": 28,
-     "length": 1
-    },
-    {
-     "puid": "p3",
-     "start": 34,
-     "length": 1
-    },
-    {
-     "puid": "a",
-     "start": 36,
-     "length": 1
-    },
-    {
-     "puid": "g",
-     "start": 39,
-     "length": 1
-    },
-    {
-     "puid": "d",
-     "start": 44,
-     "length": 2
-    },
-    {
-     "puid": "p4",
-     "start": 50,
-     "length": 1
-    },
-    {
-     "puid": "a",
-     "start": 52,
-     "length": 1
-    },
-    {
-     "puid": "g",
-     "start": 55,
-     "length": 1
-    },
-    {
-     "puid": "g",
-     "start": 58,
-     "length": 1
-    },
-    {
-     "puid": "a",
-     "start": 60,
-     "length": 1
-    }
-   ]
-  },
-  {
-   "id": "metal",
-   "instrument": "metal",
-   "patterns": {
-    "a": {
-     "name": "a",
-     "index": 0,
-     "rows": [
-      "E-5 A0 .. .. .. .."
-     ]
-    },
-    "b": {
-     "name": "b",
-     "index": 1,
-     "rows": [
-      "G-5 80 .. .. .. .."
-     ]
-    },
-    "c": {
-     "name": "c",
-     "index": 2,
-     "rows": [
-      "B-5 D0 .. .. .. .."
-     ]
-    },
-    "p1": {
-     "name": "p1",
-     "index": 3,
-     "rows": [
-      "... .. 50 20 C0 30"
-     ]
-    },
-    "p2": {
-     "name": "p2",
-     "index": 4,
-     "rows": [
-      "... .. 80 60 40 60"
-     ]
-    },
-    "p3": {
-     "name": "p3",
-     "index": 5,
-     "rows": [
-      "... .. B0 A0 90 20"
-     ]
-    },
-    "p4": {
-     "name": "p4",
-     "index": 6,
-     "rows": [
-      "... .. 40 F0 E0 70"
-     ]
-    },
-    "p5": {
-     "name": "p5",
-     "index": 7,
-     "rows": [
-      "... .. D0 30 10 A0"
-     ]
-    },
-    "p6": {
-     "name": "p6",
-     "index": 8,
-     "rows": [
-      "... .. 30 90 B0 50"
-     ]
-    }
-   },
-   "placements": [
-    {
-     "puid": "p1",
-     "start": 1,
-     "length": 1
-    },
-    {
-     "puid": "a",
-     "start": 3,
-     "length": 1
-    },
-    {
-     "puid": "a",
-     "start": 6,
-     "length": 1
-    },
-    {
-     "puid": "a",
-     "start": 10,
-     "length": 1
-    },
-    {
-     "puid": "a",
-     "start": 13,
-     "length": 1
-    },
-    {
-     "puid": "c",
-     "start": 15,
-     "length": 1
-    },
-    {
-     "puid": "p2",
-     "start": 17,
-     "length": 1
-    },
-    {
-     "puid": "a",
-     "start": 19,
-     "length": 1
-    },
-    {
-     "puid": "a",
-     "start": 22,
-     "length": 1
-    },
-    {
-     "puid": "p3",
-     "start": 25,
-     "length": 1
-    },
-    {
-     "puid": "a",
-     "start": 26,
-     "length": 1
-    },
-    {
-     "puid": "a",
-     "start": 29,
-     "length": 1
-    },
-    {
-     "puid": "c",
-     "start": 31,
-     "length": 1
-    },
-    {
-     "puid": "p4",
-     "start": 33,
-     "length": 1
-    },
-    {
-     "puid": "b",
-     "start": 35,
-     "length": 1
-    },
-    {
-     "puid": "b",
-     "start": 38,
-     "length": 1
-    },
-    {
-     "puid": "p5",
-     "start": 41,
-     "length": 1
-    },
-    {
-     "puid": "b",
-     "start": 42,
-     "length": 1
-    },
-    {
-     "puid": "b",
-     "start": 45,
-     "length": 1
-    },
-    {
-     "puid": "c",
-     "start": 47,
-     "length": 1
-    },
-    {
-     "puid": "p6",
-     "start": 49,
-     "length": 1
-    },
-    {
-     "puid": "b",
-     "start": 51,
-     "length": 1
-    },
-    {
-     "puid": "b",
-     "start": 54,
-     "length": 1
-    },
-    {
-     "puid": "b",
-     "start": 58,
-     "length": 1
-    },
-    {
-     "puid": "c",
-     "start": 62,
-     "length": 1
-    }
-   ]
-  },
-  {
-   "id": "tom",
-   "instrument": "tom",
-   "patterns": {
-    "a": {
-     "name": "a",
-     "index": 0,
-     "rows": [
-      "A-3 C0 .. .. .. .."
-     ]
-    },
-    "b": {
-     "name": "b",
-     "index": 1,
-     "rows": [
-      "D-3 A0 .. .. .. .."
-     ]
-    },
-    "c": {
-     "name": "c",
-     "index": 2,
-     "rows": [
-      "F-3 90 .. .. .. .."
-     ]
-    },
-    "f1": {
-     "name": "f1",
-     "index": 3,
-     "rows": [
-      "G-3 FF .. C0 .. .."
-     ]
-    },
-    "f2": {
-     "name": "f2",
-     "index": 4,
-     "rows": [
-      "E-3 F0 .. D0 .. .."
-     ]
-    },
-    "f3": {
-     "name": "f3",
-     "index": 5,
-     "rows": [
-      "C-3 F8 .. E8 .. .."
-     ]
-    },
-    "f4": {
-     "name": "f4",
-     "index": 6,
-     "rows": [
-      "A-2 FF .. FF .. .."
-     ]
-    },
-    "p1": {
-     "name": "p1",
-     "index": 7,
-     "rows": [
-      "... .. 60 40 20 40"
-     ]
-    },
-    "p2": {
-     "name": "p2",
-     "index": 8,
-     "rows": [
-      "... .. A0 80 30 20"
-     ]
-    },
-    "p3": {
-     "name": "p3",
+    "p10": {
+     "name": "p10",
      "index": 9,
      "rows": [
-      "... .. .. C0 80 30"
+      "C-2 FF B0 50 90 84 A . .. .. .. .. D .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..",
+      "... .. .. .. .. .. 4 . .. .. .. .. . .. .. .. .. .. .. .. .. .. .. .. .. .. C0 80 30",
+      "... .. .. .. .. .. . 9 .. .. .. .. . .. .. .. .. 83 80 .. .. .. .. .. .. .. .. .. ..",
+      "... .. .. .. .. .. . . .. .. .. .. 5 .. .. .. .. .. .. .. .. .. .. 89 C0 .. .. .. .."
      ]
     },
-    "p4": {
-     "name": "p4",
+    "p11": {
+     "name": "p11",
      "index": 10,
      "rows": [
-      "... .. E0 FF 60 10"
+      "C-2 FF B0 50 90 84 A . .. .. .. .. . .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..",
+      "... .. .. .. .. .. 4 . .. .. .. .. . .. .. .. .. .. .. D0 30 10 A0 .. .. .. .. .. ..",
+      "... .. .. .. .. .. . 9 .. .. .. .. . .. .. .. .. 83 80 .. .. .. .. 82 A0 .. .. .. ..",
+      "... .. .. .. .. .. . . .. .. .. .. . .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .."
+     ]
+    },
+    "p12": {
+     "name": "p12",
+     "index": 11,
+     "rows": [
+      "C-2 FF B0 50 90 84 A . .. .. .. .. F .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..",
+      "... .. .. .. .. .. 4 . .. .. .. .. 8 .. .. .. .. 83 80 .. .. .. .. .. .. .. .. .. ..",
+      "C-2 48 80 30 38 .. . 9 .. .. .. .. . .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..",
+      "... .. .. .. .. .. . . .. .. .. .. . .. .. .. .. 87 D0 .. .. .. .. 85 90 .. .. .. .."
+     ]
+    },
+    "p13": {
+     "name": "p13",
+     "index": 12,
+     "rows": [
+      "C-2 FF B0 50 90 84 A . .. .. .. .. . .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..",
+      "... .. .. .. .. .. 4 . .. .. .. .. . .. .. .. .. .. .. 30 90 B0 50 .. .. .. .. .. ..",
+      "... .. .. .. .. .. . 9 .. .. .. .. . 60 D0 FF 40 .. .. .. .. .. .. .. .. .. .. .. ..",
+      "... .. .. .. .. .. 4 . 60 D0 D0 A0 . .. .. .. .. 83 80 .. .. .. .. .. .. .. .. .. .."
+     ]
+    },
+    "p14": {
+     "name": "p14",
+     "index": 13,
+     "rows": [
+      "C-2 FF B0 50 90 84 A . .. .. .. .. D .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..",
+      "... .. .. .. .. .. 4 . .. .. .. .. . .. .. .. .. .. .. .. .. .. .. .. .. E0 FF 60 10",
+      "... .. .. .. .. .. . 9 .. .. .. .. . .. .. .. .. 83 80 .. .. .. .. .. .. .. .. .. ..",
+      "... .. .. .. .. .. . . .. .. .. .. 5 .. .. .. .. .. .. .. .. .. .. 89 C0 .. .. .. .."
+     ]
+    },
+    "p15": {
+     "name": "p15",
+     "index": 14,
+     "rows": [
+      "C-2 FF B0 50 90 84 A . .. .. .. .. . .. .. .. .. .. .. .. .. .. .. 87 FF .. C0 .. ..",
+      "... .. .. .. .. .. 4 . .. .. .. .. . .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..",
+      "... .. .. .. .. .. . 9 .. .. .. .. 5 .. .. .. .. 83 80 .. .. .. .. 84 F0 .. D0 .. ..",
+      "C-2 48 80 30 38 .. 4 . .. .. .. .. . .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .."
+     ]
+    },
+    "p16": {
+     "name": "p16",
+     "index": 15,
+     "rows": [
+      "C-2 FF 40 A0 E8 70 A . .. .. .. .. D .. .. .. .. .. .. .. .. .. .. 80 F8 .. E8 .. ..",
+      "... .. .. .. .. .. C . .. .. .. .. . .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..",
+      "C-2 48 80 30 38 .. E . .. .. .. .. . .. .. .. .. 87 D0 .. .. .. .. 7D FF .. FF .. ..",
+      "... .. .. .. .. .. F . .. .. .. .. . .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .."
      ]
     }
    },
    "placements": [
     {
-     "puid": "p1",
-     "start": 5,
-     "length": 1
+     "puid": "p01",
+     "start": 0,
+     "length": 4
     },
     {
-     "puid": "a",
-     "start": 7,
-     "length": 1
+     "puid": "p02",
+     "start": 4,
+     "length": 4
     },
     {
-     "puid": "b",
-     "start": 10,
-     "length": 1
+     "puid": "p03",
+     "start": 8,
+     "length": 4
     },
     {
-     "puid": "c",
-     "start": 15,
-     "length": 1
+     "puid": "p04",
+     "start": 12,
+     "length": 4
     },
     {
-     "puid": "p2",
-     "start": 21,
-     "length": 1
+     "puid": "p05",
+     "start": 16,
+     "length": 4
     },
     {
-     "puid": "a",
-     "start": 23,
-     "length": 1
+     "puid": "p06",
+     "start": 20,
+     "length": 4
     },
     {
-     "puid": "b",
-     "start": 26,
-     "length": 1
+     "puid": "p07",
+     "start": 24,
+     "length": 4
     },
     {
-     "puid": "c",
-     "start": 31,
-     "length": 1
+     "puid": "p08",
+     "start": 28,
+     "length": 4
     },
     {
-     "puid": "p3",
-     "start": 37,
-     "length": 1
+     "puid": "p09",
+     "start": 32,
+     "length": 4
     },
     {
-     "puid": "a",
-     "start": 39,
-     "length": 1
+     "puid": "p10",
+     "start": 36,
+     "length": 4
     },
     {
-     "puid": "b",
-     "start": 42,
-     "length": 1
+     "puid": "p11",
+     "start": 40,
+     "length": 4
     },
     {
-     "puid": "c",
-     "start": 47,
-     "length": 1
+     "puid": "p12",
+     "start": 44,
+     "length": 4
     },
     {
-     "puid": "p4",
-     "start": 53,
-     "length": 1
+     "puid": "p13",
+     "start": 48,
+     "length": 4
     },
     {
-     "puid": "a",
-     "start": 55,
-     "length": 1
+     "puid": "p14",
+     "start": 52,
+     "length": 4
     },
     {
-     "puid": "f1",
+     "puid": "p15",
      "start": 56,
-     "length": 1
+     "length": 4
     },
     {
-     "puid": "f2",
-     "start": 58,
-     "length": 1
-    },
-    {
-     "puid": "f3",
+     "puid": "p16",
      "start": 60,
-     "length": 1
-    },
-    {
-     "puid": "f4",
-     "start": 62,
-     "length": 1
+     "length": 4
     }
    ]
   }
