@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['526', ['Pattern name label follows whichever of the mouse and the caret moved last, so it no longer pops up for the highlighted pattern.']],
   ['525', ['Arrangement: patterns show only their number; the name of the pattern under the mouse or caret appears on a dark label (H shows all names).']],
   ['524', ['Pattern name chips: larger, regular weight, easier to read.']],
   ['523', ['Arrangement: pattern names on a small dark chip, readable over the minimaps.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['519', ['Meta machine: spacer columns (a rule with an optional group name) between groups of columns, and the machines it plays lose their empty lanes.']],
   ['518', ['Meta machine editor: pick which notes, triggers and parameters of other instruments its columns play, and change them later. 00 in a relative note column is a note off, in the accent colour.']],
   ['517', ['The ?demo=concrete techno now runs on one meta machine lane that plays all five percussion machines.']],
-  ['516', ['New demo: ?demo=concrete, 64 ticks of techno from five percussion machines, with parameter changes on all of them.']],
 ];

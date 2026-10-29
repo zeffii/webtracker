@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 526 · 2026-10-29
+
+- Arrangement: the pattern name label belongs to whichever of the mouse and the caret moved last. Moving the mouse over the edge of a pattern, or between patterns, no longer makes the label of the highlighted (caret) pattern pop up; the mouse leaving the view hides the label, and moving the caret (keys, click) shows its pattern's name.
+
 ## 525 · 2026-10-29
 
 - Arrangement: the pattern name chip (523, 524) is gone again, and pattern names are off by default: a pattern's cell shows its two-digit number, in the left four characters that the minimap leaves clear. The name of the pattern under the mouse, or under the caret when the mouse is elsewhere, shows on a dark label at regular size at the top of that pattern. H (or "Sequence editor: show pattern names" in Config) puts every name in the cells; the statusbar always gives the name.
