@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['531', ['Live picture: the built-in shader is now an orange and red lava lamp of five metaballs that swell on hits.']],
   ['530', ['First screen: pink to green lava lamp backdrop; the metaballs turn pink near the top and green near the bottom.']],
   ['529', ['Drum synth: no more random clicks when a hit lands on a voice that is still ringing.']],
   ['528', ['Script: chords, roman numerals, circle of fifths helpers and a progression generator, a chord lab in the tutorial, and the ?demo=progression song.']],
@@ -15,6 +16,5 @@ export const CHANGELOG = [
   ['525', ['Arrangement: patterns show only their number; the name of the pattern under the mouse or caret appears on a dark label (H shows all names).']],
   ['524', ['Pattern name chips: larger, regular weight, easier to read.']],
   ['523', ['Arrangement: pattern names on a small dark chip, readable over the minimaps.']],
-  ['522', ['Pattern minimaps keep the first four characters of a cell clear for the pattern name and scale everything into the rest.']],
   ['517', ['The ?demo=concrete techno now runs on one meta machine lane that plays all five percussion machines.']],
 ];

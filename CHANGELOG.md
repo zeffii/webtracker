@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 531 · 2026-10-29
+
+- Live picture: the built-in shader is now the lava lamp version: an orange to red background, five metaballs (one for each of the first five lanes) in a hot orange-red, bigger swells on a hit (a hit grows its ball a lot more), pitch lifting a ball further, a wider blend between them, and a slightly shifted camera. Pictures that use their own shader are untouched.
+
 ## 530 · 2026-10-29
 
 - First screen: the metaball backdrop sits in a lava lamp's room. The background fades from light pink at the top, through a pale warm white, to light green at the bottom, with a soft glow where each lamp bulb would be. The blobs are lit by them: near the top they turn pink, near the bottom green (more the closer to the edge), and in the middle they keep their teal. Their shading and glowing thin necks are unchanged.
