@@ -530,16 +530,16 @@ export function createSequenceView({ el, statusEl, listEl, transport, onToggle, 
   };
 
   const playline = createPlayline(el), looplines = createLoopLines(el), minimap = createMinimap(el);
-  // The name of the pattern under the mouse or the caret, on a dark label at the top of that pattern (when the cells show only
-  // their numbers). One element, moved about, so hovering never redraws the view.
+  // Holding Shift shows the name of the pattern under the mouse (or under the caret, with the mouse away from the view) on a dark
+  // label at the top of that pattern; letting go hides it. (Shift alone does nothing else in this view; the cells show only their
+  // numbers unless pattern names are on.) One element, moved about, so hovering never redraws the view.
   const tag = typeof document !== 'undefined' ? Object.assign(document.createElement('div'), { className: 'pname' }) : null;
-  let hover = null, source = 'caret', lastCaret = '';   // hover: the cell the mouse is over, { lane, tick }; source: which of the mouse and the caret moved last (the label follows that one)
+  let hover = null, inside = false, shift = false;   // hover: the cell the mouse is over, { lane, tick }; inside: the mouse is in the view
   const updateTag = () => {
     if (!tag || !lanes || !el.children || !el.appendChild) return;
-    const caret = `${cur.lane},${cur.tick}`;
-    if (caret !== lastCaret) { lastCaret = caret; source = 'caret'; }   // the caret moved (a key, or a click): its pattern shows
-    const at = source === 'mouse' ? hover : { lane: cur.lane, tick: cur.tick }, lane = at && lanes[at.lane], pl = lane && placementAt(lane, at.tick), pat = pl && lane.patterns[pl.puid];
-    const rowEl = pat && !config.get('seqNames') ? el.children[Math.max(Math.floor(pl.start / CELL), top) - top + 1] : null;   // the pattern's first row, or the top of the view if it starts above it
+    const at = !shift || config.get('seqNames') ? null : inside ? hover : { lane: cur.lane, tick: cur.tick };
+    const lane = at && lanes[at.lane], pl = lane && placementAt(lane, at.tick), pat = pl && lane.patterns[pl.puid];
+    const rowEl = pat ? el.children[Math.max(Math.floor(pl.start / CELL), top) - top + 1] : null;   // the pattern's first row, or the top of the view if it starts above it
     const cell = rowEl?.classList?.contains('r') ? rowEl.querySelectorAll('.cell')[at.lane] : null;
     if (!cell) { tag.remove(); return; }
     if (tag.parentNode !== el) el.appendChild(tag);
@@ -547,8 +547,14 @@ export function createSequenceView({ el, statusEl, listEl, transport, onToggle, 
     tag.style.left = `${cell.offsetLeft}px`;
     tag.style.top = `${rowEl.offsetTop}px`;
   };
-  el.addEventListener('mousemove', e => { const at = pointed(e); if (source !== 'mouse' || at?.lane !== hover?.lane || at?.tick !== hover?.tick) { source = 'mouse'; hover = at; updateTag(); } });   // (over the gap between patterns: no label)
-  el.addEventListener('mouseleave', () => { source = 'mouse'; hover = null; updateTag(); });
+  const setShift = on => { if (on !== shift) { shift = on; updateTag(); } };
+  if (typeof document !== 'undefined') {
+    document.addEventListener('keydown', e => { if (e.key === 'Shift') setShift(true); });
+    document.addEventListener('keyup', e => { if (e.key === 'Shift') setShift(false); });
+    globalThis.addEventListener?.('blur', () => setShift(false));
+  }
+  el.addEventListener('mousemove', e => { inside = true; shift = e.shiftKey; const at = pointed(e); if (at?.lane !== hover?.lane || at?.tick !== hover?.tick || tag?.parentNode !== (shift ? el : null)) { hover = at; updateTag(); } });
+  el.addEventListener('mouseleave', () => { inside = false; hover = null; updateTag(); });
   const curves = createCurveView({
     el, lanes: () => lanes, top: () => top, CELL: () => CELL, len: () => len, get editor() { return editor; },
     say: m => { message = m; statusEl.textContent = m; }, shape: li => onShape(li), menu: (e, items) => showContextMenu(e, items),

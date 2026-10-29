@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 527 · 2026-10-29
+
+- Arrangement: the pattern name label shows only while Shift is held. Hover a pattern, hold Shift, and its name appears on the dark label; let go and it disappears. With the mouse outside the view, Shift shows the caret pattern's name. Shift on its own does nothing else in the view (modifier-only presses are ignored and keep the selection), so Shift+arrows, Shift+click and the other shortcuts work as before; the label just shows while Shift is down.
+
 ## 526 · 2026-10-29
 
 - Arrangement: the pattern name label belongs to whichever of the mouse and the caret moved last. Moving the mouse over the edge of a pattern, or between patterns, no longer makes the label of the highlighted (caret) pattern pop up; the mouse leaving the view hides the label, and moving the caret (keys, click) shows its pattern's name.
