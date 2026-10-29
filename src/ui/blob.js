@@ -1,48 +1,51 @@
 // The first screen's backdrop: a few metaballs drifting, merging and pinching apart, shaded as a translucent, skin-like body (light shows
 // through where it is thin, the thick middle stays deeper). One WebGL fragment shader, drawn at reduced size since the look is soft.
-// createBlob(canvas) returns null when WebGL is not available, so the caller can fall back to the logo.
+// It is the live picture's built-in shader (visual.js) with its lane look-ups stubbed for a screen with no song: a bigger swell when the card is excited,
+// and the pointer drawing the first ball. createBlob(canvas) returns null when WebGL is not available, so the caller can fall back to the logo.
 const VS = 'attribute vec2 a;void main(){gl_Position=vec4(a,0.,1.);}';
 const FS = `precision highp float;uniform vec2 R,M;uniform float T,B;uniform vec3 C1,C2;
+// the picture shader's lane look-ups, for a screen with no song: a hit swells a ball a little when the card is excited (B), nothing is held
+float hit(int i){return B*.12;}
+float pitch(int i){return .5;}
+float vel(int i){return 1.;}
+float held(int i){return 0.;}
+float hits(){return B;}
+vec3 CM= vec3(2.74, 0.338, .143);
 float h(vec2 p){vec3 q=fract(vec3(p.xyx)*.1031);q+=dot(q,q.yzx+33.33);return fract((q.x+q.y)*q.z);}   // no sin(): its hash shows diagonal patterns on some GPUs
 float smin(float a,float b,float k){float x=max(k-abs(a-b),0.)/k;return min(a,b)-x*x*x*k/6.;}
-vec3 P(int i,float t){float f=float(i);vec3 q=vec3(.75*sin(t*.31+f*2.1)+.2*sin(t*.7+f),.95*sin(t*.27+f*1.3+1.)+.15*cos(t*.5+f*3.),.35*sin(t*.23+f*4.));
-if(i==0)q=mix(q,vec3(M*vec2(.9,1.1),0.),.45);return q;}
-float map(vec3 p){float d=1e3;for(int i=0;i<4;i++){float f=float(i);float r=.42+.1*sin(T*.4+f*1.7)+.05*B;d=smin(d,length(p-.82*P(i,T))-r,.7);}return d;}
-vec3 nrm(vec3 p){vec2 e=vec2(.003,0);return normalize(vec3(map(p+e.xyy)-map(p-e.xyy),map(p+e.yxy)-map(p-e.yxy),map(p+e.yyx)-map(p-e.yyx)));}
-void main(){vec2 uv=gl_FragCoord.xy/R;vec2 p=(gl_FragCoord.xy-.5*R)/min(R.x,R.y*1.15);
-// a lava lamp's room: light pink at the top fading to light green at the bottom, with a soft glow at each end where the bulbs would be
-vec3 pink=vec3(1.,.62,.78),green=vec3(.50,.95,.68);
-vec3 bg=mix(mix(vec3(.80,.95,.85),vec3(.97,.97,.95),smoothstep(.05,.5,uv.y)),vec3(.98,.85,.91),smoothstep(.5,.95,uv.y));   // a pale warm white between them, so the two do not mix to grey
-bg+=pink*.16*pow(max(0.,1.-length((uv-vec2(.5,1.04))*vec2(.9,1.5))),2.)+green*.16*pow(max(0.,1.-length((uv-vec2(.5,-.04))*vec2(.9,1.5))),2.);
-bg*=1.-.07*pow(length(p)*.8,2.);
-vec3 ro=vec3(0.,0.,-5.6),rd=normalize(vec3(p,1.9));float t=0.;bool hit=false;
-for(int i=0;i<72;i++){float d=map(ro+rd*t);if(d<.002){hit=true;break;}t+=d;if(t>9.)break;}
+vec3 P(int i,float t){float f=float(i);return vec3(.75*sin(t*.31+f*2.1)+.2*sin(t*.7+f),.95*sin(t*.27+f*1.3+1.)+.15*cos(t*.5+f*3.),.35*sin(t*.23+f*4.));}
+float map(vec3 p){float d=1e3;for(int i=0;i<5;i++){float f=float(i);
+  float r=.46+.1*sin(T*.4+f*3.4)+1.61*hit(i)+0.*held(i);
+  vec3 c=.82*P(i,T)+vec3(0.,1.41*(pitch(i)-.5)*vel(i),0.);
+  if(i==0)c=mix(c,vec3(M*vec2(.9,1.1),0.)*.82,.45);   // the pointer draws the first ball
+  d=smin(d,length(p-c)-r,1.02);}return d;}
+vec3 nrm(vec3 p){vec2 e=vec2(.0061,0);return normalize(vec3(map(p+e.xyy)-map(p-e.xyy),map(p+e.yxy)-map(p-e.yxy),map(p+e.yyx)-map(p-e.yyx)));}
+void main(){vec2 uv=gl_FragCoord.xy/R;vec2 p=(gl_FragCoord.xy-.485*R)/min(R.x,R.y*0.96);
+vec3 bg=mix(vec3(1.9,1.28,.58),vec3(.72,0.,0.),smoothstep(.45,1.,uv.y));bg=mix(bg,vec3(.95,.93,.78),smoothstep(1.735,.0,uv.y)*.585);
+bg*=0.78-.16*pow(length(p)*.8,2.);
+vec3 ro=vec3(0.19,0.,-5.6),rd=normalize(vec3(p,1.9));float t=0.;bool hitp=false;
+for(int i=0;i<72;i++){float d=map(ro+rd*t);if(d<.0053){hitp=true;break;}t+=d;if(t>24.)break;}
 vec3 col=bg;
-if(hit){vec3 pos=ro+rd*t;vec3 n=nrm(pos);
-float jit=h(gl_FragCoord.xy+fract(T)*13.);   // a per-pixel start turns the stepped contours of a short march into fine grain
+if(hitp){vec3 pos=ro+rd*t;vec3 n=nrm(pos);
+float jit=h(gl_FragCoord.xy+fract(T)*66.5);   // a per-pixel start turns the stepped contours of a short march into fine grain
 float tt=.03+.03*jit;for(int i=0;i<22;i++){float d=-map(pos+rd*tt);if(d<.002)break;tt+=max(d,.02);}float thk=tt;
 float th2=0.;for(int i=1;i<=5;i++){float s=(float(i)-.5+jit)*.1;th2+=clamp(-map(pos-n*s),0.,s);}
 float thin=exp(-th2*4.2),core=exp(-thk*.9);
-// a few quiet lights, not just an even glow: a soft key from the upper left, a cool fill from the right, a warm light from behind and below
 float key=clamp((dot(n,normalize(vec3(-.45,.6,-.65)))+.55)/1.55,0.,1.);
 float fill=clamp((dot(n,normalize(vec3(.8,.1,-.5)))+.6)/1.6,0.,1.);
-float back=clamp(dot(n,normalize(vec3(.2,-.8,.6)))*.5+.5,0.,1.);
+float back=clamp(dot(n,normalize(vec3(.2,-3.08,.6)))*1.51+.5,0.,1.);
 float wrap=clamp(key*.82+fill*.18,0.,1.);
-float fr=pow(1.-max(dot(n,-rd),0.),3.);
-vec3 deep=C1*.80,mid=mix(C1,C2,.35);
+float fr=pow(1.-max(dot(n,-rd),0.),16.35);
+vec3 deep=CM*.80,mid=mix(CM,C2,.35);
 vec3 body=mix(deep,mid,wrap*.75+.25*(1.-core));
-body=mix(body,C2,clamp(thin*.9,0.,1.)*.8);                 // translucent necks glow
-body=mix(body,C2,clamp(exp(-thk*1.5)*.32,0.,1.));           // a little light through the thin edges
-body+=(C2-C1)*.05*fr;
-body+=(C2-C1)*.06*smoothstep(.0,1.,1.-th2*3.);
-body+=vec3(.05,.035,.0)*pow(key,3.)*(1.-thin);                                  // key: a touch of warmth where it lands
-body+=vec3(-.02,.02,.045)*fill*(1.-wrap)*.9;                                    // fill: slightly cooler on the shadow side
-body=mix(body,C2*vec3(1.0,.98,.94),pow(back,4.)*clamp(.25+thin,0.,1.)*.22);   // light from behind: shows through the thin parts and rims
-body=mix(body,C2,B*.18);
-// lit by the lamp: near the top the body turns pink, near the bottom green (nearer the edge, more), keeping its own shading and its glowing thin parts
-float topw=smoothstep(.5,.98,uv.y),botw=smoothstep(.5,.02,uv.y);
-vec3 zone=pink*topw+green*botw;float zw=max(topw,botw);
-body=mix(body,zone*(.72+.5*wrap)+zone*thin*.18,zw*.8);
+body=mix(body,C2,clamp(thin*3.34,0.53,0.58)*.02);
+body=mix(body,C2,clamp(exp(-thk*4.55)*.435,0.08,2.84));
+body+=(C2-CM)*.1335*fr;
+body+=(C2-CM)*.29*smoothstep(.0,1.,1.-th2*12.35);
+body+=vec3(.05,.035,.0)*pow(key,13.6)*(1.-thin);
+body+=vec3(-.02,0.,.1335)*fill*(3.78-wrap)*.58;
+body=mix(body,C2*vec3(3.2,1.4,1.58),pow(back,4.)*clamp(.25+thin,0.,3.4)*.64);
+body=mix(body,C2,hits()*.22);
 col=body;}
 // dither (triangular, about two levels) takes the banding out of the slow gradients, plus a faint grain
 vec2 fc=gl_FragCoord.xy+fract(T*7.3)*91.;

@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['532', ['First screen: the metaballs use the orange and red live picture shader.']],
   ['531', ['Live picture: the built-in shader is now an orange and red lava lamp of five metaballs that swell on hits.']],
   ['530', ['First screen: pink to green lava lamp backdrop; the metaballs turn pink near the top and green near the bottom.']],
   ['529', ['Drum synth: no more random clicks when a hit lands on a voice that is still ringing.']],
@@ -15,6 +16,5 @@ export const CHANGELOG = [
   ['526', ['Pattern name label follows whichever of the mouse and the caret moved last, so it no longer pops up for the highlighted pattern.']],
   ['525', ['Arrangement: patterns show only their number; the name of the pattern under the mouse or caret appears on a dark label (H shows all names).']],
   ['524', ['Pattern name chips: larger, regular weight, easier to read.']],
-  ['523', ['Arrangement: pattern names on a small dark chip, readable over the minimaps.']],
   ['517', ['The ?demo=concrete techno now runs on one meta machine lane that plays all five percussion machines.']],
 ];

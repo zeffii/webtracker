@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 532 · 2026-10-29
+
+- First screen: the metaball backdrop now uses the same shader as the live picture (531): the orange to red background, five balls with the wider blend and the tuned lighting. There is no song on the first screen, so a click swells the balls a little, nothing is held, and the pointer still pulls the first ball. This replaces the pink and green version of 530.
+
 ## 531 · 2026-10-29
 
 - Live picture: the built-in shader is now the lava lamp version: an orange to red background, five metaballs (one for each of the first five lanes) in a hot orange-red, bigger swells on a hit (a hit grows its ball a lot more), pitch lifting a ball further, a wider blend between them, and a slightly shifted camera. Pictures that use their own shader are untouched.
