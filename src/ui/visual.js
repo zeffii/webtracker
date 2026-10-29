@@ -117,42 +117,66 @@ export function createVisual(canvas, { size = 300, colours = [[.30, .74, .80], [
     const s = gl.createShader(type); gl.shaderSource(s, text); gl.compileShader(s);
     return gl.getShaderParameter(s, gl.COMPILE_STATUS) ? { s } : { error: gl.getShaderInfoLog(s) ?? 'the shader did not compile' };
   };
-  // Builds the program for `src` (the user's text) with the lane names as they are now. Returns { error } or the program and what it needs.
-  // Line numbers in errors are counted in the user's own text.
-  function build(src, laneNames) {
-    const knobs = [], vs = compile(gl.VERTEX_SHADER, VS), fs = compile(gl.FRAGMENT_SHADER, PREAMBLE + preprocess(src, laneNames, knobs));
-    if (fs.error || vs.error) return { error: String(fs.error ?? vs.error).replace(/ERROR: (\d+):(\d+)/g, (_, f, l) => `line ${Math.max(1, Number(l) - PRE_LINES)}`).trim().split('\n')[0] };
-    const pr = gl.createProgram(); gl.attachShader(pr, vs.s); gl.attachShader(pr, fs.s); gl.linkProgram(pr);
-    if (!gl.getProgramParameter(pr, gl.LINK_STATUS)) return { error: gl.getProgramInfoLog(pr) ?? 'the shader did not link' };
+  // A program is built in two steps so that the page never waits for the graphics driver: `start` hands the source over and
+  // returns at once, `finish` reads the result when the driver is done. With KHR_parallel_shader_compile the driver compiles on
+  // other threads and `ready` says when; without it everything is done by the time `start` returns, as it always was.
+  const parallel = gl.getExtension('KHR_parallel_shader_compile');
+  const make = (type, text) => { const s = gl.createShader(type); gl.shaderSource(s, text); gl.compileShader(s); return s; };
+  function start(src, laneNames) {
+    const knobs = [], vs = make(gl.VERTEX_SHADER, VS), fs = make(gl.FRAGMENT_SHADER, PREAMBLE + preprocess(src, laneNames, knobs));
+    const pr = gl.createProgram(); gl.attachShader(pr, vs); gl.attachShader(pr, fs); gl.linkProgram(pr);
+    return { src, names: laneNames, vs, fs, pr, knobs };
+  }
+  const ready = b => !parallel || gl.getProgramParameter(b.pr, parallel.COMPLETION_STATUS_KHR);
+  const drop = b => { gl.deleteProgram(b.pr); gl.deleteShader(b.vs); gl.deleteShader(b.fs); };
+  // Reads a finished build: { error } or the program and what it needs. Line numbers in errors are counted in the user's own text.
+  function finish(b) {
+    const { vs, fs, pr, knobs } = b, bad = !gl.getShaderParameter(fs, gl.COMPILE_STATUS) ? gl.getShaderInfoLog(fs) : !gl.getShaderParameter(vs, gl.COMPILE_STATUS) ? gl.getShaderInfoLog(vs) : null;
+    if (bad !== null) { drop(b); return { error: String(bad || 'the shader did not compile').replace(/ERROR: (\d+):(\d+)/g, (_, f, l) => `line ${Math.max(1, Number(l) - PRE_LINES)}`).trim().split('\n')[0] }; }
+    if (!gl.getProgramParameter(pr, gl.LINK_STATUS)) { const error = gl.getProgramInfoLog(pr) || 'the shader did not link'; drop(b); return { error }; }
+    gl.deleteShader(vs); gl.deleteShader(fs);
     gl.useProgram(pr);
     gl.uniform3fv(gl.getUniformLocation(pr, 'C1'), colours[0]); gl.uniform3fv(gl.getUniformLocation(pr, 'C2'), colours[1]);
     const u = n => gl.getUniformLocation(pr, n);
     return { pr, knobDefs: knobs, locs: { NL: u('NL'), SKEL: u('SKEL'), PAT: u('PAT'), R: u('R'), T: u('T'), BEAT: u('BEAT'), HITS: u('HITS'), LANE: u('LANE'), KN: u('KN[0]') }, at: gl.getAttribLocation(pr, 'a') };
   }
+  const build = (src, laneNames) => { const b = start(src, laneNames); return finish(b); };   // all at once, for the built-in picture
   const sameNames = (a, b) => a.length === b.length && a.every((x, i) => x[0] === b[i][0] && x[1] === b[i][1]);
   let sources = [DEFAULT_GLSL], fallback = false, shown = null;
+  const building = new Map();   // shader number -> the build in flight; only one per shader, so a slider that changes the text every frame cannot pile them up
+  // The program to draw shader i with. A changed text is built in the background and the old picture keeps running until the new one is
+  // ready (null only while the very first build of a shader is still going).
   const entryFor = (i, laneNames) => {
     let e = entries.get(i);
-    if (e && sameNames(e.names, laneNames)) return e;
+    const want = sources[i];
+    if (e && e.src === want && sameNames(e.names, laneNames)) return e;
+    let b = building.get(i);
+    if (!b) { b = start(want, laneNames); building.set(i, b); }
+    if (!ready(b)) return e ?? null;
+    building.delete(i);
+    const current = b.src === want && sameNames(b.names, laneNames);   // else the text changed again while it was building: use it, build the newer next frame
+    let r = finish(b), err = r.error ?? '', fell = false;
+    if (r.error && !current) return e ?? null;   // a mistake in a text that is already out of date says nothing
+    if (r.error && want !== DEFAULT_GLSL) { r = build(DEFAULT_GLSL, laneNames); fell = true; }
     if (e?.pr) gl.deleteProgram(e.pr);
-    let r = build(sources[i], laneNames), err = r.error ?? '', fell = false;
-    if (r.error && sources[i] !== DEFAULT_GLSL) { r = build(DEFAULT_GLSL, laneNames); fell = true; }
-    e = { ...r, err, fell, names: laneNames };
+    e = { ...r, err, fell, names: b.names, src: b.src };
     entries.set(i, e);
     return e;
   };
   return {
-    // The shader texts to use, one per shader (an empty one is the built-in picture). Takes effect at the next draw; only changed ones are built again.
+    // The shader texts to use, one per shader (an empty one is the built-in picture). Takes effect at the next draw; only changed ones are built again,
+    // in the background: the picture keeps its last working shader until the new one is ready.
     setSources(list) {
       const next = (list.length ? list : ['']).map(t => (t && t.trim() ? t : DEFAULT_GLSL));
-      for (const [i, e] of [...entries]) if (next[i] !== sources[i]) { if (e.pr) gl.deleteProgram(e.pr); entries.delete(i); }
+      for (const [i, e] of [...entries]) if (i >= next.length) { if (e.pr) gl.deleteProgram(e.pr); entries.delete(i); }
+      for (const [i, b] of [...building]) if (i >= next.length) { drop(b); building.delete(i); }
       sources = next; shown = null;
     },
     setSource(text) { this.setSources([text]); },
     draw(data) {
       const e = entryFor(Math.max(0, Math.min(sources.length - 1, Math.floor(data.shader ?? 0))), data.names.map(n => [...n]));
-      if (shown !== e) { shown = e; fallback = e.fell; onError(e.err); }
-      if (!e.pr) return;
+      if (e && shown !== e) { shown = e; fallback = e.fell; onError(e.err); }
+      if (!e?.pr) return;
       const { locs } = e;
       gl.useProgram(e.pr); gl.enableVertexAttribArray(e.at); gl.vertexAttribPointer(e.at, 2, gl.FLOAT, false, 0, 0);
       gl.uniform2f(locs.R, size, size); gl.uniform1f(locs.T, data.T); gl.uniform1f(locs.BEAT, data.BEAT); gl.uniform1f(locs.HITS, data.HITS);

@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 504 · 2026-10-29
+
+- Shader screen: dragging a number slider (or typing) no longer makes the picture stutter. A changed shader is now compiled in the background (KHR_parallel_shader_compile, where the browser has it) and the old picture keeps running until the new one is ready; only one build is in flight at a time, so a slider cannot pile them up. A mistake in the text still falls back to the built-in picture, as before. Browsers without the extension build as they did.
+
 ## 503 · 2026-10-28
 
 - Code node: tuple assignment, `a, b, c = x, y, z;`. All values on the right are worked out first, so `a, b = b, a;` swaps. A wrong count gives an error.
