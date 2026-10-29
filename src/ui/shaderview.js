@@ -247,6 +247,11 @@ export function createShaderView({ parts, config, store, defaultSource, template
   // ---- the knobs panel: every number in the text with a slider of its own ----
   const knobsEl = parts.knobs, rows = [];
   let knobTimer = 0;
+  // The row last used stays shaded until another row is used, also when the list is rebuilt after an edit. A row is known by its key: the
+  // number's place in the text ("n3"), or an exposed number's name ("x:rad").
+  let activeKnob = '';
+  const setActive = key => { activeKnob = key; for (const row of knobsEl.children) row.classList.toggle('active', row.dataset.key === key); };
+  const track = (el, key) => { el.dataset.key = key; if (key === activeKnob) el.classList.add('active'); for (const type of ['pointerdown', 'input', 'focusin']) el.addEventListener(type, () => { if (activeKnob !== key) setActive(key); }); };
   const nth = i => numbers(input.value)[i];
   let liveTimer = 0;
   const plain = v => { const t = String(Number(v.toFixed(6))); return t.includes('.') ? t : `${t}.`; };
@@ -305,6 +310,7 @@ export function createShaderView({ parts, config, store, defaultSource, template
         el.addEventListener('mouseenter', () => { hoverMark = c.start; draw(); });
         el.addEventListener('mouseleave', () => { hoverMark = -1; draw(); });
         if (here) live.push(() => { if (document.activeElement !== r) { const v = machine.get(c.name); if (v !== undefined && Number(r.value) !== v) { r.value = v; show(v); } } });
+        track(el, `x:${c.name}`);
         el.append(dot, r, val, btn, ctx); knobsEl.append(el);
         continue;
       }
@@ -354,6 +360,7 @@ export function createShaderView({ parts, config, store, defaultSource, template
         });
         el.append(ex);
       }
+      track(el, `n${i}`);
       knobsEl.append(el); rows.push(row);
     }
     // inputs the machine has that no kn() call uses any more

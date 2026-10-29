@@ -997,7 +997,8 @@
     #shader-paint.plain .n, #shader-paint.plain .i { background: none; box-shadow: none; }
     #shader-knobs { flex: 0 0 17rem; height: calc(100vh - 14rem); min-height: 14rem; overflow-y: auto; padding: .4rem .5rem; box-sizing: border-box; background: var(--panel); border: 1px solid color-mix(in srgb, var(--fg) 25%, transparent); font: 11px ui-monospace, Consolas, monospace; display: flex; flex-direction: column; gap: .35rem; }
     #shader-knobs[hidden] { display: none; }
-    #shader-knobs .knob { display: grid; grid-template-columns: auto minmax(0, 1fr) 2.6rem auto auto; gap: .1rem .4rem; align-items: center; padding-bottom: .3rem; border-bottom: 1px solid color-mix(in srgb, var(--fg) 10%, transparent); }
+    #shader-knobs .knob { display: grid; grid-template-columns: auto minmax(0, 1fr) 2.6rem auto auto; gap: .1rem .4rem; align-items: center; padding: .2rem .25rem .3rem; border-bottom: 1px solid color-mix(in srgb, var(--fg) 10%, transparent); }
+    #shader-knobs .knob.active { background: color-mix(in srgb, var(--hi, #4a90d9) 18%, transparent); box-shadow: inset 2px 0 0 var(--hi, #4a90d9); border-radius: 3px; }   /* the row last used */
     #shader-knobs .knob.off .val, #shader-knobs .knob.off input[type=range] { opacity: .45; }
     #shader-knobs .knob .ctx { grid-column: 1 / -1; color: color-mix(in srgb, var(--fg) 55%, transparent); white-space: pre; overflow: hidden; text-overflow: ellipsis; }
     #shader-knobs .knob .ctx b { color: color-mix(in srgb, #d98a4a 80%, var(--fg)); font-weight: 600; }

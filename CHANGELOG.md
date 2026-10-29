@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 514 · 2026-10-29
+
+- Shader screen, Knobs list: the row you last used (dragged, ticked, reset, exposed) is shaded, with an accent bar on its left, and stays shaded until you use another row, also when the list is rebuilt after you edit the code.
+
 ## 513 · 2026-10-29
 
 - Shader screen: two piano-roll shaders that show every lane at once, each lane in its own colour. "Roll, all lanes" is one roll, time left to right and pitch up, where notes of different lanes overlap and glow. "Roll, stacked" draws each lane as a see-through sheet, the sheets stacked in space one behind the other, so overlapping notes of several machines stay visible. Notes last until the next note or note off of their lane (at most the "note length" knob). Knobs: note length, octaves, centre, and for the stack the view angle (30 is isometric, 90 stacks them straight up) and spread. Turn off Pattern skeleton to hide the lane names drawn beside the picture.
