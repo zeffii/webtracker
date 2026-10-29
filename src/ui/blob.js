@@ -10,8 +10,11 @@ if(i==0)q=mix(q,vec3(M*vec2(.9,1.1),0.),.45);return q;}
 float map(vec3 p){float d=1e3;for(int i=0;i<4;i++){float f=float(i);float r=.42+.1*sin(T*.4+f*1.7)+.05*B;d=smin(d,length(p-.82*P(i,T))-r,.7);}return d;}
 vec3 nrm(vec3 p){vec2 e=vec2(.003,0);return normalize(vec3(map(p+e.xyy)-map(p-e.xyy),map(p+e.yxy)-map(p-e.yxy),map(p+e.yyx)-map(p-e.yyx)));}
 void main(){vec2 uv=gl_FragCoord.xy/R;vec2 p=(gl_FragCoord.xy-.5*R)/min(R.x,R.y*1.15);
-vec3 bg=mix(vec3(.93,.91,.88),vec3(.78,.81,.85),smoothstep(.45,1.,uv.y));bg=mix(bg,vec3(.95,.93,.9),smoothstep(.5,.0,uv.y)*.5);
-bg*=1.-.16*pow(length(p)*.8,2.);
+// a lava lamp's room: light pink at the top fading to light green at the bottom, with a soft glow at each end where the bulbs would be
+vec3 pink=vec3(1.,.62,.78),green=vec3(.50,.95,.68);
+vec3 bg=mix(mix(vec3(.80,.95,.85),vec3(.97,.97,.95),smoothstep(.05,.5,uv.y)),vec3(.98,.85,.91),smoothstep(.5,.95,uv.y));   // a pale warm white between them, so the two do not mix to grey
+bg+=pink*.16*pow(max(0.,1.-length((uv-vec2(.5,1.04))*vec2(.9,1.5))),2.)+green*.16*pow(max(0.,1.-length((uv-vec2(.5,-.04))*vec2(.9,1.5))),2.);
+bg*=1.-.07*pow(length(p)*.8,2.);
 vec3 ro=vec3(0.,0.,-5.6),rd=normalize(vec3(p,1.9));float t=0.;bool hit=false;
 for(int i=0;i<72;i++){float d=map(ro+rd*t);if(d<.002){hit=true;break;}t+=d;if(t>9.)break;}
 vec3 col=bg;
@@ -36,6 +39,10 @@ body+=vec3(.05,.035,.0)*pow(key,3.)*(1.-thin);                                  
 body+=vec3(-.02,.02,.045)*fill*(1.-wrap)*.9;                                    // fill: slightly cooler on the shadow side
 body=mix(body,C2*vec3(1.0,.98,.94),pow(back,4.)*clamp(.25+thin,0.,1.)*.22);   // light from behind: shows through the thin parts and rims
 body=mix(body,C2,B*.18);
+// lit by the lamp: near the top the body turns pink, near the bottom green (nearer the edge, more), keeping its own shading and its glowing thin parts
+float topw=smoothstep(.5,.98,uv.y),botw=smoothstep(.5,.02,uv.y);
+vec3 zone=pink*topw+green*botw;float zw=max(topw,botw);
+body=mix(body,zone*(.72+.5*wrap)+zone*thin*.18,zw*.8);
 col=body;}
 // dither (triangular, about two levels) takes the banding out of the slow gradients, plus a faint grain
 vec2 fc=gl_FragCoord.xy+fract(T*7.3)*91.;

@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 530 · 2026-10-29
+
+- First screen: the metaball backdrop sits in a lava lamp's room. The background fades from light pink at the top, through a pale warm white, to light green at the bottom, with a soft glow where each lamp bulb would be. The blobs are lit by them: near the top they turn pink, near the bottom green (more the closer to the edge), and in the middle they keep their teal. Their shading and glowing thin necks are unchanged.
+
 ## 529 · 2026-10-29
 
 - Drum synth: no more clicks when a hit lands on a voice that is still ringing (a long decay, or a sustain above 0, with a hit before the last one has died away). The sine restarts at phase 0 on every hit, so the output jumped from wherever the old tone was to zero, by an amount that depended on where in its cycle the old tone happened to be; that is the click that came and went. The old output now carries on into the new hit and fades in about 1.5 ms, so the step is no bigger than a fresh hit's own start.
