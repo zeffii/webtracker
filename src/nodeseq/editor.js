@@ -32,6 +32,7 @@ export function createNodeSeqEditor({ root, getSong, noteTargets = () => [], par
 
   // ---- state
   let view = { x: -20, y: -20, zoom: 1 }, sel = new Set(), selWire = null, drag = null, hover = null, hoverNode = null, lastHoverNode = null, mouse = [0, 0], dirty = true;
+  const WIRE_DASH = { e: [], c: [3, 3], h: [7, 2.5], w: [1, 3] };
   const kindColor = (C, k) => (k === 'e' ? C.ev : k === 'h' ? C.hc : k === 'w' ? C.wc : C.ct);
   let active = new Set(), activeTo = new Set();   // the chord nodes a Phrase node is playing, and the wires they play along
   let live = null, pulses = [], flash = new Map(), errors = new Map(), mon = [];   // what the audio thread has told us
@@ -41,7 +42,9 @@ export function createNodeSeqEditor({ root, getSong, noteTargets = () => [], par
   const dark = () => { const c = /\d+/g, m = (typeof getComputedStyle === 'function' ? getComputedStyle(canvas).backgroundColor : '').match(c) ?? [20, 20, 20]; return (m[0] * 0.3 + m[1] * 0.59 + m[2] * 0.11) < 140; };
   const colours = () => {
     const d = dark(), cs = typeof getComputedStyle === 'function' ? getComputedStyle(canvas) : null;
-    return { ink: cs?.color || '#ccc', bg: cs?.backgroundColor || '#222', ev: d ? '#f0b04a' : '#b66a00', ct: d ? '#4fc3d9' : '#08819b', hi: cs?.getPropertyValue('--hi').trim() || '#3b6ea8', bad: '#e5484d', hc: d ? '#c99bf0' : '#7a3fb0', wc: d ? '#86d68f' : '#2f8a3c', dark: d };
+    // A drawing in ink on paper: every kind of port and wire is the ink colour, told apart by shape and dash. Only a selection (blue) and an error (red) have a colour.
+    const ink = cs?.color || '#ccc';
+    return { ink, bg: cs?.backgroundColor || '#222', ev: ink, ct: ink, hc: ink, wc: ink, hi: cs?.getPropertyValue('--hi').trim() || '#3b6ea8', bad: '#e5484d', dark: d };
   };
 
   // ---- the bar
@@ -103,8 +106,27 @@ export function createNodeSeqEditor({ root, getSong, noteTargets = () => [], par
   };
   const toScreen = (x, y) => [(x - view.x) * view.zoom, (y - view.y) * view.zoom];
   const toWorld = (sx, sy) => [sx / view.zoom + view.x, sy / view.zoom + view.y];
-  const curve = (a, b) => { const dx = Math.max(40, Math.abs(b.x - a.x) / 2); return [a.x, a.y, a.x + dx, a.y, b.x - dx, b.y, b.x, b.y]; };
-  const bez = (c, t) => { const u = 1 - t; return [u * u * u * c[0] + 3 * u * u * t * c[2] + 3 * u * t * t * c[4] + t * t * t * c[6], u * u * u * c[1] + 3 * u * u * t * c[3] + 3 * u * t * t * c[5] + t * t * t * c[7]]; };
+  // A wire is a line of right angles from the output to the input. A wire that runs backwards loops round the two nodes. Wires from one output share
+  // their upright, so they join like a bus.
+  const bendOf = id => { let h = 0; for (const ch of String(id)) h = (h * 31 + ch.charCodeAt(0)) % 7; return (h - 3) * 2.5; };
+  function route(a, b, id = '') {
+    const pad = 8;
+    if (b.x - a.x >= 2 * pad + 4) { const xm = clamp((a.x + b.x) / 2 + bendOf(id), a.x + pad, b.x - pad); return [[a.x, a.y], [xm, a.y], [xm, b.y], [b.x, b.y]]; }
+    const ym = (a.y + b.y) / 2 + (Math.abs(a.y - b.y) < 24 ? 26 : 0);
+    return [[a.x, a.y], [a.x + pad, a.y], [a.x + pad, ym], [b.x - pad, ym], [b.x - pad, b.y], [b.x, b.y]];
+  }
+  function tracePath(pts) {
+    ctx.beginPath(); ctx.moveTo(pts[0][0], pts[0][1]);
+    for (let i = 1; i < pts.length - 1; i++) ctx.arcTo(pts[i][0], pts[i][1], pts[i + 1][0], pts[i + 1][1], 3);
+    ctx.lineTo(pts[pts.length - 1][0], pts[pts.length - 1][1]);
+  }
+  function along(pts, t) {   // the point a fraction of the way along a line
+    const len = [0]; for (let i = 1; i < pts.length; i++) len.push(len[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
+    let at = t * len[len.length - 1], i = 1; while (i < pts.length - 1 && len[i] < at) i++;
+    const f = (at - len[i - 1]) / Math.max(1e-6, len[i] - len[i - 1]);
+    return [pts[i - 1][0] + (pts[i][0] - pts[i - 1][0]) * f, pts[i - 1][1] + (pts[i][1] - pts[i - 1][1]) * f];
+  }
+  const nearLine = (pts, x, y, r) => { for (let i = 1; i < pts.length; i++) { const [x0, y0] = pts[i - 1], [x1, y1] = pts[i], dx = x1 - x0, dy = y1 - y0, t = clamp(((x - x0) * dx + (y - y0) * dy) / Math.max(1e-6, dx * dx + dy * dy), 0, 1); if (Math.hypot(x0 + dx * t - x, y0 + dy * t - y) < r) return true; } return false; };
 
   // ---- drawing
   function draw(force = false) {
@@ -128,7 +150,7 @@ export function createNodeSeqEditor({ root, getSong, noteTargets = () => [], par
     if (!g || !g.nodes.length) {
       ctx.fillStyle = C.ink; ctx.globalAlpha = 0.55; ctx.textAlign = 'center';
       ctx.fillText('An empty graph. Press A, or right-click, to add a node: start with a clock.', W / 2, H / 2 - 8);
-      ctx.fillText('Events run on amber square ports, controls on cyan round ones. Drag from an output to an input.', W / 2, H / 2 + 12);
+      ctx.fillText('Events run on square ports, controls on round ones, chords on diamonds, weights on triangles. Drag from an output to an input.', W / 2, H / 2 + 12);
       ctx.globalAlpha = 1; ctx.textAlign = 'left';
       return;
     }
@@ -141,25 +163,26 @@ export function createNodeSeqEditor({ root, getSong, noteTargets = () => [], par
     g.wires.forEach((wr, i) => {
       const a = portPos(wr.from, 'out'), b = portPos(wr.to, 'in');
       if (!a || !b) return;
-      const c = curve(a, b), ev = a.k === 'e', picked = selWire === wr, lit = !wr.off && activeTo.has(wr.to);
-      ctx.beginPath(); ctx.moveTo(c[0], c[1]); ctx.bezierCurveTo(c[2], c[3], c[4], c[5], c[6], c[7]);
-      ctx.strokeStyle = kindColor(C, a.k); ctx.lineWidth = picked ? 3 : lit ? 3 : a.k === 'h' ? 1.8 : ev ? 1.6 : 1.3; ctx.globalAlpha = picked || lit ? 1 : a.k === 'h' ? 0.5 : ev ? 0.85 : 0.9;
-      ctx.setLineDash(wr.off ? [4, 5] : a.k === 'c' ? [2, 3] : a.k === 'w' ? [1, 3] : []);
-      if (wr.off) { ctx.strokeStyle = C.ink; ctx.globalAlpha = picked ? 0.8 : 0.35; ctx.lineWidth = picked ? 2 : 1.2; }   // switched off: grey and dashed ctx.stroke(); ctx.setLineDash([]); ctx.globalAlpha = 1;
+      const c = route(a, b, wr.from), picked = selWire === wr, lit = !wr.off && activeTo.has(wr.to);
+      tracePath(c);
+      ctx.strokeStyle = picked ? C.hi : C.ink; ctx.lineWidth = picked ? 2.6 : lit ? 2.6 : 1.1; ctx.globalAlpha = picked || lit ? 1 : 0.85;
+      ctx.setLineDash(wr.off ? [2, 5] : WIRE_DASH[a.k]);   // the kind of wire: solid events, dashed controls, long dashes chords, dots weights
+      if (wr.off) { ctx.globalAlpha = picked ? 0.8 : 0.4; }   // switched off: faint
+      ctx.stroke(); ctx.setLineDash([]); ctx.globalAlpha = 1;
       curves.set(wr, c);
     });
     for (const p of pulses) {   // a light along a wire that carried an event
       const wr = liveWires()[p.w];
       const c = wr && curves.get(wr); if (!c) continue;
-      const t = clamp((now - p.t) / 300, 0, 1), [x, y] = bez(c, t);
-      ctx.globalAlpha = 1 - t * 0.6; ctx.fillStyle = '#fff6dc'; ctx.strokeStyle = C.ev; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.arc(x, y, 3.4, 0, 7); ctx.fill(); ctx.stroke(); ctx.globalAlpha = 1;
+      const t = clamp((now - p.t) / 300, 0, 1), [x, y] = along(c, t);
+      ctx.globalAlpha = 1 - t * 0.6; ctx.fillStyle = C.bg; ctx.strokeStyle = C.ink; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.arc(x, y, 3.4, 0, 7); ctx.fill(); ctx.stroke(); ctx.globalAlpha = 1;
     }
     for (const n of g.nodes) drawNode(n, boxes.get(n.id), C);
     if (drag?.kind === 'wire') {   // the wire being made
       const a = drag.from.side === 'out' ? portPos(`${drag.from.id}.${drag.from.name}`, 'out') : portPos(`${drag.from.id}.${drag.from.name}`, 'in');
       if (a) {
-        const [mx, my] = toWorld(drag.x, drag.y), b = { x: mx, y: my }, c = drag.from.side === 'out' ? curve(a, b) : curve(b, a);
-        ctx.beginPath(); ctx.moveTo(c[0], c[1]); ctx.bezierCurveTo(c[2], c[3], c[4], c[5], c[6], c[7]); ctx.strokeStyle = kindColor(C, a.k); ctx.globalAlpha = 0.8; ctx.setLineDash([5, 4]); ctx.lineWidth = 1.4; ctx.stroke(); ctx.setLineDash([]); ctx.globalAlpha = 1;
+        const [mx, my] = toWorld(drag.x, drag.y), b = { x: mx, y: my }, c = drag.from.side === 'out' ? route(a, b) : route(b, a);
+        tracePath(c); ctx.strokeStyle = C.ink; ctx.globalAlpha = 0.8; ctx.setLineDash([5, 4]); ctx.lineWidth = 1.4; ctx.stroke(); ctx.setLineDash([]); ctx.globalAlpha = 1;
       }
     }
     if (drag?.kind === 'marquee') { ctx.strokeStyle = C.hi; ctx.fillStyle = C.hi; ctx.globalAlpha = 0.15; const [x0, y0] = toWorld(drag.x0, drag.y0), [x1, y1] = toWorld(drag.x, drag.y); ctx.fillRect(Math.min(x0, x1), Math.min(y0, y1), Math.abs(x1 - x0), Math.abs(y1 - y0)); ctx.globalAlpha = 1; ctx.strokeRect(Math.min(x0, x1), Math.min(y0, y1), Math.abs(x1 - x0), Math.abs(y1 - y0)); }
@@ -183,7 +206,7 @@ export function createNodeSeqEditor({ root, getSong, noteTargets = () => [], par
   }
   const roundRect = (x, y, w, h, r) => { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); };
   function drawNode(n, b, C) {
-    const T = NS_TYPES[n.type], picked = sel.has(n.id), now = typeof performance !== 'undefined' ? performance.now() : 0, gcol = GROUP_COLORS[n.group ?? 0], off = live && !live.on[n.group ?? 0];
+    const T = NS_TYPES[n.type], picked = sel.has(n.id), now = typeof performance !== 'undefined' ? performance.now() : 0, off = live && !live.on[n.group ?? 0];
     ctx.save();
     if (off) ctx.globalAlpha = 0.5;
     if (isDot(n.type)) {   // a route point: a solid dot in its wire's colour
@@ -191,12 +214,11 @@ export function createNodeSeqEditor({ root, getSong, noteTargets = () => [], par
       ctx.strokeStyle = picked ? C.hi : C.ink; ctx.lineWidth = picked ? 2.5 : 1; ctx.stroke();
       ctx.restore(); return;
     }
-    roundRect(b.x, b.y, b.w, b.h, 5); ctx.fillStyle = C.bg; ctx.fill();   // the page's own colour first, so a wire behind the tile does not show through
-    ctx.fillStyle = C.dark ? 'rgba(255,255,255,.09)' : 'rgba(0,0,0,.08)'; ctx.fill();
-    const f = flash.get(n.id), lit = picked || active.has(n.id);
-    ctx.strokeStyle = picked ? C.hi : active.has(n.id) ? C.hc : f && now - f < 260 ? C.ev : C.dark ? 'rgba(255,255,255,.28)' : 'rgba(0,0,0,.35)'; ctx.lineWidth = lit ? 2 : 1;
-    roundRect(b.x + 0.5, b.y + 0.5, b.w - 1, b.h - 1, 5); ctx.stroke();
-    ctx.fillStyle = gcol; ctx.fillRect(b.x, b.y + 3, 2.5, b.h - 6);
+    ctx.fillStyle = C.bg; ctx.fillRect(b.x, b.y, b.w, b.h);   // the page's own colour, so a wire behind the tile does not show through
+    const f = flash.get(n.id);
+    ctx.strokeStyle = picked ? C.hi : C.ink; ctx.lineWidth = picked || active.has(n.id) || (f && now - f < 260) ? 2 : 1;   // the playing chord and a node that just got an event are drawn heavier
+    ctx.strokeRect(b.x + 0.5, b.y + 0.5, b.w - 1, b.h - 1);
+    if ((n.group ?? 0) > 0) { ctx.font = '6px ui-monospace, Consolas, monospace'; ctx.fillStyle = C.ink; ctx.textAlign = 'right'; ctx.fillText(GROUP_NAMES[n.group], b.x + b.w - 3, b.y + 8); ctx.textAlign = 'left'; }   // the group, when it is not A
     if (errors.has(n.id)) { ctx.fillStyle = C.bad; ctx.beginPath(); ctx.arc(b.x + b.w - 5, b.y + 5, 2.5, 0, 7); ctx.fill(); }
     drawBody(n, b, C, T);
     if (METER.has(n.type)) { const v = clamp(live?.nodes?.[n.id]?.v ?? 0, 0, 1); ctx.fillStyle = C.dark ? 'rgba(255,255,255,.14)' : 'rgba(0,0,0,.14)'; ctx.fillRect(b.x + 6, b.y + b.h - 5, b.w - 12, 2); ctx.fillStyle = C.ct; ctx.fillRect(b.x + 6, b.y + b.h - 5, (b.w - 12) * v, 2); }
@@ -220,25 +242,28 @@ export function createNodeSeqEditor({ root, getSong, noteTargets = () => [], par
   const WHITE_PC = [0, 2, 4, 5, 7, 9, 11], BLACK_AT = { 1: 0.7, 3: 1.7, 6: 3.7, 8: 4.7, 10: 5.7 };
   // Two octaves of keyboard under a Chord node: the chord's notes lit, and under each lit key a bar for that note's volume.
   function drawKeyboard(n, b, C) {
-    const cv = chordView(n.data, n.params), on = active.has(n.id), kw = 4.2, x = b.x + b.w / 2 - kw * 7, ky = b.y + b.h + 3;
+    const cv = chordView(n.data, n.params), on = active.has(n.id), kw = 4.2, x = b.x + b.w / 2 - kw * 7, ky = b.y + 15;
     const lo = cv.notes.length ? Math.floor(Math.min(...cv.notes) / 12) * 12 : 48;
     const index = new Map(cv.notes.map((m, i) => [m, i])), liveVels = live?.nodes?.[n.id]?.vels;   // while playing, the volumes the controls give now
     const keep = ctx.globalAlpha;
     ctx.globalAlpha = keep * (on ? 1 : 0.65);
     for (let i = 0; i < 14; i++) {
       const m = lo + WHITE_PC[i % 7] + 12 * Math.floor(i / 7);
-      ctx.fillStyle = index.has(m) ? C.ev : C.dark ? 'rgba(255,255,255,.16)' : 'rgba(0,0,0,.12)'; ctx.fillRect(x + i * kw, ky, kw - 0.5, 14);
+      const lit = index.has(m); ctx.fillStyle = lit ? C.ink : C.bg; ctx.fillRect(x + i * kw, ky, kw - 0.5, 14);
+      if (!lit) { ctx.strokeStyle = C.ink; ctx.lineWidth = 0.5; ctx.strokeRect(x + i * kw + 0.25, ky + 0.25, kw - 1, 13.5); }
     }
     for (let o = 0; o < 2; o++) for (const k in BLACK_AT) {
       const m = lo + Number(k) + 12 * o, bx = x + (BLACK_AT[k] + 7 * o) * kw + kw * 0.62;
-      ctx.fillStyle = index.has(m) ? C.ev : C.ink; ctx.globalAlpha = keep * (on ? 1 : 0.65) * (index.has(m) ? 1 : 0.8); ctx.fillRect(bx, ky, kw * 0.62, 8.5);
+      ctx.globalAlpha = keep * (on ? 1 : 0.65);
+      if (index.has(m)) { ctx.fillStyle = C.bg; ctx.fillRect(bx, ky, kw * 0.62, 8.5); ctx.strokeStyle = C.ink; ctx.lineWidth = 0.8; ctx.strokeRect(bx + 0.4, ky + 0.4, kw * 0.62 - 0.8, 7.7); }   // a pressed black key is drawn hollow
+      else { ctx.fillStyle = C.ink; ctx.fillRect(bx, ky, kw * 0.62, 8.5); }
     }
     ctx.globalAlpha = keep * (on ? 1 : 0.65);
     for (const [m, i] of index) {   // the volume bars
       const pc = m - lo, oct = Math.floor(pc / 12);
       if (pc < 0 || pc >= 24) continue;
       const wi = WHITE_PC.indexOf(pc % 12), cx = wi >= 0 ? x + (wi + 7 * oct) * kw + kw / 2 : x + (BLACK_AT[pc % 12] + 7 * oct) * kw + kw * 0.93;
-      const h = 12 * (liveVels?.length === cv.notes.length ? liveVels[i] : cv.vels[i]); ctx.fillStyle = C.ev; ctx.fillRect(cx - 1.5, ky + 16 + (12 - h), 3, Math.max(1, h));
+      const h = 11 * (liveVels?.length === cv.notes.length ? liveVels[i] : cv.vels[i]); ctx.fillStyle = C.ev; ctx.fillRect(cx - 1.5, ky + 17 + (11 - h), 3, Math.max(1, h));
     }
     ctx.globalAlpha = keep;
   }
@@ -277,6 +302,12 @@ export function createNodeSeqEditor({ root, getSong, noteTargets = () => [], par
       ctx.stroke();
       return;
     }
+    if (n.type === 'Chord') {   // the chord's name, and the keyboard with a volume bar under each note: the keyboard says it is a chord, so no glyph
+      const bad = chordView(n.data, n.params).error;
+      ctx.font = FONT; ctx.fillStyle = bad ? C.bad : C.ink; ctx.globalAlpha *= 0.85; ctx.textAlign = 'center'; ctx.fillText(tileLabel(n, v, 0) || '?', cx, b.y + 10); ctx.textAlign = 'left'; ctx.globalAlpha /= 0.85;
+      drawKeyboard(n, b, C);
+      return;
+    }
     // the rest: a glyph, and a few characters under it
     const chords = n.type === 'Phrase' ? (graph()?.wires ?? []).filter(wr => wr.to.startsWith(`${n.id}.c`)).length : 0;
     const label = tileLabel(n, v, chords);
@@ -284,7 +315,6 @@ export function createNodeSeqEditor({ root, getSong, noteTargets = () => [], par
     drawGlyph(ctx, n.type, cx - 7, b.y + (label ? 5 : (b.h - 14) / 2), 14, C.ink);
     if (label) { ctx.font = FONT; ctx.fillStyle = bad ? C.bad : C.ink; ctx.globalAlpha *= bad ? 1 : 0.7; ctx.textAlign = 'center'; ctx.fillText(label, cx, b.y + b.h - 5); ctx.textAlign = 'left'; ctx.globalAlpha /= bad ? 1 : 0.7; }
     if (n.type === 'note' && v?.on) { ctx.fillStyle = C.ev; ctx.fillRect(b.x + b.w - 8, b.y + 3, 5, 5); }
-    if (n.type === 'Chord') drawKeyboard(n, b, C);
   }
 
   const euclid = (i, p) => { const s = Math.max(1, Math.round(p?.steps ?? 8)), pl = Math.max(0, Math.round(p?.pulses ?? 5)), r = Math.round(p?.rot ?? 0), k = (((i + r) % s) + s) % s; return (k * pl) % s < pl; };
@@ -304,7 +334,7 @@ export function createNodeSeqEditor({ root, getSong, noteTargets = () => [], par
     const g = graph(); if (!g) return null;
     for (const wr of [...g.wires].reverse()) {
       const c = curves.get(wr); if (!c) continue;
-      for (let i = 0; i <= 24; i++) { const [x, y] = bez(c, i / 24); if (Math.hypot(x - wx, y - wy) < 6 / view.zoom + 2) return wr; }
+      if (nearLine(c, wx, wy, 6 / view.zoom + 2)) return wr;
     }
     return null;
   }
@@ -383,7 +413,7 @@ export function createNodeSeqEditor({ root, getSong, noteTargets = () => [], par
         if (a.side === 'out' && b.side === 'in' && canConnect(g, `${a.id}.${a.name}`, `${b.id}.${b.name}`)) {
           checkpoint();
           if (connect(g, `${a.id}.${a.name}`, `${b.id}.${b.name}`)) structure(); else say('Those two are already wired.');
-        } else if (q.side === d.from.side || q.k !== d.from.k) say(q.k !== d.from.k ? 'Events and controls do not mix: amber squares to amber squares, cyan dots to cyan dots.' : 'Wire an output to an input.');
+        } else if (q.side === d.from.side || q.k !== d.from.k) say(q.k !== d.from.k ? 'Those do not mix: squares go to squares, dots to dots, diamonds to diamonds, triangles to triangles.' : 'Wire an output to an input.');
       } else if (!q && g && Math.hypot(sx - d.x, sy - d.y) > 0 && d.from.side === 'out') {
         // dropped on empty space: the palette, showing the nodes that can take this wire; the new node is wired up
         openPalette(sx, sy, { wire: d.from });
@@ -552,7 +582,7 @@ export function createNodeSeqEditor({ root, getSong, noteTargets = () => [], par
     if (!n) {
       side.append(el('h3', { textContent: 'Node Sequencer' }));
       const help = [
-        'Nodes send events (amber squares) on ticks and subticks, and controls (cyan dots) at signal rate.',
+        'Nodes send events (squares) on ticks and subticks, and controls (dots) at signal rate; chords (diamonds) and note volumes (triangles) are pulled by the node they go into.',
         'Drag from an output to an input. Drop a wire on empty space to add a node for it.',
         'A, or a right-click, adds a node. Ctrl+D copies, Delete removes, 1 to 8 puts the selection in a group.',
         'It plays beside the pattern lanes, on the same clock. The pattern lane (G1 to G8) can start and stop groups.',

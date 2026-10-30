@@ -2,6 +2,12 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 547 · 2026-10-30
+
+- Node Sequencer: a new **schematic look**. Nodes are outlined boxes, everything is drawn in one ink colour, and wires run in right angles with rounded corners. Wire kinds are told apart by their dashes (solid events, dotted controls, long dashes chords, dots weights). The playing chord gets a heavy outline.
+- The Chord tile is wider and holds its keyboard inside the body, with the chord name on top.
+- Fix: in build 546 wires were not drawn at all (a stray comment swallowed the stroke call). They are drawn again.
+
 ## 546 · 2026-10-30
 
 - Node Sequencer: **route points**, a dot that passes on what comes in (one for events, controls, chords and weights), for bending a wire around other nodes. Double-click a wire to put one on it, or drop a wire on empty space and pick "route". Drag from the middle of a dot to wire out of it; drag its rim to move it.

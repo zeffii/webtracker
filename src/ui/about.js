@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['547', ['Node Sequencer: a schematic look, outlined boxes in one ink with right-angle wires told apart by dashes; the Chord tile is wider and holds its keyboard. Fixes wires missing in 546']],
   ['546', ['Node Sequencer: route dots (double-click a wire), wires that can be switched off (Alt+click, M), live note volumes under Chord nodes, a length input on the Phrase node']],
   ['545', ['Node Sequencer: nodes are small tiles, a glyph and a short value with port names shown when you rest the pointer on a port; existing graphs are moved closer together once']],
   ['544', ['Node Sequencer: Chord, Phrase and Voicing nodes: chords with a volume for every note, a Phrase node that plays the chord at its index, a keyboard under each Chord node; new demo ?demo=voicing']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['540', ['Cardinal: a quality switch, standard or eco. Standard is the sound as it was; eco uses about a fifth less CPU on a busy lead.']],
   ['539', ['Drum synth: its click fades in over a few samples, so a hit no longer starts with a small random tick.']],
   ['538', ['Pattern editor: the playhead and loop lines sit on the real rows, so the line follows the playing tick whatever the font, zoom or screen scaling.']],
-  ['537', ['Three spectral effects (Effects, Spectral): the harmonic/percussive split, a spectral compressor with tilt, and cross synthesis.']],
 ];

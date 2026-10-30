@@ -38,7 +38,7 @@ export const GLYPHS = {
 };
 
 // Tiles wider than the usual: the ones that draw something of their own across the tile.
-export const WIDTH = { steps: 150, euclid: 100 };
+export const WIDTH = { steps: 150, euclid: 100, Chord: 72 };   // a Chord tile holds its keyboard
 
 // The size of a tile: wide enough for its own picture and tall enough for the ports along its edges.
 export const DOT = 14;   // a route point is a dot this wide
