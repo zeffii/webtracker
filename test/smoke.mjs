@@ -7217,7 +7217,16 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     const names = JSON.parse(run(`progression(8, 'A', '${mode}', { style: '${style}', seed: ${seed} })`, { expr: true }).value);
     assert.equal(names.length, 8); assert.equal(names[0], mode === 'major' ? (style === 'jazz' ? 'Amaj7' : 'A') : (style === 'jazz' ? 'Am7' : 'Am'), `${style} ${mode} starts at home`);
     assert.notEqual(names[6], names[7], `${style} ${mode} ${seed}: the last chord is not a repeat`);
+    assert.equal(run(`leadsHome('${names[7]}', 'A', '${mode}', { style: '${style}' })`, { expr: true }).value, 'true', `${style} ${mode} ${seed}: the last chord leads back to the first (it circles round)`);
+    const home = JSON.parse(run(`progression(8, 'A', '${mode}', { style: '${style}', seed: ${seed}, end: 'home' })`, { expr: true }).value);
+    assert.equal(home[7], names[0], `${style} ${mode} ${seed}: end 'home' lands on the home chord`);
   }
+  // nextChord carries a progression of your own on so that it comes round in the length you say
+  { let list = ['Am', 'F'];
+    for (let i = 0; i < 6; i++) list.push(run(`nextChord(${JSON.stringify(list)}, 8, 'A', 'minor', { seed: ${i + 3} })`, { expr: true }).value);
+    assert.equal(list.length, 8); assert.equal(run(`leadsHome('${list[7]}', 'A', 'minor')`, { expr: true }).value, 'true', 'a progression built with nextChord circles round');
+    assert.equal(run("nextChord([], 4, 'A', 'minor')", { expr: true }).value, 'Am', 'it starts on the home chord');
+    assert.equal(run("nextChord(['Am', 'F', 'C', 'G'], 4, 'A', 'minor')", { expr: true }).value, 'null', 'and says when the progression is complete'); }
   assert.equal(run("progression(6, 'C', 'major', { seed: 9 }).join(' ')", { expr: true }).value, run("progression(6, 'C', 'major', { seed: 9 }).join(' ')", { expr: true }).value, 'same seed, same progression');
   // the preview under the editor finds chords(...) calls written with plain text, and reports a bad name
   { const { findChords } = await import('../src/script/chordviz.js');

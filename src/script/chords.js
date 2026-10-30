@@ -211,43 +211,93 @@ const SEVENTH = {
   minor: { i: '7', ii: 'ø', III: 'maj7', iv: '7', v: '7', V: '7', VI: 'maj7', VII: '7' },
 };
 
-// progression(length, key, mode, { style: 'pop' | 'jazz' | 'techno', sevenths, spice, seed }): chord names, starting on the
-// home chord and ending on it. The seed is the random function the script gives it. spice (0 to 1) is how often a chord
-// is swapped for the dominant of the chord after it.
-export function progression(rand, length = 4, key = 'C', mode = 'major', o = {}) {
-  if (!Number.isInteger(length) || length < 2 || length > 64) throw new Error('progression(length, key, mode): length is a whole number from 2 to 64');
+// ---- walking the table ----
+const weighted = (rand, weights) => {
+  const entries = Object.entries(weights).filter(([, w]) => w > 0), total = entries.reduce((sum, [, w]) => sum + w, 0);
+  if (!entries.length) return null;
+  let r = rand() * total;
+  for (const [c, w] of entries) { r -= w; if (r <= 0) return c; }
+  return entries[entries.length - 1][0];
+};
+// `total` numerals starting with `first`, each a likely move from the one before (never the same twice, home only rarely on the way), tried again
+// until the last one is acceptable: end 'loop' wants a chord that leads back to the home chord (so the progression circles round when it repeats),
+// end 'home' wants the home chord itself, a full stop.
+function walk(rand, table, home, first, total, end) {
+  const pre = resolves(table, home), good = end === 'home' ? [home] : pre;
+  let seq = [first];
+  for (let tries = 0; tries < 400; tries++) {
+    seq = [first];
+    while (seq.length < total) {
+      const here = seq[seq.length - 1], last = seq.length === total - 1;
+      const next = { ...(table[here] ?? { [pre[0] ?? home]: 1 }) };
+      delete next[here];
+      for (const c of Object.keys(next)) {
+        if (last) { if (!good.includes(c)) delete next[c]; }
+        else if (!table[c]) delete next[c];
+        else if (c === home) next[c] *= 0.25;
+      }
+      const c = weighted(rand, next);
+      if (c === null) break;
+      seq.push(c);
+    }
+    if (seq.length === total && good.includes(seq[total - 1]) && (end !== 'home' || total < 3 || pre.includes(seq[total - 2]))) return seq;
+  }
+  seq = seq.slice(0, total - 1);
+  while (seq.length < total - 1) seq.push(seq[seq.length - 1] === pre[0] ? home : pre[0]);
+  seq.push(good[0]);
+  return seq;
+}
+const setup = (mode, o) => {
   const style = o.style ?? 'pop', kind = String(mode).toLowerCase() === 'minor' ? 'minor' : 'major';
   if (!MOVES[style]) throw new Error(`style is ${Object.keys(MOVES).join(', ')}, not "${style}"`);
-  const table = MOVES[style][kind], home = HOME[kind];
-  const pre = resolves(table, home);
-  const seq = [home];
-  const choose = weights => {
-    const entries = Object.entries(weights).filter(([, w]) => w > 0), total = entries.reduce((s, [, w]) => s + w, 0);
-    if (!entries.length) return null;
-    let r = rand() * total;
-    for (const [c, w] of entries) { r -= w; if (r <= 0) return c; }
-    return entries[entries.length - 1][0];
-  };
-  while (seq.length < length - 1) {
-    const here = seq[seq.length - 1], left = length - 2 - seq.length;   // chords still to place after this one, before the last
-    const next = { ...table[here] };
-    delete next[here];
-    for (const c of Object.keys(next)) {
-      if (!table[c]) delete next[c];                                    // a chord with nowhere to go cannot be used
-      else if (left === 0 && !pre.includes(c)) delete next[c];         // the chord before the last must resolve (and is never home itself)
-      else if (c === home) next[c] *= 0.25;                             // coming home early is allowed, but rarely
-      else if (left === 1 && !Object.keys(table[c]).some(n => pre.includes(n))) delete next[c];   // and the one before that must lead to one
-    }
-    seq.push(choose(next) ?? pre[0] ?? home);
-  }
-  seq.push(home);
-  const names = [];
+  const end = o.end ?? 'loop';
+  if (end !== 'loop' && end !== 'home') throw new Error(`end is 'loop' (the last chord leads back to the first) or 'home' (the last chord is the home chord), not "${end}"`);
+  return { style, kind, end, table: MOVES[style][kind], home: HOME[kind] };
+};
+// Numerals to chord names, with the options that dress them: sevenths, and spice (a chord swapped for the dominant of the one after it).
+function dress(seq, rand, key, mode, { style, kind, home }, o) {
   const sev = o.sevenths ?? style === 'jazz', spice = o.spice ?? 0;
-  for (let i = 0; i < seq.length; i++) {
-    const token = seq[i];
+  return seq.map((token, i) => {
     const next = seq[i + 1];
-    if (spice > 0 && next && i > 0 && next !== home && rand() < spice) names.push(prog(`V7/${next}`, key, mode)[0]);
-    else names.push(prog(sev ? token + (SEVENTH[kind][token] ?? '') : token, key, mode)[0]);
+    if (spice > 0 && next && i > 0 && next !== home && rand() < spice) return prog(`V7/${next}`, key, mode)[0];
+    return prog(sev ? token + (SEVENTH[kind][token] ?? '') : token, key, mode)[0];
+  });
+}
+
+// progression(length, key, mode, { style: 'pop' | 'jazz' | 'techno', end: 'loop' | 'home', sevenths, spice, seed }): chord names, starting on the
+// home chord. With end 'loop' (the default) the last chord leads back to the first, so the progression circles round when it plays again; with
+// end 'home' it ends on the home chord itself. The seed is the random function the script gives it. spice (0 to 1) is how often a chord is
+// swapped for the dominant of the chord after it.
+export function progression(rand, length = 4, key = 'C', mode = 'major', o = {}) {
+  if (!Number.isInteger(length) || length < 2 || length > 64) throw new Error('progression(length, key, mode): length is a whole number from 2 to 64');
+  const set = setup(mode, o);
+  return dress(walk(rand, set.table, set.home, set.home, length, set.end), rand, key, mode, set, o);
+}
+
+// The numeral a chord name is in a key, or null when it is not one of the style's chords.
+function numeralOf(name, key, mode, set) {
+  const { root, rest } = splitName(name);
+  const family = r => (/^(dim|ø|m7b5)/.test(r) ? 'd' : isMinorName(r) ? 'm' : 'M');
+  for (const token of Object.keys(set.table)) {
+    const c = splitName(prog(token, key, mode)[0]);
+    if (c.root === root && family(c.rest) === family(rest)) return token;
   }
-  return names;
+  return null;
+}
+// nextChord(list, length, key, mode, opts): the chord to add to `list` (chords of your own, or none) so the progression comes round in `length`
+// chords. It is the same walk as progression, carried on from the last chord you have; a chord that is not one of the key's own is treated as a
+// move away that needs to resolve. Gives null when the list is already `length` long.
+export function nextChord(rand, list, length, key = 'C', mode = 'major', o = {}) {
+  const set = setup(mode, o), have = list.length;
+  if (have >= length) return null;
+  const pre = resolves(set.table, set.home);
+  const first = have === 0 ? set.home : numeralOf(list[have - 1], key, mode, set) ?? pre[0] ?? set.home;
+  if (have === 0) return dress([set.home], rand, key, mode, set, { ...o, spice: 0 })[0];
+  const seq = walk(rand, set.table, set.home, first, length - have + 1, set.end);
+  return dress(seq.slice(1, 2), rand, key, mode, set, { ...o, spice: 0 })[0];
+}
+// Whether a chord leads back to the home chord of a key (so a progression ending on it circles round to its start).
+export function leadsHome(name, key = 'C', mode = 'major', o = {}) {
+  const set = setup(mode, o), n = numeralOf(name, key, mode, set);
+  return n !== null && resolves(set.table, set.home).includes(n);
 }

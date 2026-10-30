@@ -5,7 +5,7 @@
 // few helpers: tbin and voices (bit patterns that become notes), euclid, ramp and sine, scale, a seeded random, and
 // log. Nothing it does touches the song until it has finished without an error: the result is a list of edits.
 import { KINDS, encodeCell, noteToken } from '../seq/cells.js';
-import { chordMidi, chordList, namesOf, prog, progression, fifths, cycle, relative, parallel, triads, neighbours, dom, tritone, pivot } from './chords.js';
+import { chordMidi, chordList, namesOf, prog, progression, nextChord, leadsHome, fifths, cycle, relative, parallel, triads, neighbours, dom, tritone, pivot } from './chords.js';
 
 // ---- bit patterns ----
 const REST = '.0-~_', HIT = 'xX1';
@@ -296,6 +296,8 @@ export function execute(req) {
       return lists.map(l => [...l.map(noteOf), ...Array(width - l.length).fill('===')].join(' '));
     },
     prog, fifths, cycle, relative, parallel, triads, neighbours, dom, tritone, pivot,
+    nextChord: (list, length, key, mode, o = {}) => { if (o.seed !== undefined) { seedNow = o.seed >>> 0; rand = makeRandom(seedNow); } return nextChord(rand, Array.isArray(list) ? list.map(String) : namesOf(list), length, key, mode, o); },
+    leadsHome: (name, key, mode, o) => leadsHome(name, key, mode, o),
     progression: (length, key, mode, o = {}) => { if (o.seed !== undefined) { seedNow = o.seed >>> 0; rand = makeRandom(seedNow); } return progression(rand, length, key, mode, o); },
     scale, note: noteOf, midi: v => { const t = noteOf(v); return (Number(t[2]) + 1) * 12 + ['C-', 'C#', 'D-', 'D#', 'E-', 'F-', 'F#', 'G-', 'G#', 'A-', 'A#', 'B-'].indexOf(t.slice(0, 2)); },
     step: n => { const was = stepDefault; if (n !== undefined) { if (!Number.isInteger(n) || n < 1) throw new Error('step(n): a whole number of rows, 1 or more'); stepDefault = n; } return was; },

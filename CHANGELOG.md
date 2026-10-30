@@ -2,6 +2,12 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 533 · 2026-10-30
+
+- Script: progressions circle back. `progression(...)` now ends, by default, on a chord that leads back into the first one (`end: 'loop'`), so when it plays again the home chord does not sound twice; `end: 'home'` keeps the old full stop on the home chord. New `nextChord(list, length, key, mode, opts)` gives the next chord of a progression of your own, steered so that the length you choose comes round, and `leadsHome(name, key, mode)` says whether a chord leads back to the home chord. It is the same walk as `progression`, tried again until its end is right, so it still sounds like the style rather than being forced.
+- Chord lab: Suggest next uses it, chord by chord, from the chords you have already clicked, and starts again once the length is reached. When the last chord leads back to the first, the wheel draws a dashed return arrow and the strip ends with ↺ and the first chord. Major and Minor now switch between a key and its relative minor (the same notes), so C and Am, rather than moving round the wheel.
+- The ?demo=progression song's second half is regenerated with it: it ends on Dm7, which leads back into Am7 where the song starts.
+
 ## 532 · 2026-10-29
 
 - First screen: the metaball backdrop now uses the same shader as the live picture (531): the orange to red background, five balls with the wider blend and the tuned lighting. There is no song on the first screen, so a click swells the balls a little, nothing is held, and the pointer still pulls the first ball. This replaces the pink and green version of 530.
