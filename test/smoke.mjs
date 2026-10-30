@@ -4555,7 +4555,7 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     const fr = foldRegions("export default {\n  params: [\n    { name: 'a' },\n  ],\n  create({ x }) {\n    // a { in a comment\n    const s = '}';\n    return {\n      process() {\n      },\n    };\n  },\n};");
     assert.deepEqual(fr.map(r => [r.s, r.e, r.depth]), [[0, 12, 0], [1, 3, 1], [4, 11, 1], [7, 10, 2], [8, 9, 3]], 'brackets in strings and comments do not count, and regions know their depth');
   }
-  for (const name of ['bugsong']) {
+  for (const name of ['bugsong', 'weights']) {
     const demo = parseProject(readFileSync(new URL(`../src/project/demos/${name}.wax`, import.meta.url), 'utf8'));
     assert.ok(demo.song.length > 0 && demo.song.lanes.length > 1, `the ${name} demo loads`);
   }

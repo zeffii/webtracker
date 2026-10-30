@@ -1,0 +1,1384 @@
+{
+ "format": "webtracker",
+ "version": 1,
+ "song": {
+  "name": "weights of a chord",
+  "bpm": 118,
+  "ticksPerBeat": 4,
+  "length": 256,
+  "loop": {
+   "start": 0,
+   "end": 256
+  },
+  "info": "A demo for the Chord, Phrase and Voicing nodes (Node Sequencer tab). Four Chord nodes hold the chords, each with its own volume for every note (drag the bars in its panel); the Phrase node plays the chord whose number arrives at index, here the bar number, so they come round in turn, and the lit chord and wire show which. Variation nudges each note a little every time, and an lfo moves the tilt of all four, so the voicing slowly turns from bottom-heavy to top-heavy and back. The bass is the root of the playing chord, an octave or two down, with an echo. The arpeggio waits in group B until bar four. The kick and the hats are pattern lanes.",
+  "nodeseq": {
+   "sub": 4,
+   "groups": [
+    {
+     "name": "A",
+     "on": true
+    },
+    {
+     "name": "B",
+     "on": false
+    },
+    {
+     "name": "C",
+     "on": true
+    },
+    {
+     "name": "D",
+     "on": true
+    },
+    {
+     "name": "E",
+     "on": true
+    },
+    {
+     "name": "F",
+     "on": true
+    },
+    {
+     "name": "G",
+     "on": true
+    },
+    {
+     "name": "H",
+     "on": true
+    }
+   ],
+   "nodes": [
+    {
+     "id": "clk",
+     "type": "clock",
+     "x": -128,
+     "y": -24
+    },
+    {
+     "id": "padNote",
+     "type": "note",
+     "x": 432,
+     "y": 144,
+     "params": {
+      "poly": 1,
+      "len": 0.482,
+      "vel": 0.62
+     },
+     "data": {
+      "target": "pad"
+     }
+    },
+    {
+     "id": "sweep",
+     "type": "lfo",
+     "x": 296,
+     "y": 224,
+     "params": {
+      "rate": 0.125,
+      "sync": 1,
+      "shape": 1,
+      "depth": 1,
+      "center": 0.5
+     }
+    },
+    {
+     "id": "padCut",
+     "type": "set",
+     "x": 432,
+     "y": 224,
+     "params": {
+      "lo": 0.16,
+      "hi": 0.535,
+      "smooth": 40
+     },
+     "data": {
+      "target": "pad.synth.cutoff"
+     }
+    },
+    {
+     "id": "ch1",
+     "type": "Chord",
+     "x": 8,
+     "y": 88,
+     "params": {
+      "octave": 3,
+      "notes": 4,
+      "variation": 0.25,
+      "inversion": 2
+     },
+     "data": {
+      "text": "C min7",
+      "weights": [
+       100,
+       55,
+       75,
+       40
+      ]
+     }
+    },
+    {
+     "id": "ch2",
+     "type": "Chord",
+     "x": 8,
+     "y": 168,
+     "params": {
+      "octave": 3,
+      "notes": 4,
+      "variation": 0.587,
+      "inversion": 1
+     },
+     "data": {
+      "text": "D min7",
+      "weights": [
+       100,
+       50,
+       70,
+       60
+      ]
+     }
+    },
+    {
+     "id": "ch3",
+     "type": "Chord",
+     "x": 8,
+     "y": 248,
+     "params": {
+      "octave": 2,
+      "notes": 4,
+      "variation": 0.186,
+      "inversion": 4,
+      "tilt": -0.162,
+      "length": 0
+     },
+     "data": {
+      "text": "G# 6 sus2",
+      "weights": [
+       100,
+       45,
+       65,
+       80
+      ]
+     }
+    },
+    {
+     "id": "ch4",
+     "type": "Chord",
+     "x": 8,
+     "y": 360,
+     "params": {
+      "octave": 3,
+      "notes": 4,
+      "variation": 0.25,
+      "inversion": 3
+     },
+     "data": {
+      "text": "C min7 sus2",
+      "weights": [
+       90,
+       60,
+       50,
+       100
+      ]
+     }
+    },
+    {
+     "id": "phrase",
+     "type": "Phrase",
+     "x": 272,
+     "y": 112,
+     "params": {
+      "strum": 0,
+      "direction": 2
+     }
+    },
+    {
+     "id": "tiltSweep",
+     "type": "lfo",
+     "x": -128,
+     "y": 192,
+     "params": {
+      "rate": 0.028,
+      "sync": 1,
+      "shape": 1,
+      "depth": 0.9,
+      "center": 0.5
+     }
+    },
+    {
+     "id": "pseq1",
+     "type": "Pseq",
+     "x": 80,
+     "y": 16,
+     "group": 0,
+     "params": {
+      "repeats": 0
+     },
+     "data": {
+      "text": "1"
+     }
+    },
+    {
+     "id": "pseq2",
+     "type": "Pseq",
+     "x": 208,
+     "y": -40,
+     "group": 0,
+     "params": {
+      "repeats": 0
+     },
+     "data": {
+      "text": "0 0 0 0 0 0 1 1 1 1 1 1 2 2 2 2 2 3 3 3 3 3"
+     }
+    },
+    {
+     "id": "euclid1",
+     "type": "euclid",
+     "x": 80,
+     "y": -40,
+     "group": 0,
+     "params": {
+      "steps": 26,
+      "pulses": 15,
+      "rot": 10
+     }
+    },
+    {
+     "id": "set1",
+     "type": "set",
+     "x": 432,
+     "y": 296,
+     "group": 0,
+     "params": {
+      "lo": 0,
+      "hi": 1,
+      "smooth": 30
+     },
+     "data": {
+      "target": "pad.synth.res"
+     }
+    },
+    {
+     "id": "lfo1",
+     "type": "lfo",
+     "x": 304,
+     "y": 296,
+     "group": 0,
+     "params": {
+      "rate": 0.5,
+      "sync": 0,
+      "shape": 0,
+      "depth": 0.625,
+      "center": 0.16
+     }
+    }
+   ],
+   "wires": [
+    {
+     "from": "sweep.out",
+     "to": "padCut.in"
+    },
+    {
+     "from": "phrase.notes",
+     "to": "padNote.note"
+    },
+    {
+     "from": "ch1.chord",
+     "to": "phrase.c1",
+     "bend": {
+      "bx": 112
+     }
+    },
+    {
+     "from": "tiltSweep.out",
+     "to": "ch1.tilt"
+    },
+    {
+     "from": "ch2.chord",
+     "to": "phrase.c2",
+     "bend": {
+      "bx": 112
+     }
+    },
+    {
+     "from": "tiltSweep.out",
+     "to": "ch2.tilt"
+    },
+    {
+     "from": "ch3.chord",
+     "to": "phrase.c3",
+     "bend": {
+      "bx": 120
+     }
+    },
+    {
+     "from": "tiltSweep.out",
+     "to": "ch3.tilt"
+    },
+    {
+     "from": "ch4.chord",
+     "to": "phrase.c4",
+     "bend": {
+      "bx": 128
+     }
+    },
+    {
+     "from": "tiltSweep.out",
+     "to": "ch4.tilt"
+    },
+    {
+     "from": "pseq1.value",
+     "to": "phrase.length"
+    },
+    {
+     "from": "clk.bar",
+     "to": "pseq1.next",
+     "bend": {
+      "bx": 48
+     }
+    },
+    {
+     "from": "clk.tick",
+     "to": "euclid1.in",
+     "bend": {
+      "bx": 32
+     }
+    },
+    {
+     "from": "euclid1.hit",
+     "to": "pseq2.next"
+    },
+    {
+     "from": "pseq2.value",
+     "to": "phrase.index",
+     "bend": {
+      "bx": 256
+     }
+    },
+    {
+     "from": "lfo1.out",
+     "to": "set1.in"
+    }
+   ],
+   "ui": 2
+  }
+ },
+ "instruments": {
+  "master": {
+   "graph": {
+    "nodes": [
+     {
+      "id": "m",
+      "type": "tempo",
+      "x": 40,
+      "y": 40,
+      "params": {
+       "bpm": 118,
+       "swing": 50,
+       "tpb": 4,
+       "volume": 1
+      }
+     },
+     {
+      "id": "out",
+      "type": "out",
+      "x": 240,
+      "y": 40
+     }
+    ],
+    "connections": []
+   },
+   "noteColumns": 0,
+   "exposed": [
+    {
+     "node": "m",
+     "param": "bpm",
+     "label": "BPM",
+     "bits": 16
+    },
+    {
+     "node": "m",
+     "param": "swing",
+     "label": "Swg"
+    },
+    {
+     "node": "m",
+     "param": "tpb",
+     "label": "TPB"
+    },
+    {
+     "node": "m",
+     "param": "volume",
+     "label": "Vol"
+    },
+    {
+     "node": "m",
+     "param": "limit",
+     "label": "Lim",
+     "long": "Limiter",
+     "bits": 4
+    },
+    {
+     "node": "m",
+     "param": "ceiling",
+     "label": "Ceil",
+     "long": "Ceiling"
+    },
+    {
+     "node": "m",
+     "param": "boost",
+     "label": "Gain",
+     "long": "Limiter gain"
+    },
+    {
+     "node": "m",
+     "param": "release",
+     "label": "Rel",
+     "long": "Limiter release",
+     "scale": "log"
+    }
+   ],
+   "commands": []
+  },
+  "kick": {
+   "graph": {
+    "nodes": [
+     {
+      "id": "pitchEnv",
+      "type": "env",
+      "params": {
+       "attack": 0.2,
+       "decay": 70,
+       "sustain": 0,
+       "release": 50,
+       "amount": 2.5
+      },
+      "x": 143,
+      "y": 266
+     },
+     {
+      "id": "osc",
+      "type": "osc",
+      "params": {
+       "wave": 0,
+       "reset": 1,
+       "phase": 0.25
+      },
+      "x": 293,
+      "y": 266
+     },
+     {
+      "id": "ampEnv",
+      "type": "env",
+      "params": {
+       "attack": 0.5,
+       "decay": 300,
+       "sustain": 0,
+       "release": 40
+      },
+      "x": 143,
+      "y": 346
+     },
+     {
+      "id": "vca",
+      "type": "gain",
+      "x": 443,
+      "y": 266
+     },
+     {
+      "id": "out",
+      "type": "out",
+      "params": {
+       "gain": 0.42
+      },
+      "x": 593,
+      "y": 266
+     }
+    ],
+    "connections": [
+     [
+      "pitchEnv.out",
+      "osc.fm"
+     ],
+     [
+      "osc.out",
+      "vca.in"
+     ],
+     [
+      "ampEnv.out",
+      "vca.cv"
+     ],
+     [
+      "vca.out",
+      "out.in"
+     ]
+    ]
+   },
+   "exposed": [
+    {
+     "node": "pitchEnv",
+     "param": "amount",
+     "label": "Pit"
+    },
+    {
+     "node": "pitchEnv",
+     "param": "decay",
+     "label": "PDc",
+     "scale": "log"
+    },
+    {
+     "node": "ampEnv",
+     "param": "decay",
+     "label": "Dec",
+     "scale": "log"
+    },
+    {
+     "node": "osc",
+     "param": "tune",
+     "label": "Tun"
+    }
+   ],
+   "commands": [
+    {
+     "id": 1,
+     "node": "pitchEnv",
+     "param": "amount"
+    },
+    {
+     "id": 2,
+     "node": "pitchEnv",
+     "param": "decay",
+     "scale": "log"
+    },
+    {
+     "id": 3,
+     "node": "ampEnv",
+     "param": "decay",
+     "scale": "log"
+    },
+    {
+     "id": 4,
+     "node": "osc",
+     "param": "tune"
+    },
+    {
+     "id": 5,
+     "node": "out",
+     "param": "gain"
+    }
+   ]
+  },
+  "hat": {
+   "graph": {
+    "nodes": [
+     {
+      "id": "hat",
+      "type": "hat808",
+      "x": 20,
+      "y": 108
+     },
+     {
+      "id": "out",
+      "type": "out",
+      "params": {
+       "gain": 0.4
+      },
+      "x": 170,
+      "y": 108
+     }
+    ],
+    "connections": [
+     [
+      "hat.out",
+      "out.in"
+     ]
+    ]
+   },
+   "noteColumns": 0,
+   "triggers": [
+    {
+     "label": "Cl",
+     "note": 0
+    },
+    {
+     "label": "Op",
+     "note": 1
+    }
+   ],
+   "exposed": [
+    {
+     "node": "hat",
+     "param": "cdec",
+     "label": "CDc",
+     "scale": "log"
+    },
+    {
+     "node": "hat",
+     "param": "odec",
+     "label": "ODc",
+     "scale": "log"
+    },
+    {
+     "node": "hat",
+     "param": "tone",
+     "label": "Ton"
+    },
+    {
+     "node": "hat",
+     "param": "tune",
+     "label": "Tun"
+    }
+   ],
+   "commands": [
+    {
+     "id": 1,
+     "node": "hat",
+     "param": "tune"
+    },
+    {
+     "id": 2,
+     "node": "hat",
+     "param": "tone"
+    },
+    {
+     "id": 3,
+     "node": "hat",
+     "param": "snap"
+    },
+    {
+     "id": 4,
+     "node": "hat",
+     "param": "level"
+    },
+    {
+     "id": 5,
+     "node": "hat",
+     "param": "cdec",
+     "scale": "log"
+    },
+    {
+     "id": 6,
+     "node": "hat",
+     "param": "odec",
+     "scale": "log"
+    },
+    {
+     "id": 7,
+     "node": "hat",
+     "param": "clvl"
+    },
+    {
+     "id": 8,
+     "node": "hat",
+     "param": "olvl"
+    },
+    {
+     "id": 9,
+     "node": "hat",
+     "param": "choke"
+    }
+   ]
+  },
+  "pad": {
+   "graph": {
+    "nodes": [
+     {
+      "id": "synth",
+      "type": "subsynth",
+      "x": 27,
+      "y": 110,
+      "params": {
+       "sus": 0.4087860955248392,
+       "rel": 2752.858764059248,
+       "fenv": 5.407417544820035,
+       "frel": 2461.424627361297,
+       "atk": 15.889830508474573,
+       "dec": 1016.9491525423728,
+       "width": 0.8292048720405091,
+       "spread": 10.366771588887367,
+       "unison": 4,
+       "fsus": 0.29930203914055015,
+       "keytrack": 0.5138907896537567,
+       "fatk": 4.094456136482264,
+       "fdec": 1016.9491525423728,
+       "wave2": 2,
+       "pw": 0.2287190365403038,
+       "noise": 0.11098946215957302,
+       "sub": 0.5182701519091283,
+       "tune2": 0.03612973860681379,
+       "detune": 23.799096756534823
+      }
+     },
+     {
+      "id": "poly",
+      "type": "voices",
+      "x": 315,
+      "y": 158
+     },
+     {
+      "id": "out",
+      "type": "out",
+      "params": {
+       "gain": 0.5
+      },
+      "x": 699,
+      "y": 158
+     },
+     {
+      "id": "prismacanyon1",
+      "type": "prismacanyon",
+      "x": 459,
+      "y": 182,
+      "params": {
+       "time": 635.5932203389831,
+       "cutoff": 14384.398521965239,
+       "bass": 4.327357328589024
+      }
+     }
+    ],
+    "connections": [
+     [
+      "synth.out",
+      "poly.in"
+     ],
+     [
+      "poly.out",
+      "prismacanyon1.in"
+     ],
+     [
+      "prismacanyon1.out",
+      "out.in"
+     ]
+    ],
+    "voices": 6
+   },
+   "noteColumns": 4,
+   "exposed": [
+    {
+     "node": "synth",
+     "param": "cutoff",
+     "label": "Cut",
+     "scale": "log"
+    },
+    {
+     "node": "synth",
+     "param": "res",
+     "label": "Res"
+    },
+    {
+     "node": "synth",
+     "param": "fenv",
+     "label": "Env"
+    },
+    {
+     "node": "synth",
+     "param": "detune",
+     "label": "Det"
+    }
+   ],
+   "commands": [
+    {
+     "id": 1,
+     "node": "synth",
+     "param": "cutoff",
+     "scale": "log"
+    },
+    {
+     "id": 2,
+     "node": "synth",
+     "param": "res"
+    },
+    {
+     "id": 3,
+     "node": "synth",
+     "param": "fenv"
+    },
+    {
+     "id": 4,
+     "node": "synth",
+     "param": "drive"
+    },
+    {
+     "id": 5,
+     "node": "synth",
+     "param": "glide"
+    }
+   ]
+  },
+  "bass": {
+   "graph": {
+    "nodes": [
+     {
+      "id": "sq",
+      "type": "squelch"
+     },
+     {
+      "id": "out",
+      "type": "out",
+      "params": {
+       "gain": 0.5
+      }
+     }
+    ],
+    "connections": [
+     [
+      "sq.out",
+      "out.in"
+     ]
+    ]
+   },
+   "noteColumns": 1,
+   "exposed": [
+    {
+     "node": "sq",
+     "param": "acc",
+     "label": "Acc",
+     "bits": 4
+    },
+    {
+     "node": "sq",
+     "param": "sld",
+     "label": "Sld",
+     "bits": 4
+    },
+    {
+     "node": "sq",
+     "param": "cutoff",
+     "label": "Cut",
+     "scale": "log"
+    },
+    {
+     "node": "sq",
+     "param": "res",
+     "label": "Res"
+    },
+    {
+     "node": "sq",
+     "param": "envmod",
+     "label": "Env"
+    },
+    {
+     "node": "sq",
+     "param": "decay",
+     "label": "Dec",
+     "scale": "log"
+    },
+    {
+     "node": "sq",
+     "param": "accent",
+     "label": "Acl"
+    },
+    {
+     "node": "sq",
+     "param": "slide",
+     "label": "SlT",
+     "scale": "log"
+    },
+    {
+     "node": "sq",
+     "param": "wave",
+     "label": "Wav",
+     "bits": 4
+    },
+    {
+     "node": "sq",
+     "param": "drive",
+     "label": "Drv"
+    }
+   ],
+   "commands": [
+    {
+     "id": 1,
+     "node": "sq",
+     "param": "cutoff",
+     "scale": "log"
+    },
+    {
+     "id": 2,
+     "node": "sq",
+     "param": "res"
+    },
+    {
+     "id": 3,
+     "node": "sq",
+     "param": "envmod"
+    },
+    {
+     "id": 4,
+     "node": "sq",
+     "param": "decay",
+     "scale": "log"
+    },
+    {
+     "id": 5,
+     "node": "sq",
+     "param": "accent"
+    },
+    {
+     "id": 6,
+     "node": "sq",
+     "param": "slide",
+     "scale": "log"
+    },
+    {
+     "id": 7,
+     "node": "sq",
+     "param": "wave"
+    },
+    {
+     "id": 8,
+     "node": "sq",
+     "param": "drive"
+    },
+    {
+     "id": 9,
+     "node": "sq",
+     "param": "tune"
+    },
+    {
+     "id": 10,
+     "node": "sq",
+     "param": "rel",
+     "scale": "log"
+    },
+    {
+     "id": 11,
+     "node": "sq",
+     "param": "vel"
+    },
+    {
+     "id": 12,
+     "node": "sq",
+     "param": "level"
+    },
+    {
+     "id": 13,
+     "node": "out",
+     "param": "gain"
+    }
+   ]
+  },
+  "arp": {
+   "graph": {
+    "nodes": [
+     {
+      "id": "du",
+      "type": "duette",
+      "x": 20,
+      "y": 30
+     },
+     {
+      "id": "poly",
+      "type": "voices",
+      "x": 170,
+      "y": 30
+     },
+     {
+      "id": "out",
+      "type": "out",
+      "params": {
+       "gain": 0.5
+      },
+      "x": 320,
+      "y": 30
+     }
+    ],
+    "connections": [
+     [
+      "du.out",
+      "poly.in"
+     ],
+     [
+      "poly.out",
+      "out.in"
+     ]
+    ],
+    "voices": 3
+   },
+   "noteColumns": 3,
+   "exposed": [
+    {
+     "node": "du",
+     "param": "sld",
+     "label": "Sld",
+     "bits": 4
+    },
+    {
+     "node": "du",
+     "param": "cutoff",
+     "label": "Cut",
+     "scale": "log"
+    },
+    {
+     "node": "du",
+     "param": "res",
+     "label": "Res"
+    },
+    {
+     "node": "du",
+     "param": "egint",
+     "label": "Int"
+    },
+    {
+     "node": "du",
+     "param": "decay",
+     "label": "Dec",
+     "scale": "log"
+    },
+    {
+     "node": "du",
+     "param": "vco1shape",
+     "label": "Sh1"
+    },
+    {
+     "node": "du",
+     "param": "vco2shape",
+     "label": "Sh2"
+    },
+    {
+     "node": "du",
+     "param": "drive",
+     "label": "Drv"
+    }
+   ],
+   "commands": [
+    {
+     "id": 1,
+     "node": "du",
+     "param": "cutoff",
+     "scale": "log"
+    },
+    {
+     "id": 2,
+     "node": "du",
+     "param": "res"
+    },
+    {
+     "id": 3,
+     "node": "du",
+     "param": "egint"
+    },
+    {
+     "id": 4,
+     "node": "du",
+     "param": "decay",
+     "scale": "log"
+    },
+    {
+     "id": 5,
+     "node": "du",
+     "param": "attack",
+     "scale": "log"
+    },
+    {
+     "id": 6,
+     "node": "du",
+     "param": "vco1shape"
+    },
+    {
+     "id": 7,
+     "node": "du",
+     "param": "vco2shape"
+    },
+    {
+     "id": 8,
+     "node": "du",
+     "param": "drive"
+    },
+    {
+     "id": 9,
+     "node": "du",
+     "param": "vco2pitch"
+    },
+    {
+     "id": 10,
+     "node": "du",
+     "param": "mix1"
+    },
+    {
+     "id": 11,
+     "node": "du",
+     "param": "mix2"
+    },
+    {
+     "id": 12,
+     "node": "du",
+     "param": "lforate"
+    },
+    {
+     "id": 13,
+     "node": "du",
+     "param": "lfoint"
+    },
+    {
+     "id": 14,
+     "node": "du",
+     "param": "port",
+     "scale": "log"
+    },
+    {
+     "id": 15,
+     "node": "du",
+     "param": "slide",
+     "scale": "log"
+    },
+    {
+     "id": 16,
+     "node": "du",
+     "param": "tune"
+    },
+    {
+     "id": 17,
+     "node": "du",
+     "param": "level"
+    },
+    {
+     "id": 18,
+     "node": "out",
+     "param": "gain"
+    }
+   ]
+  }
+ },
+ "samples": {},
+ "lanes": [
+  {
+   "id": "master",
+   "instrument": "master",
+   "patterns": {},
+   "placements": []
+  },
+  {
+   "id": "pad",
+   "instrument": "pad",
+   "patterns": {
+    "p01": {
+     "name": "pad 1",
+     "index": 0,
+     "rows": [
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......",
+      "... .. ... .. ... .. ... .. .. .. .. .. ......"
+     ]
+    }
+   },
+   "placements": []
+  },
+  {
+   "id": "bass",
+   "instrument": "bass",
+   "patterns": {
+    "p01": {
+     "name": "bass 1",
+     "index": 0,
+     "rows": [
+      "... .. . . .. .. .. .. .. .. . .. ......",
+      "... .. . . .. .. .. .. .. .. . .. ......",
+      "... .. . . .. .. .. .. .. .. . .. ......",
+      "... .. . . .. .. .. .. .. .. . .. ......",
+      "... .. . . .. .. .. .. .. .. . .. ......",
+      "... .. . . .. .. .. .. .. .. . .. ......",
+      "... .. . . .. .. .. .. .. .. . .. ......",
+      "... .. . . .. .. .. .. .. .. . .. ......",
+      "... .. . . .. .. .. .. .. .. . .. ......",
+      "... .. . . .. .. .. .. .. .. . .. ......",
+      "... .. . . .. .. .. .. .. .. . .. ......",
+      "... .. . . .. .. .. .. .. .. . .. ......",
+      "... .. . . .. .. .. .. .. .. . .. ......",
+      "... .. . . .. .. .. .. .. .. . .. ......",
+      "... .. . . .. .. .. .. .. .. . .. ......",
+      "... .. . . .. .. .. .. .. .. . .. ......"
+     ]
+    }
+   },
+   "placements": []
+  },
+  {
+   "id": "arp",
+   "instrument": "arp",
+   "patterns": {
+    "p01": {
+     "name": "arp 1",
+     "index": 0,
+     "rows": [
+      "... .. ... .. ... .. . .. .. .. .. .. .. .. ......",
+      "... .. ... .. ... .. . .. .. .. .. .. .. .. ......",
+      "... .. ... .. ... .. . .. .. .. .. .. .. .. ......",
+      "... .. ... .. ... .. . .. .. .. .. .. .. .. ......",
+      "... .. ... .. ... .. . .. .. .. .. .. .. .. ......",
+      "... .. ... .. ... .. . .. .. .. .. .. .. .. ......",
+      "... .. ... .. ... .. . .. .. .. .. .. .. .. ......",
+      "... .. ... .. ... .. . .. .. .. .. .. .. .. ......",
+      "... .. ... .. ... .. . .. .. .. .. .. .. .. ......",
+      "... .. ... .. ... .. . .. .. .. .. .. .. .. ......",
+      "... .. ... .. ... .. . .. .. .. .. .. .. .. ......",
+      "... .. ... .. ... .. . .. .. .. .. .. .. .. ......",
+      "... .. ... .. ... .. . .. .. .. .. .. .. .. ......",
+      "... .. ... .. ... .. . .. .. .. .. .. .. .. ......",
+      "... .. ... .. ... .. . .. .. .. .. .. .. .. ......",
+      "... .. ... .. ... .. . .. .. .. .. .. .. .. ......"
+     ]
+    }
+   },
+   "placements": []
+  },
+  {
+   "id": "kick",
+   "instrument": "kick",
+   "patterns": {
+    "p01": {
+     "name": "kick 1",
+     "index": 0,
+     "rows": [
+      "C-2 FF .. .. .. .. ......",
+      "... .. .. .. .. .. ......",
+      "... .. .. .. .. .. ......",
+      "... .. .. .. .. .. ......",
+      "C-2 F0 .. .. .. .. ......",
+      "... .. .. .. .. .. ......",
+      "... .. .. .. .. .. ......",
+      "... .. .. .. .. .. ......",
+      "C-2 F0 .. .. .. .. ......",
+      "... .. .. .. .. .. ......",
+      "... .. .. .. .. .. ......",
+      "... .. .. .. .. .. ......",
+      "C-2 F0 .. .. .. .. ......",
+      "... .. .. .. .. .. ......",
+      "... .. .. .. .. .. ......",
+      "... .. .. .. .. .. ......"
+     ]
+    },
+    "p02": {
+     "name": "kick 2",
+     "index": 1,
+     "rows": [
+      "C-2 FF .. .. .. .. ......",
+      "... .. .. .. .. .. ......",
+      "... .. .. .. .. .. ......",
+      "... .. .. .. .. .. ......",
+      "C-2 F0 .. .. .. .. ......",
+      "... .. .. .. .. .. ......",
+      "... .. .. .. .. .. ......",
+      "... .. .. .. .. .. ......",
+      "C-2 F0 .. .. .. .. ......",
+      "... .. .. .. .. .. ......",
+      "... .. .. .. .. .. ......",
+      "... .. .. .. .. .. ......",
+      "C-2 F0 .. .. .. .. ......",
+      "... .. .. .. .. .. ......",
+      "C-2 60 .. .. .. .. ......",
+      "... .. .. .. .. .. ......"
+     ]
+    }
+   },
+   "placements": []
+  },
+  {
+   "id": "hat",
+   "instrument": "hat",
+   "patterns": {
+    "p01": {
+     "name": "hat 1",
+     "index": 0,
+     "rows": [
+      ". . .. .. .. .. ......",
+      ". . .. .. .. .. ......",
+      ". 7 .. .. .. .. ......",
+      ". . .. .. .. .. ......",
+      "6 . .. .. .. .. ......",
+      ". . .. .. .. .. ......",
+      ". 7 .. .. .. .. ......",
+      ". . .. .. .. .. ......",
+      "6 . .. .. .. .. ......",
+      ". . .. .. .. .. ......",
+      ". 7 .. .. .. .. ......",
+      ". . .. .. .. .. ......",
+      "6 . .. .. .. .. ......",
+      ". . .. .. .. .. ......",
+      ". 7 .. .. .. .. ......",
+      ". . .. .. .. .. ......"
+     ]
+    },
+    "p02": {
+     "name": "hat 2",
+     "index": 1,
+     "rows": [
+      ". . .. .. .. .. ......",
+      "3 . .. .. .. .. ......",
+      ". 7 .. .. .. .. ......",
+      "4 . .. .. .. .. ......",
+      "6 . .. .. .. .. ......",
+      "3 . .. .. .. .. ......",
+      ". 7 .. .. .. .. ......",
+      "4 . .. .. .. .. ......",
+      "6 . .. .. .. .. ......",
+      "3 . .. .. .. .. ......",
+      ". 7 .. .. .. .. ......",
+      "4 . .. .. .. .. ......",
+      "6 . .. .. .. .. ......",
+      "3 . .. .. .. .. ......",
+      ". 7 .. .. .. .. ......",
+      "4 . .. .. .. .. ......"
+     ]
+    },
+    "p03": {
+     "name": "hat 3",
+     "index": 2,
+     "rows": [
+      ". . .. .. .. .. ......",
+      "3 . .. .. .. .. ......",
+      ". A .. .. .. .. ......",
+      "4 . .. .. .. .. ......",
+      "6 . .. .. .. .. ......",
+      "3 . .. .. .. .. ......",
+      ". A .. .. .. .. ......",
+      "4 . .. .. .. .. ......",
+      "6 . .. .. .. .. ......",
+      "3 . .. .. .. .. ......",
+      ". A .. .. .. .. ......",
+      "4 . .. .. .. .. ......",
+      "6 . .. .. .. .. ......",
+      "3 . .. .. .. .. ......",
+      ". A .. .. .. .. ......",
+      "4 . .. .. .. .. ......"
+     ]
+    },
+    "p04": {
+     "name": "hat 4",
+     "index": 3,
+     "rows": [
+      ". . .. .. .. .. ......",
+      "3 . .. .. .. .. ......",
+      ". A .. .. .. .. ......",
+      "4 . .. .. .. .. ......",
+      "6 . .. .. .. .. ......",
+      "3 . .. .. .. .. ......",
+      ". A .. .. .. .. ......",
+      "4 . .. .. .. .. ......",
+      "6 . .. .. .. .. ......",
+      "3 . .. .. .. .. ......",
+      ". A .. .. .. .. ......",
+      "4 . .. .. .. .. ......",
+      "6 . .. .. .. .. ......",
+      "A . .. .. .. .. ......",
+      "B A .. .. .. .. ......",
+      "C . .. .. .. .. ......"
+     ]
+    }
+   },
+   "placements": []
+  }
+ ]
+}

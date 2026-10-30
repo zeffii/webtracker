@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 552 · 2026-10-30
+
+- New demo, `?demo=weights` ("weights of a chord", your version): four Chord nodes into a Phrase node whose index is stepped by a sequence of bar numbers from a euclid pulse, a tilt sweep from an lfo, and the pad's cutoff and resonance moved by two more lfos.
+
 ## 551 · 2026-10-30
 
 - Node Sequencer: the **scroll wheel zooms** about the pointer (it scrolled before, and zoomed only with Ctrl); holding the middle button pans.
