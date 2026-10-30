@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 543 · 2026-10-30
+
+- New demo, `?demo=nodes` ("chords in the nodes"): a sixteen-bar song for the Node Sequencer. Pchord lists drive a rolled pad (poly note), a bass that echoes its root through delay and chance nodes, and an arpeggio in group B that a run node starts at bar four; an lfo sweeps the pad filter and an ad envelope plucks the arpeggio filter. Kick and hats are ordinary pattern lanes.
+
 ## 542 · 2026-10-30
 
 - Node Sequencer: a **Pchord** node (Values) steps through a list of chords, one name a line, written as in the Chord machine ("C maj7", "F# 13sus", "E min9(11)"; a dot is a rest). Each event sends every note of the chord out of `note` (and the root out of `root`). Parameters: octave, inversion, notes (most notes kept), strum (subticks between notes) and direction (up, down, alternate). Names it cannot read are listed in red.

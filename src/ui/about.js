@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['543', ['New demo, ?demo=nodes: a song for the Node Sequencer with chord lists driving a pad, a bass and an arpeggio, groups, an lfo and an envelope']],
   ['542', ['Node Sequencer: a Pchord node steps through chords written like the Chord machine, one a line; the note node has a poly setting so a chord sounds together']],
   ['541', ['Two saturators (Effects, Distortion): a simple one and a multiband one, with four curves (soft, tape, tube, clip) and a quality switch.']],
   ['540', ['Cardinal: a quality switch, standard or eco. Standard is the sound as it was; eco uses about a fifth less CPU on a busy lead.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['536', ['Equaliser: drag the dots in its response picture for frequency and gain, the wheel for Q, and the triangles for the cuts. Renaming an instrument or lane no longer stops playback.']],
   ['535', ['First screen: the metaballs are centred under the logo.']],
   ['534', ['Pattern editor: the undo trail now shows above the status bar, as in the arrangement.']],
-  ['533', ['Progressions circle back: the last chord leads into the first. nextChord and leadsHome in the script, and a return arrow in the chord lab.']],
 ];
