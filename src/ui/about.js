@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['539', ['Drum synth: its click fades in over a few samples, so a hit no longer starts with a small random tick.']],
   ['538', ['Pattern editor: the playhead and loop lines sit on the real rows, so the line follows the playing tick whatever the font, zoom or screen scaling.']],
   ['537', ['Three spectral effects (Effects, Spectral): the harmonic/percussive split, a spectral compressor with tilt, and cross synthesis.']],
   ['536', ['Equaliser: drag the dots in its response picture for frequency and gain, the wheel for Q, and the triangles for the cuts. Renaming an instrument or lane no longer stops playback.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['532', ['First screen: the metaballs use the orange and red live picture shader.']],
   ['531', ['Live picture: the built-in shader is now an orange and red lava lamp of five metaballs that swell on hits.']],
   ['530', ['First screen: pink to green lava lamp backdrop; the metaballs turn pink near the top and green near the bottom.']],
-  ['529', ['Drum synth: no more random clicks when a hit lands on a voice that is still ringing.']],
 ];

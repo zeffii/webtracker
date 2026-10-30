@@ -2,6 +2,11 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 539 · 2026-10-30
+
+- Drum synth: the click is a short burst of noise, and its first sample started at full level, so every hit began with a small step that was different each time (a tick that seemed to come and go at random, and that the picture of the sound hides). The click now fades in over about 0.15 ms. In an offline render of a hollow kick, hit onsets with a step that stood out of the waveform went from about half of them to almost none.
+- Looked at, not changed: a song with a nine-voice Cardinal lead spends about three quarters of its audio time in that one node, which leaves little room when the screen is busy (the Stream Manager shows each instrument's cost). Cardinal itself is untouched.
+
 ## 538 · 2026-10-30
 
 - Pattern editor: the playhead (line or band) and the loop lines were placed from a calculated row height and top edge; they are now placed from the rows themselves (each row is an element, and the line goes to its offsetTop). Reported as a playline stuck at the top of the grid while playing with the loop on, which could not be reproduced here; a row height measured at the wrong moment (or off by the font, the browser zoom or the screen's pixel ratio) is the likely cause, and this no longer depends on one. The playhead does not depend on Follow: with Follow off the grid stays still and the line travels down it. The arrangement already worked this way.

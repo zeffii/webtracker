@@ -108,7 +108,7 @@ const NODE = {
           }
           kTail = Math.min(kLen, g('clickTail') * ms);
         }
-        const cd = Math.exp(-1 / (0.0015 * sampleRate)), tone = 2 * Math.PI * g('clickTone') / sampleRate, kEnd = kSample ? kLen : kLen * 1.5;
+        const kRamp = Math.max(2, Math.round(0.00015 * sampleRate)), cd = Math.exp(-1 / (0.0015 * sampleRate)), tone = 2 * Math.PI * g('clickTone') / sampleRate, kEnd = kSample ? kLen : kLen * 1.5;
         for (let i = 0; i < n; i++) {
           const pe = pit.next(), f = (f0 + (f1 - f0) * pe) * mul;
           phase += f / sampleRate; if (phase >= 1) phase -= Math.floor(phase);
@@ -131,7 +131,7 @@ const NODE = {
               if (kTail > 0 && k > kLen - kTail) c *= 0.5 + 0.5 * Math.cos(Math.PI * (k - (kLen - kTail)) / kTail);   // a raised-cosine fade, so the end is smooth
               click = c;
             } else click = (Math.sin(tone * k) * 0.8 + w * 0.3) * Math.exp(-6.9078 * k / kLen);
-            click *= clickAmt * 0.9;
+            click *= clickAmt * 0.9 * Math.min(1, (k + 1) / kRamp);   // in over a few samples: the first noise sample would otherwise be a step, a tick that is different at every hit
             if (++k >= kEnd) kOn = false;
           }
           const fresh = Math.tanh((body + noise * 0.7 + click) * d) * dn * level;
