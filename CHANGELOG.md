@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 560 · 2026-10-30
+
+- Stream Manager columns no longer jump: the table has fixed column widths, and the voice count and load percent sit in right-aligned fixed-width numerals, so a longer string or an extra digit stays inside its own column.
+
 ## 559 · 2026-10-30
 
 - **Delay compensation moves the playhead.** With the setting on, the position every view shows (the pattern and arrangement playheads, the visuals, recording) is where the sound is, not where the song is: it is the `chain` time behind the sequencer. Recording needs no extra offset as a result.

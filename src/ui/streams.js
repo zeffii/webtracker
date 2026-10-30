@@ -16,7 +16,9 @@ export function createStreams({ root, button, footer, engine, lanes, instruments
     btn('Cut all', 'Stop every machine and skip it until Play is pressed', () => engine.cutStreams(ids(), true)),
     btn('Resume all', 'Bring back the machines that are cut', () => engine.cutStreams(ids(), false)), collapse);
   const table = el('table'), body = el('tbody');
-  table.append(el('thead', {}, el('tr', {}, ...['lane', 'machine', 'voices', 'level', 'load', ''].map(t => el('th', { textContent: t })))), body);
+  // fixed columns, so a longer name or a number gaining a digit never moves the columns beside it
+  const widths = ['11rem', '13rem', '12rem', '8rem', '10rem', ''];
+  table.append(el('colgroup', {}, ...widths.map(w => { const c = el('col'); if (w) c.style.width = w; return c; })), el('thead', {}, el('tr', {}, ...['lane', 'machine', 'voices', 'level', 'load', ''].map(t => el('th', { textContent: t })))), body);
   const scroll = el('div', { className: 'st-scroll' }, table), foot = el('div', { className: 'st-foot', textContent: 'Cut: the machine stops and is skipped (no CPU) until Play is pressed. Reset: clears its voices, delay tails and filter state, then carries on. Load is the time spent in it per audio block.' });
   root.append(head, scroll, foot);
 
@@ -35,7 +37,7 @@ export function createStreams({ root, button, footer, engine, lanes, instruments
       name.firstChild.style.background = `hsl(${hue(l.instrument)} 45% 50%)`;
       const v = el('td'), vbar = el('span', { className: 'st-v' }), vn = el('span'), level = el('span', { className: 'st-meter' }, el('i')), load = el('span', { className: 'st-meter st-load' }, el('i')), pct = el('span');
       const reset = btn('Reset', 'Rebuild this machine: voices, delay tails and filter state are cleared', () => engine.resetStreams([l.instrument])), cut = btn('Cut', 'Stop this machine and skip it until Play is pressed', () => engine.cutStreams([l.instrument], !rows?.[l.instrument]?.cut));
-      v.append(vbar, vn);
+      v.append(vbar, vn); vn.className = 'st-num'; pct.className = 'st-num';
       tr.append(name, el('td', { textContent: kind(l.instrument) }), v, el('td', {}, level), el('td', {}, load, pct), el('td', { className: 'st-act' }, dead ? el('span', { className: 'st-dim', textContent: 'nothing to cut' }) : reset, ...(dead ? [] : [cut])));
       if (dead) { vn.textContent = '—'; pct.textContent = ' '; level.style.visibility = load.style.visibility = 'hidden'; }
       body.append(tr);

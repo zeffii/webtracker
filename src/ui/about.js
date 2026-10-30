@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['560', ['Stream Manager columns are fixed width, so they stop jumping as numbers and names change']],
   ['559', ['Delay compensation moves the playhead to where the sound is; Snarl note off fixes']],
   ['558', ['Delay compensation between instruments: quicker machines wait for the slowest, so heavy spectral nodes stay on the beat; one setting switches all of it off']],
   ['557', ['Delay compensation inside an instrument: where a quick path meets a slow one (dry sound and a spectral or oversampled branch), the quick one is delayed to match; setting Delay compensation, on by default']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['553', ['New effect, Body blur (Effects, Spectral): smooths and rounds the body of a sound while its hits pass through untouched, in time; standard or eco quality']],
   ['552', ['New demo, ?demo=weights: chords with a volume for every note, played in turn by a Phrase node, with a pad moved by lfos']],
   ['551', ['Node Sequencer: the scroll wheel zooms and the middle button pans; a change of theme repaints the graph at once']],
-  ['550', ['Node Sequencer: tile borders are the theme accent colour, almost see-through until a node is busy; tiles hide wires that run behind them']],
-];
+  ];
