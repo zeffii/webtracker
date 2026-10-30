@@ -2,6 +2,11 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 536 · 2026-10-30
+
+- Equaliser: the response picture beside the node is now something to grab. Drag a band's dot sideways for its frequency and up or down for its gain (the gain allows for the other bands, so the dot stays under the mouse); turn the wheel over a dot to widen or narrow it (Q); drag the small triangles at the top edge for the low and high cut. The parameter panel follows as you drag.
+- Renaming an instrument (Ctrl+F2) or a lane no longer stops the song: it reloads and carries straight on from the row it was on. (Copy, move, remove and import still stop it.)
+
 ## 535 · 2026-10-30
 
 - First screen: the lava metaballs are centred. The shader kept the camera and screen-centre offsets tuned for the square live picture (a nudge right and up); the splash copy now looks straight down the middle, so the blob mass sits under the WAX logo. The live picture is unchanged.

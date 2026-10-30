@@ -805,12 +805,15 @@ function renderLaneInstruments() {
 
 // Changing the shape of the project (names, order, copies, removals): stop, change it, and load the
 // whole project again so the engine, the columns and the lists agree. Pattern undo history is lost.
-function reshape(change, { instrument = patcher.instrument, lane = cursorLane() } = {}) {
+// With keepPlaying (a rename: the sound does not change), a song that was playing carries straight on from where it was.
+function reshape(change, { instrument = patcher.instrument, lane = cursorLane(), keepPlaying = false } = {}) {
   try {
+    const resumeAt = keepPlaying && playing ? Math.floor(engine.position) : null;
     if (playing) setPlaying(false);
     const result = change();
     const select = typeof result === 'object' && result !== null ? result : {};
     openProject(ops.projectData(project), { stay: true, instrument: select.instrument ?? instrument, lane: select.lane ?? lane });
+    if (resumeAt !== null) setPlaying(true, resumeAt);
     $('patch-status').textContent = select.message ?? '';
   } catch (err) {
     $('patch-status').textContent = err.message;
@@ -1225,7 +1228,7 @@ function renameInstrumentBox() {
   const finish = ok => {
     if (done) return; done = true;
     const text = box.value.trim(); box.remove(); $('inst-list').focus();
-    if (ok && text && text !== id) reshape(() => { const next = ops.renameInstrument(project, id, text); return { instrument: next, message: `Renamed to ${next}.` }; });
+    if (ok && text && text !== id) reshape(() => { const next = ops.renameInstrument(project, id, text); return { instrument: next, message: `Renamed to ${next}.` }; }, { keepPlaying: true });
   };
   box.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') finish(true); else if (e.key === 'Escape') finish(false); });
   box.addEventListener('blur', () => finish(false));
@@ -1248,7 +1251,7 @@ confirmed($('inst-remove'), 'Remove', () => { const id = patcher.instrument; if 
 
 $('lane-rename').addEventListener('click', () => {
   const id = cursorLane();
-  if (id) reshape(() => { const next = ops.renameLane(project, id, $('lane-name').value); return { lane: next, message: `Renamed to ${next}.` }; });
+  if (id) reshape(() => { const next = ops.renameLane(project, id, $('lane-name').value); return { lane: next, message: `Renamed to ${next}.` }; }, { keepPlaying: true });
 });
 $('lane-name').addEventListener('keydown', e => { if (e.key === 'Enter') $('lane-rename').click(); e.stopPropagation(); });
 $('lane-left').addEventListener('click', () => { const id = cursorLane(); if (id) reshape(() => { ops.moveLane(project, id, -1); }); });

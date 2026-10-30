@@ -758,6 +758,8 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
       return;
     }
     if (e.button === 0 && scopeClick(x, y)) return;
+    const handle = e.button === 0 ? responseHandleAt(x, y) : null;
+    if (handle) { drag = { kind: 'response', handle, x, y }; canvas.style.cursor = 'grabbing'; return; }
     const hit = hitTest(desc(), nodeTypes, x, y);
     say('');
     if (hit?.kind === 'node' && e.altKey && e.button === 0) {   // Alt+drag: a copy of the node (or the group) is made and moved
@@ -814,6 +816,9 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
   let hoverText = '';
   canvas.addEventListener('mousemove', e => {
     if (drag) return;
+    const grab = responseHandleAt(e.offsetX, e.offsetY);
+    canvas.style.cursor = grab ? 'grab' : '';
+    if (grab) { hoverText = grab.kind === 'cut' ? `Drag sideways to set the ${grab.name === 'lowcut' ? 'low' : 'high'} cut` : `Band ${grab.band}: drag for frequency and gain, wheel for Q`; say(hoverText); return; }
     let text = '';
     const h = setHover(e);
     if (h?.kind === 'link' || h?.kind === 'port') {
@@ -845,6 +850,8 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
       for (const [id, p] of drag.from) { const node = desc().nodes.find(n => n.id === id); node.x = p.x + dx; node.y = p.y + dy; }
       if (drag.force && !drag.moved && Math.hypot(dx, dy) > 5) drag.moved = true;
       if (drag.ids.length === 1) updateDrop();
+    } else if (drag.kind === 'response') {
+      dragResponse(drag.handle, e.offsetX, e.offsetY);
     } else if (drag.kind === 'pan') {
       const dx = e.offsetX - drag.x, dy = e.offsetY - drag.y;
       drag.x = e.offsetX; drag.y = e.offsetY;
@@ -873,6 +880,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
     const d = drag;
     drag = null;
     dirty = true;
+    if (d.kind === 'response') { canvas.style.cursor = ''; renderPanel(); return; }
     if (d.force && !d.moved) {   // a Shift+click: the node joins the group
       for (const [id, p] of d.from) { const n = desc().nodes.find(k => k.id === id); n.x = p.x; n.y = p.y; }
       if (selected?.kind === 'node') group.add(selected.id);
@@ -932,6 +940,16 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
   });
 
   // Right-click, or double-click on empty space, asks for the insert menu at that point.
+  // The wheel over a band's dot widens or narrows it (Q).
+  canvas.addEventListener('wheel', e => {
+    const h = responseHandleAt(e.offsetX, e.offsetY);
+    if (!h || h.kind !== 'band') return;
+    e.preventDefault();
+    const node = desc().nodes.find(n => n.id === h.node), spec = nodeTypes[node.type].params.find(p => p.name === `q${h.band}`);
+    const now = node.params?.[spec.name] ?? spec.def, next = Math.min(spec.max, Math.max(spec.min, now * (e.deltaY < 0 ? 1.12 : 1 / 1.12)));
+    setParam(desc(), node.id, spec.name, next); onParam(instId, node.id, spec.name, next);
+    paramView?.refresh(); say(`Band ${h.band} Q ${next.toFixed(2)}`); dirty = true;
+  }, { passive: false });
   canvas.addEventListener('contextmenu', e => {
     e.preventDefault();
     if (!instId) return;
@@ -1117,6 +1135,36 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
   // The frequency response of an equaliser-like node: the sum of its bands as a filled curve, each band's own curve
   // thin in its colour, a dot per band (numbered), a 20 Hz to 20 kHz log axis and a +-18 dB scale.
   const RESP_W = 320, RESP_H = 190, RESP_DB = 18, F_LO = 20, F_HI = 20000;
+  const respPicture = new Map();   // node id -> where its response picture was last drawn, and its handles
+
+  // The handle under a point, in a response picture that is showing: a band's dot or a cut's triangle.
+  function responseHandleAt(x, y) {
+    for (const [id, pic] of respPicture) {
+      if (!desc().nodes.some(n => n.id === id)) continue;
+      let best = null, bestD = 10;
+      for (const h of pic.handles) { const d = Math.hypot(h.x - x, h.y - y); if (d < bestD) { best = { ...h, node: id }; bestD = d; } }
+      if (best) return best;
+    }
+    return null;
+  }
+  // Move a handle to a point: sideways is frequency, up and down is a band's gain (the dot sits on the combined curve,
+  // so the gain is what is left once the other bands are counted).
+  function dragResponse(h, x, y) {
+    const pic = respPicture.get(h.node), node = desc().nodes.find(n => n.id === h.node), type = nodeTypes[node?.type];
+    if (!pic || !type) return;
+    const clampTo = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
+    const freq = F_LO * Math.pow(F_HI / F_LO, clampTo((x - pic.px) / pic.pw, 0, 1));
+    const set = (name, v) => { const spec = type.params.find(p => p.name === name); v = clampTo(v, spec.min, spec.max); setParam(desc(), node.id, name, v); onParam(instId, node.id, name, v); };
+    if (h.kind === 'cut') { set(h.name, freq); }
+    else {
+      set(`f${h.band}`, freq);
+      const value = name => node.params?.[name] ?? type.params.find(p => p.name === name)?.def ?? 0;
+      const others = type.curves(n => (n === `g${h.band}` ? 0 : value(n)), 48000).reduce((t, b) => (b.off ? t : t + b.db(value(`f${h.band}`))), 0);
+      const want = ((pic.py + pic.ph / 2 - y) / (pic.ph / 2)) * RESP_DB;
+      set(`g${h.band}`, Math.round((want - others) * 10) / 10);
+    }
+    paramView?.refresh(); dirty = true;
+  }
   function drawResponse(node, type, box, ink) {
     const value = name => node.params?.[name] ?? type.params.find(p => p.name === name)?.def ?? 0;
     const bands = type.curves(value, 48000);
@@ -1126,6 +1174,8 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
     const px = x0 + 30, pw = RESP_W - 42, py = y0 + 20, ph = RESP_H - 44;
     const xf = f => px + (Math.log(f / F_LO) / Math.log(F_HI / F_LO)) * pw;
     const yd = db => py + ph / 2 - (Math.max(-RESP_DB, Math.min(RESP_DB, db)) / RESP_DB) * (ph / 2);
+    const handles = [];   // what the mouse can take hold of in this picture (see responseHandleAt)
+    respPicture.set(node.id, { x0, y0, px, py, pw, ph, handles });
     ctx.save();
     ctx.fillStyle = (typeof getComputedStyle === 'function' && getComputedStyle(canvas).backgroundColor) || '#d9dae0';
     ctx.fillRect(x0, y0, RESP_W, RESP_H);
@@ -1184,7 +1234,15 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
       ctx.beginPath(); ctx.arc(x, y, 4.5, 0, Math.PI * 2); ctx.fill();
       ctx.fillStyle = ink;
       ctx.fillText(String(b.band), x - 3, y - 17);
+      handles.push({ kind: 'band', band: b.band, x, y });
     });
+    for (const cut of [{ name: 'lowcut', f: value('lowcut'), on: value('lowcut') > 20.5 }, { name: 'highcut', f: value('highcut'), on: value('highcut') < 19990 }]) {
+      const x = xf(cut.f), y = py + 7;   // a small triangle at the top edge: drag it sideways to set a cut
+      ctx.fillStyle = ink; ctx.globalAlpha = cut.on ? 0.9 : 0.35;
+      ctx.beginPath(); ctx.moveTo(x - 5, y - 5); ctx.lineTo(x + 5, y - 5); ctx.lineTo(x, y + 4); ctx.closePath(); ctx.fill();
+      ctx.globalAlpha = 1;
+      handles.push({ kind: 'cut', name: cut.name, x, y });
+    }
     ctx.fillStyle = ink;
     ctx.fillText('dB', x0 + 5, y0 + RESP_H - 18);
     ctx.restore();
@@ -1414,6 +1472,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
     }
     // The pictures beside a node (a filter's response, an envelope's shape) show for the selected node, and stay for every node
     // that was told to keep them (Alt+V).
+    respPicture.clear();
     for (const n of desc().nodes) {
       const t = nodeTypes[n.type];
       if (!t || !(n.keepView || (selected?.kind === 'node' && selected.id === n.id))) continue;

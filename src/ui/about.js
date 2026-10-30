@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['536', ['Equaliser: drag the dots in its response picture for frequency and gain, the wheel for Q, and the triangles for the cuts. Renaming an instrument or lane no longer stops playback.']],
   ['535', ['First screen: the metaballs are centred under the logo.']],
   ['534', ['Pattern editor: the undo trail now shows above the status bar, as in the arrangement.']],
   ['533', ['Progressions circle back: the last chord leads into the first. nextChord and leadsHome in the script, and a return arrow in the chord lab.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['529', ['Drum synth: no more random clicks when a hit lands on a voice that is still ringing.']],
   ['528', ['Script: chords, roman numerals, circle of fifths helpers and a progression generator, a chord lab in the tutorial, and the ?demo=progression song.']],
   ['527', ['Arrangement: hold Shift over a pattern to see its name; let go and it hides.']],
-  ['526', ['Pattern name label follows whichever of the mouse and the caret moved last, so it no longer pops up for the highlighted pattern.']],
 ];
