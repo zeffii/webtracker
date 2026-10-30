@@ -772,6 +772,29 @@ export const synthKinds = {
       ],
     }),
   },
+  jawharp: {
+    label: 'Jaw harp (plucked reed, mouth resonance)',
+    make: () => ({
+      graph: { nodes: [{ id: 'synth', type: 'jawharp' }, { id: 'poly', type: 'voices' }, { id: 'out', type: 'out', params: { gain: 0.5 } }], connections: [['synth.out', 'poly.in'], ['poly.out', 'out.in']], voices: 2 },
+      noteColumns: 2,
+      exposed: [
+        { node: 'synth', param: 'vowel', label: 'Vow' },
+        { node: 'synth', param: 'mouth', label: 'Mth' },
+        { node: 'synth', param: 'focus', label: 'Foc' },
+        { node: 'synth', param: 'drive', label: 'Drv' },
+      ],
+      commands: [
+        { id: 0x01, node: 'synth', param: 'vowel' },
+        { id: 0x02, node: 'synth', param: 'mouth' },
+        { id: 0x03, node: 'synth', param: 'focus' },
+        { id: 0x04, node: 'synth', param: 'drive' },
+        { id: 0x05, node: 'synth', param: 'twang' },
+        { id: 0x06, node: 'synth', param: 'decay', scale: 'log' },
+        { id: 0x07, node: 'synth', param: 'track' },
+        { id: 0x08, node: 'synth', param: 'tune' },
+      ],
+    }),
+  },
   additive: {
     label: 'Additive synth',
     make: () => ({

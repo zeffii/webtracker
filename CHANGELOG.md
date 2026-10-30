@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 554 · 2026-10-30
+
+- New synth, **Jaw harp** (Synths, and in the new instrument list as "Jaw harp"): a plucked steel reed drones at the note's pitch and the mouth, three resonances at the formants of a vowel, picks out its harmonics. `vowel` sweeps u, o, a, e, i (the wah, and the tune); `mouth` makes the cavity bigger or smaller; `track` makes the vowel follow the note; `focus` is how sharply it picks harmonics. `drive` narrows the puff of air for each swing of the reed (more harmonics), `twang` is the pluck (a sharp start and a slap), `breath` adds noise, `body` lets some of the plain reed through, `decay`/`release` are the reed's ring and damping. Polyphonic through the voices node; vowel, mouth, focus and drive are exposed as the instrument's first four knobs, and the vowel and the rest answer pattern commands.
+
 ## 553 · 2026-10-30
 
 - New effect, **Body blur** (Effects, Spectral): smooths the body of a sound and leaves its hits alone. Each frame is split into held tones and attacks (as the harmonic/percussive split does); the tones are blurred across frequency (`smooth`), followed by a running average (`time`) and given a gentle high cut (`round`), while the attacks pass straight through in time. A crushed pad turns silky and the snare keeps its snap. `split` sets how firmly body and hits are told apart, `quality` (standard or eco) works the split out every other frame for about half the CPU, `size` is the frame length, `mix` is dry against smoothed.

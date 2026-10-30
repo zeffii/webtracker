@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['554', ['New synth, Jaw harp: a plucked reed drones and the mouth picks out its harmonics; sweep the vowel for the wah and the tune']],
   ['553', ['New effect, Body blur (Effects, Spectral): smooths and rounds the body of a sound while its hits pass through untouched, in time; standard or eco quality']],
   ['552', ['New demo, ?demo=weights: chords with a volume for every note, played in turn by a Phrase node, with a pad moved by lfos']],
   ['551', ['Node Sequencer: the scroll wheel zooms and the middle button pans; a change of theme repaints the graph at once']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['547', ['Node Sequencer: a schematic look, outlined boxes in one ink with right-angle wires told apart by dashes; the Chord tile is wider and holds its keyboard. Fixes wires missing in 546']],
   ['546', ['Node Sequencer: route dots (double-click a wire), wires that can be switched off (Alt+click, M), live note volumes under Chord nodes, a length input on the Phrase node']],
   ['545', ['Node Sequencer: nodes are small tiles, a glyph and a short value with port names shown when you rest the pointer on a port; existing graphs are moved closer together once']],
-  ['544', ['Node Sequencer: Chord, Phrase and Voicing nodes: chords with a volume for every note, a Phrase node that plays the chord at its index, a keyboard under each Chord node; new demo ?demo=voicing']],
 ];

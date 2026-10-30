@@ -379,6 +379,7 @@ export const GLYPHS = {
     line(ctx, pts);
   },
   string: (ctx, cx, cy, w, h) => curve(ctx, cx, cy, w, h, t => Math.sin(t * Math.PI * 7) * Math.pow(1 - t, 1.3) * 0.9, 56),   // a ringing, fading string
+  jawharp: (ctx, cx, cy, w, h) => curve(ctx, cx, cy, w, h, t => Math.pow(Math.max(0, Math.sin(t * Math.PI * 12)), 5) * Math.sin(t * Math.PI) * 0.9 - 0.25, 72),   // narrow puffs of air swelling and fading as the mouth opens and closes
   dvii: (ctx, cx, cy, w, h) => {   // a stack of six small boxes joined by lines: operators in an algorithm
     const bw = w * 0.22, bh = h * 0.2, xs = [-0.3, 0.3];
     ctx.beginPath();

@@ -21,7 +21,7 @@ const TYPE_UNIT = {
   multitap: { time: 'ms' },
   prismacanyon: { time: 'ms', cutoff: 'Hz', bass: 'dB', treble: 'dB' },
   shiva: { length: 'ms', damp: '%' },
-  hall: { decay: 's' }, plate: { decay: 's' }, shimmer: { decay: 's', pitch: 'st' }, string: { decay: 's', release: 'ms' },
+  hall: { decay: 's' }, plate: { decay: 's' }, shimmer: { decay: 's', pitch: 'st' }, string: { decay: 's', release: 'ms' }, jawharp: { mouth: 'st', track: '%', focus: '', decay: 's', tune: 'st', release: 'ms' },
   env: {}, lfo: {},
   amp: { gain: '', bass: '', mid: '', treble: '', master: '', presence: '', depth: '', level: '' },
   distortion: { tone: 'Hz' },

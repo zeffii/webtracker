@@ -8622,6 +8622,34 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   const brightTail = hit({ loss: 0, hardness: 1 }), dullTail = hit({ loss: 1, hardness: 1 });
   assert.ok(crossings(dullTail, 4800, 9600) < crossings(brightTail, 4800, 9600), 'more loss makes the tail duller');
   console.log('ok: woodblock');
+
+  // jaw harp: sounds on a pluck, stays finite, the reed dies away, the vowel moves the harmonics the mouth picks out
+  {
+    const jaw = NODE_TYPES.jawharp, jslots = jaw.params.map((_, i) => i);
+    const pluck = (set = {}, note = 48, blocks = 400) => {
+      const node = jaw.create({ sampleRate: sr, connected: [false] });
+      const values = jaw.params.map(p => set[p.name] ?? p.def);
+      node.note({ type: 'noteOn', note, vel: 1 });
+      const out = [];
+      for (let b = 0; b < blocks; b++) {
+        const L = new Float32Array(block), R = new Float32Array(block);
+        node.process([[new Float32Array(block)]], [[L, R]], block, values, jslots);
+        assert.ok(L.every(Number.isFinite), 'the jaw harp stays finite');
+        out.push(...L);
+      }
+      return out;
+    };
+    const jrms = (a, from, to) => Math.sqrt(a.slice(from, to).reduce((t, x) => t + x * x, 0) / (to - from));
+    const harmonic = (x, h) => { const f = 440 * Math.pow(2, (48 - 69) / 12) * h; let re = 0, im = 0; for (let i = 10000; i < 30000; i++) { re += x[i] * Math.cos(2 * Math.PI * f * i / sr); im += x[i] * Math.sin(2 * Math.PI * f * i / sr); } return Math.hypot(re, im); };
+    const plucked = pluck();
+    assert.ok(jrms(plucked, 2000, 8000) > 0.02 && Math.max(...plucked.map(Math.abs)) < 1, 'a pluck sounds, within full scale');
+    assert.ok(jrms(plucked, 40000, 50000) < 0.05 * jrms(plucked, 2000, 8000), 'and the reed dies away');
+    const open = pluck({ vowel: 0.5, focus: 20 });   // an open a: the mouth sits near 700 Hz, around the 5th harmonic of this reed
+    const closed = pluck({ vowel: 0, focus: 20 });
+    assert.ok(harmonic(open, 5) > 1.5 * harmonic(closed, 5), 'the vowel moves the harmonics that are picked out');
+    assert.ok(pluck({ drive: 1, twang: 1, breath: 1, focus: 40, mouth: 12, track: 1 }, 84).every(Number.isFinite), 'extreme settings stay finite');
+    console.log('ok: jawharp');
+  }
 }
 {
   // granular scopes: a watched node tells the page about its grains; others stay quiet
