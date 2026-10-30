@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['551', ['Node Sequencer: the scroll wheel zooms and the middle button pans; a change of theme repaints the graph at once']],
   ['550', ['Node Sequencer: tile borders are the theme accent colour, almost see-through until a node is busy; tiles hide wires that run behind them']],
   ['549', ['Node Sequencer: wires in a deep tint of their kind and ports ringed in the same colour, amber events, teal controls, violet chords, olive weights']],
   ['548', ['Node Sequencer: hover a wire for a pair of arrows, then drag that stretch sideways to move the wire away from tiles; double-click the arrows to reset']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['544', ['Node Sequencer: Chord, Phrase and Voicing nodes: chords with a volume for every note, a Phrase node that plays the chord at its index, a keyboard under each Chord node; new demo ?demo=voicing']],
   ['543', ['New demo, ?demo=nodes: a song for the Node Sequencer with chord lists driving a pad, a bass and an arpeggio, groups, an lfo and an envelope']],
   ['542', ['Node Sequencer: a Pchord node steps through chords written like the Chord machine, one a line; the note node has a poly setting so a chord sounds together']],
-  ['541', ['Two saturators (Effects, Distortion): a simple one and a multiband one, with four curves (soft, tape, tube, clip) and a quality switch.']],
 ];

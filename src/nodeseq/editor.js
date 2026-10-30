@@ -476,15 +476,16 @@ export function createNodeSeqEditor({ root, getSong, noteTargets = () => [], par
   });
   const onStructureQuiet = () => { onStructure(); };   // positions are not in the engine's graph, but saving needs the project marked changed
   canvas.addEventListener('mousemove', e => { if (drag) return; const [sx, sy] = pos(e), [wx, wy] = toWorld(sx, sy), p = hitPort(wx, wy); const was = hover?.id + hover?.name, hn = p ? null : hitNode(wx, wy); mouse = [sx, sy]; hover = p; hoverNode = hn?.id ?? null; const st = p || hn ? null : nearStretch(wx, wy); if (st?.wr !== stretch?.wr || st?.k !== stretch?.k) dirty = true; stretch = st; if (was !== p?.id + p?.name || hoverNode !== lastHoverNode) { lastHoverNode = hoverNode; dirty = true; } canvas.style.cursor = p ? 'crosshair' : overArrows(stretch, wx, wy) ? (stretch.vertical ? 'ew-resize' : 'ns-resize') : hitStep(hitNode(wx, wy) ?? { type: '' }, wx, wy) >= 0 ? 'pointer' : 'default'; });
-  canvas.addEventListener('wheel', e => {
+  canvas.addEventListener('wheel', e => {   // the wheel zooms about the pointer; the middle button pans
     e.preventDefault();
-    const [sx, sy] = pos(e);
-    if (e.ctrlKey || e.metaKey) {   // zoom about the pointer
-      const [wx, wy] = toWorld(sx, sy), z = clamp(view.zoom * (e.deltaY < 0 ? 1.1 : 1 / 1.1), 0.4, 2.2);
-      view.zoom = z; view.x = wx - sx / z; view.y = wy - sy / z;
-    } else { view.x += (e.shiftKey ? e.deltaY : e.deltaX) / view.zoom; view.y += (e.shiftKey ? 0 : e.deltaY) / view.zoom; }
+    const [sx, sy] = pos(e), [wx, wy] = toWorld(sx, sy), z = clamp(view.zoom * Math.exp(-clamp(e.deltaY, -120, 120) * 0.0015), 0.4, 2.5);
+    view.zoom = z; view.x = wx - sx / z; view.y = wy - sy / z;
     dirty = true;
   }, { passive: false });
+  // A change of theme repaints the graph at once, without waiting for the pointer to come back in.
+  const repaint = () => { dirty = true; };
+  for (const el of [document.documentElement, document.body]) new MutationObserver(repaint).observe(el, { attributes: true, attributeFilter: ['class', 'data-theme', 'style'] });
+  matchMedia?.('(prefers-color-scheme: dark)')?.addEventListener?.('change', repaint);
   // The wires the engine runs, in its order: the ones that are on and join ports that are there. Its numbers for a pulse index this list.
   const liveWires = () => (graph()?.wires ?? []).filter(x => { if (x.off) return false; const a = portPos(x.from, 'out'), b = portPos(x.to, 'in'); return !!a && !!b && a.k === b.k; });
   // Switch a wire off without deleting it (or back on).

@@ -2,6 +2,11 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 551 · 2026-10-30
+
+- Node Sequencer: the **scroll wheel zooms** about the pointer (it scrolled before, and zoomed only with Ctrl); holding the middle button pans.
+- Fix: switching theme repaints the Node Sequencer at once, instead of only after the pointer moved into it.
+
 ## 550 · 2026-10-30
 
 - Node Sequencer: tile borders are the theme's accent colour, almost see-through (a node that is selected, playing or just got an event is drawn solid).
