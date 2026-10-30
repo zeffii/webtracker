@@ -963,13 +963,22 @@ export function createTrackerView({ showMenu = (e, items) => showContextMenu(e, 
     }
     while (lines.length < 2 + rowCount) lines.push('');   // always rowCount rows tall, so the drag bar works on a short song
     paintLines(lines);
+    // The playhead and the loop lines sit on the real rows (each row is an element, so its offsetTop is where it is drawn, whatever
+    // the font, the zoom or the screen's pixel ratio). Without a page (the tests) the row height is measured instead.
+    const rowY = row => {
+      const d = real ? rowEls[row] : null;
+      if (d) return d.offsetTop;
+      const m = lineMetrics();
+      return m.up - el.clientTop + m.lh * row;
+    };
+    const rowH = row => (real && rowEls[row] ? rowEls[row].offsetHeight : lineMetrics().lh);
     if (song.loop && typeof getComputedStyle === 'function') {
-      const m = lineMetrics(), lp = song.loop, yOf = t => t >= top && t <= top + rowCount ? m.up - el.clientTop + m.lh * (2 + t - top) : null;
+      const lp = song.loop, yOf = t => t >= top && t <= top + rowCount ? rowY(2 + t - top) : null;
       looplines.show([yOf(lp.start), yOf(lp.end)], !!lp.off);
     } else looplines.show(null);
     if (overlay() && playing && playTick >= top && playTick < Math.min(showHi(), top + rowCount) && playTick >= showLo()) {
-      const m = lineMetrics();
-      playline.show(m.up - el.clientTop + m.lh * (2 + playTick - top), head === 'band' ? m.lh : 0);
+      const row = 2 + playTick - top;
+      playline.show(rowY(row), head === 'band' ? rowH(row) : 0);
     } else playline.show(null);
     // Coming in from the arrangement: scroll so the whole of the lane's columns can be seen, if they fit.
     if (fitLane !== null && el.clientWidth > 0 && el.querySelector) {

@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 538 · 2026-10-30
+
+- Pattern editor: the playhead (line or band) and the loop lines were placed from a calculated row height and top edge; they are now placed from the rows themselves (each row is an element, and the line goes to its offsetTop). Reported as a playline stuck at the top of the grid while playing with the loop on, which could not be reproduced here; a row height measured at the wrong moment (or off by the font, the browser zoom or the screen's pixel ratio) is the likely cause, and this no longer depends on one. The playhead does not depend on Follow: with Follow off the grid stays still and the line travels down it. The arrangement already worked this way.
+
 ## 537 · 2026-10-30
 
 - Three new spectral effects (Effects, Spectral in the node menu), all working in overlapping FFT frames of 1024, 2048 or 4096 samples, so each adds one frame of delay (the dry sound of `mix` is delayed to match). They share a small frame helper, `audio/nodes/stft.js`.
