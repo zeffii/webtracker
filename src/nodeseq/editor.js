@@ -5,13 +5,12 @@
 import { NS_TYPES, insOf, parseList, parseChordList, compileScript, DEFAULT_SCRIPT } from './nodes.js';
 import { ensureGraph, newGraph, addNode, connect, disconnect, removeNodes, duplicateNodes, cleanGraph, canConnect, GROUP_NAMES } from './graphops.js';
 import { chordView } from './chordtext.js';
+import { tileSize, tileLabel, drawGlyph } from './tiles.js';
 import { noteName } from '../seq/chordname.js';
 import { showContextMenu } from '../ui/ctxmenu.js';
 
-const HEAD = 20, ROW = 18, FONT = '11px ui-monospace, Consolas, monospace', CATS = ['time', 'rhythm', 'values', 'chords', 'control', 'output', 'code', 'groups'];
+const FONT = '7px ui-monospace, Consolas, monospace', CATS = ['time', 'rhythm', 'values', 'chords', 'control', 'output', 'code', 'groups'];
 export const GROUP_COLORS = ['#e0a84a', '#4fc3d9', '#c792ea', '#5fbf6a', '#ee7d5c', '#8a96f2', '#e5669c', '#a3b34c'];
-const WIDTH = { steps: 250, Pseq: 190, Prand: 190, Pchord: 190, Chord: 200, Phrase: 150, Voicing: 150, euclid: 180, lfo: 190, script: 200, note: 190, set: 200 };
-const BODY = { steps: 40, Pseq: 18, Prand: 18, Pchord: 18, Chord: 48, Phrase: 18, Voicing: 46, euclid: 26, lfo: 30, script: 44, note: 16, set: 16, monitor: 16 };
 const METER = new Set(['lfo', 'ad', 'scale', 'hold', 'Pwhite', 'set']);   // nodes that show a level
 
 const fmt = v => (Number.isInteger(v) ? String(v) : Math.abs(v) >= 100 ? v.toFixed(0) : Math.abs(v) >= 10 ? v.toFixed(1) : v.toFixed(2));
@@ -32,7 +31,7 @@ export function createNodeSeqEditor({ root, getSong, noteTargets = () => [], par
   const ctx = canvas.getContext('2d');
 
   // ---- state
-  let view = { x: -20, y: -20, zoom: 1 }, sel = new Set(), selWire = null, drag = null, hover = null, dirty = true;
+  let view = { x: -20, y: -20, zoom: 1 }, sel = new Set(), selWire = null, drag = null, hover = null, hoverNode = null, lastHoverNode = null, mouse = [0, 0], dirty = true;
   const kindColor = (C, k) => (k === 'e' ? C.ev : k === 'h' ? C.hc : k === 'w' ? C.wc : C.ct);
   let active = new Set(), activeTo = new Set();   // the chord nodes a Phrase node is playing, and the wires they play along
   let live = null, pulses = [], flash = new Map(), errors = new Map(), mon = [];   // what the audio thread has told us
@@ -87,25 +86,14 @@ export function createNodeSeqEditor({ root, getSong, noteTargets = () => [], par
 
   // ---- geometry
   const nodeOf = id => graph()?.nodes.find(n => n.id === id);
-  const summary = n => {
-    const T = NS_TYPES[n.type], out = [];
-    const ps = T.params.filter(p => !(n.type === 'steps' && p.name === 'n' && false));
-    let line = '';
-    for (const p of ps) {
-      const v = n.params?.[p.name] ?? p.def, text = `${p.name} ${p.labels ? p.labels[Math.round(v)] ?? fmt(v) : fmt(v)}`;
-      if ((line + text).length > 28) { out.push(line.trim()); line = ''; }
-      line += `${text}  `;
-    }
-    if (line.trim()) out.push(line.trim());
-    return out.slice(0, 2);
-  };
+  // A tile: its ports are spread along its left (in) and right (out) edges.
   function layout(n) {
-    const T = NS_TYPES[n.type], ins = insOf(n.type, graph()?.wires ?? [], n.id), rows = Math.max(ins.length, T.outs.length), w = WIDTH[n.type] ?? 170, sum = summary(n), meter = METER.has(n.type) ? 8 : 0;
-    const body = BODY[n.type] ?? 0, h = HEAD + 8 + rows * ROW + body + meter + sum.length * 13 + 6;
-    const b = { x: n.x, y: n.y, w, h, sum, bodyY: n.y + HEAD + 8 + rows * ROW, meterY: n.y + HEAD + 8 + rows * ROW + body, ins: [], outs: [] };
+    const T = NS_TYPES[n.type], ins = insOf(n.type, graph()?.wires ?? [], n.id), { w, h } = tileSize(n.type, ins.length, T.outs.length, n.data, n.params);
+    const b = { x: n.x, y: n.y, w, h, ins: [], outs: [] };
     const wired = new Set((graph()?.wires ?? []).filter(x => x.to.startsWith(`${n.id}.`)).map(x => x.to));
-    ins.forEach((p, i) => b.ins.push({ ...p, free: p.dyn && !wired.has(`${n.id}.${p.n}`), x: n.x, y: n.y + HEAD + 14 + i * ROW }));
-    T.outs.forEach((p, i) => b.outs.push({ ...p, x: n.x + w, y: n.y + HEAD + 14 + i * ROW }));
+    const at = (i, count) => n.y + h * (i + 1) / (count + 1);
+    ins.forEach((p, i) => b.ins.push({ ...p, free: p.dyn && !wired.has(`${n.id}.${p.n}`), x: n.x, y: at(i, ins.length) }));
+    T.outs.forEach((p, i) => b.outs.push({ ...p, x: n.x + w, y: at(i, T.outs.length) }));
     return b;
   }
   const portPos = (ref, side) => {
@@ -174,62 +162,65 @@ export function createNodeSeqEditor({ root, getSong, noteTargets = () => [], par
     }
     if (drag?.kind === 'marquee') { ctx.strokeStyle = C.hi; ctx.fillStyle = C.hi; ctx.globalAlpha = 0.15; const [x0, y0] = toWorld(drag.x0, drag.y0), [x1, y1] = toWorld(drag.x, drag.y); ctx.fillRect(Math.min(x0, x1), Math.min(y0, y1), Math.abs(x1 - x0), Math.abs(y1 - y0)); ctx.globalAlpha = 1; ctx.strokeRect(Math.min(x0, x1), Math.min(y0, y1), Math.abs(x1 - x0), Math.abs(y1 - y0)); }
     ctx.restore();
+    drawHint(C);
     for (const [id, t] of flash) if (now - t > 260) flash.delete(id);
   }
 
+  // The name of the port (or the node) under the pointer: the tiles carry no names of their own.
+  const KIND_WORDS = { e: 'event', c: 'control', h: 'chord', w: 'weights' };
+  function drawHint(C) {
+    let text = '';
+    if (hover) text = /^c\d+$/.test(hover.name) && NS_TYPES[nodeOf(hover.id)?.type]?.dynIn ? `chord ${hover.name.slice(1)}${hover.free ? ' (free)' : ''}` : `${hover.name}  ·  ${KIND_WORDS[hover.k]}`;
+    else if (hoverNode) { const n = nodeOf(hoverNode); if (n) text = `${NS_TYPES[n.type].title}  ·  ${n.id}`; }
+    if (!text || drag) return;
+    ctx.save(); ctx.font = '11px ui-monospace, Consolas, monospace';
+    const w = ctx.measureText(text).width + 12, [mx, my] = mouse, x = Math.min(mx + 12, W - w - 4), y = my + 16;
+    ctx.fillStyle = '#23262b'; ctx.globalAlpha = 0.95; roundRect(x, y, w, 19, 3); ctx.fill();
+    ctx.globalAlpha = 1; ctx.fillStyle = '#f1efe8'; ctx.fillText(text, x + 6, y + 13);
+    ctx.restore();
+  }
+  const roundRect = (x, y, w, h, r) => { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); };
   function drawNode(n, b, C) {
     const T = NS_TYPES[n.type], picked = sel.has(n.id), now = typeof performance !== 'undefined' ? performance.now() : 0, gcol = GROUP_COLORS[n.group ?? 0], off = live && !live.on[n.group ?? 0];
     ctx.save();
-    if (off) ctx.globalAlpha = 0.45;
-    ctx.fillStyle = C.bg; ctx.fillRect(b.x, b.y, b.w, b.h);   // the page's own colour first, so a wire behind the node does not show through
-    ctx.fillStyle = C.dark ? 'rgba(255,255,255,.07)' : 'rgba(0,0,0,.07)'; ctx.fillRect(b.x, b.y, b.w, b.h);
-    ctx.fillStyle = C.dark ? 'rgba(255,255,255,.10)' : 'rgba(0,0,0,.10)'; ctx.fillRect(b.x, b.y, b.w, HEAD);
-    const f = flash.get(n.id);
-    ctx.strokeStyle = picked ? C.hi : active.has(n.id) ? C.hc : f && now - f < 260 ? C.ev : C.dark ? 'rgba(255,255,255,.28)' : 'rgba(0,0,0,.35)'; ctx.lineWidth = picked || active.has(n.id) ? 2 : 1; ctx.strokeRect(b.x + 0.5, b.y + 0.5, b.w - 1, b.h - 1);
-    ctx.fillStyle = gcol; ctx.fillRect(b.x, b.y, 3, HEAD);
-    ctx.fillStyle = C.ink; ctx.textAlign = 'left'; ctx.fillText(T.title, b.x + 9, b.y + 14);
-    ctx.globalAlpha = (off ? 0.45 : 1) * 0.55; ctx.textAlign = 'right'; ctx.fillText(`${GROUP_NAMES[n.group ?? 0]} · ${n.id}`, b.x + b.w - 6, b.y + 14);
-    ctx.globalAlpha = off ? 0.45 : 1; ctx.textAlign = 'left';
-    if (errors.has(n.id)) { ctx.fillStyle = C.bad; ctx.fillRect(b.x + b.w - 8, b.y, 8, 8); }
+    if (off) ctx.globalAlpha = 0.5;
+    roundRect(b.x, b.y, b.w, b.h, 5); ctx.fillStyle = C.bg; ctx.fill();   // the page's own colour first, so a wire behind the tile does not show through
+    ctx.fillStyle = C.dark ? 'rgba(255,255,255,.09)' : 'rgba(0,0,0,.08)'; ctx.fill();
+    const f = flash.get(n.id), lit = picked || active.has(n.id);
+    ctx.strokeStyle = picked ? C.hi : active.has(n.id) ? C.hc : f && now - f < 260 ? C.ev : C.dark ? 'rgba(255,255,255,.28)' : 'rgba(0,0,0,.35)'; ctx.lineWidth = lit ? 2 : 1;
+    roundRect(b.x + 0.5, b.y + 0.5, b.w - 1, b.h - 1, 5); ctx.stroke();
+    ctx.fillStyle = gcol; ctx.fillRect(b.x, b.y + 3, 2.5, b.h - 6);
+    if (errors.has(n.id)) { ctx.fillStyle = C.bad; ctx.beginPath(); ctx.arc(b.x + b.w - 5, b.y + 5, 2.5, 0, 7); ctx.fill(); }
+    drawBody(n, b, C, T);
+    if (METER.has(n.type)) { const v = clamp(live?.nodes?.[n.id]?.v ?? 0, 0, 1); ctx.fillStyle = C.dark ? 'rgba(255,255,255,.14)' : 'rgba(0,0,0,.14)'; ctx.fillRect(b.x + 6, b.y + b.h - 5, b.w - 12, 2); ctx.fillStyle = C.ct; ctx.fillRect(b.x + 6, b.y + b.h - 5, (b.w - 12) * v, 2); }
     for (const p of b.ins) port(p, C, 'in');
     for (const p of b.outs) port(p, C, 'out');
-    ctx.fillStyle = C.ink; ctx.globalAlpha *= 0.6;
-    for (const p of b.ins) ctx.fillText(p.n, p.x + 9, p.y + 4);
-    ctx.textAlign = 'right'; for (const p of b.outs) ctx.fillText(p.n, p.x - 9, p.y + 4); ctx.textAlign = 'left';
-    ctx.globalAlpha = off ? 0.45 : 1;
-    drawBody(n, b, C, T);
-    if (METER.has(n.type)) { const v = clamp(live?.nodes?.[n.id]?.v ?? 0, 0, 1), y = b.meterY + 1; ctx.fillStyle = C.dark ? 'rgba(255,255,255,.12)' : 'rgba(0,0,0,.12)'; ctx.fillRect(b.x + 6, y, b.w - 12, 3); ctx.fillStyle = C.ct; ctx.fillRect(b.x + 6, y, (b.w - 12) * (n.type === 'Pwhite' || n.type === 'hold' ? clamp(live?.nodes?.[n.id]?.v ?? 0, 0, 1) : v), 3); }
-    ctx.fillStyle = C.ink; ctx.globalAlpha *= 0.6;
-    b.sum.forEach((line, i) => ctx.fillText(line, b.x + 8, b.y + b.h - 6 - (b.sum.length - 1 - i) * 13));
     ctx.restore();
   }
 
   function port(p, C, side) {
     const col = kindColor(C, p.k);
     ctx.beginPath();
-    if (p.k === 'e') ctx.rect(p.x - 4, p.y - 4, 8, 8);
-    else if (p.k === 'h') { ctx.moveTo(p.x, p.y - 5.5); ctx.lineTo(p.x + 5.5, p.y); ctx.lineTo(p.x, p.y + 5.5); ctx.lineTo(p.x - 5.5, p.y); ctx.closePath(); }
-    else if (p.k === 'w') { ctx.moveTo(p.x - 4.5, p.y + 4); ctx.lineTo(p.x + 4.5, p.y + 4); ctx.lineTo(p.x, p.y - 5); ctx.closePath(); }
-    else ctx.arc(p.x, p.y, 4.5, 0, 7);
-    if (p.free) { ctx.strokeStyle = col; ctx.lineWidth = 1.3; ctx.setLineDash([2, 2]); ctx.stroke(); ctx.setLineDash([]); }   // the spare chord port of a Phrase node
+    if (p.k === 'e') ctx.rect(p.x - 3, p.y - 3, 6, 6);
+    else if (p.k === 'h') { ctx.moveTo(p.x, p.y - 4.2); ctx.lineTo(p.x + 4.2, p.y); ctx.lineTo(p.x, p.y + 4.2); ctx.lineTo(p.x - 4.2, p.y); ctx.closePath(); }
+    else if (p.k === 'w') { ctx.moveTo(p.x - 3.6, p.y + 3); ctx.lineTo(p.x + 3.6, p.y + 3); ctx.lineTo(p.x, p.y - 3.6); ctx.closePath(); }
+    else ctx.arc(p.x, p.y, 3.2, 0, 7);
+    if (p.free) { ctx.strokeStyle = col; ctx.lineWidth = 1.2; ctx.setLineDash([1.5, 1.5]); ctx.stroke(); ctx.setLineDash([]); }   // the spare chord port of a Phrase node
     else { ctx.fillStyle = col; ctx.fill(); ctx.strokeStyle = C.bg; ctx.lineWidth = 1; ctx.stroke(); }
-    if (drag?.kind === 'wire' && drag.ok?.(p, side)) { ctx.strokeStyle = C.ink; ctx.lineWidth = 1.5; ctx.beginPath(); if (p.k === 'e') ctx.rect(p.x - 7, p.y - 7, 14, 14); else ctx.arc(p.x, p.y, 8, 0, 7); ctx.stroke(); }
+    if (drag?.kind === 'wire' && drag.ok?.(p, side)) { ctx.strokeStyle = C.ink; ctx.lineWidth = 1.5; ctx.beginPath(); if (p.k === 'e') ctx.rect(p.x - 5.5, p.y - 5.5, 11, 11); else ctx.arc(p.x, p.y, 6, 0, 7); ctx.stroke(); }
   }
 
   const WHITE_PC = [0, 2, 4, 5, 7, 9, 11], BLACK_AT = { 1: 0.7, 3: 1.7, 6: 3.7, 8: 4.7, 10: 5.7 };
   // Two octaves of keyboard under a Chord node: the chord's notes lit, and under each lit key a bar for that note's volume.
-  function drawKeyboard(n, x, y, w, C) {
-    const cv = chordView(n.data, n.params), on = active.has(n.id), kw = w / 14, ky = y + 16;
-    ctx.fillStyle = cv.error ? C.bad : C.ink;
-    const name = cv.error ?? (cv.name || 'type a chord');
-    ctx.fillText(name.length > 30 ? `${name.slice(0, 29)}…` : name, x, y + 11);
+  function drawKeyboard(n, b, C) {
+    const cv = chordView(n.data, n.params), on = active.has(n.id), kw = 4.2, x = b.x + b.w / 2 - kw * 7, ky = b.y + b.h + 3;
     const lo = cv.notes.length ? Math.floor(Math.min(...cv.notes) / 12) * 12 : 48;
     const index = new Map(cv.notes.map((m, i) => [m, i]));
     const keep = ctx.globalAlpha;
     ctx.globalAlpha = keep * (on ? 1 : 0.65);
     for (let i = 0; i < 14; i++) {
       const m = lo + WHITE_PC[i % 7] + 12 * Math.floor(i / 7);
-      ctx.fillStyle = index.has(m) ? C.ev : C.dark ? 'rgba(255,255,255,.16)' : 'rgba(0,0,0,.12)'; ctx.fillRect(x + i * kw, ky, kw - 1, 14);
+      ctx.fillStyle = index.has(m) ? C.ev : C.dark ? 'rgba(255,255,255,.16)' : 'rgba(0,0,0,.12)'; ctx.fillRect(x + i * kw, ky, kw - 0.5, 14);
     }
     for (let o = 0; o < 2; o++) for (const k in BLACK_AT) {
       const m = lo + Number(k) + 12 * o, bx = x + (BLACK_AT[k] + 7 * o) * kw + kw * 0.62;
@@ -246,55 +237,47 @@ export function createNodeSeqEditor({ root, getSong, noteTargets = () => [], par
   }
 
   function drawBody(n, b, C, T) {
-    const v = live?.nodes?.[n.id], x = b.x + 8, y = b.bodyY, w = b.w - 16;
-    if (n.type === 'steps') {
-      const cells = n.data?.cells ?? [], cnt = Math.round(n.params?.n ?? 16), cw = w / cnt;
-      for (let i = 0; i < cnt; i++) {
-        const lv = Number(cells[i]) || 0, cx = x + i * cw;
-        ctx.fillStyle = C.dark ? 'rgba(255,255,255,.07)' : 'rgba(0,0,0,.08)'; ctx.fillRect(cx + 1, y + 2, cw - 2, 30);
-        if (lv > 0) { ctx.fillStyle = C.ev; ctx.fillRect(cx + 1, y + 2 + 30 * (1 - lv), cw - 2, 30 * lv); }
-        if (v?.i === i) { ctx.strokeStyle = C.ink; ctx.lineWidth = 1.5; ctx.strokeRect(cx + 0.5, y + 1.5, cw - 1, 32); }
-        if (i % 4 === 0) { ctx.fillStyle = C.ink; ctx.globalAlpha *= 0.4; ctx.fillRect(cx + 1, y + 35, 1, 3); ctx.globalAlpha /= 0.4; }
-      }
-    } else if (n.type === 'euclid') {
-      const s = Math.max(1, Math.round(n.params?.steps ?? 8)), cw = Math.min(14, w / s);
-      for (let i = 0; i < s; i++) {
-        const hit = euclid(i, n.params);
-        ctx.fillStyle = hit ? C.ev : C.dark ? 'rgba(255,255,255,.1)' : 'rgba(0,0,0,.12)'; ctx.fillRect(x + i * cw + 1, y + 3, cw - 2, 14);
-        if (v?.i === i) { ctx.strokeStyle = C.ink; ctx.lineWidth = 1.5; ctx.strokeRect(x + i * cw + 0.5, y + 2.5, cw - 1, 15); }
-      }
-    } else if (n.type === 'Chord') {
-      drawKeyboard(n, x, y, w, C);
-    } else if (n.type === 'Phrase') {
-      const chords = (graph()?.wires ?? []).filter(wr => wr.to.startsWith(`${n.id}.c`)).length;
-      ctx.fillStyle = C.ink; ctx.fillText(`${chords} chord${chords === 1 ? '' : 's'}${v && v.i >= 0 ? ` · now ${v.i + 1}` : ''}`, x, y + 12);
-    } else if (n.type === 'Voicing') {
-      const cnt = Math.round(n.params?.notes ?? 4), cw = w / cnt;
-      for (let i = 0; i < cnt; i++) { const lv = clamp((n.data?.weights?.[i] ?? 100) / 100, 0, 1); ctx.fillStyle = C.wc; ctx.fillRect(x + i * cw + 2, y + 2 + 34 * (1 - lv), cw - 4, Math.max(1, 34 * lv)); }
-    } else if (n.type === 'Pseq' || n.type === 'Prand' || n.type === 'Pchord') {
-      const text = n.type === 'Pchord' ? String(n.data?.text ?? '').split(/\r?\n/).map(t => t.trim()).filter(Boolean).join(' · ') : String(n.data?.text ?? ''), { bad } = n.type === 'Pchord' ? parseChordList(n.data?.text) : parseList(text);
-      ctx.fillStyle = bad.length ? C.bad : C.ink; ctx.fillText(text.length > 28 ? `${text.slice(0, 27)}…` : text || '(empty list)', x, y + 12);
-    } else if (n.type === 'lfo') {
-      ctx.strokeStyle = C.ct; ctx.lineWidth = 1; ctx.globalAlpha *= 0.8; ctx.beginPath();
-      const shape = Math.round(n.params?.shape ?? 0), depth = n.params?.depth ?? 1, centre = n.params?.center ?? 0.5;
-      for (let i = 0; i <= 60; i++) { const p = i / 60; const wv = shape === 1 ? (p < 0.5 ? p * 4 - 1 : 3 - p * 4) : shape === 2 ? p * 2 - 1 : shape === 3 ? (p < 0.5 ? 1 : -1) : shape === 4 ? Math.sin(p * 40) * Math.cos(p * 7) : Math.sin(p * 2 * Math.PI); const yy = y + 14 - (clamp(centre + wv * 0.5 * depth, 0, 1) - 0.5) * 24; i ? ctx.lineTo(x + p * w, yy) : ctx.moveTo(x, yy); }
-      ctx.stroke(); ctx.globalAlpha /= 0.8;
-    } else if (n.type === 'script') {
-      const err = errors.get(n.id), lines = String(n.data?.code ?? '').split('\n').filter(l => l.trim() && !l.trim().startsWith('//')).slice(0, 3);
-      ctx.fillStyle = err ? C.bad : C.ink; ctx.globalAlpha *= err ? 1 : 0.7;
-      (err ? [err.slice(0, 30)] : lines).forEach((l, i) => ctx.fillText(l.length > 26 ? `${l.slice(0, 25)}…` : l, x, y + 12 + i * 13));
-      ctx.globalAlpha = 1;
-    } else if (n.type === 'note') {
-      const t = n.data?.target;
-      ctx.fillStyle = t ? C.ink : C.bad; ctx.fillText(t ? `→ ${t}` : '→ (pick an instrument)', x, y + 11);
-      if (v?.on) { ctx.fillStyle = C.ev; ctx.fillRect(b.x + b.w - 20, y + 2, 10, 10); }
-    } else if (n.type === 'set') {
-      const t = n.data?.target;
-      ctx.fillStyle = t ? C.ink : C.bad; const label = t ? `→ ${t}` : '→ (pick a parameter)'; ctx.fillText(label.length > 30 ? `${label.slice(0, 29)}…` : label, x, y + 11);
-    } else if (n.type === 'monitor') {
-      ctx.fillStyle = C.ink; ctx.fillText(v ? `${fmt(v.v)}${v.vel > 0 ? `  vel ${fmt(v.vel)}` : ''}` : '', x, y + 11);
-    }
+    const v = live?.nodes?.[n.id], cx = b.x + b.w / 2, x0 = b.x + 6, w = b.w - 12;
     void T;
+    if (n.type === 'steps') {
+      const cells = n.data?.cells ?? [], cnt = Math.round(n.params?.n ?? 16), cw = w / cnt, top = b.y + 8, hh = b.h - 16;
+      for (let i = 0; i < cnt; i++) {
+        const lv = Number(cells[i]) || 0, x = x0 + i * cw;
+        ctx.fillStyle = C.dark ? 'rgba(255,255,255,.08)' : 'rgba(0,0,0,.09)'; ctx.fillRect(x + 0.5, top, cw - 1, hh);
+        if (lv > 0) { ctx.fillStyle = C.ev; ctx.fillRect(x + 0.5, top + hh * (1 - lv), cw - 1, hh * lv); }
+        if (v?.i === i) { ctx.strokeStyle = C.ink; ctx.lineWidth = 1.2; ctx.strokeRect(x + 0.5, top - 0.5, cw - 1, hh + 1); }
+        if (i % 4 === 0) { ctx.fillStyle = C.ink; ctx.globalAlpha *= 0.4; ctx.fillRect(x + 0.5, top + hh + 2, 1, 2); ctx.globalAlpha /= 0.4; }
+      }
+      return;
+    }
+    if (n.type === 'euclid') {
+      const s = Math.max(1, Math.round(n.params?.steps ?? 8)), cw = Math.min(9, w / s), x1 = cx - cw * s / 2;
+      for (let i = 0; i < s; i++) {
+        ctx.fillStyle = euclid(i, n.params) ? C.ev : C.dark ? 'rgba(255,255,255,.12)' : 'rgba(0,0,0,.13)'; ctx.fillRect(x1 + i * cw + 0.5, b.y + b.h / 2 - 6, cw - 1, 12);
+        if (v?.i === i) { ctx.strokeStyle = C.ink; ctx.lineWidth = 1.2; ctx.strokeRect(x1 + i * cw + 0.5, b.y + b.h / 2 - 6.5, cw - 1, 13); }
+      }
+      return;
+    }
+    if (n.type === 'Voicing') {
+      const cnt = Math.round(n.params?.notes ?? 4), cw = w / cnt, hh = b.h - 14;
+      for (let i = 0; i < cnt; i++) { const lv = clamp((n.data?.weights?.[i] ?? 100) / 100, 0, 1); ctx.fillStyle = C.wc; ctx.fillRect(x0 + i * cw + 1, b.y + 7 + hh * (1 - lv), cw - 2, Math.max(1, hh * lv)); }
+      return;
+    }
+    if (n.type === 'lfo') {   // the wave it makes, in the tile
+      ctx.strokeStyle = C.ct; ctx.lineWidth = 1.2; ctx.beginPath();
+      const shape = Math.round(n.params?.shape ?? 0), depth = n.params?.depth ?? 1, centre = n.params?.center ?? 0.5, yc = b.y + b.h / 2 - 1;
+      for (let i = 0; i <= 40; i++) { const p = i / 40; const wv = shape === 1 ? (p < 0.5 ? p * 4 - 1 : 3 - p * 4) : shape === 2 ? p * 2 - 1 : shape === 3 ? (p < 0.5 ? 1 : -1) : shape === 4 ? Math.sin(p * 40) * Math.cos(p * 7) : Math.sin(p * 2 * Math.PI); const yy = yc - (clamp(centre + wv * 0.5 * depth, 0, 1) - 0.5) * 18; if (i) ctx.lineTo(x0 + p * w, yy); else ctx.moveTo(x0, yy); }
+      ctx.stroke();
+      return;
+    }
+    // the rest: a glyph, and a few characters under it
+    const chords = n.type === 'Phrase' ? (graph()?.wires ?? []).filter(wr => wr.to.startsWith(`${n.id}.c`)).length : 0;
+    const label = tileLabel(n, v, chords);
+    const bad = (n.type === 'Chord' && chordView(n.data, n.params).error) || ((n.type === 'Pseq' || n.type === 'Prand') && parseList(n.data?.text).bad.length) || (n.type === 'Pchord' && parseChordList(n.data?.text).bad.length) || errors.has(n.id) || ((n.type === 'note' || n.type === 'set') && !n.data?.target);
+    drawGlyph(ctx, n.type, cx - 7, b.y + (label ? 5 : (b.h - 14) / 2), 14, C.ink);
+    if (label) { ctx.font = FONT; ctx.fillStyle = bad ? C.bad : C.ink; ctx.globalAlpha *= bad ? 1 : 0.7; ctx.textAlign = 'center'; ctx.fillText(label, cx, b.y + b.h - 5); ctx.textAlign = 'left'; ctx.globalAlpha /= bad ? 1 : 0.7; }
+    if (n.type === 'note' && v?.on) { ctx.fillStyle = C.ev; ctx.fillRect(b.x + b.w - 8, b.y + 3, 5, 5); }
+    if (n.type === 'Chord') drawKeyboard(n, b, C);
   }
 
   const euclid = (i, p) => { const s = Math.max(1, Math.round(p?.steps ?? 8)), pl = Math.max(0, Math.round(p?.pulses ?? 5)), r = Math.round(p?.rot ?? 0), k = (((i + r) % s) + s) % s; return (k * pl) % s < pl; };
@@ -302,12 +285,12 @@ export function createNodeSeqEditor({ root, getSong, noteTargets = () => [], par
   // ---- hit testing (world units)
   function hitPort(wx, wy) {
     const g = graph(); if (!g) return null;
-    for (const n of [...g.nodes].reverse()) {
+    let best = null, bd = 7;   // the nearest port within a few units
+    for (const n of g.nodes) {
       const b = boxes.get(n.id); if (!b) continue;
-      for (const p of b.outs) if (Math.abs(wx - p.x) < 8 && Math.abs(wy - p.y) < 8) return { id: n.id, name: p.n, k: p.k, side: 'out', x: p.x, y: p.y };
-      for (const p of b.ins) if (Math.abs(wx - p.x) < 8 && Math.abs(wy - p.y) < 8) return { id: n.id, name: p.n, k: p.k, side: 'in', x: p.x, y: p.y };
+      for (const [list, side] of [[b.outs, 'out'], [b.ins, 'in']]) for (const p of list) { const d = Math.hypot(wx - p.x, wy - p.y); if (d < bd) { bd = d; best = { id: n.id, name: p.n, k: p.k, side, x: p.x, y: p.y, free: p.free }; } }
     }
-    return null;
+    return best;
   }
   const hitNode = (wx, wy) => { const g = graph(); if (!g) return null; for (const n of [...g.nodes].reverse()) { const b = boxes.get(n.id); if (b && wx >= b.x && wx <= b.x + b.w && wy >= b.y && wy <= b.y + b.h) return n; } return null; };
   function hitWire(wx, wy) {
@@ -320,8 +303,8 @@ export function createNodeSeqEditor({ root, getSong, noteTargets = () => [], par
   }
   function hitStep(n, wx, wy) {
     const b = boxes.get(n.id); if (!b || n.type !== 'steps') return -1;
-    const cnt = Math.round(n.params?.n ?? 16), w = b.w - 16, cw = w / cnt, x = wx - (b.x + 8), y = wy - b.bodyY;
-    if (x < 0 || x >= w || y < 0 || y > 36) return -1;
+    const cnt = Math.round(n.params?.n ?? 16), w = b.w - 12, cw = w / cnt, x = wx - (b.x + 6), y = wy - (b.y + 8);
+    if (x < 0 || x >= w || y < 0 || y > b.h - 16) return -1;
     return Math.floor(x / cw);
   }
 
@@ -405,7 +388,7 @@ export function createNodeSeqEditor({ root, getSong, noteTargets = () => [], par
     }
   });
   const onStructureQuiet = () => { onStructure(); };   // positions are not in the engine's graph, but saving needs the project marked changed
-  canvas.addEventListener('mousemove', e => { if (drag) return; const [sx, sy] = pos(e), [wx, wy] = toWorld(sx, sy), p = hitPort(wx, wy); hover = p; canvas.style.cursor = p ? 'crosshair' : hitStep(hitNode(wx, wy) ?? { type: '' }, wx, wy) >= 0 ? 'pointer' : 'default'; });
+  canvas.addEventListener('mousemove', e => { if (drag) return; const [sx, sy] = pos(e), [wx, wy] = toWorld(sx, sy), p = hitPort(wx, wy); const was = hover?.id + hover?.name, hn = p ? null : hitNode(wx, wy); mouse = [sx, sy]; hover = p; hoverNode = hn?.id ?? null; if (was !== p?.id + p?.name || hoverNode !== lastHoverNode) { lastHoverNode = hoverNode; dirty = true; } canvas.style.cursor = p ? 'crosshair' : hitStep(hitNode(wx, wy) ?? { type: '' }, wx, wy) >= 0 ? 'pointer' : 'default'; });
   canvas.addEventListener('wheel', e => {
     e.preventDefault();
     const [sx, sy] = pos(e);
@@ -534,7 +517,7 @@ export function createNodeSeqEditor({ root, getSong, noteTargets = () => [], par
     if (!g?.nodes.length) { view = { x: -20, y: -20, zoom: 1 }; dirty = true; return; }
     boxes = new Map(g.nodes.map(n => [n.id, layout(n)]));
     const bs = [...boxes.values()], x0 = Math.min(...bs.map(b => b.x)), y0 = Math.min(...bs.map(b => b.y)), x1 = Math.max(...bs.map(b => b.x + b.w)), y1 = Math.max(...bs.map(b => b.y + b.h));
-    const z = clamp(Math.min((W - 60) / (x1 - x0), (H - 60) / (y1 - y0)), 0.4, 1.2);
+    const z = clamp(Math.min((W - 60) / (x1 - x0), (H - 60) / (y1 - y0)), 0.4, 2.5);
     view = { zoom: z, x: x0 - (W / z - (x1 - x0)) / 2, y: y0 - (H / z - (y1 - y0)) / 2 }; dirty = true;
   }
 

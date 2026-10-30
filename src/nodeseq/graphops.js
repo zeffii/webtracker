@@ -5,7 +5,7 @@ import { NS_TYPES, defaultParams, findIn, DEFAULT_SCRIPT } from './nodes.js';
 export const GROUP_NAMES = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
 export const MAX_NODES = 200;
 
-export const newGraph = () => ({ sub: 4, groups: GROUP_NAMES.map(name => ({ name, on: true })), nodes: [], wires: [] });
+export const newGraph = () => ({ ui: 2, sub: 4, groups: GROUP_NAMES.map(name => ({ name, on: true })), nodes: [], wires: [] });
 
 // The project's graph, made when there is none (a project without one saves without one until something is put in it).
 export function ensureGraph(song) {
@@ -14,6 +14,8 @@ export function ensureGraph(song) {
   g.groups ??= GROUP_NAMES.map(name => ({ name, on: true }));
   while (g.groups.length < 8) g.groups.push({ name: GROUP_NAMES[g.groups.length], on: true });
   g.nodes ??= []; g.wires ??= [];
+  // Graphs from before the tiles were laid out for nodes five times the size: bring them closer together (once).
+  if (g.ui !== 2) { for (const n of g.nodes) { n.x = Math.round(n.x * 0.4 / 8) * 8; n.y = Math.round(n.y * 0.42 / 8) * 8; } g.ui = 2; }
   return g;
 }
 

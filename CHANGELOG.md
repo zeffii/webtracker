@@ -2,6 +2,11 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 545 · 2026-10-30
+
+- Node Sequencer: nodes are now small tiles. A glyph and one short value (the chord, the instrument, the parameter, the division) replace the header, the port names and the parameter lines; the group colour is the stripe on the left edge, and the parameters are in the panel as before. Ports are dots spread along the edges (events square, controls round, chords diamond, weights triangle), and resting the pointer on one shows its name and kind; on a node, its type and id. Steps, euclid, lfo and Voicing draw their own picture in the tile; a Chord node keeps its keyboard under it. A patch takes about a tenth of the room it did.
+- Existing graphs are moved closer together once, the first time they are loaded (the graph records this as `ui: 2`).
+
 ## 544 · 2026-10-30
 
 - Node Sequencer: three new nodes in a Chords group. A **Chord** node holds one chord, written as a name (`A min7`) or as notes (`A2 C3 E3 G3`, each with an optional volume: `A2@100 C3@60`), and has a volume for every note (drag the bars in its panel), plus level, variation (a random nudge to every note each time) and tilt (bass-heavy to top-heavy) as knobs or as control inputs. It draws two octaves of keyboard under it with the notes lit and a bar under each for its volume. A **Phrase** node plays the chord whose number arrives at its index port (it wraps round); a new chord port appears as you wire chords in, and the chord being played lights up, with the wire into it. A **Voicing** node is a row of note volumes (lowest note first) that can feed the weights port of any number of Chord nodes.
