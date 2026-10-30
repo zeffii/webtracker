@@ -8671,6 +8671,34 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     assert.ok(g.total === g.at.get('b') && g.total > 2047, 'the graph is as late as its slowest path, nodes in a row add up');
   }
 
+  // delay compensation: where a quick path meets a slow one, the quick one is delayed to match
+  {
+    const { compile } = await import('../src/graph/compile.js');
+    const desc = {
+      nodes: [{ id: 'o', type: 'osc' }, { id: 'a', type: 'hpss', params: { size: 1 } }, { id: 'out', type: 'out' }],
+      connections: [['o.out', 'a.in'], ['a.harm', 'out.in'], ['o.out', 'out.in']],
+    };
+    const off = compile(desc, { instrument: 'dc', nodeTypes: NODE_TYPES, registry: new ParamRegistry(), delayComp: false, sampleRate: sr });
+    const on = compile(desc, { instrument: 'dc', nodeTypes: NODE_TYPES, registry: new ParamRegistry(), delayComp: true, sampleRate: sr });
+    assert.ok(!off.nodes.some(n => n.type === 'compdelay'), 'nothing is inserted when compensation is off');
+    const inserted = on.nodes.filter(n => n.type === 'compdelay');
+    assert.equal(inserted.length, 1, 'the quick dry path gets a delay');
+    assert.equal(inserted[0].data.samples, 2047, 'as long as the spectral node is late');
+    assert.equal(on.latency, 2047, 'and the graph is that late');
+    // the delay line itself: a click comes out exactly `samples` later, across block boundaries, in mono and stereo
+    for (const wide of [false, true]) {
+      const node = NODE_TYPES.compdelay.create({ data: { samples: 300 }, stereo: wide });
+      const heard = [];
+      for (let b = 0; b < 4; b++) {
+        const x = new Float32Array(128); if (b === 0) x[5] = 1;
+        const l = new Float32Array(128), r = new Float32Array(128);
+        node.process(wide ? [[x, x]] : [x], wide ? [[l, r]] : [l], 128);
+        heard.push(...l);
+      }
+      assert.equal(heard.indexOf(1), 305, `a click is delayed by 300 samples (${wide ? 'stereo' : 'mono'})`);
+    }
+  }
+
   // snarl: sounds on a note, stays finite at the extremes, releases, the low-pass cutoff darkens it, ring mod and the high-pass change it
   {
     const snarl = NODE_TYPES.snarl, sslots = snarl.params.map((_, i) => i);

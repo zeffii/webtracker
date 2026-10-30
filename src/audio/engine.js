@@ -1,5 +1,4 @@
 import { NODE_TYPES } from './nodes/index.js';
-import { graphLatency } from './latency.js';
 import { ParamRegistry } from './params.js';
 import { compile } from '../graph/compile.js';
 import { compileDsp } from './wasm/load.js';
@@ -7,15 +6,16 @@ import { ringBuffer, laneBuffer } from './vring.js';
 
 // What the audio thread would actually run for an instrument: the nodes that are wired to something, and the wires.
 // A node that is not connected yet (just added) changes nothing it plays, so adding or removing one needs no reload.
-const signature = desc => {
+const signature = (desc, compensation = []) => {
   const linked = new Set(desc.connections.flat().map(port => port.split('.')[0]));
-  return JSON.stringify([desc.voices ?? 1, desc.nodes.filter(n => linked.has(n.id)).map(({ x, y, ...n }) => n), desc.connections]);
+  return JSON.stringify([desc.voices ?? 1, desc.nodes.filter(n => linked.has(n.id)).map(({ x, y, ...n }) => n), desc.connections, compensation]);   // the delays inserted to line paths up are part of what is loaded
 };
 
 export class Engine {
   ctx = null;
   wasmModule = null;
   node = null;
+  delayComp = false;  // delay compensation: audio paths of different delay are lined up (see graph/compile.js)
   dither = false;   // a whisper of noise on the output (see the worklet): a diagnostic for crackle at very quiet levels
   volFloor = false; // a Volume curve never closes completely (the sequencer): a diagnostic for pops when waking from silence
   watching = new Set();   // nodes whose output is being watched (replayed when the audio thread starts)
@@ -108,9 +108,9 @@ export class Engine {
 
   // Compiles on the main thread and posts the flat result to the worklet.
   loadInstrument(instrument, desc) {
-    const graph = compile(desc, { instrument, nodeTypes: NODE_TYPES, registry: this.registry });   // also gives every parameter its slot, wired or not
-    this.delays.set(instrument, graphLatency(desc, NODE_TYPES, this.ctx?.sampleRate ?? 48000).total);   // how late this machine's sound comes out
-    const sig = signature(desc);
+    const graph = compile(desc, { instrument, nodeTypes: NODE_TYPES, registry: this.registry, delayComp: this.delayComp, sampleRate: this.ctx?.sampleRate ?? 48000 });   // also gives every parameter its slot, wired or not
+    this.delays.set(instrument, graph.latency);   // how late this machine's sound comes out
+    const sig = signature(desc, graph.nodes.filter(n => n.type === 'compdelay').map(n => [n.id, n.data.samples]));
     if (this.loaded.get(instrument) === sig) return false;   // nothing it plays has changed: the running voices and tails are left alone
     this.loaded.set(instrument, sig);
     this.sent?.set(`load:${instrument}`, { type: 'load', graph });

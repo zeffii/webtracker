@@ -31,7 +31,7 @@ export function graphLatency(desc, nodeTypes, sampleRate) {
     const a = byId.get(fromId), b = byId.get(toId);
     if (!a || !b) continue;
     const kind = nodeTypes[a.type]?.kinds?.[fromPort];
-    if (kind === 'control') continue;
+    if (kind === 'control' || kind === 'param') continue;
     incoming.get(toId).push(fromId);
   }
   const at = new Map(), busy = new Set();

@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['557', ['Delay compensation inside an instrument: where a quick path meets a slow one (dry sound and a spectral or oversampled branch), the quick one is delayed to match; setting Delay compensation, on by default']],
   ['556', ['Delay compensation, first step: spectral and oversampled nodes declare how late they are, and the status bar shows the slowest instrument as chain N ms']],
   ['555', ['New synth, Snarl: two resonant filters in a row (high-pass, then low-pass), ring mod, two envelopes and a modulation generator, for screaming leads and growling basses']],
   ['554', ['New synth, Jaw harp: a plucked reed drones and the mouth picks out its harmonics; sweep the vowel for the wah and the tune']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['550', ['Node Sequencer: tile borders are the theme accent colour, almost see-through until a node is busy; tiles hide wires that run behind them']],
   ['549', ['Node Sequencer: wires in a deep tint of their kind and ports ringed in the same colour, amber events, teal controls, violet chords, olive weights']],
   ['548', ['Node Sequencer: hover a wire for a pair of arrows, then drag that stretch sideways to move the wire away from tiles; double-click the arrows to reset']],
-  ['547', ['Node Sequencer: a schematic look, outlined boxes in one ink with right-angle wires told apart by dashes; the Chord tile is wider and holds its keyboard. Fixes wires missing in 546']],
 ];

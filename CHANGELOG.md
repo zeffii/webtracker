@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 557 · 2026-10-30
+
+- **Delay compensation, stage 2: inside an instrument.** Where audio paths of different delay meet at a node (a dry sound and a spectral or oversampled branch going into a mixer, say), the quicker ones are delayed by whole samples to match the slowest, so everything arrives together. The delay is a hidden node the compiler inserts (`compdelay`), recomputed whenever the machine is loaded, so changing a node's `size` or `quality` is followed. New setting **Delay compensation** (Settings, Playing; on by default) switches it; with it off a machine is compiled as before. Next stage: lining the instruments up with each other.
+
 ## 556 · 2026-10-30
 
 - **Delay compensation, stage 1: nodes say how late they are.** Spectral nodes (blur, harmonic/percussive split, spectral dynamics, cross synthesis, Body blur) declare one frame (1023 to 4095 samples, by `size`); the oversampled ones (saturator, multiband saturator, distortion, waveshaper, amp) declare the delay of their oversampling filters by quality. A graph's delay is the longest audio path to its output (`src/audio/latency.js`). The status bar now shows `chain N ms`: how late the slowest instrument's sound comes out, when it is 1 ms or more. Nothing is delayed yet: the next stages line up the branches inside an instrument and the instruments with each other, behind one general toggle.

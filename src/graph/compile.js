@@ -10,9 +10,12 @@
 // a stereo wire into a mono input is averaged (a hidden fold node); several wires into
 // one input are added (a hidden sum node).
 import { inputsOf, isLogSpec, resolveKinds } from './kinds.js';
+import { nodeLatency } from '../audio/latency.js';
 import { expandRanges, rangeTargetOf } from './rangetarget.js';
 
-export function compile(source, { instrument, nodeTypes, registry }) {
+// With `delayComp` on (and a `sampleRate`), where audio paths of different delay meet at a node, the quicker ones are delayed to
+// match the slowest (a hidden `compdelay` node), so a spectral or oversampled branch and its dry sound arrive together.
+export function compile(source, { instrument, nodeTypes, registry, delayComp = false, sampleRate = 48000 }) {
   const desc = expandRanges(source, nodeTypes);
   const byId = new Map();
   for (const n of desc.nodes) {
@@ -86,15 +89,26 @@ export function compile(source, { instrument, nodeTypes, registry }) {
   }
 
   const nodes = [];
+  const arrive = new Map();   // node id -> how many samples late what comes out of it is
+  const isAudio = (l, fromNode) => { const k = kindOf(fromNode, fromNode.def.outputs[l.outPort]); return k !== 'control' && k !== 'param'; };
   for (const id of order) {
     const n = byId.get(id);
+    const audioIn = [...inputSources].filter(([key]) => key.startsWith(`${id}.`)).flatMap(([, ls]) => ls).filter(l => isAudio(l, byId.get(l.fromId)) && !(inputsOf(n, n.def)[l.inPort] ?? '').startsWith('@'));
+    const meet = Math.max(0, ...audioIn.map(l => arrive.get(l.fromId) ?? 0));   // the slowest path into this node
+    arrive.set(id, meet + nodeLatency(n, n.def, sampleRate));
     const slots = n.def.params.map(p =>
       registry.allocate(`${instrument}.${n.alias ?? id}.${p.name}`, n.params?.[p.name] ?? p.def, p.min, p.max, p.int === true));
     const inNames = inputsOf(n, n.def);
     const inputs = inNames.map((name, i) => {
       const stereo = kindOf(n, name) === 'stereo';
       const feeds = (inputSources.get(`${id}.${i}`) ?? []).map((l, k) => {
-        const ref = outBufs.get(l.fromId)[l.outPort];
+        let ref = outBufs.get(l.fromId)[l.outPort];
+        const gap = delayComp && audioIn.includes(l) ? meet - (arrive.get(l.fromId) ?? 0) : 0;
+        if (gap > 0) {   // a quicker path: delayed to match the slowest
+          const late = Array.isArray(ref) ? [nextBuf++, nextBuf++] : nextBuf++;
+          nodes.push({ id: `~delay.${id}.${i}.${k}`, type: 'compdelay', slots: [], inputs: [ref], outputs: [late], connected: [true], data: { samples: gap }, stereo: Array.isArray(ref) });
+          ref = late;
+        }
         if (stereo) return Array.isArray(ref) ? ref : [ref, ref];
         if (!Array.isArray(ref)) return ref;
         const mono = nextBuf++;
@@ -121,5 +135,5 @@ export function compile(source, { instrument, nodeTypes, registry }) {
   if (!Number.isInteger(voices) || voices < 1 || voices > 16) throw new Error(`voices must be a whole number from 1 to 16, not ${voices}`);
   // The hidden channel stage after the output node: a level (0..1) the sequencer's Volume curve moves, applied smoothly to the whole machine.
   const amp = registry.allocate(`${instrument}.mix.amp`, 1, 0, 1);
-  return { instrument, nodes, bufferCount: nextBuf, master: outBufs.get(masters[0]), voices, amp };
+  return { instrument, nodes, bufferCount: nextBuf, master: outBufs.get(masters[0]), voices, amp, latency: arrive.get(masters[0]) ?? 0 };
 }

@@ -66,8 +66,11 @@ import { createScratch, sendEdits } from './script/scratch.js';
 import { placementAt } from './seq/edit.js';
 
 const engine = new Engine();
-engine.dither = config.get('dither'); engine.volFloor = config.get('volFloor');
-config.onChange((k, v) => { if (k === 'dither') engine.setDither(v); else if (k === 'volFloor') engine.setVolFloor(v); });
+engine.dither = config.get('dither'); engine.volFloor = config.get('volFloor'); engine.delayComp = config.get('delayComp');
+config.onChange((k, v) => {
+  if (k === 'dither') engine.setDither(v); else if (k === 'volFloor') engine.setVolFloor(v);
+  else if (k === 'delayComp') { engine.delayComp = v; for (const id of Object.keys(project?.instruments ?? {})) reloadInstrument(id); }   // every machine is compiled again, with or without the lining up
+});
 const $ = id => document.getElementById(id);
 let started = false, playing = false, project = null, recording = false;
 
