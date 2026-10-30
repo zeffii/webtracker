@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['537', ['Three spectral effects (Effects, Spectral): the harmonic/percussive split, a spectral compressor with tilt, and cross synthesis.']],
   ['536', ['Equaliser: drag the dots in its response picture for frequency and gain, the wheel for Q, and the triangles for the cuts. Renaming an instrument or lane no longer stops playback.']],
   ['535', ['First screen: the metaballs are centred under the logo.']],
   ['534', ['Pattern editor: the undo trail now shows above the status bar, as in the arrangement.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['530', ['First screen: pink to green lava lamp backdrop; the metaballs turn pink near the top and green near the bottom.']],
   ['529', ['Drum synth: no more random clicks when a hit lands on a voice that is still ringing.']],
   ['528', ['Script: chords, roman numerals, circle of fifths helpers and a progression generator, a chord lab in the tutorial, and the ?demo=progression song.']],
-  ['527', ['Arrangement: hold Shift over a pattern to see its name; let go and it hides.']],
 ];

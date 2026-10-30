@@ -61,6 +61,9 @@ const TYPE_UNIT = {
   fmsynth: {},
   dvii: { tune: 'st', speed: 'x' },
   blur: { time: 'ms' },
+  hpss: { length: 'ms', width: 'Hz', sharp: '' },
+  specdyn: { threshold: 'dB', ratio: ':1', tilt: 'dB/oct', attack: 'ms', release: 'ms', makeup: 'dB', smooth: '', mix: '%' },
+  xsynth: { amount: '%', smooth: '', detail: '%', mix: '%' },
   gater: { smooth: 'ms', depth: '%' },
   arp: { rate: '', gate: '%', swing: '', transpose: 'st', cycle1: 'st', cycle2: 'st', humanize: '%', level: '' },
   chord: { strum: 'ms', level: '' },
@@ -113,6 +116,9 @@ const NAMES = {
   fmsynth: { algo: ALGORITHMS.map(a => a.name) },
   dvii: { gritty: ONOFF },
   blur: { freeze: ONOFF, size: ['1024', '2048', '4096'] },
+  hpss: { size: ['1024', '2048', '4096'] },
+  specdyn: { size: ['1024', '2048', '4096'] },
+  xsynth: { size: ['1024', '2048', '4096'] },
 };
 
 const trim = (v, digits = 4) => String(Number(Number(v).toPrecision(digits)));

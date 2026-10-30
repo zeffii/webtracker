@@ -220,6 +220,21 @@ export const PAGES = {
     best: ['Use it on a send, with mix partly open, to turn a sound into a pad.', 'Freeze holds the moment, so the sound hangs in the air until you release it.'],
     limits: ['It works in frames, so it adds delay (bigger size, more delay), and attacks are smeared whatever you do.'],
   },
+  hpss: {
+    summary: 'Splits a sound into its tones and its hits: harm gets the held notes, perc gets the drums and attacks. Wire both back together and you have the sound again, one frame late.',
+    best: ['Put it on a full mix or a drum loop with a bassline, then process the two outputs differently: compress and crush perc, add reverb to harm.', 'Turn the level of one output down to remove the drums from a loop, or the tones to leave only the hits.', 'Length is how long a note must be held to count as a tone; width is how broad a click must be to count as a hit. Sharp makes the split harder.'],
+    limits: ['It works in frames, so it adds delay (bigger size, more delay). Sounds that are both, such as a tuned kick, are shared out between the outputs.'],
+  },
+  specdyn: {
+    summary: 'A compressor for every frequency at once: loud frequencies are pressed back, quiet ones left alone, so booms and harsh rings are flattened without dulling the rest. Tilt then leans the whole spectrum brighter or darker.',
+    best: ['Threshold -36 dB with ratio 4 evens out a full mix; lower the threshold and raise the ratio to flatten it further, and make up the gain.', 'Tilt of +1 or +2 dB per octave makes a dull sound clear, -1 to -2 warms a harsh one.', 'Smooth keeps the gain from changing too sharply from one frequency to the next, which stops a ringing, whistling sound.'],
+    limits: ['It works in frames, so it adds delay (bigger size, more delay), and fast attacks cannot be faster than a frame.'],
+  },
+  xsynth: {
+    summary: 'Cross synthesis: the shape of the sound at mod is laid over the sound at in. Put a voice on mod and a pad or noise on in, and the pad talks.',
+    best: ['Use a sustained sound with a lot in it (noise, a saw pad, a chord) on in, and speech or a drum loop on mod.', 'Smooth low keeps the modulator\'s fine detail (more like talking); high gives only its broad colour.', 'Detail lends the modulator\'s harmonics too, so a sung note makes noise sing.'],
+    limits: ['Where the modulator is silent the output is silent. It works in frames, so it adds delay (bigger size, more delay).'],
+  },
   chord: {
     summary: "Turns every note into a chord you have typed as a name. Put it in an instrument's graph (it has no wires), the same way as the arp, and the notes the instrument is given (from patterns, the keyboard and MIDI) become chords before the voices hear them. The chords live in 256 slots, 00 to FF; the chord parameter (the Chd column in a pattern) says which slot plays, and the octave parameter (the Oct column) says where the root sits.",
     best: [

@@ -1861,6 +1861,61 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     for (let i = 3000; i < 18000; i++) assert.ok(Math.abs(dry[i + 2047] - tone(i)) < 1e-6 || i + 2047 >= 20000, 'mix 0 is the dry sound, delayed');
   }
 
+  // spectral effects on the shared frame helper: the harmonic/percussive split, spectral dynamics with tilt, cross synthesis
+  {
+    const run = (type, values, inputs, len, outCount = 1) => {
+      const def = NODE_TYPES[type];
+      const params = Float32Array.from(def.params.map(p => values[p.name] ?? p.def)), slots = Int32Array.from(def.params.map((_, i) => i));
+      const node = def.create({ sampleRate: sr });
+      const outs = Array.from({ length: outCount }, () => new Float32Array(Math.ceil(len / 128) * 128));
+      for (let at = 0; at < len; at += 128) {
+        const ins = inputs.map(f => { const b = Float32Array.from({ length: 128 }, (_, i) => f(at + i)); return [b, b]; });
+        const o = Array.from({ length: outCount }, () => [new Float32Array(128), new Float32Array(128)]);
+        node.process(ins, o, 128, params, slots);
+        o.forEach((pair, k) => outs[k].set(pair[0], at));
+      }
+      return outs;
+    };
+    const rms = (x, a, b) => { let t = 0; for (let i = a; i < b; i++) t += x[i] * x[i]; return Math.sqrt(t / (b - a)); };
+    const tone = (f, a) => i => a * Math.sin(2 * Math.PI * f * i / sr);
+    const power = (x, f, a, b) => { let re = 0, im = 0; for (let i = a; i < b; i++) { re += x[i] * Math.cos(2 * Math.PI * f * i / sr); im += x[i] * Math.sin(2 * Math.PI * f * i / sr); } return Math.hypot(re, im) * 2 / (b - a); };
+
+    // harmonic/percussive split: the two outputs add up to the sound (one frame late), a tone goes to harm, clicks go to perc
+    const mixed = i => tone(440, 0.4)(i) + (i % 4800 < 3 ? 0.8 : 0);
+    const [h, q] = run('hpss', {}, [mixed], sr, 2);
+    let worst = 0; for (let i = 6000; i < 40000; i++) worst = Math.max(worst, Math.abs(h[i + 2047] + q[i + 2047] - mixed(i)));
+    assert.ok(worst < 2e-3, `harm + perc is the sound again (${worst})`);
+    const [th, tp] = run('hpss', {}, [tone(440, 0.4)], sr, 2);
+    assert.ok(rms(th, 20000, 40000) > 8 * rms(tp, 20000, 40000), 'a steady tone goes to harm');
+    const clicks = i => (i % 4800 < 3 ? 0.8 : 0);
+    const [ch, cp] = run('hpss', {}, [clicks], sr, 2);
+    assert.ok(rms(cp, 20000, 40000) > 2 * rms(ch, 20000, 40000), 'clicks go to perc');
+
+    // spectral dynamics: neutral settings are the sound, delayed; a loud tone is pressed down; tilt leans the spectrum
+    const two = i => tone(440, 0.3)(i) + tone(3000, 0.3)(i);
+    const [neutral] = run('specdyn', { ratio: 1, tilt: 0, makeup: 0, mix: 1 }, [two], 30000);
+    let nw = 0; for (let i = 6000; i < 24000; i++) nw = Math.max(nw, Math.abs(neutral[i + 2047] - two(i)));
+    assert.ok(nw < 2e-3, `spectral dynamics at ratio 1 is the sound (${nw})`);
+    const [pressed] = run('specdyn', { threshold: -30, ratio: 10, smooth: 0 }, [two], 30000);
+    assert.ok(power(pressed, 440, 20000, 28000) < 0.5 * power(two ? Float32Array.from({ length: 30000 }, (_, i) => two(i)) : [], 440, 20000, 28000), 'a loud bin is turned down');
+    const sines = i => tone(1000, 0.2)(i) + tone(4000, 0.2)(i);
+    const [tilted] = run('specdyn', { threshold: 0, ratio: 1, tilt: 6 }, [sines], 40000);
+    const octaves = power(tilted, 4000, 20000, 38000) / power(tilted, 1000, 20000, 38000);
+    assert.ok(octaves > 3.5 && octaves < 4.5, `a tilt of 6 dB an octave makes two octaves 4 times louder (${octaves.toFixed(2)})`);
+
+    // cross synthesis: noise takes the colour of a sine on mod; without a modulator it is silent; amount 0 is the carrier
+    let seed = 7; const noise = () => { seed = (seed * 1664525 + 1013904223) >>> 0; return (seed / 4294967296 - 0.5) * 0.5; };
+    const white = Float32Array.from({ length: 60000 }, noise);
+    const carrier = i => white[i], mod = tone(1000, 0.4);
+    const [cx] = run('xsynth', { amount: 1, smooth: 0.1 }, [carrier, mod], 60000);
+    assert.ok(power(cx, 1000, 30000, 56000) > 6 * power(cx, 5000, 30000, 56000), 'noise takes the spectral colour of the modulator');
+    const [quiet] = run('xsynth', { amount: 1 }, [carrier, () => 0], 30000);
+    assert.ok(rms(quiet, 15000, 28000) < 0.05 * rms(white, 15000, 28000), 'with a silent modulator the output is silent');
+    const [same] = run('xsynth', { amount: 0 }, [carrier, mod], 30000);
+    let xw = 0; for (let i = 6000; i < 24000; i++) xw = Math.max(xw, Math.abs(same[i + 2047] - white[i]));
+    assert.ok(xw < 2e-3, `amount 0 is the carrier (${xw})`);
+  }
+
   // trance gate and frequency shifter
   {
     const gdef = NODE_TYPES.gater;

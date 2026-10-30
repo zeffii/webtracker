@@ -146,6 +146,19 @@ export const GLYPHS = {
     ctx.stroke();
     curve(ctx, cx + w * 0.25, base - h * 0.28, w * 0.5, h * 0.56, t => Math.exp(-Math.pow((t - 0.5) / 0.28, 2)) * 0.9 - 0.45, 32);
   },
+  hpss: (ctx, cx, cy, w, h) => {   // a held line across the top, hit stripes down below
+    line(ctx, [[cx - w / 2, cy - h * 0.25], [cx + w / 2, cy - h * 0.25]]);
+    [0.2, 0.5, 0.8].forEach(f => line(ctx, [[cx - w / 2 + f * w, cy + h * 0.05], [cx - w / 2 + f * w, cy + h * 0.45]]));
+  },
+  specdyn: (ctx, cx, cy, w, h) => {   // a spectrum pressed flat under a threshold line, tilted
+    const base = cy + h * 0.4;
+    [0.9, 0.5, 0.75, 0.4].forEach((a, i) => { const x = cx - w / 2 + (i + 0.5) * (w / 4); line(ctx, [[x, base], [x, base - Math.min(a, 0.55) * h * 0.8]]); });
+    line(ctx, [[cx - w / 2, cy - h * 0.1], [cx + w / 2, cy - h * 0.25]]);
+  },
+  xsynth: (ctx, cx, cy, w, h) => {   // one shape drawn over another
+    curve(ctx, cx - w / 2, cy - h * 0.3, w, h * 0.6, t => Math.exp(-Math.pow((t - 0.3) / 0.15, 2)) - 0.5, 32);
+    curve(ctx, cx - w / 2, cy - h * 0.3, w, h * 0.6, t => 0.8 * Math.exp(-Math.pow((t - 0.7) / 0.2, 2)) - 0.5, 32);
+  },
   prismacanyon: (ctx, cx, cy, w, h) => {   // echoes stepping down in height, in four rows
     const x = f => cx - w / 2 + f * w, y = f => cy + h / 2 - f * h;
     [0.8, 0.62, 0.46, 0.32, 0.2].forEach((v, i) => line(ctx, [[x(0.1 + i * 0.19), y(0.12)], [x(0.1 + i * 0.19), y(0.12 + v * 0.8)]]));

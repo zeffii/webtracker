@@ -2,6 +2,14 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 537 · 2026-10-30
+
+- Three new spectral effects (Effects, Spectral in the node menu), all working in overlapping FFT frames of 1024, 2048 or 4096 samples, so each adds one frame of delay (the dry sound of `mix` is delayed to match). They share a small frame helper, `audio/nodes/stft.js`.
+- **Harmonic / percussive split** (`hpss`): one input, two outputs. `harm` gets the held tones, `perc` gets the hits. A median along time keeps the horizontal lines of the spectrum, a median along frequency keeps the vertical stripes, and the two decide, bin by bin, where each part of the sound goes; the masks add up to one, so both outputs wired together give the sound back. `length` (ms) is how long a tone must last, `width` (Hz) how broad a hit must be, `sharp` how hard the two are told apart.
+- **Spectral compressor / tilt** (`specdyn`): a compressor for every frequency bin. Threshold, ratio, attack and release per bin, smoothed across neighbouring bins so it does not whistle, make-up gain, and `tilt` in dB per octave about 1 kHz to lean the whole spectrum brighter or darker.
+- **Cross synthesis** (`xsynth`): the broad spectral shape of the `mod` input is laid over the sound at `in`, which keeps its own phases. `amount`, `smooth` (how broad a shape) and `detail` (also lend the modulator's harmonics).
+- Tests: the split's outputs add up to the input, a tone goes to `harm` and clicks to `perc`; spectral dynamics at ratio 1 is the sound, a loud bin is pressed, a 6 dB tilt makes two octaves four times louder; noise takes a sine's colour, a silent modulator gives silence, amount 0 is the carrier.
+
 ## 536 · 2026-10-30
 
 - Equaliser: the response picture beside the node is now something to grab. Drag a band's dot sideways for its frequency and up or down for its gain (the gain allows for the other bands, so the dot stays under the mouse); turn the wheel over a dot to widen or narrow it (Q); drag the small triangles at the top edge for the low and high cut. The parameter panel follows as you drag.
