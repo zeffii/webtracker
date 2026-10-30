@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 535 · 2026-10-30
+
+- First screen: the lava metaballs are centred. The shader kept the camera and screen-centre offsets tuned for the square live picture (a nudge right and up); the splash copy now looks straight down the middle, so the blob mass sits under the WAX logo. The live picture is unchanged.
+
 ## 534 · 2026-10-30
 
 - Pattern editor: the undo trail (the last five things done, newest a bright chevron, a "waypoint set" note) now shows in the row above the status bar in the pattern editor too, in the empty space under the grid, as the arrangement already did. Both views share one undo stack, so it is the same row; it was only the arrangement that drew it. The drawing moved into its own small file (seq/undotrail.js).

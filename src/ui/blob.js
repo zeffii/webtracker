@@ -20,10 +20,10 @@ float map(vec3 p){float d=1e3;for(int i=0;i<5;i++){float f=float(i);
   if(i==0)c=mix(c,vec3(M*vec2(.9,1.1),0.)*.82,.45);   // the pointer draws the first ball
   d=smin(d,length(p-c)-r,1.02);}return d;}
 vec3 nrm(vec3 p){vec2 e=vec2(.0061,0);return normalize(vec3(map(p+e.xyy)-map(p-e.xyy),map(p+e.yxy)-map(p-e.yxy),map(p+e.yyx)-map(p-e.yyx)));}
-void main(){vec2 uv=gl_FragCoord.xy/R;vec2 p=(gl_FragCoord.xy-.485*R)/min(R.x,R.y*0.96);
+void main(){vec2 uv=gl_FragCoord.xy/R;vec2 p=(gl_FragCoord.xy-.5*R)/min(R.x,R.y*0.96);
 vec3 bg=mix(vec3(1.9,1.28,.58),vec3(.72,0.,0.),smoothstep(.45,1.,uv.y));bg=mix(bg,vec3(.95,.93,.78),smoothstep(1.735,.0,uv.y)*.585);
 bg*=0.78-.16*pow(length(p)*.8,2.);
-vec3 ro=vec3(0.19,0.,-5.6),rd=normalize(vec3(p,1.9));float t=0.;bool hitp=false;
+vec3 ro=vec3(0.,0.,-5.6),rd=normalize(vec3(p,1.9));float t=0.;bool hitp=false;
 for(int i=0;i<72;i++){float d=map(ro+rd*t);if(d<.0053){hitp=true;break;}t+=d;if(t>24.)break;}
 vec3 col=bg;
 if(hitp){vec3 pos=ro+rd*t;vec3 n=nrm(pos);

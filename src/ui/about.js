@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['535', ['First screen: the metaballs are centred under the logo.']],
   ['534', ['Pattern editor: the undo trail now shows above the status bar, as in the arrangement.']],
   ['533', ['Progressions circle back: the last chord leads into the first. nextChord and leadsHome in the script, and a return arrow in the chord lab.']],
   ['532', ['First screen: the metaballs use the orange and red live picture shader.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['528', ['Script: chords, roman numerals, circle of fifths helpers and a progression generator, a chord lab in the tutorial, and the ?demo=progression song.']],
   ['527', ['Arrangement: hold Shift over a pattern to see its name; let go and it hides.']],
   ['526', ['Pattern name label follows whichever of the mouse and the caret moved last, so it no longer pops up for the highlighted pattern.']],
-  ['517', ['The ?demo=concrete techno now runs on one meta machine lane that plays all five percussion machines.']],
 ];
