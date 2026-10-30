@@ -8752,6 +8752,16 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     assert.ok(srms(thin, 4000, 12000) < 0.5 * srms(full, 4000, 12000), 'the high-pass takes the lows out');
     const rung = play({ eg1lp: 0, vco2wave: 3, vco2pitch: 7, lppeak: 0 }), plain = play({ eg1lp: 0, vco2wave: 0, vco2pitch: 7, lppeak: 0 });
     assert.ok(zc(rung, 4000, 12000) !== zc(plain, 4000, 12000), 'ring modulation changes the oscillators');
+    // a note on and its note off in the same block still ends; a late note off for an older note does not stop the new one
+    const shortNode = snarl.create({ sampleRate: sr }), shortValues = snarl.params.map(p => p.def);
+    shortNode.note({ type: 'noteOn', note: 48, vel: 1 }); shortNode.note({ type: 'noteOff', note: 48 });
+    const shortOut = [];
+    for (let b = 0; b < 300; b++) { const L = new Float32Array(block), R = new Float32Array(block); shortNode.process([], [[L, R]], block, shortValues, sslots); shortOut.push(...L); }
+    assert.ok(srms(shortOut, 30000, 38000) < 0.001, 'a note on and off in one block does not hang');
+    const keep = snarl.create({ sampleRate: sr }), keepOut = [];
+    keep.note({ type: 'noteOn', note: 48, vel: 1 }); keep.note({ type: 'noteOn', note: 55, vel: 1 }); keep.note({ type: 'noteOff', note: 48 });
+    for (let b = 0; b < 300; b++) { const L = new Float32Array(block), R = new Float32Array(block); keep.process([], [[L, R]], block, shortValues, sslots); keepOut.push(...L); }
+    assert.ok(srms(keepOut, 30000, 38000) > 0.02, 'a note off for an older note leaves the new note sounding');
     const extreme = play({ hppeak: 1, lppeak: 1, edge: 1, lpcut: 18000, hpcut: 8000, vco2wave: 3, mix1: 1, mix2: 1, noise: 1, mgpitch: 1, mglp: 1, mghp: 1, mgamp: 1, mgwave: 4, mgrate: 60, eg1pitch: 1, eg1hp: 1, eg1lp: 1 }, 96);
     assert.ok(extreme.every(Number.isFinite), 'extreme settings stay finite');
     console.log('ok: snarl');

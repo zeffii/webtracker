@@ -458,7 +458,7 @@ const setRecording = on => {
 };
 $('rec').addEventListener('click', e => { setRecording(!recording); e.currentTarget.blur(); });
 const latencyTicks = () => {
-  const ms = engine.health().latency + config.get('midiLatency') + (engine.delayComp ? engine.chainDelay() : 0);   // with delay compensation on, the whole mix is the slowest chain late
+  const ms = engine.health().latency + config.get('midiLatency');   // (with delay compensation on, the position already is where the sound is)
   return ms / (60000 / (project.song.bpm * project.song.ticksPerBeat));
 };
 const midiIn = createMidiInput({

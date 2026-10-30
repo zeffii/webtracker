@@ -75,6 +75,7 @@ export default {
   params: SPEC,
   create({ sampleRate }) {
     const sr = sampleRate;
+    let heldNote = -1;   // the note the key is down for, so a late note off for an older note does not stop the new one
     let ph1 = 0, ph2 = 0, pitch = 48, target = 48, gate = false, active = false, pend = null, velocity = 1, glideMs = 0;
     let e1 = 0, st1 = IDLE, wait1 = 0, e2 = 0, st2 = IDLE, wait2 = 0;
     let mgPh = 0, held = 0, nz = 0, seed = 7777, dc = 0, dcx = 0;
@@ -82,8 +83,13 @@ export default {
     const rnd = () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 2147483648 - 1; };
     return {
       note(msg) {
-        if (msg.type === 'noteOn') pend = { note: msg.note, vel: Math.max(0, Math.min(1, msg.vel ?? 1)) };
-        else if (msg.type === 'noteOff' || msg.type === 'allOff') { if (!msg.implied && gate) { gate = false; if (st1 !== IDLE) st1 = RELEASE; if (st2 !== IDLE) st2 = RELEASE; } }
+        if (msg.type === 'noteOn') { pend = { note: msg.note, vel: Math.max(0, Math.min(1, msg.vel ?? 1)), off: false }; heldNote = msg.note; }
+        else if (msg.type === 'noteOff' || msg.type === 'allOff') {
+          if (msg.implied) return;                                                      // a new note in the same column takes over: no release
+          if (msg.type === 'noteOff' && msg.note !== undefined && msg.note !== heldNote) return;   // a note off for an older note
+          if (pend) pend.off = true;                                                    // the note on has not started yet (same block): it will, and let go at once
+          else if (gate) { gate = false; if (st1 !== IDLE) st1 = RELEASE; if (st2 !== IDLE) st2 = RELEASE; }
+        }
         else if (msg.type === 'noteCut') { gate = false; pend = null; active = false; e1 = e2 = 0; st1 = st2 = IDLE; f1.fill(0); f2.fill(0); }
       },
       process(inputs, outputs, n, params, slots) {
@@ -95,7 +101,7 @@ export default {
           velocity = pend.vel;
           if (legato && port > 0) { target = pend.note; glideMs = port; } else { pitch = target = pend.note; glideMs = 0; }
           st1 = DELAY; wait1 = ms(g('eg1delay')) * (g('eg1delay') > 0 ? 1 : 0); st2 = ATTACK;
-          gate = true; active = true; pend = null;
+          gate = !pend.off; active = true; pend = null;
         }
         if (!active) { outL.fill(0, 0, n); outR.fill(0, 0, n); return; }
         const v1w = g('vco1wave') | 0, v2w = g('vco2wave') | 0, pw1 = 0.5 - 0.45 * g('vco1pw'), pw2 = 0.5 - 0.45 * g('vco2pw');
@@ -115,6 +121,7 @@ export default {
           // the modulation generator
           mgPh += mgStep; if (mgPh >= 1) { mgPh -= 1; held = rnd(); }
           mg = mgWave === 0 ? (mgPh < 0.5 ? 4 * mgPh - 1 : 3 - 4 * mgPh) : mgWave === 1 ? 1 - 2 * mgPh : mgWave === 2 ? 2 * mgPh - 1 : mgWave === 3 ? (mgPh < 0.5 ? 1 : -1) : held;
+          if (!gate) { if (st2 !== RELEASE && st2 !== IDLE) st2 = RELEASE; if (st1 === SUSTAIN) st1 = RELEASE; }   // the key is up: every envelope lets go, wherever it had got to
           // envelope 1: delay, rise, hold at the top while the key is down, fall on release
           if (st1 === DELAY) { if (--wait1 <= 0) st1 = ATTACK; }
           else if (st1 === ATTACK) { e1 += 1 / atk1; if (e1 >= 1) { e1 = 1; st1 = gate ? SUSTAIN : RELEASE; } }

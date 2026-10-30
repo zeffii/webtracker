@@ -2,10 +2,15 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 559 · 2026-10-30
+
+- **Delay compensation moves the playhead.** With the setting on, the position every view shows (the pattern and arrangement playheads, the visuals, recording) is where the sound is, not where the song is: it is the `chain` time behind the sequencer. Recording needs no extra offset as a result.
+- Fix: Snarl could keep sounding when a note on and its note off arrived in the same audio block, and a late note off for an older note could stop a newer note. Both are fixed, and every envelope now lets go whenever the key is up.
+
 ## 558 · 2026-10-30
 
 - **Delay compensation, stage 3: between instruments.** With the setting on, each machine's total delay is known and the quicker machines are delayed to match the slowest before they are mixed, so a drum machine with no delay stays on the beat with a pad that has a spectral effect. The whole mix then comes out as late as the `chain` figure in the status bar (live playing and the sound of the first beat come that much later too); recorded notes take it into account, and an export trims it off the start, so the file lines up with the beat. The one **Delay compensation** setting (Settings, Playing) switches all of it, inside machines and between them, off entirely.
-- The playhead is not shifted: with compensation on it leads what you hear by the `chain` time.
+- (The playhead followed in 559.)
 
 ## 557 · 2026-10-30
 
