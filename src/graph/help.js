@@ -300,6 +300,16 @@ export const PAGES = {
       "With gain at 10 and four stages the result is extremely compressed: the dynamics of the playing are mostly gone.",
     ],
   },
+  saturator: {
+    summary: 'Warmth and thickness from a curve, simply: push the sound into it and it rounds off, adding harmonics. The loudness is kept about the same, so you hear what the curve does rather than just a louder sound.',
+    best: ['Drive 6 to 12 dB with soft or tape is a gentle glue for a drum bus or a mix; 20 dB and above is real grit.', 'Tube and bias add even harmonics, which sound warmer and thicker than the odd ones of soft and clip.', 'Raise bass to keep a kick or a bass clean while the rest saturates; 20 Hz leaves it off.', 'Tone takes the top off after the curve; mix keeps some of the clean sound for parallel saturation.'],
+    limits: ['Quality standard runs the curve at 2x oversampling to keep aliasing down; eco runs it at 1x and is cheaper, hq runs it at 4x. The sound is delayed by a few samples (the dry sound is matched).'],
+  },
+  mbsat: {
+    summary: 'The saturator in four bands, each with its own drive and gain, so the lows can warm gently while the highs get a bite, without the lows turning the highs to mush.',
+    best: ['Start with the defaults (gentler on the lows) on a full mix or a drum bus, and turn the highs up for air and bite.', 'Solo a band to hear what it adds; the bands add back to the original, so with every drive at 0 and gain at 0 the sound is nearly unchanged.', 'Type, bias and quality are shared by all four bands; the crossovers work like the split node.'],
+    limits: ['Four curves run at once, so it costs about four saturators; the quality switch (eco is 1x, standard 2x, hq 4x) is the way to save CPU.'],
+  },
   genexpr: {
     summary: "A node whose sound is code: a program in a small language modelled on GenExpr (the code part of Max's gen~), compiled once when you stop typing and run once per sample. It can be an effect (the sound arrives at in1 and in2) or an instrument (the notes arrive as freq, gate, vel, note and trig), and it can be both. There is no preset: the Templates list above the code box loads working examples to start from (sine voice, detuned pad, FM bell, plucked string, kick, hi-hat, echo, bitcrusher, ring modulator, soft clipper).",
     best: [

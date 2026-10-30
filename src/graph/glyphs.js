@@ -146,6 +146,12 @@ export const GLYPHS = {
     ctx.stroke();
     curve(ctx, cx + w * 0.25, base - h * 0.28, w * 0.5, h * 0.56, t => Math.exp(-Math.pow((t - 0.5) / 0.28, 2)) * 0.9 - 0.45, 32);
   },
+  saturator: (ctx, cx, cy, w, h) => {   // a sine pushed into a rounded wall
+    curve(ctx, cx - w / 2, cy - h * 0.4, w, h * 0.8, t => Math.tanh((t - 0.5) * 7) * 0.5, 40);
+  },
+  mbsat: (ctx, cx, cy, w, h) => {   // the same rounded wall, four times in a row, getting steeper
+    [0.5, 0.8, 1.2, 1.8].forEach((k, i) => curve(ctx, cx - w / 2 + (i * w) / 4, cy - h * 0.35, w / 4 - 1, h * 0.7, t => Math.tanh((t - 0.5) * 4 * k) * 0.5, 14));
+  },
   hpss: (ctx, cx, cy, w, h) => {   // a held line across the top, hit stripes down below
     line(ctx, [[cx - w / 2, cy - h * 0.25], [cx + w / 2, cy - h * 0.25]]);
     [0.2, 0.5, 0.8].forEach(f => line(ctx, [[cx - w / 2 + f * w, cy + h * 0.05], [cx - w / 2 + f * w, cy + h * 0.45]]));

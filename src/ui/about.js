@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['541', ['Two saturators (Effects, Distortion): a simple one and a multiband one, with four curves (soft, tape, tube, clip) and a quality switch.']],
   ['540', ['Cardinal: a quality switch, standard or eco. Standard is the sound as it was; eco uses about a fifth less CPU on a busy lead.']],
   ['539', ['Drum synth: its click fades in over a few samples, so a hit no longer starts with a small random tick.']],
   ['538', ['Pattern editor: the playhead and loop lines sit on the real rows, so the line follows the playing tick whatever the font, zoom or screen scaling.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['534', ['Pattern editor: the undo trail now shows above the status bar, as in the arrangement.']],
   ['533', ['Progressions circle back: the last chord leads into the first. nextChord and leadsHome in the script, and a return arrow in the chord lab.']],
   ['532', ['First screen: the metaballs use the orange and red live picture shader.']],
-  ['531', ['Live picture: the built-in shader is now an orange and red lava lamp of five metaballs that swell on hits.']],
 ];

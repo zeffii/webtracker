@@ -1861,6 +1861,54 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     for (let i = 3000; i < 18000; i++) assert.ok(Math.abs(dry[i + 2047] - tone(i)) < 1e-6 || i + 2047 >= 20000, 'mix 0 is the dry sound, delayed');
   }
 
+  // saturators: the curve adds harmonics, keeps the level, leaves the bass alone when asked; the multiband one saturates by band
+  {
+    const run = (type, values, f, len = 24000) => {
+      const def = NODE_TYPES[type];
+      const params = Float32Array.from(def.params.map(p => values[p.name] ?? p.def)), slots = Int32Array.from(def.params.map((_, i) => i));
+      const node = def.create({ sampleRate: sr });
+      const out = new Float32Array(Math.ceil(len / 128) * 128);
+      for (let at = 0; at < len; at += 128) {
+        const b = Float32Array.from({ length: 128 }, (_, i) => f(at + i)), oL = new Float32Array(128), oR = new Float32Array(128);
+        node.process([[b, b]], [[oL, oR]], 128, params, slots);
+        out.set(oL, at);
+      }
+      return out;
+    };
+    const tone = (hz, a) => i => a * Math.sin(2 * Math.PI * hz * i / sr);
+    const power = (x, f, a, b) => { let re = 0, im = 0; for (let i = a; i < b; i++) { re += x[i] * Math.cos(2 * Math.PI * f * i / sr); im += x[i] * Math.sin(2 * Math.PI * f * i / sr); } return Math.hypot(re, im) * 2 / (b - a); };
+    const rms = (x, a, b) => { let t = 0; for (let i = a; i < b; i++) t += x[i] * x[i]; return Math.sqrt(t / (b - a)); };
+    const a0 = 6000, a1 = 24000;   // a whole number of cycles of 1 kHz at 48 kHz, after the filters settle
+    const s1k = tone(1000, 0.5);
+
+    const gentle = run('saturator', { drive: 0, quality: 1 }, tone(1000, 0.05));
+    assert.ok(Math.abs(rms(gentle, a0, a1) / (0.05 / Math.SQRT2) - 1) < 0.15, 'a quiet sound at no drive passes about unchanged');
+    const hot = run('saturator', { drive: 24, quality: 0 }, s1k);
+    assert.ok(power(hot, 3000, a0, a1) > 0.05 * power(hot, 1000, a0, a1) && power(hot, 2000, a0, a1) < 0.02 * power(hot, 1000, a0, a1), 'soft saturation adds odd harmonics');
+    const tube = run('saturator', { drive: 12, type: 2, quality: 0 }, s1k);
+    assert.ok(power(tube, 2000, a0, a1) > 0.05 * power(tube, 1000, a0, a1), 'the tube curve adds even harmonics');
+    const biased = run('saturator', { drive: 12, type: 0, bias: 0.6, quality: 0 }, s1k);
+    assert.ok(power(biased, 2000, a0, a1) > 0.05 * power(biased, 1000, a0, a1), 'bias adds even harmonics');
+    const low = rms(run('saturator', { drive: 6 }, s1k), a0, a1), high = rms(run('saturator', { drive: 30 }, s1k), a0, a1);
+    assert.ok(high / low < 2 && high / low > 0.5, `the loudness stays about the same as drive goes up (${(high / low).toFixed(2)})`);
+    const bass50 = tone(50, 0.5), full = run('saturator', { drive: 24, bass: 20 }, bass50, 48000), kept = run('saturator', { drive: 24, bass: 300 }, bass50, 48000);
+    assert.ok(power(kept, 150, 12000, 36000) < 0.3 * power(full, 150, 12000, 36000), 'bass keeps the low sound out of the curve');
+    const dry = run('saturator', { drive: 24, mix: 0, quality: 1 }, s1k);
+    let worst = 0; for (let i = a0; i < a1; i++) worst = Math.max(worst, Math.abs(dry[i] - s1k(i)));
+    assert.ok(worst < 1e-3, `mix 0 is the dry sound (${worst})`);
+    for (const quality of [0, 1, 2]) assert.ok(run('saturator', { drive: 30, quality, type: 3 }, s1k, 12000).every(Number.isFinite), `quality ${quality} stays finite`);
+
+    // multiband: a 100 Hz tone is in the low band, a 8 kHz tone in the high band; soloing the other band leaves silence
+    const both = i => tone(100, 0.3)(i) + tone(8000, 0.3)(i);
+    const lowOnly = run('mbsat', { solo: 1, quality: 1 }, both, 36000), highOnly = run('mbsat', { solo: 4, quality: 1 }, both, 36000);
+    assert.ok(power(lowOnly, 100, 12000, 36000) > 5 * power(lowOnly, 8000, 12000, 36000), 'soloing the low band keeps the lows');
+    assert.ok(power(highOnly, 8000, 12000, 36000) > 5 * power(highOnly, 100, 12000, 36000), 'soloing the high band keeps the highs');
+    const drive0 = run('mbsat', { quality: 1, lowDrive: 0, lowmidDrive: 0, highmidDrive: 0, highDrive: 0 }, tone(100, 0.4), 36000);
+    const drive30 = run('mbsat', { quality: 1, lowDrive: 30, lowmidDrive: 0, highmidDrive: 0, highDrive: 0 }, tone(100, 0.4), 36000);
+    assert.ok(power(drive30, 300, 12000, 36000) > 5 * power(drive0, 300, 12000, 36000), 'more drive in the low band adds harmonics to a low tone');
+    assert.ok(run('mbsat', { quality: 2, type: 2, bias: 0.4 }, both, 12000).every(Number.isFinite), 'multiband at hq stays finite');
+  }
+
   // spectral effects on the shared frame helper: the harmonic/percussive split, spectral dynamics with tilt, cross synthesis
   {
     const run = (type, values, inputs, len, outCount = 1) => {
