@@ -2362,7 +2362,8 @@ $('start').addEventListener('click', async () => {
       const show = () => {
         const h = engine.health();
         const drops = h.drops ? ` drops ${h.drops}` : '';
-        el.textContent = `cpu ${Math.round(avg * 100)}%  peak ≥${Math.round(peak * 100)}%  late ${late}${drops}  ${h.latency.toFixed(0)} ms`;
+        const chain = engine.chainDelay(), heavy = chain >= 1 ? `  chain ${chain.toFixed(0)} ms` : '';   // the slowest instrument's own delay (spectral and oversampled nodes)
+        el.textContent = `cpu ${Math.round(avg * 100)}%  peak ≥${Math.round(peak * 100)}%  late ${late}${drops}  ${h.latency.toFixed(0)} ms${heavy}`;
         el.className = performance.now() - lateAt < 5000 ? 'bad' : peak > 1 ? 'warn' : '';   // red only while blocks are running late
       };
       engine.onLoad = d => { avg = avg ? avg * 0.7 + d.avg * 0.3 : d.avg; peak = Math.max(peak, d.peak); if (d.late) lateAt = performance.now(); late += d.late; show(); };

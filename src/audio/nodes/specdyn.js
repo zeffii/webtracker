@@ -17,6 +17,7 @@ export default {
   kinds: { in: 'stereo', out: 'stereo' },
   shape: 'box',
   glyph: 'specdyn',
+  latency: p => sizeOf(p.size) - 1,   // one frame
   params: [
     { name: 'threshold', min: -80, max: 0, def: -36 },   // dB (full scale is 0): bins louder than this are turned down
     { name: 'ratio', min: 1, max: 20, def: 4 },          // 4 means 4 dB over the threshold comes out 1 dB over

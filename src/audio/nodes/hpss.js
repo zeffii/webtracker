@@ -22,6 +22,7 @@ export default {
   kinds: { in: 'stereo', harm: 'stereo', perc: 'stereo' },
   shape: 'box',
   glyph: 'hpss',
+  latency: p => sizeOf(p.size) - 1,   // one frame
   params: [
     { name: 'length', min: 40, max: 600, def: 250 },    // ms: how long a held tone lasts, for the median along time
     { name: 'width', min: 50, max: 800, def: 250 },     // Hz: how wide a hit is, for the median along frequency

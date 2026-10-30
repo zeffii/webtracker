@@ -1,4 +1,5 @@
 import { NODE_TYPES } from './nodes/index.js';
+import { graphLatency } from './latency.js';
 import { ParamRegistry } from './params.js';
 import { compile } from '../graph/compile.js';
 import { compileDsp } from './wasm/load.js';
@@ -24,6 +25,7 @@ export class Engine {
   laneIds = [];           // the instruments in the slots of lring
   vring = ringBuffer();   // the last output samples, for the vectorscope
   sent = new Map();       // the latest of each message that sets the audio thread up (graphs, node data, song, lanes), for rendering offline
+  delays = new Map();     // instrument -> how many samples late its sound comes out (see latency.js)
   loaded = new Map();     // instrument -> the signature of what the audio thread has, to skip a reload that would change nothing
   transport = new Int32Array(new SharedArrayBuffer(32));   // [tick, playing, fraction of the tick in 1/65536, -, most limiter reduction in 1/100 dB, loudest input peak in 1/100 dB + 200 dB], written by the worklet; the last two are read and cleared by the meters
 
@@ -76,6 +78,12 @@ export class Engine {
   resetStreams(ids) { this.node?.port.postMessage({ type: 'streamreset', ids }); }
   setLaneTaps(ids) { this.laneIds = ids; this.node?.port.postMessage({ type: 'lanetaps', ids }); }
 
+  // The delay of the slowest instrument, in ms: how far behind the beat the heaviest chain runs (see latency.js).
+  chainDelay() {
+    const samples = Math.max(0, ...this.delays.values());
+    return (samples / (this.ctx?.sampleRate || 48000)) * 1000;
+  }
+
   // Where the audio stack says we stand: output latency in ms and, where the browser reports it, how many times it
   // had to fill in silence because a block arrived late.
   health() {
@@ -93,6 +101,7 @@ export class Engine {
   reset() {
     this.registry = new ParamRegistry();
     this.loaded.clear();
+    this.delays.clear();
     this.sent.clear();
     this.node.port.postMessage({ type: 'reset', sab: this.registry.sab });
   }
@@ -100,6 +109,7 @@ export class Engine {
   // Compiles on the main thread and posts the flat result to the worklet.
   loadInstrument(instrument, desc) {
     const graph = compile(desc, { instrument, nodeTypes: NODE_TYPES, registry: this.registry });   // also gives every parameter its slot, wired or not
+    this.delays.set(instrument, graphLatency(desc, NODE_TYPES, this.ctx?.sampleRate ?? 48000).total);   // how late this machine's sound comes out
     const sig = signature(desc);
     if (this.loaded.get(instrument) === sig) return false;   // nothing it plays has changed: the running voices and tails are left alone
     this.loaded.set(instrument, sig);

@@ -4,6 +4,7 @@
 // is delayed to match. out = (dry * (1 - mix) + wet * mix) * level. Stereo in and out.
 import { CURVE_POINTS, normalizeCurve } from './curves.js';
 import { Delay, Oversampler } from './oversample.js';
+import { oversampleLatency } from '../latency.js';
 
 const DRIVE = 0, MIX = 1, OVERSAMPLE = 2, LEVEL = 3;
 
@@ -15,6 +16,7 @@ export default {
   kinds: { in: 'stereo', out: 'stereo' },
   shape: 'box',
   glyph: 'waveshaper',
+  latency: p => oversampleLatency([1, 2, 4][Math.min(2, Math.max(0, Math.round(p.oversample)))]),   // the oversampling's filters
   editor: 'curve',   // the patcher panel offers the curve editor for this node
   params: [
     { name: 'drive', min: 0.1, max: 24, def: 1 },

@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['556', ['Delay compensation, first step: spectral and oversampled nodes declare how late they are, and the status bar shows the slowest instrument as chain N ms']],
   ['555', ['New synth, Snarl: two resonant filters in a row (high-pass, then low-pass), ring mod, two envelopes and a modulation generator, for screaming leads and growling basses']],
   ['554', ['New synth, Jaw harp: a plucked reed drones and the mouth picks out its harmonics; sweep the vowel for the wah and the tune']],
   ['553', ['New effect, Body blur (Effects, Spectral): smooths and rounds the body of a sound while its hits pass through untouched, in time; standard or eco quality']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['549', ['Node Sequencer: wires in a deep tint of their kind and ports ringed in the same colour, amber events, teal controls, violet chords, olive weights']],
   ['548', ['Node Sequencer: hover a wire for a pair of arrows, then drag that stretch sideways to move the wire away from tiles; double-click the arrows to reset']],
   ['547', ['Node Sequencer: a schematic look, outlined boxes in one ink with right-angle wires told apart by dashes; the Chord tile is wider and holds its keyboard. Fixes wires missing in 546']],
-  ['546', ['Node Sequencer: route dots (double-click a wire), wires that can be switched off (Alt+click, M), live note volumes under Chord nodes, a length input on the Phrase node']],
 ];

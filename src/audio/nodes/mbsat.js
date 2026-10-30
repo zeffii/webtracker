@@ -5,6 +5,7 @@
 // curve gets the whole sound). `type`, `bias` and `quality` are shared (see saturator.js and saturation.js). `solo` lets you
 // hear one band alone. `mix` blends with the dry sound and `out` is the level at the end.
 import { Channel } from './split.js';
+import { oversampleLatency } from '../latency.js';
 import { Stage, settings, makeDelay, offsetK, TYPES, QUALITY, qualityOf, dbToGain } from './saturation.js';
 
 const BANDS = ['low', 'lowmid', 'highmid', 'high'];
@@ -20,6 +21,7 @@ export default {
   kinds: { in: 'stereo', out: 'stereo' },
   shape: 'box',
   glyph: 'mbsat',
+  latency: p => oversampleLatency([2, 1, 4][qualityOf(p.quality)]),   // the oversampling's filters
   params: [
     { name: 'f1', min: 30, max: 2000, def: 120 },        // Hz, crossovers
     { name: 'f2', min: 100, max: 8000, def: 800 },

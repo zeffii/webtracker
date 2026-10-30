@@ -4,6 +4,7 @@
 // frequency out of the curve, so a bass or a kick stays solid and clean while the rest warms up (20 Hz is off). `tone` is a
 // lowpass after the curve, taking off the top the curve makes. `mix` blends with the dry sound and `out` is the level.
 // `quality`: standard runs the curve at 2x oversampling, eco at 1x (cheaper, a little more aliasing), hq at 4x.
+import { oversampleLatency } from '../latency.js';
 import { Stage, settings, makeDelay, offsetK, TYPES, QUALITY, qualityOf, dbToGain } from './saturation.js';
 
 const DRIVE = 0, TYPE = 1, BIAS = 2, BASS = 3, TONE = 4, MIX = 5, OUT = 6, QUALITY_AT = 7;
@@ -16,6 +17,7 @@ export default {
   kinds: { in: 'stereo', out: 'stereo' },
   shape: 'box',
   glyph: 'saturator',
+  latency: p => oversampleLatency([2, 1, 4][qualityOf(p.quality)]),   // the oversampling's filters
   params: [
     { name: 'drive', min: 0, max: 36, def: 12 },                 // dB
     { name: 'type', min: 0, max: 3, def: 0, int: true },          // soft, tape, tube, clip

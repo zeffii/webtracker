@@ -25,6 +25,7 @@ export default {
   kinds: { in: 'stereo', out: 'stereo' },
   shape: 'box',
   glyph: 'bodyblur',
+  latency: p => sizeOf(p.size) - 1,   // one frame
   params: [
     { name: 'smooth', min: 0, max: 1, def: 0.4 },
     { name: 'time', min: 0, max: 500, def: 80 },       // ms: how long the running average takes to settle

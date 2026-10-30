@@ -21,6 +21,7 @@ export default {
   kinds: { in: 'stereo', mod: 'stereo', out: 'stereo' },
   shape: 'box',
   glyph: 'xsynth',
+  latency: p => sizeOf(p.size) - 1,   // one frame
   params: [
     { name: 'amount', min: 0, max: 1, def: 1 },
     { name: 'smooth', min: 0, max: 1, def: 0.3 },

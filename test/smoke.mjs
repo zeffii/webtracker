@@ -6388,7 +6388,7 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   const { Engine } = await import('../src/audio/engine.js');
   const posts = [];
   const eng = Object.create(Engine.prototype);
-  eng.registry = new ParamRegistry(); eng.loaded = new Map(); eng.node = { port: { postMessage: m => posts.push(m.type) } };
+  eng.registry = new ParamRegistry(); eng.loaded = new Map(); eng.delays = new Map(); eng.node = { port: { postMessage: m => posts.push(m.type) } };
   const base = () => ({ voices: 1, nodes: [{ id: 'perc', type: 'combperc', params: {}, ports: ['decay'] }, { id: 'out', type: 'out', params: { gain: 0.5 } }], connections: [['perc.out', 'out.in']] });
   assert.equal(eng.loadInstrument('t', base()), true, 'the first load posts');
   assert.equal(eng.loadInstrument('t', base()), false, 'the same graph does not');
@@ -8649,6 +8649,26 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     assert.ok(harmonic(open, 5) > 1.5 * harmonic(closed, 5), 'the vowel moves the harmonics that are picked out');
     assert.ok(pluck({ drive: 1, twang: 1, breath: 1, focus: 40, mouth: 12, track: 1 }, 84).every(Number.isFinite), 'extreme settings stay finite');
     console.log('ok: jawharp');
+  }
+
+  // declared latency: spectral and oversampled nodes say how late they are, and a graph adds the longest path up
+  {
+    const { graphLatency, nodeLatency } = await import('../src/audio/latency.js');
+    const lat = (type, params = {}) => nodeLatency({ params }, NODE_TYPES[type], sr);
+    assert.equal(lat('hpss', { size: 1 }), 2047, 'a spectral node is one frame late');
+    assert.equal(lat('bodyblur', { size: 0 }), 1023, 'a smaller frame is less late');
+    assert.equal(lat('blur', { size: 2 }), 4095);
+    assert.ok(lat('saturator', { quality: 2 }) > lat('saturator', { quality: 0 }) && lat('saturator', { quality: 1 }) === 0, 'oversampling adds delay, eco adds none');
+    assert.ok(lat('distortion', { oversample: 2 }) > lat('distortion', { oversample: 1 }) && lat('distortion', { oversample: 0 }) === 0);
+    assert.equal(lat('gain'), 0, 'a node with nothing to declare adds none');
+    const desc = {
+      nodes: [{ id: 'o', type: 'osc' }, { id: 'a', type: 'hpss', params: { size: 1 } }, { id: 'b', type: 'saturator', params: { quality: 2 } }, { id: 'm', type: 'sumst' }, { id: 'out', type: 'out' }],
+      connections: [['o.out', 'a.in'], ['a.harm', 'b.in'], ['b.out', 'm.in'], ['o.out', 'm.in'], ['m.out', 'out.in']],
+    };
+    const g = graphLatency(desc, NODE_TYPES, sr);
+    assert.equal(g.at.get('o'), 0);
+    assert.equal(g.at.get('a'), 2047);
+    assert.ok(g.total === g.at.get('b') && g.total > 2047, 'the graph is as late as its slowest path, nodes in a row add up');
   }
 
   // snarl: sounds on a note, stays finite at the extremes, releases, the low-pass cutoff darkens it, ring mod and the high-pass change it

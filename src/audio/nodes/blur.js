@@ -47,6 +47,7 @@ export default {
   kinds: { in: 'stereo', out: 'stereo' },
   shape: 'box',
   glyph: 'blur',
+  latency: p => SIZES[Math.min(2, Math.max(0, Math.round(p.size)))] - 1,   // one frame
   params: [
     { name: 'freq', min: 0, max: 1, def: 0.3 },
     { name: 'time', min: 0, max: 5000, def: 400 },     // ms: how long the running average takes to settle

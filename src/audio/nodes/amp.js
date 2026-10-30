@@ -9,6 +9,7 @@
 // The two curves run at 1x, 2x or 4x (`oversample`) so the harmonics they make do not fold back. The dry signal for mix is
 // delayed to match. Everything but the curves is linear and runs at the normal rate.
 import { Delay, Oversampler } from './oversample.js';
+import { oversampleLatency } from '../latency.js';
 
 const GAIN = 0, STAGES = 1, BRIGHT = 2, BIAS = 3, BASS = 4, MID = 5, TREBLE = 6, VOICING = 7, MASTER = 8, SAG = 9, PRESENCE = 10, DEPTH = 11, CAB = 12, CABTONE = 13, LEVEL = 14, MIX = 15, OVERSAMPLE = 16;
 
@@ -111,6 +112,7 @@ export default {
   kinds: { in: 'stereo', out: 'stereo' },
   shape: 'box',
   glyph: 'amp',
+  latency: p => 2 * oversampleLatency([1, 2, 4][Math.min(2, Math.max(0, Math.round(p.oversample)))]),   // two oversamplers, one for each part of the amp
   params: [
     { name: 'gain', min: 0, max: 10, def: 5 },                        // the preamp: 0 is clean, 10 is a wall
     { name: 'stages', min: 1, max: 4, def: 2, int: true },            // valve stages in the preamp

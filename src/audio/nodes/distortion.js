@@ -3,6 +3,7 @@
 // (a hard, squared-off curve). It runs at 1x, 2x or 4x (`oversample` 0, 1, 2) to cut the aliasing; the dry
 // signal is delayed to match. out = (dry * (1 - mix) + wet * mix) * level. Stereo in and out.
 import { Delay, Oversampler } from './oversample.js';
+import { oversampleLatency } from '../latency.js';
 
 const DRIVE = 0, TONE = 1, MODE = 2, MIX = 3, LEVEL = 4, OVERSAMPLE = 5;
 
@@ -21,6 +22,7 @@ export default {
   kinds: { in: 'stereo', out: 'stereo' },
   shape: 'box',
   glyph: 'distortion',
+  latency: p => oversampleLatency([1, 2, 4][Math.min(2, Math.max(0, Math.round(p.oversample)))]),   // the oversampling's filters
   params: [
     { name: 'drive', min: 0.1, max: 40, def: 4, scale: 'log' },
     { name: 'tone', min: 300, max: 20000, def: 8000, scale: 'log' },   // Hz, the lowpass after the clipper
