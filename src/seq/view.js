@@ -116,10 +116,12 @@ export function createTrackerView({ showMenu = (e, items) => showContextMenu(e, 
   el.addEventListener('wheel', e => {
     e.preventDefault();
     if (e.ctrlKey) { setSize(fontPx + (e.deltaY < 0 ? 1 : -1)); return; }
-    if (!lanes || e.deltaY === 0) return;
-    wheelAcc += e.deltaY * (e.deltaMode === 1 ? 16 : 1);
+    // Shift + wheel: one row per notch. (Browsers turn a shifted wheel into a sideways one, so the amount may arrive as deltaX.)
+    const amount = e.deltaY || (e.shiftKey ? e.deltaX : 0);
+    if (!lanes || amount === 0) return;
+    wheelAcc += amount * (e.deltaMode === 1 ? 16 : 1);
     // A notch of a mouse wheel (100) moves about an eighth of the rows shown, and at least four: a tall window is not crawled through.
-    const per = 100 / Math.max(4, Math.round(rowCount / 8)), rows = Math.trunc(wheelAcc / per);
+    const per = e.shiftKey ? 100 : 100 / Math.max(4, Math.round(rowCount / 8)), rows = Math.trunc(wheelAcc / per);
     if (!rows) return;
     wheelAcc -= rows * per;
     top = Math.max(showLo(), Math.min(top + rows, showHi() - rowCount));

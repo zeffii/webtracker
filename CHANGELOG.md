@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 562 · 2026-10-30
+
+- Shift + mouse wheel in the pattern editor moves one row per notch.
+
 ## 561 · 2026-10-30
 
 - The pattern editor now runs down to the top of the status bar: it measures again until no more rows fit, refits when the font size changes (rows were left over after a smaller font), and the spare margin and page padding under it are gone.

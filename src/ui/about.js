@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['562', ['Shift and mouse wheel moves the pattern editor one row at a time']],
   ['561', ['Pattern editor fills down to the status bar; scrolling it is lighter and a wheel notch moves further']],
   ['560', ['Stream Manager columns are fixed width, so they stop jumping as numbers and names change']],
   ['559', ['Delay compensation moves the playhead to where the sound is; Snarl note off fixes']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['555', ['New synth, Snarl: two resonant filters in a row (high-pass, then low-pass), ring mod, two envelopes and a modulation generator, for screaming leads and growling basses']],
   ['554', ['New synth, Jaw harp: a plucked reed drones and the mouth picks out its harmonics; sweep the vowel for the wah and the tune']],
   ['553', ['New effect, Body blur (Effects, Spectral): smooths and rounds the body of a sound while its hits pass through untouched, in time; standard or eco quality']],
-  ['552', ['New demo, ?demo=weights: chords with a volume for every note, played in turn by a Phrase node, with a pad moved by lfos']],
-    ];
+      ];
