@@ -31,7 +31,7 @@ export function createNodeSeqEditor({ root, getSong, noteTargets = () => [], par
   const ctx = canvas.getContext('2d');
 
   // ---- state
-  let view = { x: -20, y: -20, zoom: 1 }, sel = new Set(), selWire = null, drag = null, hover = null, hoverNode = null, lastHoverNode = null, mouse = [0, 0], dirty = true;
+  let view = { x: -20, y: -20, zoom: 1 }, sel = new Set(), selWire = null, drag = null, hover = null, stretch = null, hoverNode = null, lastHoverNode = null, mouse = [0, 0], dirty = true;
   const WIRE_DASH = { e: [], c: [3, 3], h: [7, 2.5], w: [1, 3] };
   const kindColor = (C, k) => (k === 'e' ? C.ev : k === 'h' ? C.hc : k === 'w' ? C.wc : C.ct);
   let active = new Set(), activeTo = new Set();   // the chord nodes a Phrase node is playing, and the wires they play along
@@ -109,11 +109,42 @@ export function createNodeSeqEditor({ root, getSong, noteTargets = () => [], par
   // A wire is a line of right angles from the output to the input. A wire that runs backwards loops round the two nodes. Wires from one output share
   // their upright, so they join like a bus.
   const bendOf = id => { let h = 0; for (const ch of String(id)) h = (h * 31 + ch.charCodeAt(0)) % 7; return (h - 3) * 2.5; };
-  function route(a, b, id = '') {
+  // A wire may carry a bend {bx} or {sx, by, tx}: where the user dragged its straight stretches to. The line has a list `keys` saying which bend each
+  // stretch answers to (null for the two end stretches, which stay put).
+  function route(a, b, id = '', bd = {}) {
     const pad = 8;
-    if (b.x - a.x >= 2 * pad + 4) { const xm = clamp((a.x + b.x) / 2 + bendOf(id), a.x + pad, b.x - pad); return [[a.x, a.y], [xm, a.y], [xm, b.y], [b.x, b.y]]; }
-    const ym = (a.y + b.y) / 2 + (Math.abs(a.y - b.y) < 24 ? 26 : 0);
-    return [[a.x, a.y], [a.x + pad, a.y], [a.x + pad, ym], [b.x - pad, ym], [b.x - pad, b.y], [b.x, b.y]];
+    if (b.x - a.x >= 2 * pad + 4) {
+      const xm = clamp(bd.bx ?? (a.x + b.x) / 2 + bendOf(id), a.x + pad, b.x - pad), line = [[a.x, a.y], [xm, a.y], [xm, b.y], [b.x, b.y]];
+      line.keys = [null, 'bx', null]; return line;
+    }
+    const ym = bd.by ?? (a.y + b.y) / 2 + (Math.abs(a.y - b.y) < 24 ? 26 : 0), sx = Math.max(bd.sx ?? 0, a.x + pad), tx = Math.min(bd.tx ?? 1e9, b.x - pad);
+    const line = [[a.x, a.y], [sx, a.y], [sx, ym], [tx, ym], [tx, b.y], [b.x, b.y]];
+    line.keys = [null, 'sx', 'by', 'tx', null]; return line;
+  }
+  // The stretch of a wire nearest to a point that can be dragged: the end stretches hand over to the next one in.
+  function nearStretch(wx, wy) {
+    const g = graph(); if (!g) return null;
+    let best = null;
+    for (const wr of g.wires) {
+      const c = curves.get(wr); if (!c) continue;
+      for (let i = 1; i < c.length; i++) {
+        const [x0, y0] = c[i - 1], [x1, y1] = c[i], dx = x1 - x0, dy = y1 - y0, t = clamp(((wx - x0) * dx + (wy - y0) * dy) / Math.max(1e-6, dx * dx + dy * dy), 0, 1);
+        const d = Math.hypot(x0 + dx * t - wx, y0 + dy * t - wy);
+        if (d < 6 / view.zoom + 2 && (!best || d < best.d)) best = { d, wr, k: clamp(i - 1, 1, c.length - 3) };
+      }
+    }
+    if (!best) return null;
+    const c = curves.get(best.wr), [x0, y0] = c[best.k], [x1, y1] = c[best.k + 1];
+    return { wr: best.wr, k: best.k, key: c.keys[best.k], vertical: x0 === x1, mx: (x0 + x1) / 2, my: (y0 + y1) / 2 };
+  }
+  const overArrows = (st, wx, wy) => st && Math.hypot(wx - st.mx, wy - st.my) < 14 / view.zoom + 4;
+  function drawArrows(C, st) {   // a pair of arrows in the middle of a stretch, pointing the way it can be moved
+    const { mx, my, vertical } = st, r = 4.5, l = 9, [ux, uy] = vertical ? [1, 0] : [0, 1], [vx, vy] = [-uy, ux];
+    ctx.fillStyle = C.hi;
+    for (const s of [-1, 1]) {
+      const tx = mx + ux * s * (l + r), ty = my + uy * s * (l + r);
+      ctx.beginPath(); ctx.moveTo(tx, ty); ctx.lineTo(mx + ux * s * l + vx * r, my + uy * s * l + vy * r); ctx.lineTo(mx + ux * s * l - vx * r, my + uy * s * l - vy * r); ctx.closePath(); ctx.fill();
+    }
   }
   function tracePath(pts) {
     ctx.beginPath(); ctx.moveTo(pts[0][0], pts[0][1]);
@@ -163,7 +194,7 @@ export function createNodeSeqEditor({ root, getSong, noteTargets = () => [], par
     g.wires.forEach((wr, i) => {
       const a = portPos(wr.from, 'out'), b = portPos(wr.to, 'in');
       if (!a || !b) return;
-      const c = route(a, b, wr.from), picked = selWire === wr, lit = !wr.off && activeTo.has(wr.to);
+      const c = route(a, b, wr.from, wr.bend), picked = selWire === wr, lit = !wr.off && activeTo.has(wr.to);
       tracePath(c);
       ctx.strokeStyle = picked ? C.hi : C.ink; ctx.lineWidth = picked ? 2.6 : lit ? 2.6 : 1.1; ctx.globalAlpha = picked || lit ? 1 : 0.85;
       ctx.setLineDash(wr.off ? [2, 5] : WIRE_DASH[a.k]);   // the kind of wire: solid events, dashed controls, long dashes chords, dots weights
@@ -186,6 +217,7 @@ export function createNodeSeqEditor({ root, getSong, noteTargets = () => [], par
       }
     }
     if (drag?.kind === 'marquee') { ctx.strokeStyle = C.hi; ctx.fillStyle = C.hi; ctx.globalAlpha = 0.15; const [x0, y0] = toWorld(drag.x0, drag.y0), [x1, y1] = toWorld(drag.x, drag.y); ctx.fillRect(Math.min(x0, x1), Math.min(y0, y1), Math.abs(x1 - x0), Math.abs(y1 - y0)); ctx.globalAlpha = 1; ctx.strokeRect(Math.min(x0, x1), Math.min(y0, y1), Math.abs(x1 - x0), Math.abs(y1 - y0)); }
+    if (!drag && stretch) drawArrows(C, stretch);
     ctx.restore();
     drawHint(C);
     for (const [id, t] of flash) if (now - t > 260) flash.delete(id);
@@ -379,6 +411,10 @@ export function createNodeSeqEditor({ root, getSong, noteTargets = () => [], par
       drag = { kind: 'move', sx, sy, starts: [...sel].map(id => { const m = nodeOf(id); return [m, m.x, m.y]; }), moved: false };
       renderSide(); dirty = true; return;
     }
+    if (e.button === 0 && !e.altKey && overArrows(stretch, wx, wy)) {   // near the arrows: drag the stretch sideways
+      checkpoint(); selWire = stretch.wr; sel.clear();
+      drag = { kind: 'bend', ...stretch }; renderSide(); dirty = true; return;
+    }
     const wr = hitWire(wx, wy);
     if (wr && e.altKey) { toggleWire(wr); return; }   // Alt+click switches a wire off or on
     if (wr) { selWire = wr; sel.clear(); renderSide(); dirty = true; return; }
@@ -395,6 +431,8 @@ export function createNodeSeqEditor({ root, getSong, noteTargets = () => [], par
       const dx = (sx - drag.sx) / view.zoom, dy = (sy - drag.sy) / view.zoom;
       for (const [m, x0, y0] of drag.starts) { m.x = Math.round((x0 + dx) / 8) * 8; m.y = Math.round((y0 + dy) / 8) * 8; }
       drag.moved = true;
+    } else if (drag.kind === 'bend') {
+      const [wx, wy] = toWorld(sx, sy); drag.wr.bend = { ...drag.wr.bend, [drag.key]: Math.round((drag.vertical ? wx : wy) / 8) * 8 };
     } else if (drag.kind === 'wire' || drag.kind === 'marquee') { drag.x = sx; drag.y = sy; }
     else if (drag.kind === 'steps') {
       const [wx, wy] = toWorld(sx, sy), i = hitStep(drag.n, wx, wy);
@@ -405,6 +443,7 @@ export function createNodeSeqEditor({ root, getSong, noteTargets = () => [], par
   addEventListener('mouseup', e => {
     if (!drag) return;
     const d = drag; drag = null; dirty = true;
+    if (d.kind === 'bend') { structure(); return; }
     const g = graph(), [sx, sy] = pos(e), [wx, wy] = toWorld(sx, sy);
     if (d.kind === 'wire') {
       const q = hitPort(wx, wy, d.from.side === 'out' ? 'in' : 'out');
@@ -426,7 +465,7 @@ export function createNodeSeqEditor({ root, getSong, noteTargets = () => [], par
     }
   });
   const onStructureQuiet = () => { onStructure(); };   // positions are not in the engine's graph, but saving needs the project marked changed
-  canvas.addEventListener('mousemove', e => { if (drag) return; const [sx, sy] = pos(e), [wx, wy] = toWorld(sx, sy), p = hitPort(wx, wy); const was = hover?.id + hover?.name, hn = p ? null : hitNode(wx, wy); mouse = [sx, sy]; hover = p; hoverNode = hn?.id ?? null; if (was !== p?.id + p?.name || hoverNode !== lastHoverNode) { lastHoverNode = hoverNode; dirty = true; } canvas.style.cursor = p ? 'crosshair' : hitStep(hitNode(wx, wy) ?? { type: '' }, wx, wy) >= 0 ? 'pointer' : 'default'; });
+  canvas.addEventListener('mousemove', e => { if (drag) return; const [sx, sy] = pos(e), [wx, wy] = toWorld(sx, sy), p = hitPort(wx, wy); const was = hover?.id + hover?.name, hn = p ? null : hitNode(wx, wy); mouse = [sx, sy]; hover = p; hoverNode = hn?.id ?? null; const st = p || hn ? null : nearStretch(wx, wy); if (st?.wr !== stretch?.wr || st?.k !== stretch?.k) dirty = true; stretch = st; if (was !== p?.id + p?.name || hoverNode !== lastHoverNode) { lastHoverNode = hoverNode; dirty = true; } canvas.style.cursor = p ? 'crosshair' : overArrows(stretch, wx, wy) ? (stretch.vertical ? 'ew-resize' : 'ns-resize') : hitStep(hitNode(wx, wy) ?? { type: '' }, wx, wy) >= 0 ? 'pointer' : 'default'; });
   canvas.addEventListener('wheel', e => {
     e.preventDefault();
     const [sx, sy] = pos(e);
@@ -453,6 +492,7 @@ export function createNodeSeqEditor({ root, getSong, noteTargets = () => [], par
   }
   canvas.addEventListener('dblclick', e => {
     const [sx, sy] = pos(e), [wx, wy] = toWorld(sx, sy), n = hitNode(wx, wy), wr = !n && hitWire(wx, wy);
+    if (overArrows(stretch, wx, wy)) { checkpoint(); delete stretch.wr.bend; structure(); return; }   // double-click the arrows: the wire finds its own way again
     if (wr) insertDot(wr, wx, wy); else if (!n) openPalette(sx, sy);
   });
   canvas.addEventListener('contextmenu', e => {

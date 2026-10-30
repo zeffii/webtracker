@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 548 · 2026-10-30
+
+- Node Sequencer: **drag a wire's straight stretches away from tiles**. Rest the pointer on a wire and a pair of arrows appears in the middle of the stretch nearest to it; press near the arrows and drag to slide that stretch sideways (snaps to the grid). A wire that runs backwards has three stretches to move. Double-click the arrows to let the wire find its own way again. Positions are saved with the project and kept when nodes are duplicated.
+
 ## 547 · 2026-10-30
 
 - Node Sequencer: a new **schematic look**. Nodes are outlined boxes, everything is drawn in one ink colour, and wires run in right angles with rounded corners. Wire kinds are told apart by their dashes (solid events, dotted controls, long dashes chords, dots weights). The playing chord gets a heavy outline.
