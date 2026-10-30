@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 534 · 2026-10-30
+
+- Pattern editor: the undo trail (the last five things done, newest a bright chevron, a "waypoint set" note) now shows in the row above the status bar in the pattern editor too, in the empty space under the grid, as the arrangement already did. Both views share one undo stack, so it is the same row; it was only the arrangement that drew it. The drawing moved into its own small file (seq/undotrail.js).
+
 ## 533 · 2026-10-30
 
 - Script: progressions circle back. `progression(...)` now ends, by default, on a chord that leads back into the first one (`end: 'loop'`), so when it plays again the home chord does not sound twice; `end: 'home'` keeps the old full stop on the home chord. New `nextChord(list, length, key, mode, opts)` gives the next chord of a progression of your own, steered so that the length you choose comes round, and `leadsHome(name, key, mode)` says whether a chord leads back to the home chord. It is the same walk as `progression`, tried again until its end is right, so it still sounds like the style rather than being forced.

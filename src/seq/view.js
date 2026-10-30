@@ -5,6 +5,7 @@ import { createPlayline, createLoopLines } from '../ui/playline.js';
 import { patternColour } from '../ui/patcolor.js';
 import { KINDS, encodeCell, noteSemitones, noteToken } from './cells.js';
 import { esc } from './html.js';
+import { undoTrailHtml } from './undotrail.js';
 import { SHADER } from '../instruments.js';
 import { describeColumn, describeParts } from './describe.js';
 import { placementAt } from './edit.js';
@@ -39,7 +40,7 @@ export function cellAt({ widths, x, line, top, len }) {
 // Keyboard-driven view of every lane side by side. The cursor sits on one character
 // of one cell. Edits go straight into the shared pages, so they are heard on the next
 // tick while the song plays. Call load() with the prepared lanes before drawing.
-export function createTrackerView({ showMenu = (e, items) => showContextMenu(e, items), showCurve = opts => showCurvePopup(opts), showChord = opts => showChordPalette(opts), random = Math.random, el, statusEl, transport, onToggle, onBack, onMove, onRow = () => {}, onHelp = () => {}, onNote = () => {}, onSong = () => {}, readParam = () => undefined, follow = () => false }) {
+export function createTrackerView({ showMenu = (e, items) => showContextMenu(e, items), showCurve = opts => showCurvePopup(opts), showChord = opts => showChordPalette(opts), random = Math.random, el, statusEl, undoEl = null, transport, onToggle, onBack, onMove, onRow = () => {}, onHelp = () => {}, onNote = () => {}, onSong = () => {}, readParam = () => undefined, follow = () => false }) {
   let lanes = null, len = 0, widths = [], editor = null, song = null;
   // Solo-edit: one placement of one pattern, shown on its own with its rows numbered from 0. Nothing else can be reached.
   // lo..hi is its span of song ticks; hi is the song's length when not in solo-edit and lo is 0.
@@ -1005,6 +1006,7 @@ export function createTrackerView({ showMenu = (e, items) => showContextMenu(e, 
     const meter = d.frac === null ? '' : `<span class="pmeter" aria-hidden="true"><i style="width:${Math.max(0, Math.min(1, d.frac)) * 100}%"></i></span>`;
     const html = `<span class="spos">${esc(where1)}${message ? ` · <b>${esc(message)}</b>` : ''}</span><span class="sparam k-${esc(cellKind)}"><span class="pname">${esc(d.name)}</span>${meter}${d.value === null ? '' : `<span class="pval">${esc(d.value)}</span>`}<span class="prng">${esc(d.details.join(' · '))}</span></span>`;
     if (html !== lastStatus) { lastStatus = html; statusEl.innerHTML = html; }
+    if (undoEl && editor) { const trail = undoTrailHtml(editor); if (undoEl.innerHTML !== trail) undoEl.innerHTML = trail; }   // the same row the arrangement shows
   };
 
   const goto = (laneIdx, tick) => {

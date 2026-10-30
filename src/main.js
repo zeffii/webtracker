@@ -284,7 +284,7 @@ const help = createMachineHelp({ onInsert: id => view.typeCommand(id) });
 const toggleHelp = () => { if (project) help.toggle(project.lanes[view.lane]); };
 const view = createTrackerView({
   follow: () => following,
-  el: $('view'), statusEl: $('cursor'), transport: engine.transport, onToggle: togglePlay,
+  el: $('view'), statusEl: $('cursor'), undoEl: $('seq-undo'), transport: engine.transport, onToggle: togglePlay,
   onBack: () => tabs.show('arrange'),
   onRow: tick => { if (started) engine.playRow(tick); },
   onMove: (lane, tick) => { seqView.goto(lane, tick); followLane(lane); help.update(project?.lanes?.[lane]); },
@@ -301,7 +301,7 @@ const pickableSamples = () => {
 };
 const seqView = createSequenceView({
   follow: () => following,
-  el: $('seq'), statusEl: $('seq-status'), listEl: $('seq-list'), transport: engine.transport, onToggle: togglePlay,
+  el: $('seq'), statusEl: $('seq-status'), undoEl: $('seq-undo'), listEl: $('seq-list'), transport: engine.transport, onToggle: togglePlay,
   onOpen: (lane, tick, { solo = false } = {}) => { if (!solo || !view.enterSolo(lane, tick)) view.goto(lane, tick); tabs.show('patterns'); },
   onMove: (lane, tick) => { view.goto(lane, tick); followLane(lane); help.update(project?.lanes?.[lane]); },
   onParams: () => setFloat(true),

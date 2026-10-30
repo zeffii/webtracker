@@ -1,4 +1,5 @@
 import { esc } from './html.js';
+import { undoTrailHtml } from './undotrail.js';
 import { SHADER, MASTER } from '../instruments.js';
 import * as config from '../ui/config.js';
 import { dimLevel, dimFilter } from '../ui/dim.js';
@@ -21,7 +22,7 @@ const hex2 = n => n.toString(16).toUpperCase().padStart(2, '0');
 // column. The cursor sits on a row; edits happen at the row's start, or at the start of a
 // pattern that begins inside it. A pattern is a block that starts with its index and name; a later
 // pattern covers the ones under it. Keyboard-driven.
-export function createSequenceView({ el, statusEl, listEl, transport, onToggle, onOpen, onMove, onSeek, onParams = () => {}, instruments = () => [], unassigned = () => [], newKinds = () => [], onNewInstrument = () => {}, onAddLane = () => {}, onSong = () => {}, onShape = () => {}, follow = () => false }) {
+export function createSequenceView({ el, statusEl, undoEl = null, listEl, transport, onToggle, onOpen, onMove, onSeek, onParams = () => {}, instruments = () => [], unassigned = () => [], newKinds = () => [], onNewInstrument = () => {}, onAddLane = () => {}, onSong = () => {}, onShape = () => {}, follow = () => false }) {
   let lanes = null, len = 0, editor = null, song = null;
   const cur = { lane: 0, tick: 0 };
   let typed = '', message = '';
@@ -647,9 +648,9 @@ export function createSequenceView({ el, statusEl, listEl, transport, onToggle, 
 
     // the rect is always rowCount rows tall, so the drag bar works even when the song has fewer rows
     for (let r = Math.min(rows, top + rowCount) - top; r < rowCount; r++) lines.push(row(''));
-    lines.push(row(''));
-    const log = editor.log().slice(0, 5).map(l => `<b>${esc(l)}</b>`).join('');
-    lines.push(row(`<span class="ud-lbl">undo</span><span class="ud-trail${log ? '' : ' none'}">${log || '<b>nothing yet</b>'}</span>${editor.hasWaypoint() ? '<span class="ud-wp">waypoint set</span>' : ''}`));
+    const trail = undoTrailHtml(editor);
+    if (undoEl) { if (undoEl.innerHTML !== trail) undoEl.innerHTML = trail; }   // the trail has a row of its own above the status bar
+    else { lines.push(row('')); lines.push(row(trail)); }
     const html = lines.join('');
     if (html !== painted) { el.innerHTML = html; painted = html; }   // unchanged: leave the page alone
     const head = el.firstElementChild;
