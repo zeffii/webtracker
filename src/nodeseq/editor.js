@@ -39,12 +39,13 @@ export function createNodeSeqEditor({ root, getSong, noteTargets = () => [], par
   const curves = new WeakMap();   // each wire's last drawn curve, for hit testing and the lights (kept off the wire itself, which is saved)
   let W = 600, H = 400, dpr = 1, boxes = new Map(), lastDraw = 0;
   const undoStack = [], redoStack = [];
-  const dark = () => { const c = /\d+/g, m = (typeof getComputedStyle === 'function' ? getComputedStyle(canvas).backgroundColor : '').match(c) ?? [20, 20, 20]; return (m[0] * 0.3 + m[1] * 0.59 + m[2] * 0.11) < 140; };
+  const dark = () => { const m = (typeof getComputedStyle === 'function' ? getComputedStyle(canvas).color : '').match(/\d+/g) ?? [20, 20, 20]; return (m[0] * 0.3 + m[1] * 0.59 + m[2] * 0.11) > 140; };   // light ink means a dark page
+  // Each kind of port and wire is a deep tint, close to the ink.
   const colours = () => {
     const d = dark(), cs = typeof getComputedStyle === 'function' ? getComputedStyle(canvas) : null;
     // A drawing in ink on paper: every kind of port and wire is the ink colour, told apart by shape and dash. Only a selection (blue) and an error (red) have a colour.
     const ink = cs?.color || '#ccc';
-    return { ink, bg: cs?.backgroundColor || '#222', ev: ink, ct: ink, hc: ink, wc: ink, hi: cs?.getPropertyValue('--hi').trim() || '#3b6ea8', bad: '#e5484d', dark: d };
+    return { ink, bg: cs?.backgroundColor || '#222', paper: d ? '#25282e' : '#eceef1', ...(d ? { ev: '#e8b866', ct: '#7ad2e0', hc: '#bda4ea', wc: '#a6d27c' } : { ev: '#7a4d0a', ct: '#14606d', hc: '#52398c', wc: '#3d6020' }), hi: cs?.getPropertyValue('--hi').trim() || '#3b6ea8', bad: '#e5484d', dark: d };
   };
 
   // ---- the bar
@@ -196,7 +197,7 @@ export function createNodeSeqEditor({ root, getSong, noteTargets = () => [], par
       if (!a || !b) return;
       const c = route(a, b, wr.from, wr.bend), picked = selWire === wr, lit = !wr.off && activeTo.has(wr.to);
       tracePath(c);
-      ctx.strokeStyle = picked ? C.hi : C.ink; ctx.lineWidth = picked ? 2.6 : lit ? 2.6 : 1.1; ctx.globalAlpha = picked || lit ? 1 : 0.85;
+      ctx.strokeStyle = picked ? C.hi : kindColor(C, a.k); ctx.lineWidth = picked ? 2.6 : lit ? 2.6 : 1.1; ctx.globalAlpha = picked || lit ? 1 : 0.85;
       ctx.setLineDash(wr.off ? [2, 5] : WIRE_DASH[a.k]);   // the kind of wire: solid events, dashed controls, long dashes chords, dots weights
       if (wr.off) { ctx.globalAlpha = picked ? 0.8 : 0.4; }   // switched off: faint
       ctx.stroke(); ctx.setLineDash([]); ctx.globalAlpha = 1;
@@ -267,7 +268,7 @@ export function createNodeSeqEditor({ root, getSong, noteTargets = () => [], par
     else if (p.k === 'w') { ctx.moveTo(p.x - 3.6, p.y + 3); ctx.lineTo(p.x + 3.6, p.y + 3); ctx.lineTo(p.x, p.y - 3.6); ctx.closePath(); }
     else ctx.arc(p.x, p.y, 3.2, 0, 7);
     if (p.free) { ctx.strokeStyle = col; ctx.lineWidth = 1.2; ctx.setLineDash([1.5, 1.5]); ctx.stroke(); ctx.setLineDash([]); }   // the spare chord port of a Phrase node
-    else { ctx.fillStyle = col; ctx.fill(); ctx.strokeStyle = C.bg; ctx.lineWidth = 1; ctx.stroke(); }
+    else { ctx.fillStyle = C.paper; ctx.fill(); ctx.strokeStyle = col; ctx.lineWidth = 1.6; ctx.stroke(); }   // a port is ringed in the colour of its kind
     if (drag?.kind === 'wire' && drag.ok?.(p, side)) { ctx.strokeStyle = C.ink; ctx.lineWidth = 1.5; ctx.beginPath(); if (p.k === 'e') ctx.rect(p.x - 5.5, p.y - 5.5, 11, 11); else ctx.arc(p.x, p.y, 6, 0, 7); ctx.stroke(); }
   }
 
