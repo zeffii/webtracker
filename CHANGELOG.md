@@ -2,6 +2,11 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 561 · 2026-10-30
+
+- The pattern editor now runs down to the top of the status bar: it measures again until no more rows fit, refits when the font size changes (rows were left over after a smaller font), and the spare margin and page padding under it are gone.
+- Scrolling the pattern editor is lighter: rows that did not change are remembered by tick, rows that only moved are moved in the page instead of rewritten, and a wheel notch now moves about an eighth of the rows shown (at least four) instead of always four.
+
 ## 560 · 2026-10-30
 
 - Stream Manager columns no longer jump: the table has fixed column widths, and the voice count and load percent sit in right-aligned fixed-width numerals, so a longer string or an extra digit stays inside its own column.

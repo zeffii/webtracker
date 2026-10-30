@@ -627,14 +627,21 @@ const fitArrangement = () => {
     document.body.style.setProperty('--arr-h', `${Math.max(0, innerHeight - pane.getBoundingClientRect().top - foot)}px`);   // the panels reach the top of the status bar
   }
   if (config.get('viewFit') && tabs.active === 'patterns') {
-    const el = $('view'), lh = view.lineHeight(), room = innerHeight - el.getBoundingClientRect().bottom - foot - 36;
-    const n = Math.floor(room / lh);
-    if (n !== 0) view.setRows(view.rows + n);   // the view is as tall as its rows: add or take away what is over or missing
+    // the view is as tall as its rows: add or take away what is over or missing, and look again until nothing more fits
+    // (one pass is not enough when the font size makes the measured line height a little off)
+    const el = $('view');
+    for (let pass = 0; pass < 6; pass++) {
+      const room = innerHeight - el.getBoundingClientRect().bottom - foot - 8, n = Math.floor(room / view.lineHeight());
+      if (n === 0) break;
+      view.setRows(view.rows + n);
+    }
   }
 };
 addEventListener('resize', fitArrangement);
 if (globalThis.ResizeObserver) new ResizeObserver(() => fitArrangement()).observe($('footer'));
 config.onChange(k => { if (k === 'seqFit' || k === 'viewFit') fitArrangement(); });
+// A new font size changes the line height: fit again once the grid has been redrawn with it (otherwise rows are left over or missing).
+config.onChange(k => { if (k === 'fontSize') requestAnimationFrame(fitArrangement); });
 attachGrip({ grip: $('seq-grip'), key: 'webtracker.arrangementRows', get: () => seqView.rows, set: n => seqView.setRows(n), unit: () => 18, step: 1, bigStep: 8, normal: 24 });
 
 // The keyboard shortcuts of the screen in view, in a small floating window: the Shortcuts button opens and closes it, Esc

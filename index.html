@@ -157,6 +157,8 @@
     body:has(#pane-arrange:not([hidden])) #seq-undo, body:has(#pane-patterns:not([hidden])) #seq-undo { display: flex; }
     body { padding-bottom: calc(var(--footer-h, 2rem) + 6px); }   /* the footer's height changes with the tab: main.js keeps this variable */
     body.seqfit #seq-grip, body.viewfit #view-grip { display: none; }
+    body.viewfit #pane-patterns:not([hidden]) { padding-bottom: 0; }
+    body.viewfit:has(#pane-patterns:not([hidden])) { padding-bottom: var(--footer-h, 2rem); }   /* the pattern editor runs down to the status bar too */
     body.seqfit:has(#pane-arrange:not([hidden])) { padding-bottom: var(--footer-h, 2rem); }   /* the arrangement already runs down to the status bar: no extra padding, so the page does not scroll for nothing */
     body.seqfit #pane-arrange:not([hidden]) { padding-bottom: 0; min-height: var(--arr-h, 0); box-sizing: border-box; }   /* the arrangement and its side panel run down to the status bar */
     body.seqfit #pane-arrange .pane-main { display: flex; flex-direction: column; align-self: stretch; }

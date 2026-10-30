@@ -118,9 +118,10 @@ export function createTrackerView({ showMenu = (e, items) => showContextMenu(e, 
     if (e.ctrlKey) { setSize(fontPx + (e.deltaY < 0 ? 1 : -1)); return; }
     if (!lanes || e.deltaY === 0) return;
     wheelAcc += e.deltaY * (e.deltaMode === 1 ? 16 : 1);
-    const rows = Math.trunc(wheelAcc / 25);   // a notch of a mouse wheel is about four rows
+    // A notch of a mouse wheel (100) moves about an eighth of the rows shown, and at least four: a tall window is not crawled through.
+    const per = 100 / Math.max(4, Math.round(rowCount / 8)), rows = Math.trunc(wheelAcc / per);
     if (!rows) return;
-    wheelAcc -= rows * 25;
+    wheelAcc -= rows * per;
     top = Math.max(showLo(), Math.min(top + rows, showHi() - rowCount));
     scrolledFor = `${cur.lane},${cur.tick}`;
   }, { passive: false });
@@ -885,6 +886,8 @@ export function createTrackerView({ showMenu = (e, items) => showContextMenu(e, 
     const pl = l.placements.filter(p => cur.tick >= p.start && cur.tick < p.start + p.length).sort((a, b) => b.start - a.start)[0];
     return pl ? l.patterns[pl.puid]?.name : 'no pattern';
   };
+  const rowCache = new Map();   // tick -> { key, line }: the markup of rows that have not changed
+  let rowShared = '';
   let painted = '';   // the markup the grid last showed (without a real DOM: in tests)
   // With a real page every row is an element of its own and only the rows whose markup changed are rewritten, so a
   // cursor move touches two rows rather than the whole grid, and an unchanged grid costs nothing at all.
@@ -895,7 +898,35 @@ export function createTrackerView({ showMenu = (e, items) => showContextMenu(e, 
     if (!rowEls.length && el.childNodes.length) el.textContent = '';
     while (rowEls.length < lines.length) { const d = document.createElement('div'); d.className = 'ln'; el.appendChild(d); rowEls.push(d); rowHtml.push(null); }
     while (rowEls.length > lines.length) { el.removeChild(rowEls.pop()); rowHtml.pop(); }
+    reuseMovedRows(lines);
     for (let i = 0; i < lines.length; i++) if (rowHtml[i] !== lines[i]) { rowEls[i].innerHTML = lines[i]; rowHtml[i] = lines[i]; }
+  };
+  // Scrolling by k rows: the rows that were on screen are the same rows, one place up or down. They are moved (cheap) instead of every
+  // row being rewritten (slow); only the k rows that come into view are left to repaint. Rows 0 and 1 are the lane names and the column heads.
+  const reuseMovedRows = lines => {
+    const n = lines.length;
+    if (n < 6) return;
+    let k = 0;
+    for (const d of [1, 2, 3, 4, 5, 6, 8, 12, 16, 24]) {
+      for (const sign of [1, -1]) {
+        const s = d * sign;   // the line now at index i was at index i + s
+        if (Math.abs(s) >= n - 3) continue;
+        const a = 2 + (s > 0 ? 0 : -s), b = n - (s > 0 ? s : 0);
+        let same = 0, total = 0;
+        for (let i = a; i < b; i++) { total++; if (rowHtml[i + s] === lines[i] && lines[i] !== '') same++; }
+        if (total > 3 && same > total * 0.6) { k = s; break; }
+      }
+      if (k) break;
+    }
+    if (!k) return;
+    let same0 = 0; for (let i = 2; i < n; i++) if (rowHtml[i] === lines[i]) same0++;
+    if (same0 > (n - 2) * 0.5) return;   // already mostly in place: nothing to gain
+    const body = rowEls.slice(2), bodyHtml = rowHtml.slice(2), m = body.length, shift = ((k % m) + m) % m;
+    // k > 0: the first k rows leave at the top and come back at the bottom; k < 0: the other way round
+    const order = [...body.slice(shift), ...body.slice(0, shift)], orderHtml = [...bodyHtml.slice(shift), ...bodyHtml.slice(0, shift)];
+    const after = rowEls[n - 1].nextSibling;
+    for (const d of order) el.insertBefore(d, after);
+    for (let i = 0; i < m; i++) { rowEls[2 + i] = order[i]; rowHtml[2 + i] = orderHtml[i]; }
   };
   const draw = () => {
     if (!lanes) return;
@@ -931,7 +962,17 @@ export function createTrackerView({ showMenu = (e, items) => showContextMenu(e, 
       `<span class="g">${' '.repeat(GUTTER)}</span>${shown.map(({ l, li }) => ` ${vis[li].map(ci => esc((l.columns[ci].short ?? l.columns[ci].label).padEnd(widths[li][ci]))).join(' ')}`).join('  ')}`,
     ];
     const base = showLo();
+    // A row's markup only changes when its own cells change or something shared does (columns, patterns, solo, tint, playing).
+    // So rows are remembered by tick: scrolling or moving the cursor builds only the rows that are new, the cursor's and the playhead's.
+    const shared = [base, solo ? `${solo.lane},${soloStyle},${lo},${hi}` : '', tint, overlay(), playing, shown.map(({ l, li }) => [li, vis[li].join(), widths[li].join(), dimFilter(dimLevel(l)),
+      l.columns.map(c => `${c.token}${c.kind}${c.rel ? 1 : 0}`).join(), l.placements.map(pl => { const pt = l.patterns[pl.puid]; return `${pl.start},${pl.length},${pl.puid},${pt?.color},${pt?.index}`; }).join(';')].join(':')).join('|')].join('/');
+    if (shared !== rowShared) { rowCache.clear(); rowShared = shared; }
+    if (rowCache.size > 800) rowCache.clear();
     for (let t = top; t < Math.min(showHi(), top + rowCount); t++) {
+      const plain = t !== cur.tick && !(playing && t === playTick) && !(r && t >= r.t0 && t <= r.t1);
+      const rowKey = plain ? shown.map(({ li }) => lanes[li].rows[t].join('\u0001')).join('\u0002') : null;
+      const had = plain ? rowCache.get(t) : null;
+      if (had && had.key === rowKey) { lines.push(had.line); continue; }
       const chunks = shown.map(({ l: lane, li }) => {
         const mark = lane.placements.some(p => p.start === t) ? '<span class="ps">▌</span>' : ' ';   // a pattern starts here
         const covered = lane.placements.some(p => t >= p.start && t < p.start + p.length);   // else no pattern here
@@ -959,7 +1000,9 @@ export function createTrackerView({ showMenu = (e, items) => showContextMenu(e, 
       const row = `<span class="g">${playing && t === playTick && !overlay() ? '>' : ' '}${String(t - base).padStart(4, '0')} </span>${chunks.join('  ')}`;
       const shade = (t - base) % 16 === 0 ? 'r16' : (t - base) % 4 === 0 ? 'r4' : '';
       const line = playing && t === playTick && !overlay() ? `<b>${following ? `<span class="now">${row}</span>` : row}</b>` : row;
-      lines.push(shade ? `<span class="${shade}">${line}</span>` : line);
+      const finished = shade ? `<span class="${shade}">${line}</span>` : line;
+      if (plain) rowCache.set(t, { key: rowKey, line: finished });
+      lines.push(finished);
     }
     while (lines.length < 2 + rowCount) lines.push('');   // always rowCount rows tall, so the drag bar works on a short song
     paintLines(lines);
