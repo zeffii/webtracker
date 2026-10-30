@@ -111,7 +111,7 @@ const NAMES = {
   wavetable: { source: ['table', 'pair'], snap: ONOFF },
   granular: { keytrack: ONOFF },
   woodblock: { keytrack: ONOFF },
-  cardinal: { o1wave: ['triangle', 'saw', 'pulse', 'sine', 'noise'], o2wave: ['triangle', 'saw', 'pulse', 'sine', 'noise'], o2track: ONOFF, o2sync: ONOFF, ftype: ['lowpass 24', 'lowpass 12', 'bandpass', 'highpass', 'notch'], l1wave: ['sine', 'triangle', 'saw', 'square', 'random'], l2wave: ['sine', 'triangle', 'saw', 'square', 'random'], l1dest: ['pitch 1+2', 'pitch 2', 'fm', 'pulse width', 'filter', 'level'], l2dest: ['pitch 1+2', 'pitch 2', 'fm', 'pulse width', 'filter', 'level'] },
+  cardinal: { o1wave: ['triangle', 'saw', 'pulse', 'sine', 'noise'], o2wave: ['triangle', 'saw', 'pulse', 'sine', 'noise'], o2track: ONOFF, o2sync: ONOFF, ftype: ['lowpass 24', 'lowpass 12', 'bandpass', 'highpass', 'notch'], l1wave: ['sine', 'triangle', 'saw', 'square', 'random'], l2wave: ['sine', 'triangle', 'saw', 'square', 'random'], l1dest: ['pitch 1+2', 'pitch 2', 'fm', 'pulse width', 'filter', 'level'], l2dest: ['pitch 1+2', 'pitch 2', 'fm', 'pulse width', 'filter', 'level'], quality: ['standard', 'eco'] },
   drumsynth: { keytrack: ONOFF, noiseType: ['white', 'pink', 'brown', 'blue', 'violet'], clickMode: ['synthesized', 'sample'] },
   fmsynth: { algo: ALGORITHMS.map(a => a.name) },
   dvii: { gritty: ONOFF },

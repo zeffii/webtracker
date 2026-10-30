@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 540 · 2026-10-30
+
+- Cardinal: a new `quality` choice, standard or eco. Standard is the sound exactly as it was (it is the default, so no song changes). Eco works out the slow pitch, fm and pulse-width moves every 8 samples instead of every sample, which saves two powers a sample for every voice: in a nine-voice lead from a real song its cost fell by about a fifth, and the output differs from standard by about -56 dB. No HQ mode yet. A test checks that standard is bit for bit the default and that eco stays close to it.
+
 ## 539 · 2026-10-30
 
 - Drum synth: the click is a short burst of noise, and its first sample started at full level, so every hit began with a small step that was different each time (a tick that seemed to come and go at random, and that the picture of the sound hides). The click now fades in over about 0.15 ms. In an offline render of a hollow kick, hit onsets with a step that stood out of the waveform went from about half of them to almost none.

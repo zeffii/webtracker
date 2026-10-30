@@ -71,10 +71,13 @@ const SPEC = [
   { name: 'glide', min: 0, max: 2000, def: 0 },                   // ms
   { name: 'slide', min: 0, max: 15.9375, def: 0 },                // ticks
   { name: 'level', min: 0, max: 1, def: 0.4 },
+  // 0 standard (as it always was), 1 eco: the slow movements of pitch, fm and pulse width are updated every few samples
+  { name: 'quality', min: 0, max: 1, def: 0, int: true },
 ];
 const P = Object.fromEntries(SPEC.map((s, i) => [s.name, i]));
 export const SPEC_NAMES = SPEC.map(s => s.name);
 export const WAVES = ['triangle', 'saw', 'pulse', 'sine', 'noise'];
+export const QUALITY = ['standard', 'eco'];
 export const FILTERS = ['lowpass 24', 'lowpass 12', 'bandpass', 'highpass', 'notch'];
 export const LFO_WAVES = ['sine', 'triangle', 'saw', 'square', 'random'];
 export const LFO_DESTS = ['pitch 1+2', 'pitch 2', 'fm', 'pulse width', 'filter', 'level'];
@@ -219,6 +222,10 @@ const NODE = {
         const nyquist = sampleRate * 0.45;
         let G = 0, G2 = 0, G3 = 0, G4 = 0, ladderNorm = 1;   // the filter's coefficients, refreshed every few samples
         let svfG = 0, svfA1 = 0, svfA2 = 0, svfA3 = 0;
+        // Pitch, fm depth and pulse width: worked out for every sample in standard quality, every CONTROL_BLOCK samples in eco
+        // (two powers a sample for every voice is the biggest single cost; the moves are slow, and the difference is about -56 dB).
+        const eco = g('quality') >= 0.5;
+        let pitchMul = 1, osc2Mul = 1, fmDepth = 0, width1 = pw1, width2 = pw2;
 
         for (let i = 0; i < n; i++) {
           const ampLevel = amp.next(), modLevel = mod.next();
@@ -250,10 +257,12 @@ const NODE = {
           }
 
           // -- the oscillators, summed over the unison voices
-          const pitchMul = Math.pow(2, (pitchBoth / 12) + (pitchOn ? pitchIn[i] : 0));
-          const osc2Mul = pitchMul * Math.pow(2, (pitch2 + e2pitch * modLevel) / 12);
-          const fmDepth = Math.min(1, Math.max(0, fmAmount + e2fm * modLevel + fmAdd)) * 0.5;
-          const width1 = Math.min(0.95, Math.max(0.05, pw1 + pwAdd + e2pw * modLevel)), width2 = Math.min(0.95, Math.max(0.05, pw2 + pwAdd + e2pw * modLevel));
+          if (!eco || (i & (CONTROL_BLOCK - 1)) === 0) {
+            pitchMul = Math.pow(2, (pitchBoth / 12) + (pitchOn ? pitchIn[i] : 0));
+            osc2Mul = pitchMul * Math.pow(2, (pitch2 + e2pitch * modLevel) / 12);
+            fmDepth = Math.min(1, Math.max(0, fmAmount + e2fm * modLevel + fmAdd)) * 0.5;
+            width1 = Math.min(0.95, Math.max(0.05, pw1 + pwAdd + e2pw * modLevel)); width2 = Math.min(0.95, Math.max(0.05, pw2 + pwAdd + e2pw * modLevel));
+          }
           let l = 0, r = 0;
           for (let u = 0; u < voices; u++) {
             const d1 = inc1[u] * pitchMul, d2 = inc2[u] * osc2Mul;

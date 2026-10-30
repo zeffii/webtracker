@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['540', ['Cardinal: a quality switch, standard or eco. Standard is the sound as it was; eco uses about a fifth less CPU on a busy lead.']],
   ['539', ['Drum synth: its click fades in over a few samples, so a hit no longer starts with a small random tick.']],
   ['538', ['Pattern editor: the playhead and loop lines sit on the real rows, so the line follows the playing tick whatever the font, zoom or screen scaling.']],
   ['537', ['Three spectral effects (Effects, Spectral): the harmonic/percussive split, a spectral compressor with tilt, and cross synthesis.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['533', ['Progressions circle back: the last chord leads into the first. nextChord and leadsHome in the script, and a return arrow in the chord lab.']],
   ['532', ['First screen: the metaballs use the orange and red live picture shader.']],
   ['531', ['Live picture: the built-in shader is now an orange and red lava lamp of five metaballs that swell on hits.']],
-  ['530', ['First screen: pink to green lava lamp backdrop; the metaballs turn pink near the top and green near the bottom.']],
 ];

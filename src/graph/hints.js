@@ -850,6 +850,7 @@ const HINTS = {
   int: { value: 'A whole number as a control signal. Type it, drag it, or use the + and - buttons.' },
   float: { value: 'A number as a control signal. Type it or drag it.' },
   cardinal: {
+    quality: 'standard is the full sound. eco works out the slow pitch, fm and pulse-width moves every 8 samples instead of every sample: roughly a fifth less CPU for a busy lead, and the difference is very hard to hear. Use it while writing, or for a song that is close to the limit.',
     o1wave: 'Wave of oscillator 1: triangle, saw, pulse, sine or noise.', o1pw: 'Pulse width of oscillator 1 (only the pulse wave). 50% is a square.',
     o2wave: 'Wave of oscillator 2.', o2pw: 'Pulse width of oscillator 2.',
     o2semi: 'Pitch of oscillator 2 against the note, in semitones. 7 makes a fifth, 12 an octave.', o2fine: 'Fine tune of oscillator 2 in cents. A few cents against oscillator 1 thickens the sound.',

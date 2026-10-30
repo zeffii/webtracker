@@ -8908,6 +8908,11 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   assert.ok(filterResponse({ ftype: 0, cutoff: 1000, res: 0 }, 100) > 0.95 && filterResponse({ ftype: 0, cutoff: 1000, res: 0 }, 8000) < 0.01, 'the picture of the lowpass passes lows and stops highs');
   assert.ok(filterResponse({ ftype: 2, cutoff: 1000, res: 0.5 }, 1000) > 4 * filterResponse({ ftype: 2, cutoff: 1000, res: 0.5 }, 100), 'the picture of the bandpass peaks at the cutoff');
   assert.equal(lfoShape(3, 0.25), 1, 'a square LFO is up in its first half');
+  // quality: standard is the sound as it always was (the parameter's default), eco is close to it and also finite
+  const moving = { e2pitch: -17, e2fm: 0.8, e2pw: 0.3, fm: 0.4, o2wave: 2, l1amt: 0.3, l1dest: 3 };
+  const std = renderPreview(moving, { ms: 300 }), same = renderPreview({ ...moving, quality: 0 }, { ms: 300 }), eco = renderPreview({ ...moving, quality: 1 }, { ms: 300 });
+  assert.deepEqual(Array.from(std), Array.from(same), 'quality 0 is the default sound');
+  assert.ok(eco.every(Number.isFinite) && rms(eco.map((x, i) => x - std[i])) < 0.05 * rms(std), 'eco stays close to standard');
   console.log('ok: cardinal');
 }
 {
