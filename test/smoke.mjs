@@ -8650,6 +8650,39 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     assert.ok(pluck({ drive: 1, twang: 1, breath: 1, focus: 40, mouth: 12, track: 1 }, 84).every(Number.isFinite), 'extreme settings stay finite');
     console.log('ok: jawharp');
   }
+
+  // snarl: sounds on a note, stays finite at the extremes, releases, the low-pass cutoff darkens it, ring mod and the high-pass change it
+  {
+    const snarl = NODE_TYPES.snarl, sslots = snarl.params.map((_, i) => i);
+    const play = (set = {}, note = 48, blocks = 400, off = 250) => {
+      const node = snarl.create({ sampleRate: sr });
+      const values = snarl.params.map(p => set[p.name] ?? p.def);
+      node.note({ type: 'noteOn', note, vel: 1 });
+      const out = [];
+      for (let b = 0; b < blocks; b++) {
+        if (b === off) node.note({ type: 'noteOff' });
+        const L = new Float32Array(block), R = new Float32Array(block);
+        node.process([], [[L, R]], block, values, sslots);
+        assert.ok(L.every(Number.isFinite), 'snarl stays finite');
+        out.push(...L);
+      }
+      return out;
+    };
+    const srms = (a, from, to) => Math.sqrt(a.slice(from, to).reduce((t, x) => t + x * x, 0) / (to - from));
+    const zc = (a, from, to) => { let c = 0; for (let i = from + 1; i < to; i++) if (a[i - 1] < 0 && a[i] >= 0) c++; return c; };
+    const base = play({ eg1lp: 0 });
+    assert.ok(srms(base, 4000, 12000) > 0.03 && Math.max(...base.map(Math.abs)) < 1, 'a note sounds, within full scale');
+    assert.ok(srms(base, 45000, 51000) < 0.02 * srms(base, 4000, 12000), 'and it is silent after its release');
+    const dark = play({ eg1lp: 0, lpcut: 200, lppeak: 0 }), bright = play({ eg1lp: 0, lpcut: 8000, lppeak: 0 });
+    assert.ok(zc(dark, 4000, 12000) < zc(bright, 4000, 12000), 'a lower low-pass cutoff darkens the sound');
+    const full = play({ eg1lp: 0, hpcut: 20, hppeak: 0, lppeak: 0 }), thin = play({ eg1lp: 0, hpcut: 3000, hppeak: 0, lppeak: 0 });
+    assert.ok(srms(thin, 4000, 12000) < 0.5 * srms(full, 4000, 12000), 'the high-pass takes the lows out');
+    const rung = play({ eg1lp: 0, vco2wave: 3, vco2pitch: 7, lppeak: 0 }), plain = play({ eg1lp: 0, vco2wave: 0, vco2pitch: 7, lppeak: 0 });
+    assert.ok(zc(rung, 4000, 12000) !== zc(plain, 4000, 12000), 'ring modulation changes the oscillators');
+    const extreme = play({ hppeak: 1, lppeak: 1, edge: 1, lpcut: 18000, hpcut: 8000, vco2wave: 3, mix1: 1, mix2: 1, noise: 1, mgpitch: 1, mglp: 1, mghp: 1, mgamp: 1, mgwave: 4, mgrate: 60, eg1pitch: 1, eg1hp: 1, eg1lp: 1 }, 96);
+    assert.ok(extreme.every(Number.isFinite), 'extreme settings stay finite');
+    console.log('ok: snarl');
+  }
 }
 {
   // granular scopes: a watched node tells the page about its grains; others stay quiet

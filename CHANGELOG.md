@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 555 · 2026-10-30
+
+- New synth, **Snarl** (Synths, and in the new instrument list): a monophonic, semi-modular style voice built round **two resonant filters in a row**, a high-pass then a low-pass, each with its own cutoff and peak. With both peaks up and the cutoffs close together the peaks meet and it screams; `edge` drives the second filter harder so it bites. Oscillator 1 is saw, triangle, pulse or noise; oscillator 2 is saw, square, pulse or **ring** (multiplied with oscillator 1, for bells and clangs); plus a noise generator. Envelope 1 (delay, attack, release) moves the pitch and both cutoffs; envelope 2 (attack, hold, decay, sustain, release) is the amplifier; a modulation generator (triangle, saw, ramp, square, random) moves pitch, both cutoffs and level. Portamento, key tracking and velocity. Polyphonic through the voices node (it starts with one voice).
+
 ## 554 · 2026-10-30
 
 - New synth, **Jaw harp** (Synths, and in the new instrument list as "Jaw harp"): a plucked steel reed drones at the note's pitch and the mouth, three resonances at the formants of a vowel, picks out its harmonics. `vowel` sweeps u, o, a, e, i (the wah, and the tune); `mouth` makes the cavity bigger or smaller; `track` makes the vowel follow the note; `focus` is how sharply it picks harmonics. `drive` narrows the puff of air for each swing of the reed (more harmonics), `twang` is the pluck (a sharp start and a slap), `breath` adds noise, `body` lets some of the plain reed through, `decay`/`release` are the reed's ring and damping. Polyphonic through the voices node; vowel, mouth, focus and drive are exposed as the instrument's first four knobs, and the vowel and the rest answer pattern commands.
