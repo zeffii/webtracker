@@ -3864,6 +3864,33 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
       assert.deepEqual(ons(t.log).map(e => [e.at, e.note]), [[0, 67], [1, 64], [2, 60]], 'strummed downwards, a subtick apart');
       assert.deepEqual(parseChordList('C maj\nXyz\n.').bad, ['Xyz']);
     }
+    // Chord and Phrase: four chord nodes into a phrase, the bar number picks the chord; each note has its own volume
+    {
+      const graph = (extra = {}) => ({ sub: 2, nodes: [{ id: 'c', type: 'clock' },
+        { id: 'a', type: 'Chord', data: { text: 'A min7', weights: [100, 50] }, params: { octave: 3, notes: 4 } },
+        { id: 'b', type: 'Chord', data: { text: 'C-4 E-4 G-4' }, ...extra.b },
+        { id: 'v', type: 'Voicing', data: { weights: [100, 40, 80] }, params: { notes: 3 } },
+        { id: 'p', type: 'Phrase' }, { id: 'n', type: 'note', params: { poly: 1, len: 4 }, data: { target: 'pad' } }],
+        wires: [{ from: 'c.bar', to: 'p.index' }, { from: 'a.chord', to: 'p.c1' }, { from: 'b.chord', to: 'p.c2' }, { from: 'p.notes', to: 'n.note' }, ...(extra.wires ?? [])] });
+      let t = make(graph()); t.run(33);
+      const on = ons(t.log).map(e => [e.at / 2, e.note, Math.round(e.vel * 100)]);
+      assert.deepEqual(on.filter(e => e[0] === 0), [[0, 57, 100], [0, 60, 50], [0, 64, 100], [0, 67, 100]], 'bar 0 plays the first chord, the second note at half volume');
+      assert.deepEqual(on.filter(e => e[0] === 16).map(e => [e[1], e[2]]), [[60, 100], [64, 100], [67, 100]], 'bar 1 plays the second chord (C-4 is middle C)');
+      assert.deepEqual(on.filter(e => e[0] === 32).map(e => e[1]), [57, 60, 64, 67], 'bar 2 wraps round to the first chord');
+      t = make(graph({ wires: [{ from: 'v.weights', to: 'b.weights' }] })); t.run(17);
+      assert.deepEqual(ons(t.log).filter(e => e.at / 2 === 16).map(e => Math.round(e.vel * 100)), [100, 40, 80], 'a Voicing node sets the volumes of the chord it feeds');
+      t = make(graph({ b: { params: { tilt: 1 } } })); t.run(17);
+      assert.deepEqual(ons(t.log).filter(e => e.at / 2 === 16).map(e => [e.note, Math.round(e.vel * 100)]), [[64, 100], [67, 100]], 'tilt 1: the lowest note falls silent and is left out')
+    }
+    // the voicing demo: each bar plays the next chord of the Phrase node and the bass follows its root
+    {
+      const demo = JSON.parse((await import('node:fs')).readFileSync(new URL('../src/project/demos/voicing.wax', import.meta.url), 'utf8')).song.nodeseq;
+      const t = make(demo, { slots: {}, groupSlots: Array(8).fill(-1) }); t.run(64);
+      const bar = (inst, b) => ons(t.log).filter(e => e.instrument === inst && e.at / 4 >= b * 16 && e.at / 4 < b * 16 + 16);
+      assert.deepEqual([...new Set(bar('pad', 0).map(e => e.note))].sort((a, b) => a - b).slice(0, 3), [57, 60, 64].slice(0, 3), 'bar 0: A min7');
+      assert.ok(bar('pad', 1).every(e => [50, 53, 57, 60].includes(e.note)), 'bar 1: D min7');
+      assert.deepEqual([bar('bass', 0)[0].note, bar('bass', 1)[0].note, bar('bass', 2)[0].note], [33, 26, 31], 'the bass plays the roots two octaves down');
+    }
     // subticks: a clock's sub output runs subs times a tick; a delay moves an event later by subticks
     {
       const t = make({ sub: 4, nodes: [{ id: 'c', type: 'clock' }, { id: 'd', type: 'delay', params: { subs: 3 } }, { id: 'n', type: 'note', data: { target: 'x' }, params: { pitch: 50 } }],

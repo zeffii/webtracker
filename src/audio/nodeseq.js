@@ -7,7 +7,7 @@
 //
 // A graph is { sub, nodes: [{ id, type, group, params, data }], wires: [{ from: "node.port", to: "node.port" }], groups: [{ name, on }] };
 // `resolve` says what the names in it mean on this machine: { slots: { nodeId: { slot, min, max, log, int } }, groupSlots: [slot or -1 for each group] }.
-import { NS_TYPES, defaultParams } from '../nodeseq/nodes.js';
+import { NS_TYPES, defaultParams, findIn } from '../nodeseq/nodes.js';
 
 export const MAX_SUBS = 16, MAX_GROUPS = 8;
 
@@ -71,7 +71,7 @@ export class NodeSeq {
     for (const w of graph?.wires ?? []) {
       const [fid, fport] = String(w.from).split('.'), [tid, tport] = String(w.to).split('.');
       const a = this.recs.get(fid), b = this.recs.get(tid);
-      const po = a && NS_TYPES[a.type].outs.find(p => p.n === fport), pi = b && NS_TYPES[b.type].ins.find(p => p.n === tport);
+      const po = a && NS_TYPES[a.type].outs.find(p => p.n === fport), pi = b && findIn(b.type, tport);
       if (!po || !pi || po.k !== pi.k || a === b) continue;
       const i = this.wires.length;
       this.wires.push({ i, a, out: fport, b, port: tport, k: po.k });
@@ -92,6 +92,9 @@ export class NodeSeq {
       id: n.id, p: rec.p, info: this.info, host: this.host,
       get data() { return rec.data; },
       emit: (out, v, vel) => self.emit(rec, out, v, vel),
+      has: name => !!rec.srcs[name],
+      source: name => rec.srcs[name]?.rec.id ?? null,
+      pull: name => { const s = rec.srcs[name]; return s ? (s.rec.inst.get?.(s.out) ?? null) : null; },
       read: name => { const s = rec.srcs[name]; if (!s) return NaN; const v = s.rec.cout[s.out]; return v === undefined ? 0 : v; },
       ctl: (out, x) => { rec.cout[out] = x; },
       after: (subs, fn, always = false) => self.after(rec, subs, fn, always),

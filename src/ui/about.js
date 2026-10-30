@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['544', ['Node Sequencer: Chord, Phrase and Voicing nodes: chords with a volume for every note, a Phrase node that plays the chord at its index, a keyboard under each Chord node; new demo ?demo=voicing']],
   ['543', ['New demo, ?demo=nodes: a song for the Node Sequencer with chord lists driving a pad, a bass and an arpeggio, groups, an lfo and an envelope']],
   ['542', ['Node Sequencer: a Pchord node steps through chords written like the Chord machine, one a line; the note node has a poly setting so a chord sounds together']],
   ['541', ['Two saturators (Effects, Distortion): a simple one and a multiband one, with four curves (soft, tape, tube, clip) and a quality switch.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['537', ['Three spectral effects (Effects, Spectral): the harmonic/percussive split, a spectral compressor with tilt, and cross synthesis.']],
   ['536', ['Equaliser: drag the dots in its response picture for frequency and gain, the wheel for Q, and the triangles for the cuts. Renaming an instrument or lane no longer stops playback.']],
   ['535', ['First screen: the metaballs are centred under the logo.']],
-  ['534', ['Pattern editor: the undo trail now shows above the status bar, as in the arrangement.']],
 ];

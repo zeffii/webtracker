@@ -8,15 +8,17 @@
 //   cx.info         where the song is: tick, subIdx, subs (subticks a tick), tpb, barTicks, abs (every subtick since the start), tickSec
 //   cx.emit(out, value, vel)   send an event out of a port (vel -1: the sender has no velocity, the receiver picks its own)
 //   cx.read(inName)            the control wired into a port, or NaN when none is
+//   cx.pull(inName)            what the node wired into a chord or weights port has to offer right now (see `get` below), or null
 //   cx.ctl(outName, x)         set a control output
 //   cx.after(subs, fn)         run fn a number of subticks from now (0 is now); it is dropped if the node's group has stopped by then
 //   cx.rand()                  a random number in [0, 1)
 //   cx.host                    notes, parameters, groups and messages to the page (see nodeseq.js)
 //
-// The behaviour: event(port, value, vel), tick(), sub(), control(dt), reset() (the graph starts again), stop() (the transport stopped), view()
+// The behaviour: event(port, value, vel), get(outName) (answers a pull from a chord or weights wire), tick(), sub(), control(dt), reset() (the graph starts again), stop() (the transport stopped), view()
 // (a small object the editor draws: where a sequence is, a level).
 
 import { parseChord, chordNotes } from '../seq/chordname.js';
+import { parseChordText, voice, MAX_VOICES } from './chordtext.js';
 
 const NAMES = { c: 0, d: 2, e: 4, f: 5, g: 7, a: 9, b: 11 };
 
@@ -51,6 +53,10 @@ export function parseChordList(text) {
   return { items, bad };
 }
 
+// Port kinds: 'e' an event, 'c' a control (a number, 0 to 1), 'h' a chord and 'w' a set of note volumes. The last two are pulled: the node they
+// are wired into asks for them with cx.pull when it needs them, and the node they come from answers in get().
+export const KIND_NAMES = { e: 'event', c: 'control', h: 'chord', w: 'weights' };
+
 const ev = (n, hot = true) => ({ n, k: 'e', hot });
 const ct = n => ({ n, k: 'c' });
 const par = (name, min, max, def, extra = {}) => ({ name, min, max, def, ...extra });
@@ -81,6 +87,39 @@ export const DEFAULT_SCRIPT = `// Runs for every event that arrives at "in".
 state.n = (state.n ?? 0) + 1;
 out(ev.value + (state.n % 4 === 0 ? 12 : 0), ev.vel);
 `;
+
+export const MAX_DYN = 16;   // chord ports a Phrase node can have
+
+// Sends the notes of a chord out of a port: all together, or a strum (`gap` subticks apart), up, down, or each time the other way. A note with no
+// volume is left out. Returns the new state of "alternate".
+function rollNotes(cx, out, notes, vels, gap, dir, flip) {
+  let order = notes.map((n, i) => [n, vels[i]]);
+  if (dir === 1 || (dir === 2 && (flip = !flip))) order = order.reverse();
+  let k = 0;
+  for (const [n, v] of order) {
+    if (!(v > 0)) continue;
+    const at = k++ * Math.max(0, gap);
+    if (at > 0) cx.after(at, () => cx.emit(out, n, v)); else cx.emit(out, n, v);
+  }
+  return flip;
+}
+
+// The input ports of a node. Most have a fixed list; a Phrase node has its chord ports c1, c2 ... as many as are wired, plus one free one.
+export function insOf(type, wires = [], id = '') {
+  const T = NS_TYPES[type]; if (!T) return [];
+  if (!T.dynIn) return T.ins;
+  let used = 0;
+  for (const w of wires) { const [tid, tp] = String(w.to).split('.'); if (tid === id && tp.startsWith(T.dynIn.prefix)) used = Math.max(used, Number(tp.slice(T.dynIn.prefix.length)) || 0); }
+  return [...T.ins, ...Array.from({ length: Math.min(MAX_DYN, used + 1) }, (_, i) => ({ n: `${T.dynIn.prefix}${i + 1}`, k: T.dynIn.k, dyn: true }))];
+}
+
+// One input port of a type by name (a dynamic one counts as long as its name fits).
+export function findIn(type, name) {
+  const T = NS_TYPES[type]; if (!T) return undefined;
+  const fixed = T.ins.find(p => p.n === name); if (fixed) return fixed;
+  const m = T.dynIn && new RegExp(`^${T.dynIn.prefix}(\\d+)$`).exec(name);
+  return m && Number(m[1]) >= 1 && Number(m[1]) <= MAX_DYN ? { n: name, k: T.dynIn.k, dyn: true } : undefined;
+}
 
 export const NS_TYPES = {
   clock: {
@@ -180,6 +219,65 @@ export const NS_TYPES = {
       reset() { idx = 0; last = -1; flip = false; },
       view: () => ({ i: last }),
     }; },
+  },
+  Chord: {
+    title: 'Chord', cat: 'chords', hint: 'one chord, written as a name (A min7) or as notes (A2 C3 E3 G3, each can have a volume: A2@100 C3@60); every note has its own volume. A Phrase node can play it',
+    ins: [ev('play'), ct('level'), ct('variation'), ct('tilt'), { n: 'weights', k: 'w' }], outs: [{ n: 'notes', k: 'e' }, { n: 'root', k: 'e' }, { n: 'chord', k: 'h' }],
+    params: [par('octave', 0, 8, 4, { int: true }), par('inversion', 0, 6, 0, { int: true }), par('notes', 1, MAX_VOICES, 6, { int: true }), par('level', 0, 1, 1), par('variation', 0, 1, 0), par('tilt', -1, 1, 0),
+      par('strum', 0, 12, 0, { int: true }), par('direction', 0, 2, 0, { int: true, labels: ['up', 'down', 'alternate'] })],
+    body: 'chord',
+    create: cx => {
+      let key = '', parsed = null, flip = false, last = [];
+      const chordNow = () => {
+        const k = `${cx.data.text}|${cx.p.octave}|${cx.p.inversion}|${cx.p.notes}`;
+        if (k !== key) { key = k; parsed = parseChordText(cx.data.text, { octave: Math.round(cx.p.octave), inversion: Math.round(cx.p.inversion), max: Math.round(cx.p.notes) }); }
+        return parsed;
+      };
+      // the notes and their volumes for one playing of the chord; the controls wired in win over the knobs
+      const sound = (vel = -1) => {
+        const c = chordNow(); if (!c.notes.length) return null;
+        const w = cx.pull('weights'), own = cx.data.weights ?? [];
+        const base = c.notes.map((_, i) => (Array.isArray(w) ? (w[i] ?? 100) : (c.inline[i] ?? own[i] ?? 100)));
+        const lv = cx.read('level'), va = cx.read('variation'), ti = cx.read('tilt');
+        const level = (Number.isNaN(lv) ? cx.p.level : lv) * (vel > 0 ? vel : 1);
+        const vels = voice(c.notes.length, base, { tilt: Number.isNaN(ti) ? cx.p.tilt : ti * 2 - 1, variation: Number.isNaN(va) ? cx.p.variation : va, level }, cx.rand);
+        return { notes: c.notes, vels };
+      };
+      return {
+        get: out => (out === 'chord' ? sound() : null),
+        event(_p, _v, vel) {
+          const s = sound(vel); if (!s) return;
+          last = s.notes; cx.emit('root', s.notes[0], s.vels[0] > 0 ? s.vels[0] : 0.01);
+          flip = rollNotes(cx, 'notes', s.notes, s.vels, Math.round(cx.p.strum), Math.round(cx.p.direction), flip);
+        },
+        reset() { flip = false; last = []; },
+        view: () => ({ n: last.length }),
+      };
+    },
+  },
+  Phrase: {
+    title: 'Phrase', cat: 'chords', hint: 'plays one of the chords wired into it: the number arriving at index picks which (0 is the first, it wraps round). A new chord port appears as you wire chords in',
+    ins: [ev('index')], dynIn: { prefix: 'c', k: 'h' }, outs: [{ n: 'notes', k: 'e' }, { n: 'root', k: 'e' }],
+    params: [par('level', 0, 1, 1), par('strum', 0, 12, 0, { int: true }), par('direction', 0, 2, 0, { int: true, labels: ['up', 'down', 'alternate'] })],
+    create: cx => { let flip = false, at = -1, src = '', port = ''; return {
+      event(_p, v, vel) {
+        const ports = []; for (let i = 1; i <= MAX_DYN; i++) if (cx.has(`c${i}`)) ports.push(`c${i}`);
+        if (!ports.length || !Number.isFinite(v)) return;
+        const k = ((Math.round(v) % ports.length) + ports.length) % ports.length, got = cx.pull(ports[k]);
+        at = k; port = ports[k]; src = cx.source(port) ?? '';
+        if (!got || !got.notes.length) return;
+        const m = cx.p.level * (vel > 0 ? vel : 1), vels = got.vels.map(x => Math.min(1, x * m));
+        cx.emit('root', got.notes[0], vels[0] > 0 ? vels[0] : 0.01);
+        flip = rollNotes(cx, 'notes', got.notes, vels, Math.round(cx.p.strum), Math.round(cx.p.direction), flip);
+      },
+      reset() { flip = false; at = -1; src = ''; port = ''; },
+      view: () => ({ i: at, src, port }),
+    }; },
+  },
+  Voicing: {
+    title: 'Voicing', cat: 'chords', hint: 'a row of volumes for the notes of a chord, lowest note first. Wire it into the weights port of any number of Chord nodes',
+    ins: [], outs: [{ n: 'weights', k: 'w' }], params: [par('notes', 2, MAX_VOICES, 4, { int: true })], body: 'bars',
+    create: cx => ({ get: out => (out === 'weights' ? Array.from({ length: Math.round(cx.p.notes) }, (_, i) => cx.data.weights?.[i] ?? 100) : null) }),
   },
   Pwhite: {
     title: 'Pwhite', cat: 'values', hint: 'a random number between two limits for each event, sent out and held as a control',

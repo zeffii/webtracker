@@ -1,6 +1,6 @@
 // Changes to a Node Sequencer graph (song.nodeseq), as plain functions on the data so they can be tested without a page. The editor calls
 // these and then tells the engine. A graph is { sub, groups: [{ name, on }], nodes: [{ id, type, x, y, group?, params?, data? }], wires: [{ from, to }] }.
-import { NS_TYPES, defaultParams, DEFAULT_SCRIPT } from './nodes.js';
+import { NS_TYPES, defaultParams, findIn, DEFAULT_SCRIPT } from './nodes.js';
 
 export const GROUP_NAMES = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
 export const MAX_NODES = 200;
@@ -30,6 +30,8 @@ export function addNode(g, type, x, y, extra = {}) {
   if (T.body === 'steps') node.data = { cells: [1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0] };
   else if (T.body === 'list') node.data = { text: '57 60 64 67' };
   else if (T.body === 'script') node.data = { code: DEFAULT_SCRIPT };
+  else if (T.body === 'chord') node.data = { text: 'A min7', weights: [] };
+  else if (T.body === 'bars') node.data = { weights: [100, 70, 85, 60, 100, 70, 85, 60] };
   else if (T.data) node.data = { target: '' };
   if (extra.data) node.data = extra.data;
   g.nodes.push(node);
@@ -39,7 +41,7 @@ export function addNode(g, type, x, y, extra = {}) {
 export const portOf = (g, ref, side) => {
   const [id, name] = String(ref).split('.');
   const node = g.nodes.find(n => n.id === id);
-  const port = node && NS_TYPES[node.type]?.[side === 'out' ? 'outs' : 'ins'].find(p => p.n === name);
+  const port = node && (side === 'out' ? NS_TYPES[node?.type]?.outs.find(p => p.n === name) : node && findIn(node.type, name));
   return port ? { node, port, id, name } : null;
 };
 
@@ -55,7 +57,7 @@ export function connect(g, from, to) {
   if (!canConnect(g, from, to)) return null;
   if (g.wires.some(w => w.from === from && w.to === to)) return null;
   const b = portOf(g, to, 'in');
-  if (b.port.k === 'c') g.wires = g.wires.filter(w => w.to !== to);
+  if (b.port.k !== 'e') g.wires = g.wires.filter(w => w.to !== to);
   const wire = { from, to };
   g.wires.push(wire);
   return wire;

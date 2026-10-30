@@ -2,6 +2,12 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 544 · 2026-10-30
+
+- Node Sequencer: three new nodes in a Chords group. A **Chord** node holds one chord, written as a name (`A min7`) or as notes (`A2 C3 E3 G3`, each with an optional volume: `A2@100 C3@60`), and has a volume for every note (drag the bars in its panel), plus level, variation (a random nudge to every note each time) and tilt (bass-heavy to top-heavy) as knobs or as control inputs. It draws two octaves of keyboard under it with the notes lit and a bar under each for its volume. A **Phrase** node plays the chord whose number arrives at its index port (it wraps round); a new chord port appears as you wire chords in, and the chord being played lights up, with the wire into it. A **Voicing** node is a row of note volumes (lowest note first) that can feed the weights port of any number of Chord nodes.
+- Two new wire kinds: chords (violet diamonds) and weights (green triangles). They are pulled by the node they go into, so a chord can feed a Phrase node without an event.
+- New demo, `?demo=voicing` ("weights of a chord"): four Chord nodes into a Phrase node, a tilt sweep from an lfo, bass from the chord root, and the group B arpeggio.
+
 ## 543 · 2026-10-30
 
 - New demo, `?demo=nodes` ("chords in the nodes"): a sixteen-bar song for the Node Sequencer. Pchord lists drive a rolled pad (poly note), a bass that echoes its root through delay and chance nodes, and an arpeggio in group B that a run node starts at bar four; an lfo sweeps the pad filter and an ad envelope plucks the arpeggio filter. Kick and hats are ordinary pattern lanes.

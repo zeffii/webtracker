@@ -2,14 +2,16 @@
 // the selected node. Events run along amber square ports, controls along cyan round ones; wires are drawn behind the nodes, and a little
 // light runs along a wire each time an event goes down it. The data is the song's `nodeseq` (see graphops.js); the audio thread runs it
 // (audio/nodeseq.js) and sends back what it did, which is drawn here.
-import { NS_TYPES, parseList, parseChordList, compileScript, DEFAULT_SCRIPT } from './nodes.js';
+import { NS_TYPES, insOf, parseList, parseChordList, compileScript, DEFAULT_SCRIPT } from './nodes.js';
 import { ensureGraph, newGraph, addNode, connect, disconnect, removeNodes, duplicateNodes, cleanGraph, canConnect, GROUP_NAMES } from './graphops.js';
+import { chordView } from './chordtext.js';
+import { noteName } from '../seq/chordname.js';
 import { showContextMenu } from '../ui/ctxmenu.js';
 
-const HEAD = 20, ROW = 18, FONT = '11px ui-monospace, Consolas, monospace', CATS = ['time', 'rhythm', 'values', 'control', 'output', 'code', 'groups'];
+const HEAD = 20, ROW = 18, FONT = '11px ui-monospace, Consolas, monospace', CATS = ['time', 'rhythm', 'values', 'chords', 'control', 'output', 'code', 'groups'];
 export const GROUP_COLORS = ['#e0a84a', '#4fc3d9', '#c792ea', '#5fbf6a', '#ee7d5c', '#8a96f2', '#e5669c', '#a3b34c'];
-const WIDTH = { steps: 250, Pseq: 190, Prand: 190, Pchord: 190, euclid: 180, lfo: 190, script: 200, note: 190, set: 200 };
-const BODY = { steps: 40, Pseq: 18, Prand: 18, Pchord: 18, euclid: 26, lfo: 30, script: 44, note: 16, set: 16, monitor: 16 };
+const WIDTH = { steps: 250, Pseq: 190, Prand: 190, Pchord: 190, Chord: 200, Phrase: 150, Voicing: 150, euclid: 180, lfo: 190, script: 200, note: 190, set: 200 };
+const BODY = { steps: 40, Pseq: 18, Prand: 18, Pchord: 18, Chord: 48, Phrase: 18, Voicing: 46, euclid: 26, lfo: 30, script: 44, note: 16, set: 16, monitor: 16 };
 const METER = new Set(['lfo', 'ad', 'scale', 'hold', 'Pwhite', 'set']);   // nodes that show a level
 
 const fmt = v => (Number.isInteger(v) ? String(v) : Math.abs(v) >= 100 ? v.toFixed(0) : Math.abs(v) >= 10 ? v.toFixed(1) : v.toFixed(2));
@@ -31,6 +33,8 @@ export function createNodeSeqEditor({ root, getSong, noteTargets = () => [], par
 
   // ---- state
   let view = { x: -20, y: -20, zoom: 1 }, sel = new Set(), selWire = null, drag = null, hover = null, dirty = true;
+  const kindColor = (C, k) => (k === 'e' ? C.ev : k === 'h' ? C.hc : k === 'w' ? C.wc : C.ct);
+  let active = new Set(), activeTo = new Set();   // the chord nodes a Phrase node is playing, and the wires they play along
   let live = null, pulses = [], flash = new Map(), errors = new Map(), mon = [];   // what the audio thread has told us
   const curves = new WeakMap();   // each wire's last drawn curve, for hit testing and the lights (kept off the wire itself, which is saved)
   let W = 600, H = 400, dpr = 1, boxes = new Map(), lastDraw = 0;
@@ -38,7 +42,7 @@ export function createNodeSeqEditor({ root, getSong, noteTargets = () => [], par
   const dark = () => { const c = /\d+/g, m = (typeof getComputedStyle === 'function' ? getComputedStyle(canvas).backgroundColor : '').match(c) ?? [20, 20, 20]; return (m[0] * 0.3 + m[1] * 0.59 + m[2] * 0.11) < 140; };
   const colours = () => {
     const d = dark(), cs = typeof getComputedStyle === 'function' ? getComputedStyle(canvas) : null;
-    return { ink: cs?.color || '#ccc', bg: cs?.backgroundColor || '#222', ev: d ? '#f0b04a' : '#b66a00', ct: d ? '#4fc3d9' : '#08819b', hi: cs?.getPropertyValue('--hi').trim() || '#3b6ea8', bad: '#e5484d', dark: d };
+    return { ink: cs?.color || '#ccc', bg: cs?.backgroundColor || '#222', ev: d ? '#f0b04a' : '#b66a00', ct: d ? '#4fc3d9' : '#08819b', hi: cs?.getPropertyValue('--hi').trim() || '#3b6ea8', bad: '#e5484d', hc: d ? '#c99bf0' : '#7a3fb0', wc: d ? '#86d68f' : '#2f8a3c', dark: d };
   };
 
   // ---- the bar
@@ -96,10 +100,11 @@ export function createNodeSeqEditor({ root, getSong, noteTargets = () => [], par
     return out.slice(0, 2);
   };
   function layout(n) {
-    const T = NS_TYPES[n.type], rows = Math.max(T.ins.length, T.outs.length), w = WIDTH[n.type] ?? 170, sum = summary(n), meter = METER.has(n.type) ? 8 : 0;
+    const T = NS_TYPES[n.type], ins = insOf(n.type, graph()?.wires ?? [], n.id), rows = Math.max(ins.length, T.outs.length), w = WIDTH[n.type] ?? 170, sum = summary(n), meter = METER.has(n.type) ? 8 : 0;
     const body = BODY[n.type] ?? 0, h = HEAD + 8 + rows * ROW + body + meter + sum.length * 13 + 6;
     const b = { x: n.x, y: n.y, w, h, sum, bodyY: n.y + HEAD + 8 + rows * ROW, meterY: n.y + HEAD + 8 + rows * ROW + body, ins: [], outs: [] };
-    T.ins.forEach((p, i) => b.ins.push({ ...p, x: n.x, y: n.y + HEAD + 14 + i * ROW }));
+    const wired = new Set((graph()?.wires ?? []).filter(x => x.to.startsWith(`${n.id}.`)).map(x => x.to));
+    ins.forEach((p, i) => b.ins.push({ ...p, free: p.dyn && !wired.has(`${n.id}.${p.n}`), x: n.x, y: n.y + HEAD + 14 + i * ROW }));
     T.outs.forEach((p, i) => b.outs.push({ ...p, x: n.x + w, y: n.y + HEAD + 14 + i * ROW }));
     return b;
   }
@@ -141,14 +146,16 @@ export function createNodeSeqEditor({ root, getSong, noteTargets = () => [], par
     ctx.save();
     ctx.scale(view.zoom, view.zoom); ctx.translate(-view.x, -view.y);
     boxes = new Map(g.nodes.map(n => [n.id, layout(n)]));
+    active = new Set(); activeTo = new Set();
+    for (const n of g.nodes) { const v = n.type === 'Phrase' ? live?.nodes?.[n.id] : null; if (v?.src) { active.add(v.src); activeTo.add(`${n.id}.${v.port}`); } }
     // wires first: they go behind the nodes
     g.wires.forEach((wr, i) => {
       const a = portPos(wr.from, 'out'), b = portPos(wr.to, 'in');
       if (!a || !b) return;
-      const c = curve(a, b), ev = a.k === 'e', picked = selWire === wr;
+      const c = curve(a, b), ev = a.k === 'e', picked = selWire === wr, lit = activeTo.has(wr.to);
       ctx.beginPath(); ctx.moveTo(c[0], c[1]); ctx.bezierCurveTo(c[2], c[3], c[4], c[5], c[6], c[7]);
-      ctx.strokeStyle = ev ? C.ev : C.ct; ctx.lineWidth = picked ? 3 : ev ? 1.6 : 1.3; ctx.globalAlpha = picked ? 1 : ev ? 0.85 : 0.9;
-      ctx.setLineDash(ev ? [] : [2, 3]); ctx.stroke(); ctx.setLineDash([]); ctx.globalAlpha = 1;
+      ctx.strokeStyle = kindColor(C, a.k); ctx.lineWidth = picked ? 3 : lit ? 3 : a.k === 'h' ? 1.8 : ev ? 1.6 : 1.3; ctx.globalAlpha = picked || lit ? 1 : a.k === 'h' ? 0.5 : ev ? 0.85 : 0.9;
+      ctx.setLineDash(a.k === 'c' ? [2, 3] : a.k === 'w' ? [1, 3] : []); ctx.stroke(); ctx.setLineDash([]); ctx.globalAlpha = 1;
       curves.set(wr, c);
     });
     for (const p of pulses) {   // a light along a wire that carried an event
@@ -162,7 +169,7 @@ export function createNodeSeqEditor({ root, getSong, noteTargets = () => [], par
       const a = drag.from.side === 'out' ? portPos(`${drag.from.id}.${drag.from.name}`, 'out') : portPos(`${drag.from.id}.${drag.from.name}`, 'in');
       if (a) {
         const [mx, my] = toWorld(drag.x, drag.y), b = { x: mx, y: my }, c = drag.from.side === 'out' ? curve(a, b) : curve(b, a);
-        ctx.beginPath(); ctx.moveTo(c[0], c[1]); ctx.bezierCurveTo(c[2], c[3], c[4], c[5], c[6], c[7]); ctx.strokeStyle = a.k === 'e' ? C.ev : C.ct; ctx.globalAlpha = 0.8; ctx.setLineDash([5, 4]); ctx.lineWidth = 1.4; ctx.stroke(); ctx.setLineDash([]); ctx.globalAlpha = 1;
+        ctx.beginPath(); ctx.moveTo(c[0], c[1]); ctx.bezierCurveTo(c[2], c[3], c[4], c[5], c[6], c[7]); ctx.strokeStyle = kindColor(C, a.k); ctx.globalAlpha = 0.8; ctx.setLineDash([5, 4]); ctx.lineWidth = 1.4; ctx.stroke(); ctx.setLineDash([]); ctx.globalAlpha = 1;
       }
     }
     if (drag?.kind === 'marquee') { ctx.strokeStyle = C.hi; ctx.fillStyle = C.hi; ctx.globalAlpha = 0.15; const [x0, y0] = toWorld(drag.x0, drag.y0), [x1, y1] = toWorld(drag.x, drag.y); ctx.fillRect(Math.min(x0, x1), Math.min(y0, y1), Math.abs(x1 - x0), Math.abs(y1 - y0)); ctx.globalAlpha = 1; ctx.strokeRect(Math.min(x0, x1), Math.min(y0, y1), Math.abs(x1 - x0), Math.abs(y1 - y0)); }
@@ -178,7 +185,7 @@ export function createNodeSeqEditor({ root, getSong, noteTargets = () => [], par
     ctx.fillStyle = C.dark ? 'rgba(255,255,255,.07)' : 'rgba(0,0,0,.07)'; ctx.fillRect(b.x, b.y, b.w, b.h);
     ctx.fillStyle = C.dark ? 'rgba(255,255,255,.10)' : 'rgba(0,0,0,.10)'; ctx.fillRect(b.x, b.y, b.w, HEAD);
     const f = flash.get(n.id);
-    ctx.strokeStyle = picked ? C.hi : f && now - f < 260 ? C.ev : C.dark ? 'rgba(255,255,255,.28)' : 'rgba(0,0,0,.35)'; ctx.lineWidth = picked ? 2 : 1; ctx.strokeRect(b.x + 0.5, b.y + 0.5, b.w - 1, b.h - 1);
+    ctx.strokeStyle = picked ? C.hi : active.has(n.id) ? C.hc : f && now - f < 260 ? C.ev : C.dark ? 'rgba(255,255,255,.28)' : 'rgba(0,0,0,.35)'; ctx.lineWidth = picked || active.has(n.id) ? 2 : 1; ctx.strokeRect(b.x + 0.5, b.y + 0.5, b.w - 1, b.h - 1);
     ctx.fillStyle = gcol; ctx.fillRect(b.x, b.y, 3, HEAD);
     ctx.fillStyle = C.ink; ctx.textAlign = 'left'; ctx.fillText(T.title, b.x + 9, b.y + 14);
     ctx.globalAlpha = (off ? 0.45 : 1) * 0.55; ctx.textAlign = 'right'; ctx.fillText(`${GROUP_NAMES[n.group ?? 0]} · ${n.id}`, b.x + b.w - 6, b.y + 14);
@@ -198,13 +205,44 @@ export function createNodeSeqEditor({ root, getSong, noteTargets = () => [], par
   }
 
   function port(p, C, side) {
-    const hot = hover && hover.id === p.id;
+    const col = kindColor(C, p.k);
     ctx.beginPath();
-    if (p.k === 'e') { ctx.rect(p.x - 4, p.y - 4, 8, 8); ctx.fillStyle = C.ev; }
-    else { ctx.arc(p.x, p.y, 4.5, 0, 7); ctx.fillStyle = C.ct; }
-    ctx.fill(); ctx.strokeStyle = C.bg; ctx.lineWidth = 1; ctx.stroke();
+    if (p.k === 'e') ctx.rect(p.x - 4, p.y - 4, 8, 8);
+    else if (p.k === 'h') { ctx.moveTo(p.x, p.y - 5.5); ctx.lineTo(p.x + 5.5, p.y); ctx.lineTo(p.x, p.y + 5.5); ctx.lineTo(p.x - 5.5, p.y); ctx.closePath(); }
+    else if (p.k === 'w') { ctx.moveTo(p.x - 4.5, p.y + 4); ctx.lineTo(p.x + 4.5, p.y + 4); ctx.lineTo(p.x, p.y - 5); ctx.closePath(); }
+    else ctx.arc(p.x, p.y, 4.5, 0, 7);
+    if (p.free) { ctx.strokeStyle = col; ctx.lineWidth = 1.3; ctx.setLineDash([2, 2]); ctx.stroke(); ctx.setLineDash([]); }   // the spare chord port of a Phrase node
+    else { ctx.fillStyle = col; ctx.fill(); ctx.strokeStyle = C.bg; ctx.lineWidth = 1; ctx.stroke(); }
     if (drag?.kind === 'wire' && drag.ok?.(p, side)) { ctx.strokeStyle = C.ink; ctx.lineWidth = 1.5; ctx.beginPath(); if (p.k === 'e') ctx.rect(p.x - 7, p.y - 7, 14, 14); else ctx.arc(p.x, p.y, 8, 0, 7); ctx.stroke(); }
-    void hot;
+  }
+
+  const WHITE_PC = [0, 2, 4, 5, 7, 9, 11], BLACK_AT = { 1: 0.7, 3: 1.7, 6: 3.7, 8: 4.7, 10: 5.7 };
+  // Two octaves of keyboard under a Chord node: the chord's notes lit, and under each lit key a bar for that note's volume.
+  function drawKeyboard(n, x, y, w, C) {
+    const cv = chordView(n.data, n.params), on = active.has(n.id), kw = w / 14, ky = y + 16;
+    ctx.fillStyle = cv.error ? C.bad : C.ink;
+    const name = cv.error ?? (cv.name || 'type a chord');
+    ctx.fillText(name.length > 30 ? `${name.slice(0, 29)}…` : name, x, y + 11);
+    const lo = cv.notes.length ? Math.floor(Math.min(...cv.notes) / 12) * 12 : 48;
+    const index = new Map(cv.notes.map((m, i) => [m, i]));
+    const keep = ctx.globalAlpha;
+    ctx.globalAlpha = keep * (on ? 1 : 0.65);
+    for (let i = 0; i < 14; i++) {
+      const m = lo + WHITE_PC[i % 7] + 12 * Math.floor(i / 7);
+      ctx.fillStyle = index.has(m) ? C.ev : C.dark ? 'rgba(255,255,255,.16)' : 'rgba(0,0,0,.12)'; ctx.fillRect(x + i * kw, ky, kw - 1, 14);
+    }
+    for (let o = 0; o < 2; o++) for (const k in BLACK_AT) {
+      const m = lo + Number(k) + 12 * o, bx = x + (BLACK_AT[k] + 7 * o) * kw + kw * 0.62;
+      ctx.fillStyle = index.has(m) ? C.ev : C.ink; ctx.globalAlpha = keep * (on ? 1 : 0.65) * (index.has(m) ? 1 : 0.8); ctx.fillRect(bx, ky, kw * 0.62, 8.5);
+    }
+    ctx.globalAlpha = keep * (on ? 1 : 0.65);
+    for (const [m, i] of index) {   // the volume bars
+      const pc = m - lo, oct = Math.floor(pc / 12);
+      if (pc < 0 || pc >= 24) continue;
+      const wi = WHITE_PC.indexOf(pc % 12), cx = wi >= 0 ? x + (wi + 7 * oct) * kw + kw / 2 : x + (BLACK_AT[pc % 12] + 7 * oct) * kw + kw * 0.93;
+      const h = 12 * cv.vels[i]; ctx.fillStyle = C.ev; ctx.fillRect(cx - 1.5, ky + 16 + (12 - h), 3, Math.max(1, h));
+    }
+    ctx.globalAlpha = keep;
   }
 
   function drawBody(n, b, C, T) {
@@ -225,6 +263,14 @@ export function createNodeSeqEditor({ root, getSong, noteTargets = () => [], par
         ctx.fillStyle = hit ? C.ev : C.dark ? 'rgba(255,255,255,.1)' : 'rgba(0,0,0,.12)'; ctx.fillRect(x + i * cw + 1, y + 3, cw - 2, 14);
         if (v?.i === i) { ctx.strokeStyle = C.ink; ctx.lineWidth = 1.5; ctx.strokeRect(x + i * cw + 0.5, y + 2.5, cw - 1, 15); }
       }
+    } else if (n.type === 'Chord') {
+      drawKeyboard(n, x, y, w, C);
+    } else if (n.type === 'Phrase') {
+      const chords = (graph()?.wires ?? []).filter(wr => wr.to.startsWith(`${n.id}.c`)).length;
+      ctx.fillStyle = C.ink; ctx.fillText(`${chords} chord${chords === 1 ? '' : 's'}${v && v.i >= 0 ? ` · now ${v.i + 1}` : ''}`, x, y + 12);
+    } else if (n.type === 'Voicing') {
+      const cnt = Math.round(n.params?.notes ?? 4), cw = w / cnt;
+      for (let i = 0; i < cnt; i++) { const lv = clamp((n.data?.weights?.[i] ?? 100) / 100, 0, 1); ctx.fillStyle = C.wc; ctx.fillRect(x + i * cw + 2, y + 2 + 34 * (1 - lv), cw - 4, Math.max(1, 34 * lv)); }
     } else if (n.type === 'Pseq' || n.type === 'Prand' || n.type === 'Pchord') {
       const text = n.type === 'Pchord' ? String(n.data?.text ?? '').split(/\r?\n/).map(t => t.trim()).filter(Boolean).join(' · ') : String(n.data?.text ?? ''), { bad } = n.type === 'Pchord' ? parseChordList(n.data?.text) : parseList(text);
       ctx.fillStyle = bad.length ? C.bad : C.ink; ctx.fillText(text.length > 28 ? `${text.slice(0, 27)}…` : text || '(empty list)', x, y + 12);
@@ -414,7 +460,7 @@ export function createNodeSeqEditor({ root, getSong, noteTargets = () => [], par
         if (first) n.data = { target: first };
       }
       if (wire) {   // the wire the palette was opened from goes to the first port of the same kind
-        const T = NS_TYPES[type], port = T.ins.find(p => p.k === wire.k);
+        const T = NS_TYPES[type], port = T.ins.find(p => p.k === wire.k) ?? (T.dynIn?.k === wire.k ? { n: `${T.dynIn.prefix}1` } : null);
         if (port) connect(g, `${wire.id}.${wire.name}`, `${n.id}.${port.n}`);
       }
       sel = new Set([n.id]); selWire = null; structure();
@@ -428,10 +474,10 @@ export function createNodeSeqEditor({ root, getSong, noteTargets = () => [], par
     palette.hidden = false;
     palette.style.left = `${clamp(sx, 4, Math.max(4, W - 280))}px`; palette.style.top = `${clamp(sy, 4, Math.max(4, H - 330))}px`;
     palette.replaceChildren();
-    const input = el('input', { type: 'text', placeholder: wire ? `a node for the ${wire.k === 'e' ? 'event' : 'control'} output "${wire.name}" ...` : 'add a node (type to narrow) ...', ariaLabel: 'Add a node' });
+    const input = el('input', { type: 'text', placeholder: wire ? `a node for the ${{ e: 'event', c: 'control', h: 'chord', w: 'weights' }[wire.k]} output "${wire.name}" ...` : 'add a node (type to narrow) ...', ariaLabel: 'Add a node' });
     const list = el('div', { className: 'ns-pal-list' });
     palette.append(input, list);
-    const types = Object.entries(NS_TYPES).filter(([, T]) => !wire || T.ins.some(p => p.k === wire.k));
+    const types = Object.entries(NS_TYPES).filter(([, T]) => !wire || T.ins.some(p => p.k === wire.k) || T.dynIn?.k === wire.k);
     const show = () => {
       const q = input.value.trim().toLowerCase();
       list.replaceChildren(); palState.items = [];
@@ -518,6 +564,8 @@ export function createNodeSeqEditor({ root, getSong, noteTargets = () => [], par
     if (T.body === 'steps') side.append(stepsEditor(n));
     if (T.body === 'list') side.append(listEditor(n));
     if (T.body === 'chords') side.append(chordsEditor(n));
+    if (T.body === 'chord') side.append(chordEditor(n));
+    if (T.body === 'bars') side.append(voicingEditor(n));
     if (T.body === 'script') side.append(scriptEditor(n));
     if (T.data === 'instrument') side.append(targetSelect(n, noteTargets(), 'instrument', 'the instrument this plays'));
     if (T.data === 'parameter') side.append(targetSelect(n, paramTargets(), 'parameter', 'the parameter this moves'));
@@ -609,6 +657,42 @@ export function createNodeSeqEditor({ root, getSong, noteTargets = () => [], par
     ta.addEventListener('keydown', e => e.stopPropagation());
     check();
     return el('div', { className: 'ns-block' }, el('span', { textContent: 'chords' }), ta, note);
+  }
+  // Bars you drag up and down: one for each place in a chord, lowest note first. `get(i)` is the volume in percent, `set(i, percent)` changes it.
+  function weightBars(count, get, set) {
+    const wrap = el('div', { className: 'ns-bars', ariaLabel: 'note volumes, lowest note first' }), fills = [];
+    for (let i = 0; i < count; i++) { const f = el('i'); fills.push(f); wrap.append(el('div', { className: 'ns-bar' }, f)); }
+    const show = () => fills.forEach((f, i) => { f.style.height = `${get(i)}%`; });
+    const at = e => { const r = wrap.getBoundingClientRect(), i = clamp(Math.floor((e.clientX - r.left) / r.width * count), 0, count - 1); set(i, clamp(Math.round((1 - (e.clientY - r.top) / r.height) * 20) * 5, 0, 100)); show(); };
+    wrap.addEventListener('pointerdown', e => { checkpoint(); wrap.setPointerCapture?.(e.pointerId); at(e); wrap.onpointermove = at; });
+    wrap.addEventListener('pointerup', () => { wrap.onpointermove = null; });
+    show();
+    return wrap;
+  }
+  function chordEditor(n) {
+    const input = el('input', { type: 'text', value: n.data?.text ?? '', spellcheck: false, ariaLabel: 'chord' }), note = el('small', { className: 'ns-dim' }), bars = el('div');
+    const cview = () => chordView(n.data, n.params);
+    const refresh = () => {
+      const cv = cview();
+      note.textContent = cv.error ?? (cv.notes.length ? cv.notes.map(noteName).join(' ') : 'a name like A min7 or F# 13sus, or notes like A2 C3 E3 G3 (each can have a volume: A2@100 C3@60)');
+      note.classList.toggle('ns-err', !!cv.error);
+      bars.replaceChildren();
+      if (cv.notes.length) bars.append(weightBars(cv.notes.length, i => cview().base[i], (i, v) => {
+        const base = cview().base; base[i] = v;
+        input.value = input.value.replace(/@\d+(\.\d+)?/g, '');   // a volume typed after a note would win over the bars
+        n.data = { ...(n.data ?? {}), text: input.value, weights: base }; changedData(n); dirty = true;
+      }));
+    };
+    input.addEventListener('focus', () => checkpoint());
+    input.addEventListener('input', () => { n.data = { ...(n.data ?? {}), text: input.value }; refresh(); changedData(n); });
+    input.addEventListener('keydown', e => e.stopPropagation());
+    refresh();
+    return el('div', { className: 'ns-block' }, el('span', { textContent: 'chord' }), input, note, el('span', { textContent: 'note volumes' }), bars, el('small', { className: 'ns-dim', textContent: 'A Voicing node wired into weights replaces these bars. Variation and tilt apply on top.' }));
+  }
+  function voicingEditor(n) {
+    const bars = el('div'), draw = () => { bars.replaceChildren(weightBars(Math.round(n.params?.notes ?? 4), i => n.data?.weights?.[i] ?? 100, (i, v) => { const w = [...(n.data?.weights ?? [])]; while (w.length < 8) w.push(100); w[i] = v; n.data = { ...(n.data ?? {}), weights: w }; changedData(n); dirty = true; })); };
+    draw();
+    return el('div', { className: 'ns-block' }, el('span', { textContent: 'volume of each note, lowest first' }), bars);
   }
   function scriptEditor(n) {
     const ta = el('textarea', { className: 'ns-script', rows: 11, spellcheck: false, wrap: 'off', value: n.data?.code ?? DEFAULT_SCRIPT, ariaLabel: 'script' }), status = el('small', { className: 'ns-dim' });
