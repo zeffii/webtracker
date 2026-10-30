@@ -225,6 +225,11 @@ export const PAGES = {
     best: ['Put it on a full mix or a drum loop with a bassline, then process the two outputs differently: compress and crush perc, add reverb to harm.', 'Turn the level of one output down to remove the drums from a loop, or the tones to leave only the hits.', 'Length is how long a note must be held to count as a tone; width is how broad a click must be to count as a hit. Sharp makes the split harder.'],
     limits: ['It works in frames, so it adds delay (bigger size, more delay). Sounds that are both, such as a tuned kick, are shared out between the outputs.'],
   },
+  bodyblur: {
+    summary: 'Smooths the body of a sound without touching its hits. The sound is split into held tones and attacks; the tones are blurred and rounded, the attacks pass straight through in time. A crushed pad turns silky while the snare keeps its snap.',
+    best: ['Put it after a crusher or a gritty synth: smooth around 0.4, time 80 ms, and a little round, to take the crunch off the sustain while the hits stay sharp.', 'Turn time up to 300 ms or more for a sound that blooms; turn smooth up for a wash.', 'Use mix partly open to keep some of the original grit.'],
+    limits: ['It works in frames, so it adds delay (bigger size, more delay). A sound that is both tone and hit, such as a tuned kick, is shared between body and hit, so only part of it is smoothed. Eco quality works out the split every other frame.'],
+  },
   specdyn: {
     summary: 'A compressor for every frequency at once: loud frequencies are pressed back, quiet ones left alone, so booms and harsh rings are flattened without dulling the rest. Tilt then leans the whole spectrum brighter or darker.',
     best: ['Threshold -36 dB with ratio 4 evens out a full mix; lower the threshold and raise the ratio to flatten it further, and make up the gain.', 'Tilt of +1 or +2 dB per octave makes a dull sound clear, -1 to -2 warms a harsh one.', 'Smooth keeps the gain from changing too sharply from one frequency to the next, which stops a ringing, whistling sound.'],

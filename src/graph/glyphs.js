@@ -156,6 +156,11 @@ export const GLYPHS = {
     line(ctx, [[cx - w / 2, cy - h * 0.25], [cx + w / 2, cy - h * 0.25]]);
     [0.2, 0.5, 0.8].forEach(f => line(ctx, [[cx - w / 2 + f * w, cy + h * 0.05], [cx - w / 2 + f * w, cy + h * 0.45]]));
   },
+  bodyblur: (ctx, cx, cy, w, h) => {   // a rough line smoothed on one side, the hit stripes left alone
+    curve(ctx, cx - w / 2, cy - h * 0.45, w * 0.6, h * 0.4, t => 0.25 * Math.sin(t * 40) * (1 - t) , 40);
+    line(ctx, [[cx - w / 2 + w * 0.6, cy - h * 0.25], [cx + w / 2, cy - h * 0.25]]);
+    [0.2, 0.5, 0.8].forEach(f => line(ctx, [[cx - w / 2 + f * w, cy + h * 0.05], [cx - w / 2 + f * w, cy + h * 0.45]]));
+  },
   specdyn: (ctx, cx, cy, w, h) => {   // a spectrum pressed flat under a threshold line, tilted
     const base = cy + h * 0.4;
     [0.9, 0.5, 0.75, 0.4].forEach((a, i) => { const x = cx - w / 2 + (i + 0.5) * (w / 4); line(ctx, [[x, base], [x, base - Math.min(a, 0.55) * h * 0.8]]); });

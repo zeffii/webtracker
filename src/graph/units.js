@@ -64,6 +64,7 @@ const TYPE_UNIT = {
   saturator: { drive: 'dB', bias: '', bass: 'Hz', tone: 'Hz', mix: '%', out: 'dB' },
   mbsat: { f1: 'Hz', f2: 'Hz', f3: 'Hz', bias: '', mix: '%', out: 'dB', lowDrive: 'dB', lowmidDrive: 'dB', highmidDrive: 'dB', highDrive: 'dB', lowGain: 'dB', lowmidGain: 'dB', highmidGain: 'dB', highGain: 'dB' },
   hpss: { length: 'ms', width: 'Hz', sharp: '' },
+  bodyblur: { smooth: '', time: 'ms', round: '', split: '', mix: '%' },
   specdyn: { threshold: 'dB', ratio: ':1', tilt: 'dB/oct', attack: 'ms', release: 'ms', makeup: 'dB', smooth: '', mix: '%' },
   xsynth: { amount: '%', smooth: '', detail: '%', mix: '%' },
   gater: { smooth: 'ms', depth: '%' },
@@ -121,6 +122,7 @@ const NAMES = {
   saturator: { type: ['soft', 'tape', 'tube', 'clip'], quality: ['standard', 'eco', 'hq'] },
   mbsat: { type: ['soft', 'tape', 'tube', 'clip'], quality: ['standard', 'eco', 'hq'] },
   hpss: { size: ['1024', '2048', '4096'] },
+  bodyblur: { size: ['1024', '2048', '4096'], quality: ['standard', 'eco'] },
   specdyn: { size: ['1024', '2048', '4096'] },
   xsynth: { size: ['1024', '2048', '4096'] },
 };

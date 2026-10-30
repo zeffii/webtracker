@@ -2,6 +2,11 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 553 · 2026-10-30
+
+- New effect, **Body blur** (Effects, Spectral): smooths the body of a sound and leaves its hits alone. Each frame is split into held tones and attacks (as the harmonic/percussive split does); the tones are blurred across frequency (`smooth`), followed by a running average (`time`) and given a gentle high cut (`round`), while the attacks pass straight through in time. A crushed pad turns silky and the snare keeps its snap. `split` sets how firmly body and hits are told apart, `quality` (standard or eco) works the split out every other frame for about half the CPU, `size` is the frame length, `mix` is dry against smoothed.
+- The harmonic/percussive split and Body blur now share their body/hit detection (`src/audio/hpmask.js`); the split sounds the same as before.
+
 ## 552 · 2026-10-30
 
 - New demo, `?demo=weights` ("weights of a chord", your version): four Chord nodes into a Phrase node whose index is stepped by a sequence of bar numbers from a euclid pulse, a tilt sweep from an lfo, and the pad's cutoff and resonance moved by two more lfos.

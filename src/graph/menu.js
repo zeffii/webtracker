@@ -18,7 +18,7 @@ const GROUPS = {
     ['Modulation', ['chorus', 'phaser', 'flanger', 'gater', 'freqshift']],
     ['Delay', ['delay', 'multitap', 'shiva', 'prismacanyon']],
     ['Reverb', ['hall', 'plate', 'shimmer', 'urugraVerb', 'convolver']],
-    ['Spectral', ['blur', 'specpan', 'hpss', 'specdyn', 'xsynth']],
+    ['Spectral', ['blur', 'specpan', 'hpss', 'bodyblur', 'specdyn', 'xsynth']],
     ['Distortion', ['amp', 'distortion', 'saturator', 'mbsat', 'waveshaper', 'crusher', 'tape']],
     ['Routing', ['route', 'split', 'tap']],
     ['Code', ['genexpr']],

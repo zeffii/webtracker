@@ -1940,6 +1940,23 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     const [ch, cp] = run('hpss', {}, [clicks], sr, 2);
     assert.ok(rms(cp, 20000, 40000) > 2 * rms(ch, 20000, 40000), 'clicks go to perc');
 
+    // body blur: with everything off it is the sound, delayed; hits go through untouched while the body is smoothed and rounded
+    const bbIn = i => tone(440, 0.3)(i) + (i % 4800 < 3 ? 0.8 : 0);
+    const [bbNeutral] = run('bodyblur', { smooth: 0, time: 0, round: 0, mix: 1 }, [bbIn], 40000);
+    let bbw = 0; for (let i = 6000; i < 36000; i++) bbw = Math.max(bbw, Math.abs(bbNeutral[i + 2047] - bbIn(i)));
+    assert.ok(bbw < 2e-3, `body blur with everything off is the sound (${bbw})`);
+    const [bbHeavy] = run('bodyblur', { smooth: 1, time: 300, round: 1, mix: 1 }, [bbIn], 40000);
+    let click = 0; for (let i = 24000; i < 24003; i++) click = Math.max(click, Math.abs(bbHeavy[i + 2047]));
+    assert.ok(click > 0.4, `a hit still comes through at its place under heavy smoothing (${click})`);
+    const crushed = i => Math.round(tone(440, 0.4)(i) * 4) / 4;   // a tone with its stair-steps: grit at the top
+    const [bbCrushed] = run('bodyblur', { smooth: 0.4, time: 80, round: 1, mix: 1 }, [crushed], 40000);
+    const crushedIn = Float32Array.from({ length: 40000 }, (_, i) => crushed(i));
+    const grit = x => { let t = 0; for (let f = 3013; f < 12000; f += 227.3) t += power(x, f, 20000, 36000) ** 2; return t; };   // the energy between the harmonics, high up
+    assert.ok(grit(bbCrushed) < 0.2 * grit(crushedIn), `the grit above the tone is taken off the body (${grit(bbCrushed)} against ${grit(crushedIn)})`);
+    assert.ok(rms(bbCrushed, 20000, 36000) > 0.5 * rms(crushedIn, 20000, 36000), 'the body stays as loud');
+    const [bbEco] = run('bodyblur', { quality: 1 }, [bbIn], 20000);
+    assert.ok(bbEco.every(Number.isFinite), 'eco quality runs');
+
     // spectral dynamics: neutral settings are the sound, delayed; a loud tone is pressed down; tilt leans the spectrum
     const two = i => tone(440, 0.3)(i) + tone(3000, 0.3)(i);
     const [neutral] = run('specdyn', { ratio: 1, tilt: 0, makeup: 0, mix: 1 }, [two], 30000);

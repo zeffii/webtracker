@@ -366,6 +366,15 @@ const HINTS = {
     sharp: 'How firmly each part of the sound is given to one output or the other. 1 shares it softly, 8 is nearly a switch.',
     size: 'Frame length: 1024, 2048 or 4096 samples. Longer separates tones better and adds more delay.',
   },
+  bodyblur: {
+    smooth: 'Blurs the body of the sound across frequency: the gritty detail between its harmonics melts away. Hits are not touched.',
+    time: 'In ms. How slowly the body follows the sound: longer rounds off the stair-steps of a crushed sound and lets it bloom.',
+    round: 'A gentle high cut on the body only, for the fizz and aliasing that crushing leaves at the top. Hits keep their brightness.',
+    split: 'How firmly body and hits are told apart. 1 shares them softly, 8 is nearly a switch.',
+    size: 'Frame length: 1024, 2048 or 4096 samples. Longer separates tones better and adds more delay.',
+    quality: 'Eco works out the body/hit split every other frame, for about half the CPU. Standard is the full split.',
+    mix: 'Dry against smoothed. The dry sound is delayed to match, so it stays in time.',
+  },
   specdyn: {
     threshold: 'In dB below full scale. A frequency louder than this is turned down.',
     ratio: 'How hard: 4 means 4 dB over the threshold comes out 1 dB over. 20 is nearly a limiter.',

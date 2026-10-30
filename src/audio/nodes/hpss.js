@@ -10,9 +10,9 @@
 // `length` is how long a held tone must last to count as harmonic, `width` how wide a hit must be (in Hz) to count as
 // percussive, `sharp` how hard the two are told apart (1 soft, 8 nearly a switch).
 import { Analyser, Resynth, sizeOf, mirror, MAX_SIZE } from './stft.js';
+import { Masker, maskSettings } from '../hpmask.js';
 
 const LENGTH = 0, WIDTH = 1, SHARP = 2, SIZE = 3;
-const MAX_FRAMES = 25, MAX_BINS = 25;   // the longest medians: more costs a lot and changes little
 
 export default {
   type: 'hpss',
@@ -29,49 +29,23 @@ export default {
     { name: 'size', min: 0, max: 2, def: 1, int: true },   // frame length: 1024, 2048, 4096 samples
   ],
   create({ sampleRate }) {
-    const bins = MAX_SIZE / 2 + 1;
     const re = new Float64Array(MAX_SIZE), im = new Float64Array(MAX_SIZE);
     const reP = new Float64Array(MAX_SIZE), imP = new Float64Array(MAX_SIZE);
-    const mag = new Float64Array(bins), across = new Float64Array(bins), along = new Float64Array(bins);
-    const pick = new Float64Array(MAX_FRAMES);
+    const body = new Float64Array(MAX_SIZE / 2 + 1);
     let n = 0, ch = null;
 
     const start = size => {
       n = size;
-      ch = [0, 1].map(() => ({
-        a: new Analyser(n), harm: new Resynth(n), perc: new Resynth(n),
-        history: new Float32Array(MAX_FRAMES * (n / 2 + 1)), frames: 0,   // the last frames' magnitudes, round and round
-      }));
+      ch = [0, 1].map(() => ({ a: new Analyser(n), harm: new Resynth(n), perc: new Resynth(n), mask: new Masker(n) }));
     };
-    // The middle value of the first `count` numbers of `pick` (a small insertion sort: the lists are short).
-    const middle = count => {
-      for (let i = 1; i < count; i++) { const v = pick[i]; let j = i - 1; while (j >= 0 && pick[j] > v) { pick[j + 1] = pick[j]; j--; } pick[j + 1] = v; }
-      return pick[count >> 1];
-    };
-    const odd = (v, max) => Math.max(3, Math.min(max, Math.round(v) | 1));
 
     // One frame of one channel: the spectrum is in re and im.
     const frame = (c, p) => {
-      const half = n >> 1, top = half + 1, s = ch[c];
-      for (let k = 0; k <= half; k++) mag[k] = Math.hypot(re[k], im[k]);
-      const slot = s.frames % MAX_FRAMES;
-      s.history.set(mag.subarray(0, top), slot * top);
-      s.frames++;
-      const have = Math.min(s.frames, p.frames);
-      for (let k = 0; k <= half; k++) {   // along time: the last frames of this bin
-        for (let f = 0; f < have; f++) pick[f] = s.history[((s.frames - 1 - f + MAX_FRAMES * 4) % MAX_FRAMES) * top + k];
-        along[k] = middle(have);
-      }
-      const reach = p.bins >> 1;
-      for (let k = 0; k <= half; k++) {   // across frequency: this frame's neighbours of the bin
-        const lo = Math.max(0, k - reach), hi = Math.min(half, k + reach);
-        let count = 0;
-        for (let j = lo; j <= hi; j++) pick[count++] = mag[j];
-        across[k] = middle(count);
-      }
+      const half = n >> 1, s = ch[c];
+      s.mask.listen(re, im);
+      s.mask.body(p, body);
       for (let k = 0; k <= half; k++) {
-        const h = Math.pow(along[k], p.sharp), q = Math.pow(across[k], p.sharp), total = h + q;
-        const mh = total > 1e-12 ? h / total : 0.5, mp = 1 - mh;
+        const mh = body[k], mp = 1 - mh;
         reP[k] = re[k] * mp; imP[k] = im[k] * mp;
         re[k] *= mh; im[k] *= mh;
       }
@@ -83,12 +57,7 @@ export default {
       process(inputs, outputs, count, params, slots) {
         const want = sizeOf(params[slots[SIZE]]);
         if (want !== n) start(want);
-        const hop = n / 4;
-        const p = {
-          frames: odd((params[slots[LENGTH]] * 0.001 * sampleRate) / hop, MAX_FRAMES),
-          bins: odd(params[slots[WIDTH]] / (sampleRate / n), MAX_BINS),
-          sharp: params[slots[SHARP]],
-        };
+        const p = maskSettings(sampleRate, n, params[slots[LENGTH]], params[slots[WIDTH]], params[slots[SHARP]]);
         for (let c = 0; c < 2; c++) {
           const s = ch[c], x = inputs[0][c], h = outputs[0][c], q = outputs[1][c];
           for (let i = 0; i < count; i++) {
