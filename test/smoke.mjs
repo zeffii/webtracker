@@ -8699,6 +8699,31 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     }
   }
 
+  // delay compensation between instruments: the quicker one waits for the slowest
+  {
+    const { GraphRuntime, LagLine } = await import('../src/audio/runtime.js');
+    const lag = new LagLine(200), L = new Float32Array(128), R = new Float32Array(128), heard = [];
+    for (let b = 0; b < 4; b++) {
+      const fromL = new Float32Array(128), fromR = new Float32Array(128); if (b === 0) { fromL[3] = 1; fromR[3] = -1; }
+      L.fill(0); R.fill(0); lag.addInto(L, R, fromL, fromR, 128);
+      heard.push([...L]);
+    }
+    assert.equal(heard.flat().indexOf(1), 203, 'a click comes out exactly the gap later, across blocks');
+    const mkParams = () => new Float32Array(new SharedArrayBuffer(4 * 4096));
+    const rt = new GraphRuntime({ sampleRate: sr, params: mkParams(), maxBlock: 128 });
+    const reg = new ParamRegistry();
+    const slow = compile({ nodes: [{ id: 'o', type: 'osc' }, { id: 'a', type: 'hpss', params: { size: 1 } }, { id: 'out', type: 'out' }], connections: [['o.out', 'a.in'], ['a.harm', 'out.in']] }, { instrument: 'slow', nodeTypes: NODE_TYPES, registry: reg, sampleRate: sr });
+    const quick = compile({ nodes: [{ id: 'o', type: 'osc' }, { id: 'out', type: 'out' }], connections: [['o.out', 'out.in']] }, { instrument: 'quick', nodeTypes: NODE_TYPES, registry: reg, sampleRate: sr });
+    rt.params = new Float32Array(reg.sab);
+    rt.load(slow); rt.load(quick);
+    assert.equal(rt.alignment(), 0, 'with compensation off nothing is held back');
+    rt.setDelayComp(true);
+    assert.equal(rt.alignment(), 2047, 'with it on the mix is held back by the slowest instrument');
+    assert.equal(slow.latency, 2047); assert.equal(quick.latency, 0);
+    rt.setDelayComp(false);
+    assert.equal(rt.alignment(), 0, 'and off again');
+  }
+
   // snarl: sounds on a note, stays finite at the extremes, releases, the low-pass cutoff darkens it, ring mod and the high-pass change it
   {
     const snarl = NODE_TYPES.snarl, sslots = snarl.params.map((_, i) => i);

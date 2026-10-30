@@ -50,6 +50,7 @@ export class Engine {
       else if (data.type.startsWith('ns')) this.onNodeseq?.(data);   // the Node Sequencer's activity, notes to record, mistakes
     };
     this.node.port.postMessage({ type: 'dither', on: this.dither });
+    this.setDelayComp(this.delayComp);
     this.node.port.postMessage({ type: 'volfloor', on: this.volFloor });
     if (this.laneIds.length) this.node.port.postMessage({ type: 'lanetaps', ids: this.laneIds });
     for (const key of this.watching) { const [instrument, node] = key.split('\u0000'); this.node.port.postMessage({ type: 'scope', instrument, node, on: true }); }
@@ -71,6 +72,10 @@ export class Engine {
 
   // Which instrument each slot of the per-instrument rings follows.
   setVolFloor(on) { this.volFloor = on; this.node?.port.postMessage({ type: 'volfloor', on }); }
+  setDelayComp(on) {   // lining the instruments up with each other (the machines' own paths are lined up when they are compiled)
+    this.delayComp = on;
+    this.node?.port.postMessage({ type: 'delaycomp', on });
+  }
   setDither(on) { this.dither = on; this.node?.port.postMessage({ type: 'dither', on }); }
   // The Stream Manager: watching (the engine times each instrument while it is on), and switching instruments off and on, or rebuilding them.
   watchStreams(on) { this.node?.port.postMessage({ type: 'streamwatch', on }); }
@@ -177,7 +182,7 @@ export class Engine {
   // lanes), a private copy of the parameter values, the compiled DSP and the sample rate.
   exportState() {
     const order = { load: 0, node: 1, song: 2, nodeseq: 3, lane: 4 };
-    const messages = [...this.sent.values()].sort((a, b) => order[a.type] - order[b.type]);
+    const messages = [{ type: 'delaycomp', on: this.delayComp }, ...[...this.sent.values()].sort((a, b) => order[a.type] - order[b.type])];
     return { messages, params: new Float32Array(new Float32Array(this.registry.sab)), wasm: this.wasmModule, sampleRate: this.ctx?.sampleRate ?? 44100 };
   }
 

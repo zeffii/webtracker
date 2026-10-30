@@ -7,8 +7,25 @@ const MAX_VOICES = 16;
 // also be driven offline (see test/smoke.mjs).
 export const SCOPE_N = 2048, SCOPE_HOP = 1024;
 
+// A stereo delay line that adds what it hears into a pair of buffers, `gap` samples late (delay compensation between instruments).
+export class LagLine {
+  constructor(gap) { this.gap = gap; this.l = new Float32Array(gap); this.r = new Float32Array(gap); this.at = 0; }
+  addInto(left, right, fromL, fromR, n) {
+    const { l, r, gap } = this;
+    let at = this.at;
+    for (let i = 0; i < n; i++) {
+      left[i] += l[at]; right[i] += r[at];
+      l[at] = fromL[i]; r[at] = fromR[i];
+      if (++at === gap) at = 0;
+    }
+    this.at = at;
+  }
+}
+
 export class GraphRuntime {
   instruments = new Map();
+  delayComp = false;       // line the instruments up: the quicker ones are delayed to match the slowest (see latency.js)
+  maxDelay = null;         // the longest delay among the instruments, in samples (found when asked, forgotten when one loads)
   graphs = new Map();      // compiled graphs, to rebuild an instrument that went bad
   samples = new Map();     // the last sample message per instrument and node, replayed on a rebuild
   stamp = 0;               // counts note events, to find the oldest voice
@@ -39,6 +56,7 @@ export class GraphRuntime {
   // Drops every instrument and switches to a new parameter block.
   reset(params) {
     this.cut.clear();
+    this.maxDelay = null;
     this.params = params;
     this.instruments.clear();
     this.graphs.clear();
@@ -55,6 +73,7 @@ export class GraphRuntime {
   load(compiled) {
     this.graphs.set(compiled.instrument, compiled);
     this.order = null;
+    this.maxDelay = null;
     const V = Math.max(1, Math.min(MAX_VOICES, Math.round(compiled.voices ?? 1) || 1));
     const fresh = () => Array.from({ length: compiled.bufferCount }, () => new Float32Array(this.maxBlock));
     const resolver = buffers => ref => (Array.isArray(ref) ? ref.map(b => buffers[b]) : buffers[ref]);   // stereo ports are [left, right]
@@ -105,7 +124,7 @@ export class GraphRuntime {
       return node;
     };
     const buffers0 = fresh(), resolve0 = resolver(buffers0);
-    const inst = { nodes: [], sets: [], byId: new Map(), left: null, right: null, amp: compiled.amp, ampPrev: 1 };
+    const inst = { nodes: [], sets: [], byId: new Map(), left: null, right: null, amp: compiled.amp, ampPrev: 1, latency: compiled.latency ?? 0, lag: null };
     const register = (node, at) => { const list = inst.byId.get(node.id) ?? []; list[at] = node; inst.byId.set(node.id, list); };
     this.instruments.set(compiled.instrument, inst);
 
@@ -279,6 +298,15 @@ export class GraphRuntime {
     return (this.order = order);
   }
 
+  setDelayComp(on) { this.delayComp = on === true; this.maxDelay = null; }
+
+  // How many samples everything is held back by, with delay compensation on: the delay of the slowest instrument.
+  alignment() {
+    if (!this.delayComp) return 0;
+    if (this.maxDelay === null) { let m = 0; for (const inst of this.instruments.values()) m = Math.max(m, inst.latency ?? 0); this.maxDelay = m; }
+    return this.maxDelay;
+  }
+
   process(left, right, n) {
     left.fill(0, 0, n);
     right.fill(0, 0, n);
@@ -328,9 +356,16 @@ export class GraphRuntime {
       }
       this.onLane?.(id, inst.left, inst.right, n);   // the page's layered spectrum, when it is on
       if (this.scopes.size) for (const scope of this.scopes.values()) if (scope.instrument === id) this.watch(scope, inst, n);
-      for (let i = 0; i < n; i++) {
-        left[i] += inst.left[i];
-        right[i] += inst.right[i];
+      const gap = this.alignment() - (inst.latency ?? 0);   // a quicker instrument waits for the slowest
+      if (gap > 0) {
+        if (inst.lag?.gap !== gap) inst.lag = new LagLine(gap);
+        inst.lag.addInto(left, right, inst.left, inst.right, n);
+      } else {
+        inst.lag = null;
+        for (let i = 0; i < n; i++) {
+          left[i] += inst.left[i];
+          right[i] += inst.right[i];
+        }
       }
     }
   }

@@ -23,7 +23,8 @@ export async function renderSong(state, { tail = 10, onProgress = () => {}, canc
   const rt = new GraphRuntime({ sampleRate, params, wasm, maxBlock: BLOCK });
   const seq = new Once({ sampleRate, runtime: rt, params, transport: new Int32Array(new SharedArrayBuffer(16)) });
   for (const m of messages) {
-    if (m.type === 'load') rt.load(m.graph);
+    if (m.type === 'delaycomp') rt.setDelayComp(m.on);
+    else if (m.type === 'load') rt.load(m.graph);
     else if (m.type === 'node') rt.message(m.instrument, m.node, m.msg);
     else if (m.type === 'song') seq.setSong({ ...m.song, loop: undefined });
     else if (m.type === 'nodeseq') seq.setNodeseq(m.graph, m.resolve);
@@ -31,7 +32,8 @@ export async function renderSong(state, { tail = 10, onProgress = () => {}, canc
   }
   if (!seq.song?.length) throw new Error('There is no song to render.');
   const chunks = [], limit = Math.floor(sampleRate * maxSeconds);
-  let frames = 0, tailLeft = Math.round(tail * sampleRate), peak = 0, slice = performance.now();
+  const lag = rt.alignment();   // with delay compensation on, the whole mix comes out this many samples late: the start is trimmed off below
+  let frames = 0, tailLeft = Math.round(tail * sampleRate) + lag, peak = 0, slice = performance.now();
   seq.play(0);
   const l = new Float32Array(BLOCK), r = new Float32Array(BLOCK);
   while (frames < limit && !cancel.on) {
@@ -48,9 +50,10 @@ export async function renderSong(state, { tail = 10, onProgress = () => {}, canc
     }
   }
   if (cancel.on) return null;
-  const left = new Float32Array(frames), right = new Float32Array(frames);
-  chunks.forEach(([a, b], i) => { left.set(a, i * BLOCK); right.set(b, i * BLOCK); });
-  return { left, right, sampleRate, seconds: frames / sampleRate, peak };
+  const all = new Float32Array(frames), allR = new Float32Array(frames);
+  chunks.forEach(([a, b], i) => { all.set(a, i * BLOCK); allR.set(b, i * BLOCK); });
+  const left = all.subarray(Math.min(lag, frames)), right = allR.subarray(Math.min(lag, frames));
+  return { left, right, sampleRate, seconds: left.length / sampleRate, peak };
 }
 
 // A stereo WAV file. bits: 16, 24 (whole numbers, clipped at full scale) or 32 (floating point, no clipping).

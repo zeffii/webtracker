@@ -35,6 +35,7 @@ class TrackerEngine extends AudioWorkletProcessor {
       else if (data.type === 'streamcut') { for (const id of data.ids) this.rt.setCut(id, data.on); this.postStreams(); }
       else if (data.type === 'streamreset') { for (const id of data.ids) this.rt.rebuild(id); this.postStreams(); }
       else if (data.type === 'dither') this.dither = data.on;
+      else if (data.type === 'delaycomp') this.rt.setDelayComp(data.on);
       else if (data.type === 'volfloor') this.seq.volFloor = data.on ? 0.003 : 0;
       else if (data.type === 'lanetaps') this.setLaneIds(data.ids);
       else if (data.type === 'reset') {

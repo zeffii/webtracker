@@ -69,7 +69,7 @@ const engine = new Engine();
 engine.dither = config.get('dither'); engine.volFloor = config.get('volFloor'); engine.delayComp = config.get('delayComp');
 config.onChange((k, v) => {
   if (k === 'dither') engine.setDither(v); else if (k === 'volFloor') engine.setVolFloor(v);
-  else if (k === 'delayComp') { engine.delayComp = v; for (const id of Object.keys(project?.instruments ?? {})) reloadInstrument(id); }   // every machine is compiled again, with or without the lining up
+  else if (k === 'delayComp') { engine.setDelayComp(v); for (const id of Object.keys(project?.instruments ?? {})) reloadInstrument(id); }   // every machine is compiled again, with or without the lining up
 });
 const $ = id => document.getElementById(id);
 let started = false, playing = false, project = null, recording = false;
@@ -458,7 +458,7 @@ const setRecording = on => {
 };
 $('rec').addEventListener('click', e => { setRecording(!recording); e.currentTarget.blur(); });
 const latencyTicks = () => {
-  const ms = engine.health().latency + config.get('midiLatency');
+  const ms = engine.health().latency + config.get('midiLatency') + (engine.delayComp ? engine.chainDelay() : 0);   // with delay compensation on, the whole mix is the slowest chain late
   return ms / (60000 / (project.song.bpm * project.song.ticksPerBeat));
 };
 const midiIn = createMidiInput({

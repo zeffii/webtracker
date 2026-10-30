@@ -2,6 +2,11 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 558 · 2026-10-30
+
+- **Delay compensation, stage 3: between instruments.** With the setting on, each machine's total delay is known and the quicker machines are delayed to match the slowest before they are mixed, so a drum machine with no delay stays on the beat with a pad that has a spectral effect. The whole mix then comes out as late as the `chain` figure in the status bar (live playing and the sound of the first beat come that much later too); recorded notes take it into account, and an export trims it off the start, so the file lines up with the beat. The one **Delay compensation** setting (Settings, Playing) switches all of it, inside machines and between them, off entirely.
+- The playhead is not shifted: with compensation on it leads what you hear by the `chain` time.
+
 ## 557 · 2026-10-30
 
 - **Delay compensation, stage 2: inside an instrument.** Where audio paths of different delay meet at a node (a dry sound and a spectral or oversampled branch going into a mixer, say), the quicker ones are delayed by whole samples to match the slowest, so everything arrives together. The delay is a hidden node the compiler inserts (`compdelay`), recomputed whenever the machine is loaded, so changing a node's `size` or `quality` is followed. New setting **Delay compensation** (Settings, Playing; on by default) switches it; with it off a machine is compiled as before. Next stage: lining the instruments up with each other.
