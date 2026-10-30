@@ -2,14 +2,14 @@
 // the selected node. Events run along amber square ports, controls along cyan round ones; wires are drawn behind the nodes, and a little
 // light runs along a wire each time an event goes down it. The data is the song's `nodeseq` (see graphops.js); the audio thread runs it
 // (audio/nodeseq.js) and sends back what it did, which is drawn here.
-import { NS_TYPES, parseList, compileScript, DEFAULT_SCRIPT } from './nodes.js';
+import { NS_TYPES, parseList, parseChordList, compileScript, DEFAULT_SCRIPT } from './nodes.js';
 import { ensureGraph, newGraph, addNode, connect, disconnect, removeNodes, duplicateNodes, cleanGraph, canConnect, GROUP_NAMES } from './graphops.js';
 import { showContextMenu } from '../ui/ctxmenu.js';
 
 const HEAD = 20, ROW = 18, FONT = '11px ui-monospace, Consolas, monospace', CATS = ['time', 'rhythm', 'values', 'control', 'output', 'code', 'groups'];
 export const GROUP_COLORS = ['#e0a84a', '#4fc3d9', '#c792ea', '#5fbf6a', '#ee7d5c', '#8a96f2', '#e5669c', '#a3b34c'];
-const WIDTH = { steps: 250, Pseq: 190, Prand: 190, euclid: 180, lfo: 190, script: 200, note: 190, set: 200 };
-const BODY = { steps: 40, Pseq: 18, Prand: 18, euclid: 26, lfo: 30, script: 44, note: 16, set: 16, monitor: 16 };
+const WIDTH = { steps: 250, Pseq: 190, Prand: 190, Pchord: 190, euclid: 180, lfo: 190, script: 200, note: 190, set: 200 };
+const BODY = { steps: 40, Pseq: 18, Prand: 18, Pchord: 18, euclid: 26, lfo: 30, script: 44, note: 16, set: 16, monitor: 16 };
 const METER = new Set(['lfo', 'ad', 'scale', 'hold', 'Pwhite', 'set']);   // nodes that show a level
 
 const fmt = v => (Number.isInteger(v) ? String(v) : Math.abs(v) >= 100 ? v.toFixed(0) : Math.abs(v) >= 10 ? v.toFixed(1) : v.toFixed(2));
@@ -225,8 +225,8 @@ export function createNodeSeqEditor({ root, getSong, noteTargets = () => [], par
         ctx.fillStyle = hit ? C.ev : C.dark ? 'rgba(255,255,255,.1)' : 'rgba(0,0,0,.12)'; ctx.fillRect(x + i * cw + 1, y + 3, cw - 2, 14);
         if (v?.i === i) { ctx.strokeStyle = C.ink; ctx.lineWidth = 1.5; ctx.strokeRect(x + i * cw + 0.5, y + 2.5, cw - 1, 15); }
       }
-    } else if (n.type === 'Pseq' || n.type === 'Prand') {
-      const text = String(n.data?.text ?? ''), { bad } = parseList(text);
+    } else if (n.type === 'Pseq' || n.type === 'Prand' || n.type === 'Pchord') {
+      const text = n.type === 'Pchord' ? String(n.data?.text ?? '').split(/\r?\n/).map(t => t.trim()).filter(Boolean).join(' · ') : String(n.data?.text ?? ''), { bad } = n.type === 'Pchord' ? parseChordList(n.data?.text) : parseList(text);
       ctx.fillStyle = bad.length ? C.bad : C.ink; ctx.fillText(text.length > 28 ? `${text.slice(0, 27)}…` : text || '(empty list)', x, y + 12);
     } else if (n.type === 'lfo') {
       ctx.strokeStyle = C.ct; ctx.lineWidth = 1; ctx.globalAlpha *= 0.8; ctx.beginPath();
@@ -517,6 +517,7 @@ export function createNodeSeqEditor({ root, getSong, noteTargets = () => [], par
     for (const p of T.params) side.append(paramRow(n, p));
     if (T.body === 'steps') side.append(stepsEditor(n));
     if (T.body === 'list') side.append(listEditor(n));
+    if (T.body === 'chords') side.append(chordsEditor(n));
     if (T.body === 'script') side.append(scriptEditor(n));
     if (T.data === 'instrument') side.append(targetSelect(n, noteTargets(), 'instrument', 'the instrument this plays'));
     if (T.data === 'parameter') side.append(targetSelect(n, paramTargets(), 'parameter', 'the parameter this moves'));
@@ -595,6 +596,19 @@ export function createNodeSeqEditor({ root, getSong, noteTargets = () => [], par
     ta.addEventListener('keydown', e => e.stopPropagation());
     check();
     return el('div', { className: 'ns-block' }, el('span', { textContent: 'list' }), ta, note);
+  }
+  function chordsEditor(n) {
+    const ta = el('textarea', { rows: 6, spellcheck: false, value: n.data?.text ?? '', ariaLabel: 'chords' }), note = el('small', { className: 'ns-dim' });
+    const check = () => {
+      const { items, bad } = parseChordList(ta.value);
+      note.textContent = bad.length ? `Not understood: ${bad.slice(0, 4).join(', ')}` : `${items.length} chords, one a line (C maj7, F# 13sus, E min9(11)); a dot is a rest. Use a note node set to poly.`;
+      note.classList.toggle('ns-err', bad.length > 0);
+    };
+    ta.addEventListener('focus', () => checkpoint());
+    ta.addEventListener('input', () => { n.data = { ...(n.data ?? {}), text: ta.value }; check(); changedData(n); });
+    ta.addEventListener('keydown', e => e.stopPropagation());
+    check();
+    return el('div', { className: 'ns-block' }, el('span', { textContent: 'chords' }), ta, note);
   }
   function scriptEditor(n) {
     const ta = el('textarea', { className: 'ns-script', rows: 11, spellcheck: false, wrap: 'off', value: n.data?.code ?? DEFAULT_SCRIPT, ariaLabel: 'script' }), status = el('small', { className: 'ns-dim' });

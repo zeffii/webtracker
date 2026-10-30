@@ -2,6 +2,11 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 542 · 2026-10-30
+
+- Node Sequencer: a **Pchord** node (Values) steps through a list of chords, one name a line, written as in the Chord machine ("C maj7", "F# 13sus", "E min9(11)"; a dot is a rest). Each event sends every note of the chord out of `note` (and the root out of `root`). Parameters: octave, inversion, notes (most notes kept), strum (subticks between notes) and direction (up, down, alternate). Names it cannot read are listed in red.
+- The `note` node has a new **poly** setting (default mono, as before): the notes of a chord then sound together and each ends on its own.
+
 ## 541 · 2026-10-30
 
 - Two saturators (Effects, Distortion in the node menu), sharing one curve stage (`audio/nodes/saturation.js`). The curve is chosen by `type`: soft (tanh), tape (a gentler arctangent), tube (lopsided, so it adds even harmonics) or clip (a cubic soft clip). `drive` is in dB and the level is kept about the same, so you hear what the curve does and not only that it is louder; `bias` leans on the curve for even harmonics; `mix` and `out` as usual.

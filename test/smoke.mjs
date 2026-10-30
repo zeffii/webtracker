@@ -1,4 +1,5 @@
 // Offline checks: build the preset, drive the runtime without a browser.
+import { parseChordList } from '../src/nodeseq/nodes.js';
 import assert from 'node:assert/strict';
 import { ParamRegistry } from '../src/audio/params.js';
 import { NODE_TYPES } from '../src/audio/nodes/index.js';
@@ -3851,6 +3852,17 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
       assert.deepEqual(ons(t.log).map(e => e.note), [57, 60, 72, 57, 60], 'Pseq steps through its list (C-6 is 72)');
       assert.equal(t.log.filter(e => e.type === 'noteOff').length, 4, 'each note but the last is let go (at the next note or after its length)');
       assert.ok(t.log.every(e => e.instrument === 'bass'));
+    }
+    // Pchord: a chord a line, all notes at once into a poly note node, a rest line, then strummed and reversed
+    {
+      const mk = params => make({ sub: 2, nodes: [{ id: 'c', type: 'clock' }, { id: 'q', type: 'Pchord', params, data: { text: 'C maj\n.\nA min7' } }, { id: 'n', type: 'note', params: { poly: 1, len: 4 }, data: { target: 'pad' } }],
+        wires: [{ from: 'c.tick', to: 'q.next' }, { from: 'q.note', to: 'n.note' }] });
+      let t = mk({ octave: 4 }); t.run(3);
+      assert.deepEqual(ons(t.log).map(e => [e.at / 2, e.note]), [[0, 60], [0, 64], [0, 67], [2, 69], [2, 72], [2, 76], [2, 79]], 'chords sound together, the dot is a rest');
+      assert.equal(t.log.filter(e => e.type === 'noteOff').length, 0, 'poly: no note cuts another');
+      t = mk({ octave: 4, strum: 1, direction: 1 }); t.run(2);
+      assert.deepEqual(ons(t.log).map(e => [e.at, e.note]), [[0, 67], [1, 64], [2, 60]], 'strummed downwards, a subtick apart');
+      assert.deepEqual(parseChordList('C maj\nXyz\n.').bad, ['Xyz']);
     }
     // subticks: a clock's sub output runs subs times a tick; a delay moves an event later by subticks
     {

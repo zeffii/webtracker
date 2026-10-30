@@ -16,6 +16,8 @@
 // The behaviour: event(port, value, vel), tick(), sub(), control(dt), reset() (the graph starts again), stop() (the transport stopped), view()
 // (a small object the editor draws: where a sequence is, a level).
 
+import { parseChord, chordNotes } from '../seq/chordname.js';
+
 const NAMES = { c: 0, d: 2, e: 4, f: 5, g: 7, a: 9, b: 11 };
 
 // "57", "C-5", "C#4", "Db4", "c5" -> a number; "." and "_" are a rest (NaN); anything else is null.
@@ -33,6 +35,18 @@ export function parseList(text) {
   for (const tok of String(text ?? '').split(/[\s,]+/).filter(Boolean)) {
     const v = parseValue(tok);
     if (v === null) bad.push(tok); else items.push(v);
+  }
+  return { items, bad };
+}
+
+// One chord a line: "C maj7", "F# 13sus", "E min9(11)"; a dot or an empty line is a rest. Each entry is { name, chord } or null for a rest.
+export function parseChordList(text) {
+  const items = [], bad = [];
+  for (const line of String(text ?? '').split(/\r?\n/)) {
+    const name = line.trim();
+    if (name === '' || name === '.' || name === '_') { if (name !== '') items.push(null); continue; }
+    const chord = parseChord(name);
+    if (chord.error) bad.push(name); else items.push({ name, chord });
   }
   return { items, bad };
 }
@@ -143,6 +157,30 @@ export const NS_TYPES = {
       view: () => ({ i: last }),
     }; },
   },
+  Pchord: {
+    title: 'Pchord', cat: 'values', hint: 'steps through a list of chords, one a line (C maj7, F# 13sus, a dot is a rest); sends every note of the chord, optionally strummed. Set the note node to poly',
+    ins: [ev('next'), ev('reset')], outs: [{ n: 'note', k: 'e' }, { n: 'root', k: 'e' }],
+    params: [par('octave', 0, 8, 4, { int: true }), par('inversion', 0, 6, 0, { int: true }), par('notes', 1, 8, 6, { int: true }), par('strum', 0, 12, 0, { int: true }), par('direction', 0, 2, 0, { int: true, labels: ['up', 'down', 'alternate'] })],
+    body: 'chords',
+    create: cx => { let idx = 0, text = null, list = [], last = -1, flip = false; return {
+      event(port) {
+        if (port === 'reset') { idx = 0; return; }
+        if (text !== cx.data.text) { text = cx.data.text; list = parseChordList(text).items; idx = 0; }
+        if (!list.length) return;
+        last = idx; const c = list[idx]; idx = (idx + 1) % list.length;
+        if (!c) return;
+        let notes = chordNotes(c.chord, { octave: cx.p.octave, inversion: cx.p.inversion, max: cx.p.notes });
+        if (!notes.length) return;
+        cx.emit('root', notes[0], -1);
+        const d = Math.round(cx.p.direction);
+        if (d === 1 || (d === 2 && (flip = !flip))) notes = notes.slice().reverse();
+        const gap = Math.round(cx.p.strum);
+        notes.forEach((n, k) => { if (gap > 0 && k > 0) cx.after(k * gap, () => cx.emit('note', n, -1)); else cx.emit('note', n, -1); });
+      },
+      reset() { idx = 0; last = -1; flip = false; },
+      view: () => ({ i: last }),
+    }; },
+  },
   Pwhite: {
     title: 'Pwhite', cat: 'values', hint: 'a random number between two limits for each event, sent out and held as a control',
     ins: [ev('next')], outs: [{ n: 'value', k: 'e' }, { n: 'out', k: 'c' }],
@@ -228,9 +266,9 @@ export const NS_TYPES = {
   },
   note: {
     title: 'note', cat: 'output', hint: 'plays an instrument',
-    ins: [ev('trig'), ev('pitch', false), ev('note'), ct('vel'), ct('len')], outs: [], params: [par('pitch', 0, 127, 60, { int: true }), par('vel', 0, 1, 0.8), par('len', 0.05, 16, 1, { log: true })],
+    ins: [ev('trig'), ev('pitch', false), ev('note'), ct('vel'), ct('len')], outs: [], params: [par('pitch', 0, 127, 60, { int: true }), par('vel', 0, 1, 0.8), par('len', 0.05, 16, 1, { log: true }), par('poly', 0, 1, 0, { int: true, labels: ['mono', 'poly'] })],
     data: 'instrument',
-    create: cx => { let pitch = NaN, sounding = -1, token = 0, last = -1; return {
+    create: cx => { let pitch = NaN, sounding = -1, token = 0, last = -1; const held = new Map(); return {
       event(port, v, vel) {
         if (port === 'pitch') { if (Number.isFinite(v)) pitch = v; return; }
         const n = Math.round(port === 'note' && Number.isFinite(v) ? v : Number.isFinite(pitch) ? pitch : cx.p.pitch);
@@ -238,6 +276,14 @@ export const NS_TYPES = {
         const cv = cx.read('vel'), v2 = !Number.isNaN(cv) ? cv : vel > 0 ? vel : cx.p.vel;
         const cl = cx.read('len'), lenTicks = !Number.isNaN(cl) ? 0.05 + cl * 4 : cx.p.len;
         const subs = Math.max(1, Math.round(lenTicks * cx.info.subs));
+        if (cx.p.poly >= 0.5) {   // poly: notes sound together, each ends on its own
+          if (held.has(n)) cx.host.noteOff(cx.data.target, n);
+          cx.host.noteOn(cx.data.target, n, v2, -1, `ns:${cx.id}`);
+          const t = (held.get(n) ?? 0) + 1; held.set(n, t); last = n;
+          cx.host.recordNote(cx.id, cx.data.target, n, v2, subs);
+          cx.after(subs, () => { if (held.get(n) === t) { held.delete(n); cx.host.noteOff(cx.data.target, n); } }, true);
+          return;
+        }
         if (sounding >= 0) cx.host.noteOff(cx.data.target, sounding);
         cx.host.noteOn(cx.data.target, n, v2, sounding, `ns:${cx.id}`);
         sounding = n; last = n; const mine = ++token;
@@ -245,8 +291,8 @@ export const NS_TYPES = {
         cx.after(subs, () => { if (token === mine && sounding >= 0) { cx.host.noteOff(cx.data.target, sounding); sounding = -1; } }, true);
       },
       reset() { pitch = NaN; },
-      stop() { if (sounding >= 0) { cx.host.noteOff(cx.data.target, sounding); sounding = -1; } token++; },
-      view: () => ({ n: last, on: sounding >= 0 }),
+      stop() { if (sounding >= 0) { cx.host.noteOff(cx.data.target, sounding); sounding = -1; } for (const n of held.keys()) cx.host.noteOff(cx.data.target, n); held.clear(); token++; },
+      view: () => ({ n: last, on: sounding >= 0 || held.size > 0 }),
     }; },
   },
   set: {
