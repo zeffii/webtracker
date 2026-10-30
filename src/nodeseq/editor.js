@@ -2,14 +2,14 @@
 // the selected node. Events run along amber square ports, controls along cyan round ones; wires are drawn behind the nodes, and a little
 // light runs along a wire each time an event goes down it. The data is the song's `nodeseq` (see graphops.js); the audio thread runs it
 // (audio/nodeseq.js) and sends back what it did, which is drawn here.
-import { NS_TYPES, insOf, parseList, parseChordList, compileScript, DEFAULT_SCRIPT } from './nodes.js';
+import { NS_TYPES, DOT_TYPES, insOf, parseList, parseChordList, compileScript, DEFAULT_SCRIPT } from './nodes.js';
 import { ensureGraph, newGraph, addNode, connect, disconnect, removeNodes, duplicateNodes, cleanGraph, canConnect, GROUP_NAMES } from './graphops.js';
 import { chordView } from './chordtext.js';
-import { tileSize, tileLabel, drawGlyph } from './tiles.js';
+import { tileSize, tileLabel, drawGlyph, isDot, DOT } from './tiles.js';
 import { noteName } from '../seq/chordname.js';
 import { showContextMenu } from '../ui/ctxmenu.js';
 
-const FONT = '7px ui-monospace, Consolas, monospace', CATS = ['time', 'rhythm', 'values', 'chords', 'control', 'output', 'code', 'groups'];
+const FONT = '7px ui-monospace, Consolas, monospace', CATS = ['time', 'rhythm', 'values', 'chords', 'control', 'output', 'code', 'groups', 'routing'];
 export const GROUP_COLORS = ['#e0a84a', '#4fc3d9', '#c792ea', '#5fbf6a', '#ee7d5c', '#8a96f2', '#e5669c', '#a3b34c'];
 const METER = new Set(['lfo', 'ad', 'scale', 'hold', 'Pwhite', 'set']);   // nodes that show a level
 
@@ -92,6 +92,7 @@ export function createNodeSeqEditor({ root, getSong, noteTargets = () => [], par
     const b = { x: n.x, y: n.y, w, h, ins: [], outs: [] };
     const wired = new Set((graph()?.wires ?? []).filter(x => x.to.startsWith(`${n.id}.`)).map(x => x.to));
     const at = (i, count) => n.y + h * (i + 1) / (count + 1);
+    if (isDot(n.type)) { const c = { x: n.x + DOT / 2, y: n.y + DOT / 2 }; b.ins.push({ ...ins[0], ...c }); b.outs.push({ ...T.outs[0], ...c }); return b; }
     ins.forEach((p, i) => b.ins.push({ ...p, free: p.dyn && !wired.has(`${n.id}.${p.n}`), x: n.x, y: at(i, ins.length) }));
     T.outs.forEach((p, i) => b.outs.push({ ...p, x: n.x + w, y: at(i, T.outs.length) }));
     return b;
@@ -140,14 +141,15 @@ export function createNodeSeqEditor({ root, getSong, noteTargets = () => [], par
     g.wires.forEach((wr, i) => {
       const a = portPos(wr.from, 'out'), b = portPos(wr.to, 'in');
       if (!a || !b) return;
-      const c = curve(a, b), ev = a.k === 'e', picked = selWire === wr, lit = activeTo.has(wr.to);
+      const c = curve(a, b), ev = a.k === 'e', picked = selWire === wr, lit = !wr.off && activeTo.has(wr.to);
       ctx.beginPath(); ctx.moveTo(c[0], c[1]); ctx.bezierCurveTo(c[2], c[3], c[4], c[5], c[6], c[7]);
       ctx.strokeStyle = kindColor(C, a.k); ctx.lineWidth = picked ? 3 : lit ? 3 : a.k === 'h' ? 1.8 : ev ? 1.6 : 1.3; ctx.globalAlpha = picked || lit ? 1 : a.k === 'h' ? 0.5 : ev ? 0.85 : 0.9;
-      ctx.setLineDash(a.k === 'c' ? [2, 3] : a.k === 'w' ? [1, 3] : []); ctx.stroke(); ctx.setLineDash([]); ctx.globalAlpha = 1;
+      ctx.setLineDash(wr.off ? [4, 5] : a.k === 'c' ? [2, 3] : a.k === 'w' ? [1, 3] : []);
+      if (wr.off) { ctx.strokeStyle = C.ink; ctx.globalAlpha = picked ? 0.8 : 0.35; ctx.lineWidth = picked ? 2 : 1.2; }   // switched off: grey and dashed ctx.stroke(); ctx.setLineDash([]); ctx.globalAlpha = 1;
       curves.set(wr, c);
     });
     for (const p of pulses) {   // a light along a wire that carried an event
-      const wr = g.wires.filter(x => portPos(x.from, 'out')?.k === 'e')[p.w];
+      const wr = liveWires()[p.w];
       const c = wr && curves.get(wr); if (!c) continue;
       const t = clamp((now - p.t) / 300, 0, 1), [x, y] = bez(c, t);
       ctx.globalAlpha = 1 - t * 0.6; ctx.fillStyle = '#fff6dc'; ctx.strokeStyle = C.ev; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.arc(x, y, 3.4, 0, 7); ctx.fill(); ctx.stroke(); ctx.globalAlpha = 1;
@@ -184,6 +186,11 @@ export function createNodeSeqEditor({ root, getSong, noteTargets = () => [], par
     const T = NS_TYPES[n.type], picked = sel.has(n.id), now = typeof performance !== 'undefined' ? performance.now() : 0, gcol = GROUP_COLORS[n.group ?? 0], off = live && !live.on[n.group ?? 0];
     ctx.save();
     if (off) ctx.globalAlpha = 0.5;
+    if (isDot(n.type)) {   // a route point: a solid dot in its wire's colour
+      ctx.beginPath(); ctx.arc(b.x + b.w / 2, b.y + b.h / 2, b.w / 2, 0, 7); ctx.fillStyle = kindColor(C, T.outs[0].k); ctx.fill();
+      ctx.strokeStyle = picked ? C.hi : C.ink; ctx.lineWidth = picked ? 2.5 : 1; ctx.stroke();
+      ctx.restore(); return;
+    }
     roundRect(b.x, b.y, b.w, b.h, 5); ctx.fillStyle = C.bg; ctx.fill();   // the page's own colour first, so a wire behind the tile does not show through
     ctx.fillStyle = C.dark ? 'rgba(255,255,255,.09)' : 'rgba(0,0,0,.08)'; ctx.fill();
     const f = flash.get(n.id), lit = picked || active.has(n.id);
@@ -215,7 +222,7 @@ export function createNodeSeqEditor({ root, getSong, noteTargets = () => [], par
   function drawKeyboard(n, b, C) {
     const cv = chordView(n.data, n.params), on = active.has(n.id), kw = 4.2, x = b.x + b.w / 2 - kw * 7, ky = b.y + b.h + 3;
     const lo = cv.notes.length ? Math.floor(Math.min(...cv.notes) / 12) * 12 : 48;
-    const index = new Map(cv.notes.map((m, i) => [m, i]));
+    const index = new Map(cv.notes.map((m, i) => [m, i])), liveVels = live?.nodes?.[n.id]?.vels;   // while playing, the volumes the controls give now
     const keep = ctx.globalAlpha;
     ctx.globalAlpha = keep * (on ? 1 : 0.65);
     for (let i = 0; i < 14; i++) {
@@ -231,7 +238,7 @@ export function createNodeSeqEditor({ root, getSong, noteTargets = () => [], par
       const pc = m - lo, oct = Math.floor(pc / 12);
       if (pc < 0 || pc >= 24) continue;
       const wi = WHITE_PC.indexOf(pc % 12), cx = wi >= 0 ? x + (wi + 7 * oct) * kw + kw / 2 : x + (BLACK_AT[pc % 12] + 7 * oct) * kw + kw * 0.93;
-      const h = 12 * cv.vels[i]; ctx.fillStyle = C.ev; ctx.fillRect(cx - 1.5, ky + 16 + (12 - h), 3, Math.max(1, h));
+      const h = 12 * (liveVels?.length === cv.notes.length ? liveVels[i] : cv.vels[i]); ctx.fillStyle = C.ev; ctx.fillRect(cx - 1.5, ky + 16 + (12 - h), 3, Math.max(1, h));
     }
     ctx.globalAlpha = keep;
   }
@@ -283,12 +290,12 @@ export function createNodeSeqEditor({ root, getSong, noteTargets = () => [], par
   const euclid = (i, p) => { const s = Math.max(1, Math.round(p?.steps ?? 8)), pl = Math.max(0, Math.round(p?.pulses ?? 5)), r = Math.round(p?.rot ?? 0), k = (((i + r) % s) + s) % s; return (k * pl) % s < pl; };
 
   // ---- hit testing (world units)
-  function hitPort(wx, wy) {
+  function hitPort(wx, wy, want = null) {
     const g = graph(); if (!g) return null;
     let best = null, bd = 7;   // the nearest port within a few units
     for (const n of g.nodes) {
       const b = boxes.get(n.id); if (!b) continue;
-      for (const [list, side] of [[b.outs, 'out'], [b.ins, 'in']]) for (const p of list) { const d = Math.hypot(wx - p.x, wy - p.y); if (d < bd) { bd = d; best = { id: n.id, name: p.n, k: p.k, side, x: p.x, y: p.y, free: p.free }; } }
+      for (const [list, side] of [[b.outs, 'out'], [b.ins, 'in']]) for (const p of list) { if (want && side !== want) continue; const d = Math.hypot(wx - p.x, wy - p.y); if (d < (isDot(n.type) ? 4.5 : bd) && d < bd) { bd = d; best = { id: n.id, name: p.n, k: p.k, side, x: p.x, y: p.y, free: p.free }; } }
     }
     return best;
   }
@@ -343,6 +350,7 @@ export function createNodeSeqEditor({ root, getSong, noteTargets = () => [], par
       renderSide(); dirty = true; return;
     }
     const wr = hitWire(wx, wy);
+    if (wr && e.altKey) { toggleWire(wr); return; }   // Alt+click switches a wire off or on
     if (wr) { selWire = wr; sel.clear(); renderSide(); dirty = true; return; }
     selWire = null;
     if (e.shiftKey) drag = { kind: 'marquee', x0: sx, y0: sy, x: sx, y: sy, add: false };
@@ -369,7 +377,7 @@ export function createNodeSeqEditor({ root, getSong, noteTargets = () => [], par
     const d = drag; drag = null; dirty = true;
     const g = graph(), [sx, sy] = pos(e), [wx, wy] = toWorld(sx, sy);
     if (d.kind === 'wire') {
-      const q = hitPort(wx, wy);
+      const q = hitPort(wx, wy, d.from.side === 'out' ? 'in' : 'out');
       if (q && g) {
         const [a, b] = d.from.side === 'out' ? [d.from, q] : [q, d.from];
         if (a.side === 'out' && b.side === 'in' && canConnect(g, `${a.id}.${a.name}`, `${b.id}.${b.name}`)) {
@@ -398,9 +406,24 @@ export function createNodeSeqEditor({ root, getSong, noteTargets = () => [], par
     } else { view.x += (e.shiftKey ? e.deltaY : e.deltaX) / view.zoom; view.y += (e.shiftKey ? 0 : e.deltaY) / view.zoom; }
     dirty = true;
   }, { passive: false });
+  // The wires the engine runs, in its order: the ones that are on and join ports that are there. Its numbers for a pulse index this list.
+  const liveWires = () => (graph()?.wires ?? []).filter(x => { if (x.off) return false; const a = portPos(x.from, 'out'), b = portPos(x.to, 'in'); return !!a && !!b && a.k === b.k; });
+  // Switch a wire off without deleting it (or back on).
+  function toggleWire(wr) { checkpoint(); if (wr.off) delete wr.off; else wr.off = true; selWire = wr; structure(); }
+  // A route point put on a wire, where it was double-clicked: the wire now goes through the dot.
+  function insertDot(wr, wx, wy) {
+    const g = graph(), a = portOf(wr.from);
+    if (!g || !a) return;
+    checkpoint();
+    const dot = addNode(g, DOT_TYPES[a.k], Math.round((wx - DOT / 2) / 4) * 4, Math.round((wy - DOT / 2) / 4) * 4, { group: nodeOf(wr.from.split('.')[0])?.group ?? 0 });
+    const from = wr.from, to = wr.to;
+    disconnect(g, wr); selWire = null;
+    connect(g, from, `${dot.id}.in`); connect(g, `${dot.id}.out`, to);
+    sel = new Set([dot.id]); structure();
+  }
   canvas.addEventListener('dblclick', e => {
-    const [sx, sy] = pos(e), [wx, wy] = toWorld(sx, sy), n = hitNode(wx, wy);
-    if (!n) openPalette(sx, sy);
+    const [sx, sy] = pos(e), [wx, wy] = toWorld(sx, sy), n = hitNode(wx, wy), wr = !n && hitWire(wx, wy);
+    if (wr) insertDot(wr, wx, wy); else if (!n) openPalette(sx, sy);
   });
   canvas.addEventListener('contextmenu', e => {
     e.preventDefault();
@@ -415,7 +438,7 @@ export function createNodeSeqEditor({ root, getSong, noteTargets = () => [], par
       ]);
     } else if (wr) {
       selWire = wr; dirty = true;
-      showContextMenu(e, [{ label: 'Delete the wire', hint: 'Del', run: () => removeSelected() }]);
+      showContextMenu(e, [{ label: wr.off ? 'Switch the wire on' : 'Switch the wire off', hint: 'M', run: () => toggleWire(wr) }, { label: 'Delete the wire', hint: 'Del', run: () => removeSelected() }]);
     } else openPalette(sx, sy);
   });
 
@@ -505,6 +528,7 @@ export function createNodeSeqEditor({ root, getSong, noteTargets = () => [], par
     if (e.ctrlKey || e.metaKey || e.altKey) return false;
     if (k === 'Delete' || k === 'Backspace') { e.preventDefault(); removeSelected(); return true; }
     if (k === 'a' || k === 'A') { e.preventDefault(); const [mx, my] = hover ? toScreen(hover.x, hover.y) : [60, 40]; openPalette(mx, my); return true; }
+    if ((k === 'm' || k === 'M') && selWire) { toggleWire(selWire); return true; }
     if (k === 'Home') { fit(); return true; }
     if (k === 'Escape') { if (palState) hidePalette(); else { sel.clear(); selWire = null; renderSide(); dirty = true; } return true; }
     if (k >= '1' && k <= '8' && sel.size) { setGroupOf([...sel], Number(k) - 1); return true; }
@@ -699,7 +723,7 @@ export function createNodeSeqEditor({ root, getSong, noteTargets = () => [], par
       for (const w of m.w) { pulses.push({ w, t: now }); }
       void g;
       // which nodes the wires lead to light up
-      const evWires = graph()?.wires.filter(x => portOf(x.from)?.k === 'e') ?? [];
+      const evWires = liveWires();
       for (const w of m.w) { const wr = evWires[w]; if (wr) flash.set(wr.to.split('.')[0], now); }
     } else if (m.type === 'nsstate') { live = m; syncBarSoon(); }
     else if (m.type === 'nserr') { if (m.message) errors.set(m.id, m.message); else errors.delete(m.id); dirty = true; if (sel.has(m.id)) renderSide(); }

@@ -82,7 +82,7 @@ export function duplicateNodes(g, ids, dx = 24, dy = 24) {
   }
   for (const w of [...g.wires]) {
     const [a, ap] = w.from.split('.'), [b, bp] = w.to.split('.');
-    if (map.has(a) && map.has(b)) g.wires.push({ from: `${map.get(a)}.${ap}`, to: `${map.get(b)}.${bp}` });
+    if (map.has(a) && map.has(b)) g.wires.push({ from: `${map.get(a)}.${ap}`, to: `${map.get(b)}.${bp}`, ...(w.off ? { off: true } : {}) });
   }
   return made;
 }

@@ -2,6 +2,14 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 546 · 2026-10-30
+
+- Node Sequencer: **route points**, a dot that passes on what comes in (one for events, controls, chords and weights), for bending a wire around other nodes. Double-click a wire to put one on it, or drop a wire on empty space and pick "route". Drag from the middle of a dot to wire out of it; drag its rim to move it.
+- Wires can be **switched off** without deleting them: Alt+click a wire, or select it and press M, or right-click it. A wire that is off is grey and dashed and carries nothing (a chord wire that is off drops that chord from its Phrase node).
+- The keyboard under a Chord node now follows the volumes as they are while playing: tilt, level and a Voicing node moving show in the bars as they happen.
+- **Phrase** has a `length` input and a length knob: how many ticks its chords last. A number arriving at `length` stays in force until the next one (a Pseq of lengths gives every chord its own). The Chord node has the same knob. Events can now carry a length for the note they play, which the note node uses unless its own length is wired.
+- The lights that run along wires after an event were drawn on the wrong wire when control wires came before event wires in the graph; fixed.
+
 ## 545 · 2026-10-30
 
 - Node Sequencer: nodes are now small tiles. A glyph and one short value (the chord, the instrument, the parameter, the division) replace the header, the port names and the parameter lines; the group colour is the stripe on the left edge, and the parameters are in the panel as before. Ports are dots spread along the edges (events square, controls round, chords diamond, weights triangle), and resting the pointer on one shows its name and kind; on a node, its type and id. Steps, euclid, lfo and Voicing draw their own picture in the tile; a Chord node keeps its keyboard under it. A patch takes about a tenth of the room it did.

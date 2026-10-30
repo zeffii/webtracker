@@ -3882,6 +3882,34 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
       t = make(graph({ b: { params: { tilt: 1 } } })); t.run(17);
       assert.deepEqual(ons(t.log).filter(e => e.at / 2 === 16).map(e => [e.note, Math.round(e.vel * 100)]), [[64, 100], [67, 100]], 'tilt 1: the lowest note falls silent and is left out')
     }
+    // route points pass events, chords and weights on, so a wire can be bent around things
+    {
+      const t = make({ sub: 2, nodes: [{ id: 'c', type: 'clock' }, { id: 'r1', type: 'route' },
+        { id: 'a', type: 'Chord', data: { text: 'C-4 E-4 G-4' } }, { id: 'v', type: 'Voicing', data: { weights: [100, 40, 80] }, params: { notes: 3 } }, { id: 'rw', type: 'routeW' }, { id: 'rh', type: 'routeH' },
+        { id: 'p', type: 'Phrase' }, { id: 'n', type: 'note', params: { poly: 1, len: 4 }, data: { target: 'pad' } }],
+        wires: [{ from: 'c.bar', to: 'r1.in' }, { from: 'r1.out', to: 'p.index' }, { from: 'v.weights', to: 'rw.in' }, { from: 'rw.out', to: 'a.weights' }, { from: 'a.chord', to: 'rh.in' }, { from: 'rh.out', to: 'p.c1' }, { from: 'p.notes', to: 'n.note' }] });
+      t.run(1);
+      assert.deepEqual(ons(t.log).map(e => [e.note, Math.round(e.vel * 100)]), [[60, 100], [64, 40], [67, 80]], 'events, a chord and weights all pass through route points');
+    }
+    // a wire switched off carries nothing; a chord wire switched off drops that chord from the phrase
+    {
+      const g = off => ({ sub: 2, nodes: [{ id: 'c', type: 'clock' }, { id: 'a', type: 'Chord', data: { text: 'C-4 E-4' } }, { id: 'b', type: 'Chord', data: { text: 'D-4 F-4' } }, { id: 'p', type: 'Phrase' }, { id: 'n', type: 'note', params: { poly: 1, len: 4 }, data: { target: 'pad' } }],
+        wires: [{ from: 'c.bar', to: 'p.index' }, { from: 'a.chord', to: 'p.c1', ...(off ? { off: true } : {}) }, { from: 'b.chord', to: 'p.c2' }, { from: 'p.notes', to: 'n.note' }] });
+      let t = make(g(false)); t.run(17);
+      assert.deepEqual(ons(t.log).map(e => e.note), [60, 64, 62, 65], 'both chords play, one a bar');
+      t = make(g(true)); t.run(17);
+      assert.deepEqual(ons(t.log).map(e => e.note), [62, 65, 62, 65], 'with the first chord wire off only the second is left');
+      const quiet = make({ sub: 2, nodes: [{ id: 'c', type: 'clock' }, { id: 'n', type: 'note', data: { target: 'pad' } }], wires: [{ from: 'c.bar', to: 'n.trig', off: true }] }); quiet.run(3);
+      assert.equal(ons(quiet.log).length, 0, 'an event wire that is off is silent');
+    }
+    // Phrase length: the notes last as long as the length port says, until it says otherwise (the beat number picks the chord)
+    {
+      const t = make({ sub: 2, nodes: [{ id: 'c', type: 'clock' }, { id: 'a', type: 'Chord', data: { text: 'C-4 E-4' } }, { id: 'b', type: 'Chord', data: { text: 'D-4 F-4' } }, { id: 'p', type: 'Phrase' },
+        { id: 'l', type: 'Pseq', data: { text: '2 5' } }, { id: 'n', type: 'note', params: { poly: 1, len: 8 }, data: { target: 'pad' } }],
+        wires: [{ from: 'c.beat', to: 'l.next' }, { from: 'l.value', to: 'p.length' }, { from: 'c.beat', to: 'p.index' }, { from: 'a.chord', to: 'p.c1' }, { from: 'b.chord', to: 'p.c2' }, { from: 'p.notes', to: 'n.note' }] });
+      t.run(10);
+      assert.deepEqual([...new Set(t.log.filter(e => e.type === 'noteOff').map(e => e.at / 2))], [2, 9], 'the chord at tick 0 lasts 2 ticks, the one at tick 4 lasts 5');
+    }
     // the voicing demo: each bar plays the next chord of the Phrase node and the bass follows its root
     {
       const demo = JSON.parse((await import('node:fs')).readFileSync(new URL('../src/project/demos/voicing.wax', import.meta.url), 'utf8')).song.nodeseq;

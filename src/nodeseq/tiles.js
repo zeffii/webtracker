@@ -3,6 +3,8 @@
 //
 // A glyph is a list of [how, path] in a 12 x 12 box: 's' strokes the path, 'f' fills it, 'd' strokes it faintly. Paths are SVG path data.
 
+const NS_TYPES_DOT = new Set(['route', 'routeC', 'routeH', 'routeW']);
+export const isDot = type => NS_TYPES_DOT.has(type);
 export const TILE = 34;        // the width and least height of a tile
 export const PORT_GAP = 9;     // room for each port along an edge
 
@@ -39,7 +41,10 @@ export const GLYPHS = {
 export const WIDTH = { steps: 150, euclid: 100 };
 
 // The size of a tile: wide enough for its own picture and tall enough for the ports along its edges.
+export const DOT = 14;   // a route point is a dot this wide
+
 export function tileSize(type, inCount, outCount, data, params) {
+  if (NS_TYPES_DOT.has(type)) return { w: DOT, h: DOT };
   const rows = Math.max(inCount, outCount);
   let w = WIDTH[type] ?? TILE;
   if (type === 'Voicing') w = Math.max(TILE, Math.round(params?.notes ?? 4) * 8 + 10);

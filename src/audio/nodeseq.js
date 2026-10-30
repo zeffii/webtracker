@@ -69,6 +69,7 @@ export class NodeSeq {
     for (const [id, rec] of old) if (!this.recs.has(id)) rec.inst?.stop?.();
     this.wires = [];
     for (const w of graph?.wires ?? []) {
+      if (w.off) continue;   // a wire that is switched off carries nothing, and its input is as if nothing were wired to it
       const [fid, fport] = String(w.from).split('.'), [tid, tport] = String(w.to).split('.');
       const a = this.recs.get(fid), b = this.recs.get(tid);
       const po = a && NS_TYPES[a.type].outs.find(p => p.n === fport), pi = b && findIn(b.type, tport);
@@ -91,7 +92,7 @@ export class NodeSeq {
     const cx = {
       id: n.id, p: rec.p, info: this.info, host: this.host,
       get data() { return rec.data; },
-      emit: (out, v, vel) => self.emit(rec, out, v, vel),
+      emit: (out, v, vel, len) => self.emit(rec, out, v, vel, len),
       has: name => !!rec.srcs[name],
       source: name => rec.srcs[name]?.rec.id ?? null,
       pull: name => { const s = rec.srcs[name]; return s ? (s.rec.inst.get?.(s.out) ?? null) : null; },
@@ -118,19 +119,19 @@ export class NodeSeq {
   }
 
   // ---- events
-  emit(rec, out, v, vel) {
+  emit(rec, out, v, vel, len) {
     const list = rec.outs[out];
     if (!list || !this.on[rec.group]) return;
     for (const w of list) {
       if (this.watch && this.pulses.length < 256) this.pulses.push(w.i);
-      this.deliver(w.rec, w.port, v, vel);
+      this.deliver(w.rec, w.port, v, vel, len);
     }
   }
 
-  deliver(rec, port, v, vel) {
+  deliver(rec, port, v, vel, len) {
     if (this.depth > 32 || !this.on[rec.group]) return;   // a loop of wires stops itself after a while
     this.depth++;
-    try { rec.inst.event?.(port, v, vel); } catch (e) { this.host.report(rec.id, `${e.name}: ${e.message}`); } finally { this.depth--; }
+    try { rec.inst.event?.(port, v, vel, len); } catch (e) { this.host.report(rec.id, `${e.name}: ${e.message}`); } finally { this.depth--; }
   }
 
   after(rec, subs, fn, always) {
