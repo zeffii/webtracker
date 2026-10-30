@@ -2,6 +2,11 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 550 · 2026-10-30
+
+- Node Sequencer: tile borders are the theme's accent colour, almost see-through (a node that is selected, playing or just got an event is drawn solid).
+- Fix: tiles now hide wires that run behind them (the fill used the canvas's own see-through background; it now uses the page colour).
+
 ## 549 · 2026-10-30
 
 - Node Sequencer: colour returns, quietly. Wires are a deep tint of their kind (amber events, teal controls, violet chords, olive weights), close to the ink, and ports are rings in the same colour. Dashes and port shapes stay, so kinds can still be told apart without colour. Note volume bars, weight bars and step cells take the same tints.

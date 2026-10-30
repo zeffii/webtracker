@@ -41,11 +41,19 @@ export function createNodeSeqEditor({ root, getSong, noteTargets = () => [], par
   const undoStack = [], redoStack = [];
   const dark = () => { const m = (typeof getComputedStyle === 'function' ? getComputedStyle(canvas).color : '').match(/\d+/g) ?? [20, 20, 20]; return (m[0] * 0.3 + m[1] * 0.59 + m[2] * 0.11) > 140; };   // light ink means a dark page
   // Each kind of port and wire is a deep tint, close to the ink.
+  // The colour of the page behind the canvas: the canvas itself is see-through, so look up through its parents.
+  const pageColour = () => {
+    for (let el = canvas; el && typeof getComputedStyle === 'function'; el = el.parentElement) {
+      const c = getComputedStyle(el).backgroundColor, m = c.match(/[\d.]+/g);
+      if (m && (m.length < 4 || +m[3] > 0.5)) return c;
+    }
+    return '#222';
+  };
   const colours = () => {
     const d = dark(), cs = typeof getComputedStyle === 'function' ? getComputedStyle(canvas) : null;
     // A drawing in ink on paper: every kind of port and wire is the ink colour, told apart by shape and dash. Only a selection (blue) and an error (red) have a colour.
     const ink = cs?.color || '#ccc';
-    return { ink, bg: cs?.backgroundColor || '#222', paper: d ? '#25282e' : '#eceef1', ...(d ? { ev: '#e8b866', ct: '#7ad2e0', hc: '#bda4ea', wc: '#a6d27c' } : { ev: '#7a4d0a', ct: '#14606d', hc: '#52398c', wc: '#3d6020' }), hi: cs?.getPropertyValue('--hi').trim() || '#3b6ea8', bad: '#e5484d', dark: d };
+    return { ink, bg: pageColour(), paper: d ? '#25282e' : '#eceef1', ...(d ? { ev: '#e8b866', ct: '#7ad2e0', hc: '#bda4ea', wc: '#a6d27c' } : { ev: '#7a4d0a', ct: '#14606d', hc: '#52398c', wc: '#3d6020' }), accent: cs?.getPropertyValue('--accent').trim() || cs?.getPropertyValue('--hi').trim() || '#3b6ea8', hi: cs?.getPropertyValue('--hi').trim() || '#3b6ea8', bad: '#e5484d', dark: d };
   };
 
   // ---- the bar
@@ -249,8 +257,9 @@ export function createNodeSeqEditor({ root, getSong, noteTargets = () => [], par
     }
     ctx.fillStyle = C.bg; ctx.fillRect(b.x, b.y, b.w, b.h);   // the page's own colour, so a wire behind the tile does not show through
     const f = flash.get(n.id);
-    ctx.strokeStyle = picked ? C.hi : C.ink; ctx.lineWidth = picked || active.has(n.id) || (f && now - f < 260) ? 2 : 1;   // the playing chord and a node that just got an event are drawn heavier
-    ctx.strokeRect(b.x + 0.5, b.y + 0.5, b.w - 1, b.h - 1);
+    const strong = picked || active.has(n.id) || (f && now - f < 260);   // the playing chord and a node that just got an event are drawn heavier
+    ctx.strokeStyle = picked ? C.hi : C.accent; ctx.lineWidth = strong ? 2 : 1; ctx.globalAlpha = strong ? 1 : 0.22;   // the border is the theme's accent, almost see-through until the node is busy
+    ctx.strokeRect(b.x + 0.5, b.y + 0.5, b.w - 1, b.h - 1); ctx.globalAlpha = 1;
     if ((n.group ?? 0) > 0) { ctx.font = '6px ui-monospace, Consolas, monospace'; ctx.fillStyle = C.ink; ctx.textAlign = 'right'; ctx.fillText(GROUP_NAMES[n.group], b.x + b.w - 3, b.y + 8); ctx.textAlign = 'left'; }   // the group, when it is not A
     if (errors.has(n.id)) { ctx.fillStyle = C.bad; ctx.beginPath(); ctx.arc(b.x + b.w - 5, b.y + 5, 2.5, 0, 7); ctx.fill(); }
     drawBody(n, b, C, T);
