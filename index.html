@@ -173,6 +173,21 @@
     body.seqfit #pane-arrange:not([hidden]) { padding-bottom: 0; min-height: var(--arr-h, 0); box-sizing: border-box; }   /* the arrangement and its side panel run down to the status bar */
     body.seqfit #pane-arrange .pane-main { display: flex; flex-direction: column; align-self: stretch; }
     body.seqfit #pane-arrange #seq { flex: 1 1 auto; box-sizing: border-box; }
+    /* the mixer under the arrangement: a short strip per lane, a vertical fader and its buttons side by side */
+    #mixer { display: flex; gap: 0; overflow-x: auto; border-top: 2px solid var(--accent); background: var(--panel); flex: none; }
+    .mx-strip { flex: 0 0 8.6rem; padding: 5px 8px 6px; border-right: 1px solid color-mix(in srgb, var(--fg) 20%, transparent); display: flex; flex-direction: column; gap: 3px; box-sizing: border-box; }
+    .mx-strip.cur { box-shadow: inset 0 2px 0 var(--accent); }
+    .mx-strip.nooutput { opacity: .55; }
+    .mx-name { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .mx-row { display: flex; gap: 8px; }
+    .mx-track { position: relative; width: 22px; height: 62px; border: 1px solid color-mix(in srgb, var(--fg) 40%, transparent); box-sizing: border-box; cursor: ns-resize; touch-action: none; background: color-mix(in srgb, var(--fg) 6%, var(--panel)); }
+    .mx-track i { position: absolute; left: 0; right: 0; bottom: 0; background: color-mix(in srgb, var(--accent) 45%, transparent); }
+    .mx-track b { position: absolute; left: -3px; right: -3px; height: 6px; margin-bottom: -3px; background: var(--accent); }
+    .mx-side { display: grid; grid-template-columns: auto auto; gap: 3px; align-content: start; justify-content: start; min-width: 0; }
+    .mx-side .mx-db, .mx-side .mx-btn:last-child { grid-column: 1 / 3; }
+    .mx-db { font-size: .8em; opacity: .75; white-space: nowrap; }
+    .mx-btn { padding: 0 6px; font-size: .8em; line-height: 1.35; }
+    .mx-btn.on { background: var(--accent); color: var(--bg, #fff); }
     #pane-arrange #seq { margin-top: 0; }   /* its top edge level with the pattern list panel beside it */
     /* the lane and silence controls under the pattern list */
     #seq-side.sized { height: var(--list-h); max-height: none; }
@@ -1601,6 +1616,7 @@
     <div id="side-grip" tabindex="0" role="separator" aria-orientation="vertical" aria-label="Width of the pattern list: drag, or use Left and Right; double-click to hide or show it" title="Drag to change the width of the pattern list (all the way right hides it); double-click to hide or show"></div>
     <div class="pane-main">
       <pre id="seq" tabindex="0"></pre>
+      <div id="mixer" hidden aria-label="Mixer: a strip for each lane"></div>
       <div id="seq-grip" class="grip" tabindex="0" role="separator" aria-orientation="horizontal" aria-label="Rows shown: drag, or use Up and Down" title="Drag to change how many rows are shown"></div>
     </div>
       <aside class="keys" aria-label="Arrangement patterns and shortcuts">
@@ -1623,6 +1639,7 @@
         </div>
         <div class="manage row">
           <button id="add-lane" disabled title="Add a lane that plays this instrument">Add lane for</button><select id="add-lane-inst" aria-label="Instrument for the new lane" disabled></select>
+          <button id="mixer-toggle" type="button" aria-pressed="false" title="Show a mixer under the arrangement: a fader for each lane that drives its instrument's Out node">Mixer</button>
           <button id="seq-wrap" type="button" aria-pressed="false" title="On: Right on the last lane wraps to the first (and Left on the first to the last). Off: the cursor stops at the ends.">Wrap</button>
         </div>
         </div>

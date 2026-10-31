@@ -62,6 +62,7 @@ import { createSequenceView } from './seq/seqview.js';
 import { attachGrip } from './ui/grip.js';
 import { createTrackerView } from './seq/view.js';
 import { createTabs } from './ui/tabs.js';
+import { createMixer } from './ui/mixer.js';
 import { createScriptRunner } from './script/client.js';
 import { createScriptScreen } from './script/screen.js';
 import { createScratch, sendEdits } from './script/scratch.js';
@@ -168,7 +169,7 @@ let sampleBrowser = null;
 let replaceTarget = null;   // the slot a Replace button was pressed on, while the file chooser is open   // the sample browser (made further down); leaving the Samples screen stops what it is playing
 let tabBefore = 'patterns', tabNow = 'patterns';   // where the Info close button goes back to
 const tabs = createTabs({
-  onChange: id => { if (id !== 'samples') sampleBrowser?.stop(); if (id === 'dsp') dspView?.open(patcher?.instrument); if (id === 'nodeseq') nsView?.refresh(); nsFlags(); if (id === 'shader') { shaderView?.load(); if (!vizOn) config.set('visualOn', true); } if (id !== tabNow) { tabBefore = tabNow; tabNow = id; } applyDock(id); keysRefresh(id); requestAnimationFrame(() => { fitArrangement(); syncFloat(); placeViz(); placeMeters(); }); },
+  onChange: id => { if (id !== 'samples') sampleBrowser?.stop(); if (id === 'dsp') dspView?.open(patcher?.instrument); if (id === 'nodeseq') nsView?.refresh(); if (id === 'arrange') { mixer.refresh(); fitArrangement(); } nsFlags(); if (id === 'shader') { shaderView?.load(); if (!vizOn) config.set('visualOn', true); } if (id !== tabNow) { tabBefore = tabNow; tabNow = id; } applyDock(id); keysRefresh(id); requestAnimationFrame(() => { fitArrangement(); syncFloat(); placeViz(); placeMeters(); }); },
   tabs: [
     { id: 'patterns', key: 'F1', el: $('pane-patterns'), button: $('tab-patterns'), focus: $('view') },
     { id: 'samples', key: 'F2', el: $('pane-samples'), button: $('tab-samples'), focus: $('smp') },
@@ -308,7 +309,7 @@ const seqView = createSequenceView({
   follow: () => following,
   el: $('seq'), statusEl: $('seq-status'), undoEl: $('seq-undo'), listEl: $('seq-list'), transport: engine.transport, onToggle: togglePlay,
   onOpen: (lane, tick, { solo = false } = {}) => { if (!solo || !view.enterSolo(lane, tick)) view.goto(lane, tick); tabs.show('patterns'); },
-  onMove: (lane, tick) => { view.goto(lane, tick); followLane(lane); help.update(project?.lanes?.[lane]); },
+  onMove: (lane, tick) => { mixer.cursor(); view.goto(lane, tick); followLane(lane); help.update(project?.lanes?.[lane]); },
   onParams: () => setFloat(true),
   instruments: () => listedInstruments(),
   unassigned: () => { const used = new Set(project.lanes.map(l => l.instrument)); return listedInstruments().filter(id => !used.has(id)); },
@@ -321,8 +322,32 @@ const seqView = createSequenceView({
   onAddLane: (id, side) => { try { const at = cursorLane(), lane = addLaneFor(id); placeLane(lane.id, at, side); projStatus(`Added lane ${lane.id}.`); } catch (err) { projStatus(err.message); } },
   onSeek: tick => { if (!started) return; if (playing) engine.play(tick); else setPlaying(true, tick); },
   onSong: () => songChanged(),
-  onShape: li => { const l = project?.lanes?.[li]; if (l) engine.setLane({ id: l.id, instrument: l.instrument, columns: l.columns, pages: l.pages, mask: l.mask, auto: l.auto }); },
+  onShape: li => { mixer?.refresh(); const l = project?.lanes?.[li]; if (l) engine.setLane({ id: l.id, instrument: l.instrument, columns: l.columns, pages: l.pages, mask: l.mask, auto: l.auto }); },
 });
+
+// ---- The mixer under the arrangement ----
+// Each strip proxies the Out node of its lane's instrument; its gain and master switch are written to that node, and to the running engine.
+const mixer = createMixer({
+  el: $('mixer'),
+  lanes: () => project?.lanes ?? [],
+  instruments: () => project?.instruments ?? {},
+  cursorLane: () => seqView.lane,
+  setParam: (inst, nodeId, name, value) => {
+    const node = project.instruments[inst].graph.nodes.find(n => n.id === nodeId);
+    node.params = { ...node.params, [name]: value };
+    const address = `${inst}.${nodeId}.${name}`;
+    if (engine.registry.slots.has(address)) engine.set(address, value);
+  },
+  solo: li => { project.editor.solo(li); seqView.draw?.(); },
+  silence: li => { project.editor.silence(li); seqView.draw?.(); view.draw?.(); },
+});
+{
+  let on = false;
+  try { on = localStorage.getItem('webtracker.mixer') === '1'; } catch {}
+  const apply = () => { $('mixer').hidden = !on; $('mixer-toggle').setAttribute('aria-pressed', String(on)); if (on) mixer.refresh(); };
+  $('mixer-toggle').addEventListener('click', e => { on = !on; try { localStorage.setItem('webtracker.mixer', on ? '1' : '0'); } catch {} apply(); fitArrangement(); e.currentTarget.blur(); });
+  apply();
+}
 
 // ---- Scripts ----
 // A script runs in a Worker on a copy of the pattern under the pattern editor's cursor (or its selection) and gives back
@@ -624,7 +649,7 @@ const fitArrangement = () => {
   document.body.classList.toggle('seqfit', config.get('seqFit'));
   document.body.classList.toggle('viewfit', config.get('viewFit'));
   if (config.get('seqFit') && tabs.active === 'arrange') {
-    const el = $('seq'), pane = $('pane-arrange'), room = innerHeight - el.getBoundingClientRect().top - foot - 2;
+    const el = $('seq'), pane = $('pane-arrange'), room = innerHeight - el.getBoundingClientRect().top - foot - 2 - ($('mixer').hidden ? 0 : $('mixer').offsetHeight);   // the mixer takes its own height off the rows
     seqView.setRows(Math.floor(room / 18) - Math.max(0, el.childElementCount - seqView.rows));
     document.body.style.setProperty('--arr-h', `${Math.max(0, innerHeight - pane.getBoundingClientRect().top - foot)}px`);   // the panels reach the top of the status bar
   }
@@ -1200,6 +1225,7 @@ $('length').addEventListener('change', () => {
     const editor = createEditor(lanes, data.song.length);
     project = { song: data.song, instruments: project.instruments, samples: project.samples, lanes, editor };
     seqView.load({ lanes, song: data.song, editor });
+    mixer.refresh();
     view.load({ lanes, song: data.song, editor });
     const lane = Math.min(at.lane, lanes.length - 1);
     seqView.goto(lane, Math.min(at.tick, n - 1)); view.goto(lane, Math.min(at.vTick ?? 0, n - 1));
@@ -1557,6 +1583,7 @@ function openProject({ song, instruments, samples }, { stay = false, instrument 
   nsPush(); nsView?.load();
   refreshProjectUi();
   seqView.load({ lanes, song, editor });
+  mixer.refresh();
   view.load({ lanes, song, editor });
   const at = Math.max(lanes.length > 1 ? 1 : 0, lanes.findIndex(l => l.id === lane));   // not the master lane, to start with
   view.goto(at, 0); seqView.goto(at, 0);

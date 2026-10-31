@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 583 · 2026-10-31
+
+- **A mixer under the arrangement** (the Mixer button on the arrangement's side panel; it is remembered). Every lane that makes sound gets a short strip: a vertical fader, its level in dB, M (silence), S (solo) and "mix". Each strip stands in for the Out node of the lane's instrument: the fader is that node's gain (double-click sets 0.8), "mix" is its master switch, so moving one moves the other, and lanes that share an instrument share a gain. The lane under the cursor has a blue rule over its strip. No meters yet.
+
 ## 582 · 2026-10-31
 
 - **Hold Shift over a wire to see what it sends.** A small box beside the pointer lists the wire's last eight messages, newest first: when (tick), the value (with the note name when the wire goes to a note or pitch input), and the volume and length where there are any. Control, chord and weights wires are read by the target rather than sent, and the box says so. Messages are collected only while the Node Sequencer tab is open and playing.

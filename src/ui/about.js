@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['583', ['Arrangement: a Mixer under the lanes with a vertical fader, M, S and mix per lane, standing in for each instrument\'s Out node']],
   ['582', ['Node Sequencer: hold Shift over a wire to see its last messages (tick, value, note name, volume, length); the vocoder demo is the tuned version']],
   ['581', ['Node Sequencer: the Chord keyboard is in the bar under the graph, parameters stack four to a column, and a selected node is drawn with a glow and brackets']],
   ['580', ['Steps nodes: a list of probabilities (click a step to cycle it); the Node Sequencer properties are a bar under the graph']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['576', ['A section node passes the clock\'s ticks on only between a start and an end tick; the node demo uses it']],
   ['575', ['The Shader and DSP buttons start hidden; a flask button in the status bar shows them']],
   ['574', ['Node Sequencer: Pattern, switch, pick, gate, counter, compare, flip, once, ratchet, latch and drunk nodes; a demo made of nodes (?demo=interstellar-nodes); straight wires between ports that line up']],
-  ['573', ['The Node Sequencer is a line drawing that runs top to bottom: one-line nodes, dim outlines, ports shaped by kind, a new rail icon']],
                     ];
