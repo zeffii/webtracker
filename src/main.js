@@ -26,6 +26,7 @@ import { createDspView } from './ui/dspview.js';
 import * as ops from './project/ops.js';
 import { importMidi, parseMidi } from './project/midi.js';
 import { modToProject, parseMod } from './project/mod.js';
+import { parseSunvox, sunvoxToProject } from './project/sunvox.js';
 import * as presets from './project/presets.js';
 import { LIBRARY_EXT, addToLibrary, importFromLibrary, newLibrary, parseLibrary, serializeLibrary } from './project/library.js';
 import { createRecorder } from './project/recorder.js';
@@ -2108,6 +2109,13 @@ $('file').addEventListener('change', async e => {
       const mod = parseMod(await file.arrayBuffer()), data = modToProject(mod, file.name.replace(/\.mod$/i, ''));
       openProject(data);
       $('status').textContent = `Loaded ${file.name}: ${mod.channels} channels, ${data.song.length} ticks at ${data.song.bpm} bpm.`;
+      return;
+    }
+    if (/\.sunvox$/i.test(file.name)) {   // a SunVox file is a whole song too: its notes and arrangement, a lane per module that plays notes
+      if (!confirm('Replace the current project with this SunVox file? Save first if you want to keep it.')) return;
+      const sv = parseSunvox(await file.arrayBuffer()), data = sunvoxToProject(sv, file.name.replace(/\.sunvox$/i, ''));
+      openProject(data);
+      $('status').textContent = `Loaded ${file.name}: ${data.song.lanes.length - 1} lanes from ${sv.patterns.length} patterns at ${data.song.bpm} bpm (notes only; the sounds are plain synths).`;
       return;
     }
     openProject(parseProject(await file.text()));

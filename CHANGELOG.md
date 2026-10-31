@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 563 · 2026-10-31
+
+- **SunVox import.** Open a `.sunvox` file (Open, like a MOD) and its notes and arrangement replace the project: each module that plays notes gets a lane on a plain synth named after it, each SunVox pattern becomes a pattern on the lanes it plays, and every placement, clones included, sits where it was on the SunVox timeline. Tracks a module plays on become its note columns (up to eight); velocity comes across, a note off with no module stops whatever its track last played, and effects and controllers are left out. One SunVox line is one tick; at speed 6 that is four to the beat at the same BPM, and a speed that does not divide 24 keeps the tempo through the BPM instead. The parser is `src/project/sunvox.js`.
+
 ## 562 · 2026-10-30
 
 - Shift + mouse wheel in the pattern editor moves one row per notch.

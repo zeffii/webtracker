@@ -9469,4 +9469,52 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   console.log('ok: progression demo');
 }
 
+// 115. SunVox import: notes and arrangement. A hand-made file: two generators, a pattern, a clone of it further on, and
+// a note off with no module that stops the note its track last played.
+{
+  const { parseSunvox, sunvoxToProject } = await import('../src/project/sunvox.js');
+  const chunk = (id, bytes = []) => { const b = [...id].map(c => c.charCodeAt(0)); const n = bytes.length; return [...b, n & 255, (n >> 8) & 255, (n >> 16) & 255, n >>> 24, ...bytes]; };
+  const i32 = v => [v & 255, (v >> 8) & 255, (v >> 16) & 255, (v >>> 24) & 255];
+  const str = t => [...t].map(c => c.charCodeAt(0)).concat(0);
+  const ev = (note = 0, vel = 0, module = 0) => [note, vel, module & 255, module >> 8, 0, 0, 0, 0];
+  const lines = [   // 2 tracks x 4 lines
+    [ev(49, 129, 2), ev(37, 65, 3)],   // C-4 on gen A at full velocity, C-3 on gen B at half
+    [ev(), ev()],
+    [ev(128), ev()],                    // note off, no module: gen A's track
+    [ev(51, 0, 2), ev(128, 0, 3)],
+  ];
+  const module = name => [...chunk('SFFF', i32(0)), ...chunk('SNAM', str(name)), ...chunk('SEND')];
+  const bytes = [
+    ...chunk('SVOX'), ...chunk('BPM ', i32(140)), ...chunk('SPED', i32(6)), ...chunk('NAME', str('sv test')),
+    ...chunk('PDTA', lines.flat(2)), ...chunk('PCHN', i32(2)), ...chunk('PLIN', i32(4)), ...chunk('PNME', str('intro')), ...chunk('PXXX', i32(8)), ...chunk('PYYY', i32(0)), ...chunk('PEND'),
+    ...chunk('PPAR', i32(0)), ...chunk('PXXX', i32(16)), ...chunk('PYYY', i32(0)), ...chunk('PEND'),
+    ...module('Output'), ...module('Gen A'), ...module('Gen B'),
+  ];
+  const sv = parseSunvox(new Uint8Array(bytes).buffer);
+  assert.equal(sv.bpm, 140); assert.equal(sv.patterns.length, 2); assert.equal(sv.patterns[1].parent, 0);
+  assert.deepEqual(sv.modules.map(m => m.name), ['Output', 'Gen A', 'Gen B']);
+  const data = sunvoxToProject(sv);
+  assert.deepEqual(data.song.lanes.map(l => l.id), ['master', 'Gen_A', 'Gen_B']);
+  const [, a, b] = data.song.lanes;
+  assert.deepEqual(a.placements.map(p => [p.start, p.length]), [[0, 4], [8, 4]], 'the clone is placed again, the first placement starts the song');
+  assert.deepEqual(Object.values(a.patterns)[0].text.split('\n'), ['C-4 FF', '... ..', '=== ..', 'D-4 ..'], 'a note off with no module stops the track\'s last note');
+  assert.deepEqual(Object.values(b.patterns)[0].text.split('\n'), ['C-3 80', '... ..', '... ..', '=== ..']);
+  assert.equal(data.song.ticksPerBeat, 4); assert.equal(data.song.bpm, 140);
+  assert.equal(sunvoxToProject({ ...sv, speed: 9 }).song.bpm, Math.round(140 * 6 / 9), 'an odd speed keeps the tempo through the BPM');
+  assert.throws(() => parseSunvox(new ArrayBuffer(16)), /Not a SunVox/);
+  // it plays: both lanes sound
+  const registry = new ParamRegistry();
+  const rt = new GraphRuntime({ sampleRate: sr, params: registry.values });
+  const seq = new Sequencer({ sampleRate: sr, runtime: rt, params: registry.values, transport: new Int32Array(new SharedArrayBuffer(8)) });
+  for (const [id, def] of Object.entries(data.instruments)) rt.load(compile(def.graph, { instrument: id, nodeTypes: NODE_TYPES, registry }));
+  seq.setSong(data.song);
+  const heard = new Set(), note = rt.note.bind(rt);
+  rt.note = (id, msg) => { if (msg.type === 'noteOn') heard.add(id); note(id, msg); };
+  prepareSong(data.song, data.instruments, registry).forEach(l => seq.setLane(l));
+  seq.play();
+  render(seq, 0.5);
+  assert.deepEqual([...heard].sort(), ['Gen_A', 'Gen_B']);
+  console.log('ok: sunvox import');
+}
+
 console.log('smoke test passed');
