@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['589', ['The arrangement line is every 256 ticks; no error in the graph editor of an empty song']],
   ['588', ['Fix: the line over every 512th tick is now visible']],
   ['587', ['Mixer: small lane names and the retroslate look']],
   ['586', ['Fix: the page failed to start with the mixer on (and projects failed to load)']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['582', ['Node Sequencer: hold Shift over a wire to see its last messages (tick, value, note name, volume, length); the vocoder demo is the tuned version']],
   ['581', ['Node Sequencer: the Chord keyboard is in the bar under the graph, parameters stack four to a column, and a selected node is drawn with a glow and brackets']],
   ['580', ['Steps nodes: a list of probabilities (click a step to cycle it); the Node Sequencer properties are a bar under the graph']],
-  ['579', ['Out node: a master switch; off, the instrument is heard only by sidechain nodes (the vocoder demo is now only the vocoder)']],
                     ];

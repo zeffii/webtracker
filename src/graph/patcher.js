@@ -737,6 +737,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
   const wiresAt = h => (h ? desc().connections.map((c, i) => [c, i]).filter(([c]) => c[h.side === 'in' ? 1 : 0] === `${h.node}.${h.port}`).map(([, i]) => i) : []);
   const litWire = () => { const ws = wiresAt(hoverPort); return ws.length ? ws[pickWire % ws.length] : -1; };
   function setHover(e) {
+    if (!def()) return null;   // an empty song has no instrument to hover over
     const h = hitTest(desc(), nodeTypes, e.offsetX, e.offsetY), p = h?.kind === 'port' ? h : null;
     const same = p && hoverPort && p.node === hoverPort.node && p.port === hoverPort.port && p.side === hoverPort.side;
     if (!same) { hoverPort = p; pickWire = 0; dirty = true; if (p && (!doc.activeElement || doc.activeElement === doc.body)) canvas.focus?.(); }

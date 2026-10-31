@@ -2,6 +2,11 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 589 · 2026-10-31
+
+- **The faint line in the arrangement is now every 256 ticks** (it was 512).
+- **Fix: no error in the graph editor of an empty song.** Moving the pointer over the graph with no instrument used to throw "Cannot read properties of undefined (reading 'graph')".
+
 ## 588 · 2026-10-31
 
 - **Fix: the 512-tick line was hidden** behind the cells' own backgrounds. It is now drawn over them, a thin accent-coloured rule above every 512th tick.
