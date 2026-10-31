@@ -410,6 +410,17 @@ const HINTS = {
     mix: 'Dry/wet balance. The dry sound is delayed to match, so mixing stays in time.',
     size: 'Frame length: 1024, 2048 or 4096 samples. Longer is smoother and adds more delay.',
   },
+  mosh: {
+    motion: 'How much of the modulator\'s change in loudness is added to the held picture, frequency by frequency. 1 is dB for dB, 2 is double.',
+    slide: 'How much of the modulator\'s sideways motion (a voice gliding up, a sweep) drags the held picture along with it. 0 only brightens and darkens.',
+    keyframe: 'In ms. How often the picture is replaced by the live sound again, a clean frame before the smear grows. 0 means only the first one.',
+    hold: 'How much of the input\'s own movement is thrown away between keyframes. 1 freezes the picture so only the modulator moves it; 0 lets the input keep playing.',
+    heal: 'How quickly the picture drifts back toward the live sound between keyframes. 0 never does.',
+    bloom: 'How far new energy can grow at frequencies that were empty at the keyframe. 0 grows none; 1 lets ghost partials come up to the level of the loudest.',
+    smooth: 'Blurs the modulator\'s spectrum before it is measured, so single noisy frequencies do not move things.',
+    mix: 'Dry/wet balance. The dry sound is delayed to match, so mixing stays in time.',
+    size: 'Frame length: 1024, 2048 or 4096 samples. Longer is smoother and adds more delay.',
+  },
   xsynth: {
     amount: 'How much of the modulator\'s spectral shape is used. 0 leaves the sound alone, 1 is all of it.',
     smooth: 'How broad a shape is taken. Low keeps the modulator\'s fine detail, high only its broad colour.',

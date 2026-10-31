@@ -2001,6 +2001,30 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     const [same] = run('xsynth', { amount: 0 }, [carrier, mod], 30000);
     let xw = 0; for (let i = 6000; i < 24000; i++) xw = Math.max(xw, Math.abs(same[i + 2047] - white[i]));
     assert.ok(xw < 2e-3, `amount 0 is the carrier (${xw})`);
+
+    // mosh: a quiet modulator leaves a steady tone as it was; a loud one lifts it (brightness motion); a gliding one drags
+    // it upward (block motion); every setting stays finite
+    {
+      const steady = i => tone(440, 0.3)(i) + tone(3000, 0.2)(i), silent = () => 0;
+      const [held] = run('mosh', {}, [steady, silent], 40000);
+      const ratio = rms(held, 20000, 38000) / rms(Float32Array.from({ length: 40000 }, (_, i) => steady(i)), 20000, 38000);
+      assert.ok(ratio > 0.8 && ratio < 1.25, `mosh with a quiet modulator holds the sound (${ratio.toFixed(2)})`);
+      const burst = i => (i >= 14000 ? white[i % white.length] * 2 : 0);
+      const [lifted] = run('mosh', { slide: 0, motion: 1, keyframe: 0 }, [steady, burst], 44000);
+      assert.ok(power(lifted, 440, 30000, 42000) > 1.5 * power(lifted, 440, 6000, 13000), 'a noise burst on mod lifts the tone it is laid over');
+      const [still] = run('mosh', { slide: 0, motion: 0, keyframe: 0 }, [steady, burst], 44000);
+      assert.ok(power(still, 440, 30000, 42000) < 1.4 * power(still, 440, 6000, 13000), 'with motion and slide at 0 the modulator moves nothing');
+      const T = 30000, glide = i => 0.4 * Math.sin(2 * Math.PI * (i <= T ? 1000 * i + 600 * i * i / (2 * T) : 1000 * i + 300 * T + 600 * (i - T)) / sr);   // 1000 Hz sliding to 1600 Hz over 30000 samples
+      const [dragged] = run('mosh', { slide: 1, motion: 0, hold: 1, heal: 0, keyframe: 0, smooth: 0 }, [tone(1000, 0.4), glide], 56000);
+      const band = (x, a, b, from, to) => { let m = 0; for (let f = from; f <= to; f += 8) m = Math.max(m, power(x, f, a, b)); return m; };
+      assert.ok(band(dragged, 46000, 54000, 1250, 1900) > 8 * band(dragged, 46000, 54000, 900, 1100), `a held tone is dragged up by a glide on mod (${band(dragged, 46000, 54000, 1250, 1900).toFixed(3)} against ${band(dragged, 46000, 54000, 900, 1100).toFixed(3)})`);
+      const [fixed] = run('mosh', { slide: 0, motion: 0, hold: 1, heal: 0, keyframe: 0, smooth: 0 }, [tone(1000, 0.4), glide], 56000);
+      assert.ok(band(fixed, 46000, 54000, 900, 1100) > 8 * band(fixed, 46000, 54000, 1250, 1900), 'with slide at 0 the tone stays where it was');
+      for (const o of [{ size: 0 }, { size: 2, keyframe: 300 }, { motion: 2, bloom: 1, heal: 1, hold: 0 }, { keyframe: 100, slide: 1, smooth: 1 }]) {
+        const [x] = run('mosh', o, [steady, burst], 30000);
+        assert.ok(x.every(v => Number.isFinite(v) && Math.abs(v) < 8), `mosh ${JSON.stringify(o)} stays finite and bounded`);
+      }
+    }
   }
 
   // trance gate and frequency shifter
@@ -4031,6 +4055,18 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
       assert.ok(pad.length >= 6 * 8 && talk.length > 40, 'chords and stabs both play');
       const inBars = (a, b) => talk.filter(e => e.at / 4 >= a * 16 && e.at / 4 < b * 16).length;
       assert.ok(inBars(0, 8) > 0 && inBars(8, 24) > 0 && inBars(24, 32) > 0, 'the stabs play in all three sections');
+    }
+    // the mosh demo: the same pad and stabs as the vocoder demo, meeting in a mosh node (in: the chords, mod: the stabs)
+    {
+      const g = await import('../src/nodeseq/graphops.js'), fs = await import('node:fs');
+      const wax = JSON.parse(fs.readFileSync(new URL('../src/project/demos/mosh.wax', import.meta.url), 'utf8'));
+      const vox = wax.instruments.vox.graph, links = vox.connections;
+      assert.ok(vox.nodes.some(n => n.type === 'mosh') && !vox.nodes.some(n => n.type === 'vocoder'), 'the mosh instrument has a mosh node');
+      assert.ok(links.some(l => l[0] === 'bed.out' && l[1] === 'mosh.in') && links.some(l => l[0] === 'hear.out' && l[1] === 'mosh.mod'), 'the chords go in as the picture, the stabs as the motion');
+      assert.ok(Object.values(wax.instruments).flatMap(i => i.graph.nodes).every(n => NODE_TYPES[n.type]), 'every node in the demo exists');
+      assert.ok(wax.instruments.vox.exposed.every(e => vox.nodes.some(n => n.id === e.node) && NODE_TYPES.mosh.params.some(q => q.name === e.param)), 'the exposed parameters exist');
+      const demo = g.cleanGraph(g.ensureGraph({ nodeseq: wax.song.nodeseq }));
+      assert.equal(demo.nodes.length, wax.song.nodeseq.nodes.length, 'the demo graph is whole after cleaning');
     }
     // subticks: a clock's sub output runs subs times a tick; a delay moves an event later by subticks
     {

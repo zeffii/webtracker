@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['596', ['Mosh: a lost keyframe as sound. A held chord wears the movement of another sound (louder, quieter, sliding up or down), until a keyframe puts it back; with a ?demo=mosh demo']],
   ['595', ['Detect chords: click a chord to hear it for half a second on the chosen lane, with or without the extra notes']],
   ['594', ['Arrangement: a pattern that starts or ends between two rows is drawn at its true position, not snapped to the row']],
   ['593', ['Chord finder: names a chord even without an exact match (Cmaj7(add9), C7(b9)) with alternatives, and spells with flats in flat keys']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['589', ['The arrangement line is every 256 ticks; no error in the graph editor of an empty song']],
   ['588', ['Fix: the line over every 512th tick is now visible']],
   ['587', ['Mixer: small lane names and the retroslate look']],
-  ['586', ['Fix: the page failed to start with the mixer on (and projects failed to load)']],
                     ];

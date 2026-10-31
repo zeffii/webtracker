@@ -68,6 +68,7 @@ const TYPE_UNIT = {
   bodyblur: { smooth: '', time: 'ms', round: '', split: '', mix: '%' },
   specdyn: { threshold: 'dB', ratio: ':1', tilt: 'dB/oct', attack: 'ms', release: 'ms', makeup: 'dB', smooth: '', mix: '%' },
   xsynth: { amount: '%', smooth: '', detail: '%', mix: '%' },
+  mosh: { motion: '%', slide: '%', keyframe: 'ms', hold: '%', heal: '%', bloom: '%', smooth: '', mix: '%' },
   gater: { smooth: 'ms', depth: '%' },
   arp: { rate: '', gate: '%', swing: '', transpose: 'st', cycle1: 'st', cycle2: 'st', humanize: '%', level: '' },
   chord: { strum: 'ms', level: '' },
@@ -128,6 +129,7 @@ const NAMES = {
   pogue: { stereo: ['mono', 'wide', 'spread'], interp: ['none', 'linear', 'cubic'] },
   specdyn: { size: ['1024', '2048', '4096'] },
   xsynth: { size: ['1024', '2048', '4096'] },
+  mosh: { size: ['1024', '2048', '4096'] },
 };
 
 const trim = (v, digits = 4) => String(Number(Number(v).toPrecision(digits)));

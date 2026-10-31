@@ -240,6 +240,11 @@ export const PAGES = {
     best: ['Threshold -36 dB with ratio 4 evens out a full mix; lower the threshold and raise the ratio to flatten it further, and make up the gain.', 'Tilt of +1 or +2 dB per octave makes a dull sound clear, -1 to -2 warms a harsh one.', 'Smooth keeps the gain from changing too sharply from one frequency to the next, which stops a ringing, whistling sound.'],
     limits: ['It works in frames, so it adds delay (bigger size, more delay), and fast attacks cannot be faster than a frame.'],
   },
+  mosh: {
+    summary: 'A lost keyframe, as sound. The spectrum of the sound at in is held as a picture, and the movement of the sound at mod (louder, quieter, gliding up or down) is laid over it, so the old sound wears the new sound\'s motion. Every so often a keyframe puts the live sound back, and the smear starts to grow again.',
+    best: ['Put a sustained pad or chord on in and a drum loop or a voice on mod: the pad pumps, slides and blooms to the other sound while keeping its own colour.', 'Keyframe 1000 to 3000 ms with hold near 1 gives a clear cycle of clean, smear, snap back. 0 lets it smear for as long as the song runs.', 'Raise bloom to grow ghost partials where the pad had nothing; keep it low for a pad that only bends. Heal draws the picture slowly back, so the smear is a stretch rather than a drift.', 'Nothing on mod gives the freeze and stutter of a decoder that has lost its data: the picture holds until the next keyframe.'],
+    limits: ['It works in frames, so it adds delay (bigger size, more delay). With nothing on in there is nothing to smear. The sideways motion is found in blocks, so a large glide is dragged in jumps, which is part of the sound.'],
+  },
   xsynth: {
     summary: 'Cross synthesis: the shape of the sound at mod is laid over the sound at in. Put a voice on mod and a pad or noise on in, and the pad talks.',
     best: ['Use a sustained sound with a lot in it (noise, a saw pad, a chord) on in, and speech or a drum loop on mod.', 'Smooth low keeps the modulator\'s fine detail (more like talking); high gives only its broad colour.', 'Detail lends the modulator\'s harmonics too, so a sung note makes noise sing.'],

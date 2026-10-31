@@ -2,6 +2,11 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 596 · 2026-10-31
+
+- **Mosh, a new spectral effect: a lost keyframe, as sound.** A video codec stores one whole picture now and then (a keyframe) and between them only how the picture moves; lose the keyframe and the movement of the new scene is laid over the old picture, which smears, slides and blooms. The `mosh` node does that to the spectrum of a sound. The sound at `in` is held as a picture (a loudness, a phase and a frequency for every bin, so a held partial keeps sounding as the tone it was), and the sound at `mod` moves it: what gets louder or quieter in the modulator's spectrum from one frame to the next is added to the picture (`motion`), and the modulator's sideways motion, found by block matching around every frequency the way a codec searches for motion, drags the picture along (`slide`): a voice or a stab that glides up pulls the held chord up with it. `keyframe` (ms) puts the live sound back, clean, and the smear grows again; `hold` is how much of the input's own movement is thrown away in between (1 freezes the picture, so only the modulator moves it), `heal` lets the loudness drift back toward the live sound, `bloom` how far ghost partials can grow where the keyframe had nothing, `smooth` blurs the modulator before it is measured. With nothing on `mod` the picture simply holds (a freeze that stutters at each keyframe). Stereo, one frame of latency (1024, 2048 or 4096 samples).
+- **A mosh demo** (`?demo=mosh`): the vocoder demo's chords and stabs, with the vocoder swapped for a mosh node (the chords are the picture, the stabs the motion). Keyframe, hold, slide and bloom are exposed as columns on the instrument.
+
 ## 595 · 2026-10-31
 
 - **Hear the detected chords.** In the Detect chords dialog, click a chord in the list and it plays for half a second on the instrument of the lane chosen in the dialog, so a guess can be checked by ear. By default only the notes of the named chord sound; tick "test with the extra notes too" to hear every note found, including the extra ones that may only be overtones. The list is now made of clickable rows.
