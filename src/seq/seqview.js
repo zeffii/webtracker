@@ -645,7 +645,9 @@ export function createSequenceView({ el, statusEl, undoEl = null, listEl, transp
         const layers = blocks[li].filter(e => e.start < t + CELL && e.end > t).map(e => {
           const { cls, style } = colourOf(l.patterns[e.pl.puid]);
           const edges = `${e.start >= t ? ' st' : ''}${e.end <= t + CELL && !blocks[li].some(o => o.start === e.end) ? ' en' : ''}`;
-          const css = `right:${Math.min(e.depth, 4) * INSET}px${style ? `;--c:${style}` : ''}`;
+          // a pattern that starts or ends between two rows is drawn that far into the row, not rounded to the row's edge
+          const top = e.start > t ? `;top:${((e.start - t) / CELL * 100).toFixed(2)}%` : '', bottom = e.end < t + CELL ? `;bottom:${((t + CELL - e.end) / CELL * 100).toFixed(2)}%` : '';
+          const css = `right:${Math.min(e.depth, 4) * INSET}px${top}${bottom}${style ? `;--c:${style}` : ''}`;
           return `<i class="L${cls ? ` ${cls}` : ''}${edges}" style="${css}"></i>`;
         }).join('');
         const w = colw(l);

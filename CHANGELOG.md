@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 594 · 2026-10-31
+
+- **Patterns that start or end between two rows are drawn where they really are.** A pattern placed at tick 4 in a 16-tick row now begins a quarter of the way down that row (and one that ends at tick 12 stops three quarters down), instead of being rounded to the row's edge. The pattern itself, its playback and its editing were always exact; only the drawing was snapped.
+
 ## 593 · 2026-10-31
 
 - **The chord finder names chords it cannot match exactly.** It used to list bare note letters (C E G B D). It now gives the best fit and writes the notes that do not belong to it as added or altered ones (Cmaj7(add9), C7(b9), Am7(add11), and (no5) for a left-out fifth), marked with a `?`, and lists up to two other names that fit nearly as well ("or Cadd9(maj7)"). Two notes a fifth apart are a power chord (C5).
