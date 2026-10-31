@@ -430,13 +430,15 @@
     #view:focus, #seq:focus { outline: 1px solid color-mix(in srgb, var(--fg) 16%, transparent); }   /* the focus frame of the grids: only a hint */
     #seq { overflow-x: auto; line-height: 18px; isolation: isolate; }
     #seq .t { position: relative; z-index: 2; }
-    #seq .sg { position: sticky; left: 0; z-index: 4; display: inline-block; background: var(--panel); }   /* the tick numbers stay put when the lanes are scrolled sideways */
+    #seq .sg { position: sticky; left: 0; z-index: 4; display: inline-block; width: var(--gw, auto); background: var(--panel); }   /* the tick numbers stay put when the lanes are scrolled sideways */
     #seq .pname { position: absolute; z-index: 5; pointer-events: none; white-space: pre; padding: 0 5px 0 4px; line-height: 18px; background: #0f1015; color: #ffffff; box-shadow: 0 1px 3px rgba(0,0,0,.4); }   /* the name of the pattern under the mouse or the caret */
     #seq .minimap { position: absolute; left: 0; top: 0; pointer-events: none; z-index: 1; }
     #seq .r { height: 18px; white-space: pre; width: max-content; min-width: 100%; }   /* as wide as the lanes, so the sticky tick column has room to stay in view */
-    #seq .cell.nr { width: 7ch; }
+    #seq .cell.nr { width: var(--cwn, 7ch); }
     #seq-wrap[aria-pressed="true"] { background: var(--hi); color: var(--hi-fg); border-color: var(--hi); }
-    #seq .cell { position: relative; display: inline-block; width: 14ch; height: 18px; vertical-align: top; overflow: hidden; }
+    #seq .cell { position: relative; display: inline-block; width: var(--cw, 14ch); height: 18px; vertical-align: top; overflow: hidden; }
+    #seq .hc { display: inline-block; width: var(--cw, 14ch); vertical-align: top; overflow: hidden; }   /* a lane's name in the header: as wide as its cells */
+    #seq .hc.nr { width: var(--cwn, 7ch); }
     #seq .cell > i { position: absolute; top: 0; bottom: 0; left: 0; right: 0; display: block; }
     /* a pattern is one rect from its first row to its last; opaque, so one placed over another hides it */
     #seq .L { background-color: var(--panel); background-image: linear-gradient(var(--c, transparent), var(--c, transparent)); }

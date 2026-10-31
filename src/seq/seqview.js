@@ -584,6 +584,28 @@ export function createSequenceView({ el, statusEl, undoEl = null, listEl, transp
   let lastList = '';
   let rowCount = ROWS.normal;   // how many rows are shown; the drag bar under the view changes it
   let painted = '';   // the markup last shown
+  // The lane columns are boxes, and 14 characters is not a whole number of pixels, so their edges would fall between pixels and
+  // some of the outlines would be drawn two pixels thick. The widths are set in whole device pixels instead (the --cw, --cwn and
+  // --gw variables, which the style sheet uses), measured again when the font or the screen's pixel ratio changes.
+  let snapped = '';
+  const snapColumns = () => {
+    if (typeof document === 'undefined' || !el.parentNode || typeof getComputedStyle !== 'function') return;
+    const dpr = globalThis.devicePixelRatio || 1, key = `${dpr}|${getComputedStyle(el).font}`;
+    if (key === snapped) return;
+    const probe = document.createElement('span');
+    probe.style.cssText = 'position:absolute;visibility:hidden;white-space:pre';
+    probe.textContent = 'M'.repeat(100);
+    el.appendChild(probe);
+    const ch = probe.getBoundingClientRect().width / 100;
+    probe.remove();
+    if (!(ch > 0)) return;   // not on screen yet: try again at the next draw
+    const px = chars => `${Math.round(chars * ch * dpr) / dpr}px`;
+    el.style.setProperty('--cw', px(COLW));
+    el.style.setProperty('--cwn', px(COLW / 2));
+    el.style.setProperty('--gw', px(6));
+    snapped = key;
+  };
+
   const draw = () => {
     if (!lanes) return;
     const playing = Atomics.load(transport, 1) === 1, playTick = Atomics.load(transport, 0);
@@ -601,6 +623,7 @@ export function createSequenceView({ el, statusEl, undoEl = null, listEl, transp
     top = Math.max(0, Math.min(top, rows - rowCount));
     const picked = sel ? block() : null;
     const blocks = lanes.map(layout);
+    snapColumns();
     const row = (text, cls = '') => `<div class="r${cls}">${text}</div>`;
     // the tick numbers: every four bars a subtle shade, a darker one every sixteen
     if (syncCell()) top = 0;   // the bar changed under us: the row size follows it
@@ -608,7 +631,8 @@ export function createSequenceView({ el, statusEl, undoEl = null, listEl, transp
     const lines = [row(`<span class="sg">      </span>${lanes.map((l, li) => {
       const w = colw(l), mark = headMark(l), head = `${li === cur.lane ? '>' : ' '}${esc(l.id.slice(0, w - (mark === ' ' ? 1 : 3)).padEnd(w - 1 - (mark === ' ' ? 0 : 2)))}${mark === ' ' ? '' : ` ${mark}`}`;
       const dim = dimFilter(dimLevel(l));
-      return l.silenced ? `<span class="silenced">${head}</span>` : dim ? `<span style="${dim}">${head}</span>` : head;
+      const text = l.silenced ? `<span class="silenced">${head}</span>` : dim ? `<span style="${dim}">${head}</span>` : head;
+      return `<span class="hc${w < COLW ? ' nr' : ''}">${text}</span>`;   // a box as wide as the lane's cells, so the names stay above them
     }).join('')}`)];
 
     for (let r = top; r < Math.min(rows, top + rowCount); r++) {

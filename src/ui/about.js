@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['568', ['Arrangement boxes drawn on whole pixels: no more thicker outlines in places']],
   ['567', ['Top bar: a File menu replaces Open, New, Save, Export and Backups buttons']],
   ['566', ['New shader template, Holey torus: a perforated ring that tumbles while its tube twists, glowing on hits']],
   ['565', ['New effect, Pogue (Effects, Modulation): a grubby multi-voice chorus with wandering voices, feedback, filters, saturation and bit degrade']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['561', ['Pattern editor fills down to the status bar; scrolling it is lighter and a wheel notch moves further']],
   ['560', ['Stream Manager columns are fixed width, so they stop jumping as numbers and names change']],
   ['559', ['Delay compensation moves the playhead to where the sound is; Snarl note off fixes']],
-  ['558', ['Delay compensation between instruments: quicker machines wait for the slowest, so heavy spectral nodes stay on the beat; one setting switches all of it off']],
-          ];
+            ];

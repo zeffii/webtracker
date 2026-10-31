@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 568 · 2026-10-31
+
+- Arrangement: pattern boxes no longer get thicker outlines in places. The lane columns were 14 characters wide, which is a fractional number of pixels, so box edges landed between pixels and snapped unevenly. Column, header and tick-number widths are now whole device pixels (measured again when the font or the screen's pixel ratio changes), and the lane names in the header sit in boxes of the same width so they stay above their cells.
+
 ## 567 · 2026-10-31
 
 - The top bar is simpler: the Open button is now a **File** menu with Open, New, and New From Existing (Clear Arrangement, Clear Patterns and Arrangement), then Save, Export and Backups. The Save, Export, Backups and New buttons are gone from the bar; the project name stays. Arrow keys, Enter and Esc work in the menu, and the submenu opens when the pointer rests on it. The menu is in `ui/filemenu.js`.
