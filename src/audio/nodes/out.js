@@ -1,6 +1,6 @@
 // Output stage: gain and equal-power balance on a stereo input (a mono wire feeds both
 // channels, so a mono source is panned as before). The master node.
-const GAIN = 0, PAN = 1;
+const GAIN = 0, PAN = 1;   // (a third parameter, `master`, is read by the runtime: 0 keeps the instrument out of the mix, so only a sidechain node hears it)
 
 export default {
   type: 'out',
@@ -13,6 +13,7 @@ export default {
   params: [
     { name: 'gain', min: 0, max: 1.5, def: 0.8 },
     { name: 'pan', min: -1, max: 1, def: 0 },
+    { name: 'master', min: 0, max: 1, def: 1, int: true },   // 1: the sound goes to the mix; 0: it does not, but a sidechain node in another instrument still hears it
   ],
   create() {
     let gl0 = -1, gr0 = 0;

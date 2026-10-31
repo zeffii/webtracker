@@ -135,5 +135,6 @@ export function compile(source, { instrument, nodeTypes, registry, delayComp = f
   if (!Number.isInteger(voices) || voices < 1 || voices > 16) throw new Error(`voices must be a whole number from 1 to 16, not ${voices}`);
   // The hidden channel stage after the output node: a level (0..1) the sequencer's Volume curve moves, applied smoothly to the whole machine.
   const amp = registry.allocate(`${instrument}.mix.amp`, 1, 0, 1);
-  return { instrument, nodes, bufferCount: nextBuf, master: outBufs.get(masters[0]), voices, amp, latency: arrive.get(masters[0]) ?? 0 };
+  const sendSlot = nodes.find(x => x.id === masters[0])?.slots?.[byId.get(masters[0]).def.params.findIndex(p => p.name === 'master')];   // the out node's "master" switch
+  return { instrument, nodes, bufferCount: nextBuf, master: outBufs.get(masters[0]), voices, amp, send: sendSlot, latency: arrive.get(masters[0]) ?? 0 };
 }

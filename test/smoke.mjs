@@ -4010,6 +4010,7 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
       const vox = wax.instruments.vox.graph.nodes, links = wax.instruments.vox.graph.connections;
       assert.deepEqual(vox.filter(n => n.type === 'sidechain').map(n => n.source).sort(), ['pad', 'talk'], 'the vocoder instrument listens to the pad and to the stabs');
       assert.ok(links.some(l => l[1] === 'voc.voice') && links.some(l => l[1] === 'voc.carrier'), 'the stabs go in as the voice, the chords as the carrier');
+      for (const id of ['pad', 'talk']) assert.equal(wax.instruments[id].graph.nodes.find(n => n.type === 'out').params.master, 0, `${id} is not in the mix: only the vocoder hears it`);
       const demo = g.cleanGraph(g.ensureGraph({ nodeseq: wax.song.nodeseq }));
       assert.equal(demo.nodes.length, wax.song.nodeseq.nodes.length, 'the demo graph is whole after cleaning');
       const t = make(demo, { slots: {}, groupSlots: Array(8).fill(-1) }); t.run(512);

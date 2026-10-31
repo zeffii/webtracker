@@ -2,6 +2,11 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 579 · 2026-10-31
+
+- **A "master" switch on the Out node.** Off, the instrument is left out of the mix but a sidechain node in another instrument still hears it, so a carrier and a voice can feed a vocoder without being heard dry. (A sidechain used to hear what also went to the speakers.)
+- The vocoder demo uses it: the pad and the stabs are only heard through the vocoder. It also takes the demo's own tuning (123 bpm, a wider Q, more noise, a different fourth chord), with the pad and stab levels back up.
+
 ## 578 · 2026-10-31
 
 - **Hear a chord in the Node Sequencer.** Click a key on a Chord tile's keyboard and that note sounds while the mouse is down (drag across keys to play along them, as you paint them). Double-click a Chord tile, or press "Play chord" in its panel, to hear the whole chord with its note volumes. It plays on the instrument the chord is wired to (the first note node downstream of it), else the first instrument.

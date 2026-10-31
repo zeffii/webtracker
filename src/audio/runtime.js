@@ -124,7 +124,7 @@ export class GraphRuntime {
       return node;
     };
     const buffers0 = fresh(), resolve0 = resolver(buffers0);
-    const inst = { nodes: [], sets: [], byId: new Map(), left: null, right: null, amp: compiled.amp, ampPrev: 1, latency: compiled.latency ?? 0, lag: null };
+    const inst = { nodes: [], sets: [], byId: new Map(), left: null, right: null, amp: compiled.amp, send: compiled.send, ampPrev: 1, latency: compiled.latency ?? 0, lag: null };
     const register = (node, at) => { const list = inst.byId.get(node.id) ?? []; list[at] = node; inst.byId.set(node.id, list); };
     this.instruments.set(compiled.instrument, inst);
 
@@ -356,6 +356,7 @@ export class GraphRuntime {
       }
       this.onLane?.(id, inst.left, inst.right, n);   // the page's layered spectrum, when it is on
       if (this.scopes.size) for (const scope of this.scopes.values()) if (scope.instrument === id) this.watch(scope, inst, n);
+      if (inst.send !== undefined && this.params[inst.send] < 0.5) continue;   // out node's master switch off: heard only by sidechain nodes, not in the mix
       const gap = this.alignment() - (inst.latency ?? 0);   // a quicker instrument waits for the slowest
       if (gap > 0) {
         if (inst.lag?.gap !== gap) inst.lag = new LagLine(gap);
