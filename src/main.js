@@ -1,3 +1,4 @@
+import { createFileMenu } from './ui/filemenu.js';
 import { Engine } from './audio/engine.js';
 import { encodeWav, renderSong } from './audio/export.js';
 import { createMeters } from './ui/meters.js';
@@ -1585,19 +1586,9 @@ const download = (name, text) => {
 
 // New: clear part of the project or all of it. Clearing patterns or the arrangement works on a copy of what is saved,
 // then reopens it, so the instruments, samples and settings come back exactly as they were.
-const newMenu = $('new-menu');
-const closeNew = () => { newMenu.hidden = true; $('new').setAttribute('aria-expanded', 'false'); };
-$('new').addEventListener('click', e => {
-  e.stopPropagation();
-  newMenu.hidden = !newMenu.hidden;
-  $('new').setAttribute('aria-expanded', String(!newMenu.hidden));
-});
-document.addEventListener('click', closeNew);
-document.addEventListener('keydown', e => { if (e.key === 'Escape' && !newMenu.hidden) closeNew(); });
-newMenu.addEventListener('click', e => {
-  const kind = e.target.dataset?.clear;
-  if (!kind) return;
-  closeNew();
+// The File menu (ui/filemenu.js) holds Open, New, New From Existing, Save, Export and Backups; the buttons below keep their ids.
+createFileMenu({ button: $('filemenu-btn'), menu: $('file-menu'), sub: $('new-menu'), subButton: $('new-existing') });
+const clearProject = kind => {
   const what = { arrangement: 'the arrangement', patterns: 'every pattern and the arrangement', everything: 'everything (instruments, samples, patterns and arrangement; only the master lane is left)' }[kind];
   if (!confirm(`Clear ${what}? This cannot be undone; save first if you want to keep it.`)) return;
   backups.snapshot('before clear');
@@ -1611,9 +1602,11 @@ newMenu.addEventListener('click', e => {
     openProject(saved, { stay: true, instrument: patcher.instrument, lane: cursorLane() });
   }
   projStatus(kind === 'everything' ? 'Cleared everything.' : `Cleared ${what}.`);
-});
+};
+$('new').addEventListener('click', () => clearProject('everything'));
+$('new-menu').addEventListener('click', e => { const kind = e.target.dataset?.clear; if (kind) clearProject(kind); });
 
-// Backups: snapshots in the browser's database, and a copy in a chosen folder (project/backup.js); the panel is the Backups button.
+// Backups: snapshots in the browser's database, and a copy in a chosen folder (project/backup.js); the panel opens from File, Backups.
 const backups = createBackups({
   serialize: () => (project ? serializeProject(project) : null),
   getName: () => project?.song?.name ?? 'untitled',
@@ -2064,7 +2057,7 @@ $('pname').addEventListener('change', () => {
 document.addEventListener('keydown', e => { if ((e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey && e.code === 'KeyS') { e.preventDefault(); e.stopPropagation(); if (project) saveProject(); } }, true);
 $('pname').addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === 'Escape') $('pname').blur(); });
 
-// Save as (the Save button and Ctrl+S): the browser's own save dialog, for a name and a folder, where it has one;
+// Save as (File, Save and Ctrl+S): the browser's own save dialog, for a name and a folder, where it has one;
 // otherwise a plain download.
 async function saveProject() {
   const text = serializeProject(project), name = `${project.song.name ?? 'untitled'}${FILE_EXT}`;
@@ -2416,7 +2409,7 @@ $('start').addEventListener('click', async () => {
     navigator.storage?.persist?.();   // ask the browser not to clear the snapshots when it is short of space
     for (const id of ['start']) $(id).disabled = true;
     $('logo').classList.remove('idle'); $('logo').removeAttribute('title'); $('logo').removeAttribute('role'); $('logo').removeAttribute('tabindex');
-    for (const id of ['play', 'pause', 'panic', 'cut', 'new', 'save', 'load', 'backups', 'export', 'rec-take', 'rec-source', 'add-inst', 'add-lane', 'add-lane-inst', 'inst-voices', 'inst-notecols', 'inst-up', 'inst-down', 'inst-dup', 'inst-remove', 'lane-name', 'lane-rename', 'lane-left', 'lane-right', 'lane-dup', 'lane-remove', 'lane-remove-all', 'length', 'ins-n', 'ins-go', 'bpm', 'swing', 'tpb', 'bar', 'preset-name', 'preset-save', 'preset-over', 'preset-rename', 'preset-remove', 'inst-export', 'inst-import', 'lib-load', 'lib-add', 'lib-save']) $(id).disabled = false;
+    for (const id of ['filemenu-btn', 'play', 'pause', 'panic', 'cut', 'rec-take', 'rec-source', 'add-inst', 'add-lane', 'add-lane-inst', 'inst-voices', 'inst-notecols', 'inst-up', 'inst-down', 'inst-dup', 'inst-remove', 'lane-name', 'lane-rename', 'lane-left', 'lane-right', 'lane-dup', 'lane-remove', 'lane-remove-all', 'length', 'ins-n', 'ins-go', 'bpm', 'swing', 'tpb', 'bar', 'preset-name', 'preset-save', 'preset-over', 'preset-rename', 'preset-remove', 'inst-export', 'inst-import', 'lib-load', 'lib-add', 'lib-save']) $(id).disabled = false;
     $('status').textContent =
       `Running at ${engine.ctx.sampleRate} Hz, base latency ${(engine.ctx.baseLatency * 1000).toFixed(1)} ms`;
     // Only the screen that is showing is drawn: a hidden one has nothing to measure or paint, and its work would only delay the one you are using.

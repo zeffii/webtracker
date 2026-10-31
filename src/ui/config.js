@@ -93,7 +93,7 @@ export const SCHEMA = [
   { key: 'midiOffs', label: 'Recording: release writes a note off', hint: 'the key release; off for pads and drums', type: 'bool', def: true },
   { key: 'midiParamStep', label: 'Recording sliders: write every Nth row', hint: '1 writes every tick a slider moves in; 2 or 4 leave room to edit afterwards', type: 'int', min: 1, max: 16, def: 1 },
   { key: 'midiShared', label: 'Shared patterns', hint: 'a pattern placed more than once, written by MIDI or a script', type: 'choice', options: ['ask', 'write'], labels: { ask: 'refuse: clone it first (G)', write: 'write into it, so every placement changes' }, def: 'ask' },
-  { group: 'Backup', key: 'backupOn', label: 'Automatic backups', hint: 'snapshots of the project kept in this browser; open them with the Backups button', type: 'bool', def: true },
+  { group: 'Backup', key: 'backupOn', label: 'Automatic backups', hint: 'snapshots of the project kept in this browser; open them from File, Backups', type: 'bool', def: true },
   { key: 'backupMinutes', label: 'Back up every (minutes)', hint: 'only when the project has changed', type: 'int', min: 1, max: 60, def: 3 },
   { key: 'backupKeep', label: 'Snapshots kept', hint: 'the oldest are dropped', type: 'int', min: 5, max: 200, def: 30 },
   { key: 'backupDownload', label: 'Download a backup file', hint: 'every few minutes when the project has changed; point the browser\'s download folder at a git folder to keep them (for browsers that cannot write to a folder)', type: 'bool', def: false },

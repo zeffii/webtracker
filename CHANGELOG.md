@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 567 · 2026-10-31
+
+- The top bar is simpler: the Open button is now a **File** menu with Open, New, and New From Existing (Clear Arrangement, Clear Patterns and Arrangement), then Save, Export and Backups. The Save, Export, Backups and New buttons are gone from the bar; the project name stays. Arrow keys, Enter and Esc work in the menu, and the submenu opens when the pointer rests on it. The menu is in `ui/filemenu.js`.
+
 ## 566 · 2026-10-31
 
 - New shader template, **Holey torus**: a ray-marched thin-walled ring with staggered rows of round holes, tumbling on two axes; the tube has a half turn round the ring and a wave of twist travels round it, so the rows of holes writhe. It glows on lane hits and keeps to C1/C2. Three numbers to expose: `twist`, `holes` (size) and `speed`. A ray-marcher, so one of the heavier templates.

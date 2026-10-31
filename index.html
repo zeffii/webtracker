@@ -92,7 +92,7 @@
     /* header: transport, song info, tab bar */
     #header { position: sticky; top: 0; z-index: 1; background: var(--bg); border-bottom: 1px solid color-mix(in srgb, var(--fg) 16%, transparent); padding: .35rem .75rem; }
     #header .line { display: flex; flex-wrap: wrap; gap: .25rem .45rem; align-items: center; }
-    #new-wrap { position: relative; }
+    #file-wrap { position: relative; }
     #about { background: var(--bg); color: var(--fg); border: 1px solid; max-width: 44rem; max-height: 80vh; padding: 1rem 1.25rem; font: 13px/1.5 system-ui, sans-serif; }
     #about::backdrop { background: rgb(0 0 0 / .45); }
     #about h2 { margin: 0 0 .5rem; font-size: 1.1rem; } #about h3 { margin: 1rem 0 .25rem; font-size: .95rem; } #about h4 { margin: .6rem 0 .1rem; font-size: .85rem; opacity: .8; }
@@ -110,9 +110,19 @@
     .ctx-item.off { opacity: .4; cursor: default; }
     .ctx-hint { opacity: .65; }
     .ctx-sep { height: 1px; margin: 2px 0; background: currentColor; opacity: .25; }
-    #new-menu { position: absolute; left: 0; top: 100%; z-index: 5; display: flex; flex-direction: column; min-width: 16rem; background: var(--bg); border: 1px solid; padding: 2px; }
-    #new-menu button { font: inherit; text-align: left; padding: .25rem .5rem; border: 0; background: transparent; color: inherit; cursor: pointer; }
-    #new-menu button:hover, #new-menu button:focus { background: var(--hi); color: var(--hi-fg); }
+    /* the File menu: a lean, Windows-like list */
+    #file-menu, #new-menu { position: absolute; z-index: 5; display: flex; flex-direction: column; min-width: 11rem; background: var(--bg); border: 1px solid color-mix(in srgb, var(--fg) 45%, transparent); box-shadow: 2px 3px 8px rgba(0, 0, 0, .3); padding: 2px; }
+    #file-menu { left: 0; top: calc(100% + 1px); }
+    #file-menu[hidden], #new-menu[hidden] { display: none; }
+    .fm-sub { position: relative; display: flex; flex-direction: column; }
+    #new-menu { left: 100%; top: -3px; min-width: 15rem; margin-left: -2px; }
+    #file-menu button, #new-menu button { display: flex; align-items: center; justify-content: space-between; gap: 1.5rem; font: inherit; text-align: left; padding: .2rem 1.4rem .2rem .6rem; border: 0; background: transparent; color: inherit; cursor: default; white-space: nowrap; height: auto; min-width: 0; }
+    #file-menu button:hover, #file-menu button:focus, #new-menu button:hover, #new-menu button:focus, #new-existing[aria-expanded="true"] { background: var(--hi); color: var(--hi-fg); outline: 0; }
+    #file-menu button:disabled { opacity: .45; }
+    #file-menu .arr { font-size: .7em; margin-left: auto; }
+    .fm-rule { height: 1px; background: color-mix(in srgb, var(--fg) 25%, transparent); margin: 3px 2px; }
+    #filemenu-btn[aria-expanded="true"] { background: var(--hi); color: var(--hi-fg); }
+    #filemenu-btn .caret { font-size: .7em; margin-left: .3rem; }
     #pname { box-sizing: border-box; width: 11rem; height: 1.8rem; font: 12px ui-monospace, Consolas, monospace; padding: 0 .4rem; }
     #dirty { font: 700 16px ui-monospace, Consolas, monospace; color: var(--accent); margin-left: -.2rem; }
     #header .line + .line { margin-top: .3rem; }
@@ -135,7 +145,7 @@
     #rail #tabs button, #rail .rb { border-color: transparent; }
     #rail #tabs button:hover, #rail .rb:hover { opacity: 1; border-color: color-mix(in srgb, currentColor 25%, transparent); }
     #rail #tabs button.active, #rail .rb.active, #rail #script-dock.active { background: var(--hi); color: var(--hi-fg); border-color: var(--hi); opacity: 1; }
-    #header .line > button, #header #new-wrap > button { display: inline-flex; align-items: center; justify-content: center; gap: 2px; min-width: 2rem; height: 1.8rem; padding: 0 .35rem; }
+    #header .line > button, #header #file-wrap > button { display: inline-flex; align-items: center; justify-content: center; gap: 2px; min-width: 2rem; height: 1.8rem; padding: 0 .35rem; }
     #header .caret { font-size: 9px; }
     #build { font-size: 11px; opacity: .55; white-space: nowrap; }
     /* the song numbers as one dark display; they are still ordinary inputs */
@@ -1267,7 +1277,24 @@
   <div id="header">
     <div class="line">
       <button id="start" hidden>Start</button>
-      <button id="load" disabled title="Open a project" aria-label="Open"><svg class="ri" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7h6l2 2h10v10H3z"/></svg></button>
+      <span id="file-wrap">
+        <button id="filemenu-btn" disabled aria-haspopup="menu" aria-expanded="false" title="File: open, new, save, export, backups">File <span class="caret" aria-hidden="true">&#9662;</span></button>
+        <span id="file-menu" role="menu" hidden>
+          <button id="load" role="menuitem" title="Open a project">Open&hellip;</button>
+          <button id="new" role="menuitem" title="Start over with an empty file: no instruments, samples, patterns or arrangement (only the master lane stays)">New</button>
+          <span class="fm-sub">
+            <button id="new-existing" role="menuitem" aria-haspopup="menu" aria-expanded="false" title="Keep the instruments and samples, clear part of the song">New From Existing<span class="arr" aria-hidden="true">&#9656;</span></button>
+            <span id="new-menu" role="menu" hidden>
+              <button id="clear-arrangement" role="menuitem" data-clear="arrangement" title="Remove every pattern placement; the patterns stay">Clear Arrangement</button>
+              <button id="clear-patterns" role="menuitem" data-clear="patterns" title="Remove every pattern and the arrangement; instruments and samples stay">Clear Patterns and Arrangement</button>
+            </span>
+          </span>
+          <i class="fm-rule" role="separator"></i>
+          <button id="save" role="menuitem" title="Save the project (.wax)">Save</button>
+          <button id="export" role="menuitem" title="Export: render the whole song to a WAV or MP4 file, with a tail after the end (type and length in Config); press again while it runs to cancel">Export&hellip;</button>
+          <button id="backups" role="menuitem" title="Backups: the automatic snapshots, and the backup folder">Backups&hellip;</button>
+        </span>
+      </span>
       <button id="play" disabled title="Play (F5), stop (F8)" aria-label="Play"><svg class="ico" viewBox="0 0 12 12"><path d="M2.5 1 L10.5 6 L2.5 11 Z" fill="currentColor"/></svg></button>
       <button id="pause" disabled aria-pressed="false" title="Pause (Pause key): stop here; Play (or Pause again) carries on from the same place" aria-label="Pause"><svg class="ico" viewBox="0 0 12 12"><rect x="2.3" y="1.8" width="2.6" height="8.4" fill="currentColor"/><rect x="7.1" y="1.8" width="2.6" height="8.4" fill="currentColor"/></svg></button>
       <button id="rec" aria-pressed="false" title="Record MIDI notes into the pattern under the playhead while the song plays (Ctrl+Shift+R)" aria-label="Record"><svg class="ico" viewBox="0 0 12 12"><circle cx="6" cy="6" r="4.5" fill="#d8323f"/></svg></button>
@@ -1283,16 +1310,7 @@
         <label id="songtime-label" title="Estimated length of the song at the current tempo"><span>time</span> <span id="songtime" class="field">-</span></label>
       </div>
       <i class="sep"></i>
-      <button id="save" disabled title="Save the project (.wax)" aria-label="Save"><svg class="ri" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 3h11l3 3v15H5z M8 3v6h8V3 M8 21v-7h8v7"/></svg></button>
       <input id="pname" type="text" spellcheck="false" autocomplete="off" disabled placeholder="untitled" aria-label="Project name" title="The project name: it is the file name when you save"><span id="dirty" hidden title="Changed since the last save" aria-label="Unsaved changes">*</span>
-      <button id="export" disabled title="Export: render the whole song to a WAV or MP4 file, with a tail after the end (type and length in Config); press again while it runs to cancel" aria-label="Export"><svg class="ri" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12 M7 8l5-5 5 5 M4 15v5h16v-5"/></svg></button>
-      <button id="backups" disabled title="Backups: the automatic snapshots, and the backup folder" aria-label="Backups"><svg class="ri" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12a8 8 0 1 0 3-6.2 M4 4v5h5 M12 8v5l3 2"/></svg></button>
-      <span id="new-wrap"><button id="new" disabled title="New: clear the arrangement, the patterns, or everything" aria-label="New" aria-haspopup="menu" aria-expanded="false"><svg class="ri" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h8l4 4v14H6z M14 3v4h4 M12 11v6 M9 14h6"/></svg><span class="caret">▾</span></button>
-        <span id="new-menu" role="menu" hidden>
-          <button role="menuitem" data-clear="arrangement" title="Remove every pattern placement; the patterns stay">Clear arrangement only</button>
-          <button role="menuitem" data-clear="patterns" title="Remove every pattern and the arrangement; instruments and samples stay">Clear patterns and arrangement</button>
-          <button role="menuitem" data-clear="everything" title="Start over with an empty file: no instruments, samples, patterns or arrangement (only the master lane stays)">New file</button>
-        </span></span>
       <input id="file" type="file" accept=".wax,.wtrk,.json,.mid,.midi,.mod,.sunvox" hidden>
       <span class="grow"></span>
     </div>
