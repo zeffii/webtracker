@@ -1669,6 +1669,11 @@ $('limit-btn').addEventListener('click', () => {
   engine.set('master.m.limit', v);
   paintLimit();
 });
+// The latency compensation switch beside it: the same setting as Config, Playing, Delay compensation.
+const paintLatency = () => $('latency-btn').setAttribute('aria-pressed', String(config.get('delayComp')));
+$('latency-btn').addEventListener('click', () => config.set('delayComp', !config.get('delayComp')));
+config.onChange(k => { if (k === 'delayComp') paintLatency(); });
+paintLatency();
 setInterval(paintLimit, 400);   // the pattern or the parameter panel can switch it too
 
 // The Stream Manager (ui/streams.js): hidden until the eye button in the bottom bar opens it.

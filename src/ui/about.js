@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['570', ['A latency? button on the status bar switches latency compensation on and off']],
   ['569', ['CPU meter ignores the first second after Play (start-up cost, not playing cost)']],
   ['568', ['Arrangement boxes drawn on whole pixels: no more thicker outlines in places']],
   ['567', ['Top bar: a File menu replaces Open, New, Save, Export and Backups buttons']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['563', ['Open a SunVox file (.sunvox): its notes and arrangement come in, a lane per module that plays notes, on plain synths']],
   ['562', ['Shift and mouse wheel moves the pattern editor one row at a time']],
   ['561', ['Pattern editor fills down to the status bar; scrolling it is lighter and a wheel notch moves further']],
-  ['560', ['Stream Manager columns are fixed width, so they stop jumping as numbers and names change']],
-              ];
+                ];

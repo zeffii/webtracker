@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 570 · 2026-10-31
+
+- A **latency?** button on the status bar switches latency compensation on and off (the same setting as Config, Playing, Delay compensation). Its tooltip explains what it does.
+
 ## 569 · 2026-10-31
 
 - The CPU meter ignores the first second after Play. Starting a song builds voices and fills buffers, which showed up as a false peak and late blocks.
