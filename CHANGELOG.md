@@ -2,6 +2,11 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 591 · 2026-10-31
+
+- **The flask button now also hides the Script view and the Dock toggle.** With it off (the default) the left rail shows only Patterns, Samples, Instruments, Arrangement, Node Sequencer and Info; with it on, Script, Shader and DSP come back together with the Dock toggle. Their shortcuts (Ctrl+Alt+S, G, I and D) work either way. Config's "Show the Script, Shader and DSP views" does the same.
+- `npm test` now also checks that `main.js` parses, since a stray comment had broken it once.
+
 ## 590 · 2026-10-31
 
 - **Moving a slider empties the preset name box.** As soon as any parameter of the instrument changes, the Preset name field goes blank and reads "> Enter new preset name <", so the named preset is not renamed or saved over by accident. A name you are typing is left alone; recalling or selecting a preset puts its name back. Overwrite is still there for doing it on purpose.

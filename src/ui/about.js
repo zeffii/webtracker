@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['591', ['The flask button also hides the Script view and the Dock toggle (shortcuts still work)']],
   ['590', ['Presets: moving a slider empties the preset name box ("> Enter new preset name <") so a named preset is not changed by accident']],
   ['589', ['The arrangement line is every 256 ticks; no error in the graph editor of an empty song']],
   ['588', ['Fix: the line over every 512th tick is now visible']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['584', ['Mixer: strips as wide as their lanes, the meter inside the fader, and a test button that turns the fader into a temporary test gain']],
   ['583', ['Arrangement: a Mixer under the lanes with a vertical fader, M, S and mix per lane, standing in for each instrument\'s Out node']],
   ['582', ['Node Sequencer: hold Shift over a wire to see its last messages (tick, value, note name, volume, length); the vocoder demo is the tuned version']],
-  ['581', ['Node Sequencer: the Chord keyboard is in the bar under the graph, parameters stack four to a column, and a selected node is drawn with a glow and brackets']],
                     ];

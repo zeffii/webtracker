@@ -1718,8 +1718,8 @@ $('limit-btn').addEventListener('click', () => {
 const paintLatency = () => $('latency-btn').setAttribute('aria-pressed', String(config.get('delayComp')));
 $('latency-btn').addEventListener('click', () => config.set('delayComp', !config.get('delayComp')));
 config.onChange(k => { if (k === 'delayComp') paintLatency(); });
-// The Shader and DSP views: their rail buttons only show when the flask button in the status bar (or Config) says so.
-const paintCodeViews = () => { const on = config.get('codeViews'); $('tab-shader').hidden = !on; $('tab-dsp').hidden = !on; $('codeviews-btn').setAttribute('aria-pressed', String(on)); };
+// The Script, Shader and DSP views (and the Script dock toggle): their rail buttons only show when the flask button in the status bar (or Config) says so.
+const paintCodeViews = () => { const on = config.get('codeViews'); for (const id of ['tab-script', 'tab-shader', 'tab-dsp', 'script-dock', 'rail-sep-dock']) $(id).hidden = !on; $('codeviews-btn').setAttribute('aria-pressed', String(on)); };
 $('codeviews-btn').addEventListener('click', () => config.set('codeViews', !config.get('codeViews')));
 config.onChange(k => { if (k === 'codeViews') paintCodeViews(); });
 paintCodeViews();
