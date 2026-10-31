@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['587', ['Mixer: small lane names and the retroslate look']],
   ['586', ['Fix: the page failed to start with the mixer on (and projects failed to load)']],
   ['585', ['Arrangement: a faint line over every 512th tick; the File menu opens over every panel']],
   ['584', ['Mixer: strips as wide as their lanes, the meter inside the fader, and a test button that turns the fader into a temporary test gain']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['580', ['Steps nodes: a list of probabilities (click a step to cycle it); the Node Sequencer properties are a bar under the graph']],
   ['579', ['Out node: a master switch; off, the instrument is heard only by sidechain nodes (the vocoder demo is now only the vocoder)']],
   ['578', ['Node Sequencer: click a key on a Chord tile to hear the note, double-click the tile (or Play chord) to hear the whole chord']],
-  ['577', ['A vocoder demo (?demo=vocoder): long chords as the carrier, short percussive stabs as the voice']],
                     ];

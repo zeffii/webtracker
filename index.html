@@ -174,25 +174,27 @@
     body.seqfit #pane-arrange .pane-main { display: flex; flex-direction: column; align-self: stretch; }
     body.seqfit #pane-arrange #seq { flex: 1 1 auto; box-sizing: border-box; }
     /* the mixer under the arrangement: a short strip per lane, a vertical fader and its buttons side by side */
-    #mixer { display: flex; width: max-content; min-width: 100%; box-sizing: border-box; border-top: 2px solid var(--accent); background: var(--panel); flex: none; }
-    .mx-gutter { flex: none; width: var(--gw, 6ch); position: sticky; left: 0; z-index: 4; background: var(--panel); }   /* under the tick numbers */
-    .mx-strip { flex: none; width: calc(var(--cw, 14ch) * var(--n, 14) / 14); padding: 5px 6px 6px; box-sizing: border-box; overflow: hidden; display: flex; flex-direction: column; gap: 3px; border-right: 1px solid color-mix(in srgb, var(--fg) 20%, transparent); }
+    /* the mixer, in the retroslate look: small monospace, hairline slate borders, flat chips, the accent only where something is on */
+    #mixer { display: flex; width: max-content; min-width: 100%; box-sizing: border-box; border-top: 2px solid var(--accent); background: color-mix(in srgb, var(--fg) 7%, var(--panel)); flex: none; font: 11px/1.3 ui-monospace, Consolas, monospace; }
+    .mx-gutter { flex: none; width: var(--gw, 6ch); position: sticky; left: 0; z-index: 4; background: color-mix(in srgb, var(--fg) 7%, var(--panel)); }   /* under the tick numbers */
+    .mx-strip { flex: none; width: calc(var(--cw, 14ch) * var(--n, 14) / 14); padding: 4px 6px 6px; box-sizing: border-box; overflow: hidden; display: flex; flex-direction: column; gap: 3px; border-right: 1px solid color-mix(in srgb, var(--fg) 22%, transparent); }
     .mx-strip.blank { border-right: 0; }
     .mx-strip.cur { box-shadow: inset 0 2px 0 var(--accent); }
     .mx-strip.nooutput { opacity: .55; }
-    .mx-name { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .mx-name { font-size: 10px; letter-spacing: .06em; text-transform: uppercase; opacity: .7; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .mx-strip.cur .mx-name { opacity: 1; color: var(--accent); }
     .mx-row { display: flex; gap: 6px; min-width: 0; }
-    .mx-track { position: relative; flex: none; width: 24px; height: 74px; border: 1px solid color-mix(in srgb, var(--fg) 40%, transparent); box-sizing: border-box; cursor: ns-resize; touch-action: none; background: color-mix(in srgb, var(--fg) 6%, var(--panel)); }
-    .mx-track s { position: absolute; left: 3px; right: 3px; bottom: 0; height: 0; background: #4f8f5a; transition: height .06s linear; }   /* the instrument's level */
+    .mx-track { position: relative; flex: none; width: 22px; height: 70px; border: 1px solid color-mix(in srgb, var(--fg) 38%, transparent); box-sizing: border-box; cursor: ns-resize; touch-action: none; background: color-mix(in srgb, var(--fg) 5%, var(--panel)); }
+    .mx-track s { position: absolute; left: 3px; right: 3px; bottom: 0; height: 0; background: #4f8f5a; opacity: .85; transition: height .06s linear; }   /* the instrument's level */
     .mx-track s.hot { background: #b0661d; }
     .mx-track u { position: absolute; left: 0; right: 0; height: 0; border-top: 1px dashed var(--fg); }   /* the real gain, while a test gain is on */
-    .mx-track b { position: absolute; left: -3px; right: -3px; height: 6px; margin-bottom: -3px; background: var(--accent); }
-    .mx-track.test b { background: #b0661d; }
+    .mx-track b { position: absolute; left: -3px; right: -3px; height: 5px; margin-bottom: -3px; background: var(--accent); border: 1px solid color-mix(in srgb, var(--accent) 60%, #000); box-sizing: border-box; }
+    .mx-track.test b { background: #b0661d; border-color: #7d4a12; }
     .mx-side { display: grid; grid-template-columns: auto auto; gap: 3px; align-content: start; justify-content: start; min-width: 0; }
     .mx-side .mx-db { grid-column: 1 / 3; }
-    .mx-db { font-size: .8em; opacity: .75; white-space: nowrap; }
-    .mx-btn { padding: 0 5px; font-size: .8em; line-height: 1.3; }
-    .mx-btn.on { background: var(--accent); color: var(--bg, #fff); }
+    .mx-db { font-size: 10px; opacity: .75; white-space: nowrap; }
+    .mx-btn { font: inherit; font-size: 10px; line-height: 14px; padding: 0 5px; border: 1px solid color-mix(in srgb, var(--accent) 55%, transparent); border-radius: 0; background: color-mix(in srgb, var(--fg) 4%, var(--panel)); color: var(--fg); cursor: pointer; }
+    .mx-btn.on { background: var(--accent); border-color: var(--accent); color: var(--bg, #fff); }
     #pane-arrange #seq { margin-top: 0; }   /* its top edge level with the pattern list panel beside it */
     /* the lane and silence controls under the pattern list */
     #seq-side.sized { height: var(--list-h); max-height: none; }
