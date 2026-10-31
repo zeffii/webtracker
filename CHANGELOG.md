@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 595 · 2026-10-31
+
+- **Hear the detected chords.** In the Detect chords dialog, click a chord in the list and it plays for half a second on the instrument of the lane chosen in the dialog, so a guess can be checked by ear. By default only the notes of the named chord sound; tick "test with the extra notes too" to hear every note found, including the extra ones that may only be overtones. The list is now made of clickable rows.
+
 ## 594 · 2026-10-31
 
 - **Patterns that start or end between two rows are drawn where they really are.** A pattern placed at tick 4 in a 16-tick row now begins a quarter of the way down that row (and one that ends at tick 12 stops three quarters down), instead of being rounded to the row's edge. The pattern itself, its playback and its editing were always exact; only the drawing was snapped.

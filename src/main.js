@@ -1911,18 +1911,36 @@ mountConfig($('as-cfg'), config, [['sliceSensitivity', 'Sensitivity (%)', 'range
     const want = [keep, String(seqView.lane)].find(v => v !== undefined && [...laneSel.options].some(o => o.value === v));
     if (want !== undefined) laneSel.value = want;
   };
+  // Hearing a chord: its notes play together for half a second on the instrument of the chosen lane. By default only the notes that
+  // belong to the named chord; with "extra notes" every note found (the extra ones may be overtones of the others, or incidentals).
+  let heard = null;
+  const stopHeard = () => { if (!heard) return; clearTimeout(heard.timer); for (const m of heard.notes) engine.noteOff(heard.instrument, m); heard = null; };
+  const audition = g => {
+    const lane = project.lanes[Number(laneSel.value)];
+    if (!started || !lane) { count.textContent = 'Pick a lane to play the test on.'; return; }
+    stopHeard();
+    const core = g.notes.filter(m => !(g.extras ?? []).includes(m % 12)), notes = $('cs-extras').checked || core.length < 2 ? g.notes : core;
+    for (const m of notes) engine.noteOn(lane.instrument, m, 0.8);
+    heard = { instrument: lane.instrument, notes, timer: setTimeout(stopHeard, 500) };
+  };
   const bpm = () => config.get('chordBpm') || project.song.bpm;
   const scan = () => {
     const name = sampleScreen.selected, s = name ? project.samples[name] : null;
     result = null;
-    if (!s) { list.textContent = ''; count.textContent = 'Pick a sample first.'; $('cs-go').disabled = true; return; }
+    if (!s) { list.replaceChildren(); count.textContent = 'Pick a sample first.'; $('cs-go').disabled = true; return; }
     let [from, to] = sampleScreen.selection;
     if (!(to > from)) { from = 0; to = s.data.length; }
     const split = config.get('chordSplit');
     const r = scanChords(s.data, s.right, s.rate, { from, to, split: split === 'onsets' ? 'onsets' : Number(split), bpm: bpm(), maxNotes: config.get('chordMaxNotes'), threshold: config.get('chordThreshold') / 100 });
     result = { ...r, rate: s.rate };
     const t = f => `${Math.floor(f / s.rate / 60)}:${(f / s.rate % 60).toFixed(2).padStart(5, '0')}`;
-    list.textContent = r.segments.map(g => `${t(g.frame0)}  ${(g.exact ? g.name : `${g.name} ?`).padEnd(16)} ${g.notes.map(m => noteName(m, r.flats)).join(' ').padEnd(22)}${g.alts?.length ? ` or ${g.alts.join(', ')}` : ''}`).join('\n');
+    list.replaceChildren(...r.segments.map(g => {
+      const row = document.createElement('button');
+      row.type = 'button'; row.className = `cs-row${g.exact ? '' : ' guess'}`; row.title = 'Click to hear this chord';
+      row.textContent = `${t(g.frame0)}  ${(g.exact ? g.name : `${g.name} ?`).padEnd(16)} ${g.notes.map(m => noteName(m, r.flats)).join(' ').padEnd(22)}${g.alts?.length ? ` or ${g.alts.join(', ')}` : ''}`;
+      row.addEventListener('click', () => audition(g));
+      return row;
+    }));
     count.textContent = r.segments.length ? `${r.segments.length} chord${r.segments.length === 1 ? '' : 's'} found${to - from < s.data.length ? ' in the selection' : ''}.` : 'No notes found: pick a part of the sample that sounds, or lower the weakest-note setting.';
     $('cs-go').disabled = !r.segments.length || !laneSel.options.length;
   };
@@ -1954,7 +1972,7 @@ mountConfig($('as-cfg'), config, [['sliceSensitivity', 'Sensitivity (%)', 'range
     $('proj-status').textContent = `Wrote ${result.segments.length} chord${result.segments.length === 1 ? '' : 's'} into ${lane.id} at tick ${base}, ${rows} rows. Open the Arrangement to hear it.`;
   });
   $('cs-cancel').addEventListener('click', () => dlg.close());
-  dlg.addEventListener('close', () => $('smp').focus());
+  dlg.addEventListener('close', () => { stopHeard(); $('smp').focus(); });
   $('chordscan-open').addEventListener('click', open);
   chordScanOpen = open;
 }

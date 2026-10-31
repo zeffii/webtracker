@@ -90,11 +90,11 @@ export const midiName = midi => stName(midi);
 // The name of a chord, and what else it might be: { name, exact, alts }. With no exact match the best fit is given, with the notes that
 // do not belong to it written as added or altered ones; flats = spell the notes with flats (b) instead of sharps.
 export function chordInfo(midis, flats = false) {
-  if (!midis.length) return { name: '', exact: true, alts: [] };
+  if (!midis.length) return { name: '', exact: true, alts: [], extras: [] };
   const names = flats ? FLAT_PC : PC;
-  if (midis.length === 1) return { name: names[midis[0] % 12], exact: true, alts: [] };
+  if (midis.length === 1) return { name: names[midis[0] % 12], exact: true, alts: [], extras: [] };
   const found = suggest(midis.map(m => m - 12), { flats });   // the palette counts C-4 as 48
-  return found ?? { name: midis.map(m => names[m % 12]).join(' '), exact: false, alts: [] };
+  return found ?? { name: midis.map(m => names[m % 12]).join(' '), exact: false, alts: [], extras: [] };
 }
 export const chordName = (midis, flats = false) => chordInfo(midis, flats).name;
 

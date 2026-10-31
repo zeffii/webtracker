@@ -9176,6 +9176,9 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   assert.equal(chordName([46, 50, 53, 57], true), 'Bbmaj7', 'flats in a flat key');
   assert.equal(chordName([46, 50, 53, 57]), 'A#maj7', 'sharps otherwise');
   assert.equal(chordName([60, 67]), 'C5', 'a fifth is a power chord');
+  const { suggest } = await import('../src/seq/chords.js');
+  assert.deepEqual(suggest([60, 64, 67, 71, 74]).extras, [2], 'the notes that are not part of the chord are given (here the 9th, D)');
+  assert.deepEqual(suggest([48, 52, 55, 59]).extras, [], 'an exact chord has none');
   const { rows, items } = patternFrom(r.segments, sr, { tps: 8, cols: 3, noteToken });
   assert.deepEqual(items.filter(i => i.tick === 0).map(i => i.token), ['C-3', 'E-3', 'G-3'], 'the first chord at tick 0, three of its four notes');
   assert.ok(items.some(i => i.token === '===' && i.tick > 0), 'notes are released');

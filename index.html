@@ -49,6 +49,10 @@
     #autoslice { background: var(--bg); color: var(--fg); border: 1px solid; max-width: 30rem; padding: 1rem 1.25rem; font: 13px/1.5 system-ui, sans-serif; }
     #autoslice h3, #chordscan h3 { margin: 0 0 .4rem; }
     #chordscan { background: var(--bg); color: var(--fg); border: 1px solid; max-width: 34rem; padding: 1rem 1.25rem; font: 13px/1.5 system-ui, sans-serif; }
+    #cs-list { max-height: 14rem; overflow: auto; margin: .5rem 0; font: 12px/1.5 ui-monospace, Consolas, monospace; }
+    .cs-row { display: block; width: 100%; text-align: left; white-space: pre; font: inherit; padding: 0 .3rem; border: 0; background: transparent; color: inherit; cursor: pointer; }
+    .cs-row:hover, .cs-row:focus-visible { background: var(--hi); color: var(--hi-fg); outline: 0; }
+    .cs-row.guess { opacity: .85; }
     #chordscan .qcs.as { flex-direction: column; align-items: stretch; gap: .5rem; font-size: 13px; } #chordscan .qc { justify-content: space-between; white-space: nowrap; } #cs-list { font: 12px/1.4 ui-monospace, Consolas, monospace; }
     #autoslice .qcs.as { flex-direction: column; align-items: stretch; gap: .5rem; font-size: 13px; }
     #autoslice .qc { justify-content: space-between; white-space: nowrap; }
@@ -1363,8 +1367,9 @@
     <h3>Detect chords</h3>
     <p class="help">Listens to the sample, or the selection, and finds the notes of each chord (a piano recording works best). Press Write and they go into a new pattern of a lane, with the chord's notes across its note columns. The recording's tempo decides where the chords land, so set it if the song's tempo is not the one you played at.</p>
     <div id="cs-cfg" class="qcs as"></div>
-    <div class="qc"><label>Lane <select id="cs-lane"></select></label> <label>at tick <input id="cs-tick" type="number" min="0" step="16" value="0" style="width:5rem"></label></div>
-    <pre id="cs-list" aria-live="polite" style="max-height:14rem;overflow:auto;margin:.5rem 0"></pre>
+    <div class="qc"><label title="The lane the chords are written into, and whose instrument plays the test when you click a chord">Lane <select id="cs-lane"></select></label> <label>at tick <input id="cs-tick" type="number" min="0" step="16" value="0" style="width:5rem"></label></div>
+    <div class="qc"><label title="Click a chord below to hear it for half a second on the lane's instrument. Off: only the notes of the named chord. On: every note found, including the extra ones (they may only be overtones)."><input type="checkbox" id="cs-extras"> test with the extra notes too</label></div>
+    <div id="cs-list" aria-live="polite"></div>
     <p id="cs-count"></p>
     <div class="as-btns"><button id="cs-go" type="button">Write to pattern</button> <button id="cs-cancel" type="button">Cancel</button></div>
   </dialog>

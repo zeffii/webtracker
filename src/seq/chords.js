@@ -73,7 +73,7 @@ export function suggest(notes, { flats = false } = {}) {
   const s = asc(notes), pcs = uniq(s.map(n => ((n % 12) + 12) % 12));
   if (pcs.length < 2) return null;
   const names = flats ? FLAT_PC : PC;
-  if (pcs.length === 2 && (pcs[1] - pcs[0] === 7 || pcs[1] - pcs[0] === 5)) return { name: `${names[pcs[1] - pcs[0] === 7 ? pcs[0] : pcs[1]]}5`, exact: true, alts: [] };   // a fifth: a power chord
+  if (pcs.length === 2 && (pcs[1] - pcs[0] === 7 || pcs[1] - pcs[0] === 5)) return { name: `${names[pcs[1] - pcs[0] === 7 ? pcs[0] : pcs[1]]}5`, exact: true, alts: [], extras: [] };   // a fifth: a power chord
   const bass = pcs.includes(s[0] % 12) ? s[0] % 12 : pcs[0];
   const fits = [];
   for (const root of pcs) {
@@ -90,14 +90,14 @@ export function suggest(notes, { flats = false } = {}) {
       const parts = extra.map(t => EXTRA[t] ?? '').filter(Boolean), gone = missing.includes(7) ? ['no5'] : [];
       const tail = [...parts, ...gone];
       const name = `${names[root]}${q.label}${tail.length ? `(${tail.join(',')})` : ''}${root === bass ? '' : `/${names[bass]}`}`;
-      fits.push({ name, score, exact: !extra.length && !missing.length });
+      fits.push({ name, score, exact: !extra.length && !missing.length, extras: extra.map(t => (root + t) % 12) });
     });
   }
   if (!fits.length) return null;
   fits.sort((a, b) => b.score - a.score);
   const top = fits[0], seen = new Set([top.name]), alts = [];
   for (const f of fits.slice(1)) if (f.score >= top.score - 1.2 && !seen.has(f.name) && alts.length < 2) { seen.add(f.name); alts.push(f.name); }
-  return { name: top.name, exact: top.exact, alts };
+  return { name: top.name, exact: top.exact, alts, extras: top.extras };   // extras: the pitch classes that do not belong to the chord (overtones, passing notes)
 }
 
 // The chord tones stacked close together upward from a root note.

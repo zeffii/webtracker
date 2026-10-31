@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['595', ['Detect chords: click a chord to hear it for half a second on the chosen lane, with or without the extra notes']],
   ['594', ['Arrangement: a pattern that starts or ends between two rows is drawn at its true position, not snapped to the row']],
   ['593', ['Chord finder: names a chord even without an exact match (Cmaj7(add9), C7(b9)) with alternatives, and spells with flats in flat keys']],
   ['592', ['^^^ is a kill (120 ms fade, machine reset, asleep until the next note); Clone with machine copies a lane and its instrument, with or without patterns and automation']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['588', ['Fix: the line over every 512th tick is now visible']],
   ['587', ['Mixer: small lane names and the retroslate look']],
   ['586', ['Fix: the page failed to start with the mixer on (and projects failed to load)']],
-  ['585', ['Arrangement: a faint line over every 512th tick; the File menu opens over every panel']],
                     ];
