@@ -2,6 +2,11 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 580 · 2026-10-31
+
+- **Probabilities in the steps node.** Give a steps node a list ("1.0, 0.3, 0.6", up to 8, % works too) and each click on a step moves it on: off, then each probability in turn, then off. A step is drawn filled to its probability and fires that often, rolled again every pass. With no list the steps are on or off with a level, as before (new steps nodes start with "1.0, 0.5, 0.25").
+- **The node's properties are a bar under the graph** instead of a panel on the right. Click a step and the bar shows which step it is, its state and its probability, with the list beside it.
+
 ## 579 · 2026-10-31
 
 - **A "master" switch on the Out node.** Off, the instrument is left out of the mix but a sidechain node in another instrument still hears it, so a carrier and a voice can feed a vocoder without being heard dry. (A sidechain used to hear what also went to the speakers.)

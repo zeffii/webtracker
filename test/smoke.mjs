@@ -4026,6 +4026,16 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
       t.run(2);
       assert.deepEqual(ons(t.log).map(e => e.at), [3, 4, 5, 6, 7], 'one note per subtick, three subticks late, the last ones still to come');
     }
+    // steps with probabilities: a step holds the number of its probability in the list (0 off); a list of nothing keeps the old on/off levels
+    {
+      let seed = 7; const lcg = () => (seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296;
+      const mk = (probs, cells, n, ticks) => { const t = make({ sub: 1, nodes: [{ id: 'c', type: 'clock' }, { id: 's', type: 'steps', params: { n }, data: { cells, ...(probs !== undefined ? { probs } : {}) } }, { id: 'n', type: 'note', data: { target: 'x' }, params: { pitch: 60 } }], wires: [{ from: 'c.tick', to: 's.in' }, { from: 's.out', to: 'n.trig' }] }, {}, lcg); t.run(ticks); return ons(t.log).map(e => e.at); };
+      assert.deepEqual(mk('1.0, 0', [1, 2, 1, 2], 4, 8), [0, 2, 4, 6], 'probability 1.0 always fires, 0 never does');
+      const half = mk('0.5', [1], 1, 600).length;
+      assert.ok(half > 220 && half < 380, `a step at 0.5 fires about half the time (${half} of 600)`);
+      assert.deepEqual(mk(undefined, [1, 0, 0.5, 0], 4, 4), [0, 2], 'without a list a step is on or off, as before');
+      assert.ok(mk('1.0, 0', [5, 1], 2, 40).every(at => at % 2 === 1), 'a state beyond the list uses the last probability (here 0: never)');
+    }
     // chance, math, every
     {
       const t = make({ sub: 1, nodes: [{ id: 'c', type: 'clock' }, { id: 'v', type: 'every', params: { n: 4, offset: 1 } }, { id: 'm', type: 'math', params: { add: 12 } }, { id: 'n', type: 'note', data: { target: 'x' }, params: { pitch: 40 } }],

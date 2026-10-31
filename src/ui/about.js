@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['580', ['Steps nodes: a list of probabilities (click a step to cycle it); the Node Sequencer properties are a bar under the graph']],
   ['579', ['Out node: a master switch; off, the instrument is heard only by sidechain nodes (the vocoder demo is now only the vocoder)']],
   ['578', ['Node Sequencer: click a key on a Chord tile to hear the note, double-click the tile (or Play chord) to hear the whole chord']],
   ['577', ['A vocoder demo (?demo=vocoder): long chords as the carrier, short percussive stabs as the voice']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['573', ['The Node Sequencer is a line drawing that runs top to bottom: one-line nodes, dim outlines, ports shaped by kind, a new rail icon']],
   ['572', ['Chord tiles grow a keyboard on hover: click keys to play a chord in; the tile names the chord and marks stray notes']],
   ['571', ['The CPU readout is cleared each time Play starts']],
-  ['570', ['A latency? button on the status bar switches latency compensation on and off']],
                     ];

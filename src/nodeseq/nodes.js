@@ -34,6 +34,12 @@ export function parseValue(tok) {
 }
 
 // The numbers in a list's text ("57 60 C-5 . 64"); the words it cannot read are returned as `bad`.
+// The probabilities a steps node cycles its steps through ("1.0, 0.3, 0.6"): numbers from 0 to 1 (a percentage like 30% works too), at most 8.
+// An empty list means the node has none: its steps are on or off, with a level, as they always were.
+export function parseProbs(text) {
+  return String(text ?? '').split(/[\s,;]+/).filter(Boolean).slice(0, 8).map(t => { const v = parseFloat(t); return Number.isFinite(v) ? Math.min(1, Math.max(0, t.endsWith('%') ? v / 100 : v)) : null; }).filter(v => v !== null);
+}
+
 export function parseList(text) {
   const items = [], bad = [];
   for (const tok of String(text ?? '').split(/[\s,]+/).filter(Boolean)) {
@@ -164,7 +170,7 @@ export const NS_TYPES = {
     }; },
   },
   steps: {
-    title: 'steps', cat: 'rhythm', hint: 'a row of steps, each off or on with its own level',
+    title: 'steps', cat: 'rhythm', hint: 'a row of steps. Click a step to move it through the probabilities in the list (off, then each one in turn); a step fires that often. With no list, a step is on or off with a level',
     ins: [ev('in'), ev('reset')], outs: [{ n: 'out', k: 'e' }, { n: 'val', k: 'c' }],
     params: [par('n', 1, 32, 16, { int: true })], body: 'steps',
     create: cx => { let i = 0, last = -1; return {
@@ -172,6 +178,12 @@ export const NS_TYPES = {
         if (port === 'reset') { i = 0; return; }
         const n = Math.max(1, Math.round(cx.p.n)), cells = cx.data.cells ?? [];
         last = i % n; const c = Number(cells[last]) || 0; i = (last + 1) % n;
+        const probs = parseProbs(cx.data.probs);
+        if (probs.length) {   // a step holds which probability it has (1 is the first of the list, 0 is off): it fires that often, rolled again every pass
+          const k = Math.round(c);
+          if (k > 0 && cx.rand() < probs[Math.min(k, probs.length) - 1]) { cx.ctl('val', 1); cx.emit('out', last, 1); }
+          return;
+        }
         if (c > 0) { cx.ctl('val', c); cx.emit('out', last, c); }
       },
       reset() { i = 0; last = -1; },

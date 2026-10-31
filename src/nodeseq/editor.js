@@ -2,7 +2,7 @@
 // the selected node. Events run along amber square ports, controls along cyan round ones; wires are drawn behind the nodes, and a little
 // light runs along a wire each time an event goes down it. The data is the song's `nodeseq` (see graphops.js); the audio thread runs it
 // (audio/nodeseq.js) and sends back what it did, which is drawn here.
-import { NS_TYPES, DOT_TYPES, insOf, parseList, parseChordList, compileScript, DEFAULT_SCRIPT } from './nodes.js';
+import { NS_TYPES, DOT_TYPES, insOf, parseList, parseProbs, parseChordList, compileScript, DEFAULT_SCRIPT } from './nodes.js';
 import { ensureGraph, newGraph, addNode, connect, disconnect, removeNodes, duplicateNodes, cleanGraph, canConnect, GROUP_NAMES } from './graphops.js';
 import { chordView, describeChord, editNote, editVolume, noteLimit, midiName } from './chordtext.js';
 import { panelRect, growing, startFor, hit as keysHit, volumeAt, shifted, drawPanel as drawKeysPanel } from './chordkeys.js';
@@ -352,9 +352,10 @@ export function createNodeSeqEditor({ root, getSong, noteTargets = () => [], par
     if (n.type === 'steps') {
       const cells = n.data?.cells ?? [], cnt = Math.round(n.params?.n ?? 16), cw = w / cnt, top = b.y + BAND + 3, hh = b.h - BAND - 8;
       for (let i = 0; i < cnt; i++) {
-        const lv = Number(cells[i]) || 0, x = x0 + i * cw;
+        const lv = stepLevel(n, i), x = x0 + i * cw;
         ctx.fillStyle = C.dark ? 'rgba(255,255,255,.08)' : 'rgba(0,0,0,.09)'; ctx.fillRect(x + 0.5, top, cw - 1, hh);
         if (lv > 0) { ctx.fillStyle = C.ev; ctx.fillRect(x + 0.5, top + hh * (1 - lv), cw - 1, hh * lv); }
+        if (stepSel?.id === n.id && stepSel.i === i) { ctx.strokeStyle = C.accent; ctx.lineWidth = 1.4; ctx.strokeRect(x - 0.5, top - 1.5, cw + 1, hh + 3); }
         if (v?.i === i) { ctx.strokeStyle = C.ink; ctx.lineWidth = 1.2; ctx.strokeRect(x + 0.5, top - 0.5, cw - 1, hh + 1); }
         if (i % 4 === 0) { ctx.fillStyle = C.ink; ctx.globalAlpha *= 0.4; ctx.fillRect(x + 0.5, top + hh + 2, 1, 2); ctx.globalAlpha /= 0.4; }
       }
@@ -434,6 +435,11 @@ export function createNodeSeqEditor({ root, getSong, noteTargets = () => [], par
     }
     return null;
   }
+  // Steps: with a probability list a step holds the number of its probability in it (0 off), else a level. What a step is drawn at, and the next click's value.
+  let stepSel = null;   // the step the bottom bar is about: { id, i }
+  const stepProbs = n => parseProbs(n.data?.probs);
+  const stepLevel = (n, i) => { const v = Number(n.data?.cells?.[i]) || 0, p = stepProbs(n); return p.length ? (v > 0 ? p[Math.min(Math.round(v), p.length) - 1] : 0) : v; };
+  const stepNext = (n, i) => { const v = Number(n.data?.cells?.[i]) || 0, p = stepProbs(n); return p.length ? (Math.round(v) + 1 > p.length ? 0 : Math.round(v) + 1) : (v > 0 ? 0 : 1); };
   function hitStep(n, wx, wy) {
     const b = boxes.get(n.id); if (!b || n.type !== 'steps') return -1;
     const cnt = Math.round(n.params?.n ?? 16), w = b.w - 12, cw = w / cnt, x = wx - (b.x + 6), y = wy - (b.y + BAND + 3);
@@ -571,9 +577,9 @@ export function createNodeSeqEditor({ root, getSong, noteTargets = () => [], par
       if (step >= 0) {   // a step cell: click flips it, and dragging across cells paints the same way
         checkpoint();
         const cells = (n.data ??= { cells: [] }).cells ??= [];
-        const on = !(Number(cells[step]) > 0);
-        cells[step] = on ? 1 : 0;
-        drag = { kind: 'steps', n, on, last: step };
+        const to = stepNext(n, step);
+        cells[step] = to; stepSel = { id: n.id, i: step };
+        drag = { kind: 'steps', n, to, last: step };
         sel = new Set([n.id]); selWire = null; changedData(n); renderSide(); return;
       }
       if (e.shiftKey) { sel.has(n.id) ? sel.delete(n.id) : sel.add(n.id); }
@@ -613,7 +619,7 @@ export function createNodeSeqEditor({ root, getSong, noteTargets = () => [], par
       const [, wy] = toWorld(sx, sy); setChord(drag.n, editVolume(drag.n.data, drag.n.params, drag.note, volumeAt(drag, wy)));
     } else if (drag.kind === 'steps') {
       const [wx, wy] = toWorld(sx, sy), i = hitStep(drag.n, wx, wy);
-      if (i >= 0 && i !== drag.last) { drag.n.data.cells[i] = drag.on ? 1 : 0; drag.last = i; changedData(drag.n); }
+      if (i >= 0 && i !== drag.last) { drag.n.data.cells[i] = drag.to; drag.last = i; changedData(drag.n); }
     }
     dirty = true;
   });
@@ -882,24 +888,39 @@ export function createNodeSeqEditor({ root, getSong, noteTargets = () => [], par
     return row(what, sel1);
   }
   function stepsEditor(n) {
-    const cells = (n.data ??= { cells: [] }).cells ??= [];
-    const cnt = Math.round(n.params?.n ?? 16), box = el('div', { className: 'ns-steps', title: 'Click a step to turn it on or off; drag up and down to set its level' });
+    const data = n.data ??= { cells: [] }, cells = data.cells ??= [];
+    const cnt = Math.round(n.params?.n ?? 16), box = el('div', { className: 'ns-steps', title: 'Click a step to move it on; with no probabilities, drag up and down to set its level' });
+    const readout = el('div', { className: 'ns-block' });
+    const showStep = () => {   // the step the bar is about: which one, its probability, and the list
+      readout.replaceChildren();
+      const p = stepProbs(n), i = stepSel?.id === n.id ? stepSel.i : -1;
+      if (!p.length) { readout.append(el('small', { className: 'ns-dim', textContent: 'no probabilities: steps are on or off, with a level' })); return; }
+      if (i < 0 || i >= cnt) { readout.append(el('small', { className: 'ns-dim', textContent: 'click a step to see its probability' })); return; }
+      const k = Math.round(Number(cells[i]) || 0), pr = k > 0 ? p[Math.min(k, p.length) - 1] : 0;
+      const track = el('span', { className: 'ns-track' }, el('i')); track.firstChild.style.width = `${pr * 100}%`;
+      readout.append(el('b', { textContent: `step ${i + 1} of ${cnt}` }), el('span', { textContent: k > 0 ? `state ${Math.min(k, p.length)} of ${p.length}` : 'off' }), track, el('span', { textContent: k > 0 ? pr.toFixed(2) : '-' }));
+    };
+    const paintAll = () => { cellEls.forEach(([c, fill], i) => { const lv = stepLevel(n, i); fill.style.height = `${lv * 100}%`; c.classList.toggle('on', lv > 0); c.classList.toggle('picked', stepSel?.id === n.id && stepSel.i === i); }); showStep(); dirty = true; };
     const cellEls = [];
     for (let i = 0; i < cnt; i++) {
       const c = el('button', { type: 'button', className: 'ns-step' }), fill = el('i');
       c.append(fill); cellEls.push([c, fill]); box.append(c);
-      const paint = () => { const lv = Number(cells[i]) || 0; fill.style.height = `${lv * 100}%`; c.classList.toggle('on', lv > 0); };
-      paint();
       c.addEventListener('pointerdown', e => {
         e.preventDefault(); checkpoint();
-        const r = c.getBoundingClientRect(), lv0 = Number(cells[i]) || 0, startY = e.clientY;
+        const r = c.getBoundingClientRect(), lv0 = Number(cells[i]) || 0, startY = e.clientY, listed = stepProbs(n).length > 0;
+        stepSel = { id: n.id, i };
         let moved = false;
-        const mv = ev => { if (Math.abs(ev.clientY - startY) < 3 && !moved) return; moved = true; cells[i] = Math.round(clamp((r.bottom - ev.clientY) / r.height, 0.1, 1) * 10) / 10; paint(); changedData(n); };
-        const up = () => { removeEventListener('pointermove', mv); removeEventListener('pointerup', up); if (!moved) { cells[i] = lv0 > 0 ? 0 : 1; paint(); changedData(n); } };
+        const mv = ev => { if (listed || (Math.abs(ev.clientY - startY) < 3 && !moved)) return; moved = true; cells[i] = Math.round(clamp((r.bottom - ev.clientY) / r.height, 0.1, 1) * 10) / 10; paintAll(); changedData(n); };
+        const up = () => { removeEventListener('pointermove', mv); removeEventListener('pointerup', up); if (!moved) { cells[i] = stepNext(n, i); changedData(n); } paintAll(); };
         addEventListener('pointermove', mv); addEventListener('pointerup', up);
       });
     }
-    return row('steps', box);
+    paintAll();
+    const list = el('input', { type: 'text', value: data.probs ?? '', spellcheck: false, ariaLabel: 'probabilities', placeholder: '1.0, 0.3, 0.6' });
+    list.addEventListener('focus', () => checkpoint());
+    list.addEventListener('input', () => { n.data = { ...n.data, probs: list.value }; changedData(n); paintAll(); });
+    list.addEventListener('keydown', e => e.stopPropagation());
+    return el('div', { className: 'ns-block' }, row('steps', box), readout, row('probs', list), el('small', { className: 'ns-dim', textContent: 'a list like 1.0, 0.3, 0.6 (up to 8): each click moves a step on to the next, then off. Leave empty for plain steps with a level.' }));
   }
   function listEditor(n) {
     const ta = el('textarea', { rows: 3, spellcheck: false, value: n.data?.text ?? '', ariaLabel: 'list' }), note = el('small', { className: 'ns-dim' });
