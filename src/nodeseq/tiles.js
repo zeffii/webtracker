@@ -52,6 +52,7 @@ export function tileSize(type, inCount, outCount, data, params, textWidth = 0) {
   if (NS_TYPES_DOT.has(type)) return { w: DOT, h: DOT };
   const least = Math.max(inCount, outCount) * PORT_GAP + 8;
   if (type === 'Voicing') return { w: Math.max(least, Math.round(params?.notes ?? 4) * 8 + 12), h: 36 };
+  if (type === 'Pattern') { const { cols, rows } = patternShape(patternTokens(data?.text).length); return { w: Math.max(least, 64, cols * PCELL + 12), h: BAND + 8 + rows * (PCELL + 2) }; }
   const body = BODY[type];
   if (body) return { w: Math.max(body.w, least), h: body.h };
   return { w: Math.max(MIN_W, least, Math.ceil(textWidth) + 20), h: WORD_H };
@@ -59,7 +60,12 @@ export function tileSize(type, inCount, outCount, data, params, textWidth = 0) {
 
 // The value a one-line tile shows, as wide as it will ever be (a Phrase shows "2/3" while it plays, a monitor a number), so the tile does not change width.
 export const reserveLabel = (n, chordCount = 0) => (n.type === 'Phrase' ? `${chordCount}/${chordCount}` : n.type === 'monitor' ? '0.00' : tileLabel(n, null, chordCount));
-export const isBody = type => type === 'Voicing' || type in BODY;
+export const isBody = type => type === 'Voicing' || type === 'Pattern' || type in BODY;
+
+// A Pattern node draws its list as a grid of cells, twelve to a row.
+export const PCELL = 14;
+export const patternTokens = text => String(text ?? '').split(/[\s,]+/).filter(Boolean).slice(0, 64);
+export const patternShape = count => ({ cols: Math.min(Math.max(count, 1), 12), rows: Math.ceil(Math.max(count, 1) / 12) });
 
 // The few characters shown after the word. `live` is what the audio thread last said about the node.
 export function tileLabel(n, live, chordCount = 0) {

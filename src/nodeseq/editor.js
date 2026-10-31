@@ -6,11 +6,11 @@ import { NS_TYPES, DOT_TYPES, insOf, parseList, parseChordList, compileScript, D
 import { ensureGraph, newGraph, addNode, connect, disconnect, removeNodes, duplicateNodes, cleanGraph, canConnect, GROUP_NAMES } from './graphops.js';
 import { chordView, describeChord, editNote, editVolume, noteLimit, midiName } from './chordtext.js';
 import { panelRect, growing, startFor, hit as keysHit, volumeAt, shifted, drawPanel as drawKeysPanel } from './chordkeys.js';
-import { tileSize, tileLabel, reserveLabel, isBody, isDot, DOT, BAND, WORD_FONT } from './tiles.js';
+import { tileSize, tileLabel, reserveLabel, isBody, isDot, DOT, BAND, WORD_FONT, PCELL, patternTokens, patternShape } from './tiles.js';
 import { noteName } from '../seq/chordname.js';
 import { showContextMenu } from '../ui/ctxmenu.js';
 
-const FONT = '7px ui-monospace, Consolas, monospace', CATS = ['time', 'rhythm', 'values', 'chords', 'control', 'output', 'code', 'groups', 'routing'];
+const FONT = '7px ui-monospace, Consolas, monospace', CATS = ['time', 'rhythm', 'values', 'chords', 'logic', 'control', 'output', 'code', 'groups', 'routing'];
 export const GROUP_COLORS = ['#e0a84a', '#4fc3d9', '#c792ea', '#5fbf6a', '#ee7d5c', '#8a96f2', '#e5669c', '#a3b34c'];
 const DIM = 0.45;   // how bright the outlines and wires are drawn until something happens on them: the words and ports carry the picture
 const METER = new Set(['lfo', 'ad', 'scale', 'hold', 'Pwhite', 'set']);   // nodes that show a level
@@ -37,6 +37,7 @@ export function createNodeSeqEditor({ root, getSong, noteTargets = () => [], par
 
   // ---- state
   let view = { x: -20, y: -20, zoom: 1 }, sel = new Set(), selWire = null, drag = null, hover = null, stretch = null, hoverNode = null, lastHoverNode = null, mouse = [0, 0], dirty = true;
+  let needFit = false;   // a project was loaded while the page was hidden: fit it to the window when it first shows
   let kb = null, dwell = null;   // kb: the keyboard open over a Chord tile { id, p (0 closed to 1 open), target, lo, leave }; dwell: the pointer resting on a Chord tile { x, y, t }
   const WIRE_DASH = { e: [], c: [3, 3], h: [7, 2.5], w: [1, 3] };
   const kindColor = (C, k) => (k === 'e' ? C.ev : k === 'h' ? C.hc : k === 'w' ? C.wc : C.ct);
@@ -137,6 +138,9 @@ export function createNodeSeqEditor({ root, getSong, noteTargets = () => [], par
   function route(a, b, id = '', bd = {}) {
     const [p, q] = [{ x: a.y, y: a.x }, { x: b.y, y: b.x }], pad = 8;
     let line;
+    if (q.x - p.x >= 2 * pad + 4 && Math.abs(p.y - q.y) < 30) {   // the two ports are (nearly) one above the other: a straight line
+      const out = [[a.x, a.y], [b.x, b.y]]; out.keys = [null]; return out;
+    }
     if (q.x - p.x >= 2 * pad + 4) {
       const xm = clamp(bd.bx ?? (p.x + q.x) / 2 + bendOf(id), p.x + pad, q.x - pad);
       line = [[p.x, p.y], [xm, p.y], [xm, q.y], [q.x, q.y]]; line.keys = [null, 'bx', null];
@@ -151,7 +155,7 @@ export function createNodeSeqEditor({ root, getSong, noteTargets = () => [], par
     const g = graph(); if (!g) return null;
     let best = null;
     for (const wr of g.wires) {
-      const c = curves.get(wr); if (!c) continue;
+      const c = curves.get(wr); if (!c || c.length < 4) continue;   // a straight wire has no stretch to move
       for (let i = 1; i < c.length; i++) {
         const [x0, y0] = c[i - 1], [x1, y1] = c[i], dx = x1 - x0, dy = y1 - y0, t = clamp(((wx - x0) * dx + (wy - y0) * dy) / Math.max(1e-6, dx * dx + dy * dy), 0, 1);
         const d = Math.hypot(x0 + dx * t - wx, y0 + dy * t - wy);
@@ -201,6 +205,7 @@ export function createNodeSeqEditor({ root, getSong, noteTargets = () => [], par
     dpr = globalThis.devicePixelRatio || 1;
     if (canvas.width !== Math.round(w * dpr) || canvas.height !== Math.round(h * dpr)) { canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr); canvas.style.width = `${w}px`; canvas.style.height = `${h}px`; }
     W = w; H = h;
+    if (needFit) { needFit = false; fit(); }
     const C = colours(), g = graph();
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, W, H);
@@ -363,6 +368,17 @@ export function createNodeSeqEditor({ root, getSong, noteTargets = () => [], par
       }
       return;
     }
+    if (n.type === 'Pattern') {   // the list as cells; the one that played last is filled
+      const toks = patternTokens(n.data?.text);
+      ctx.font = WORD_FONT; ctx.textAlign = 'center';
+      toks.forEach((t, i) => {
+        const x = b.x + 6 + (i % 12) * PCELL, y = b.y + BAND + 4 + Math.floor(i / 12) * (PCELL + 2), rest = t === '.' || t === '_', on = v?.i === i;
+        ctx.fillStyle = on ? C.ink : C.bg; ctx.strokeStyle = C.ink; ctx.globalAlpha = on ? 1 : rest ? 0.2 : 0.55; ctx.lineWidth = 1; ctx.fillRect(x + 0.5, y + 0.5, PCELL - 2, PCELL - 2); ctx.strokeRect(x + 0.5, y + 0.5, PCELL - 2, PCELL - 2);
+        ctx.globalAlpha = rest && !on ? 0.4 : 1; ctx.fillStyle = on ? C.bg : C.ink; ctx.fillText(rest ? '·' : t.slice(0, 2), x + PCELL / 2 - 0.5, y + PCELL / 2 + 2.5);
+      });
+      ctx.globalAlpha = 1; ctx.textAlign = 'left';
+      return;
+    }
     if (n.type === 'Voicing') {
       const cnt = Math.round(n.params?.notes ?? 4), cw = w / cnt, hh = b.h - BAND - 8;
       for (let i = 0; i < cnt; i++) { const lv = clamp((n.data?.weights?.[i] ?? 100) / 100, 0, 1); ctx.fillStyle = C.wc; ctx.fillRect(x0 + i * cw + 1, b.y + BAND + 3 + hh * (1 - lv), cw - 2, Math.max(1, hh * lv)); }
@@ -423,6 +439,20 @@ export function createNodeSeqEditor({ root, getSong, noteTargets = () => [], par
     const cnt = Math.round(n.params?.n ?? 16), w = b.w - 12, cw = w / cnt, x = wx - (b.x + 6), y = wy - (b.y + BAND + 3);
     if (x < 0 || x >= w || y < 0 || y > b.h - BAND - 8) return -1;
     return Math.floor(x / cw);
+  }
+
+  function hitCell(n, wx, wy) {   // the cell of a Pattern node under a point
+    const b = boxes.get(n.id); if (!b || n.type !== 'Pattern') return -1;
+    const count = patternTokens(n.data?.text).length, { cols } = patternShape(count), x = wx - (b.x + 6), y = wy - (b.y + BAND + 4);
+    if (x < 0 || y < 0) return -1;
+    const col = Math.floor(x / PCELL), row = Math.floor(y / (PCELL + 2)), i = row * 12 + col;
+    return col < cols && i < count ? i : -1;
+  }
+  // The next value for a cell: a dot, then 0 up to "max", then a dot again (backwards with Shift). A cell holding something else (a note) becomes a dot.
+  function cycleCell(n, i, back) {
+    const toks = patternTokens(n.data?.text), t = toks[i], max = Math.round(n.params?.max ?? 3), rest = t === '.' || t === '_', num = /^\d+$/.test(t) ? Number(t) : -1;
+    toks[i] = back ? (rest ? String(max) : num === 0 ? '.' : num > 0 ? String(num - 1) : '.') : (rest ? '0' : num >= 0 && num < max ? String(num + 1) : '.');
+    n.data.text = toks.join(' ');
   }
 
   // ---- mouse
@@ -511,6 +541,8 @@ export function createNodeSeqEditor({ root, getSong, noteTargets = () => [], par
     }
     const n = hitNode(wx, wy);
     if (n) {
+      const cell = hitCell(n, wx, wy);
+      if (cell >= 0 && e.button === 0) { checkpoint(); cycleCell(n, cell, e.shiftKey); sel = new Set([n.id]); selWire = null; changedData(n); renderSide(); return; }
       const step = hitStep(n, wx, wy);
       if (step >= 0) {   // a step cell: click flips it, and dragging across cells paints the same way
         checkpoint();
@@ -739,8 +771,11 @@ export function createNodeSeqEditor({ root, getSong, noteTargets = () => [], par
     if (!g?.nodes.length) { view = { x: -20, y: -20, zoom: 1 }; dirty = true; return; }
     boxes = new Map(g.nodes.map(n => [n.id, layout(n)]));
     const bs = [...boxes.values()], x0 = Math.min(...bs.map(b => b.x)), y0 = Math.min(...bs.map(b => b.y)), x1 = Math.max(...bs.map(b => b.x + b.w)), y1 = Math.max(...bs.map(b => b.y + b.h));
-    const z = clamp(Math.min((W - 60) / (x1 - x0), (H - 60) / (y1 - y0)), 0.4, 2.5);
-    view = { zoom: z, x: x0 - (W / z - (x1 - x0)) / 2, y: y0 - (H / z - (y1 - y0)) / 2 }; dirty = true;
+    const rect = canvas.parentElement?.getBoundingClientRect?.();
+    if (rect && !rect.width) { needFit = true; return; }   // hidden: no size to fit to yet
+    const fw = Math.floor(rect?.width || W), fh = Math.floor(rect?.height || H);   // the size the stage has now, not the one of the last draw
+    const z = clamp(Math.min((fw - 60) / (x1 - x0), (fh - 60) / (y1 - y0)), 0.4, 2.5);
+    view = { zoom: z, x: x0 - (fw / z - (x1 - x0)) / 2, y: y0 - (fh / z - (y1 - y0)) / 2 }; dirty = true;
   }
 
   // ---- the panel beside the graph: the selected node's parameters and data

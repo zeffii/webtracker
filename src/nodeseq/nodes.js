@@ -20,6 +20,7 @@
 
 import { parseChord, chordNotes } from '../seq/chordname.js';
 import { parseChordText, voice, MAX_VOICES } from './chordtext.js';
+import { LOGIC_TYPES } from './logicnodes.js';
 
 const NAMES = { c: 0, d: 2, e: 4, f: 5, g: 7, a: 9, b: 11 };
 
@@ -191,6 +192,22 @@ export const NS_TYPES = {
         if (!Number.isNaN(v)) cx.emit('value', v, -1);
       },
       reset() { idx = 0; loops = 0; done = false; last = -1; },
+      view: () => ({ i: last }),
+    }; },
+  },
+  Pattern: {
+    title: 'Pattern', cat: 'values', hint: 'a row of cells like a small pattern editor: each event steps one cell. A number is sent on, a dot is a rest (nothing is sent; the rest port fires instead). Click a cell to change it, or write the list in the panel',
+    ins: [ev('next'), ev('reset')], outs: [{ n: 'value', k: 'e' }, { n: 'rest', k: 'e' }],
+    params: [par('max', 1, 15, 3, { int: true })], body: 'list',
+    create: cx => { let idx = 0, text = null, list = [], last = -1; return {
+      event(port) {
+        if (port === 'reset') { idx = 0; return; }
+        if (text !== cx.data.text) { text = cx.data.text; list = parseList(text).items; idx = 0; }
+        if (!list.length) return;
+        last = idx; const v = list[idx]; idx = (idx + 1) % list.length;
+        if (Number.isNaN(v)) cx.emit('rest', last, -1); else cx.emit('value', v, -1);
+      },
+      reset() { idx = 0; last = -1; },
       view: () => ({ i: last }),
     }; },
   },
@@ -463,6 +480,7 @@ export const NS_TYPES = {
       view: () => ({ v, vel }),
     }; },
   },
+  ...LOGIC_TYPES,
 };
 
 // Port names of a node type: { ins, outs } as [{ n, k }].

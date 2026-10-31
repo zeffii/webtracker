@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['574', ['Node Sequencer: Pattern, switch, pick, gate, counter, compare, flip, once, ratchet, latch and drunk nodes; a demo made of nodes (?demo=interstellar-nodes); straight wires between ports that line up']],
   ['573', ['The Node Sequencer is a line drawing that runs top to bottom: one-line nodes, dim outlines, ports shaped by kind, a new rail icon']],
   ['572', ['Chord tiles grow a keyboard on hover: click keys to play a chord in; the tile names the chord and marks stray notes']],
   ['571', ['The CPU readout is cleared each time Play starts']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['567', ['Top bar: a File menu replaces Open, New, Save, Export and Backups buttons']],
   ['566', ['New shader template, Holey torus: a perforated ring that tumbles while its tube twists, glowing on hits']],
   ['565', ['New effect, Pogue (Effects, Modulation): a grubby multi-voice chorus with wandering voices, feedback, filters, saturation and bit degrade']],
-  ['564', ['New machine Clang: struck metal from a thin cymbal-like plate to a big hollow barrel, with damping and thump']],
                     ];

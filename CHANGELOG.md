@@ -2,6 +2,13 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 574 · 2026-10-31
+
+- **New Node Sequencer nodes.** **Pattern** is a row of cells like a small pattern editor: each event steps one cell, a number is sent on, a dot is a rest (the rest port fires instead). Click a cell to change it (a dot, then 0 up to "max", then a dot again; Shift goes backwards), or write the list in the panel. **switch** sends an event out of one of four outputs (by a number at pick, or by the event's own value); **pick** lets one of four inputs through; **gate** is and / or / a-unless-b of two event streams; **counter** counts and wraps (and fires wrap); **compare** sends yes or no by a test against x; **flip** alternates between two outputs; **once** passes only the nth event; **ratchet** repeats an event; **latch** remembers a number and sends it again when asked; **drunk** is a random walk. (A merge node is not needed: any number of event wires can go into one input.)
+- **A new demo made of nodes:** open it with ?demo=interstellar-nodes. A pattern of chord numbers moves a Phrase for the pad, sub and wind; a pattern of section numbers brings in the stab, arp, stars, wood, ping and dust through pick nodes; the Shepard glide is a bar counter into a ramp; swells and drops are patterns; the arp and stab ask a latch for the chord that is sounding.
+- A wire between two ports that are less than 30 pixels apart across is a straight line.
+- A project opened while the Node Sequencer is hidden is fitted to the window when it first shows (it came up tiny before).
+
 ## 573 · 2026-10-31
 
 - **The Node Sequencer is drawn as a line drawing, and runs from the top down.** Inputs are along the top of a node and outputs along the bottom; wires run vertically. A node is a thin box with its word in it and its value after it ("EVERY ÷4", "NOTE pad"), as wide as its words; the nodes that draw something (steps, euclid, lfo, Voicing, Chord) keep a title band with a dashed line under it. Outlines, corner squares and wires are drawn dim until something happens on them. Ports are smaller outlines whose shape says the kind: square event, circle control, diamond chord, triangle weights.

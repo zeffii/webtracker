@@ -3940,6 +3940,37 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
       const quiet = make({ sub: 2, nodes: [{ id: 'c', type: 'clock' }, { id: 'n', type: 'note', data: { target: 'pad' } }], wires: [{ from: 'c.bar', to: 'n.trig', off: true }] }); quiet.run(3);
       assert.equal(ons(quiet.log).length, 0, 'an event wire that is off is silent');
     }
+    // Pattern and the logic nodes: a row of cells with rests, switch, pick, gate, counter, compare, flip, once, ratchet, drunk
+    {
+      const note = id => ({ id, type: 'note', params: { poly: 1, len: 1 }, data: { target: id } });
+      const play = (nodes, wires, ticks) => { const t = make({ sub: 2, nodes: [{ id: 'c', type: 'clock' }, ...nodes], wires }); t.run(ticks); return t; };
+      let t = play([{ id: 'p', type: 'Pattern', data: { text: '0 . 2 3' } }, note('n'), note('r')], [{ from: 'c.tick', to: 'p.next' }, { from: 'p.value', to: 'n.note' }, { from: 'p.rest', to: 'r.note' }], 5);
+      assert.deepEqual(ons(t.log).filter(e => e.instrument === 'n').map(e => [e.at / 2, e.note]), [[0, 0], [2, 2], [3, 3], [4, 0]], 'Pattern sends its numbers, a dot sends nothing, and the list wraps');
+      assert.deepEqual(ons(t.log).filter(e => e.instrument === 'r').map(e => e.at / 2), [1], 'a dot fires the rest port');
+      // counter into compare: the 4th event (count 3) is the only one that says yes; wrap fires every 4
+      t = play([{ id: 'k', type: 'counter', params: { n: 4 } }, { id: 'q', type: 'compare', params: { test: 2, x: 3 } }, note('y'), note('w'), { id: 'z', type: 'Pseq', data: { text: '70' } }],
+        [{ from: 'c.tick', to: 'k.in' }, { from: 'k.out', to: 'q.in' }, { from: 'q.yes', to: 'y.note' }, { from: 'k.wrap', to: 'z.next' }, { from: 'z.value', to: 'w.note' }], 9);
+      assert.deepEqual(ons(t.log).filter(e => e.instrument === 'y').map(e => e.at / 2), [3, 7], 'compare: only a count of 3 says yes');
+      assert.deepEqual(ons(t.log).filter(e => e.instrument === 'w').map(e => e.at / 2), [3, 7], 'counter: wrap fires as it comes round');
+      // flip alternates; once passes only the nth event; switch picks by value; pick lets one input through
+      t = play([{ id: 'f', type: 'flip' }, note('a'), note('b')], [{ from: 'c.tick', to: 'f.in' }, { from: 'f.a', to: 'a.note' }, { from: 'f.b', to: 'b.note' }], 4);
+      assert.deepEqual([ons(t.log).filter(e => e.instrument === 'a').map(e => e.at / 2), ons(t.log).filter(e => e.instrument === 'b').map(e => e.at / 2)], [[0, 2], [1, 3]], 'flip: a, b, a, b');
+      t = play([{ id: 'o', type: 'once', params: { n: 3 } }, note('n')], [{ from: 'c.tick', to: 'o.in' }, { from: 'o.out', to: 'n.note' }], 8);
+      assert.deepEqual(ons(t.log).map(e => e.at / 2), [2], 'once: only the third event gets through');
+      t = play([{ id: 'p', type: 'Pseq', data: { text: '0 1 2 1' } }, { id: 's', type: 'switch', params: { by: 1 } }, note('a'), note('b'), note('d')], [{ from: 'c.tick', to: 'p.next' }, { from: 'p.value', to: 's.in' }, { from: 's.o1', to: 'a.note' }, { from: 's.o2', to: 'b.note' }, { from: 's.o3', to: 'd.note' }], 4);
+      assert.deepEqual(['a', 'b', 'd'].map(i => ons(t.log).filter(e => e.instrument === i).map(e => e.at / 2)), [[0], [1, 3], [2]], 'switch by value: 0 goes out of o1, 1 out of o2, 2 out of o3');
+      t = play([{ id: 'q', type: 'pick' }, { id: 'p', type: 'Pseq', data: { text: '1' } }, note('n')], [{ from: 'c.tick', to: 'q.a' }, { from: 'c.beat', to: 'q.b' }, { from: 'p.value', to: 'q.pick' }, { from: 'c.bar', to: 'p.next' }, { from: 'q.out', to: 'n.note' }], 9);
+      assert.deepEqual(ons(t.log).map(e => e.at / 2), [0, 4, 8], 'pick: input a passes until b is chosen (on the first bar), then only the beats get through');
+      // gate: and lets an event through only when the other stream fired in the same subtick
+      t = play([{ id: 'g', type: 'gate', params: { mode: 0, window: 0 } }, { id: 'e', type: 'every', params: { n: 2 } }, note('n')], [{ from: 'c.tick', to: 'g.a' }, { from: 'c.tick', to: 'e.in' }, { from: 'e.out', to: 'g.b' }, { from: 'g.out', to: 'n.note' }], 6);
+      assert.deepEqual([...new Set(ons(t.log).map(e => e.at / 2))], [0, 2, 4], 'gate and: ticks that the every node also passed');
+      // ratchet repeats an event inside its tick
+      t = play([{ id: 'r', type: 'ratchet', params: { count: 3, gap: 1 } }, note('n')], [{ from: 'c.bar', to: 'r.in' }, { from: 'r.out', to: 'n.note' }], 2);
+      assert.deepEqual(ons(t.log).map(e => e.at), [0, 1, 2], 'ratchet: three notes a subtick apart');
+      // drunk stays inside its limits
+      t = play([{ id: 'd', type: 'drunk', params: { lo: 10, hi: 14, step: 3, int: 1 } }, note('n')], [{ from: 'c.tick', to: 'd.next' }, { from: 'd.value', to: 'n.note' }], 30);
+      assert.ok(ons(t.log).length === 30 && ons(t.log).every(e => e.note >= 10 && e.note <= 14), 'drunk walks inside lo and hi');
+    }
     // Phrase length: the notes last as long as the length port says, until it says otherwise (the beat number picks the chord)
     {
       const t = make({ sub: 2, nodes: [{ id: 'c', type: 'clock' }, { id: 'a', type: 'Chord', data: { text: 'C-4 E-4' } }, { id: 'b', type: 'Chord', data: { text: 'D-4 F-4' } }, { id: 'p', type: 'Phrase' },
@@ -3956,6 +3987,16 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
       assert.deepEqual([...new Set(bar('pad', 0).map(e => e.note))].sort((a, b) => a - b).slice(0, 3), [57, 60, 64].slice(0, 3), 'bar 0: A min7');
       assert.ok(bar('pad', 1).every(e => [50, 53, 57, 60].includes(e.note)), 'bar 1: D min7');
       assert.deepEqual([bar('bass', 0)[0].note, bar('bass', 1)[0].note, bar('bass', 2)[0].note], [33, 26, 31], 'the bass plays the roots two octaves down');
+    }
+    // the interstellar demo made of nodes: the chords follow the pattern node, the sections bring the voices in at their ticks
+    {
+      const g = await import('../src/nodeseq/graphops.js');
+      const demo = g.cleanGraph(g.ensureGraph({ nodeseq: JSON.parse((await import('node:fs')).readFileSync(new URL('../src/project/demos/interstellar-nodes.wax', import.meta.url), 'utf8')).song.nodeseq }));
+      assert.ok(demo.nodes.length > 50 && demo.wires.length > 80, 'the demo graph is whole after cleaning');
+      const t = make(demo, { slots: {}, groupSlots: Array(8).fill(-1) }); t.run(1000);
+      const first = inst => Math.min(...ons(t.log).filter(e => e.instrument === inst).map(e => e.at)) / 4;
+      assert.deepEqual([...new Set(ons(t.log).filter(e => e.instrument === 'pad' && e.at / 4 < 64).map(e => e.note))].sort((a, b) => a - b), [40, 52, 55, 59, 62, 71], 'the pad opens on Em7');
+      assert.ok(first('stab') === 320 && first('arp') >= 448 && first('ping') >= 448 && first('dust') >= 448, 'the stab comes in at 320, the arp, ping and dust from 448 (the sections)');
     }
     // subticks: a clock's sub output runs subs times a tick; a delay moves an event later by subticks
     {

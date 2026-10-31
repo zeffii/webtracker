@@ -33,6 +33,7 @@ export function addNode(g, type, x, y, extra = {}) {
   if (g.nodes.length >= MAX_NODES) throw new Error(`A graph holds at most ${MAX_NODES} nodes.`);
   const T = NS_TYPES[type], node = { id: uniqueId(g, type), type, x: Math.round(x), y: Math.round(y), group: 0, params: defaultParams(type), ...extra };
   if (T.body === 'steps') node.data = { cells: [1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0] };
+  else if (type === 'Pattern') node.data = { text: '0 . . 1 . . 2 . 0 . 1 .' };
   else if (T.body === 'list') node.data = { text: '57 60 64 67' };
   else if (T.body === 'script') node.data = { code: DEFAULT_SCRIPT };
   else if (T.body === 'chord') node.data = { text: 'A min7', weights: [] };
