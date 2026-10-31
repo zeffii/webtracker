@@ -2,6 +2,12 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 581 · 2026-10-31
+
+- **The Chord keyboard is in the bar under the graph.** Select a Chord tile and the bar shows its keyboard (click a key to hear it and add or take away that note, drag across keys to paint, drag the bars for volumes, arrows or wheel for octaves) beside its text, a Play chord button, and the parameters. The keyboard that grew over the tile when the pointer rested on it is gone, and with it the "Chord keyboard opens after resting" setting.
+- **Parameters stack four to a column** in the bar, and the Duplicate and Delete buttons sit under the node's tag.
+- **A selected node is obvious**: a tinted body, a heavy outline with a soft glow, brackets on two corners, and a rule across the top of the bar tied to a tag with the node's name.
+
 ## 580 · 2026-10-31
 
 - **Probabilities in the steps node.** Give a steps node a list ("1.0, 0.3, 0.6", up to 8, % works too) and each click on a step moves it on: off, then each probability in turn, then off. A step is drawn filled to its probability and fires that often, rolled again every pass. With no list the steps are on or off with a level, as before (new steps nodes start with "1.0, 0.5, 0.25").

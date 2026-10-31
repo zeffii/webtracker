@@ -1,6 +1,6 @@
-// The keyboard that opens over a Chord tile when the pointer rests on it: three octaves to play a chord into, like a kslider. Click a key to add
+// The keyboard shown in the bar under the graph while a Chord node is selected (chordbar.js puts it on a canvas): three octaves to play a chord into, like a kslider. Click a key to add
 // or take away that note (drag across keys to paint), drag the bar under a lit key to set that note's volume, the arrows (or the wheel) move the
-// three octaves up and down. Everything here is plain geometry in the editor's own coordinates, so the editor only has to draw and hit-test with it;
+// three octaves up and down. Everything here is plain geometry in the editor's own coordinates, so the bar only has to draw and hit-test with it;
 // the notes themselves are edited with editNote and editVolume in chordtext.js.
 
 export const OCTAVES = 3, KEY_W = 13.5, KEY_H = 54, BAR_H = 34, PAD = 17, TOP = 34, FOOT = 20;
@@ -11,11 +11,6 @@ const WHITE = [0, 2, 4, 5, 7, 9, 11], BLACK_AT = { 1: 0.7, 3: 1.7, 6: 3.7, 8: 4.
 // The full-size panel, centred on the tile's box.
 export function panelRect(box) {
   return { x: box.x + box.w / 2 - WIDTH / 2, y: box.y + box.h / 2 - HEIGHT / 2, w: WIDTH, h: HEIGHT };
-}
-// The panel on its way open: p is 0 (the tile) to 1 (the whole keyboard).
-export function growing(box, p) {
-  const full = panelRect(box), w = box.w + (full.w - box.w) * p, h = box.h + (full.h - box.h) * p;
-  return { x: box.x + box.w / 2 - w / 2, y: box.y + box.h / 2 - h / 2, w, h };
 }
 // The lowest key to start from for some notes: the octave of the lowest one, or C3 for none.
 export const startFor = notes => (notes.length ? Math.max(LOWEST, Math.min(HIGHEST, Math.floor(Math.min(...notes) / 12) * 12)) : 48);
@@ -56,7 +51,7 @@ export const volumeAt = (bar, y) => Math.max(0, Math.min(100, Math.round(((bar.y
 // The first key of the three octaves, moved a whole octave up or down and kept in range.
 export const shifted = (lo, dir) => Math.max(LOWEST, Math.min(HIGHEST, lo + dir * 12));
 
-// Draws the panel. `s` is { rect, p, lo, notes: [midi], volumes: [percent], stray: Set of midi, name, strayNames, range }, `C` the editor's colours.
+// Draws the panel (p is 1 for the whole keyboard). `s` is { rect, p, lo, notes: [midi], volumes: [percent], stray: Set of midi, name, strayNames, range }, `C` the editor's colours.
 export function drawPanel(ctx, C, s) {
   const { rect, p } = s;
   ctx.save();

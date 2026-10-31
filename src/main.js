@@ -1728,7 +1728,7 @@ function nsRecord(m) {
 }
 nsView = createNodeSeqEditor({
   root: $('pane-nodeseq'), getSong: () => project?.song, noteTargets: nsNotes, paramTargets: nsParams, say: nsSay,
-  isRecording: () => recording, chordKeysDelay: () => config.get('chordKeysDelay'),
+  isRecording: () => recording,
   onStructure: () => { nsPush(); scheduleCheck(); },
   onParam: (id, name, value) => { engine.nodeseqParam(id, name, value); scheduleCheck(); },
   onData: (id, data) => { engine.nodeseqData(id, data); scheduleCheck(); },

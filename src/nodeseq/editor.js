@@ -4,8 +4,8 @@
 // (audio/nodeseq.js) and sends back what it did, which is drawn here.
 import { NS_TYPES, DOT_TYPES, insOf, parseList, parseProbs, parseChordList, compileScript, DEFAULT_SCRIPT } from './nodes.js';
 import { ensureGraph, newGraph, addNode, connect, disconnect, removeNodes, duplicateNodes, cleanGraph, canConnect, GROUP_NAMES } from './graphops.js';
+import { chordKeyboard } from './chordbar.js';
 import { chordView, describeChord, editNote, editVolume, noteLimit, midiName } from './chordtext.js';
-import { panelRect, growing, startFor, hit as keysHit, volumeAt, shifted, drawPanel as drawKeysPanel } from './chordkeys.js';
 import { tileSize, tileLabel, reserveLabel, isBody, isDot, DOT, BAND, WORD_FONT, PCELL, patternTokens, patternShape } from './tiles.js';
 import { noteName } from '../seq/chordname.js';
 import { showContextMenu } from '../ui/ctxmenu.js';
@@ -18,7 +18,7 @@ const METER = new Set(['lfo', 'ad', 'scale', 'hold', 'Pwhite', 'set']);   // nod
 const fmt = v => (Number.isInteger(v) ? String(v) : Math.abs(v) >= 100 ? v.toFixed(0) : Math.abs(v) >= 10 ? v.toFixed(1) : v.toFixed(2));
 const clamp = (x, lo, hi) => (x < lo ? lo : x > hi ? hi : x);
 
-export function createNodeSeqEditor({ root, getSong, noteTargets = () => [], paramTargets = () => [], onStructure = () => {}, onParam = () => {}, onData = () => {}, onGroupLane = () => {}, onHear = () => {}, isRecording = () => false, say = () => {}, chordKeysDelay = () => 500, doc = document }) {
+export function createNodeSeqEditor({ root, getSong, noteTargets = () => [], paramTargets = () => [], onStructure = () => {}, onParam = () => {}, onData = () => {}, onGroupLane = () => {}, onHear = () => {}, isRecording = () => false, say = () => {}, doc = document }) {
   const el = (tag, props = {}, ...kids) => { const e = doc.createElement(tag); Object.assign(e, props); for (const k of kids) e.append(k); return e; };
   const song = () => getSong();
   const graph = () => song()?.nodeseq;
@@ -38,7 +38,6 @@ export function createNodeSeqEditor({ root, getSong, noteTargets = () => [], par
   // ---- state
   let view = { x: -20, y: -20, zoom: 1 }, sel = new Set(), selWire = null, drag = null, hover = null, stretch = null, hoverNode = null, lastHoverNode = null, mouse = [0, 0], dirty = true;
   let needFit = false;   // a project was loaded while the page was hidden: fit it to the window when it first shows
-  let kb = null, dwell = null;   // kb: the keyboard open over a Chord tile { id, p (0 closed to 1 open), target, lo, leave }; dwell: the pointer resting on a Chord tile { x, y, t }
   const WIRE_DASH = { e: [], c: [3, 3], h: [7, 2.5], w: [1, 3] };
   const kindColor = (C, k) => (k === 'e' ? C.ev : k === 'h' ? C.hc : k === 'w' ? C.wc : C.ct);
   let active = new Set(), activeTo = new Set();   // the chord nodes a Phrase node is playing, and the wires they play along
@@ -192,11 +191,6 @@ export function createNodeSeqEditor({ root, getSong, noteTargets = () => [], par
   function draw(force = false) {
     const now = typeof performance !== 'undefined' ? performance.now() : 0;
     pulses = pulses.filter(p => now - p.t < 320);
-    if (kb) {   // the keyboard over a Chord tile grows open, or shrinks back
-      kb.p += (kb.target - kb.p) * 0.28;
-      if (Math.abs(kb.target - kb.p) < 0.01) kb.p = kb.target;
-      if (kb.p === 0 && kb.target === 0) { kb = null; dirty = true; } else if (kb.p !== kb.target) dirty = true;   // the last frame without the keyboard has to be drawn too
-    }
     const busy = pulses.length > 0 || flash.size > 0 || live !== null;
     if (!dirty && !force && !busy) return;
     dirty = false;
@@ -251,7 +245,6 @@ export function createNodeSeqEditor({ root, getSong, noteTargets = () => [], par
     }
     if (drag?.kind === 'marquee') { ctx.strokeStyle = C.hi; ctx.fillStyle = C.hi; ctx.globalAlpha = 0.15; const [x0, y0] = toWorld(drag.x0, drag.y0), [x1, y1] = toWorld(drag.x, drag.y); ctx.fillRect(Math.min(x0, x1), Math.min(y0, y1), Math.abs(x1 - x0), Math.abs(y1 - y0)); ctx.globalAlpha = 1; ctx.strokeRect(Math.min(x0, x1), Math.min(y0, y1), Math.abs(x1 - x0), Math.abs(y1 - y0)); }
     if (!drag && stretch) drawArrows(C, stretch);
-    if (kb) drawKeys(C);
     ctx.restore();
     drawHint(C);
     for (const [id, t] of flash) if (now - t > 260) flash.delete(id);
@@ -260,7 +253,6 @@ export function createNodeSeqEditor({ root, getSong, noteTargets = () => [], par
   // The name of the port (or the node) under the pointer: the tiles carry no names of their own.
   const KIND_WORDS = { e: 'event', c: 'control', h: 'chord', w: 'weights' };
   function drawHint(C) {
-    if (kb && kb.p > 0.5) return;   // the keyboard over a Chord tile has the pointer: no tooltip on top of it
     let text = '';
     if (hover) text = /^c\d+$/.test(hover.name) && NS_TYPES[nodeOf(hover.id)?.type]?.dynIn ? `chord ${hover.name.slice(1)}${hover.free ? ' (free)' : ''}` : `${hover.name}  ·  ${KIND_WORDS[hover.k]}`;
     else if (hoverNode) { const n = nodeOf(hoverNode); if (n) text = `${NS_TYPES[n.type].title}  ·  ${n.id}`; }
@@ -284,10 +276,20 @@ export function createNodeSeqEditor({ root, getSong, noteTargets = () => [], par
     ctx.fillStyle = C.bg; ctx.fillRect(b.x, b.y, b.w, b.h);   // the page's own colour, so a wire behind the tile does not show through
     const f = flash.get(n.id);
     const strong = picked || active.has(n.id) || (f && now - f < 260);   // the playing chord and a node that just got an event are drawn heavier
-    ctx.strokeStyle = picked ? C.hi : C.accent; ctx.lineWidth = strong ? 2 : 1; ctx.globalAlpha = strong ? 1 : DIM;   // a thin outline in the theme's accent, dim until the node is busy
-    ctx.strokeRect(b.x + 0.5, b.y + 0.5, b.w - 1, b.h - 1);
-    ctx.fillStyle = picked ? C.hi : C.accent;   // a small square on each corner, as on a drawing
-    for (const [cx, cy] of [[b.x, b.y], [b.x + b.w, b.y], [b.x, b.y + b.h], [b.x + b.w, b.y + b.h]]) ctx.fillRect(cx - 1.5, cy - 1.5, 3, 3);
+    if (picked) {   // the selected node: a tinted body, a heavy outline with a soft glow outside it, and a bracket on two corners
+      ctx.globalAlpha = 0.12; ctx.fillStyle = C.hi; ctx.fillRect(b.x, b.y, b.w, b.h);
+      ctx.globalAlpha = 0.28; ctx.strokeStyle = C.hi; ctx.lineWidth = 3; ctx.strokeRect(b.x - 2, b.y - 2, b.w + 4, b.h + 4);
+      ctx.globalAlpha = 1; ctx.lineWidth = 2; ctx.strokeRect(b.x + 1, b.y + 1, b.w - 2, b.h - 2);
+      ctx.lineWidth = 2; ctx.beginPath();
+      ctx.moveTo(b.x - 5, b.y + 3); ctx.lineTo(b.x - 5, b.y - 5); ctx.lineTo(b.x + 3, b.y - 5);
+      ctx.moveTo(b.x + b.w + 5, b.y + b.h - 3); ctx.lineTo(b.x + b.w + 5, b.y + b.h + 5); ctx.lineTo(b.x + b.w - 3, b.y + b.h + 5);
+      ctx.stroke();
+    } else {
+      ctx.strokeStyle = C.accent; ctx.lineWidth = strong ? 2 : 1; ctx.globalAlpha = strong ? 1 : DIM;   // a thin outline in the theme's accent, dim until the node is busy
+      ctx.strokeRect(b.x + 0.5, b.y + 0.5, b.w - 1, b.h - 1);
+      ctx.fillStyle = C.accent;   // a small square on each corner, as on a drawing
+      for (const [cx, cy] of [[b.x, b.y], [b.x + b.w, b.y], [b.x, b.y + b.h], [b.x + b.w, b.y + b.h]]) ctx.fillRect(cx - 1.5, cy - 1.5, 3, 3);
+    }
     if (isBody(n.type)) {   // a tile that draws something has a title band, with a dashed line under it
       ctx.globalAlpha = strong ? 0.8 : DIM * 0.6; ctx.lineWidth = 1; ctx.setLineDash([3, 3]); ctx.beginPath(); ctx.moveTo(b.x, b.y + BAND - 0.5); ctx.lineTo(b.x + b.w, b.y + BAND - 0.5); ctx.stroke(); ctx.setLineDash([]);
       if (n.type !== 'Chord') { ctx.globalAlpha = 1; ctx.font = WORD_FONT; ctx.fillStyle = C.ink; ctx.textAlign = 'left'; ctx.fillText(T.title.toUpperCase(), b.x + 5, b.y + 10); }   // (a Chord tile shows its chord's name there)
@@ -486,36 +488,6 @@ export function createNodeSeqEditor({ root, getSong, noteTargets = () => [], par
   const hearChord = n => { const cv = chordView(n.data, n.params); if (cv.notes.length) hear(n, cv.notes, cv.vels, 1200); };
   addEventListener('mouseup', () => { if (hearing && !hearing.timer) stopHearing(); });   // a single note is held while the key is down
 
-  // ---- the keyboard that opens over a Chord tile (chordkeys.js draws and hit-tests it; chordtext.js changes the notes)
-  const keysOpen = () => kb && kb.target === 1 && kb.p >= 0.95;
-  function drawKeys(C) {
-    const b = boxes.get(kb.id), n = nodeOf(kb.id);
-    if (!b || !n) { kb = null; return; }
-    const cv = chordView(n.data, n.params), d = describeChord(n.data, n.params);
-    drawKeysPanel(ctx, C, { rect: growing(b, kb.p), p: kb.p, lo: kb.lo, notes: cv.notes, volumes: cv.base, stray: new Set(d.strayMidi ?? []), name: d.name, strayNames: d.stray, range: `${midiName(kb.lo)}-${midiName(kb.lo + 35)}` });
-  }
-  const closeKeys = () => { if (kb) { clearTimeout(kb.leave); kb.leave = null; kb.target = 0; dirty = true; } };
-  const clearDwell = () => { if (dwell) { clearTimeout(dwell.t); dwell = null; } };
-  // The pointer moved over the canvas: a Chord tile it rests on for a moment (and stays within a few pixels) opens its keyboard; leaving it closes it.
-  function chordKeysHover(sx, sy, wx, wy) {
-    if (kb && kb.target === 1) {
-      const r = panelRect(boxes.get(kb.id) ?? { x: 0, y: 0, w: 0, h: 0 }), near = wx >= r.x - 10 && wx <= r.x + r.w + 10 && wy >= r.y - 10 && wy <= r.y + r.h + 10;
-      if (near) { clearTimeout(kb.leave); kb.leave = null; } else if (!kb.leave) kb.leave = setTimeout(closeKeys, 260);
-      return;
-    }
-    const n = hitNode(wx, wy);
-    if (n?.type !== 'Chord') { clearDwell(); return; }
-    if (dwell && dwell.id === n.id && Math.hypot(sx - dwell.x, sy - dwell.y) <= 5) return;   // still resting
-    clearDwell();
-    const open = () => {
-      dwell = null;
-      const cv = chordView(n.data, n.params);
-      kb = { id: n.id, p: kb?.p ?? 0, target: 1, lo: startFor(cv.notes), leave: null };
-      dirty = true;
-    };
-    const wait = Number(chordKeysDelay());
-    if (wait > 0) dwell = { id: n.id, x: sx, y: sy, t: setTimeout(open, wait) }; else open();
-  }
   // Changes the notes of the node: the new data goes to the audio thread like any edit, and the side panel's text box follows.
   const setChord = (n, data) => { n.data = data; changedData(n); dirty = true; };
   const addOrRemove = (n, note, on) => {
@@ -526,40 +498,11 @@ export function createNodeSeqEditor({ root, getSong, noteTargets = () => [], par
     }
     setChord(n, editNote(n.data, n.params, note, on)); return true;
   };
-  // A press inside the open keyboard: true when it was used.
-  function keysDown(wx, wy) {
-    if (!keysOpen()) return false;
-    const n = nodeOf(kb.id), b = boxes.get(kb.id);
-    if (!n || !b) return false;
-    const r = panelRect(b), notes = chordView(n.data, n.params).notes, h = keysHit(r, kb.lo, notes, wx, wy);
-    const inside = wx >= r.x && wx <= r.x + r.w && wy >= r.y && wy <= r.y + r.h;
-    if (!inside) { closeKeys(); return false; }
-    if (!sel.has(n.id) || sel.size > 1) { sel = new Set([n.id]); selWire = null; renderSide(); }
-    if (!h) return true;
-    if (h.kind === 'arrow') { kb.lo = shifted(kb.lo, h.dir); dirty = true; return true; }
-    if (h.kind === 'key') {
-      checkpoint();
-      const on = !notes.includes(h.note);
-      addOrRemove(n, h.note, on);
-      hear(n, [h.note], [chordView(n.data, n.params).vels[chordView(n.data, n.params).notes.indexOf(h.note)] ?? 0.8]);
-      drag = { kind: 'kbkey', n, on, last: h.note };
-      return true;
-    }
-    if (h.kind === 'bar') {
-      checkpoint();
-      drag = { kind: 'kbbar', n, note: h.note, y: h.y, h: h.h };
-      setChord(n, editVolume(n.data, n.params, h.note, volumeAt(h, wy)));
-      return true;
-    }
-    return true;
-  }
-  canvas.addEventListener('mouseleave', () => { clearDwell(); if (!drag) closeKeys(); });
   canvas.addEventListener('mousedown', e => {
     canvas.focus(); hidePalette();
     const [sx, sy] = pos(e), [wx, wy] = toWorld(sx, sy);
     if (e.button === 1) { e.preventDefault(); drag = { kind: 'pan', sx, sy, vx: view.x, vy: view.y }; return; }
     if (e.button !== 0) return;
-    if (keysDown(wx, wy)) return;
     const p = hitPort(wx, wy);
     if (p) {   // from a port: a wire. A dragged-from input finds the output that goes to it, like pulling a plug.
       const g = graph();
@@ -612,12 +555,7 @@ export function createNodeSeqEditor({ root, getSong, noteTargets = () => [], par
     } else if (drag.kind === 'bend') {
       const [wx, wy] = toWorld(sx, sy); drag.wr.bend = { ...drag.wr.bend, [drag.key]: Math.round((drag.vertical ? wx : wy) / 8) * 8 };
     } else if (drag.kind === 'wire' || drag.kind === 'marquee') { drag.x = sx; drag.y = sy; }
-    else if (drag.kind === 'kbkey' && kb) {   // dragging across keys paints them on or off, the way the first one went
-      const [wx, wy] = toWorld(sx, sy), b = boxes.get(kb.id), h = b && keysHit(panelRect(b), kb.lo, chordView(drag.n.data, drag.n.params).notes, wx, wy);
-      if (h?.kind === 'key' && h.note !== drag.last) { drag.last = h.note; hear(drag.n, [h.note], [0.8]); if (chordView(drag.n.data, drag.n.params).notes.includes(h.note) !== drag.on) addOrRemove(drag.n, h.note, drag.on); }
-    } else if (drag.kind === 'kbbar') {
-      const [, wy] = toWorld(sx, sy); setChord(drag.n, editVolume(drag.n.data, drag.n.params, drag.note, volumeAt(drag, wy)));
-    } else if (drag.kind === 'steps') {
+    else if (drag.kind === 'steps') {
       const [wx, wy] = toWorld(sx, sy), i = hitStep(drag.n, wx, wy);
       if (i >= 0 && i !== drag.last) { drag.n.data.cells[i] = drag.to; drag.last = i; changedData(drag.n); }
     }
@@ -627,7 +565,6 @@ export function createNodeSeqEditor({ root, getSong, noteTargets = () => [], par
     if (!drag) return;
     const d = drag; drag = null; dirty = true;
     if (d.kind === 'bend') { structure(); return; }
-    if (d.kind === 'kbkey' || d.kind === 'kbbar') { renderSide(); return; }
     const g = graph(), [sx, sy] = pos(e), [wx, wy] = toWorld(sx, sy);
     if (d.kind === 'wire') {
       const q = hitPort(wx, wy, d.from.side === 'out' ? 'in' : 'out');
@@ -649,14 +586,10 @@ export function createNodeSeqEditor({ root, getSong, noteTargets = () => [], par
     }
   });
   const onStructureQuiet = () => { onStructure(); };   // positions are not in the engine's graph, but saving needs the project marked changed
-  canvas.addEventListener('mousemove', e => { if (drag) return; const [sx, sy] = pos(e), [wx, wy] = toWorld(sx, sy), p = hitPort(wx, wy); chordKeysHover(sx, sy, wx, wy); const was = hover?.id + hover?.name, hn = p ? null : hitNode(wx, wy); mouse = [sx, sy]; hover = p; hoverNode = hn?.id ?? null; const st = p || hn ? null : nearStretch(wx, wy); if (st?.wr !== stretch?.wr || st?.k !== stretch?.k) dirty = true; stretch = st; if (was !== p?.id + p?.name || hoverNode !== lastHoverNode) { lastHoverNode = hoverNode; dirty = true; } canvas.style.cursor = p ? 'crosshair' : overArrows(stretch, wx, wy) ? (stretch.vertical ? 'ew-resize' : 'ns-resize') : hitStep(hitNode(wx, wy) ?? { type: '' }, wx, wy) >= 0 ? 'pointer' : 'default'; });
-  canvas.addEventListener('wheel', e => {   // the wheel zooms about the pointer; the middle button pans; over an open Chord keyboard it moves the octaves
+  canvas.addEventListener('mousemove', e => { if (drag) return; const [sx, sy] = pos(e), [wx, wy] = toWorld(sx, sy), p = hitPort(wx, wy); const was = hover?.id + hover?.name, hn = p ? null : hitNode(wx, wy); mouse = [sx, sy]; hover = p; hoverNode = hn?.id ?? null; const st = p || hn ? null : nearStretch(wx, wy); if (st?.wr !== stretch?.wr || st?.k !== stretch?.k) dirty = true; stretch = st; if (was !== p?.id + p?.name || hoverNode !== lastHoverNode) { lastHoverNode = hoverNode; dirty = true; } canvas.style.cursor = p ? 'crosshair' : overArrows(stretch, wx, wy) ? (stretch.vertical ? 'ew-resize' : 'ns-resize') : hitStep(hitNode(wx, wy) ?? { type: '' }, wx, wy) >= 0 ? 'pointer' : 'default'; });
+  canvas.addEventListener('wheel', e => {   // the wheel zooms about the pointer; the middle button pans
     e.preventDefault();
     const [sx, sy] = pos(e), [wx, wy] = toWorld(sx, sy);
-    if (keysOpen() && boxes.get(kb.id)) {
-      const r = panelRect(boxes.get(kb.id));
-      if (wx >= r.x && wx <= r.x + r.w && wy >= r.y && wy <= r.y + r.h) { kb.lo = shifted(kb.lo, e.deltaY < 0 ? 1 : -1); dirty = true; return; }
-    }
     const z = clamp(view.zoom * Math.exp(-clamp(e.deltaY, -120, 120) * 0.0015), 0.4, 2.5);
     view.zoom = z; view.x = wx - sx / z; view.y = wy - sy / z;
     dirty = true;
@@ -683,7 +616,7 @@ export function createNodeSeqEditor({ root, getSong, noteTargets = () => [], par
   canvas.addEventListener('dblclick', e => {
     const [sx, sy] = pos(e), [wx, wy] = toWorld(sx, sy), n = hitNode(wx, wy), wr = !n && hitWire(wx, wy);
     if (overArrows(stretch, wx, wy)) { checkpoint(); delete stretch.wr.bend; structure(); return; }   // double-click the arrows: the wire finds its own way again
-    if (n?.type === 'Chord') { if (!keysOpen()) hearChord(n); return; }   // double-click a chord: hear all of it
+    if (n?.type === 'Chord') { hearChord(n); return; }   // double-click a chord: hear all of it
     if (wr) insertDot(wr, wx, wy); else if (!n) openPalette(sx, sy);
   });
   canvas.addEventListener('contextmenu', e => {
@@ -795,7 +728,7 @@ export function createNodeSeqEditor({ root, getSong, noteTargets = () => [], par
     if (k >= '1' && k <= '8' && sel.size) { setGroupOf([...sel], Number(k) - 1); return true; }
     return false;
   }
-  canvas.addEventListener('keydown', e => { if (e.key === 'Escape' && kb) { closeKeys(); e.stopPropagation(); return; } if (key(e)) e.stopPropagation(); });
+  canvas.addEventListener('keydown', e => { if (key(e)) e.stopPropagation(); });
 
   function fit() {
     const g = graph();
@@ -813,6 +746,7 @@ export function createNodeSeqEditor({ root, getSong, noteTargets = () => [], par
   function renderSide() {
     side.replaceChildren();
     const g = graph(), n = sel.size === 1 ? nodeOf([...sel][0]) : null;
+    side.classList.toggle('has-node', !!n);   // a selected node ties the bar to it with a rule on top
     if (!n) {
       side.append(el('h3', { textContent: 'Node Sequencer' }));
       const help = [
@@ -826,23 +760,25 @@ export function createNodeSeqEditor({ root, getSong, noteTargets = () => [], par
       return;
     }
     const T = NS_TYPES[n.type];
-    side.append(el('h3', { textContent: `${T.title}  ` }, el('small', { textContent: n.id })), el('p', { className: 'ns-dim', textContent: T.hint }));
+    const head = el('div', { className: 'ns-head' }, el('span', { className: 'ns-tag', textContent: `${T.title.toUpperCase()} ${n.id}` }), el('p', { className: 'ns-dim', textContent: T.hint }));
     const gsel = el('select', { ariaLabel: 'Group' });
     GROUP_NAMES.forEach((gn, i) => gsel.append(el('option', { value: i, textContent: `Group ${gn}`, selected: (n.group ?? 0) === i })));
     gsel.addEventListener('change', () => setGroupOf([n.id], Number(gsel.value)));
-    side.append(row('group', gsel));
-    for (const p of T.params) side.append(paramRow(n, p));
+    if (T.body === 'chord') { head.querySelector('p')?.remove(); head.append(chordEditor(n)); head.classList.add('wide'); }   // the chord's own text and Play button live under its tag, beside the keyboard
+    head.append(row('group', gsel));
+    side.append(head);
+    if (n.type === 'Chord') side.append(chordKeyboard({ colours, toggle: addOrRemove, volume: (node, note, v) => setChord(node, editVolume(node.data, node.params, note, v)), hear: (node, note) => { const cv = chordView(node.data, node.params); hear(node, [note], [cv.vels[cv.notes.indexOf(note)] ?? 0.8]); }, before: checkpoint, after: renderSide }, n));
+    for (let i = 0; i < T.params.length; i += 4) side.append(el('div', { className: 'ns-col' }, ...T.params.slice(i, i + 4).map(p => paramRow(n, p))));   // four sliders to a column
     if (T.body === 'steps') side.append(stepsEditor(n));
     if (T.body === 'list') side.append(listEditor(n));
     if (T.body === 'chords') side.append(chordsEditor(n));
-    if (T.body === 'chord') side.append(chordEditor(n));
     if (T.body === 'bars') side.append(voicingEditor(n));
     if (T.body === 'script') side.append(scriptEditor(n));
     if (T.data === 'instrument') side.append(targetSelect(n, noteTargets(), 'instrument', 'the instrument this plays'));
     if (T.data === 'parameter') side.append(targetSelect(n, paramTargets(), 'parameter', 'the parameter this moves'));
     if (n.type === 'monitor') { const log = el('pre', { className: 'ns-mon' }); log.textContent = mon.filter(m => m.id === n.id).slice(-12).map(m => `${String(m.tick).padStart(4, '0')}.${m.sub}  ${fmt(m.v)}${m.vel > 0 ? `  vel ${fmt(m.vel)}` : ''}`).join('\n') || 'Events show here while the song plays.'; side.append(log); }
     if (errors.has(n.id)) side.append(el('p', { className: 'ns-err', textContent: errors.get(n.id) }));
-    side.append(el('div', { className: 'ns-btns' }, button('Duplicate', () => duplicate()), button('Delete', () => removeSelected())));
+    head.append(el('div', { className: 'ns-btns' }, button('Duplicate', () => duplicate()), button('Delete', () => removeSelected())));   // under the tag, so they are always in view
   }
   const row = (label, input) => el('label', { className: 'ns-row' }, el('span', { textContent: label }), input);
   const button = (text, run) => { const b = el('button', { type: 'button', textContent: text }); b.addEventListener('click', run); return b; };
@@ -956,18 +892,12 @@ export function createNodeSeqEditor({ root, getSong, noteTargets = () => [], par
     return wrap;
   }
   function chordEditor(n) {
-    const input = el('input', { type: 'text', value: n.data?.text ?? '', spellcheck: false, ariaLabel: 'chord' }), note = el('small', { className: 'ns-dim' }), bars = el('div');
+    const input = el('input', { type: 'text', value: n.data?.text ?? '', spellcheck: false, ariaLabel: 'chord' }), note = el('small', { className: 'ns-dim' });
     const cview = () => chordView(n.data, n.params);
     const refresh = () => {
       const cv = cview();
       note.textContent = cv.error ?? (cv.notes.length ? cv.notes.map(noteName).join(' ') : 'a name like A min7 or F# 13sus, or notes like A2 C3 E3 G3 (each can have a volume: A2@100 C3@60)');
       note.classList.toggle('ns-err', !!cv.error);
-      bars.replaceChildren();
-      if (cv.notes.length) bars.append(weightBars(cv.notes.length, i => cview().base[i], (i, v) => {
-        const base = cview().base; base[i] = v;
-        input.value = input.value.replace(/@\d+(\.\d+)?/g, '');   // a volume typed after a note would win over the bars
-        n.data = { ...(n.data ?? {}), text: input.value, weights: base }; changedData(n); dirty = true;
-      }));
     };
     input.addEventListener('focus', () => checkpoint());
     input.addEventListener('input', () => { n.data = { ...(n.data ?? {}), text: input.value }; refresh(); changedData(n); });
@@ -975,7 +905,7 @@ export function createNodeSeqEditor({ root, getSong, noteTargets = () => [], par
     refresh();
     const play = el('button', { type: 'button', textContent: 'Play chord', title: 'hear the whole chord (also: double-click the tile)' });
     play.addEventListener('click', () => hearChord(n));
-    return el('div', { className: 'ns-block' }, el('span', { textContent: 'chord' }), input, el('div', {}, play), note, el('span', { textContent: 'note volumes' }), bars, el('small', { className: 'ns-dim', textContent: 'A Voicing node wired into weights replaces these bars. Variation and tilt apply on top.' }));
+    return el('div', { className: 'ns-block' }, el('span', { textContent: 'chord' }), input, el('div', {}, play), note);
   }
   function voicingEditor(n) {
     const bars = el('div'), draw = () => { bars.replaceChildren(weightBars(Math.round(n.params?.notes ?? 4), i => n.data?.weights?.[i] ?? 100, (i, v) => { const w = [...(n.data?.weights ?? [])]; while (w.length < 8) w.push(100); w[i] = v; n.data = { ...(n.data ?? {}), weights: w }; changedData(n); dirty = true; })); };

@@ -382,12 +382,16 @@
     .ns-g { font: inherit; font-size: 11px; padding: 0 .4rem; border: 1px solid var(--gc); background: transparent; color: inherit; cursor: pointer; opacity: .45; }
     .ns-g.used { opacity: .8; } .ns-g.on { background: color-mix(in srgb, var(--gc) 35%, transparent); opacity: 1; } .ns-g.live { box-shadow: 0 0 0 1px var(--gc); }
     .ns-rec { color: #e5484d; }
-    #ns-layout { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) 9.5rem; }   /* the graph above, the selected node's properties in a bar below */
+    #ns-layout { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) 11.8rem; }   /* the graph above, the selected node's properties in a bar below */
     #ns-stage { position: relative; min-width: 0; min-height: 0; background: var(--panel); overflow: hidden; }
     #ns-empty p { margin: 0; max-width: 60ch; }
     #ns-canvas { position: absolute; inset: 0; display: block; outline: none; color: var(--fg); }
     #ns-side { background: var(--panel); border-top: 1px solid color-mix(in srgb, var(--fg) 25%, transparent); padding: .5rem .8rem; font-size: 12px; overflow: auto; display: flex; flex-flow: row wrap; align-items: flex-start; align-content: flex-start; gap: .45rem 1.4rem; }
-    #ns-side > p { max-width: 38ch; } #ns-side h3 { margin: 0; font-size: 13px; flex-basis: 100%; } #ns-side h3 small, .ns-dim { opacity: .6; font-weight: normal; } #ns-side p { margin: 0; }
+    #ns-side > p { max-width: 38ch; } #ns-side h3 { margin: 0; font-size: 13px; flex-basis: 100%; }
+    #ns-side.has-node { border-top: 2px solid var(--hi, #4a7bd9); }
+    .ns-head { display: flex; flex-direction: column; gap: .35rem; width: 11.5rem; } .ns-head p { margin: 0; font-size: 11px; } .ns-head.wide { width: 14rem; } .ns-head .ns-block { gap: .3rem; }
+    .ns-tag { align-self: flex-start; background: var(--hi, #4a7bd9); color: var(--hi-fg, #fff); padding: 0 .5rem; font-weight: 600; }
+    .ns-col { display: flex; flex-direction: column; gap: .5rem; width: 13.5rem; } .ns-col .ns-ctl input[type=number] { width: 3.6rem; } .ns-keyboard { flex: none; display: block; } #ns-side h3 small, .ns-dim { opacity: .6; font-weight: normal; } #ns-side p { margin: 0; }
     .ns-row { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: .4rem; align-items: center; }
     .ns-track { display: inline-block; width: 9rem; height: .8rem; border: 1px solid color-mix(in srgb, var(--fg) 35%, transparent); position: relative; } .ns-track i { position: absolute; left: 0; top: 0; bottom: 0; background: #f0b04a; }
     .ns-step.picked { outline: 2px solid var(--hi, #4a7bd9); outline-offset: 1px; }
