@@ -17,5 +17,4 @@ export const CHANGELOG = [
   ['566', ['New shader template, Holey torus: a perforated ring that tumbles while its tube twists, glowing on hits']],
   ['565', ['New effect, Pogue (Effects, Modulation): a grubby multi-voice chorus with wandering voices, feedback, filters, saturation and bit degrade']],
   ['564', ['New machine Clang: struck metal from a thin cymbal-like plate to a big hollow barrel, with damping and thump']],
-  ['563', ['Open a SunVox file (.sunvox): its notes and arrangement come in, a lane per module that plays notes, on plain synths']],
                     ];

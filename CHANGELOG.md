@@ -6,6 +6,7 @@ Full history, newest first. The About page shows only the latest 10 builds.
 
 - **The Node Sequencer is drawn as a line drawing, and runs from the top down.** Inputs are along the top of a node and outputs along the bottom; wires run vertically. A node is a thin box with its word in it and its value after it ("EVERY ÷4", "NOTE pad"), as wide as its words; the nodes that draw something (steps, euclid, lfo, Voicing, Chord) keep a title band with a dashed line under it. Outlines, corner squares and wires are drawn dim until something happens on them. Ports are smaller outlines whose shape says the kind: square event, circle control, diamond chord, triangle weights.
 - Projects from before are turned a quarter once when they open (what ran left to right now runs down); wires you had bent find their own way again.
+- An empty Node Sequencer says what to do in a readable page over the canvas, which goes as soon as there is a node.
 - The Node Sequencer's rail icon is a tree of boxes now, so it no longer looks like the Instruments icon.
 
 ## 572 · 2026-10-31

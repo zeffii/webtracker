@@ -28,7 +28,10 @@ export function createNodeSeqEditor({ root, getSong, noteTargets = () => [], par
   const canvas = el('canvas', { id: 'ns-canvas', tabIndex: 0 });
   canvas.setAttribute('aria-label', 'Node Sequencer graph');
   const palette = el('div', { id: 'ns-palette', hidden: true });
-  stage.append(canvas, palette);
+  // What an empty graph says: a page over the canvas that goes as soon as there is a node (the canvas would draw it too small to read).
+  const empty = el('div', { id: 'ns-empty' }, el('b', { textContent: 'An empty graph' }), el('p', { textContent: 'Press A, or right-click, to add a node: start with a clock.' }), el('p', { textContent: 'Events run on square ports, controls on round ones, chords on diamonds, weights on triangles. Drag from an output (below a node) to an input (above one). Drop a wire on empty space to add a node for it.' }));
+  Object.assign(empty.style, { position: 'absolute', inset: '0', display: 'none', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', gap: '0.6em', padding: '1em 2em', fontSize: '15px', lineHeight: '1.5', opacity: '0.7', pointerEvents: 'none' });
+  stage.append(canvas, empty, palette);
   root.append(bar, el('div', { id: 'ns-layout' }, stage, side), foot);
   const ctx = canvas.getContext('2d');
 
@@ -205,11 +208,9 @@ export function createNodeSeqEditor({ root, getSong, noteTargets = () => [], par
     // the dotted grid
     const step = 24 * view.zoom;
     if (step > 7) { ctx.fillStyle = C.dark ? 'rgba(255,255,255,.1)' : 'rgba(0,0,0,.14)'; const ox = -((view.x * view.zoom) % step), oy = -((view.y * view.zoom) % step); for (let x = ox; x < W; x += step) for (let y = oy; y < H; y += step) ctx.fillRect(x, y, 1, 1); }
+    empty.style.display = 'none';
     if (!g || !g.nodes.length) {
-      ctx.fillStyle = C.ink; ctx.globalAlpha = 0.55; ctx.textAlign = 'center';
-      ctx.fillText('An empty graph. Press A, or right-click, to add a node: start with a clock.', W / 2, H / 2 - 8);
-      ctx.fillText('Events run on square ports, controls on round ones, chords on diamonds, weights on triangles. Drag from an output to an input.', W / 2, H / 2 + 12);
-      ctx.globalAlpha = 1; ctx.textAlign = 'left';
+      empty.style.display = 'flex';
       return;
     }
     ctx.save();
