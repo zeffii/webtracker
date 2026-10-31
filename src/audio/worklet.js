@@ -12,7 +12,15 @@ class TrackerEngine extends AudioWorkletProcessor {
     this.setLaneIds = ids => { slotOf.clear(); ids.forEach((id, k) => slotOf.set(id, k)); };
     const params = new Float32Array(sab);
     this.rt = new GraphRuntime({ sampleRate, params, wasm });
-    this.rt.onLane = (id, l, r, n) => { const k = slotOf.get(id); if (k !== undefined && lanes.wants(k)) lanes.write(k, l, r, n); };
+    // The mixer's meters: while the page has them on, the loudest sample of each instrument's output is kept and posted a few dozen times a second.
+    this.levelsOn = false; this.levelPeaks = new Map(); this.levelBlocks = 0;
+    this.rt.onLane = (id, l, r, n) => {
+      const k = slotOf.get(id); if (k !== undefined && lanes.wants(k)) lanes.write(k, l, r, n);
+      if (!this.levelsOn) return;
+      let pk = this.levelPeaks.get(id) ?? 0;
+      for (let i = 0; i < n; i++) { const a = Math.abs(l[i]), b = Math.abs(r[i]); if (a > pk) pk = a; if (b > pk) pk = b; }
+      this.levelPeaks.set(id, pk);
+    };
     this.seq = new Sequencer({ sampleRate, runtime: this.rt, params, transport: new Int32Array(transport) });
     this.seq.post = msg => this.port.postMessage(msg);
     this.nsBlocks = 0;
@@ -38,6 +46,7 @@ class TrackerEngine extends AudioWorkletProcessor {
       else if (data.type === 'delaycomp') this.rt.setDelayComp(data.on);
       else if (data.type === 'volfloor') this.seq.volFloor = data.on ? 0.003 : 0;
       else if (data.type === 'lanetaps') this.setLaneIds(data.ids);
+      else if (data.type === 'levels') { this.levelsOn = data.on; this.levelPeaks.clear(); }
       else if (data.type === 'reset') {
         const fresh = new Float32Array(data.sab);
         this.rt.reset(fresh);
@@ -79,6 +88,7 @@ class TrackerEngine extends AudioWorkletProcessor {
     const t0 = Date.now();
     this.seq.process(out[0], out[1], out[0].length);
     if (this.rt.prof && ++this.streamBlocks >= 32) this.postStreams();   // about twenty reports a second, only while the manager is open
+    if (this.levelsOn && ++this.levelBlocks % 8 === 0) { this.port.postMessage({ type: 'levels', p: Object.fromEntries(this.levelPeaks) }); this.levelPeaks.clear(); }
     if (this.seq.ns.watch) this.seq.ns.flush(++this.nsBlocks % 10 === 0);   // activity for the Node Sequencer view, a few dozen times a second
     if (this.dither) {   // triangular noise of one 16-bit step (-96 dB): very quiet sound, fading in or out, is otherwise rounded by the sound card into crackle
       let z = this.noise, n = out[0].length;

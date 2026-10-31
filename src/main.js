@@ -328,10 +328,14 @@ const seqView = createSequenceView({
 // ---- The mixer under the arrangement ----
 // Each strip proxies the Out node of its lane's instrument; its gain and master switch are written to that node, and to the running engine.
 const mixer = createMixer({
-  el: $('mixer'),
+  el: $('mixer'), seq: $('seq'),
   lanes: () => project?.lanes ?? [],
+  widths: () => seqView.widths(), chars: seqView.colChars,
   instruments: () => project?.instruments ?? {},
   cursorLane: () => seqView.lane,
+  // the value goes to the running engine only (a test gain)
+  hear: (inst, nodeId, name, value) => { const address = `${inst}.${nodeId}.${name}`; if (engine.registry.slots.has(address)) engine.set(address, value); },
+  // the value goes into the project's Out node as well
   setParam: (inst, nodeId, name, value) => {
     const node = project.instruments[inst].graph.nodes.find(n => n.id === nodeId);
     node.params = { ...node.params, [name]: value };
@@ -341,10 +345,11 @@ const mixer = createMixer({
   solo: li => { project.editor.solo(li); seqView.draw?.(); },
   silence: li => { project.editor.silence(li); seqView.draw?.(); view.draw?.(); },
 });
+engine.onLevels = peaks => mixer.levels(peaks);
 {
   let on = false;
   try { on = localStorage.getItem('webtracker.mixer') === '1'; } catch {}
-  const apply = () => { $('mixer').hidden = !on; $('mixer-toggle').setAttribute('aria-pressed', String(on)); if (on) mixer.refresh(); };
+  const apply = () => { $('mixer').hidden = !on; $('mixer-toggle').setAttribute('aria-pressed', String(on)); engine.setLevels(on); if (on) mixer.refresh(); };
   $('mixer-toggle').addEventListener('click', e => { on = !on; try { localStorage.setItem('webtracker.mixer', on ? '1' : '0'); } catch {} apply(); fitArrangement(); e.currentTarget.blur(); });
   apply();
 }
@@ -1583,7 +1588,7 @@ function openProject({ song, instruments, samples }, { stay = false, instrument 
   nsPush(); nsView?.load();
   refreshProjectUi();
   seqView.load({ lanes, song, editor });
-  mixer.refresh();
+  mixer.drop(); mixer.refresh();   // a loaded project forgets any test gains
   view.load({ lanes, song, editor });
   const at = Math.max(lanes.length > 1 ? 1 : 0, lanes.findIndex(l => l.id === lane));   // not the master lane, to start with
   view.goto(at, 0); seqView.goto(at, 0);

@@ -46,6 +46,7 @@ export class Engine {
       else if (data.type === 'load') this.onLoad?.(data);
       else if (data.type === 'scope') this.onScope?.(data);
       else if (data.type === 'emit') this.onEmit?.(data);
+      else if (data.type === 'levels') this.onLevels?.(data.p);
       else if (data.type === 'streams') this.onStreams?.(data.rows);
       else if (data.type.startsWith('ns')) this.onNodeseq?.(data);   // the Node Sequencer's activity, notes to record, mistakes
     };
@@ -53,6 +54,7 @@ export class Engine {
     this.setDelayComp(this.delayComp);
     this.node.port.postMessage({ type: 'volfloor', on: this.volFloor });
     if (this.laneIds.length) this.node.port.postMessage({ type: 'lanetaps', ids: this.laneIds });
+    if (this.levelsWanted) this.node.port.postMessage({ type: 'levels', on: true });
     for (const key of this.watching) { const [instrument, node] = key.split('\u0000'); this.node.port.postMessage({ type: 'scope', instrument, node, on: true }); }
     this.node.connect(this.ctx.destination);
     this.ctx.onstatechange = () => this.onState?.(this.ctx.state);
@@ -81,6 +83,8 @@ export class Engine {
   watchStreams(on) { this.node?.port.postMessage({ type: 'streamwatch', on }); }
   cutStreams(ids, on) { this.node?.port.postMessage({ type: 'streamcut', ids, on }); }
   resetStreams(ids) { this.node?.port.postMessage({ type: 'streamreset', ids }); }
+  // The mixer's meters: the loudest sample of each instrument's output, in onLevels({ id: peak }), while this is on.
+  setLevels(on) { this.node?.port.postMessage({ type: 'levels', on }); this.levelsWanted = on; }
   setLaneTaps(ids) { this.laneIds = ids; this.node?.port.postMessage({ type: 'lanetaps', ids }); }
 
   // The delay of the slowest instrument, in ms: how far behind the beat the heaviest chain runs (see latency.js).
