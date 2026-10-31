@@ -6,12 +6,13 @@ import { NS_TYPES, DOT_TYPES, insOf, parseList, parseChordList, compileScript, D
 import { ensureGraph, newGraph, addNode, connect, disconnect, removeNodes, duplicateNodes, cleanGraph, canConnect, GROUP_NAMES } from './graphops.js';
 import { chordView, describeChord, editNote, editVolume, noteLimit, midiName } from './chordtext.js';
 import { panelRect, growing, startFor, hit as keysHit, volumeAt, shifted, drawPanel as drawKeysPanel } from './chordkeys.js';
-import { tileSize, tileLabel, drawGlyph, isDot, DOT } from './tiles.js';
+import { tileSize, tileLabel, reserveLabel, isBody, isDot, DOT, BAND, WORD_FONT } from './tiles.js';
 import { noteName } from '../seq/chordname.js';
 import { showContextMenu } from '../ui/ctxmenu.js';
 
 const FONT = '7px ui-monospace, Consolas, monospace', CATS = ['time', 'rhythm', 'values', 'chords', 'control', 'output', 'code', 'groups', 'routing'];
 export const GROUP_COLORS = ['#e0a84a', '#4fc3d9', '#c792ea', '#5fbf6a', '#ee7d5c', '#8a96f2', '#e5669c', '#a3b34c'];
+const DIM = 0.45;   // how bright the outlines and wires are drawn until something happens on them: the words and ports carry the picture
 const METER = new Set(['lfo', 'ad', 'scale', 'hold', 'Pwhite', 'set']);   // nodes that show a level
 
 const fmt = v => (Number.isInteger(v) ? String(v) : Math.abs(v) >= 100 ? v.toFixed(0) : Math.abs(v) >= 10 ? v.toFixed(1) : v.toFixed(2));
@@ -100,15 +101,22 @@ export function createNodeSeqEditor({ root, getSong, noteTargets = () => [], par
 
   // ---- geometry
   const nodeOf = id => graph()?.nodes.find(n => n.id === id);
-  // A tile: its ports are spread along its left (in) and right (out) edges.
+  // A tile: its ports are spread along its top (in) and bottom (out) edges. A one-line tile is as wide as its words.
+  const wordsOf = n => {
+    const chords = n.type === 'Phrase' ? (graph()?.wires ?? []).filter(wr => wr.to.startsWith(`${n.id}.c`)).length : 0;
+    return { title: NS_TYPES[n.type].title.toUpperCase(), reserved: reserveLabel(n, chords), chords };
+  };
   function layout(n) {
-    const T = NS_TYPES[n.type], ins = insOf(n.type, graph()?.wires ?? [], n.id), { w, h } = tileSize(n.type, ins.length, T.outs.length, n.data, n.params);
+    const T = NS_TYPES[n.type], ins = insOf(n.type, graph()?.wires ?? [], n.id);
+    let textWidth = 0;
+    if (!isDot(n.type) && !isBody(n.type)) { const k = wordsOf(n), keep = ctx.font; ctx.font = WORD_FONT; textWidth = ctx.measureText(`${k.title} ${k.reserved}`.trim()).width || 0; ctx.font = keep; }
+    const { w, h } = tileSize(n.type, ins.length, T.outs.length, n.data, n.params, textWidth);
     const b = { x: n.x, y: n.y, w, h, ins: [], outs: [] };
     const wired = new Set((graph()?.wires ?? []).filter(x => x.to.startsWith(`${n.id}.`)).map(x => x.to));
-    const at = (i, count) => n.y + h * (i + 1) / (count + 1);
+    const at = (i, count) => n.x + w * (i + 1) / (count + 1);
     if (isDot(n.type)) { const c = { x: n.x + DOT / 2, y: n.y + DOT / 2 }; b.ins.push({ ...ins[0], ...c }); b.outs.push({ ...T.outs[0], ...c }); return b; }
-    ins.forEach((p, i) => b.ins.push({ ...p, free: p.dyn && !wired.has(`${n.id}.${p.n}`), x: n.x, y: at(i, ins.length) }));
-    T.outs.forEach((p, i) => b.outs.push({ ...p, x: n.x + w, y: at(i, T.outs.length) }));
+    ins.forEach((p, i) => b.ins.push({ ...p, free: p.dyn && !wired.has(`${n.id}.${p.n}`), x: at(i, ins.length), y: n.y }));
+    T.outs.forEach((p, i) => b.outs.push({ ...p, x: at(i, T.outs.length), y: n.y + h }));
     return b;
   }
   const portPos = (ref, side) => {
@@ -117,20 +125,23 @@ export function createNodeSeqEditor({ root, getSong, noteTargets = () => [], par
   };
   const toScreen = (x, y) => [(x - view.x) * view.zoom, (y - view.y) * view.zoom];
   const toWorld = (sx, sy) => [sx / view.zoom + view.x, sy / view.zoom + view.y];
-  // A wire is a line of right angles from the output to the input. A wire that runs backwards loops round the two nodes. Wires from one output share
-  // their upright, so they join like a bus.
+  // A wire is a line of right angles from the output (below its node) to the input (above its node). A wire that runs backwards loops round the two
+  // nodes. Wires from one output share their stretch, so they join like a bus. The line is worked out as if the graph ran left to right, with the two
+  // axes swapped, so a bend is a position along the way down (`bx`) or across it (`by`, `sx`, `tx`).
   const bendOf = id => { let h = 0; for (const ch of String(id)) h = (h * 31 + ch.charCodeAt(0)) % 7; return (h - 3) * 2.5; };
   // A wire may carry a bend {bx} or {sx, by, tx}: where the user dragged its straight stretches to. The line has a list `keys` saying which bend each
   // stretch answers to (null for the two end stretches, which stay put).
   function route(a, b, id = '', bd = {}) {
-    const pad = 8;
-    if (b.x - a.x >= 2 * pad + 4) {
-      const xm = clamp(bd.bx ?? (a.x + b.x) / 2 + bendOf(id), a.x + pad, b.x - pad), line = [[a.x, a.y], [xm, a.y], [xm, b.y], [b.x, b.y]];
-      line.keys = [null, 'bx', null]; return line;
+    const [p, q] = [{ x: a.y, y: a.x }, { x: b.y, y: b.x }], pad = 8;
+    let line;
+    if (q.x - p.x >= 2 * pad + 4) {
+      const xm = clamp(bd.bx ?? (p.x + q.x) / 2 + bendOf(id), p.x + pad, q.x - pad);
+      line = [[p.x, p.y], [xm, p.y], [xm, q.y], [q.x, q.y]]; line.keys = [null, 'bx', null];
+    } else {
+      const ym = bd.by ?? (p.y + q.y) / 2 + (Math.abs(p.y - q.y) < 24 ? 26 : 0), sx = Math.max(bd.sx ?? 0, p.x + pad), tx = Math.min(bd.tx ?? 1e9, q.x - pad);
+      line = [[p.x, p.y], [sx, p.y], [sx, ym], [tx, ym], [tx, q.y], [q.x, q.y]]; line.keys = [null, 'sx', 'by', 'tx', null];
     }
-    const ym = bd.by ?? (a.y + b.y) / 2 + (Math.abs(a.y - b.y) < 24 ? 26 : 0), sx = Math.max(bd.sx ?? 0, a.x + pad), tx = Math.min(bd.tx ?? 1e9, b.x - pad);
-    const line = [[a.x, a.y], [sx, a.y], [sx, ym], [tx, ym], [tx, b.y], [b.x, b.y]];
-    line.keys = [null, 'sx', 'by', 'tx', null]; return line;
+    const out = line.map(([x, y]) => [y, x]); out.keys = line.keys; return out;
   }
   // The stretch of a wire nearest to a point that can be dragged: the end stretches hand over to the next one in.
   function nearStretch(wx, wy) {
@@ -212,7 +223,7 @@ export function createNodeSeqEditor({ root, getSong, noteTargets = () => [], par
       if (!a || !b) return;
       const c = route(a, b, wr.from, wr.bend), picked = selWire === wr, lit = !wr.off && activeTo.has(wr.to);
       tracePath(c);
-      ctx.strokeStyle = picked ? C.hi : kindColor(C, a.k); ctx.lineWidth = picked ? 2.6 : lit ? 2.6 : 1.1; ctx.globalAlpha = picked || lit ? 1 : 0.85;
+      ctx.strokeStyle = picked ? C.hi : kindColor(C, a.k); ctx.lineWidth = picked ? 2.6 : lit ? 2.6 : 1.1; ctx.globalAlpha = picked || lit ? 1 : DIM;
       ctx.setLineDash(wr.off ? [2, 5] : WIRE_DASH[a.k]);   // the kind of wire: solid events, dashed controls, long dashes chords, dots weights
       if (wr.off) { ctx.globalAlpha = picked ? 0.8 : 0.4; }   // switched off: faint
       ctx.stroke(); ctx.setLineDash([]); ctx.globalAlpha = 1;
@@ -267,9 +278,16 @@ export function createNodeSeqEditor({ root, getSong, noteTargets = () => [], par
     ctx.fillStyle = C.bg; ctx.fillRect(b.x, b.y, b.w, b.h);   // the page's own colour, so a wire behind the tile does not show through
     const f = flash.get(n.id);
     const strong = picked || active.has(n.id) || (f && now - f < 260);   // the playing chord and a node that just got an event are drawn heavier
-    ctx.strokeStyle = picked ? C.hi : C.accent; ctx.lineWidth = strong ? 2 : 1; ctx.globalAlpha = strong ? 1 : 0.22;   // the border is the theme's accent, almost see-through until the node is busy
-    ctx.strokeRect(b.x + 0.5, b.y + 0.5, b.w - 1, b.h - 1); ctx.globalAlpha = 1;
-    if ((n.group ?? 0) > 0) { ctx.font = '6px ui-monospace, Consolas, monospace'; ctx.fillStyle = C.ink; ctx.textAlign = 'right'; ctx.fillText(GROUP_NAMES[n.group], b.x + b.w - 3, b.y + 8); ctx.textAlign = 'left'; }   // the group, when it is not A
+    ctx.strokeStyle = picked ? C.hi : C.accent; ctx.lineWidth = strong ? 2 : 1; ctx.globalAlpha = strong ? 1 : DIM;   // a thin outline in the theme's accent, dim until the node is busy
+    ctx.strokeRect(b.x + 0.5, b.y + 0.5, b.w - 1, b.h - 1);
+    ctx.fillStyle = picked ? C.hi : C.accent;   // a small square on each corner, as on a drawing
+    for (const [cx, cy] of [[b.x, b.y], [b.x + b.w, b.y], [b.x, b.y + b.h], [b.x + b.w, b.y + b.h]]) ctx.fillRect(cx - 1.5, cy - 1.5, 3, 3);
+    if (isBody(n.type)) {   // a tile that draws something has a title band, with a dashed line under it
+      ctx.globalAlpha = strong ? 0.8 : DIM * 0.6; ctx.lineWidth = 1; ctx.setLineDash([3, 3]); ctx.beginPath(); ctx.moveTo(b.x, b.y + BAND - 0.5); ctx.lineTo(b.x + b.w, b.y + BAND - 0.5); ctx.stroke(); ctx.setLineDash([]);
+      if (n.type !== 'Chord') { ctx.globalAlpha = 1; ctx.font = WORD_FONT; ctx.fillStyle = C.ink; ctx.textAlign = 'left'; ctx.fillText(T.title.toUpperCase(), b.x + 5, b.y + 10); }   // (a Chord tile shows its chord's name there)
+    }
+    ctx.globalAlpha = 1;
+    if ((n.group ?? 0) > 0) { ctx.font = '6px ui-monospace, Consolas, monospace'; ctx.fillStyle = C.ink; ctx.textAlign = 'left'; ctx.fillText(GROUP_NAMES[n.group], b.x + b.w + 3, b.y + b.h / 2 + 2); }   // the group, when it is not A, just outside on the right
     if (errors.has(n.id)) { ctx.fillStyle = C.bad; ctx.beginPath(); ctx.arc(b.x + b.w - 5, b.y + 5, 2.5, 0, 7); ctx.fill(); }
     drawBody(n, b, C, T);
     if (METER.has(n.type)) { const v = clamp(live?.nodes?.[n.id]?.v ?? 0, 0, 1); ctx.fillStyle = C.dark ? 'rgba(255,255,255,.14)' : 'rgba(0,0,0,.14)'; ctx.fillRect(b.x + 6, b.y + b.h - 5, b.w - 12, 2); ctx.fillStyle = C.ct; ctx.fillRect(b.x + 6, b.y + b.h - 5, (b.w - 12) * v, 2); }
@@ -278,16 +296,18 @@ export function createNodeSeqEditor({ root, getSong, noteTargets = () => [], par
     ctx.restore();
   }
 
+  // A port is a small outline in the colour of its kind, and its shape says the kind: a square for events, a circle for controls, a diamond for chords,
+  // a triangle for weights.
   function port(p, C, side) {
     const col = kindColor(C, p.k);
     ctx.beginPath();
-    if (p.k === 'e') ctx.rect(p.x - 3, p.y - 3, 6, 6);
-    else if (p.k === 'h') { ctx.moveTo(p.x, p.y - 4.2); ctx.lineTo(p.x + 4.2, p.y); ctx.lineTo(p.x, p.y + 4.2); ctx.lineTo(p.x - 4.2, p.y); ctx.closePath(); }
-    else if (p.k === 'w') { ctx.moveTo(p.x - 3.6, p.y + 3); ctx.lineTo(p.x + 3.6, p.y + 3); ctx.lineTo(p.x, p.y - 3.6); ctx.closePath(); }
-    else ctx.arc(p.x, p.y, 3.2, 0, 7);
-    if (p.free) { ctx.strokeStyle = col; ctx.lineWidth = 1.2; ctx.setLineDash([1.5, 1.5]); ctx.stroke(); ctx.setLineDash([]); }   // the spare chord port of a Phrase node
-    else { ctx.fillStyle = C.paper; ctx.fill(); ctx.strokeStyle = col; ctx.lineWidth = 1.6; ctx.stroke(); }   // a port is ringed in the colour of its kind
-    if (drag?.kind === 'wire' && drag.ok?.(p, side)) { ctx.strokeStyle = C.ink; ctx.lineWidth = 1.5; ctx.beginPath(); if (p.k === 'e') ctx.rect(p.x - 5.5, p.y - 5.5, 11, 11); else ctx.arc(p.x, p.y, 6, 0, 7); ctx.stroke(); }
+    if (p.k === 'e') ctx.rect(p.x - 2.4, p.y - 2.4, 4.8, 4.8);
+    else if (p.k === 'h') { ctx.moveTo(p.x, p.y - 3.4); ctx.lineTo(p.x + 3.4, p.y); ctx.lineTo(p.x, p.y + 3.4); ctx.lineTo(p.x - 3.4, p.y); ctx.closePath(); }
+    else if (p.k === 'w') { ctx.moveTo(p.x - 2.9, p.y + 2.4); ctx.lineTo(p.x + 2.9, p.y + 2.4); ctx.lineTo(p.x, p.y - 2.9); ctx.closePath(); }
+    else ctx.arc(p.x, p.y, 2.5, 0, 7);
+    if (p.free) { ctx.strokeStyle = col; ctx.lineWidth = 1.1; ctx.setLineDash([1.5, 1.5]); ctx.stroke(); ctx.setLineDash([]); }   // the spare chord port of a Phrase node
+    else { ctx.fillStyle = C.bg; ctx.fill(); ctx.strokeStyle = col; ctx.lineWidth = 1.2; ctx.stroke(); }
+    if (drag?.kind === 'wire' && drag.ok?.(p, side)) { ctx.strokeStyle = C.ink; ctx.lineWidth = 1.5; ctx.beginPath(); if (p.k === 'e') ctx.rect(p.x - 5, p.y - 5, 10, 10); else ctx.arc(p.x, p.y, 5.5, 0, 7); ctx.stroke(); }
   }
 
   const WHITE_PC = [0, 2, 4, 5, 7, 9, 11], BLACK_AT = { 1: 0.7, 3: 1.7, 6: 3.7, 8: 4.7, 10: 5.7 };
@@ -324,7 +344,7 @@ export function createNodeSeqEditor({ root, getSong, noteTargets = () => [], par
     const v = live?.nodes?.[n.id], cx = b.x + b.w / 2, x0 = b.x + 6, w = b.w - 12;
     void T;
     if (n.type === 'steps') {
-      const cells = n.data?.cells ?? [], cnt = Math.round(n.params?.n ?? 16), cw = w / cnt, top = b.y + 8, hh = b.h - 16;
+      const cells = n.data?.cells ?? [], cnt = Math.round(n.params?.n ?? 16), cw = w / cnt, top = b.y + BAND + 3, hh = b.h - BAND - 8;
       for (let i = 0; i < cnt; i++) {
         const lv = Number(cells[i]) || 0, x = x0 + i * cw;
         ctx.fillStyle = C.dark ? 'rgba(255,255,255,.08)' : 'rgba(0,0,0,.09)'; ctx.fillRect(x + 0.5, top, cw - 1, hh);
@@ -335,22 +355,22 @@ export function createNodeSeqEditor({ root, getSong, noteTargets = () => [], par
       return;
     }
     if (n.type === 'euclid') {
-      const s = Math.max(1, Math.round(n.params?.steps ?? 8)), cw = Math.min(9, w / s), x1 = cx - cw * s / 2;
+      const s = Math.max(1, Math.round(n.params?.steps ?? 8)), cw = Math.min(9, w / s), x1 = cx - cw * s / 2, cy = b.y + BAND + (b.h - BAND) / 2;
       for (let i = 0; i < s; i++) {
-        ctx.fillStyle = euclid(i, n.params) ? C.ev : C.dark ? 'rgba(255,255,255,.12)' : 'rgba(0,0,0,.13)'; ctx.fillRect(x1 + i * cw + 0.5, b.y + b.h / 2 - 6, cw - 1, 12);
-        if (v?.i === i) { ctx.strokeStyle = C.ink; ctx.lineWidth = 1.2; ctx.strokeRect(x1 + i * cw + 0.5, b.y + b.h / 2 - 6.5, cw - 1, 13); }
+        ctx.fillStyle = euclid(i, n.params) ? C.ev : C.dark ? 'rgba(255,255,255,.12)' : 'rgba(0,0,0,.13)'; ctx.fillRect(x1 + i * cw + 0.5, cy - 6, cw - 1, 12);
+        if (v?.i === i) { ctx.strokeStyle = C.ink; ctx.lineWidth = 1.2; ctx.strokeRect(x1 + i * cw + 0.5, cy - 6.5, cw - 1, 13); }
       }
       return;
     }
     if (n.type === 'Voicing') {
-      const cnt = Math.round(n.params?.notes ?? 4), cw = w / cnt, hh = b.h - 14;
-      for (let i = 0; i < cnt; i++) { const lv = clamp((n.data?.weights?.[i] ?? 100) / 100, 0, 1); ctx.fillStyle = C.wc; ctx.fillRect(x0 + i * cw + 1, b.y + 7 + hh * (1 - lv), cw - 2, Math.max(1, hh * lv)); }
+      const cnt = Math.round(n.params?.notes ?? 4), cw = w / cnt, hh = b.h - BAND - 8;
+      for (let i = 0; i < cnt; i++) { const lv = clamp((n.data?.weights?.[i] ?? 100) / 100, 0, 1); ctx.fillStyle = C.wc; ctx.fillRect(x0 + i * cw + 1, b.y + BAND + 3 + hh * (1 - lv), cw - 2, Math.max(1, hh * lv)); }
       return;
     }
     if (n.type === 'lfo') {   // the wave it makes, in the tile
       ctx.strokeStyle = C.ct; ctx.lineWidth = 1.2; ctx.beginPath();
-      const shape = Math.round(n.params?.shape ?? 0), depth = n.params?.depth ?? 1, centre = n.params?.center ?? 0.5, yc = b.y + b.h / 2 - 1;
-      for (let i = 0; i <= 40; i++) { const p = i / 40; const wv = shape === 1 ? (p < 0.5 ? p * 4 - 1 : 3 - p * 4) : shape === 2 ? p * 2 - 1 : shape === 3 ? (p < 0.5 ? 1 : -1) : shape === 4 ? Math.sin(p * 40) * Math.cos(p * 7) : Math.sin(p * 2 * Math.PI); const yy = yc - (clamp(centre + wv * 0.5 * depth, 0, 1) - 0.5) * 18; if (i) ctx.lineTo(x0 + p * w, yy); else ctx.moveTo(x0, yy); }
+      const shape = Math.round(n.params?.shape ?? 0), depth = n.params?.depth ?? 1, centre = n.params?.center ?? 0.5, yc = b.y + BAND + (b.h - BAND) / 2;
+      for (let i = 0; i <= 40; i++) { const p = i / 40; const wv = shape === 1 ? (p < 0.5 ? p * 4 - 1 : 3 - p * 4) : shape === 2 ? p * 2 - 1 : shape === 3 ? (p < 0.5 ? 1 : -1) : shape === 4 ? Math.sin(p * 40) * Math.cos(p * 7) : Math.sin(p * 2 * Math.PI); const yy = yc - (clamp(centre + wv * 0.5 * depth, 0, 1) - 0.5) * 14; if (i) ctx.lineTo(x0 + p * w, yy); else ctx.moveTo(x0, yy); }
       ctx.stroke();
       return;
     }
@@ -366,12 +386,13 @@ export function createNodeSeqEditor({ root, getSong, noteTargets = () => [], par
       drawKeyboard(n, b, C);
       return;
     }
-    // the rest: a glyph, and a few characters under it
-    const chords = n.type === 'Phrase' ? (graph()?.wires ?? []).filter(wr => wr.to.startsWith(`${n.id}.c`)).length : 0;
-    const label = tileLabel(n, v, chords);
+    // the rest: the node's word and the short value after it
+    const k = wordsOf(n), label = tileLabel(n, v, k.chords);
     const bad = (n.type === 'Chord' && chordView(n.data, n.params).error) || ((n.type === 'Pseq' || n.type === 'Prand') && parseList(n.data?.text).bad.length) || (n.type === 'Pchord' && parseChordList(n.data?.text).bad.length) || errors.has(n.id) || ((n.type === 'note' || n.type === 'set') && !n.data?.target);
-    drawGlyph(ctx, n.type, cx - 7, b.y + (label ? 5 : (b.h - 14) / 2), 14, C.ink);
-    if (label) { ctx.font = FONT; ctx.fillStyle = bad ? C.bad : C.ink; ctx.globalAlpha *= bad ? 1 : 0.7; ctx.textAlign = 'center'; ctx.fillText(label, cx, b.y + b.h - 5); ctx.textAlign = 'left'; ctx.globalAlpha /= bad ? 1 : 0.7; }
+    ctx.font = WORD_FONT; ctx.textAlign = 'left';
+    const tw = ctx.measureText(k.title).width, gap = label ? ctx.measureText(' ').width : 0, lw = label ? ctx.measureText(label).width : 0, x = cx - (tw + gap + lw) / 2, y = b.y + b.h / 2 + 3.3;
+    ctx.fillStyle = C.ink; ctx.fillText(k.title, x, y);
+    if (label) { ctx.fillStyle = bad ? C.bad : C.ink; ctx.globalAlpha *= bad ? 1 : 0.7; ctx.fillText(label, x + tw + gap, y); ctx.globalAlpha /= bad ? 1 : 0.7; }
     if (n.type === 'note' && v?.on) { ctx.fillStyle = C.ev; ctx.fillRect(b.x + b.w - 8, b.y + 3, 5, 5); }
   }
 
@@ -398,8 +419,8 @@ export function createNodeSeqEditor({ root, getSong, noteTargets = () => [], par
   }
   function hitStep(n, wx, wy) {
     const b = boxes.get(n.id); if (!b || n.type !== 'steps') return -1;
-    const cnt = Math.round(n.params?.n ?? 16), w = b.w - 12, cw = w / cnt, x = wx - (b.x + 6), y = wy - (b.y + 8);
-    if (x < 0 || x >= w || y < 0 || y > b.h - 16) return -1;
+    const cnt = Math.round(n.params?.n ?? 16), w = b.w - 12, cw = w / cnt, x = wx - (b.x + 6), y = wy - (b.y + BAND + 3);
+    if (x < 0 || x >= w || y < 0 || y > b.h - BAND - 8) return -1;
     return Math.floor(x / cw);
   }
 

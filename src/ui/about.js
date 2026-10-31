@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['573', ['The Node Sequencer is a line drawing that runs top to bottom: one-line nodes, dim outlines, ports shaped by kind, a new rail icon']],
   ['572', ['Chord tiles grow a keyboard on hover: click keys to play a chord in; the tile names the chord and marks stray notes']],
   ['571', ['The CPU readout is cleared each time Play starts']],
   ['570', ['A latency? button on the status bar switches latency compensation on and off']],

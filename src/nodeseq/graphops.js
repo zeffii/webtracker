@@ -5,7 +5,7 @@ import { NS_TYPES, defaultParams, findIn, DEFAULT_SCRIPT } from './nodes.js';
 export const GROUP_NAMES = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
 export const MAX_NODES = 200;
 
-export const newGraph = () => ({ ui: 2, sub: 4, groups: GROUP_NAMES.map(name => ({ name, on: true })), nodes: [], wires: [] });
+export const newGraph = () => ({ ui: 3, sub: 4, groups: GROUP_NAMES.map(name => ({ name, on: true })), nodes: [], wires: [] });
 
 // The project's graph, made when there is none (a project without one saves without one until something is put in it).
 export function ensureGraph(song) {
@@ -15,7 +15,10 @@ export function ensureGraph(song) {
   while (g.groups.length < 8) g.groups.push({ name: GROUP_NAMES[g.groups.length], on: true });
   g.nodes ??= []; g.wires ??= [];
   // Graphs from before the tiles were laid out for nodes five times the size: bring them closer together (once).
-  if (g.ui !== 2) { for (const n of g.nodes) { n.x = Math.round(n.x * 0.4 / 8) * 8; n.y = Math.round(n.y * 0.42 / 8) * 8; } g.ui = 2; }
+  if ((g.ui ?? 0) < 2) { for (const n of g.nodes) { n.x = Math.round(n.x * 0.4 / 8) * 8; n.y = Math.round(n.y * 0.42 / 8) * 8; } g.ui = 2; }
+  // Graphs from before the graph ran from the top down (inputs on top, outputs below): turn the layout a quarter, so what ran left to right runs down
+  // (once). The old bends were about the other direction, so the wires find their own way again.
+  if (g.ui === 2) { for (const n of g.nodes) { const x = n.x; n.x = Math.round(n.y * 2 / 8) * 8; n.y = Math.round(x * 1.1 / 8) * 8; } for (const w of g.wires) delete w.bend; g.ui = 3; }
   return g;
 }
 

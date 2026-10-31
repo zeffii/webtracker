@@ -2,6 +2,12 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 573 · 2026-10-31
+
+- **The Node Sequencer is drawn as a line drawing, and runs from the top down.** Inputs are along the top of a node and outputs along the bottom; wires run vertically. A node is a thin box with its word in it and its value after it ("EVERY ÷4", "NOTE pad"), as wide as its words; the nodes that draw something (steps, euclid, lfo, Voicing, Chord) keep a title band with a dashed line under it. Outlines, corner squares and wires are drawn dim until something happens on them. Ports are smaller outlines whose shape says the kind: square event, circle control, diamond chord, triangle weights.
+- Projects from before are turned a quarter once when they open (what ran left to right now runs down); wires you had bent find their own way again.
+- The Node Sequencer's rail icon is a tree of boxes now, so it no longer looks like the Instruments icon.
+
 ## 572 · 2026-10-31
 
 - **Chord tiles have a keyboard.** Rest the pointer on a Chord tile (nearly still, for half a second: Config, Editing, "Chord keyboard opens after...", 0 for at once) and a three-octave keyboard grows over it. Click a key to add or take away that note, drag across keys to paint, drag the bar under a lit key for its volume, the arrows or the wheel move the octaves, Esc or moving away closes it. The tile's text becomes the plain note list; if the notes make a chord the tile names it ("A min7"), and notes that are not part of it follow in the accent colour (also on the keys). Notes added past the node's notes setting raise that setting (up to 8). New in `nodeseq/chordkeys.js`; the naming and editing are in `chordtext.js`.

@@ -1,11 +1,11 @@
-// The look of a node in the Node Sequencer: a small tile with a glyph and one short value under it. No port names are drawn (the editor shows
-// one when the pointer rests on a port); the order of the ports says what they are, as the order of the arguments does in code.
+// The look of a node in the Node Sequencer: a thin box with the node's word in it and one short value after it, drawn like a line drawing. Inputs are
+// along the top edge and outputs along the bottom: the graph reads from the top down. No port names are drawn (the editor shows one when the
+// pointer rests on a port); the order of the ports says what they are, as the order of the arguments does in code.
 //
 // A glyph is a list of [how, path] in a 12 x 12 box: 's' strokes the path, 'f' fills it, 'd' strokes it faintly. Paths are SVG path data.
 
 const NS_TYPES_DOT = new Set(['route', 'routeC', 'routeH', 'routeW']);
 export const isDot = type => NS_TYPES_DOT.has(type);
-export const TILE = 34;        // the width and least height of a tile
 export const PORT_GAP = 9;     // room for each port along an edge
 
 const dot = (x, y, r) => `M${x + r} ${y}a${r} ${r} 0 1 0 ${-2 * r} 0a${r} ${r} 0 1 0 ${2 * r} 0`;
@@ -37,21 +37,31 @@ export const GLYPHS = {
   euclid: [['f', dot(6, 2, 1.1) + dot(9.5, 4, 1.1) + dot(9.5, 8, 1.1) + dot(6, 10, 1.1) + dot(2.5, 8, 1.1) + dot(2.5, 4, 1.1)]],
 };
 
-// Tiles wider than the usual: the ones that draw something of their own across the tile.
-export const WIDTH = { steps: 150, euclid: 100, Chord: 72 };   // a Chord tile holds its keyboard
+// Most nodes are a single line: the node's word, and after it the one short value it carries ("EVERY ÷4"). A few draw something of their own and
+// have a title band above it instead: these are BODY tiles, a size each.
+export const WORD_H = 22;      // the height of a one-line tile
+export const BAND = 14;        // the title band of a body tile
+export const MIN_W = 40;
+export const BODY = { steps: { w: 150, h: 40 }, euclid: { w: 100, h: 36 }, lfo: { w: 64, h: 40 }, Chord: { w: 120, h: 48 } };   // a Chord tile holds its keyboard
+export const WORD_FONT = '9px ui-monospace, Consolas, monospace';
 
-// The size of a tile: wide enough for its own picture and tall enough for the ports along its edges.
 export const DOT = 14;   // a route point is a dot this wide
 
-export function tileSize(type, inCount, outCount, data, params) {
+// The size of a tile: a one-line tile is as wide as its words, and every tile is wide enough for the ports along its top and bottom edges.
+export function tileSize(type, inCount, outCount, data, params, textWidth = 0) {
   if (NS_TYPES_DOT.has(type)) return { w: DOT, h: DOT };
-  const rows = Math.max(inCount, outCount);
-  let w = WIDTH[type] ?? TILE;
-  if (type === 'Voicing') w = Math.max(TILE, Math.round(params?.notes ?? 4) * 8 + 10);
-  return { w, h: Math.max(TILE, rows * PORT_GAP + 10) };
+  const least = Math.max(inCount, outCount) * PORT_GAP + 8;
+  if (type === 'Voicing') return { w: Math.max(least, Math.round(params?.notes ?? 4) * 8 + 12), h: 36 };
+  const body = BODY[type];
+  if (body) return { w: Math.max(body.w, least), h: body.h };
+  return { w: Math.max(MIN_W, least, Math.ceil(textWidth) + 20), h: WORD_H };
 }
 
-// The few characters shown under the glyph. `live` is what the audio thread last said about the node.
+// The value a one-line tile shows, as wide as it will ever be (a Phrase shows "2/3" while it plays, a monitor a number), so the tile does not change width.
+export const reserveLabel = (n, chordCount = 0) => (n.type === 'Phrase' ? `${chordCount}/${chordCount}` : n.type === 'monitor' ? '0.00' : tileLabel(n, null, chordCount));
+export const isBody = type => type === 'Voicing' || type in BODY;
+
+// The few characters shown after the word. `live` is what the audio thread last said about the node.
 export function tileLabel(n, live, chordCount = 0) {
   const d = n.data ?? {}, p = n.params ?? {};
   switch (n.type) {
