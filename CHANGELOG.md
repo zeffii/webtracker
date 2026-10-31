@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 590 · 2026-10-31
+
+- **Moving a slider empties the preset name box.** As soon as any parameter of the instrument changes, the Preset name field goes blank and reads "> Enter new preset name <", so the named preset is not renamed or saved over by accident. A name you are typing is left alone; recalling or selecting a preset puts its name back. Overwrite is still there for doing it on purpose.
+
 ## 589 · 2026-10-31
 
 - **The faint line in the arrangement is now every 256 ticks** (it was 512).

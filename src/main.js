@@ -584,6 +584,7 @@ const patcher = createPatcher({
   getSampleIds: () => pickableSamples(),
   getSample: id => { const s = project.samples[id]; return s ? { data: s.right ? Float32Array.from(s.data, (v, i) => (v + s.right[i]) * 0.5) : s.data, rate: s.rate } : null; },
   onParam: (id, node, name, value) => {
+    presetEdited(id);
     const address = `${id}.${node}.${name}`;
     if (engine.registry.slots.has(address)) engine.set(address, value);
     if (recording && playing) recordParam(id, node, name, value);
@@ -894,8 +895,18 @@ function renderPresetList() {
     return b;
   }));
   $('preset-name').value = list.find(p => p.id === selectedPreset)?.name ?? '';
+  $('preset-name').placeholder = 'preset name';
 }
 
+// The moment a slider moves, the sound is no longer the named preset: the name box empties and asks for a new name, so the old
+// preset is not renamed or saved over by accident. (Overwrite is still there, on purpose.)
+const NEW_PRESET_HINT = '> Enter new preset name <';
+function presetEdited(id) {
+  if (id !== patcher.instrument) return;
+  const box = $('preset-name'), shown = project?.instruments[id]?.presets?.find(p => p.id === selectedPreset)?.name;
+  if (!box || !shown || box.value !== shown) return;   // only while the box still names the selected preset: a name being typed stays
+  box.value = ''; box.placeholder = NEW_PRESET_HINT;
+}
 // What the instrument sounds like now: the live value of every parameter.
 const snapshotNow = (id, name) => presets.capturePreset(project.instruments[id], NODE_TYPES, (node, param) => {
   const address = `${id}.${node}.${param}`;
