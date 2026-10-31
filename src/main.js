@@ -1902,7 +1902,8 @@ mountConfig($('as-cfg'), config, [['sliceSensitivity', 'Sensitivity (%)', 'range
   const dlg = $('chordscan'), list = $('cs-list'), count = $('cs-count'), laneSel = $('cs-lane'), tickIn = $('cs-tick');
   let result = null, timer = 0;
   const names = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
-  const noteName = m => `${names[m % 12]}${Math.floor(m / 12) - 1}`;
+  const flatNames = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
+  const noteName = (m, flats = false) => `${(flats ? flatNames : names)[m % 12]}${Math.floor(m / 12) - 1}`;
   const noteCols = lane => lane.columns.flatMap((c, i) => (c.token === 'note' ? [i] : []));
   const fillLanes = () => {
     const keep = laneSel.value;
@@ -1921,7 +1922,7 @@ mountConfig($('as-cfg'), config, [['sliceSensitivity', 'Sensitivity (%)', 'range
     const r = scanChords(s.data, s.right, s.rate, { from, to, split: split === 'onsets' ? 'onsets' : Number(split), bpm: bpm(), maxNotes: config.get('chordMaxNotes'), threshold: config.get('chordThreshold') / 100 });
     result = { ...r, rate: s.rate };
     const t = f => `${Math.floor(f / s.rate / 60)}:${(f / s.rate % 60).toFixed(2).padStart(5, '0')}`;
-    list.textContent = r.segments.map(g => `${t(g.frame0)}  ${g.name.padEnd(10)} ${g.notes.map(noteName).join(' ')}`).join('\n');
+    list.textContent = r.segments.map(g => `${t(g.frame0)}  ${(g.exact ? g.name : `${g.name} ?`).padEnd(16)} ${g.notes.map(m => noteName(m, r.flats)).join(' ').padEnd(22)}${g.alts?.length ? ` or ${g.alts.join(', ')}` : ''}`).join('\n');
     count.textContent = r.segments.length ? `${r.segments.length} chord${r.segments.length === 1 ? '' : 's'} found${to - from < s.data.length ? ' in the selection' : ''}.` : 'No notes found: pick a part of the sample that sounds, or lower the weakest-note setting.';
     $('cs-go').disabled = !r.segments.length || !laneSel.options.length;
   };

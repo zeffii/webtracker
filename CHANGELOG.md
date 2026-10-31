@@ -2,6 +2,11 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 593 · 2026-10-31
+
+- **The chord finder names chords it cannot match exactly.** It used to list bare note letters (C E G B D). It now gives the best fit and writes the notes that do not belong to it as added or altered ones (Cmaj7(add9), C7(b9), Am7(add11), and (no5) for a left-out fifth), marked with a `?`, and lists up to two other names that fit nearly as well ("or Cadd9(maj7)"). Two notes a fifth apart are a power chord (C5).
+- **Sharps or flats to suit the key.** The whole recording decides: in a flat key (F, Bb, Eb, Ab, Db, Gb and their minors) the chord names and the notes beside them use flats (Bbmaj7, Eb) instead of sharps.
+
 ## 592 · 2026-10-31
 
 - **`^^^` is now a kill.** It fades the instrument's output out over 120 ms, then resets the machine (voices, delay lines and reverb tails are cleared; the parameters stay as they are), and the machine then sleeps, running nothing, until a note-on in a pattern wakes it. It was a plain note cut before, which left effect tails ringing. A note off does not wake a killed machine.

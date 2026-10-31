@@ -7,7 +7,7 @@
 //   4. the chord's name from the notes, with the same naming the chord palette uses
 import { fft } from './spectrogram.js';
 import { detectOnsets } from './onsets.js';
-import { detect, PC } from '../seq/chords.js';
+import { detect, suggest, prefersFlats, PC, FLAT_PC } from '../seq/chords.js';
 
 const LOW = 36, HIGH = 96;   // MIDI C2 to C7: the notes looked for
 const HARMONICS = 6;
@@ -87,13 +87,16 @@ const stName = st => `${PC[((st % 12) + 12) % 12]}${Math.floor(st / 12) - 1}`;  
 export const midiName = midi => stName(midi);
 
 // The chord a set of MIDI notes makes: its name, or the note names when the palette has none for them.
-export function chordName(midis) {
-  if (!midis.length) return '';
-  const st = midis.map(m => m - 12);   // the palette counts C-4 as 48
-  const d = detect(st);
-  if (d) return d.name;
-  return midis.length === 1 ? PC[midis[0] % 12] : midis.map(m => PC[m % 12]).join(' ');
+// The name of a chord, and what else it might be: { name, exact, alts }. With no exact match the best fit is given, with the notes that
+// do not belong to it written as added or altered ones; flats = spell the notes with flats (b) instead of sharps.
+export function chordInfo(midis, flats = false) {
+  if (!midis.length) return { name: '', exact: true, alts: [] };
+  const names = flats ? FLAT_PC : PC;
+  if (midis.length === 1) return { name: names[midis[0] % 12], exact: true, alts: [] };
+  const found = suggest(midis.map(m => m - 12), { flats });   // the palette counts C-4 as 48
+  return found ?? { name: midis.map(m => names[m % 12]).join(' '), exact: false, alts: [] };
 }
+export const chordName = (midis, flats = false) => chordInfo(midis, flats).name;
 
 // Segments of x between frames from and to: [{ frame0, frame1 }]. split: 'onsets', or a number of beats at `bpm`.
 export function segmentsOf(data, right, rate, { from, to, split = 'onsets', bpm = 120, sensitivity = 0.5 } = {}) {
@@ -129,9 +132,12 @@ export function scanChords(data, right, rate, opts = {}) {
     const found = notesIn(mono, rate, start, len, { maxNotes, threshold });
     if (!found.length) continue;
     const notes = found.map(f => f.midi);
-    segments.push({ frame0: s.frame0, frame1: s.frame1, notes, strengths: found.map(f => f.strength), name: chordName(notes) });
+    segments.push({ frame0: s.frame0, frame1: s.frame1, notes, strengths: found.map(f => f.strength) });
   }
-  return { segments };
+  // the whole recording decides between sharps and flats, so the names agree with each other
+  const flats = prefersFlats(segments.flatMap(g => g.notes));
+  for (const g of segments) Object.assign(g, chordInfo(g.notes, flats));
+  return { segments, flats };
 }
 
 // Cells for a pattern: where each segment goes in ticks (the first at tick 0), and the note tokens in the columns.

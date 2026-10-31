@@ -49,6 +49,57 @@ export function detect(notes) {
   return null;
 }
 
+// A likely name for any set of notes, even when no chord of the palette matches exactly. Every pitch class is tried as the root with
+// every quality, and the fit is scored: chord tones found count for, chord tones missing (a fifth may be left out, little is lost) and
+// extra notes (the incidentals) count against. The extras are written after the name as added or altered notes: Am7(add11), C7(b9).
+// Returns { name, exact, alts } where alts are other names that fit nearly as well, or null for fewer than two different notes.
+export const FLAT_PC = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
+const EXTRA = { 1: 'b9', 2: 'add9', 3: '#9', 5: 'add11', 6: '#11', 8: 'b13', 9: 'add13', 10: 'b7', 11: 'maj7' };   // by semitones above the root
+const simple = QUALITIES.map(q => q.id);
+
+// True when the notes sit better in a flat key (F, Bb, Eb, Ab, Db, Gb or their minors) than in a sharp one: the names then use flats.
+export function prefersFlats(notes) {
+  const pcs = new Set(notes.map(n => ((n % 12) + 12) % 12));
+  const MAJOR = [0, 2, 4, 5, 7, 9, 11];
+  let best = -1, bestKey = 0;
+  for (let k = 0; k < 12; k++) {
+    const fit = MAJOR.filter(i => pcs.has((i + k) % 12)).length - 0.1 * (pcs.size - MAJOR.filter(i => pcs.has((i + k) % 12)).length) + (pcs.has(k) ? 0.2 : 0);   // C major wins ties, then the sharp keys
+    if (fit > best + 1e-9) { best = fit; bestKey = k; }
+  }
+  return [5, 10, 3, 8, 1, 6].includes(bestKey);
+}
+
+export function suggest(notes, { flats = false } = {}) {
+  const s = asc(notes), pcs = uniq(s.map(n => ((n % 12) + 12) % 12));
+  if (pcs.length < 2) return null;
+  const names = flats ? FLAT_PC : PC;
+  if (pcs.length === 2 && (pcs[1] - pcs[0] === 7 || pcs[1] - pcs[0] === 5)) return { name: `${names[pcs[1] - pcs[0] === 7 ? pcs[0] : pcs[1]]}5`, exact: true, alts: [] };   // a fifth: a power chord
+  const bass = pcs.includes(s[0] % 12) ? s[0] % 12 : pcs[0];
+  const fits = [];
+  for (const root of pcs) {
+    const have = new Set(pcs.map(p => (p - root + 12) % 12));
+    QUALITIES.forEach((q, qi) => {
+      const tones = new Set(q.iv.map(i => i % 12)), got = [...tones].filter(t => have.has(t)), missing = [...tones].filter(t => !have.has(t));
+      const extra = [...have].filter(t => !tones.has(t));
+      if (!tones.has(3) && !tones.has(4) && !tones.has(2) && !tones.has(5)) return;
+      if (got.length < Math.min(3, tones.size)) return;
+      // the third (or its replacement) must be there: a fifth or a seventh alone does not make a chord of this kind
+      const third = [3, 4, 2, 5].find(t => tones.has(t));
+      if (!have.has(third)) return;
+      const score = got.length * 3 - missing.reduce((t, m) => t + (m === 7 ? 0.5 : 2.5), 0) - extra.length * 1.2 + (root === bass ? 1 : 0) - qi * 0.02;
+      const parts = extra.map(t => EXTRA[t] ?? '').filter(Boolean), gone = missing.includes(7) ? ['no5'] : [];
+      const tail = [...parts, ...gone];
+      const name = `${names[root]}${q.label}${tail.length ? `(${tail.join(',')})` : ''}${root === bass ? '' : `/${names[bass]}`}`;
+      fits.push({ name, score, exact: !extra.length && !missing.length });
+    });
+  }
+  if (!fits.length) return null;
+  fits.sort((a, b) => b.score - a.score);
+  const top = fits[0], seen = new Set([top.name]), alts = [];
+  for (const f of fits.slice(1)) if (f.score >= top.score - 1.2 && !seen.has(f.name) && alts.length < 2) { seen.add(f.name); alts.push(f.name); }
+  return { name: top.name, exact: top.exact, alts };
+}
+
 // The chord tones stacked close together upward from a root note.
 const stack = (rootSt, ivs) => asc(ivs.map(i => rootSt + i));
 

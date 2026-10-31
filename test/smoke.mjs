@@ -9170,6 +9170,12 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   assert.deepEqual(g.segments.slice(0, 4).map(x => x.name), ['C', 'F', 'G', 'Am'], 'a grid of beats finds them too');
   assert.equal(chordName([60, 64, 67]), 'C');
   assert.equal(chordName([57, 60, 64]), 'Am');
+  // no exact chord: the best fit, the notes that do not belong written as added or altered ones, and flats when the key calls for them
+  assert.equal(chordName([60, 64, 67, 71, 74]), 'Cmaj7(add9)', 'extra notes (incidentals) are added to the best fit');
+  assert.equal(chordName([60, 64, 67, 70, 73]), 'C7(b9)');
+  assert.equal(chordName([46, 50, 53, 57], true), 'Bbmaj7', 'flats in a flat key');
+  assert.equal(chordName([46, 50, 53, 57]), 'A#maj7', 'sharps otherwise');
+  assert.equal(chordName([60, 67]), 'C5', 'a fifth is a power chord');
   const { rows, items } = patternFrom(r.segments, sr, { tps: 8, cols: 3, noteToken });
   assert.deepEqual(items.filter(i => i.tick === 0).map(i => i.token), ['C-3', 'E-3', 'G-3'], 'the first chord at tick 0, three of its four notes');
   assert.ok(items.some(i => i.token === '===' && i.tick > 0), 'notes are released');
