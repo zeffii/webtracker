@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 586 · 2026-10-31
+
+- **Fix: the page would not start with the mixer switched on**, and a project could fail to load ("Cannot access 'fitArrangement' before initialization"). The mixer was asked for the lane widths before any project existed. Opening the arrangement tab early is safe now as well.
+
 ## 585 · 2026-10-31
 
 - **The File menu and its submenus now open over everything**, including the exposed parameters panel in the graph editor, which used to draw on top of them.

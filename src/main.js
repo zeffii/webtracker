@@ -168,8 +168,9 @@ let shaderView = null, dspView = null, nsView = null;
 let sampleBrowser = null;
 let replaceTarget = null;   // the slot a Replace button was pressed on, while the file chooser is open   // the sample browser (made further down); leaving the Samples screen stops what it is playing
 let tabBefore = 'patterns', tabNow = 'patterns';   // where the Info close button goes back to
+let onArrange = () => {};   // set once the mixer and the arrangement fit exist: the tabs may open on the arrangement before then
 const tabs = createTabs({
-  onChange: id => { if (id !== 'samples') sampleBrowser?.stop(); if (id === 'dsp') dspView?.open(patcher?.instrument); if (id === 'nodeseq') nsView?.refresh(); if (id === 'arrange') { mixer.refresh(); fitArrangement(); } nsFlags(); if (id === 'shader') { shaderView?.load(); if (!vizOn) config.set('visualOn', true); } if (id !== tabNow) { tabBefore = tabNow; tabNow = id; } applyDock(id); keysRefresh(id); requestAnimationFrame(() => { fitArrangement(); syncFloat(); placeViz(); placeMeters(); }); },
+  onChange: id => { if (id !== 'samples') sampleBrowser?.stop(); if (id === 'dsp') dspView?.open(patcher?.instrument); if (id === 'nodeseq') nsView?.refresh(); if (id === 'arrange') onArrange(); nsFlags(); if (id === 'shader') { shaderView?.load(); if (!vizOn) config.set('visualOn', true); } if (id !== tabNow) { tabBefore = tabNow; tabNow = id; } applyDock(id); keysRefresh(id); requestAnimationFrame(() => { fitArrangement(); syncFloat(); placeViz(); placeMeters(); }); },
   tabs: [
     { id: 'patterns', key: 'F1', el: $('pane-patterns'), button: $('tab-patterns'), focus: $('view') },
     { id: 'samples', key: 'F2', el: $('pane-samples'), button: $('tab-samples'), focus: $('smp') },
@@ -670,6 +671,7 @@ const fitArrangement = () => {
   }
 };
 addEventListener('resize', fitArrangement);
+onArrange = () => { mixer.refresh(); fitArrangement(); };   // from here the arrangement tab refreshes the mixer
 if (globalThis.ResizeObserver) new ResizeObserver(() => fitArrangement()).observe($('footer'));
 config.onChange(k => { if (k === 'seqFit' || k === 'viewFit') fitArrangement(); });
 // A new font size changes the line height: fit again once the grid has been redrawn with it (otherwise rows are left over or missing).
