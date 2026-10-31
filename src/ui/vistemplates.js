@@ -510,4 +510,96 @@ void main(){
   gl_FragColor = vec4(col, 1.);
 }`,
   },
+  holeytorus: {
+    label: 'Holey torus: a perforated ring, tumbling and twisting',
+    source: `// Holey torus: a thin-walled ring with rows of round holes punched through it, tumbling, with the tube twisting as
+// the twist travels round the ring. Lanes hitting make it glow.
+// Numbers to expose in the Knobs panel: twist (how far the tube writhes), holes (hole size), speed (spin).
+
+const float PI = 3.14159265;
+const float RING = .62;       // radius of the ring
+const float TUBE = .26;       // radius of the tube
+const float WALL = .022;      // half the thickness of the wall
+const float ALONG = 18.;      // holes around the ring (even, so the staggered rows line up)
+const float ACROSS = 8.;      // holes around the tube
+
+float gTwist, gHoles, gSpin, gTime;
+
+mat2 rot(float a) { float c = cos(a), s = sin(a); return mat2(c, -s, s, c); }
+
+float scene(vec3 p) {
+  float around = atan(p.z, p.x);                  // angle around the ring
+  float radius = length(p.xz);
+  vec2 q = vec2(radius - RING, p.y);              // where we are in the tube's cross-section
+
+  // angle around the tube: one fixed half turn over the whole ring, a wave of twist running round it, and a slow spin
+  float a = atan(q.y, q.x) + around * 2. / ACROSS * 2. + gTwist * sin(2. * around + gTime * .8) + gSpin;
+
+  float shell = abs(length(q) - TUBE) - WALL;
+
+  // holes on a staggered grid over the surface; the cell is measured in real lengths on the surface
+  float u = around * ALONG / (2. * PI);
+  float v = a * ACROSS / (2. * PI);
+  u += .5 * mod(floor(v), 2.);
+  vec2 cell = vec2((fract(u) - .5) * 2. * PI * radius / ALONG, (fract(v) - .5) * 2. * PI * TUBE / ACROSS);
+  float hole = gHoles * PI * TUBE / ACROSS - length(cell);
+
+  return max(shell, hole);
+}
+
+vec3 normalAt(vec3 p) {
+  vec2 e = vec2(.002, -.002);
+  return normalize(e.xyy * scene(p + e.xyy) + e.yyx * scene(p + e.yyx) + e.yxy * scene(p + e.yxy) + e.xxx * scene(p + e.xxx));
+}
+
+void main() {
+  vec2 uv = (gl_FragCoord.xy - .5 * R) / min(R.x, R.y);
+  gTwist = kn("twist", .9, 0., 3.);
+  gHoles = kn("holes", .75, 0., .97);
+  gTime = T * kn("speed", 1., 0., 3.);
+  gSpin = gTime * .5 + HITS * .4;
+
+  vec3 ro = vec3(0., 0., 3.4);
+  vec3 rd = normalize(vec3(uv, -1.6));
+  mat2 tumbleA = rot(gTime * .37), tumbleB = rot(gTime * .23 + .6);
+
+  float t = 0.;
+  float found = 0.;
+  float glow = 0.;
+  vec3 p = ro;
+  for (int i = 0; i < 96; i++) {
+    p = ro + rd * t;
+    p.yz *= tumbleA;
+    p.xy *= tumbleB;
+    float d = scene(p);
+    glow += exp(-d * 40.) * .012;
+    if (d < .0015) { found = 1.; break; }
+    t += d * .6;                                  // short steps: the hole grid bends distances a little
+    if (t > 6.) break;
+  }
+
+  vec3 bg = C1 * (.10 + .08 * (1. - length(uv)));
+  vec3 col = bg + C2 * glow * (.35 + .9 * HITS);
+
+  if (found > .5) {
+    vec3 n = normalAt(p);
+    vec3 light = normalize(vec3(.6, .8, .5));
+    light.yz *= tumbleA;
+    light.xy *= tumbleB;
+    vec3 view = -rd;
+    view.yz *= tumbleA;
+    view.xy *= tumbleB;
+    float inner = step(length(vec2(length(p.xz) - RING, p.y)), TUBE);   // 1 on the inside wall of the tube
+    if (dot(n, view) < 0.) n = -n;
+    float diffuse = max(dot(n, light), 0.);
+    float rim = pow(1. - max(dot(n, view), 0.), 3.);
+    float spec = pow(max(dot(reflect(-light, n), view), 0.), 24.);
+    vec3 base = mix(C2, C1 * .7, inner * .7);
+    col = base * (.18 + .82 * diffuse) + C2 * rim * .6 + vec3(spec) * .5;
+    col = mix(col, bg, smoothstep(3., 5.5, t));   // fade with distance
+  }
+
+  gl_FragColor = vec4(col, 1.);
+}`,
+  },
 };

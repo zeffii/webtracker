@@ -8163,7 +8163,7 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   const { GUIDE } = await import('../src/ui/shaderguide.js');
   const { renderMarkdown } = await import('../src/ui/markdown.js');
   const ids = Object.keys(TEMPLATES);
-  for (const name of ['ripples', 'marble', 'truchet', 'sunburst', 'moire', 'lissajous', 'waves', 'rollall', 'rollstack']) assert.ok(ids.includes(name), `the ${name} template exists`);
+  for (const name of ['ripples', 'marble', 'truchet', 'sunburst', 'moire', 'lissajous', 'waves', 'rollall', 'rollstack', 'holeytorus']) assert.ok(ids.includes(name), `the ${name} template exists`);
   for (const [id, tp] of Object.entries(TEMPLATES)) {
     assert.ok(tp.label && /void\s+main\s*\(/.test(tp.source) && tp.source.includes('gl_FragColor'), `template ${id} is a whole main that sets the colour`);
     assert.ok(!/\buniform\b/.test(tp.source), `template ${id} does not redeclare the uniforms`);

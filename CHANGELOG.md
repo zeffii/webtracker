@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 566 · 2026-10-31
+
+- New shader template, **Holey torus**: a ray-marched thin-walled ring with staggered rows of round holes, tumbling on two axes; the tube has a half turn round the ring and a wave of twist travels round it, so the rows of holes writhe. It glows on lane hits and keeps to C1/C2. Three numbers to expose: `twist`, `holes` (size) and `speed`. A ray-marcher, so one of the heavier templates.
+
 ## 565 · 2026-10-31
 
 - New effect, **Pogue** (Effects, Modulation): a grubby multi-voice chorus. Up to eight voices read the sound back at delays that wander between `mindelay` and `maxdelay`, each at its own speed up to `rate`; `change` blends their smooth sines towards random targets, `resolution` is how many times a second they move (low values step) and `inertia` how slowly they glide. The wet sound goes through a high-pass and a low-pass (each with Q), `saturation` and `degrade` (bit depth, with `dither` as error feedback and `errormix` blending towards the rounding error), and is fed back to its own side (`feedback`) and the other (`xfeedback`). Stereo is mono, wide (each side its own voices) or spread (voices panned across); interpolation is none, linear or cubic; `pregain` and `postgain` in dB. About the cost of the plain chorus at its defaults.
