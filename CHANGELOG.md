@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 588 · 2026-10-31
+
+- **Fix: the 512-tick line was hidden** behind the cells' own backgrounds. It is now drawn over them, a thin accent-coloured rule above every 512th tick.
+
 ## 587 · 2026-10-31
 
 - **The mixer is restyled in the retroslate look**: small monospace type, lane names as small capitals (the cursor's lane in the accent colour), hairline slate borders, flat square buttons and a slimmer fader cap.
