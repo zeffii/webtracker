@@ -286,7 +286,7 @@ export class Sequencer {
       const note = lane.notes[k];
       if (note === EMPTY) continue;
       if (note === CUT) {
-        this.runtime.note(lane.noteTargets[k], lane.cut);
+        this.runtime.kill(lane.noteTargets[k]);   // ^^^ is a kill: a fade out, a reset, then the machine sleeps until its next note
         if (lane.targets.length === 0) lane.prev.fill(-1);
         else for (let j = 0; j < lane.noteCols; j++) if (lane.noteTargets[j] === lane.noteTargets[k]) lane.prev[j] = -1;
         continue;

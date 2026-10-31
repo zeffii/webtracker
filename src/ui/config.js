@@ -106,7 +106,7 @@ export const SCHEMA = [
   { key: 'exportBits', label: 'Export: WAV format', type: 'choice', options: ['16', '24', '32'], labels: { 16: '16-bit', 24: '24-bit', 32: '32-bit float (cannot clip)' }, def: '24' },
   { group: 'Arrangement', key: 'minimapOn', label: 'Pattern minimaps', hint: 'each cell of the arrangement shows a small picture of its pattern: notes as ticks across by pitch, parameters as grey cells at the right edge', type: 'bool', def: false },
   { key: 'minimapLengths', label: 'Minimaps: note lengths', hint: 'a thin line from each note to the next note, note off or note cut', type: 'bool', def: true },
-  { key: 'minimapCaps', label: 'Minimaps: note off and note cut', hint: 'cyan for ===, magenta for ^^^', type: 'bool', def: true },
+  { key: 'minimapCaps', label: 'Minimaps: note off and kill', hint: 'cyan for ===, magenta for ^^^ (a kill: fade out, reset, sleep until the next note)', type: 'bool', def: true },
   { key: 'minimapParams', label: 'Minimaps: parameters', hint: 'one narrow column each at the right edge, darker the higher the value', type: 'bool', def: true },
   { group: 'Visual', key: 'visualOn', label: 'Live picture', hint: 'a 300 x 300 picture in the corner (Ctrl+Alt+V, or the button in the status bar)', type: 'bool', def: false },
   { key: 'visualSkeleton', label: 'Picture: pattern skeleton', hint: 'draws every lane\'s pattern around the playhead as thin rows of ticks over the picture (pitch is height, velocity is strength), scrolling past a fixed line', type: 'bool', def: true },

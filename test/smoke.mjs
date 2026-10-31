@@ -2854,7 +2854,7 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     assert.deepEqual(buildColumns('lead', { ...def, noteColumns: undefined }, registry).map(c => c.label).slice(0, 3), ['Note', 'Vel', 'Smp']);
 
     const events = [];
-    const stub = { process() {}, note: (instrument, msg) => events.push(`${msg.type}${msg.note !== undefined ? ` ${msg.note}` : ''}${msg.type === 'noteOn' ? ` v${Math.round(msg.vel * 255)}` : ''}`) };
+    const stub = { process() {}, kill: () => events.push('kill'), note: (instrument, msg) => events.push(`${msg.type}${msg.note !== undefined ? ` ${msg.note}` : ''}${msg.type === 'noteOn' ? ` v${Math.round(msg.vel * 255)}` : ''}`) };
     const seq = new Sequencer({ sampleRate: sr, runtime: stub, params: registry.values, transport: new Int32Array(new SharedArrayBuffer(8)) });
     const song = song120([oneLane('lead', 'lead', ['C-4 FF E-4 80 G-4 40', '... .. ... .. ... ..', '=== .. ... .. ... ..', 'F-4 .. ... .. ... ..', '... .. === .. ... ..'].join('\n'), 8)]);
     seq.setSong(song);
@@ -2879,7 +2879,7 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     events.length = 0;
     seq.play();
     seq.process(out[0], out[1], 48000);
-    assert.deepEqual(events, ['noteOn 60 v255', 'noteOn 64 v255', 'noteCut'], 'a cut ends everything and the later off finds nothing to release');
+    assert.deepEqual(events, ['noteOn 60 v255', 'noteOn 64 v255', 'kill'], '^^^ is a kill: it ends everything and the later off finds nothing to release');
 
     // changing the number of note columns keeps every other column's cells
     const songBefore = { name: 'x', bpm: 120, ticksPerBeat: 4, length: 8, lanes: [oneLane('lead', 'lead', 'C-4 .. .. .... .... 70 50 40 4C9E', 8)] };
@@ -3118,6 +3118,19 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     const dup = pops.duplicateLane(p, 'top');
     const doubled = play(pops.projectData(p));
     assert.ok(peak(doubled) > 1.2 * peak(before), 'a copied lane plays too');
+    // a clone with its machine: its own instrument, to the right of the lane, with patterns and automation only when asked
+    {
+      const q = fresh(), lane = q.lanes.find(l => l.id === 'lead'), n0 = Object.keys(q.instruments).length;
+      const full = pops.cloneLaneWithMachine(q, 'lead');
+      assert.equal(Object.keys(q.instruments).length, n0 + 1, 'the machine is copied');
+      assert.notEqual(full.instrument, lane.instrument, 'the clone plays its own machine');
+      assert.notStrictEqual(q.instruments[full.instrument].graph, q.instruments[lane.instrument].graph, 'a deep copy, not the same graph');
+      assert.equal(q.lanes[q.lanes.indexOf(lane) + 1], full, 'placed right after the lane');
+      assert.equal(full.placements.length, lane.placements.length, 'with its patterns');
+      const bare = pops.cloneLaneWithMachine(q, 'lead', { patterns: false, curves: false });
+      assert.deepEqual([bare.placements.length, Object.keys(bare.patterns).length, bare.curves.length], [0, 0, 0], 'without patterns and automation the lane is empty');
+      assert.ok(peak(play(pops.projectData(q))) > 1.2 * peak(before), 'the cloned lane plays through its own machine');
+    }
     // the project file keeps the new order
     const file = parseProject(serializeProject({ ...p, samples: { pluck: { rate: sr, data: makePluck(sr) } } }));
     assert.deepEqual(Object.keys(file.instruments), Object.keys(p.instruments));
@@ -9676,4 +9689,28 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   console.log('ok: sunvox import');
 }
 
+
+// Kill (the ^^^ cell): the output fades out over about 120 ms, the machine is reset and then sleeps until the next note-on.
+{
+  const block = 128, desc = { nodes: [{ id: 'osc', type: 'osc' }, { id: 'out', type: 'out' }], connections: [['osc.out', 'out.in']] };
+  const registry = new ParamRegistry(), rt = new GraphRuntime({ sampleRate: sr, params: registry.values });
+  rt.load(compile(desc, { instrument: 'x', nodeTypes: NODE_TYPES, registry }));
+  const l = new Float32Array(block), r = new Float32Array(block), peakOf = () => Math.max(...l.map(Math.abs));
+  rt.note('x', { type: 'noteOn', note: 60, vel: 1 });
+  for (let i = 0; i < 40; i++) rt.process(l, r, block);
+  const before = peakOf();
+  assert.ok(before > 0.01, 'the machine sounds before the kill');
+  rt.kill('x');
+  rt.process(l, r, block);
+  assert.ok(peakOf() < before && peakOf() > 0, 'the first block after a kill is still sounding, a little quieter');
+  const blocks = Math.ceil(0.15 * sr / block);
+  for (let i = 0; i < blocks; i++) rt.process(l, r, block);
+  assert.ok(rt.killed.has('x'), 'after the fade the machine is killed (reset and asleep)');
+  assert.equal(peakOf(), 0, 'and it is silent');
+  rt.note('x', { type: 'noteOff', note: 60 });
+  assert.ok(rt.killed.has('x'), 'a note off does not wake it');
+  rt.note('x', { type: 'noteOn', note: 60, vel: 1 });
+  for (let i = 0; i < 40; i++) rt.process(l, r, block);
+  assert.ok(!rt.killed.has('x') && peakOf() > 0.01, 'a note-on wakes it and it sounds again');
+}
 console.log('smoke test passed');

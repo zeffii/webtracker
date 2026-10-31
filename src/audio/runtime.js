@@ -22,6 +22,8 @@ export class LagLine {
   }
 }
 
+const KILL_MS = 120;   // how long a kill (^^^) takes to fade the instrument out before the machine is reset
+
 export class GraphRuntime {
   instruments = new Map();
   delayComp = false;       // line the instruments up: the quicker ones are delayed to match the slowest (see latency.js)
@@ -32,6 +34,8 @@ export class GraphRuntime {
   onFault = null;          // called with an instrument id when it is rebuilt
   onEmit = null;           // called with (instrument id, node id, message, transfer list): what a node sends the page (the tap node's takes)
   onScope = null;          // called with (instrument id, node id, left, right): the last SCOPE_N samples a watched node put out
+  killed = new Set();      // instruments a kill (^^^) has faded out and reset: not run, and asleep until a note-on wakes them
+  dying = new Set();       // instruments whose kill fade has just finished: reset at the start of the next block
   cut = new Set();         // instruments the Stream Manager has switched off: not run, and deaf to notes, until Play (see worklet.js)
   prof = null;             // while the Stream Manager is open: id -> { ms, peak }, what each instrument cost since the last report
   scopes = new Map();      // watched nodes: key -> { instrument, node, l, r, at, since }
@@ -55,7 +59,7 @@ export class GraphRuntime {
 
   // Drops every instrument and switches to a new parameter block.
   reset(params) {
-    this.cut.clear();
+    this.cut.clear(); this.killed.clear(); this.dying.clear();
     this.maxDelay = null;
     this.params = params;
     this.instruments.clear();
@@ -207,6 +211,11 @@ export class GraphRuntime {
   note(instrument, msg) {
     const inst = this.instruments.get(instrument);
     if (!inst || this.cut.has(instrument)) return;
+    if (this.killed.has(instrument)) {   // a killed machine sleeps until a note-on: then it runs again, from its reset state
+      if (msg.type !== 'noteOn') return;
+      this.killed.delete(instrument);
+    }
+    if (inst.kill && msg.type === 'noteOn') inst.kill = undefined;   // a note arriving during the fade keeps the machine
     if (inst.arp === undefined) {   // an arp node takes the notes first and plays what it makes (see deliver)
       const id = this.graphs.get(instrument)?.nodes.find(n => NODE_TYPES[n.type]?.noteFilter)?.id;
       inst.arp = id !== undefined ? inst.byId.get(id)?.[0] ?? null : null;
@@ -298,6 +307,15 @@ export class GraphRuntime {
     return (this.order = order);
   }
 
+  // Kill (the ^^^ cell): the instrument's output fades out over KILL_MS, then the machine is reset (voices, delay lines and reverb
+  // tails all cleared; its parameters stay as they are) and it is not run at all until a note-on wakes it.
+  kill(id) {
+    const inst = this.instruments.get(id);
+    if (!inst || inst.kill || this.killed.has(id) || this.cut.has(id)) return;
+    const total = Math.max(1, Math.round(KILL_MS * this.sampleRate / 1000));
+    inst.kill = { left: total, total };
+  }
+
   setDelayComp(on) { this.delayComp = on === true; this.maxDelay = null; }
 
   // How many samples everything is held back by, with delay compensation on: the delay of the slowest instrument.
@@ -310,11 +328,12 @@ export class GraphRuntime {
   process(left, right, n) {
     left.fill(0, 0, n);
     right.fill(0, 0, n);
+    if (this.dying.size) { for (const id of this.dying) { this.rebuild(id); this.killed.add(id); } this.dying.clear(); }   // the fades that ended last block
     this.blockNo = (this.blockNo ?? 0) + 1;
     for (const id of this.runOrder()) {
       const inst = this.instruments.get(id);
       if (!inst) continue;
-      if (this.cut.has(id)) { this.onLane?.(id, inst.left, inst.right, n); continue; }   // switched off in the Stream Manager: it runs nothing, and its buffers hold silence
+      if (this.cut.has(id) || this.killed.has(id)) { this.onLane?.(id, inst.left, inst.right, n); continue; }   // switched off in the Stream Manager: it runs nothing, and its buffers hold silence
       const t0 = this.prof ? Date.now() : 0;
       for (const node of inst.pre) node.instance.process(node.inputs, node.outputs, n, this.params, node.slots);
       if (inst.sets.length) {
@@ -339,6 +358,12 @@ export class GraphRuntime {
         const to = this.params[inst.amp], from = inst.ampPrev;
         if (from !== 1 || to !== 1) for (let i = 0; i < n; i++) { const g = from + (to - from) * (i + 1) / n; inst.left[i] *= g; inst.right[i] *= g; }
         inst.ampPrev = to;
+      }
+      if (inst.kill) {   // a kill in progress: the output eases to nothing across the block
+        const k = inst.kill, from = k.left / k.total, to = Math.max(0, k.left - n) / k.total;
+        for (let i = 0; i < n; i++) { const g = from + (to - from) * (i + 1) / n; inst.left[i] *= g; inst.right[i] *= g; }
+        k.left -= n;
+        if (k.left <= 0) { inst.kill = undefined; this.dying.add(id); }
       }
       let sum = 0;
       for (let i = 0; i < n; i++) sum += inst.left[i] + inst.right[i];

@@ -1639,6 +1639,7 @@
           <button id="lane-left" disabled title="Move earlier">◀</button><button id="lane-right" disabled title="Move later">▶</button>
           <button id="lane-dup" disabled>Duplicate</button><button id="lane-remove" disabled title="Remove the lane (its instrument stays)">Remove</button><button id="lane-remove-all" disabled title="Remove the lane and the instrument it plays (if no other lane plays it)">Remove with machine</button>
         </div>
+        <div class="manage row"><button id="lane-clone" disabled title="Clone the lane together with a deep copy of its machine, placed to the right: the sound as it is now is kept, the original can go on changing">Clone with machine</button><label class="clone-opt" title="Copy the patterns and where they are placed"><input type="checkbox" id="clone-pat" checked> patterns</label><label class="clone-opt" title="Copy the automation curves"><input type="checkbox" id="clone-auto" checked> automation</label></div>
         <div class="manage row">
           <span class="help">Insert silence at the cursor row</span>
           <input id="ins-n" type="number" min="1" max="65536" value="128" style="width:4.5em" aria-label="Ticks of silence to insert" disabled>

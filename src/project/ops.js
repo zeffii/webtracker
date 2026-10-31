@@ -366,6 +366,31 @@ export function duplicateLane(project, id, length = project.song.length) {
   return copy;
 }
 
+// A clone of the lane together with a deep copy of its machine: the copy gets its own instrument (graph, presets, samples) and a lane
+// right after this one that plays it, so the sound as it is now is kept while the original goes on changing. The options say whether
+// the patterns (with their placements, mutes and offs) and the automation curves come along; without them the lane starts empty.
+export function cloneLaneWithMachine(project, id, { patterns = true, curves = true } = {}, length = project.song.length) {
+  notMaster(id, 'lane');
+  const lane = laneOf(project, id);
+  const instrument = duplicateInstrument(project, lane.instrument);
+  const copy = {
+    id: uniqueId(new Set(project.lanes.map(l => l.id)), id),
+    instrument,
+    columns: structuredClone(lane.columns),   // the page rebuilds them for the new machine when the project is rebuilt
+    patterns: patterns ? structuredClone(lane.patterns) : {},
+    placements: patterns ? structuredClone(lane.placements) : [],
+    mutes: patterns ? [...(lane.mutes ?? [])] : [],
+    offs: patterns ? [...(lane.offs ?? [])] : [],
+    silenced: false,
+    curves: curves ? structuredClone(lane.curves ?? []) : [],
+  };
+  copy.rows = flattenLane(copy, copy.columns, length);
+  copy.pages = buildPages(copy.rows, copy.columns);
+  writeMask(copy, length);
+  project.lanes.splice(project.lanes.indexOf(lane) + 1, 0, copy);
+  return copy;
+}
+
 // Lanes keep playing the instrument under its new name.
 export function renameInstrument(project, id, name) {
   notMaster(id, 'instrument');

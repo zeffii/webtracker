@@ -1312,6 +1312,12 @@ $('lane-rename').addEventListener('click', () => {
 $('lane-name').addEventListener('keydown', e => { if (e.key === 'Enter') $('lane-rename').click(); e.stopPropagation(); });
 $('lane-left').addEventListener('click', () => { const id = cursorLane(); if (id) reshape(() => { ops.moveLane(project, id, -1); }); });
 $('lane-right').addEventListener('click', () => { const id = cursorLane(); if (id) reshape(() => { ops.moveLane(project, id, 1); }); });
+$('lane-clone').addEventListener('click', () => {
+  const id = cursorLane();
+  if (!id) return;
+  const options = { patterns: $('clone-pat').checked, curves: $('clone-auto').checked };
+  reshape(() => { const copy = ops.cloneLaneWithMachine(project, id, options); return { lane: copy.id, instrument: copy.instrument, message: `Cloned ${id} with its machine: ${copy.id} plays ${copy.instrument}.` }; });
+});
 $('lane-dup').addEventListener('click', () => {
   const id = cursorLane();
   if (id) reshape(() => { const copy = ops.duplicateLane(project, id); return { lane: copy.id, message: `Copied to ${copy.id}.` }; });
@@ -2473,7 +2479,7 @@ $('start').addEventListener('click', async () => {
     navigator.storage?.persist?.();   // ask the browser not to clear the snapshots when it is short of space
     for (const id of ['start']) $(id).disabled = true;
     $('logo').classList.remove('idle'); $('logo').removeAttribute('title'); $('logo').removeAttribute('role'); $('logo').removeAttribute('tabindex');
-    for (const id of ['filemenu-btn', 'play', 'pause', 'panic', 'cut', 'rec-take', 'rec-source', 'add-inst', 'add-lane', 'add-lane-inst', 'inst-voices', 'inst-notecols', 'inst-up', 'inst-down', 'inst-dup', 'inst-remove', 'lane-name', 'lane-rename', 'lane-left', 'lane-right', 'lane-dup', 'lane-remove', 'lane-remove-all', 'length', 'ins-n', 'ins-go', 'bpm', 'swing', 'tpb', 'bar', 'preset-name', 'preset-save', 'preset-over', 'preset-rename', 'preset-remove', 'inst-export', 'inst-import', 'lib-load', 'lib-add', 'lib-save']) $(id).disabled = false;
+    for (const id of ['filemenu-btn', 'play', 'pause', 'panic', 'cut', 'rec-take', 'rec-source', 'add-inst', 'add-lane', 'add-lane-inst', 'inst-voices', 'inst-notecols', 'inst-up', 'inst-down', 'inst-dup', 'inst-remove', 'lane-name', 'lane-rename', 'lane-left', 'lane-right', 'lane-dup', 'lane-clone', 'lane-remove', 'lane-remove-all', 'length', 'ins-n', 'ins-go', 'bpm', 'swing', 'tpb', 'bar', 'preset-name', 'preset-save', 'preset-over', 'preset-rename', 'preset-remove', 'inst-export', 'inst-import', 'lib-load', 'lib-add', 'lib-save']) $(id).disabled = false;
     $('status').textContent =
       `Running at ${engine.ctx.sampleRate} Hz, base latency ${(engine.ctx.baseLatency * 1000).toFixed(1)} ms`;
     // Only the screen that is showing is drawn: a hidden one has nothing to measure or paint, and its work would only delay the one you are using.

@@ -2,6 +2,11 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 592 · 2026-10-31
+
+- **`^^^` is now a kill.** It fades the instrument's output out over 120 ms, then resets the machine (voices, delay lines and reverb tails are cleared; the parameters stay as they are), and the machine then sleeps, running nothing, until a note-on in a pattern wakes it. It was a plain note cut before, which left effect tails ringing. A note off does not wake a killed machine.
+- **Clone with machine** (the arrangement's side panel, under Duplicate). It copies the lane together with a deep copy of its instrument, placed to the right, so the sound as it is now is kept while the original goes on changing. The "patterns" and "automation" boxes decide whether the patterns (with their placements, mutes and offs) and the automation curves come along; with both off the new lane starts empty.
+
 ## 591 · 2026-10-31
 
 - **The flask button now also hides the Script view and the Dock toggle.** With it off (the default) the left rail shows only Patterns, Samples, Instruments, Arrangement, Node Sequencer and Info; with it on, Script, Shader and DSP come back together with the Dock toggle. Their shortcuts (Ctrl+Alt+S, G, I and D) work either way. Config's "Show the Script, Shader and DSP views" does the same.
