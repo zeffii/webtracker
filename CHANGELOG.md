@@ -2,6 +2,11 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 582 · 2026-10-31
+
+- **Hold Shift over a wire to see what it sends.** A small box beside the pointer lists the wire's last eight messages, newest first: when (tick), the value (with the note name when the wire goes to a note or pitch input), and the volume and length where there are any. Control, chord and weights wires are read by the target rather than sent, and the box says so. Messages are collected only while the Node Sequencer tab is open and playing.
+- The vocoder demo is now the tuned version from the project file (same instruments, a different chord set and stab pattern).
+
 ## 581 · 2026-10-31
 
 - **The Chord keyboard is in the bar under the graph.** Select a Chord tile and the bar shows its keyboard (click a key to hear it and add or take away that note, drag across keys to paint, drag the bars for volumes, arrows or wheel for octaves) beside its text, a Play chord button, and the parameters. The keyboard that grew over the tile when the pointer rested on it is gone, and with it the "Chord keyboard opens after resting" setting.

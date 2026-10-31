@@ -41,6 +41,8 @@ export function createNodeSeqEditor({ root, getSong, noteTargets = () => [], par
   const WIRE_DASH = { e: [], c: [3, 3], h: [7, 2.5], w: [1, 3] };
   const kindColor = (C, k) => (k === 'e' ? C.ev : k === 'h' ? C.hc : k === 'w' ? C.wc : C.ct);
   let active = new Set(), activeTo = new Set();   // the chord nodes a Phrase node is playing, and the wires they play along
+  let peek = null;   // the wire under the pointer while Shift is held: its last messages are drawn beside it
+  const wireLog = new Map();   // wire -> its last few messages { v, vel, len, tick, sub }, newest last
   let live = null, pulses = [], flash = new Map(), errors = new Map(), mon = [];   // what the audio thread has told us
   const curves = new WeakMap();   // each wire's last drawn curve, for hit testing and the lights (kept off the wire itself, which is saved)
   let W = 600, H = 400, dpr = 1, boxes = new Map(), lastDraw = 0;
@@ -246,7 +248,7 @@ export function createNodeSeqEditor({ root, getSong, noteTargets = () => [], par
     if (drag?.kind === 'marquee') { ctx.strokeStyle = C.hi; ctx.fillStyle = C.hi; ctx.globalAlpha = 0.15; const [x0, y0] = toWorld(drag.x0, drag.y0), [x1, y1] = toWorld(drag.x, drag.y); ctx.fillRect(Math.min(x0, x1), Math.min(y0, y1), Math.abs(x1 - x0), Math.abs(y1 - y0)); ctx.globalAlpha = 1; ctx.strokeRect(Math.min(x0, x1), Math.min(y0, y1), Math.abs(x1 - x0), Math.abs(y1 - y0)); }
     if (!drag && stretch) drawArrows(C, stretch);
     ctx.restore();
-    drawHint(C);
+    drawHint(C); drawPeek();
     for (const [id, t] of flash) if (now - t > 260) flash.delete(id);
   }
 
@@ -261,6 +263,25 @@ export function createNodeSeqEditor({ root, getSong, noteTargets = () => [], par
     const w = ctx.measureText(text).width + 12, [mx, my] = mouse, x = Math.min(mx + 12, W - w - 4), y = my + 16;
     ctx.fillStyle = '#23262b'; ctx.globalAlpha = 0.95; roundRect(x, y, w, 19, 3); ctx.fill();
     ctx.globalAlpha = 1; ctx.fillStyle = '#f1efe8'; ctx.fillText(text, x + 6, y + 13);
+    ctx.restore();
+  }
+  // Shift held over a wire: what it has sent lately, newest first. An event wire shows its messages; the others are read by the target, not sent.
+  function drawPeek() {
+    if (!peek || drag) return;
+    const a = portPos(peek.from, 'out'), kind = a?.k ?? 'e', subs = Math.max(1, graph()?.sub ?? 4), lines = [`${peek.from}  ->  ${peek.to}`];
+    if (kind !== 'e') lines.push(`a ${KIND_WORDS[kind]}: the target reads it, nothing is sent`);
+    else {
+      const log = wireLog.get(peek) ?? [], toNote = /\.(note|pitch)$/.test(peek.to);
+      if (!log.length) lines.push('no messages yet (they appear while it plays)');
+      for (const m of [...log].reverse()) {
+        const at = `t${(m.tick + m.sub / subs).toFixed(2)}`, val = Number.isFinite(m.v) ? `${Math.round(m.v * 100) / 100}${toNote && m.v >= 0 && m.v <= 127 ? ` ${midiName(Math.round(m.v))}` : ''}` : '-';
+        lines.push(`${at.padEnd(8)} value ${String(val).padEnd(9)}${m.vel > 0 ? ` vol ${Math.round(m.vel * 100) / 100}` : ''}${m.len > 0 ? ` len ${m.len}` : ''}`);
+      }
+    }
+    ctx.save(); ctx.font = '11px ui-monospace, Consolas, monospace';
+    const w = Math.max(...lines.map(l => ctx.measureText(l).width)) + 14, h = lines.length * 14 + 8, [mx, my] = mouse, x = Math.min(mx + 14, W - w - 4), y = Math.min(my + 18, H - h - 4);
+    ctx.fillStyle = '#23262b'; ctx.globalAlpha = 0.96; roundRect(x, y, w, h, 3); ctx.fill(); ctx.globalAlpha = 1;
+    lines.forEach((l, i) => { ctx.fillStyle = i === 0 ? '#9fb7e6' : '#f1efe8'; ctx.fillText(l, x + 7, y + 15 + i * 14); });
     ctx.restore();
   }
   const roundRect = (x, y, w, h, r) => { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); };
@@ -586,7 +607,11 @@ export function createNodeSeqEditor({ root, getSong, noteTargets = () => [], par
     }
   });
   const onStructureQuiet = () => { onStructure(); };   // positions are not in the engine's graph, but saving needs the project marked changed
-  canvas.addEventListener('mousemove', e => { if (drag) return; const [sx, sy] = pos(e), [wx, wy] = toWorld(sx, sy), p = hitPort(wx, wy); const was = hover?.id + hover?.name, hn = p ? null : hitNode(wx, wy); mouse = [sx, sy]; hover = p; hoverNode = hn?.id ?? null; const st = p || hn ? null : nearStretch(wx, wy); if (st?.wr !== stretch?.wr || st?.k !== stretch?.k) dirty = true; stretch = st; if (was !== p?.id + p?.name || hoverNode !== lastHoverNode) { lastHoverNode = hoverNode; dirty = true; } canvas.style.cursor = p ? 'crosshair' : overArrows(stretch, wx, wy) ? (stretch.vertical ? 'ew-resize' : 'ns-resize') : hitStep(hitNode(wx, wy) ?? { type: '' }, wx, wy) >= 0 ? 'pointer' : 'default'; });
+  const setPeek = wr => { if (wr !== peek) { peek = wr; dirty = true; } };
+  const shiftChanged = e => { if (e.key !== 'Shift') return; if (!e.shiftKey) setPeek(null); else if (mouse) { const [wx, wy] = toWorld(mouse[0], mouse[1]); setPeek(hitNode(wx, wy) ? null : hitWire(wx, wy)); } };   // Shift pressed or let go with the pointer resting on a wire
+  addEventListener('keydown', shiftChanged); addEventListener('keyup', shiftChanged);
+  canvas.addEventListener('mouseleave', () => setPeek(null));
+  canvas.addEventListener('mousemove', e => { if (drag) return; const [sx, sy] = pos(e), [wx, wy] = toWorld(sx, sy), p = hitPort(wx, wy); mouse = [sx, sy]; setPeek(e.shiftKey ? hitWire(wx, wy) : null); const was = hover?.id + hover?.name, hn = p ? null : hitNode(wx, wy); mouse = [sx, sy]; hover = p; hoverNode = hn?.id ?? null; const st = p || hn ? null : nearStretch(wx, wy); if (st?.wr !== stretch?.wr || st?.k !== stretch?.k) dirty = true; stretch = st; if (was !== p?.id + p?.name || hoverNode !== lastHoverNode) { lastHoverNode = hoverNode; dirty = true; } canvas.style.cursor = p ? 'crosshair' : overArrows(stretch, wx, wy) ? (stretch.vertical ? 'ew-resize' : 'ns-resize') : hitStep(hitNode(wx, wy) ?? { type: '' }, wx, wy) >= 0 ? 'pointer' : 'default'; });
   canvas.addEventListener('wheel', e => {   // the wheel zooms about the pointer; the middle button pans
     e.preventDefault();
     const [sx, sy] = pos(e), [wx, wy] = toWorld(sx, sy);
@@ -751,7 +776,7 @@ export function createNodeSeqEditor({ root, getSong, noteTargets = () => [], par
       side.append(el('h3', { textContent: 'Node Sequencer' }));
       const help = [
         'Nodes send events (squares) on ticks and subticks, and controls (dots) at signal rate; chords (diamonds) and note volumes (triangles) are pulled by the node they go into.',
-        'Drag from an output to an input. Drop a wire on empty space to add a node for it.',
+        'Drag from an output to an input. Drop a wire on empty space to add a node for it. Hold Shift over a wire to see the messages it sends.',
         'A, or a right-click, adds a node. Ctrl+D copies, Delete removes, 1 to 8 puts the selection in a group.',
         'It plays beside the pattern lanes, on the same clock. The pattern lane (G1 to G8) can start and stop groups.',
       ];
@@ -933,6 +958,12 @@ export function createNodeSeqEditor({ root, getSong, noteTargets = () => [], par
       const g = graph();
       for (const w of m.w) { pulses.push({ w, t: now }); }
       void g;
+      for (const x of m.m ?? []) {   // what went along each wire, kept eight deep
+        const wr = liveWires()[x.w]; if (!wr) continue;
+        const log = wireLog.get(wr) ?? wireLog.set(wr, []).get(wr);
+        log.push(x); if (log.length > 8) log.shift();
+      }
+      if (peek) dirty = true;
       // which nodes the wires lead to light up
       const evWires = liveWires();
       for (const w of m.w) { const wr = evWires[w]; if (wr) flash.set(wr.to.split('.')[0], now); }
@@ -952,7 +983,7 @@ export function createNodeSeqEditor({ root, getSong, noteTargets = () => [], par
     key,
     undo, redo, fit,
     // Called when the project changes or the tab is shown: the graph in the project is what to draw.
-    load() { sel.clear(); selWire = null; undoStack.length = 0; redoStack.length = 0; errors.clear(); live = null; pulses = []; mon = []; syncBar(); renderSide(); fit(); dirty = true; },
+    load() { wireLog.clear(); peek = null; sel.clear(); selWire = null; undoStack.length = 0; redoStack.length = 0; errors.clear(); live = null; pulses = []; mon = []; syncBar(); renderSide(); fit(); dirty = true; },
     refresh() { syncBar(); renderSide(); dirty = true; },
     stopped() { live = null; pulses = []; flash.clear(); dirty = true; syncBar(); },
     focus: () => canvas.focus(),

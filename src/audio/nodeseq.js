@@ -22,7 +22,7 @@ export class NodeSeq {
     this.on = new Array(MAX_GROUPS).fill(true); this.seen = new Array(MAX_GROUPS).fill(0);
     this.resolve = {}; this.queue = []; this.depth = 0; this.abs = -1;
     this.watch = false; this.record = false;   // whether the page wants activity, and notes to write into patterns
-    this.pulses = []; this.errors = new Map(); this.monLeft = 0;
+    this.pulses = []; this.msgs = []; this.errors = new Map(); this.monLeft = 0;   // pulses: the wires that fired; msgs: what went along them (for the page's Shift-over-a-wire peek)
     this.host = this.makeHost();
   }
 
@@ -123,7 +123,7 @@ export class NodeSeq {
     const list = rec.outs[out];
     if (!list || !this.on[rec.group]) return;
     for (const w of list) {
-      if (this.watch && this.pulses.length < 256) this.pulses.push(w.i);
+      if (this.watch && this.pulses.length < 256) { this.pulses.push(w.i); this.msgs.push({ w: w.i, v, vel, len, tick: this.info.tick, sub: this.info.subIdx }); }
       this.deliver(w.rec, w.port, v, vel, len);
     }
   }
@@ -224,7 +224,7 @@ export class NodeSeq {
 
   // Called after each block: the wires that carried an event, and (now and then) where everything is.
   flush(withState) {
-    if (this.pulses.length) { this.io.post({ type: 'nspulse', w: this.pulses }); this.pulses = []; }
+    if (this.pulses.length) { this.io.post({ type: 'nspulse', w: this.pulses, m: this.msgs }); this.pulses = []; this.msgs = []; }
     if (withState) {
       const nodes = {};
       for (const rec of this.list) { const v = rec.inst.view?.(); if (v) nodes[rec.id] = v; }
