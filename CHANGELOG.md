@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 578 · 2026-10-31
+
+- **Hear a chord in the Node Sequencer.** Click a key on a Chord tile's keyboard and that note sounds while the mouse is down (drag across keys to play along them, as you paint them). Double-click a Chord tile, or press "Play chord" in its panel, to hear the whole chord with its note volumes. It plays on the instrument the chord is wired to (the first note node downstream of it), else the first instrument.
+
 ## 577 · 2026-10-31
 
 - **A vocoder demo** (`?demo=vocoder`). Long chords are the carrier and short percussive stabs are the voice: a `pad` instrument plays Am9, Fmaj9, Cmaj9 and G9 (two bars each), a `talk` instrument plays comb-resonator stabs (a different resonance on every hit), and a `vox` instrument hears both through two sidechain nodes into a vocoder, so the chord only speaks when a stab opens it, in the colour of that stab. The notes come from the Node Sequencer: eight sparse bars, sixteen busy ones, eight sparse again. The master limiter is on in this project.

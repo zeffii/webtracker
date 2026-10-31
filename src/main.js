@@ -1733,6 +1733,7 @@ nsView = createNodeSeqEditor({
   onParam: (id, name, value) => { engine.nodeseqParam(id, name, value); scheduleCheck(); },
   onData: (id, data) => { engine.nodeseqData(id, data); scheduleCheck(); },
   onGroupLane: nsLane,
+  onHear: ({ target, note, vel = 1, on }) => { if (!started) return; if (on) engine.noteOn(target, note, vel); else engine.noteOff(target, note); },
 });
 globalThis.waxDebug = { nsView, engine, project: () => project };   // for the browser tests
 engine.onNodeseq = m => { if (m.type === 'nsnote') nsRecord(m); else nsView.activity(m); };
