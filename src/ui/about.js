@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['572', ['Chord tiles grow a keyboard on hover: click keys to play a chord in; the tile names the chord and marks stray notes']],
   ['571', ['The CPU readout is cleared each time Play starts']],
   ['570', ['A latency? button on the status bar switches latency compensation on and off']],
   ['569', ['CPU meter ignores the first second after Play (start-up cost, not playing cost)']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['565', ['New effect, Pogue (Effects, Modulation): a grubby multi-voice chorus with wandering voices, feedback, filters, saturation and bit degrade']],
   ['564', ['New machine Clang: struck metal from a thin cymbal-like plate to a big hollow barrel, with damping and thump']],
   ['563', ['Open a SunVox file (.sunvox): its notes and arrangement come in, a lane per module that plays notes, on plain synths']],
-  ['562', ['Shift and mouse wheel moves the pattern editor one row at a time']],
-                  ];
+                    ];

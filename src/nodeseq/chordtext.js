@@ -60,3 +60,70 @@ export function chordView(data, params) {
   const base = p.notes.map((_, i) => p.inline[i] ?? data?.weights?.[i] ?? 100);
   return { ...p, base, vels: voice(p.notes.length, base, { tilt: params?.tilt ?? 0, level: params?.level ?? 1 }) };
 }
+
+// ---- naming and editing the notes of a Chord node (the keyboard on a Chord tile uses these)
+
+// The chord shapes that are looked for, in the order they are preferred when two fit equally well: [name as the parser reads it, semitones above the root].
+const SHAPES = [
+  ['maj', [0, 4, 7]], ['min', [0, 3, 7]], ['7', [0, 4, 7, 10]], ['maj7', [0, 4, 7, 11]], ['min7', [0, 3, 7, 10]], ['sus4', [0, 5, 7]], ['sus2', [0, 2, 7]],
+  ['dim', [0, 3, 6]], ['aug', [0, 4, 8]], ['6', [0, 4, 7, 9]], ['min6', [0, 3, 7, 9]], ['m7b5', [0, 3, 6, 10]], ['dim7', [0, 3, 6, 9]],
+  ['9', [0, 4, 7, 10, 14]], ['min9', [0, 3, 7, 10, 14]], ['maj9', [0, 4, 7, 11, 14]],
+];
+const PC_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+export const midiName = m => `${PC_NAMES[((m % 12) + 12) % 12]}${Math.floor(m / 12) - 1}`;
+
+// The best chord for some notes (MIDI numbers): { name: 'A min7', stray: [the notes that are not part of it] }, or null when there are not
+// three notes that make a chord. A chord has to have all its own notes present; the most notes explained wins, then the simpler shape, then
+// the one that starts on the lowest note. Notes the chord does not use are "stray": they are listed after the name.
+export function identifyChord(notes) {
+  const list = [...new Set(notes)].sort((a, b) => a - b);
+  if (list.length < 3) return null;
+  const present = new Set(list.map(m => m % 12));
+  let best = null;
+  for (const [i, root] of list.map((m, k) => [k, m % 12])) {
+    for (const [s, [name, steps]] of SHAPES.entries()) {
+      const pcs = new Set(steps.map(x => (root + x) % 12));
+      if (![...pcs].every(pc => present.has(pc))) continue;
+      const used = list.filter(m => pcs.has(m % 12)).length;
+      if (used < 3) continue;
+      const score = used * 10 - s * 0.1 - i * 0.01;
+      if (!best || score > best.score) best = { score, name: `${PC_NAMES[root]} ${name}`, stray: list.filter(m => !pcs.has(m % 12)) };
+    }
+  }
+  return best ? { name: best.name, stray: best.stray } : null;
+}
+
+const NOTE_LIST = /^[A-Ga-g][#b]?-?\d(@\d+(\.\d+)?)?$|^\d{1,3}(@\d+(\.\d+)?)?$/;
+
+// What a Chord tile says about itself: a typed chord name as it is, else the chord the notes make with the stray notes after it, else just the
+// note names. { name, stray: [note names], strayMidi: [numbers], error } with the pieces apart so the editor can colour the stray ones.
+export function describeChord(data, params) {
+  const text = String(data?.text ?? '').trim(), cv = chordView(data, params);
+  if (cv.error) return { name: text, stray: [], error: cv.error };
+  if (!cv.notes.length) return { name: '', stray: [], error: null };
+  if (text && !text.split(/[\s,]+/).every(t => NOTE_LIST.test(t))) return { name: text, stray: [], error: null };   // a chord typed by name
+  const found = identifyChord(cv.notes);
+  if (found) return { name: found.name, stray: found.stray.map(midiName), strayMidi: found.stray, error: null };
+  return { name: cv.notes.map(midiName).join(' '), stray: [], error: null };
+}
+
+// The notes with one added or taken away: the new `data` for the node. The text becomes the plain list of notes, and the volumes (percent, lowest note
+// first) are kept with their notes; a new note comes in at full volume. `max` is how many notes the node can hold.
+export function editNote(data, params, midi, on) {
+  const cv = chordView(data, params), at = new Map(cv.notes.map((m, i) => [m, cv.base[i]]));
+  if (on) at.set(midi, at.get(midi) ?? 100); else at.delete(midi);
+  const notes = [...at.keys()].sort((a, b) => a - b);
+  return { ...(data ?? {}), text: notes.map(midiName).join(' '), weights: notes.map(m => at.get(m)) };
+}
+
+// The same with one note's volume set (percent).
+export function editVolume(data, params, midi, percent) {
+  const cv = chordView(data, params), at = new Map(cv.notes.map((m, i) => [m, cv.base[i]]));
+  if (!at.has(midi)) return data;
+  at.set(midi, Math.max(0, Math.min(100, Math.round(percent))));
+  const notes = [...at.keys()].sort((a, b) => a - b);
+  return { ...(data ?? {}), text: notes.map(midiName).join(' '), weights: notes.map(m => at.get(m)) };
+}
+
+// How many notes a Chord node holds (its `notes` setting): more than this are not played.
+export const noteLimit = params => Math.round(params?.notes ?? 6);

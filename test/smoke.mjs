@@ -8703,6 +8703,41 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     console.log('ok: clang');
   }
 
+  // the keyboard on a Chord tile: naming the notes, stray notes, editing notes and volumes, and where the keys are
+  {
+    const { identifyChord, describeChord, editNote, editVolume, chordView, noteLimit } = await import('../src/nodeseq/chordtext.js');
+    const keys = await import('../src/nodeseq/chordkeys.js');
+    assert.deepEqual(identifyChord([57, 60, 64, 67]), { name: 'A min7', stray: [] }, 'four notes make a chord and name it');
+    assert.deepEqual(identifyChord([57, 60, 64, 67, 66]), { name: 'A min7', stray: [66] }, 'a note that does not belong is stray');
+    assert.equal(identifyChord([60, 61, 70]), null, 'notes that make no chord have no name');
+    assert.equal(identifyChord([60, 64]), null, 'two notes are not a chord');
+    assert.deepEqual(describeChord({ text: 'A min7' }, {}), { name: 'A min7', stray: [], error: null }, 'a chord typed by name is shown as typed');
+    const d = describeChord({ text: 'A3 C4 E4 G4 F#4' }, { notes: 8 });
+    assert.equal(d.name, 'A min7'); assert.deepEqual(d.stray, ['F#4']);
+    assert.equal(describeChord({ text: 'C4 C#4 D4' }, {}).name, 'C4 C#4 D4', 'with no chord it is just the note names');
+    // editing: the name becomes the notes, volumes stay with their notes
+    let data = { text: 'C maj', weights: [100, 50, 80] };
+    const notes = chordView(data, {}).notes;
+    data = editNote(data, {}, 71, true);
+    const after = chordView(data, { notes: 8 });
+    assert.deepEqual(after.notes, [...notes, 71].sort((a, b) => a - b), 'a note is added');
+    assert.deepEqual(after.base.slice(0, 3), [100, 50, 80], 'the volumes stay with their notes');
+    assert.equal(after.base[3], 100, 'a new note is at full volume');
+    assert.deepEqual(chordView(editNote(data, { notes: 8 }, 71, false), {}).notes, notes, 'and taken away again');
+    assert.equal(chordView(editVolume(data, { notes: 8 }, notes[1], 35), { notes: 8 }).base[1], 35, 'a volume is set');
+    assert.equal(noteLimit({}), 6); assert.equal(noteLimit({ notes: 4 }), 4);
+    // geometry: a point on a key finds that key, a black key wins over the white one under it, arrows and bars are found
+    const rect = keys.panelRect({ x: 0, y: 0, w: 72, h: 46 }), lo = 48;
+    assert.deepEqual(keys.hit(rect, lo, [], rect.x + 17 + 5, rect.y + 34 + 50), { kind: 'key', note: 48 }, 'the first white key is C');
+    assert.deepEqual(keys.hit(rect, lo, [], rect.x + 17 + 13.5 * 0.7 + 13.5 * 0.62 * 1.5, rect.y + 34 + 10), { kind: 'key', note: 49 }, 'the black key above wins');
+    assert.equal(keys.hit(rect, lo, [60], rect.x + 17 + 7 * 13.5 + 6, rect.y + 34 + 54 + 8 + 20).kind, 'bar', 'a lit note has a volume bar under it');
+    assert.equal(keys.hit(rect, lo, [], rect.x + rect.w - 28 + 5, rect.y + 6 + 5).dir, 1, 'the right arrow');
+    assert.equal(keys.hit(rect, lo, [], rect.x - 5, rect.y), null, 'outside the panel is nothing');
+    assert.equal(keys.volumeAt({ y: 0, h: 34 }, 0), 100); assert.equal(keys.volumeAt({ y: 0, h: 34 }, 34), 0);
+    assert.equal(keys.shifted(48, 1), 60); assert.equal(keys.shifted(24, -1), 24, 'the octaves stay in range');
+    console.log('ok: chord keyboard');
+  }
+
   // declared latency: spectral and oversampled nodes say how late they are, and a graph adds the longest path up
   {
     const { graphLatency, nodeLatency } = await import('../src/audio/latency.js');
