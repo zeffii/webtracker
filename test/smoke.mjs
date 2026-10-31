@@ -4003,6 +4003,21 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
       assert.deepEqual([...new Set(ons(t.log).filter(e => e.instrument === 'pad' && e.at / 4 < 64).map(e => e.note))].sort((a, b) => a - b), [40, 52, 55, 59, 62, 71], 'the pad opens on Em7');
       assert.ok(first('stab') === 320 && first('arp') >= 448 && first('ping') >= 448 && first('dust') >= 448, 'the stab comes in at 320, the arp, ping and dust from 448 (the sections)');
     }
+    // the vocoder demo: a pad of long chords (the carrier) and short stabs (the voice) meet in a vocoder through two sidechain nodes
+    {
+      const g = await import('../src/nodeseq/graphops.js'), fs = await import('node:fs');
+      const wax = JSON.parse(fs.readFileSync(new URL('../src/project/demos/vocoder.wax', import.meta.url), 'utf8'));
+      const vox = wax.instruments.vox.graph.nodes, links = wax.instruments.vox.graph.connections;
+      assert.deepEqual(vox.filter(n => n.type === 'sidechain').map(n => n.source).sort(), ['pad', 'talk'], 'the vocoder instrument listens to the pad and to the stabs');
+      assert.ok(links.some(l => l[1] === 'voc.voice') && links.some(l => l[1] === 'voc.carrier'), 'the stabs go in as the voice, the chords as the carrier');
+      const demo = g.cleanGraph(g.ensureGraph({ nodeseq: wax.song.nodeseq }));
+      assert.equal(demo.nodes.length, wax.song.nodeseq.nodes.length, 'the demo graph is whole after cleaning');
+      const t = make(demo, { slots: {}, groupSlots: Array(8).fill(-1) }); t.run(512);
+      const pad = ons(t.log).filter(e => e.instrument === 'pad'), talk = ons(t.log).filter(e => e.instrument === 'talk');
+      assert.ok(pad.length >= 6 * 16 && talk.length > 40, 'chords and stabs both play');
+      const inBars = (a, b) => talk.filter(e => e.at / 4 >= a * 16 && e.at / 4 < b * 16).length;
+      assert.ok(inBars(8, 24) > 2 * inBars(0, 8), 'the stabs are busier in the middle sixteen bars');
+    }
     // subticks: a clock's sub output runs subs times a tick; a delay moves an event later by subticks
     {
       const t = make({ sub: 4, nodes: [{ id: 'c', type: 'clock' }, { id: 'd', type: 'delay', params: { subs: 3 } }, { id: 'n', type: 'note', data: { target: 'x' }, params: { pitch: 50 } }],

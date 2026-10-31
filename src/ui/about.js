@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['577', ['A vocoder demo (?demo=vocoder): long chords as the carrier, short percussive stabs as the voice']],
   ['576', ['A section node passes the clock\'s ticks on only between a start and an end tick; the node demo uses it']],
   ['575', ['The Shader and DSP buttons start hidden; a flask button in the status bar shows them']],
   ['574', ['Node Sequencer: Pattern, switch, pick, gate, counter, compare, flip, once, ratchet, latch and drunk nodes; a demo made of nodes (?demo=interstellar-nodes); straight wires between ports that line up']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['570', ['A latency? button on the status bar switches latency compensation on and off']],
   ['569', ['CPU meter ignores the first second after Play (start-up cost, not playing cost)']],
   ['568', ['Arrangement boxes drawn on whole pixels: no more thicker outlines in places']],
-  ['567', ['Top bar: a File menu replaces Open, New, Save, Export and Backups buttons']],
                     ];

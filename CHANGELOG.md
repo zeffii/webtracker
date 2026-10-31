@@ -2,6 +2,11 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 577 · 2026-10-31
+
+- **A vocoder demo** (`?demo=vocoder`). Long chords are the carrier and short percussive stabs are the voice: a `pad` instrument plays Am9, Fmaj9, Cmaj9 and G9 (two bars each), a `talk` instrument plays comb-resonator stabs (a different resonance on every hit), and a `vox` instrument hears both through two sidechain nodes into a vocoder, so the chord only speaks when a stab opens it, in the colour of that stab. The notes come from the Node Sequencer: eight sparse bars, sixteen busy ones, eight sparse again. The master limiter is on in this project.
+- The sidechain node hears an instrument after its output gain, so the dry pad and stabs stay faintly in the mix; the demo keeps them low and lifts the vocoder.
+
 ## 576 · 2026-10-31
 
 - **A section node.** The clock drives everything as before; a section node passes the events it is given only while the song is between its start and end (in ticks, or in bars). With "end inclusive" off the end tick itself is left out, so the next section can start on it. `start` and `end` fire on the first and last tick, `on` is a control that is 1 inside, and `pos` runs 0 to 1 across the section.
