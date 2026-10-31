@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 569 · 2026-10-31
+
+- The CPU meter ignores the first second after Play. Starting a song builds voices and fills buffers, which showed up as a false peak and late blocks.
+
 ## 568 · 2026-10-31
 
 - Arrangement: pattern boxes no longer get thicker outlines in places. The lane columns were 14 characters wide, which is a fractional number of pixels, so box edges landed between pixels and snapped unevenly. Column, header and tick-number widths are now whole device pixels (measured again when the font or the screen's pixel ratio changes), and the lane names in the header sit in boxes of the same width so they stay above their cells.

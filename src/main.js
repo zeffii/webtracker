@@ -2377,7 +2377,15 @@ $('start').addEventListener('click', async () => {
         el.textContent = `cpu ${Math.round(avg * 100)}%  peak ≥${Math.round(peak * 100)}%  late ${late}${drops}  ${h.latency.toFixed(0)} ms${heavy}`;
         el.className = performance.now() - lateAt < 5000 ? 'bad' : peak > 1 ? 'warn' : '';   // red only while blocks are running late
       };
-      engine.onLoad = d => { avg = avg ? avg * 0.7 + d.avg * 0.3 : d.avg; peak = Math.max(peak, d.peak); if (d.late) lateAt = performance.now(); late += d.late; show(); };
+      // The first second after Play is not counted: starting a song builds voices and fills buffers, which is a cost of starting, not of playing.
+      let wasPlaying = false, playSince = 0;
+      engine.onLoad = d => {
+        const playing = Atomics.load(engine.transport, 1) === 1;
+        if (playing && !wasPlaying) playSince = performance.now();
+        wasPlaying = playing;
+        if (playing && performance.now() - playSince < 1000) return;
+        avg = avg ? avg * 0.7 + d.avg * 0.3 : d.avg; peak = Math.max(peak, d.peak); if (d.late) lateAt = performance.now(); late += d.late; show();
+      };
       el.addEventListener('click', () => { peak = 0; late = 0; show(); });
       const copy = $('loadcopy');
       copy.addEventListener('click', async () => {

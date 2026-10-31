@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['569', ['CPU meter ignores the first second after Play (start-up cost, not playing cost)']],
   ['568', ['Arrangement boxes drawn on whole pixels: no more thicker outlines in places']],
   ['567', ['Top bar: a File menu replaces Open, New, Save, Export and Backups buttons']],
   ['566', ['New shader template, Holey torus: a perforated ring that tumbles while its tube twists, glowing on hits']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['562', ['Shift and mouse wheel moves the pattern editor one row at a time']],
   ['561', ['Pattern editor fills down to the status bar; scrolling it is lighter and a wheel notch moves further']],
   ['560', ['Stream Manager columns are fixed width, so they stop jumping as numbers and names change']],
-  ['559', ['Delay compensation moves the playhead to where the sound is; Snarl note off fixes']],
-            ];
+              ];
