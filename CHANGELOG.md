@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 571 · 2026-10-31
+
+- The CPU readout (average, peak, late) is cleared each time Play starts, so it only describes the run you are listening to.
+
 ## 570 · 2026-10-31
 
 - A **latency?** button on the status bar switches latency compensation on and off (the same setting as Config, Playing, Delay compensation). Its tooltip explains what it does.

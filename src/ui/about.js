@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['571', ['The CPU readout is cleared each time Play starts']],
   ['570', ['A latency? button on the status bar switches latency compensation on and off']],
   ['569', ['CPU meter ignores the first second after Play (start-up cost, not playing cost)']],
   ['568', ['Arrangement boxes drawn on whole pixels: no more thicker outlines in places']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['564', ['New machine Clang: struck metal from a thin cymbal-like plate to a big hollow barrel, with damping and thump']],
   ['563', ['Open a SunVox file (.sunvox): its notes and arrangement come in, a lane per module that plays notes, on plain synths']],
   ['562', ['Shift and mouse wheel moves the pattern editor one row at a time']],
-  ['561', ['Pattern editor fills down to the status bar; scrolling it is lighter and a wheel notch moves further']],
-                ];
+                  ];
