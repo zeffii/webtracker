@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 575 · 2026-10-31
+
+- The Shader and DSP buttons are hidden from the left rail by default. A flask button at the right of the status bar (next to Lim) shows and hides them (also in Config: "Show the Shader and DSP views"); their shortcuts, Ctrl+Alt+G and Ctrl+Alt+I, work either way.
+
 ## 574 · 2026-10-31
 
 - **New Node Sequencer nodes.** **Pattern** is a row of cells like a small pattern editor: each event steps one cell, a number is sent on, a dot is a rest (the rest port fires instead). Click a cell to change it (a dot, then 0 up to "max", then a dot again; Shift goes backwards), or write the list in the panel. **switch** sends an event out of one of four outputs (by a number at pick, or by the event's own value); **pick** lets one of four inputs through; **gate** is and / or / a-unless-b of two event streams; **counter** counts and wraps (and fires wrap); **compare** sends yes or no by a test against x; **flip** alternates between two outputs; **once** passes only the nth event; **ratchet** repeats an event; **latch** remembers a number and sends it again when asked; **drunk** is a random walk. (A merge node is not needed: any number of event wires can go into one input.)

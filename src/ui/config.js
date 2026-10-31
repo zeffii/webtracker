@@ -34,6 +34,7 @@ const MOVED = { splashStyle: 'Look', wireStraight: 'Graph', graphPullOut: 'Graph
 export const SCHEMA = [
   { group: 'Look', key: 'theme', label: 'Colour theme', type: 'choice', options: THEMES, def: 'system', legacy: ['webtracker.theme', v => v] },
   { key: 'splash', label: 'First screen', hint: 'only a "click to initialize" button at first, then the tracker (off: the tracker with its Start button)', type: 'bool', def: true },
+  { key: 'codeViews', label: 'Show the Shader and DSP views', hint: 'their buttons in the left rail (the flask button in the status bar switches this too; the shortcuts Ctrl+Alt+G and Ctrl+Alt+I work either way)', type: 'bool', def: false },
   { key: 'patternTint', label: 'Tint patterns by colour', hint: 'a faint patchwork behind each pattern in the pattern editor (Alt+T)', type: 'bool', def: false },
   { key: 'fontSize', label: 'Pattern editor font size', type: 'int', min: 8, max: 40, def: 13, legacy: ['patternFontSize', v => Number(v)] },
   { group: 'Playing', key: 'delayComp', label: 'Delay compensation', hint: 'lines up what is late: quicker paths inside a machine, and quicker machines, wait for the slowest (spectral and oversampled nodes), so everything lands together on the beat. The whole mix then comes out as late as the "chain" in the status bar; off, nothing is delayed', type: 'bool', def: true },
