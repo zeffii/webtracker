@@ -8651,6 +8651,37 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     console.log('ok: jawharp');
   }
 
+  // clang: a struck plate or barrel: sounds on a hit, stays finite and in range, damping shortens the ring, shape darkens it, thump adds low weight
+  {
+    const cl = NODE_TYPES.clang, cslots = cl.params.map((_, i) => i);
+    const strike = (set = {}, note = 60, secs = 3, offAt = null) => {
+      const node = cl.create({ sampleRate: sr, connected: [false] });
+      const values = cl.params.map(p => set[p.name] ?? p.def);
+      node.note({ type: 'noteOn', note, vel: 1 });
+      const out = []; let peak = 0;
+      for (let b = 0; b < (secs * sr) / block; b++) {
+        if (offAt !== null && b === Math.round((offAt * sr) / block)) node.note({ type: 'noteOff', note });
+        const L = new Float32Array(block), R = new Float32Array(block);
+        node.process([[new Float32Array(block)]], [[L, R]], block, values, cslots);
+        assert.ok(L.every(Number.isFinite) && R.every(Number.isFinite), 'clang stays finite');
+        for (const x of L) { peak = Math.max(peak, Math.abs(x)); out.push(x); }
+      }
+      return { out, peak };
+    };
+    const crms = (a, from, to) => Math.sqrt(a.slice(from, to).reduce((t, x) => t + x * x, 0) / (to - from));
+    const bright = a => { let hi = 0, lo = 0; for (let i = 1; i < 12000; i++) { const d = a[i + 1000] - a[i + 999]; hi += d * d; lo += a[i + 1000] * a[i + 1000]; } return hi / lo; };
+    const plate = strike({ shape: 0 }), barrel = strike({ shape: 1 });
+    assert.ok(crms(plate.out, 500, 5000) > 0.05 && plate.peak < 1, 'a hit sounds, within full scale');
+    assert.ok(bright(plate.out) > 1.5 * bright(barrel.out), 'the plate is brighter than the barrel');
+    assert.ok(crms(strike({ damping: 1 }).out, 48000, 50000) < 0.2 * crms(strike({ damping: 0 }).out, 48000, 50000), 'damping shortens the ringing');
+    assert.ok(crms(strike({ thump: 1, shape: 1 }).out, 200, 4000) > 1.1 * crms(strike({ thump: 0, shape: 1 }).out, 200, 4000), 'thump adds weight to the hit');
+    const damped = strike({ damping: 0 }, 60, 3, 0.5);
+    assert.ok(crms(damped.out, 96000, 98000) < 0.2 * crms(strike({ damping: 0 }).out, 96000, 98000), 'note off damps the ringing');
+    assert.ok(strike({ shape: 1, thump: 1, strike: 1, wash: 1, stretch: 1.6, damping: 0, width: 1 }, 96).peak < 1.2, 'extreme settings stay finite and in range');
+    assert.ok(strike({}, 24).out.every(Number.isFinite) && strike({ stretch: 0.6 }, 108).out.every(Number.isFinite), 'the extremes of pitch stay finite');
+    console.log('ok: clang');
+  }
+
   // declared latency: spectral and oversampled nodes say how late they are, and a graph adds the longest path up
   {
     const { graphLatency, nodeLatency } = await import('../src/audio/latency.js');

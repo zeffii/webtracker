@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 564 · 2026-10-31
+
+- New machine **Clang**: struck metal. The body rings through 28 resonances; `shape` morphs from a thin round plate (cymbal, ride: bright, uneven, long) to a large hollow barrel (low, dull, boomy). `damping` is the damping ratio of the ring, `highdamp` how much faster the highs die, `thump` a falling-pitch body push with a little saturation, `strike` the beater (soft mallet to hard stick), `position` where it is hit, `stretch` bell-like or pipe-like spacing, `wash` the cymbal sizzle, `width` stereo spread. Note off damps it like a hand on a cymbal. Instruments menu: Clang; node menu: Synths.
+
 ## 563 · 2026-10-31
 
 - **SunVox import.** Open a `.sunvox` file (Open, like a MOD) and its notes and arrangement replace the project: each module that plays notes gets a lane on a plain synth named after it, each SunVox pattern becomes a pattern on the lanes it plays, and every placement, clones included, sits where it was on the SunVox timeline. Tracks a module plays on become its note columns (up to eight); velocity comes across, a note off with no module stops whatever its track last played, and effects and controllers are left out. One SunVox line is one tick; at speed 6 that is four to the beat at the same BPM, and a speed that does not divide 24 keeps the tempo through the BPM instead. The parser is `src/project/sunvox.js`.

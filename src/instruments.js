@@ -806,6 +806,29 @@ export const synthKinds = {
       ],
     }),
   },
+  clang: {
+    label: 'Clang (struck plate or barrel)',
+    make: () => ({
+      graph: { nodes: [{ id: 'synth', type: 'clang' }, { id: 'poly', type: 'voices' }, { id: 'out', type: 'out', params: { gain: 0.5 } }], connections: [['synth.out', 'poly.in'], ['poly.out', 'out.in']], voices: 4 },
+      noteColumns: 2,
+      exposed: [
+        { node: 'synth', param: 'shape', label: 'Shp' },
+        { node: 'synth', param: 'damping', label: 'Dmp' },
+        { node: 'synth', param: 'thump', label: 'Thm' },
+        { node: 'synth', param: 'strike', label: 'Str' },
+      ],
+      commands: [
+        { id: 0x01, node: 'synth', param: 'shape' },
+        { id: 0x02, node: 'synth', param: 'damping' },
+        { id: 0x03, node: 'synth', param: 'thump' },
+        { id: 0x04, node: 'synth', param: 'strike' },
+        { id: 0x05, node: 'synth', param: 'highdamp' },
+        { id: 0x06, node: 'synth', param: 'position' },
+        { id: 0x07, node: 'synth', param: 'wash' },
+        { id: 0x08, node: 'synth', param: 'tune' },
+      ],
+    }),
+  },
   jawharp: {
     label: 'Jaw harp (plucked reed, mouth resonance)',
     make: () => ({

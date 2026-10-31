@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['564', ['New machine Clang: struck metal from a thin cymbal-like plate to a big hollow barrel, with damping and thump']],
   ['563', ['Open a SunVox file (.sunvox): its notes and arrangement come in, a lane per module that plays notes, on plain synths']],
   ['562', ['Shift and mouse wheel moves the pattern editor one row at a time']],
   ['561', ['Pattern editor fills down to the status bar; scrolling it is lighter and a wheel notch moves further']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['557', ['Delay compensation inside an instrument: where a quick path meets a slow one (dry sound and a spectral or oversampled branch), the quick one is delayed to match; setting Delay compensation, on by default']],
   ['556', ['Delay compensation, first step: spectral and oversampled nodes declare how late they are, and the status bar shows the slowest instrument as chain N ms']],
   ['555', ['New synth, Snarl: two resonant filters in a row (high-pass, then low-pass), ring mod, two envelopes and a modulation generator, for screaming leads and growling basses']],
-  ['554', ['New synth, Jaw harp: a plucked reed drones and the mouth picks out its harmonics; sweep the vowel for the wah and the tune']],
-      ];
+        ];

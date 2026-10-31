@@ -21,7 +21,7 @@ const TYPE_UNIT = {
   multitap: { time: 'ms' },
   prismacanyon: { time: 'ms', cutoff: 'Hz', bass: 'dB', treble: 'dB' },
   shiva: { length: 'ms', damp: '%' },
-  hall: { decay: 's' }, plate: { decay: 's' }, shimmer: { decay: 's', pitch: 'st' }, string: { decay: 's', release: 'ms' }, snarl: { vco2pitch: 'st', detune: 'ct', hpcut: 'Hz', lpcut: 'Hz', eg1delay: 'ms', eg1attack: 'ms', eg1release: 'ms', attack: 'ms', hold: 'ms', decay: 'ms', release: 'ms', mgrate: 'Hz', port: 'ms', tune: 'st' }, jawharp: { mouth: 'st', track: '%', focus: '', decay: 's', tune: 'st', release: 'ms' },
+  hall: { decay: 's' }, plate: { decay: 's' }, shimmer: { decay: 's', pitch: 'st' }, string: { decay: 's', release: 'ms' }, snarl: { vco2pitch: 'st', detune: 'ct', hpcut: 'Hz', lpcut: 'Hz', eg1delay: 'ms', eg1attack: 'ms', eg1release: 'ms', attack: 'ms', hold: 'ms', decay: 'ms', release: 'ms', mgrate: 'Hz', port: 'ms', tune: 'st' }, clang: { release: 'ms', tune: 'st', stretch: '' }, jawharp: { mouth: 'st', track: '%', focus: '', decay: 's', tune: 'st', release: 'ms' },
   env: {}, lfo: {},
   amp: { gain: '', bass: '', mid: '', treble: '', master: '', presence: '', depth: '', level: '' },
   distortion: { tone: 'Hz' },
