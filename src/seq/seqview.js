@@ -667,7 +667,7 @@ export function createSequenceView({ el, statusEl, undoEl = null, listEl, transp
         }
         return `<span class="${classes}"${dim ? ` style="${dim}"` : ''}>${layers}${isCur ? '<i class="cb"></i>' : ''}<span class="t">${inner}</span></span>`;
       });
-      lines.push(row(`<span class="sg">${playing && playTick >= t && playTick < t + CELL && !lineMode ? '>' : ' '}${num(t)}</span>${cells.join('')}`, r === nowRow ? ' now' : ''));
+      lines.push(row(`<span class="sg">${playing && playTick >= t && playTick < t + CELL && !lineMode ? '>' : ' '}${num(t)}</span>${cells.join('')}`, `${r === nowRow ? ' now' : ''}${t > 0 && t % 512 === 0 ? ' k512' : ''}`));   // a faint line over every 512th tick
     }
 
     // the rect is always rowCount rows tall, so the drag bar works even when the song has fewer rows

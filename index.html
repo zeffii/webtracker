@@ -90,7 +90,7 @@
     #smp .sl.on i { opacity: .95; background: var(--hi); }
 
     /* header: transport, song info, tab bar */
-    #header { position: sticky; top: 0; z-index: 1; background: var(--bg); border-bottom: 1px solid color-mix(in srgb, var(--fg) 16%, transparent); padding: .35rem .75rem; }
+    #header { position: sticky; top: 0; z-index: 25; background: var(--bg); border-bottom: 1px solid color-mix(in srgb, var(--fg) 16%, transparent); padding: .35rem .75rem; }
     #header .line { display: flex; flex-wrap: wrap; gap: .25rem .45rem; align-items: center; }
     #file-wrap { position: relative; }
     #about { background: var(--bg); color: var(--fg); border: 1px solid; max-width: 44rem; max-height: 80vh; padding: 1rem 1.25rem; font: 13px/1.5 system-ui, sans-serif; }
@@ -461,6 +461,7 @@
     #seq .sg { position: sticky; left: 0; z-index: 4; display: inline-block; width: var(--gw, auto); background: var(--panel); }   /* the tick numbers stay put when the lanes are scrolled sideways */
     #seq .pname { position: absolute; z-index: 5; pointer-events: none; white-space: pre; padding: 0 5px 0 4px; line-height: 18px; background: #0f1015; color: #ffffff; box-shadow: 0 1px 3px rgba(0,0,0,.4); }   /* the name of the pattern under the mouse or the caret */
     #seq .minimap { position: absolute; left: 0; top: 0; pointer-events: none; z-index: 1; }
+    #seq .r.k512 { box-shadow: inset 0 1px 0 color-mix(in srgb, var(--accent) 38%, transparent); }   /* a faint grey-blue rule over every 512th tick */
     #seq .r { height: 18px; white-space: pre; width: max-content; min-width: 100%; }   /* as wide as the lanes, so the sticky tick column has room to stay in view */
     #seq .cell.nr { width: var(--cwn, 7ch); }
     #seq-wrap[aria-pressed="true"] { background: var(--hi); color: var(--hi-fg); border-color: var(--hi); }

@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['585', ['Arrangement: a faint line over every 512th tick; the File menu opens over every panel']],
   ['584', ['Mixer: strips as wide as their lanes, the meter inside the fader, and a test button that turns the fader into a temporary test gain']],
   ['583', ['Arrangement: a Mixer under the lanes with a vertical fader, M, S and mix per lane, standing in for each instrument\'s Out node']],
   ['582', ['Node Sequencer: hold Shift over a wire to see its last messages (tick, value, note name, volume, length); the vocoder demo is the tuned version']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['578', ['Node Sequencer: click a key on a Chord tile to hear the note, double-click the tile (or Play chord) to hear the whole chord']],
   ['577', ['A vocoder demo (?demo=vocoder): long chords as the carrier, short percussive stabs as the voice']],
   ['576', ['A section node passes the clock\'s ticks on only between a start and an end tick; the node demo uses it']],
-  ['575', ['The Shader and DSP buttons start hidden; a flask button in the status bar shows them']],
                     ];

@@ -2,6 +2,11 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 585 · 2026-10-31
+
+- **The File menu and its submenus now open over everything**, including the exposed parameters panel in the graph editor, which used to draw on top of them.
+- **A faint line over every 512th tick** in the arrangement, in the accent colour at low strength, so long songs can be read in blocks.
+
 ## 584 · 2026-10-31
 
 - **The mixer strips are as wide as their lanes**, so each sits under its own pattern column and scrolls with them (the master lane's column is left blank).
