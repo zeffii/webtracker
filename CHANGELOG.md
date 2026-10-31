@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 565 · 2026-10-31
+
+- New effect, **Pogue** (Effects, Modulation): a grubby multi-voice chorus. Up to eight voices read the sound back at delays that wander between `mindelay` and `maxdelay`, each at its own speed up to `rate`; `change` blends their smooth sines towards random targets, `resolution` is how many times a second they move (low values step) and `inertia` how slowly they glide. The wet sound goes through a high-pass and a low-pass (each with Q), `saturation` and `degrade` (bit depth, with `dither` as error feedback and `errormix` blending towards the rounding error), and is fed back to its own side (`feedback`) and the other (`xfeedback`). Stereo is mono, wide (each side its own voices) or spread (voices panned across); interpolation is none, linear or cubic; `pregain` and `postgain` in dB. About the cost of the plain chorus at its defaults.
+
 ## 564 · 2026-10-31
 
 - New machine **Clang**: struck metal. The body rings through 28 resonances; `shape` morphs from a thin round plate (cymbal, ride: bright, uneven, long) to a large hollow barrel (low, dull, boomy). `damping` is the damping ratio of the ring, `highdamp` how much faster the highs die, `thump` a falling-pitch body push with a little saturation, `strike` the beater (soft mallet to hard stick), `position` where it is hit, `stretch` bell-like or pipe-like spacing, `wash` the cymbal sizzle, `width` stereo spread. Note off damps it like a hand on a cymbal. Instruments menu: Clang; node menu: Synths.

@@ -69,6 +69,11 @@ export const GLYPHS = {
     curve(ctx, cx, cy - h * 0.18, w, h * 0.5, t => Math.sin(t * Math.PI * 3));
     curve(ctx, cx, cy + h * 0.18, w, h * 0.5, t => Math.sin(t * Math.PI * 3 + 1.2));
   },
+  pogue: (ctx, cx, cy, w, h) => {   // three wobbly voices, the bottom one gone to steps
+    curve(ctx, cx, cy - h * 0.3, w, h * 0.3, t => Math.sin(t * Math.PI * 3), 24);
+    curve(ctx, cx, cy, w, h * 0.3, t => Math.sin(t * Math.PI * 3 + 1.4), 24);
+    curve(ctx, cx, cy + h * 0.3, w, h * 0.3, t => Math.round(3 * Math.sin(t * Math.PI * 3 + 2.6)) / 3, 24);
+  },
   convolver: (ctx, cx, cy, w, h) => {   // a spike and the tail it leaves
     const x = f => cx - w / 2 + f * w, y = f => cy + h / 2 - f * h;
     ctx.beginPath(); ctx.moveTo(x(0.08), y(0.1)); ctx.lineTo(x(0.08), y(0.95));

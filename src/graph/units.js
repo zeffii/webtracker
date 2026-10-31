@@ -11,6 +11,7 @@ const UNIT = {
 };
 const TYPE_UNIT = {
   chorus: { depth: 'ms', delay: 'ms' },
+  pogue: { pregain: 'dB', postgain: 'dB', mindelay: 'ms', maxdelay: 'ms', inertia: 'ms', lpcut: 'Hz', hpcut: 'Hz', resolution: 'Hz', change: '%', feedback: '', xfeedback: '', saturation: '%', degrade: '%', dither: '%', errormix: '%', lpq: '', hpq: '' },
   flanger: { depth: 'ms', delay: 'ms' },
   comb: { freq: 'Hz', spread: 'ct' },
   clap: { tone: 'Hz', spacing: 'ms', burstDecay: 'ms', tailDecay: 'ms', spread: '%', drive: '%' },
@@ -124,6 +125,7 @@ const NAMES = {
   hpss: { size: ['1024', '2048', '4096'] },
   snarl: { vco1wave: ['saw', 'triangle', 'pulse', 'noise'], vco1oct: ['32\'', '16\'', '8\'', '4\''], vco2wave: ['saw', 'square', 'pulse', 'ring'], vco2oct: ['32\'', '16\'', '8\'', '4\''], mgwave: ['triangle', 'saw', 'ramp', 'square', 'random'] },
   bodyblur: { size: ['1024', '2048', '4096'], quality: ['standard', 'eco'] },
+  pogue: { stereo: ['mono', 'wide', 'spread'], interp: ['none', 'linear', 'cubic'] },
   specdyn: { size: ['1024', '2048', '4096'] },
   xsynth: { size: ['1024', '2048', '4096'] },
 };

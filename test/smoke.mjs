@@ -1731,6 +1731,27 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   const quiet = stage('chorus', {})(new Float32Array(2000), new Float32Array(2000));
   assert.equal(peak(quiet[0]) + peak(quiet[1]), 0);
 
+  // pogue: mix 0 is the dry signal (gained by pregain), wide differs between sides and mono does not, silence stays
+  // silent, and everything turned up at once stays finite and bounded
+  { const pdry = stage('pogue', { mix: 0 })(noise, noise);
+    assert.ok(pdry[0].every((v, i) => v === noise[i]), 'pogue at mix 0 is the dry sound');
+    const boosted = stage('pogue', { mix: 0, pregain: 6.0206 })(noise, noise);
+    assert.ok(Math.abs(boosted[0][100] / noise[100] - 2) < 1e-3, 'pregain 6 dB doubles it');
+    const pwide = stage('pogue', { mix: 1 })(noise, noise);
+    assert.ok(pwide[0].every(Number.isFinite) && pwide[0].some((v, i) => Math.abs(v - noise[i]) > 0.01), 'pogue changes the sound');
+    assert.ok(pwide[0].some((v, i) => Math.abs(v - pwide[1][i]) > 0.01), 'wide: the sides differ');
+    const pmono = stage('pogue', { mix: 1, stereo: 0 })(noise, noise);
+    assert.ok(pmono[0].every((v, i) => Math.abs(v - pmono[1][i]) < 1e-6), 'mono: the sides match');
+    const pspread = stage('pogue', { mix: 1, stereo: 2, voices: 5 })(noise, noise);
+    assert.ok(pspread[0].some((v, i) => Math.abs(v - pspread[1][i]) > 0.01), 'spread: the voices are panned apart');
+    const psilent = stage('pogue', { degrade: 0.7, dither: 1, saturation: 1 })(new Float32Array(2000), new Float32Array(2000));
+    assert.equal(peak(psilent[0]) + peak(psilent[1]), 0, 'pogue keeps silence silent');
+    for (const interp of [0, 1, 2]) {
+      const wild = stage('pogue', { mix: 1, voices: 8, feedback: 0.95, xfeedback: -0.95, saturation: 1, degrade: 0.8, dither: 1, errormix: 0.5, resolution: 10, inertia: 0, change: 1, rate: 10, lpq: 8, hpq: 8, interp })(noise, noise);
+      assert.ok(wild[0].every(Number.isFinite) && peak(wild[0]) < 4, `pogue stays bounded (interp ${interp}, peak ${peak(wild[0])})`);
+    }
+  }
+
   // multi-tap: an impulse comes back at k * time, scaled by decay, panned along the sweep
   const impulse = new Float32Array(1600); impulse[0] = 1;
   const centre = stage('multitap', { time: 10, taps: 3, decay: 0.5, spread: 0, feedback: 0, mix: 1 })(impulse, impulse);

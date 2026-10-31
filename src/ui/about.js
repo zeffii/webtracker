@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['565', ['New effect, Pogue (Effects, Modulation): a grubby multi-voice chorus with wandering voices, feedback, filters, saturation and bit degrade']],
   ['564', ['New machine Clang: struck metal from a thin cymbal-like plate to a big hollow barrel, with damping and thump']],
   ['563', ['Open a SunVox file (.sunvox): its notes and arrangement come in, a lane per module that plays notes, on plain synths']],
   ['562', ['Shift and mouse wheel moves the pattern editor one row at a time']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['558', ['Delay compensation between instruments: quicker machines wait for the slowest, so heavy spectral nodes stay on the beat; one setting switches all of it off']],
   ['557', ['Delay compensation inside an instrument: where a quick path meets a slow one (dry sound and a spectral or oversampled branch), the quick one is delayed to match; setting Delay compensation, on by default']],
   ['556', ['Delay compensation, first step: spectral and oversampled nodes declare how late they are, and the status bar shows the slowest instrument as chain N ms']],
-  ['555', ['New synth, Snarl: two resonant filters in a row (high-pass, then low-pass), ring mod, two envelopes and a modulation generator, for screaming leads and growling basses']],
         ];

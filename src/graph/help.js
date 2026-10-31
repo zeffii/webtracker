@@ -225,6 +225,11 @@ export const PAGES = {
     best: ['Put it on a full mix or a drum loop with a bassline, then process the two outputs differently: compress and crush perc, add reverb to harm.', 'Turn the level of one output down to remove the drums from a loop, or the tones to leave only the hits.', 'Length is how long a note must be held to count as a tone; width is how broad a click must be to count as a hit. Sharp makes the split harder.'],
     limits: ['It works in frames, so it adds delay (bigger size, more delay). Sounds that are both, such as a tuned kick, are shared out between the outputs.'],
   },
+  pogue: {
+    summary: 'A grubby multi-voice chorus. Up to eight voices read the sound back at delays that wander between mindelay and maxdelay; the voices are filtered, saturated and bit-reduced, and fed back. Clean it is a lush, drifting chorus; pushed, it smears and grinds.',
+    best: ['For a wide, wobbly pad: 4 voices, delays 5 to 20 ms, change around 0.5, stereo wide.', 'For a broken tape feel: resolution down to 30 to 60, inertia around 15 ms, a little degrade and saturation.', 'Feedback with the low-pass down and some xfeedback gives a metallic, swirling ring; keep hpcut up so the bass stays clean.'],
+    limits: ['The delay is at most 50 ms, so it choruses and flanges but does not echo. Strong feedback with saturation off can ring; saturation keeps it in check.'],
+  },
   bodyblur: {
     summary: 'Smooths the body of a sound without touching its hits. The sound is split into held tones and attacks; the tones are blurred and rounded, the attacks pass straight through in time. A crushed pad turns silky while the snare keeps its snap.',
     best: ['Put it after a crusher or a gritty synth: smooth around 0.4, time 80 ms, and a little round, to take the crunch off the sustain while the hits stay sharp.', 'Turn time up to 300 ms or more for a sound that blooms; turn smooth up for a wash.', 'Use mix partly open to keep some of the original grit.'],
