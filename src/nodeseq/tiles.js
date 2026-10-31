@@ -78,6 +78,7 @@ export function tileLabel(n, live, chordCount = 0) {
     case 'set': return d.target ? String(d.target).split('.').pop().slice(0, 7) : '?';
     case 'delay': return `${p.subs ?? 2}`;
     case 'math': return `${p.mul !== undefined && p.mul !== 1 ? `×${p.mul} ` : ''}${p.add ? (p.add > 0 ? '+' : '') + p.add : ''}`.trim().slice(0, 7);
+    case 'section': return `${Math.round(p.start ?? 0)}-${Math.round(p.end ?? 64)}${p.unit >= 0.5 ? 'b' : ''}`;
     case 'every': return `÷${p.n ?? 4}`;
     case 'chance': return `${Math.round((p.p ?? 0.5) * 100)}%`;
     case 'run': return `G${Math.round(p.group ?? 2)}`;

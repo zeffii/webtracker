@@ -2,6 +2,11 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 576 · 2026-10-31
+
+- **A section node.** The clock drives everything as before; a section node passes the events it is given only while the song is between its start and end (in ticks, or in bars). With "end inclusive" off the end tick itself is left out, so the next section can start on it. `start` and `end` fire on the first and last tick, `on` is a control that is 1 inside, and `pos` runs 0 to 1 across the section.
+- The node demo now brings its voices in with section nodes (the stab from tick 320, the arp from 448, sparse stars to 448 and denser after, wood, ping and dust) instead of a pattern of section numbers and pick nodes.
+
 ## 575 · 2026-10-31
 
 - The Shader and DSP buttons are hidden from the left rail by default. A flask button at the right of the status bar (next to Lim) shows and hides them (also in Config: "Show the Shader and DSP views"); their shortcuts, Ctrl+Alt+G and Ctrl+Alt+I, work either way.

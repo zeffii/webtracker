@@ -3964,6 +3964,11 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
       // gate: and lets an event through only when the other stream fired in the same subtick
       t = play([{ id: 'g', type: 'gate', params: { mode: 0, window: 0 } }, { id: 'e', type: 'every', params: { n: 2 } }, note('n')], [{ from: 'c.tick', to: 'g.a' }, { from: 'c.tick', to: 'e.in' }, { from: 'e.out', to: 'g.b' }, { from: 'g.out', to: 'n.note' }], 6);
       assert.deepEqual([...new Set(ons(t.log).map(e => e.at / 2))], [0, 2, 4], 'gate and: ticks that the every node also passed');
+      // section: the clock's ticks pass only from start to end; the end tick is left out unless it is inclusive
+      t = play([{ id: 's', type: 'section', params: { start: 2, end: 5, inclusive: 0 } }, note('n'), note('b'), note('e')], [{ from: 'c.tick', to: 's.in' }, { from: 's.out', to: 'n.note' }, { from: 's.start', to: 'b.note' }, { from: 's.end', to: 'e.note' }], 8);
+      assert.deepEqual([ons(t.log).filter(e => e.instrument === 'n').map(e => e.at / 2), ons(t.log).filter(e => e.instrument === 'b').map(e => e.at / 2), ons(t.log).filter(e => e.instrument === 'e').map(e => e.at / 2)], [[2, 3, 4], [2], [4]], 'section 2 to 5: ticks 2, 3, 4; start fires on 2, end on 4');
+      t = play([{ id: 's', type: 'section', params: { start: 2, end: 5, inclusive: 1 } }, note('n')], [{ from: 'c.tick', to: 's.in' }, { from: 's.out', to: 'n.note' }], 8);
+      assert.deepEqual(ons(t.log).map(e => e.at / 2), [2, 3, 4, 5], 'inclusive: the end tick passes too');
       // ratchet repeats an event inside its tick
       t = play([{ id: 'r', type: 'ratchet', params: { count: 3, gap: 1 } }, note('n')], [{ from: 'c.bar', to: 'r.in' }, { from: 'r.out', to: 'n.note' }], 2);
       assert.deepEqual(ons(t.log).map(e => e.at), [0, 1, 2], 'ratchet: three notes a subtick apart');
@@ -3988,11 +3993,11 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
       assert.ok(bar('pad', 1).every(e => [50, 53, 57, 60].includes(e.note)), 'bar 1: D min7');
       assert.deepEqual([bar('bass', 0)[0].note, bar('bass', 1)[0].note, bar('bass', 2)[0].note], [33, 26, 31], 'the bass plays the roots two octaves down');
     }
-    // the interstellar demo made of nodes: the chords follow the pattern node, the sections bring the voices in at their ticks
+    // the interstellar demo made of nodes: the chords follow the pattern node, section nodes bring the voices in at their ticks
     {
       const g = await import('../src/nodeseq/graphops.js');
       const demo = g.cleanGraph(g.ensureGraph({ nodeseq: JSON.parse((await import('node:fs')).readFileSync(new URL('../src/project/demos/interstellar-nodes.wax', import.meta.url), 'utf8')).song.nodeseq }));
-      assert.ok(demo.nodes.length > 50 && demo.wires.length > 80, 'the demo graph is whole after cleaning');
+      assert.ok(demo.nodes.length > 50 && demo.wires.length > 70, 'the demo graph is whole after cleaning');
       const t = make(demo, { slots: {}, groupSlots: Array(8).fill(-1) }); t.run(1000);
       const first = inst => Math.min(...ons(t.log).filter(e => e.instrument === inst).map(e => e.at)) / 4;
       assert.deepEqual([...new Set(ons(t.log).filter(e => e.instrument === 'pad' && e.at / 4 < 64).map(e => e.note))].sort((a, b) => a - b), [40, 52, 55, 59, 62, 71], 'the pad opens on Em7');

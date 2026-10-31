@@ -5,6 +5,28 @@ const out = n => ({ n, k: 'e' });
 const par = (name, min, max, def, extra = {}) => ({ name, min, max, def, ...extra });
 
 export const LOGIC_TYPES = {
+  section: {
+    title: 'section', cat: 'time', hint: 'passes the events of the clock on only while the song is between start and end: a part of the song. Ticks, or bars; with "end inclusive" off the end tick itself is left out, so the next section can start on it. start and end are events too, on the first and the last tick; on is a control that is 1 inside; pos runs 0 to 1 across the section',
+    ins: [ev('in')], outs: [out('out'), out('start'), out('end'), { n: 'on', k: 'c' }, { n: 'pos', k: 'c' }],
+    params: [par('start', 0, 100000, 0, { int: true }), par('end', 0, 100000, 64, { int: true }), par('inclusive', 0, 1, 0, { int: true, labels: ['no', 'yes'] }), par('unit', 0, 1, 0, { int: true, labels: ['ticks', 'bars'] })],
+    create: cx => {
+      let was = false;
+      // the first and the last tick of the section, from the node's own parameters (in bars, a bar is barTicks ticks)
+      const span = () => { const k = Math.round(cx.p.unit) === 1 ? cx.info.barTicks : 1, e = Math.round(cx.p.end) * k; return { a: Math.round(cx.p.start) * k, z: cx.p.inclusive >= 0.5 ? e : e - 1 }; };
+      const inside = tick => { const { a, z } = span(); return tick >= a && tick <= z; };
+      return {
+        event(_p, v, vel) { if (inside(cx.info.tick)) cx.emit('out', v, vel); },
+        tick() {
+          const t = cx.info.tick, { a, z } = span(), now = t >= a && t <= z;
+          if (now && !was) cx.emit('start', t, -1);
+          if (now && t === z) cx.emit('end', t, -1);
+          was = now; cx.ctl('on', now ? 1 : 0); cx.ctl('pos', now ? (z === a ? 0 : (t - a) / (z - a)) : 0);
+        },
+        reset() { was = false; },
+        view: () => ({ v: was ? 1 : 0 }),
+      };
+    },
+  },
   switch: {
     title: 'switch', cat: 'logic', hint: 'sends each event out of one of four outputs. A number at pick chooses which (0 is the first); or, with "by" set to value, the event\'s own number chooses',
     ins: [ev('in'), ev('pick')], outs: [out('o1'), out('o2'), out('o3'), out('o4')],

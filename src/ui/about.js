@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['576', ['A section node passes the clock\'s ticks on only between a start and an end tick; the node demo uses it']],
   ['575', ['The Shader and DSP buttons start hidden; a flask button in the status bar shows them']],
   ['574', ['Node Sequencer: Pattern, switch, pick, gate, counter, compare, flip, once, ratchet, latch and drunk nodes; a demo made of nodes (?demo=interstellar-nodes); straight wires between ports that line up']],
   ['573', ['The Node Sequencer is a line drawing that runs top to bottom: one-line nodes, dim outlines, ports shaped by kind, a new rail icon']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['569', ['CPU meter ignores the first second after Play (start-up cost, not playing cost)']],
   ['568', ['Arrangement boxes drawn on whole pixels: no more thicker outlines in places']],
   ['567', ['Top bar: a File menu replaces Open, New, Save, Export and Backups buttons']],
-  ['566', ['New shader template, Holey torus: a perforated ring that tumbles while its tube twists, glowing on hits']],
                     ];
