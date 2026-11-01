@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 610 · 2026-11-01
+
+- **Pattern editor: nugget navigation is now the default.** Left and Right always move one character, crossing into the next cell, column and lane at the ends. Ctrl+Left/Right jump to the first character of the next or previous column. Ctrl+Shift+Left/Right jump to the next or previous lane. Up and Down keep the character. The older styles (whole cells, or one character with a held key jumping by column) are still in Config, "Left and Right move by"; if you ever set that option yourself, set it to the first choice to get the new behaviour.
+
 ## 609 · 2026-11-01
 
 - **File, Reload app.** Keeps a snapshot of the song, drops the browser's stored copies of the code (the service worker and the caches), reloads, and opens the snapshot again instead of the demo song. There is no "Leave site?" question for this one. For when a new build seems not to have arrived.

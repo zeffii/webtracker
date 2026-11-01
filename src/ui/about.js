@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['610', ['Pattern editor: Left/Right move one character by default; Ctrl jumps by column, Ctrl+Shift by lane']],
   ['609', ['File, Reload app: fresh code, same song. Fix: the DX panel columns now really sit side by side']],
   ['608', ['DX panel: the Voice tab in four columns (bank and algorithm, operators, envelope and output)']],
   ['607', ['DX panel: hairline sliders, underlined inputs, and lines that stop short of the operator names']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['603', ['DX panel: two columns (half the height), sharp drawings instead of blurry ones, no overlapping operators, and a colours button with four colour sets']],
   ['602', ['F3 from the pattern editor or the arrangement opens the graph of the lane you are in']],
   ['601', ['DX panel redesign: a bank of all 32 algorithms as thumbnails, named operators, per-operator envelope and wave strips, an output scope and spectrum, and a draggable envelope on the Voice tab']],
-  ['600', ['Fix: the listen node now sounds (it was silent, and stopped the audio engine while it was in a graph)']],
                     ];

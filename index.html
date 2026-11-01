@@ -1451,8 +1451,9 @@
           <dt>F9</dt><dd><b class="kw">follow</b> the song: the grid scrolls with the playing row (highlighted). Moving the caret to another row <b class="kw">pauses</b> the following; F9 follows again</dd>
           <dt>Ctrl+Up/Down</dt><dd><b class="kw">transpose</b> the notes in the selection by a semitone (Shift: an <b class="kw">octave</b>)</dd>
           <dt>Ctrl+, / Ctrl+.</dt><dd><b class="kw">lower / raise</b> every other value in the selection by one (Ctrl+&lt; / Ctrl+&gt;: a bigger step); commands keep their id</dd>
-          <dt>Left / Right</dt><dd>to the start of the previous / next column (Config: one character at a time instead; a held key jumps by column)</dd>
-          <dt>Ctrl+Left/Right</dt><dd>one character left or right inside the cell, to type into just that digit; after that plain Left/Right stay inside the cell (and Up/Down keep the position) until you step past its edge, which enters the next cell at its first character; Up and Down then move by the nugget step (Config, 1 row by default) on the same character</dd>
+          <dt>Left / Right</dt><dd>one <b class="kw">character</b> at a time (nugget navigation: Up and Down keep the character); it crosses into the next cell, column and lane at the ends. Config, Left and Right move by, has the older styles</dd>
+          <dt>Ctrl+Left/Right</dt><dd>to the first character of the next / previous <b class="kw">column</b></dd>
+          <dt>Ctrl+Shift+Left/Right</dt><dd>to the next / previous <b class="kw">lane</b></dd>
           <dt>Ctrl+Shift+H</dt><dd><b class="kw">hide</b> or show the empty columns of the lane the cursor is in (a column with no value at any row; the one under the cursor stays)</dd>
           <dt>Ctrl+Space</dt><dd>the same for every parameter column of this row (not notes, velocities or commands)</dd>
           <dt>Ctrl+Alt+H</dt><dd>the <b class="kw">machine help</b> window: what the cursor lane's columns and commands do (cc14 and the rest); click a command to type it into the Cmd cell. Right-click in the grid has it too</dd>

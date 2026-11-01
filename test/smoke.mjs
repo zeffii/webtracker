@@ -6623,6 +6623,33 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   console.log('ok: arrows move by whole cells');
 }
 
+// Nugget navigation (the default): Left/Right always one character; Ctrl by column; Ctrl+Shift by lane
+{
+  uiConfig.set('arrowStyle', 'nugget');
+  const registry = new ParamRegistry();
+  for (const [id, def] of Object.entries(instruments)) compile(def.graph, { instrument: id, nodeTypes: NODE_TYPES, registry });
+  const lanes = prepareSong(demoSong, instruments, registry);
+  let onKey;
+  const view = createTrackerView({ el: { addEventListener: (type, f) => { if (type === 'keydown') onKey = f; else if (type === 'wheel') onWheel = f; } }, statusEl: {}, transport: new Int32Array(new SharedArrayBuffer(8)), onToggle() {}, onBack() {} });
+  view.load({ lanes, song: demoSong, editor: createEditor(lanes, demoSong.length) });
+  const press = (key, times = 1, extra = {}) => { for (let i = 0; i < times; i++) onKey({ key, preventDefault() {}, ...extra }); };
+  view.goto(0, 12);
+  const c0 = view.col, l0 = view.lane;
+  press('ArrowRight'); press('ArrowRight');
+  assert.ok(view.col === c0 && view.lane === l0, 'plain Right stays inside the note cell for the first characters');
+  press('ArrowLeft', 2);
+  press('ArrowRight', 1, { ctrlKey: true });
+  assert.equal(view.col, c0 + 1, 'Ctrl+Right lands on the next column');
+  press('ArrowLeft', 1, { ctrlKey: true });
+  assert.equal(view.col, c0, 'Ctrl+Left goes back to the previous column');
+  press('ArrowRight', 1, { ctrlKey: true, shiftKey: true });
+  assert.equal(view.lane, l0 + 1, 'Ctrl+Shift+Right jumps to the next lane');
+  press('ArrowLeft', 1, { ctrlKey: true, shiftKey: true });
+  assert.equal(view.lane, l0, 'Ctrl+Shift+Left jumps back');
+  uiConfig.set('arrowStyle', 'char');
+  console.log('ok: nugget navigation');
+}
+
 // Squelch: the 303-style bassline voice, driven by real pattern rows (Acc and Sld count for their note only)
 {
   const def = synthKinds.squelch.make();

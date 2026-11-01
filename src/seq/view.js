@@ -55,6 +55,8 @@ export function createTrackerView({ showMenu = (e, items) => showContextMenu(e, 
   let octave = 3, message = '';
   let paused = false, lastAuto = null;   // following the song, and the row it last put the caret on
   let nugget = false;      // inside a cell: Left/Right step one character at a time until the next step would leave the cell
+  const nuggetAlways = () => config.get('arrowStyle') === 'nugget';   // the default: nugget navigation is always on
+  const inNugget = () => nugget || nuggetAlways();
   let lastStatus = '';
   let sel = null;          // { lane, tick, col }: the corner opposite the cursor, while a rectangle is selected
   let clipboard = null;    // rows of { token, cell } from the last copy
@@ -588,7 +590,7 @@ export function createTrackerView({ showMenu = (e, items) => showContextMenu(e, 
   // After typing a character: the next character, or the next row after the last one.
   const advance = () => {
     if (cur.ch + 1 < cellWidth()) cur.ch += 1;
-    else { if (!nugget) cur.ch = 0; moveRow(1); }   // nugget mode stays on this character, and stays in nugget mode
+    else { if (!inNugget()) cur.ch = 0; moveRow(1); }   // nugget mode stays on this character, and stays in nugget mode
   };
 
   // Returns true if the key was used.
@@ -607,7 +609,7 @@ export function createTrackerView({ showMenu = (e, items) => showContextMenu(e, 
         }
         if (write(next)) {
           if (preview && note !== null) startSound(k, note);   // before the cursor moves: the velocity is read from this row
-          if (!nugget) cur.ch = 0; moveRow(1);   // in nugget mode: the next row, same character, still nugget mode
+          if (!inNugget()) cur.ch = 0; moveRow(1);   // in nugget mode: the next row, same character, still nugget mode
         }
         return true;
       }
@@ -744,7 +746,13 @@ export function createTrackerView({ showMenu = (e, items) => showContextMenu(e, 
         return;
       }
       if (key === 'arrowup' || key === 'arrowdown') { transpose(true, key === 'arrowup' ? 1 : -1, e.shiftKey); e.preventDefault(); return; }
-      if (key === 'arrowleft' || key === 'arrowright') { moveChar(key === 'arrowright' ? 1 : -1); nugget = true; e.preventDefault(); return; }   // one character inside the cell
+      if (key === 'arrowleft' || key === 'arrowright') {
+        const d = key === 'arrowright' ? 1 : -1;
+        if (e.shiftKey) { if (!stopsAtEnd(d)) moveLane(d); }   // Ctrl+Shift: the next or previous lane
+        else if (nuggetAlways()) moveCell(d);                  // Ctrl: the first character of the next or previous column
+        else { moveChar(d); nugget = true; }                   // the older styles: one character inside the cell
+        e.preventDefault(); return;
+      }
       if (key === ',' || key === '.' || key === '<' || key === '>') { transpose(false, key === '.' || key === '>' ? 1 : -1, key === '<' || key === '>'); e.preventDefault(); return; }
       if (key === 'h' && e.shiftKey) {   // hide or show the empty columns of the lane the cursor is in
         const li = cur.lane, on = !compact.has(li);
@@ -833,10 +841,10 @@ export function createTrackerView({ showMenu = (e, items) => showContextMenu(e, 
     if (sel && k === 'Escape') { sel = null; message = ''; e.preventDefault(); return; }
     if (!['Shift', 'Control', 'Alt', 'Meta'].includes(k)) sel = null;
     switch (k) {
-      case 'ArrowUp': moveRow(nugget ? -config.get('nuggetStep') : -1); break;   // in nugget mode: by the nugget step, on the same character
-      case 'ArrowDown': moveRow(nugget ? config.get('nuggetStep') : 1); break;
-      case 'ArrowLeft': if (config.get('arrowStyle') === 'cell') { if (nugget) nuggetStep(-1); else moveCell(-1); } else if (e.repeat) moveColumn(-1); else moveChar(-1); break;
-      case 'ArrowRight': if (config.get('arrowStyle') === 'cell') { if (nugget) nuggetStep(1); else moveCell(1); } else if (e.repeat) moveColumn(1); else moveChar(1); break;
+      case 'ArrowUp': moveRow(inNugget() ? -config.get('nuggetStep') : -1); break;   // in nugget mode: by the nugget step, on the same character
+      case 'ArrowDown': moveRow(inNugget() ? config.get('nuggetStep') : 1); break;
+      case 'ArrowLeft': if (nuggetAlways()) moveChar(-1); else if (config.get('arrowStyle') === 'cell') { if (nugget) nuggetStep(-1); else moveCell(-1); } else if (e.repeat) moveColumn(-1); else moveChar(-1); break;
+      case 'ArrowRight': if (nuggetAlways()) moveChar(1); else if (config.get('arrowStyle') === 'cell') { if (nugget) nuggetStep(1); else moveCell(1); } else if (e.repeat) moveColumn(1); else moveChar(1); break;
       case 'Tab':
         if (solo) {
           soloStyle = soloStyle === 'window' ? 'hatch' : 'window';
