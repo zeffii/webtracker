@@ -926,6 +926,12 @@
     .dx-slider { display: flex; align-items: center; gap: .4rem; margin: 2px 0; }
     .dx-lab { width: 6.5rem; font-size: 11px; }
     .dx-slider input[type=range] { flex: 1; max-width: 220px; }
+    .dx-view input[type=range] { background: none; border: 0; height: 16px; cursor: pointer; }   /* a hairline and a small dot instead of a black bar */
+    .dx-view input[type=range]::-webkit-slider-runnable-track { height: 1px; background: color-mix(in srgb, currentColor 40%, transparent); }
+    .dx-view input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 9px; height: 9px; margin-top: -4px; border-radius: 50%; background: var(--dx-accent, hsl(35 80% 55%)); border: 0; }
+    .dx-view input[type=range]::-moz-range-track { height: 1px; background: color-mix(in srgb, currentColor 40%, transparent); }
+    .dx-view input[type=range]::-moz-range-thumb { width: 9px; height: 9px; border-radius: 50%; background: var(--dx-accent, hsl(35 80% 55%)); border: 0; }
+    .dx-view select, .dx-view input[type=text], .dx-view input:not([type]) { background: none; border: 0; border-bottom: 1px solid color-mix(in srgb, currentColor 30%, transparent); border-radius: 0; color: inherit; font: inherit; }
     .dx-val { width: 3rem; font-size: 11px; }
     .dx-name { font: inherit; width: 8.5em; text-transform: uppercase; }
     .dx-search { font: inherit; width: 7em; }

@@ -90,8 +90,9 @@ export function createDxView({ doc = document, bank, getVoice, setVoice, getPara
     const { pos, lines } = layoutAlgorithm(alg, LW, AH - TOP, 2 * R, 2 * R, 16);
     return { at: pos.map(p => ({ x: p.cx, y: p.top + TOP + R })), lines: lines.map(([x1, y1, x2, y2]) => [x1, y1 + TOP, x2, y2 + TOP]) };
   };
-  const text = (g, str, x, y, { size = 10, align = 'center', alpha = 1, colour } = {}) => {
+  const text = (g, str, x, y, { size = 10, align = 'center', alpha = 1, colour, knockout = false } = {}) => {
     g.font = `${size}px ui-monospace, Consolas, monospace`; g.textAlign = align; g.textBaseline = 'middle';
+    if (knockout) { const w = g.measureText(str).width; g.clearRect(x - w / 2 - 3, y - size / 2 - 1, w + 6, size + 2); }   // lines stop short of a label
     g.globalAlpha = alpha; g.fillStyle = colour; g.fillText(str, x, y); g.globalAlpha = 1;
   };
   const drawAlg = () => {
@@ -122,8 +123,8 @@ export function createDxView({ doc = document, bank, getVoice, setVoice, getPara
       if (on) { g.strokeStyle = pal.select; g.lineWidth = 1.5; g.beginPath(); g.arc(x, y, R + 3.5, 0, 2 * Math.PI); g.stroke(); }
       const ratio = p.mode ? `${Math.round(Math.pow(10, (p.fc & 3) + p.ff / 100))}Hz` : `x${ratioOf(p).toFixed(2).replace(/\.?0+$/, '')}`;
       text(g, String(k + 1), x, y, { size: 12, colour: c, alpha: silent ? 0.4 : 1 });
-      text(g, ratio, x, y - R - 7, { size: 9, colour: c, alpha: 0.55 });
-      text(g, names[k].slice(0, 10), x, y + R + 8, { size: 10, colour: c, alpha: on ? 1 : 0.6 });
+      text(g, ratio, x, y - R - 7, { size: 9, colour: c, alpha: 0.55, knockout: true });
+      text(g, names[k].slice(0, 10), x, y + R + 8, { size: 10, colour: c, alpha: on ? 1 : 0.6, knockout: true });
       text(g, 'M', x + R + 6, y - 6, { size: 9, align: 'left', colour: (mute >> k) & 1 ? pal.select : c, alpha: (mute >> k) & 1 ? 1 : 0.4 });
       text(g, 'S', x + R + 6, y + 7, { size: 9, align: 'left', colour: (solo >> k) & 1 ? pal.select : c, alpha: (solo >> k) & 1 ? 1 : 0.4 });
     }

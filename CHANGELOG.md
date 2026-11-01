@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 607 · 2026-11-01
+
+- **DX panel: the last frames go.** The feedback slider is a hairline with a small dot (it was a black bar), the name and other inputs are underlined text, and the lines of the algorithm picture stop short of the operator names instead of running through them.
+
 ## 606 · 2026-11-01
 
 - **DX panel: the two columns sit side by side,** and the drawings no longer have frames. The panel had been held to the width of the other panels, so the right-hand column dropped underneath, and the page's default frame and fill around every canvas were still showing. Both are gone.
