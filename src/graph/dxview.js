@@ -1,13 +1,33 @@
 import { ALGORITHMS, VOICES, unpackBank, packVoice, parseSyx, initVoice, blankOp, scaleOL, levelScaling, bankToSyx, voiceToSyx, DEFAULT_BANK } from '../audio/nodes/dx7.js';
-import { drawBank } from './dxbank.js';
+import { drawBank, layoutAlgorithm } from './dxbank.js';
 import { previewVoice, operatorNames, ratioOf, STAGES } from './dxpreview.js';
 
 // The DVIIloader's panel, in tabs: Voice (name, algorithm, feedback, the operators as boxes: click one to edit it,
 // M and S to mute and solo it), Operator (frequency, the four-point envelope you drag, levels and sensitivities),
 // Scaling (keyboard level scaling), LFO / Pitch (the LFO and the pitch envelope) and Bank (load, save, search,
 // move, compare). Every edit is written into the node's copy of the bank, which is sent to the engine at once.
-const W = 360, BW = 64, BH = 34;
-const ACCENT = 'hsl(35 85% 52%)', BANK_COLS = 8, BANK_CELL_H = 40, STRIP_H = 40;
+const W = 360, LW = 440, AH = 240, BW = 64, BH = 34;   // W: the right-hand canvases; LW x AH: the bank and the algorithm picture on the left
+const BANK_COLS = 8, BANK_CELL_H = 40, STRIP_H = 40;
+
+// Colour sets for the panel's drawings: carrier and modulator boxes, and the selection. A null modulator means "the text colour".
+const PALETTES = [
+  { name: 'amber', carrier: 'hsl(35 85% 52%)', mod: null, select: '#d03040' },
+  { name: 'slate', carrier: '#2f5fd0', mod: '#b0661d', select: '#d03040' },
+  { name: 'phosphor', carrier: '#3fbf6a', mod: '#6f8fa8', select: '#e8d44d' },
+  { name: 'ice', carrier: '#27a6c9', mod: '#9a7be0', select: '#f0647a' },
+];
+let pal = PALETTES[0];
+try { pal = PALETTES.find(p => p.name === localStorage.getItem('wax.dxPalette')) || pal; } catch { /* no storage: the default */ }
+
+// A canvas that draws crisply: its backing store has one pixel per screen pixel (the context is scaled so the
+// code still draws in the logical w x h), and it is shown at exactly that size instead of being stretched.
+const sharpCanvas = (doc, w, h) => {
+  const canvas = doc.createElement('canvas'), ratio = Math.max(1, globalThis.devicePixelRatio || 1);
+  canvas.width = Math.round(w * ratio); canvas.height = Math.round(h * ratio); canvas.className = 'dx';
+  if (canvas.style) { canvas.style.width = `${w}px`; canvas.style.height = `${h}px`; canvas.style.maxWidth = 'none'; }
+  canvas.getContext?.('2d')?.setTransform?.(ratio, 0, 0, ratio, 0, 0);
+  return canvas;
+};
 const NOTE = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 const noteName = n => `${NOTE[n % 12]}${Math.floor(n / 12) - 2}`;
 const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
@@ -59,42 +79,29 @@ export function createDxView({ doc = document, bank, getVoice, setVoice, getPara
   const toggle = (text, get, set) => { const b = button(text, () => set(!get())); return track(b, () => b.classList.toggle('on', !!get())); };
 
   // ---- the voice tab: algorithm picture ----
-  const algCanvas = el('canvas', { width: W, height: 200, className: 'dx' });
+  const algCanvas = sharpCanvas(doc, LW, AH);
   const actx = algCanvas.getContext('2d');
   let boxes = [];
+  // the shared layout of dxbank.js: no two operators overlap, whatever the algorithm
   const layout = alg => {
-    const layer = new Array(6).fill(0);
-    for (let k = 0; k < 6; k++) {   // senders have higher numbers than receivers
-      if (alg.carriers.includes(k)) continue;
-      layer[k] = 1 + Math.max(0, ...alg.mods.filter(m => m[1] === k).map(m => layer[m[0]]));
-    }
-    const top = Math.max(...layer), pos = new Array(6);
-    const byLayer = l => [...Array(6).keys()].filter(k => layer[k] === l);
-    const carriers = byLayer(0);
-    carriers.forEach((k, i) => { pos[k] = ((i + 0.5) / carriers.length) * (W - 20) + 10; });
-    for (let l = 1; l <= top; l++) {
-      const ks = byLayer(l);
-      for (const k of ks) { const t = alg.mods.filter(m => m[1] === k).map(m => pos[m[0]]); pos[k] = t.reduce((a, b) => a + b, 0) / t.length; }
-      ks.sort((a, b) => pos[a] - pos[b]);
-      for (let i = 1; i < ks.length; i++) if (pos[ks[i]] - pos[ks[i - 1]] < BW + 10) pos[ks[i]] = pos[ks[i - 1]] + BW + 10;
-      for (const k of ks) pos[k] = clamp(pos[k], BW / 2 + 4, W - BW / 2 - 4);
-    }
-    const gap = top ? (200 - 30 - BH) / top : 0;
-    return Array.from({ length: 6 }, (_, k) => ({ x: pos[k], y: 8 + (top - layer[k]) * gap }));
+    const { pos, lines } = layoutAlgorithm(alg, LW, AH, BW, BH, 18);
+    return { at: pos.map(p => ({ x: p.cx, y: p.top })), lines };
   };
   const drawAlg = () => {
     const v = voice(), alg = ALGORITHMS[v.alg], c = ink(algCanvas);
     const mute = Math.round(getParam('mute')), solo = Math.round(getParam('solo'));
-    actx.clearRect(0, 0, W, 200);
+    actx.clearRect(0, 0, LW, AH);
     actx.font = '10px ui-monospace, Consolas, monospace';
     actx.textBaseline = 'top';
-    const at = layout(alg), names = operatorNames(v);
+    const { at, lines } = layout(alg), names = operatorNames(v);
     boxes = at;
     actx.strokeStyle = c; actx.lineWidth = 1.5; actx.globalAlpha = 0.7;
-    for (const [to, from] of alg.mods) { actx.beginPath(); actx.moveTo(at[from].x, at[from].y + BH); actx.lineTo(at[to].x, at[to].y); actx.stroke(); }
+    actx.beginPath();
+    for (const [x1, y1, x2, y2] of lines) { actx.moveTo(x1 + 0.5, y1 + 0.5); actx.lineTo(x2 + 0.5, y2 + 0.5); }
+    actx.stroke();
     if (v.fb) {
       const [f, t] = alg.fb, a = at[f], b = at[t];
-      actx.globalAlpha = 0.95; actx.strokeStyle = 'hsl(35 85% 52%)'; actx.lineWidth = 2;
+      actx.globalAlpha = 0.95; actx.strokeStyle = pal.carrier; actx.lineWidth = 2;
       actx.beginPath(); actx.moveTo(a.x + BW / 2, a.y + BH / 2);
       actx.bezierCurveTo(a.x + BW / 2 + 22, a.y + BH / 2, b.x + BW / 2 + 22, b.y + 4, b.x + BW / 2, b.y + 4); actx.stroke();
     }
@@ -102,9 +109,9 @@ export function createDxView({ doc = document, bank, getVoice, setVoice, getPara
       const p = v.ops[k], { x, y } = at[k], carrier = alg.carriers.includes(k);
       const silent = ((mute >> k) & 1) || (solo && !((solo >> k) & 1));
       actx.globalAlpha = silent ? 0.4 : 1;
-      actx.fillStyle = carrier ? 'hsl(35 75% 52% / 0.35)' : 'rgba(128,128,128,0.2)';
-      actx.fillRect(x - BW / 2, y, BW, BH);
-      actx.strokeStyle = k === op ? '#d03040' : c; actx.lineWidth = k === op ? 2.5 : 1;
+      actx.fillStyle = 'rgba(128,128,128,0.16)'; actx.fillRect(x - BW / 2, y, BW, BH);
+      actx.fillStyle = carrier ? pal.carrier : pal.mod || c; actx.globalAlpha *= 0.28; actx.fillRect(x - BW / 2, y, BW, BH); actx.globalAlpha = silent ? 0.4 : 1;
+      actx.strokeStyle = k === op ? pal.select : carrier ? pal.carrier : pal.mod || c; actx.lineWidth = k === op ? 2.5 : 1.5;
       actx.strokeRect(x - BW / 2 + 0.5, y + 0.5, BW - 1, BH - 1);
       actx.fillStyle = c;
       const ratio = p.mode ? `${Math.round(Math.pow(10, (p.fc & 3) + p.ff / 100))}Hz` : `x${((p.fc === 0 ? 0.5 : p.fc) * (1 + p.ff / 100)).toFixed(2)}`;
@@ -114,13 +121,13 @@ export function createDxView({ doc = document, bank, getVoice, setVoice, getPara
       actx.font = '10px ui-monospace, Consolas, monospace';
       // M and S, under the box
       actx.globalAlpha = 1;
-      actx.fillStyle = (mute >> k) & 1 ? '#d03040' : c; actx.fillText('M', x - 16, y + BH + 2);
-      actx.fillStyle = (solo >> k) & 1 ? '#d03040' : c; actx.fillText('S', x + 8, y + BH + 2);
+      actx.fillStyle = (mute >> k) & 1 ? pal.select : c; actx.fillText('M', x - 16, y + BH + 2);
+      actx.fillStyle = (solo >> k) & 1 ? pal.select : c; actx.fillText('S', x + 8, y + BH + 2);
     }
     actx.globalAlpha = 1;
   };
   algCanvas.addEventListener('mousedown', e => {
-    const r = algCanvas.getBoundingClientRect(), s = r.width ? W / r.width : 1, x = (e.clientX - r.left) * s, y = (e.clientY - r.top) * s;
+    const r = algCanvas.getBoundingClientRect(), s = r.width ? LW / r.width : 1, x = (e.clientX - r.left) * s, y = (e.clientY - r.top) * s;
     boxes.forEach((b, k) => {
       if (Math.abs(x - b.x) <= BW / 2 && y >= b.y && y <= b.y + BH) { op = k; refreshAll(); }
       else if (y > b.y + BH && y < b.y + BH + 14 && Math.abs(x - (b.x - 12)) < 8) setParamValue('mute', Math.round(getParam('mute')) ^ (1 << k)), refreshAll();
@@ -129,16 +136,16 @@ export function createDxView({ doc = document, bank, getVoice, setVoice, getPara
   });
 
   // ---- the voice tab: the bank of algorithms, the operators' envelopes and waves, and the sum ----
-  const bankCanvas = el('canvas', { width: W, height: BANK_CELL_H * 4, className: 'dx' });
+  const bankCanvas = sharpCanvas(doc, LW, BANK_CELL_H * 4);
   const bankCtx = bankCanvas.getContext('2d');
-  const stripCanvas = el('canvas', { width: W, height: STRIP_H * 6, className: 'dx' });
+  const stripCanvas = sharpCanvas(doc, W, STRIP_H * 6);
   const stripCtx = stripCanvas.getContext('2d');
-  const outCanvas = el('canvas', { width: W, height: 70, className: 'dx' });
+  const outCanvas = sharpCanvas(doc, W, 70);
   const outCtx = outCanvas.getContext('2d');
-  const clickAt = (canvas, e) => { const r = canvas.getBoundingClientRect(), s = r.width ? W / r.width : 1; return { x: (e.clientX - r.left) * s, y: (e.clientY - r.top) * s }; };
+  const clickAt = (canvas, e, width = W) => { const r = canvas.getBoundingClientRect(), s = r.width ? width / r.width : 1; return { x: (e.clientX - r.left) * s, y: (e.clientY - r.top) * s }; };
   bankCanvas.addEventListener('mousedown', e => {
-    const { x, y } = clickAt(bankCanvas, e);
-    const i = Math.floor(y / BANK_CELL_H) * BANK_COLS + Math.floor(x / (W / BANK_COLS));
+    const { x, y } = clickAt(bankCanvas, e, LW);
+    const i = Math.floor(y / BANK_CELL_H) * BANK_COLS + Math.floor(x / (LW / BANK_COLS));
     if (i >= 0 && i < ALGORITHMS.length) edit(v => { v.alg = i; });
   });
   stripCanvas.addEventListener('mousedown', e => { op = clamp(Math.floor(clickAt(stripCanvas, e).y / STRIP_H), 0, 5); refreshAll(); });
@@ -154,7 +161,7 @@ export function createDxView({ doc = document, bank, getVoice, setVoice, getPara
     g.strokeStyle = colour; g.lineWidth = 1.5; g.beginPath();
     px.forEach((xx, i) => (i ? g.lineTo(xx, py[i]) : g.moveTo(xx, py[i])));
     g.stroke();
-    g.fillStyle = '#d03040'; g.fillRect(px[stage + 1] - 2.5, py[stage + 1] - 2.5, 5, 5);
+    g.fillStyle = pal.select; g.fillRect(px[stage + 1] - 2.5, py[stage + 1] - 2.5, 5, 5);
   };
   const miniWave = (g, buf, x, y, w, h, colour, count = 64) => {
     let peak = 1e-6;
@@ -166,14 +173,14 @@ export function createDxView({ doc = document, bank, getVoice, setVoice, getPara
   const drawVoiceTab = () => {
     if (tab !== 'voice') return;
     const v = voice(), alg = ALGORITHMS[v.alg], c = ink(stripCanvas), names = operatorNames(v), sound = previewVoice(v, stage);
-    drawBank(bankCtx, { width: W, cols: BANK_COLS, cellH: BANK_CELL_H, selected: v.alg, ink: c, accent: ACCENT });
+    drawBank(bankCtx, { width: LW, cols: BANK_COLS, cellH: BANK_CELL_H, selected: v.alg, ink: c, accent: pal.carrier, modulator: pal.mod || c, select: pal.select });
     const g = stripCtx;
     g.clearRect(0, 0, W, STRIP_H * 6);
     g.font = '9px ui-monospace, Consolas, monospace'; g.textBaseline = 'top';
     v.ops.forEach((p, k) => {
-      const y = k * STRIP_H, carrier = alg.carriers.includes(k), colour = carrier ? ACCENT : c;
+      const y = k * STRIP_H, carrier = alg.carriers.includes(k), colour = carrier ? pal.carrier : pal.mod || c;
       g.fillStyle = 'rgba(128,128,128,0.12)'; g.fillRect(1, y + 1, W - 2, STRIP_H - 2);
-      g.strokeStyle = k === op ? '#d03040' : c; g.globalAlpha = k === op ? 1 : 0.3; g.lineWidth = k === op ? 2 : 1;
+      g.strokeStyle = k === op ? pal.select : c; g.globalAlpha = k === op ? 1 : 0.3; g.lineWidth = k === op ? 2 : 1;
       g.strokeRect(1.5, y + 1.5, W - 3, STRIP_H - 3);
       g.globalAlpha = 1; g.fillStyle = c;
       g.fillText(`${k + 1} ${names[k]}`, 6, y + 6);
@@ -189,8 +196,8 @@ export function createDxView({ doc = document, bank, getVoice, setVoice, getPara
     o.font = '9px ui-monospace, Consolas, monospace'; o.textBaseline = 'top';
     o.fillStyle = 'rgba(128,128,128,0.12)'; o.fillRect(1, 1, W - 2, 68);
     o.fillStyle = c; o.globalAlpha = 0.6; o.fillText('output', 6, 4); o.fillText('spectrum', 186, 4); o.globalAlpha = 1;
-    miniWave(o, sound.mix, 6, 14, 168, 52, ACCENT);
-    o.fillStyle = ACCENT;
+    miniWave(o, sound.mix, 6, 14, 168, 52, pal.carrier);
+    o.fillStyle = pal.carrier;
     const bw = 168 / sound.spectrum.length;
     sound.spectrum.forEach((m, i) => { const h = Math.max(1, m * 48); o.fillRect(186 + i * bw, 66 - h, Math.max(1, bw - 1), h); });
   };
@@ -199,20 +206,28 @@ export function createDxView({ doc = document, bank, getVoice, setVoice, getPara
   nameInput.addEventListener('change', () => edit(v => { v.name = nameInput.value.toUpperCase().slice(0, 10); }));
   refreshers.push(() => { if (doc.activeElement !== nameInput) nameInput.value = voice().name; });
 
+  // two columns (they stack when the panel is narrow): the algorithms on the left, the operators' sound on the right
+  const leftColumn = el('div', { className: 'dx-col' }, bankCanvas,
+    slider('feedback', 0, 7, () => voice().fb, n => edit(v => { v.fb = n; })),
+    algCanvas,
+    el('div', { className: 'tag' }, 'click a thumbnail to pick the algorithm · click an operator or a strip to select it · M mute, S solo'));
+  const rightColumn = el('div', { className: 'dx-col' }, stripCanvas, outCanvas);
+  if (leftColumn.style) { leftColumn.style.width = `${LW}px`; rightColumn.style.width = `${W}px`; }
   const voiceTab = el('div', {},
     el('div', { className: 'prow' }, button('◀', () => setVoice(clamp(cur() - 1, 0, VOICES - 1))), nameInput, button('▶', () => setVoice(clamp(cur() + 1, 0, VOICES - 1))),
       button('init', () => edit(v => { Object.assign(v, initVoice({ name: v.name })); }), 'reset this voice to the DX7 init voice'),
-      button('randomise', () => edit(v => Object.assign(v, randomVoice(v.name))))),
-    bankCanvas,
-    slider('feedback', 0, 7, () => voice().fb, n => edit(v => { v.fb = n; })),
-    algCanvas,
-    el('div', { className: 'tag' }, 'click a thumbnail to pick the algorithm · click an operator or a strip to select it · M mute, S solo'),
-    stripCanvas, outCanvas);
+      button('randomise', () => edit(v => Object.assign(v, randomVoice(v.name)))),
+      button('colours', () => {
+        pal = PALETTES[(PALETTES.indexOf(pal) + 1) % PALETTES.length];
+        try { localStorage.setItem('wax.dxPalette', pal.name); } catch { /* no storage */ }
+        say(`DX panel colours: ${pal.name}.`); refreshAll();
+      }, 'cycle the colour set of the drawings')),
+    el('div', { className: 'dx-cols' }, leftColumn, rightColumn));
   refreshers.push(drawAlg, drawVoiceTab);
 
   // ---- an envelope you drag: four rates and four levels ----
   const envGraph = ({ get, set, yOf, levelAt, seconds, label, onGrab, W: EW = 340, H: EH = 118 }) => {
-    const canvas = el('canvas', { width: EW, height: EH, className: 'dx' });
+    const canvas = sharpCanvas(doc, EW, EH);
     const g = canvas.getContext('2d');
     const PAD = 14;
     let dragging = null;
@@ -236,12 +251,12 @@ export function createDxView({ doc = document, bank, getVoice, setVoice, getPara
       g.fillStyle = 'rgba(128,128,128,0.14)'; g.fillRect(0, 0, EW, EH);
       g.font = '9px ui-monospace, Consolas, monospace'; g.textBaseline = 'top';
       g.fillStyle = c; g.globalAlpha = 0.5; g.fillText(label, 6, 3); g.globalAlpha = 1;
-      g.strokeStyle = 'hsl(35 85% 52%)'; g.lineWidth = 2.5;
+      g.strokeStyle = pal.carrier; g.lineWidth = 2.5;
       g.beginPath(); g.moveTo(...geo.start);
       for (let i = 0; i < 3; i++) g.lineTo(...geo.pts[i]);
       g.lineTo(geo.sustainEnd, geo.pts[2][1]); g.lineTo(...geo.pts[3]); g.stroke();
       geo.pts.forEach(([x, y], i) => {
-        g.fillStyle = '#d03040'; g.beginPath(); g.arc(x, y, i === dragging?.i ? 6 : 4.5, 0, Math.PI * 2); g.fill();
+        g.fillStyle = pal.select; g.beginPath(); g.arc(x, y, i === dragging?.i ? 6 : 4.5, 0, Math.PI * 2); g.fill();
         g.fillStyle = c; g.fillText(`R${i + 1} ${geo.r[i]}`, clamp(x - 22, 2, EW - 46), EH - 11);
         g.fillText(`L${i + 1} ${geo.l[i]}`, clamp(x + 6, 2, EW - 40), y + (y > 20 ? -12 : 4));
       });
@@ -287,7 +302,7 @@ export function createDxView({ doc = document, bank, getVoice, setVoice, getPara
     yOf: lv => scaleOL(lv) / 127, levelAt: nearestLevel,
     seconds: (i, a, b, r) => (Math.abs(scaleOL(b) - scaleOL(a)) / stepsPerSecond(r)) / (b > a && i === 0 ? 3 : 1),
   });
-  voiceTab.insertBefore(voiceEnv, outCanvas);
+  rightColumn.insertBefore(voiceEnv, outCanvas);
   const pitchEnv = envGraph({
     label: 'pitch envelope: 50 is no change, ±4 octaves',
     W: 360, H: 100,
@@ -319,7 +334,7 @@ export function createDxView({ doc = document, bank, getVoice, setVoice, getPara
     slider('amp mod sens', 0, 3, () => opv().ams, n => setOp('ams', n)));
 
   // ---- keyboard level scaling ----
-  const scaleCanvas = el('canvas', { width: W, height: 90, className: 'dx' });
+  const scaleCanvas = sharpCanvas(doc, W, 90);
   const sctx = scaleCanvas.getContext('2d');
   const N0 = 21, N1 = 120;
   const drawScale = () => {
@@ -329,10 +344,10 @@ export function createDxView({ doc = document, bank, getVoice, setVoice, getPara
     sctx.font = '9px ui-monospace, Consolas, monospace'; sctx.textBaseline = 'top';
     const xOf = n => 8 + ((n - N0) / (N1 - N0)) * (W - 16), mid = 45;
     sctx.strokeStyle = c; sctx.globalAlpha = 0.3; sctx.beginPath(); sctx.moveTo(0, mid); sctx.lineTo(W, mid); sctx.stroke(); sctx.globalAlpha = 1;
-    sctx.strokeStyle = 'hsl(35 85% 52%)'; sctx.lineWidth = 2.5; sctx.beginPath();
+    sctx.strokeStyle = pal.carrier; sctx.lineWidth = 2.5; sctx.beginPath();
     for (let n = N0; n <= N1; n++) { const y = mid - clamp(levelScaling(n, p), -64, 64) * 0.65; if (n === N0) sctx.moveTo(xOf(n), y); else sctx.lineTo(xOf(n), y); }
     sctx.stroke();
-    sctx.fillStyle = '#d03040'; sctx.beginPath(); sctx.arc(xOf(N0 + p.bp), mid, 5, 0, Math.PI * 2); sctx.fill();
+    sctx.fillStyle = pal.select; sctx.beginPath(); sctx.arc(xOf(N0 + p.bp), mid, 5, 0, Math.PI * 2); sctx.fill();
     sctx.fillStyle = c; sctx.fillText(`break ${noteName(N0 + p.bp)}`, clamp(xOf(N0 + p.bp) - 20, 2, W - 60), 78);
     sctx.fillText(`operator ${op + 1} · louder up, quieter down, in 0.75 dB steps`, 6, 3);
   };
@@ -353,7 +368,7 @@ export function createDxView({ doc = document, bank, getVoice, setVoice, getPara
     select('right curve', CURVES, () => opv().rc, n => setOp('rc', n)));
 
   // ---- LFO and pitch envelope ----
-  const lfoCanvas = el('canvas', { width: W, height: 70, className: 'dx' });
+  const lfoCanvas = sharpCanvas(doc, W, 70);
   const lctx = lfoCanvas.getContext('2d');
   const drawLfo = () => {
     const v = voice(), c = ink(lfoCanvas);
@@ -361,7 +376,7 @@ export function createDxView({ doc = document, bank, getVoice, setVoice, getPara
     lctx.fillStyle = 'rgba(128,128,128,0.14)'; lctx.fillRect(0, 0, W, 70);
     lctx.font = '9px ui-monospace, Consolas, monospace'; lctx.textBaseline = 'top';
     const hz = 0.062 * Math.pow(50 / 0.062, v.lfs / 99), delay = Math.pow(v.lfd / 99, 2) * 5, total = Math.max(delay + 2 / hz, 1);
-    lctx.strokeStyle = 'hsl(35 85% 52%)'; lctx.lineWidth = 2; lctx.beginPath();
+    lctx.strokeStyle = pal.carrier; lctx.lineWidth = 2; lctx.beginPath();
     for (let x = 0; x < W - 12; x++) {
       const t = (x / (W - 12)) * total, ph = (t * hz) % 1;
       const w = v.lfw === 0 ? (ph < 0.5 ? 4 * ph - 1 : 3 - 4 * ph) : v.lfw === 1 ? 1 - 2 * ph : v.lfw === 2 ? 2 * ph - 1 : v.lfw === 3 ? (ph < 0.5 ? 1 : -1) : v.lfw === 4 ? Math.sin(2 * Math.PI * ph) : Math.sin(t * 91.7) * Math.cos(t * 13.1);
