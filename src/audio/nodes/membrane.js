@@ -16,7 +16,7 @@
 //   glide      the pitch jump of a hard hit: the head tightens when struck and the pitch falls back (the zap of a tom)
 //   shell      the drum under the head: a deep, short note an octave below the lowest mode (a kick's boom)
 //   width      the two stereo pick-ups listen at different angles around the head, so modes with nodal lines differ left and right
-//   quality    standard uses up to 26 modes, eco the lowest 12 (about half the CPU; the high ones are quiet and short)
+//   quality    standard uses 40 modes, eco the lowest 16 (about half the CPU; the high ones are quiet and short)
 //
 // The note you play is the pitch of the main tone, the (1,1) mode, which is the one the ear takes as the pitch of a tom; the
 // lowest mode (0,1) sits well below it (a ratio of 0.63). Monophonic, a new note hits it again (what rings carries on); the voices
@@ -72,12 +72,12 @@ export function zerosOfBessel(m, limit) {
   return zeros;
 }
 
-// Every mode (m, n) up to a ratio of 20 above the lowest, sorted by pitch. ratio = j(m,n) / j(0,1).
-const MAX_MODES = 26, ECO_MODES = 12;
+// Every mode (m, n) up to a ratio of 12 above the lowest, sorted by pitch. ratio = j(m,n) / j(0,1).
+const MAX_MODES = 40, ECO_MODES = 16;
 const MODES = (() => {
   const j01 = zerosOfBessel(0, 3)[0], all = [];
-  for (let m = 0; m <= 12; m++) {
-    zerosOfBessel(m, j01 * 20).forEach((j, i) => {
+  for (let m = 0; m <= 14; m++) {
+    zerosOfBessel(m, j01 * 12).forEach((j, i) => {
       const slope = Math.abs(bessel(m + 1, j));          // how big the mode's shape is: it sets how hard the mode is to move
       all.push({ m, n: i + 1, j, ratio: j / j01, norm: 1 / Math.max(slope, 1e-3) * (m === 0 ? 1 : Math.SQRT2) });
     });
@@ -101,7 +101,7 @@ export default {
     const pitchOn = connected[0];
     const count = MODES.length;
     let note = 60, velocity = 1, held = false, active = false, pending = false, age = 0, amp = 1, gain = 1;
-    let lp = 0, shellPhase = 0;
+    let lp = 0, lp2 = 0, shellPhase = 0, prevRand = 0;
     const y1 = new Float64Array(count), y2 = new Float64Array(count);
     const a1 = new Float64Array(count), a2 = new Float64Array(count);
     const gL = new Float64Array(count), gR = new Float64Array(count);
@@ -115,11 +115,10 @@ export default {
     // The resonators for the settings and the note: pitch (so also the glide), decay and loudness of every mode.
     // `lift` is the glide: how far above rest the whole head is pitched right now (1 is at rest).
     const aim = (g, main, lift, loudness) => {
-      const position = g('position'), strike = g('strike'), stiff = g('stiffness'), high = g('highdamp'), width = g('width');
+      const position = g('position'), stiff = g('stiffness'), high = g('highdamp'), width = g('width');
       const limit = g('quality') >= 0.5 ? ECO_MODES : count;
       const t60 = 3 * Math.pow(0.05 / 3, g('damping'));                  // seconds for the lowest mode to fall 60 dB
       const slope = 0.3 + 1.2 * high;                                    // how fast the decay time shortens up the modes
-      const reach = 1.5 + 14 * strike * strike;                          // how many modes the beater can shake
       const spread = width * 1.2;                                        // angle of the two pick-ups either side of the strike
       const base = main * lift / MAIN.ratio;                             // the pitch of the lowest mode
       used = 0;
@@ -132,8 +131,8 @@ export default {
         const r = Math.pow(10, -3 / (t * sampleRate)), th = 2 * Math.PI * f / sampleRate;
         a1[k] = 2 * r * Math.cos(th); a2[k] = r * r;
         const shape = bessel(md.m, md.j * position * 0.9) * md.norm;    // (the very rim is held still, so the furthest hit is 90% of the way out)             // how far this mode moves where the head is hit
-        const beater = Math.min(1, reach / md.ratio) * Math.pow(md.ratio, -0.35);
-        const w = shape * beater * Math.sin(th) * 0.2 * loudness;
+        const beater = Math.pow(md.ratio, -0.35);
+        const w = shape * beater * Math.sin(th) * 0.12 * loudness;
         gL[k] = w * Math.cos(md.m * (STRIKE_ANGLE - spread));
         gR[k] = w * Math.cos(md.m * (STRIKE_ANGLE + spread));
       }
@@ -155,18 +154,19 @@ export default {
         // glide: a hit tightens the head, the harder the more, and the pitch falls back over about 45 ms
         const lift = 1 + glide * 0.5 * (0.4 + 0.6 * gain) * Math.exp(-age / (0.045 * sampleRate));
         aim(g, main, lift, 1 + 1.4 * g('position'));   // a hit near the rim moves the head less, so it is lifted a little to keep the level even
-        const fc = 500 * Math.pow(40, strike), beat = 1 - Math.exp(-2 * Math.PI * fc / sampleRate);   // the beater's brightness
-        const click = 0.0003 * sampleRate * (1 + 9 * (1 - strike));                                     // how long the beater is in contact
+        const fc = 300 * Math.pow(60, strike), beat = 1 - Math.exp(-2 * Math.PI * fc / sampleRate);   // the beater's brightness: two one-poles, 12 dB per octave
+        const click = 0.0004 * sampleRate;                                                              // the stick's click: a few hundred microseconds of noise
         const rel = Math.pow(10, -3 / (g('release') * 0.001 * sampleRate));
         const shellTau = 0.09 * sampleRate, shellF0 = main / MAIN.ratio * 0.5;
         const out = g('level') * gain * 1.1;
         for (let i = 0; i < n; i++) {
           if (!held) amp *= rel;
-          const hit = age < click ? (age === 0 ? 1 : 0.5 * rand()) * (1 - age / click) : 0;
-          lp += (hit - lp) * beat;
+          let hit = age === 0 ? 1 : 0;
+          if (age < click) { const r = rand(); hit += strike * 0.5 * (r - prevRand) * (1 - age / click); prevRand = r; }   // the difference of two randoms has no net push, only a click
+          lp += (hit - lp) * beat; lp2 += (lp - lp2) * beat;
           let L = 0, R = 0;
           for (let k = 0; k < used; k++) {
-            const y = lp + a1[k] * y1[k] - a2[k] * y2[k];
+            const y = lp2 + a1[k] * y1[k] - a2[k] * y2[k];
             y2[k] = y1[k]; y1[k] = y;
             L += y * gL[k]; R += y * gR[k];
           }

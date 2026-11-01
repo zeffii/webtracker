@@ -1036,7 +1036,7 @@ const HINTS = {
     vel: 'How much the note velocity changes the level.',
     level: 'Overall level.',
     release: 'How fast the ringing is damped, in ms, after the note ends (a hand on the head).',
-    quality: 'Standard uses up to 26 modes. Eco uses the lowest 12: about half the CPU, and the missing high modes are quiet and short.',
+    quality: 'Standard uses 40 modes. Eco uses the lowest 16: about half the CPU, and the missing high modes are quiet and short.',
   },
   clang: {
     shape: 'From a thin round plate (0: cymbal, ride, bright and long) to a large hollow barrel (1: low, dull and boomy). It changes which resonances the body has and how they fade.',
