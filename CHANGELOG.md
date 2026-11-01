@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 601 · 2026-11-01
+
+- **DX panel: a new Voice tab.** A bank of all 32 algorithms is drawn as thumbnails (carriers amber, modulators grey): click one to hear the voice through it. The selected algorithm is drawn larger with named operators (Body, Octave, Warmth, Edge, Click, Metal…, from role and ratio). Under it, one strip per operator shows its envelope, its wave and its level, and an output scope and spectrum show the sum. A draggable envelope for the selected operator sits on the same tab, so attack, decay, sustain and release can all be shaped without changing tab; grabbing a point also sets which moment of the note the waves and spectrum show. The waves and spectrum are a quick sketch of the voice, not the engine. New files: `src/graph/dxbank.js` (thumbnail drawing) and `src/graph/dxpreview.js` (the sketch and the names).
+
 ## 600 · 2026-11-01
 
 - **Fix: the listen node did not sound.** It had no `process` step, so the audio engine failed on every block as soon as one was in an instrument's graph, and the listener stayed silent. It now runs, and a test plays audio through a listener on a source whose Out `master` is off (the source's master switch never mattered for the notes; the listener hears them either way). A note that arrives without a velocity now counts as full.

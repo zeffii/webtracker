@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['601', ['DX panel redesign: a bank of all 32 algorithms as thumbnails, named operators, per-operator envelope and wave strips, an output scope and spectrum, and a draggable envelope on the Voice tab']],
   ['600', ['Fix: the listen node now sounds (it was silent, and stopped the audio engine while it was in a graph)']],
   ['599', ['DX panel in a box with keyjazz; sample editor: Select all button, Delete over the waveform, Save sample to disk, auto-slice on the whole sample']],
   ['598', ['Listen node: an instrument plays the notes of another (transpose, level, on/off), to audition other machines on the same notes']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['594', ['Arrangement: a pattern that starts or ends between two rows is drawn at its true position, not snapped to the row']],
   ['593', ['Chord finder: names a chord even without an exact match (Cmaj7(add9), C7(b9)) with alternatives, and spells with flats in flat keys']],
   ['592', ['^^^ is a kill (120 ms fade, machine reset, asleep until the next note); Clone with machine copies a lane and its instrument, with or without patterns and automation']],
-  ['591', ['The flask button also hides the Script view and the Dock toggle (shortcuts still work)']],
                     ];
