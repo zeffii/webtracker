@@ -625,6 +625,11 @@ const HINTS = {
     invert: '1 flips the output so a louder sound gives a lower value: use it to duck a level.',
   },
   sidechain: { level: 'How loud the other instrument\'s sound comes in.' },
+  listen: {
+    on: '1 plays the notes of the other instrument here too, 0 does not. A note that is already sounding still ends, so nothing sticks.',
+    transpose: 'Semitones added to every note heard, so another instrument can play them higher or lower.',
+    level: 'Scales the velocity of the notes heard: 1 as they are, 0.5 half as hard.',
+  },
   hall: {
     size: 'Scales the room: larger is a bigger, slower-building space.',
     decay: 'Time in seconds for the tail to fall by 60 dB.',

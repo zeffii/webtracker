@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 598 · 2026-11-01
+
+- **A `listen` node: play another instrument's notes.** Put it in an instrument's graph (it has no wires, like the chord and the arp), choose in its panel which instrument it listens to, and every note that instrument is given (patterns, the Node Sequencer, the keyboard, MIDI) is played here too, with its velocity, its note off and its cut. It is for trying how another machine sounds on the same notes without using replace or touching the lane. `transpose` shifts what it hears, `level` scales the velocity, `on` switches it (it can be a pattern column); a note already sounding still ends if `on` goes to 0 or the transpose changes, so nothing sticks. A `^^^` kill on the source kills the listener as well. Two instruments that listen to each other pass a note round once and stop. It passes notes only, not the other lane's other columns or automation. Found under Routing in the add menu. Renaming or removing the source follows, as for the sidechain.
+
 ## 597 · 2026-11-01
 
 - **Six more voices in the DX-style synth's built-in bank** (slots 5 to 10; the rest are still empty init voices, and a bank you load replaces them all): four pianos, `GRAND`, `BRIGHT PNO` (more modulation, a metallic edge, a hard velocity response), `SOFT PNO` (close and mellow, a sub-octave under it) and `HONKY TONK` (the three carriers pulled apart in pitch); and two plucked-and-ringing keys, `GLASSREED` (two slightly detuned reeds that hold and beat, with a plucked, bar-like partial on top: held like an accordion, struck like a harpsichord or a vibraphone) and `HARPSIVIBE` (a harpsichord's snap, a vibraphone's ring, a slow tremolo). All are hand-written from operator ratios and envelopes and checked for level and decay, not by ear.

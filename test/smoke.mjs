@@ -9759,4 +9759,48 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   for (let i = 0; i < 40; i++) rt.process(l, r, block);
   assert.ok(!rt.killed.has('x') && peakOf() > 0.01, 'a note-on wakes it and it sounds again');
 }
+// Listen: an instrument plays the notes of another (with a transpose and a velocity factor), ends them even when the settings
+// change meanwhile, is killed with it, and a loop of listeners stops where it closes.
+{
+  const mk = (id, extra = []) => ({ nodes: [{ id: 'osc', type: 'osc' }, { id: 'out', type: 'out' }, ...extra], connections: [['osc.out', 'out.in']] });
+  const registry = new ParamRegistry(), rt = new GraphRuntime({ sampleRate: sr, params: registry.values });
+  rt.load(compile(mk('a'), { instrument: 'a', nodeTypes: NODE_TYPES, registry }));
+  rt.load(compile(mk('b', [{ id: 'l', type: 'listen', source: 'a', params: { transpose: 12, level: 0.5 } }]), { instrument: 'b', nodeTypes: NODE_TYPES, registry }));
+  const seen = [], real = rt.deliver.bind(rt);
+  rt.deliver = (id, msg) => { seen.push(`${id}:${msg.type}${msg.note !== undefined ? ` ${msg.note}` : ''}${msg.type === 'noteOn' ? ` v${msg.vel.toFixed(2)}` : ''}`); real(id, msg); };
+  rt.note('a', { type: 'noteOn', note: 60, vel: 0.8, from: -1 });
+  assert.deepEqual([...seen].sort(), ['a:noteOn 60 v0.80', 'b:noteOn 72 v0.40'].sort(), 'the listener plays the note, an octave up and half as hard');
+  seen.length = 0;
+  const slotOf = rt.listenersOf('a')[0].slots;
+  registry.values[slotOf[1]] = 7;   // the transpose changes while the note is held
+  rt.note('a', { type: 'noteOff', note: 60 });
+  assert.deepEqual([...seen].sort(), ['a:noteOff 60', 'b:noteOff 72'].sort(), 'the note off finds the note that was really played');
+  seen.length = 0;
+  registry.values[slotOf[0]] = 0;   // on: 0
+  rt.note('a', { type: 'noteOn', note: 62, vel: 1, from: -1 });
+  assert.deepEqual([...seen].sort(), ['a:noteOn 62 v1.00'].sort(), 'with on at 0 a new note is not heard');
+  registry.values[slotOf[0]] = 1; registry.values[slotOf[1]] = 0; registry.values[slotOf[2]] = 1;
+  rt.note('a', { type: 'noteOn', note: 64, vel: 1, from: -1 }); seen.length = 0;
+  registry.values[slotOf[0]] = 0;   // switched off while the note is held: its ending still goes through
+  rt.note('a', { type: 'noteOff', note: 64 });
+  assert.deepEqual([...seen].sort(), ['a:noteOff 64', 'b:noteOff 64'].sort(), 'a note that is sounding still ends');
+  registry.values[slotOf[0]] = 1; seen.length = 0;
+  rt.kill('a');
+  assert.ok(rt.instruments.get('a').kill && rt.instruments.get('b').kill, 'a kill on the source kills the listener too');
+  // a loop: a listens to b and b to a; a note goes round once and stops
+  const reg2 = new ParamRegistry();
+  const rt3 = new GraphRuntime({ sampleRate: sr, params: reg2.values });
+  rt3.load(compile(mk('a', [{ id: 'l', type: 'listen', source: 'b' }]), { instrument: 'a', nodeTypes: NODE_TYPES, registry: reg2 }));
+  rt3.load(compile(mk('b', [{ id: 'l', type: 'listen', source: 'a' }]), { instrument: 'b', nodeTypes: NODE_TYPES, registry: reg2 }));
+  const loop = [], real3 = rt3.deliver.bind(rt3);
+  rt3.deliver = (id, msg) => { loop.push(`${id}:${msg.type}`); real3(id, msg); };
+  rt3.note('a', { type: 'noteOn', note: 60, vel: 1, from: -1 });
+  assert.deepEqual([...loop].sort(), ['a:noteOn', 'b:noteOn'], 'a loop of listeners passes the note round once');
+  // the helpers: renaming and removing an instrument follow the listeners, and a listener may name an instrument that listens by sound
+  const sc = await import('../src/graph/sidechain.js');
+  const defs = { x: { graph: { nodes: [{ id: 'l', type: 'listen', source: 'y' }] } }, y: { graph: { nodes: [] } } };
+  sc.renameSource(defs, 'y', 'z'); assert.equal(defs.x.graph.nodes[0].source, 'z', 'a renamed instrument is still listened to');
+  sc.dropSource(defs, 'z'); assert.equal(defs.x.graph.nodes[0].source, undefined, 'a removed instrument is listened to no more');
+  assert.ok(sc.setSource({ x: defs.x, y: { graph: { nodes: [{ id: 's', type: 'sidechain', source: 'x' }] } } }, 'x', 'l', 'y'), 'a listener can name an instrument that hears it by sound');
+}
 console.log('smoke test passed');

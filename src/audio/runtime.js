@@ -39,6 +39,8 @@ export class GraphRuntime {
   cut = new Set();         // instruments the Stream Manager has switched off: not run, and deaf to notes, until Play (see worklet.js)
   prof = null;             // while the Stream Manager is open: id -> { ms, peak }, what each instrument cost since the last report
   scopes = new Map();      // watched nodes: key -> { instrument, node, l, r, at, since }
+  followMap = null;        // source instrument -> the listen nodes that hear its notes: [{ id, slots, sent }] (made when first needed)
+  following = new Set();   // the instruments whose notes are being passed on right now (a loop of listeners stops where it closes)
 
   constructor({ sampleRate, params, maxBlock = 512, wasm = null }) {
     this.wasm = wasm;           // compiled WebAssembly.Module for the DSP kernels, or null for the JS reference
@@ -66,6 +68,7 @@ export class GraphRuntime {
     this.graphs.clear();
     this.samples.clear();
     this.order = null;
+    this.followMap = null;
   }
 
   // Allocates buffers and node state. Runs on a message, not per block.
@@ -77,6 +80,7 @@ export class GraphRuntime {
   load(compiled) {
     this.graphs.set(compiled.instrument, compiled);
     this.order = null;
+    this.followMap = null;
     this.maxDelay = null;
     const V = Math.max(1, Math.min(MAX_VOICES, Math.round(compiled.voices ?? 1) || 1));
     const fresh = () => Array.from({ length: compiled.bufferCount }, () => new Float32Array(this.maxBlock));
@@ -205,10 +209,55 @@ export class GraphRuntime {
     for (const node of this.instruments.get(instrument)?.byId.get(nodeId) ?? []) node.instance.message?.(msg);
   }
 
+  // The listen nodes that hear the notes of an instrument (see listen.js).
+  listenersOf(id) {
+    if (!this.followMap) {
+      this.followMap = new Map();
+      for (const [inst, graph] of this.graphs) {
+        for (const n of graph.nodes) {
+          const node = n.type === 'listen' && n.source ? this.instruments.get(inst)?.byId.get(n.id)?.[0] : null;
+          if (!node) continue;
+          if (!this.followMap.has(n.source)) this.followMap.set(n.source, []);
+          this.followMap.get(n.source).push({ id: inst, slots: node.slots, sent: new Map() });
+        }
+      }
+    }
+    return this.followMap.get(id);
+  }
+
+  // Passes a note of an instrument on to the instruments that listen to it. The note off finds the note that was
+  // really played (the transpose may have changed since); with `on` at 0 only the endings still go through.
+  passOn(instrument, msg) {
+    const list = this.listenersOf(instrument);
+    if (!list || this.following.has(instrument)) return;
+    this.following.add(instrument);
+    try {
+      for (const f of list) {
+        if (this.following.has(f.id)) continue;   // it is already passing a note on: a loop closes here
+        const on = this.params[f.slots[0]] >= 0.5, shift = Math.round(this.params[f.slots[1]]), scale = this.params[f.slots[2]];
+        const at = n => Math.min(127, Math.max(0, n + shift));
+        let out = msg;
+        if (msg.type === 'noteOn') {
+          if (!on) continue;
+          out = { ...msg, note: at(msg.note), vel: Math.min(1, msg.vel * scale), from: msg.from >= 0 ? at(msg.from) : msg.from };
+          f.sent.set(msg.note, out.note);
+        } else if (msg.type === 'noteOff') {
+          const was = f.sent.get(msg.note);
+          if (was === undefined && !on) continue;
+          out = { ...msg, note: was ?? at(msg.note) };
+          f.sent.delete(msg.note);
+        } else if (msg.type === 'noteCut') f.sent.clear();
+        else if (msg.type === 'allOff') f.sent.clear();
+        this.note(f.id, out);
+      }
+    } finally { this.following.delete(instrument); }
+  }
+
   // Note events go to every voice-aware node of the instrument. With several voices, a note on
   // takes a silent voice, else the one that was released longest ago, else the oldest; a note
   // off releases the newest voice playing that note; all-off releases them all; a cut stops them.
   note(instrument, msg) {
+    this.passOn(instrument, msg);
     const inst = this.instruments.get(instrument);
     if (!inst || this.cut.has(instrument)) return;
     if (this.killed.has(instrument)) {   // a killed machine sleeps until a note-on: then it runs again, from its reset state
@@ -310,6 +359,10 @@ export class GraphRuntime {
   // Kill (the ^^^ cell): the instrument's output fades out over KILL_MS, then the machine is reset (voices, delay lines and reverb
   // tails all cleared; its parameters stay as they are) and it is not run at all until a note-on wakes it.
   kill(id) {
+    if (!this.following.has(id)) {   // a listener is killed with the instrument it listens to
+      this.following.add(id);
+      try { for (const f of this.listenersOf(id) ?? []) if (this.params[f.slots[0]] >= 0.5) this.kill(f.id); } finally { this.following.delete(id); }
+    }
     const inst = this.instruments.get(id);
     if (!inst || inst.kill || this.killed.has(id) || this.cut.has(id)) return;
     const total = Math.max(1, Math.round(KILL_MS * this.sampleRate / 1000));

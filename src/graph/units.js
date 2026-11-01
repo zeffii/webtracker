@@ -72,6 +72,7 @@ const TYPE_UNIT = {
   gater: { smooth: 'ms', depth: '%' },
   arp: { rate: '', gate: '%', swing: '', transpose: 'st', cycle1: 'st', cycle2: 'st', humanize: '%', level: '' },
   chord: { strum: 'ms', level: '' },
+  listen: { transpose: 'st', level: '' },
   freqshift: { shift: 'Hz' },
   specpan: { lowMono: 'Hz', rotate: '', spread: '%', mix: '%', rate: 'Hz', sweep: '', wave: ['sine', 'triangle', 'saw', 'square'] },
 };

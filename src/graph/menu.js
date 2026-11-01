@@ -10,7 +10,7 @@ const GROUPS = {
     ['Synths', ['subsynth', 'fourpole', 'oberheim', 'piano', 'addsynth', 'fmsynth', 'dvii', 'wavetable', 'granular', 'woodblock', 'jawharp', 'snarl', 'clang', 'drumsynth', 'cardinal', 'specsynth', 'string', 'hat808', 'clap', 'combperc', 'squelch', 'duette', 'modchan']],
     ['Basic', ['osc', 'noise', 'sampler']],
     ['Modulators', ['env', 'lfo']],
-    ['Routing', ['sidechain']],
+    ['Routing', ['sidechain', 'listen']],
   ],
   Effects: [
     ['Filter & EQ', ['filter', 'filterpro', 'ladder', 'sweep', 'comb', 'vocoder', 'eq', 'exciter', 'dcblock']],

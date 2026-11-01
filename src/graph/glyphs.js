@@ -309,6 +309,12 @@ export const GLYPHS = {
   tap: (ctx, cx, cy, w, h) => { line(ctx, [[cx - w / 2, cy - h * 0.15], [cx + w / 2, cy - h * 0.15]]); line(ctx, [[cx, cy - h * 0.15], [cx, cy + h * 0.35]]); ctx.beginPath(); ctx.arc(cx, cy + h * 0.38, h * 0.12, 0, 7); ctx.stroke(); },   // a line with a branch dropping off it to a dot
   bands: (ctx, cx, cy, w, h) => { for (let i = 0; i < 8; i++) { const x = cx - w / 2 + (i + 0.5) / 8 * w, a = h * (0.2 + 0.7 * Math.abs(Math.sin(i * 1.3 + 0.4))); line(ctx, [[x, cy + h / 2], [x, cy + h / 2 - a]]); } },   // a row of level bars: a vocoder's bands
   specsynth: (ctx, cx, cy, w, h) => { for (let i = 0; i < 9; i++) { const x = cx - w / 2 + (i + 0.5) / 9 * w, a = h * (0.12 + 0.75 * Math.abs(Math.sin(i * 1.7 + 0.6)) * Math.exp(-i * 0.18)); line(ctx, [[x, cy + h / 2], [x, cy + h / 2 - a]]); } },   // bars of a spectrum
+  listen: (ctx, cx, cy, w, h) => {   // a note arriving from outside: a stem and head, with an arrow going in
+    line(ctx, [[cx - w / 2, cy - h * 0.25], [cx - w * 0.1, cy - h * 0.25]]);
+    line(ctx, [[cx - w * 0.2, cy - h * 0.38], [cx - w * 0.1, cy - h * 0.25], [cx - w * 0.2, cy - h * 0.12]]);
+    line(ctx, [[cx + w * 0.3, cy + h * 0.4], [cx + w * 0.3, cy - h * 0.2]]);
+    ctx.beginPath(); ctx.ellipse(cx + w * 0.2, cy + h * 0.4, w * 0.1, h * 0.08, -0.3, 0, Math.PI * 2); ctx.stroke();
+  },
   sidechain: (ctx, cx, cy, w, h) => { line(ctx, [[cx - w / 2, cy - h * 0.25], [cx + w * 0.1, cy - h * 0.25], [cx + w * 0.1, cy + h * 0.25], [cx + w / 2, cy + h * 0.25]]); line(ctx, [[cx + w * 0.3, cy + h * 0.12], [cx + w / 2, cy + h * 0.25], [cx + w * 0.3, cy + h * 0.38]]); },   // a signal from outside, coming in
   piano: (ctx, cx, cy, w, h) => {   // a few white keys with the black ones between them
     const x = f => cx - w / 2 + f * w, y = f => cy + h / 2 - f * h;

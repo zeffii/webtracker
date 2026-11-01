@@ -1392,7 +1392,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
       if (type.shape !== 'dot' || chosen) ctx.fillText(node.id, node.x + w / 2, node.y - 5);   // the name sits above the shape (a route dot shows it only when chosen)
       if (node.keepView) { ctx.beginPath(); ctx.arc(node.x + w - 4, node.y + 4, 2.2, 0, 2 * Math.PI); ctx.fillStyle = accent; ctx.fill(); }   // a dot: its pictures stay on
       if (node.type === 'tap') { const slot = Math.round(node.params?.smp ?? type.params.find(q => q.name === 'smp').def), copy = Math.round(node.params?.copy ?? 0); ctx.fillText(slot >= 1 && slot <= 16 ? `\u2192 tap${String(slot).padStart(2, '0')}${copy ? `, copy ${copy}` : ''}` : '\u2192 (off)', node.x + w / 2, node.y + h + 12); }   // where it writes
-      if (node.type === 'sidechain') { ctx.fillText(node.source ? `\u2190 ${node.source}` : '\u2190 (none)', node.x + w / 2, node.y + h + 12); }   // where it listens to
+      if (node.type === 'sidechain' || node.type === 'listen') { ctx.fillText(node.source ? `\u2190 ${node.source}` : '\u2190 (none)', node.x + w / 2, node.y + h + 12); }   // where it listens to
 
       if (type.face) {   // the node shows its own state on its face, selected or not
         const live = name => readLive(instId, node.id, name) ?? node.params?.[name] ?? type.params.find(q => q.name === name)?.def ?? 0;
