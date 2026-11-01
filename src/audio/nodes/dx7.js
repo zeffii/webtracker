@@ -192,6 +192,72 @@ const handmade = [
       ratioOp(6, { ol: 55, r: [90, 99, 99, 80], l: [99, 99, 99, 0] }),
     ],
   }),
+  initVoice({   // a grand piano: a body, a detuned partner, and a short hammer tine on one of them
+    name: 'GRAND', alg: 4, fb: 3,
+    ops: [
+      ratioOp(1, { ol: 99, r: [99, 22, 16, 55], l: [99, 82, 0, 0], rs: 3, kvs: 2 }),
+      ratioOp(1, { ol: 74, r: [99, 38, 26, 60], l: [99, 55, 0, 0], rs: 2, kvs: 4 }),
+      ratioOp(2, { ol: 84, r: [99, 26, 18, 55], l: [99, 72, 0, 0], rs: 3, kvs: 2, det: 8 }),
+      ratioOp(14, { ol: 60, r: [99, 75, 45, 70], l: [99, 12, 0, 0], kvs: 5 }),
+      ratioOp(1, { ol: 88, r: [99, 20, 15, 55], l: [99, 80, 0, 0], rs: 3, kvs: 2, det: 6 }),
+      ratioOp(3, { ol: 66, r: [99, 45, 30, 60], l: [99, 40, 0, 0], kvs: 4 }),
+    ],
+  }),
+  initVoice({   // a bright, forward piano: more modulation, a metallic edge, a hard velocity response
+    name: 'BRIGHT PNO', alg: 4, fb: 4,
+    ops: [
+      ratioOp(1, { ol: 99, r: [99, 24, 16, 55], l: [99, 78, 0, 0], rs: 3, kvs: 2 }),
+      ratioOp(1, { ol: 85, r: [99, 40, 28, 60], l: [99, 60, 0, 0], kvs: 5 }),
+      ratioOp(1, { ol: 92, r: [99, 26, 18, 55], l: [99, 75, 0, 0], rs: 3, det: 8 }),
+      ratioOp(7, { ol: 72, r: [99, 55, 35, 65], l: [99, 35, 0, 0], kvs: 5 }),
+      ratioOp(1, { ol: 90, r: [99, 22, 15, 55], l: [99, 78, 0, 0], rs: 3, det: 6 }),
+      ratioOp(14, { ol: 66, r: [99, 80, 50, 70], l: [99, 10, 0, 0], kvs: 5 }),
+    ],
+  }),
+  initVoice({   // a soft, close piano: little modulation, a sub-octave under the body
+    name: 'SOFT PNO', alg: 4, fb: 1,
+    ops: [
+      ratioOp(1, { ol: 99, r: [96, 20, 14, 55], l: [99, 80, 0, 0], rs: 2 }),
+      ratioOp(1, { ol: 52, r: [96, 35, 25, 60], l: [99, 40, 0, 0], kvs: 3 }),
+      ratioOp(1, { ol: 92, r: [96, 22, 16, 55], l: [99, 75, 0, 0], det: 8 }),
+      ratioOp(2, { ol: 50, r: [96, 40, 28, 60], l: [99, 30, 0, 0], kvs: 3 }),
+      ratioOp(0.5, { ol: 70, r: [96, 18, 14, 55], l: [99, 70, 0, 0] }),
+      ratioOp(1, { ol: 40, r: [96, 40, 28, 60], l: [99, 25, 0, 0] }),
+    ],
+  }),
+  initVoice({   // a honky-tonk: the three carriers pulled apart in pitch
+    name: 'HONKY TONK', alg: 4, fb: 5,
+    ops: [
+      ratioOp(1, { ol: 99, r: [99, 26, 18, 55], l: [99, 78, 0, 0], rs: 3, det: 12 }),
+      ratioOp(1, { ol: 80, r: [99, 45, 30, 60], l: [99, 50, 0, 0], kvs: 4 }),
+      ratioOp(1, { ol: 99, r: [99, 26, 18, 55], l: [99, 78, 0, 0], rs: 3, det: 2 }),
+      ratioOp(3, { ol: 70, r: [99, 50, 35, 65], l: [99, 30, 0, 0], kvs: 4 }),
+      ratioOp(1, { ol: 90, r: [99, 28, 20, 55], l: [99, 70, 0, 0], det: 7 }),
+      ratioOp(1, { ol: 76, r: [99, 50, 35, 60], l: [99, 40, 0, 0] }),
+    ],
+  }),
+  initVoice({   // two slightly detuned reeds that hold, a plucked bar-like partial on top: held and beating, plucked and metallic
+    name: 'GLASSREED', alg: 4, fb: 4,
+    ops: [
+      ratioOp(1, { ol: 99, r: [99, 40, 99, 60], l: [99, 92, 90, 0], kvs: 1 }),
+      ratioOp(1, { ol: 68, r: [99, 55, 99, 60], l: [99, 60, 55, 0], kvs: 3 }),
+      ratioOp(1, { ol: 96, r: [99, 40, 99, 60], l: [99, 92, 90, 0], det: 11 }),
+      ratioOp(2, { ol: 62, r: [99, 60, 99, 60], l: [99, 50, 42, 0], det: 3 }),
+      ratioOp(2, { ol: 80, r: [99, 50, 30, 55], l: [99, 60, 0, 0] }),
+      ratioOp(3.5, { ol: 78, r: [99, 70, 50, 60], l: [99, 25, 0, 0] }),
+    ],
+  }),
+  initVoice({   // a harpsichord's snap with a vibraphone's ring and a slow tremolo
+    name: 'HARPSIVIBE', alg: 4, fb: 3, lfs: 33, lamd: 28,
+    ops: [
+      ratioOp(1, { ol: 99, r: [99, 45, 30, 60], l: [99, 50, 0, 0], rs: 3 }),
+      ratioOp(1, { ol: 82, r: [99, 70, 50, 70], l: [99, 15, 0, 0], kvs: 4 }),
+      ratioOp(2, { ol: 85, r: [99, 40, 28, 60], l: [99, 55, 0, 0], det: 8 }),
+      ratioOp(5, { ol: 70, r: [99, 75, 55, 70], l: [99, 10, 0, 0] }),
+      ratioOp(4, { ol: 90, r: [99, 30, 20, 55], l: [99, 72, 0, 0], ams: 1 }),
+      ratioOp(2.76, { ol: 66, r: [99, 60, 40, 60], l: [99, 30, 0, 0] }),
+    ],
+  }),
 ];
 export const DEFAULT_BANK = (() => {
   const bank = new Uint8Array(VOICES * 128);

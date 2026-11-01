@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['597', ['DX-style synth: six more built-in voices (four pianos, a reed-and-vibe key sound, a harpsichord-vibraphone)']],
   ['596', ['Mosh: a lost keyframe as sound. A held chord wears the movement of another sound (louder, quieter, sliding up or down), until a keyframe puts it back; with a ?demo=mosh demo']],
   ['595', ['Detect chords: click a chord to hear it for half a second on the chosen lane, with or without the extra notes']],
   ['594', ['Arrangement: a pattern that starts or ends between two rows is drawn at its true position, not snapped to the row']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['590', ['Presets: moving a slider empties the preset name box ("> Enter new preset name <") so a named preset is not changed by accident']],
   ['589', ['The arrangement line is every 256 ticks; no error in the graph editor of an empty song']],
   ['588', ['Fix: the line over every 512th tick is now visible']],
-  ['587', ['Mixer: small lane names and the retroslate look']],
                     ];

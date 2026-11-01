@@ -1811,6 +1811,7 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     const single = dx.parseSyx(dx.voiceToSyx(v));   // a single voice dump lands in the first slot of a bank
     assert.deepEqual(dx.unpackVoice(single, 0), { ...v, name: 'ROUNDTRIP' });
     assert.equal(dx.voiceNames()[1], 'E.PIANO');
+    assert.deepEqual(dx.voiceNames().slice(5, 11), ['GRAND', 'BRIGHT PNO', 'SOFT PNO', 'HONKY TONK', 'GLASSREED', 'HARPSIVIBE'], 'the hand-written piano and keys voices');
     // the engine: the init voice is a sine at the note's pitch, a held note sounds and a released one falls silent
     const def = NODE_TYPES.dvii;
     const play = (values, { note = 69, secs = 1, off = 0.5, bank } = {}) => {
@@ -1833,7 +1834,7 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     assert.ok(Math.abs(crossings / 0.3 - 440) < 4, `init voice pitch ${crossings / 0.3}`);
     assert.ok(peak(win(init, 0.1, 0.4)) > 0.1 && peak(win(init, 0.9, 1)) < 1e-4, 'released: silent');
     assert.ok(init.every(Number.isFinite));
-    for (let i = 1; i <= 4; i++) { const a = play({ voice: i }, { note: 60, secs: 1.5, off: 0.8 }); assert.ok(peak(win(a, 0, 0.3)) > 0.05 && a.every(Number.isFinite), `built-in voice ${i} sounds`); }
+    for (let i = 1; i <= 10; i++) { const a = play({ voice: i }, { note: 60, secs: 1.5, off: 0.8 }); assert.ok(peak(win(a, 0, 0.3)) > 0.05 && a.every(Number.isFinite), `built-in voice ${i} sounds`); }
     // velocity: a softer note of a velocity-sensitive voice is quieter
     const quiet = play({ voice: 1 }, { off: null, secs: 0.3 }), loud = quiet;   // (the same call, to have the shape)
     assert.ok(peak(loud) > 0);
