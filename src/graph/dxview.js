@@ -7,8 +7,8 @@ import { previewVoice, operatorNames, ratioOf, STAGES } from './dxpreview.js';
 // Scaling (keyboard level scaling), LFO / Pitch (the LFO and the pitch envelope) and Bank (load, save, search,
 // move, compare). Every edit is written into the node's copy of the bank, which is sent to the engine at once.
 const W = 360;                       // the other tabs' canvases
-const LW = 448, DW = 300, AH = 232, R = 19;   // the bank, the algorithm picture (DW wide, AH tall) and an operator's radius R
-const RW = 456, HEAD = 20, ROW = 44; // the operator rows, envelope and output on the right
+const LW = 416, DW = 270, AH = 232, R = 19;   // the bank, the algorithm picture (DW wide, AH tall) and an operator's radius R
+const RW = 400, HEAD = 20, ROW = 44; // the operator rows, envelope and output on the right
 const BANK_COLS = 8, BANK_CELL_H = 46;
 
 // Colour sets for the panel's drawings: carrier and modulator boxes, and the selection. A null modulator means "the text colour".
@@ -193,20 +193,20 @@ export function createDxView({ doc = document, bank, getVoice, setVoice, getPara
       if (on) { g.fillStyle = pal.carrier; g.fillRect(0, y + 5, 2, ROW - 10); }
       text(g, `${k + 1}  ${names[k]}`, 10, y + 15, { size: 12, align: 'left', colour: c, alpha: on ? 1 : 0.8 });
       text(g, `x${ratioOf(p).toFixed(2).replace(/\.?0+$/, '')}${v.fb && alg.fb[0] === k ? (alg.fb[1] === k ? '  fb' : `  fb>${alg.fb[1] + 1}`) : ''}`, 10, y + 31, { size: 10, align: 'left', colour: c, alpha: 0.5 });
-      miniEnvelope(g, p, 130, y + 5, 130, ROW - 12, colour);
-      miniWave(g, sound.ops[k], 280, y + 5, 110, ROW - 12, colour);
-      knob(g, 412, y + ROW / 2 - 2, p.ol / 99, colour, 'rgba(128,128,128,0.35)');
-      text(g, String(p.ol), 428, y + ROW / 2 - 2, { size: 10, align: 'left', colour: c, alpha: 0.55 });
+      miniEnvelope(g, p, 112, y + 5, 108, ROW - 12, colour);
+      miniWave(g, sound.ops[k], 234, y + 5, 100, ROW - 12, colour);
+      knob(g, 358, y + ROW / 2 - 2, p.ol / 99, colour, 'rgba(128,128,128,0.35)');
+      text(g, String(p.ol), 372, y + ROW / 2 - 2, { size: 10, align: 'left', colour: c, alpha: 0.55 });
       g.globalAlpha = 1;
     });
     const o = outCtx;
     o.clearRect(0, 0, RW, 76);
     text(o, 'OUTPUT', 0, 8, { size: 9, align: 'left', colour: c, alpha: 0.55 });
-    text(o, 'SPECTRUM', 240, 8, { size: 9, align: 'left', colour: c, alpha: 0.55 });
-    miniWave(o, sound.mix, 0, 18, 216, 56, pal.carrier);
+    text(o, 'SPECTRUM', 208, 8, { size: 9, align: 'left', colour: c, alpha: 0.55 });
+    miniWave(o, sound.mix, 0, 18, 190, 56, pal.carrier);
     o.fillStyle = pal.carrier;
-    const bw = 216 / sound.spectrum.length;
-    sound.spectrum.forEach((m, i) => { const h = Math.max(1, m * 54); o.fillRect(240 + i * bw, 74 - h, Math.max(1, bw - 1), h); });
+    const bw = 190 / sound.spectrum.length;
+    sound.spectrum.forEach((m, i) => { const h = Math.max(1, m * 54); o.fillRect(208 + i * bw, 74 - h, Math.max(1, bw - 1), h); });
   };
 
   const nameInput = el('input', { className: 'dx-name', maxLength: 10 });

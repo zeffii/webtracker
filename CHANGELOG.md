@@ -2,6 +2,11 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 609 · 2026-11-01
+
+- **File, Reload app.** Keeps a snapshot of the song, drops the browser's stored copies of the code (the service worker and the caches), reloads, and opens the snapshot again instead of the demo song. There is no "Leave site?" question for this one. For when a new build seems not to have arrived.
+- **Fix: the DX panel's columns did not sit side by side.** The panel was held to the width of the form panels, and the width rule meant to free it was not valid CSS, so the four columns stacked. The panel now takes the whole width of the instrument screen, the columns are a little narrower, and they wrap only when there is really no room.
+
 ## 608 · 2026-11-01
 
 - **DX panel: the Voice tab in four columns,** laid out like your sketch. The tabs and the voice name sit over the algorithm bank and the algorithm picture (with the feedback slider and its name under it); then the operators; then the envelope, the output and spectrum, and the notes. The columns wrap if the window is too narrow for all four.

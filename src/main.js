@@ -2516,7 +2516,17 @@ $('start').addEventListener('click', async () => {
     // the demo song is a saved project shipped beside the code; the generated one is the fallback
     // ?demo=arp opens the arpeggiator demo, ?demo=NAME the saved project demos/NAME.wax; anything else the usual demo song
     const wanted = new URLSearchParams(location.search).get('demo') ?? '';
-    if (wanted === 'arp') openProject(createArpDemoProject());
+    let reopened = false;   // after File, Reload app the song from before comes back
+    try {
+      const id = sessionStorage.getItem('wax.reopen');
+      if (id !== null) {
+        sessionStorage.removeItem('wax.reopen');
+        const text = await backups.text(/^\d+$/.test(id) ? Number(id) : id);
+        if (text) { openProject(parseProject(text)); reopened = true; }
+      }
+    } catch (err) { console.warn(err); }
+    if (reopened) { /* the song is open */ }
+    else if (wanted === 'arp') openProject(createArpDemoProject());
     else {
       try {
         const file = /^[a-z0-9_-]{1,40}$/i.test(wanted) ? `./project/demos/${wanted}.wax` : './project/demo.wax';
@@ -2563,4 +2573,18 @@ $('start').addEventListener('click', async () => {
 // Ctrl+W closes the tab in a normal browser window and no page can stop that, so the page asks before it goes
 // (the "Leave site?" box); where the key does reach the page (installed app, fullscreen) it is swallowed.
 window.addEventListener('keydown', e => { if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && e.code === 'KeyW') e.preventDefault(); }, true);
-window.addEventListener('beforeunload', e => { e.preventDefault(); e.returnValue = ''; });
+let reloading = false;   // File, Reload app: leaving on purpose, so no "Leave site?" question
+window.addEventListener('beforeunload', e => { if (reloading) return; e.preventDefault(); e.returnValue = ''; });
+// File, Reload app: keep a snapshot of the song, drop the service worker and the caches so the newest code is fetched, and reload;
+// the next start opens that snapshot instead of the demo song.
+$('reload-app').addEventListener('click', async () => {
+  try { if (project) await backups.snapshot('before reload'); } catch { /* the newest snapshot is used anyway */ }
+  try {
+    const newest = project ? (await backups.list())[0] : null;
+    if (newest) sessionStorage.setItem('wax.reopen', String(newest.id));
+  } catch { /* no storage: the demo song opens */ }
+  try { for (const r of await navigator.serviceWorker.getRegistrations()) await r.unregister(); } catch { /* none */ }
+  try { for (const k of await caches.keys()) await caches.delete(k); } catch { /* none */ }
+  reloading = true;
+  location.reload();
+});

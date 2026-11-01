@@ -926,7 +926,7 @@
     .dx-hint { font-size: 11px; opacity: .6; margin-top: .3rem; }
     .dx-view canvas { display: block; }
     .dx-view.curve-editor canvas { border: 0; background: none; cursor: default; }   /* no frames: the drawings sit straight on the page */
-    #patch-panel .dx-view { width: min(max-content, calc(100vw - 4rem)); max-width: none; }   /* wide enough for the two columns side by side */
+    #patch-panel:has(.dx-view) { max-width: none; }   /* the DX panel takes the whole width: its columns sit side by side and wrap when there is not room */
     .dx-view .prow { display: flex; gap: .4rem; align-items: center; flex-wrap: wrap; }
     .dx-tabs button.on, .dx-grid button.on { background: hsl(35 80% 55%); }
     .dx-slider { display: flex; align-items: center; gap: .4rem; margin: 2px 0; }
@@ -1356,6 +1356,7 @@
           <button id="save" role="menuitem" title="Save the project (.wax)">Save</button>
           <button id="export" role="menuitem" title="Export: render the whole song to a WAV or MP4 file, with a tail after the end (type and length in Config); press again while it runs to cancel">Export&hellip;</button>
           <button id="backups" role="menuitem" title="Backups: the automatic snapshots, and the backup folder">Backups&hellip;</button>
+          <button id="reload-app" role="menuitem" title="Reload the app with a fresh copy of the code (the browser's stored copies are dropped), and open the song you have now again">Reload app</button>
         </span>
       </span>
       <button id="play" disabled title="Play (F5), stop (F8)" aria-label="Play"><svg class="ico" viewBox="0 0 12 12"><path d="M2.5 1 L10.5 6 L2.5 11 Z" fill="currentColor"/></svg></button>
