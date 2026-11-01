@@ -713,6 +713,8 @@
     .cfg-card small { opacity: .6; font-size: 11px; }
     .cfg-card label:focus-within, .cfg-card label:hover { background: color-mix(in srgb, var(--fg) 7%, transparent); }
     .cfg-card input[type=number] { width: 5em; }
+    .cfg-card label > span:first-child { min-width: 0; }   /* the text takes the room that is left, and wraps there */
+    .cfg-card select { flex: 0 1 auto; min-width: 8em; max-width: 45%; text-overflow: ellipsis; }   /* a long choice is cut with an ellipsis instead of squeezing the text */
     .cfg-card input, .cfg-card select, .cfg-row button { font: inherit; margin: 0; }
     .cfg-foot { justify-content: flex-end; }
     #cfg:focus { outline: none; }
