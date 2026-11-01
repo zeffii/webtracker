@@ -2,6 +2,12 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 605 · 2026-11-01
+
+- **DX panel redrawn in a quieter style.** No more boxes: the algorithm bank is a field of small dots and thin lines (the selected one underlined), the algorithm picture is plain circles with the operator's number, ratio above and name below (M and S beside each), the operators are one line each (name, envelope, wave, a round level knob), the envelope is a bare curve with dots, and the tabs and buttons are plain text with an underline for the active one. The box around the panel is gone: a thin line at its left edge lights up while the mouse is over it (the keyjazz zone).
+- **Sharper waves.** The sketch of the sound now runs 1024 samples (128 to a cycle, it was 32) and draws two cycles with 256 points, with 128 spectrum bins.
+- The colours button no longer prints a message in the status line (it was shown on every machine's panel).
+
 ## 604 · 2026-11-01
 
 - **DX panel: "ice" is now the default colour set,** with a darker blue for the modulators where it had violet. The colours button still cycles the other sets.

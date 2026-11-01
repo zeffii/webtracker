@@ -908,8 +908,13 @@
     .field:focus-within { outline: 2px solid var(--hi); outline-offset: 0; }
     .field input { border: 0; outline: 0; background: transparent; }
     .field .unit { opacity: .6; font-size: 11px; user-select: none; }
-    .dx-box { border: 1px solid color-mix(in srgb, currentColor 35%, transparent); border-radius: 3px; padding: .4rem .5rem; }
-    .dx-box:hover { border-color: hsl(35 80% 55%); }
+    .dx-box { border-left: 2px solid transparent; padding: .4rem .5rem; }
+    .dx-box:hover { border-left-color: var(--dx-accent, hsl(35 80% 55%)); }   /* the keys play this instrument while the mouse is over it */
+    .dx-view button { background: none; border: 0; border-bottom: 1.5px solid transparent; border-radius: 0; padding: 0 .15rem; color: inherit; font: inherit; opacity: .6; cursor: pointer; }
+    .dx-view button:hover { opacity: 1; }
+    .dx-view .dx-tabs button.on, .dx-view button.on { opacity: 1; border-bottom-color: var(--dx-accent, hsl(35 80% 55%)); background: none; color: inherit; }
+    .dx-view .dx-name { background: none; border: 0; border-bottom: 1px solid transparent; color: inherit; font-size: 18px; letter-spacing: .08em; width: 11ch; }
+    .dx-view .dx-name:focus { border-bottom-color: var(--dx-accent, hsl(35 80% 55%)); outline: none; }
     .dx-cols { display: flex; gap: .6rem; flex-wrap: wrap; align-items: flex-start; }
     .dx-col { display: flex; flex-direction: column; gap: .3rem; }
     .dx-hint { font-size: 11px; opacity: .6; margin-top: .3rem; }

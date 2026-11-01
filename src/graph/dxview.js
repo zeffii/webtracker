@@ -6,8 +6,10 @@ import { previewVoice, operatorNames, ratioOf, STAGES } from './dxpreview.js';
 // M and S to mute and solo it), Operator (frequency, the four-point envelope you drag, levels and sensitivities),
 // Scaling (keyboard level scaling), LFO / Pitch (the LFO and the pitch envelope) and Bank (load, save, search,
 // move, compare). Every edit is written into the node's copy of the bank, which is sent to the engine at once.
-const W = 360, LW = 440, AH = 240, BW = 64, BH = 34;   // W: the right-hand canvases; LW x AH: the bank and the algorithm picture on the left
-const BANK_COLS = 8, BANK_CELL_H = 40, STRIP_H = 40;
+const W = 360;                       // the other tabs' canvases
+const LW = 448, AH = 232, R = 19;    // the bank and the algorithm picture on the left; R is an operator's radius
+const RW = 456, HEAD = 20, ROW = 44; // the operator rows, envelope and output on the right
+const BANK_COLS = 8, BANK_CELL_H = 46;
 
 // Colour sets for the panel's drawings: carrier and modulator boxes, and the selection. A null modulator means "the text colour".
 const PALETTES = [
@@ -82,65 +84,66 @@ export function createDxView({ doc = document, bank, getVoice, setVoice, getPara
   const algCanvas = sharpCanvas(doc, LW, AH);
   const actx = algCanvas.getContext('2d');
   let boxes = [];
-  // the shared layout of dxbank.js: no two operators overlap, whatever the algorithm
+  // the shared layout of dxbank.js: no two operators overlap, whatever the algorithm; at[k] is the centre of operator k
+  const TOP = 14;   // room above the top row for the ratios
   const layout = alg => {
-    const { pos, lines } = layoutAlgorithm(alg, LW, AH, BW, BH, 18);
-    return { at: pos.map(p => ({ x: p.cx, y: p.top })), lines };
+    const { pos, lines } = layoutAlgorithm(alg, LW, AH - TOP, 2 * R, 2 * R, 16);
+    return { at: pos.map(p => ({ x: p.cx, y: p.top + TOP + R })), lines: lines.map(([x1, y1, x2, y2]) => [x1, y1 + TOP, x2, y2 + TOP]) };
+  };
+  const text = (g, str, x, y, { size = 10, align = 'center', alpha = 1, colour } = {}) => {
+    g.font = `${size}px ui-monospace, Consolas, monospace`; g.textAlign = align; g.textBaseline = 'middle';
+    g.globalAlpha = alpha; g.fillStyle = colour; g.fillText(str, x, y); g.globalAlpha = 1;
   };
   const drawAlg = () => {
-    const v = voice(), alg = ALGORITHMS[v.alg], c = ink(algCanvas);
+    const v = voice(), alg = ALGORITHMS[v.alg], c = ink(algCanvas), g = actx;
     const mute = Math.round(getParam('mute')), solo = Math.round(getParam('solo'));
-    actx.clearRect(0, 0, LW, AH);
-    actx.font = '10px ui-monospace, Consolas, monospace';
-    actx.textBaseline = 'top';
+    g.clearRect(0, 0, LW, AH);
     const { at, lines } = layout(alg), names = operatorNames(v);
     boxes = at;
-    actx.strokeStyle = c; actx.lineWidth = 1.5; actx.globalAlpha = 0.7;
-    actx.beginPath();
-    for (const [x1, y1, x2, y2] of lines) { actx.moveTo(x1 + 0.5, y1 + 0.5); actx.lineTo(x2 + 0.5, y2 + 0.5); }
-    actx.stroke();
-    if (v.fb) {
+    g.strokeStyle = c; g.lineWidth = 1; g.globalAlpha = 0.4;
+    g.beginPath();
+    for (const [x1, y1, x2, y2] of lines) { g.moveTo(x1 + 0.5, y1 + 0.5); g.lineTo(x2 + 0.5, y2 + 0.5); }
+    g.stroke();
+    if (v.fb) {   // feedback: a little loop off the operator that feeds back
       const [f, t] = alg.fb, a = at[f], b = at[t];
-      actx.globalAlpha = 0.95; actx.strokeStyle = pal.carrier; actx.lineWidth = 2;
-      actx.beginPath(); actx.moveTo(a.x + BW / 2, a.y + BH / 2);
-      actx.bezierCurveTo(a.x + BW / 2 + 22, a.y + BH / 2, b.x + BW / 2 + 22, b.y + 4, b.x + BW / 2, b.y + 4); actx.stroke();
+      g.globalAlpha = 0.95; g.strokeStyle = pal.carrier; g.lineWidth = 1.5; g.beginPath();
+      if (f === t) g.arc(a.x + R * 0.9, a.y - R * 0.9, 9, 0.75 * Math.PI, 2.25 * Math.PI);
+      else { g.moveTo(a.x + R, a.y); g.bezierCurveTo(a.x + R + 24, a.y, b.x + R + 24, b.y, b.x + R, b.y); }
+      g.stroke();
+      text(g, f === t ? 'fb' : `fb>${t + 1}`, a.x + R + 14, a.y - R - 2, { size: 9, align: 'left', colour: pal.carrier });
     }
     for (let k = 0; k < 6; k++) {
-      const p = v.ops[k], { x, y } = at[k], carrier = alg.carriers.includes(k);
-      const silent = ((mute >> k) & 1) || (solo && !((solo >> k) & 1));
-      actx.globalAlpha = silent ? 0.4 : 1;
-      actx.fillStyle = 'rgba(128,128,128,0.16)'; actx.fillRect(x - BW / 2, y, BW, BH);
-      actx.fillStyle = carrier ? pal.carrier : pal.mod || c; actx.globalAlpha *= 0.28; actx.fillRect(x - BW / 2, y, BW, BH); actx.globalAlpha = silent ? 0.4 : 1;
-      actx.strokeStyle = k === op ? pal.select : carrier ? pal.carrier : pal.mod || c; actx.lineWidth = k === op ? 2.5 : 1.5;
-      actx.strokeRect(x - BW / 2 + 0.5, y + 0.5, BW - 1, BH - 1);
-      actx.fillStyle = c;
-      const ratio = p.mode ? `${Math.round(Math.pow(10, (p.fc & 3) + p.ff / 100))}Hz` : `x${((p.fc === 0 ? 0.5 : p.fc) * (1 + p.ff / 100)).toFixed(2)}`;
-      actx.fillText(`${k + 1} ${ratio}`, x - BW / 2 + 4, y + 4);
-      actx.font = '9px ui-monospace, Consolas, monospace';
-      actx.fillText(names[k].slice(0, 10), x - BW / 2 + 4, y + 18);
-      actx.font = '10px ui-monospace, Consolas, monospace';
-      // M and S, under the box
-      actx.globalAlpha = 1;
-      actx.fillStyle = (mute >> k) & 1 ? pal.select : c; actx.fillText('M', x - 16, y + BH + 2);
-      actx.fillStyle = (solo >> k) & 1 ? pal.select : c; actx.fillText('S', x + 8, y + BH + 2);
+      const p = v.ops[k], { x, y } = at[k], carrier = alg.carriers.includes(k), colour = carrier ? pal.carrier : pal.mod || c;
+      const silent = ((mute >> k) & 1) || (solo && !((solo >> k) & 1)), on = k === op;
+      g.globalAlpha = silent ? 0.4 : 1;
+      g.fillStyle = 'transparent';
+      if (on) { g.fillStyle = colour; g.globalAlpha *= 0.18; g.beginPath(); g.arc(x, y, R, 0, 2 * Math.PI); g.fill(); g.globalAlpha = silent ? 0.4 : 1; }
+      g.strokeStyle = colour; g.lineWidth = 1.5; g.beginPath(); g.arc(x, y, R, 0, 2 * Math.PI); g.stroke();
+      if (on) { g.strokeStyle = pal.select; g.lineWidth = 1.5; g.beginPath(); g.arc(x, y, R + 3.5, 0, 2 * Math.PI); g.stroke(); }
+      const ratio = p.mode ? `${Math.round(Math.pow(10, (p.fc & 3) + p.ff / 100))}Hz` : `x${ratioOf(p).toFixed(2).replace(/\.?0+$/, '')}`;
+      text(g, String(k + 1), x, y, { size: 12, colour: c, alpha: silent ? 0.4 : 1 });
+      text(g, ratio, x, y - R - 7, { size: 9, colour: c, alpha: 0.55 });
+      text(g, names[k].slice(0, 10), x, y + R + 8, { size: 10, colour: c, alpha: on ? 1 : 0.6 });
+      text(g, 'M', x + R + 6, y - 6, { size: 9, align: 'left', colour: (mute >> k) & 1 ? pal.select : c, alpha: (mute >> k) & 1 ? 1 : 0.4 });
+      text(g, 'S', x + R + 6, y + 7, { size: 9, align: 'left', colour: (solo >> k) & 1 ? pal.select : c, alpha: (solo >> k) & 1 ? 1 : 0.4 });
     }
-    actx.globalAlpha = 1;
+    g.globalAlpha = 1;
   };
   algCanvas.addEventListener('mousedown', e => {
     const r = algCanvas.getBoundingClientRect(), s = r.width ? LW / r.width : 1, x = (e.clientX - r.left) * s, y = (e.clientY - r.top) * s;
     boxes.forEach((b, k) => {
-      if (Math.abs(x - b.x) <= BW / 2 && y >= b.y && y <= b.y + BH) { op = k; refreshAll(); }
-      else if (y > b.y + BH && y < b.y + BH + 14 && Math.abs(x - (b.x - 12)) < 8) setParamValue('mute', Math.round(getParam('mute')) ^ (1 << k)), refreshAll();
-      else if (y > b.y + BH && y < b.y + BH + 14 && Math.abs(x - (b.x + 12)) < 8) setParamValue('solo', Math.round(getParam('solo')) ^ (1 << k)), refreshAll();
+      if (Math.hypot(x - b.x, y - b.y) <= R) { op = k; refreshAll(); }
+      else if (x > b.x + R + 2 && x < b.x + R + 16 && Math.abs(y - (b.y - 6)) < 6) setParamValue('mute', Math.round(getParam('mute')) ^ (1 << k)), refreshAll();
+      else if (x > b.x + R + 2 && x < b.x + R + 16 && Math.abs(y - (b.y + 7)) < 6) setParamValue('solo', Math.round(getParam('solo')) ^ (1 << k)), refreshAll();
     });
   });
 
   // ---- the voice tab: the bank of algorithms, the operators' envelopes and waves, and the sum ----
   const bankCanvas = sharpCanvas(doc, LW, BANK_CELL_H * 4);
   const bankCtx = bankCanvas.getContext('2d');
-  const stripCanvas = sharpCanvas(doc, W, STRIP_H * 6);
+  const stripCanvas = sharpCanvas(doc, RW, HEAD + ROW * 6);
   const stripCtx = stripCanvas.getContext('2d');
-  const outCanvas = sharpCanvas(doc, W, 70);
+  const outCanvas = sharpCanvas(doc, RW, 76);
   const outCtx = outCanvas.getContext('2d');
   const clickAt = (canvas, e, width = W) => { const r = canvas.getBoundingClientRect(), s = r.width ? width / r.width : 1; return { x: (e.clientX - r.left) * s, y: (e.clientY - r.top) * s }; };
   bankCanvas.addEventListener('mousedown', e => {
@@ -148,7 +151,7 @@ export function createDxView({ doc = document, bank, getVoice, setVoice, getPara
     const i = Math.floor(y / BANK_CELL_H) * BANK_COLS + Math.floor(x / (LW / BANK_COLS));
     if (i >= 0 && i < ALGORITHMS.length) edit(v => { v.alg = i; });
   });
-  stripCanvas.addEventListener('mousedown', e => { op = clamp(Math.floor(clickAt(stripCanvas, e).y / STRIP_H), 0, 5); refreshAll(); });
+  stripCanvas.addEventListener('mousedown', e => { op = clamp(Math.floor((clickAt(stripCanvas, e, RW).y - HEAD) / ROW), 0, 5); refreshAll(); });
 
   // an operator's envelope as a small picture: the four stages, a held part, and a dot on the stage being heard
   const miniEnvelope = (g, p, x, y, w, h, colour) => {
@@ -158,48 +161,51 @@ export function createDxView({ doc = document, bank, getVoice, setVoice, getPara
     let at = 0;
     const px = [x], py = [y + h - 2 - levels[0] * (h - 4)];
     parts.forEach((part, i) => { at += part / total * w; px.push(x + at); py.push(y + h - 2 - levels[i + 1] * (h - 4)); });
-    g.strokeStyle = colour; g.lineWidth = 1.5; g.beginPath();
+    g.strokeStyle = colour; g.lineWidth = 1.3; g.beginPath();
     px.forEach((xx, i) => (i ? g.lineTo(xx, py[i]) : g.moveTo(xx, py[i])));
     g.stroke();
-    g.fillStyle = pal.select; g.fillRect(px[stage + 1] - 2.5, py[stage + 1] - 2.5, 5, 5);
+    g.fillStyle = pal.select; g.beginPath(); g.arc(px[stage + 1], py[stage + 1], 3, 0, 2 * Math.PI); g.fill();
   };
-  const miniWave = (g, buf, x, y, w, h, colour, count = 64) => {
+  const miniWave = (g, buf, x, y, w, h, colour, count = 256) => {
     let peak = 1e-6;
     for (let n = 0; n < count; n++) peak = Math.max(peak, Math.abs(buf[n]));
-    g.strokeStyle = colour; g.lineWidth = 1.2; g.beginPath();
+    g.strokeStyle = colour; g.lineWidth = 1.1; g.beginPath();
     for (let n = 0; n < count; n++) { const px = x + (n / (count - 1)) * w, py = y + h / 2 - (buf[n] / peak) * (h / 2 - 2); n ? g.lineTo(px, py) : g.moveTo(px, py); }
     g.stroke();
+  };
+  // a level as a small round knob: a faint track and the value swept over it
+  const knob = (g, x, y, value, colour, track) => {
+    const from = 0.75 * Math.PI, sweep = 1.5 * Math.PI;
+    g.lineWidth = 1.5; g.strokeStyle = track; g.beginPath(); g.arc(x, y, 8, from, from + sweep); g.stroke();
+    if (value > 0.01) { g.lineWidth = 2; g.strokeStyle = colour; g.beginPath(); g.arc(x, y, 8, from, from + sweep * value); g.stroke(); }
   };
   const drawVoiceTab = () => {
     if (tab !== 'voice') return;
     const v = voice(), alg = ALGORITHMS[v.alg], c = ink(stripCanvas), names = operatorNames(v), sound = previewVoice(v, stage);
-    drawBank(bankCtx, { width: LW, cols: BANK_COLS, cellH: BANK_CELL_H, selected: v.alg, ink: c, accent: pal.carrier, modulator: pal.mod || c, select: pal.select });
+    drawBank(bankCtx, { width: LW, cols: BANK_COLS, cellH: BANK_CELL_H, selected: v.alg, ink: c, accent: pal.carrier, modulator: pal.mod || c });
     const g = stripCtx;
-    g.clearRect(0, 0, W, STRIP_H * 6);
-    g.font = '9px ui-monospace, Consolas, monospace'; g.textBaseline = 'top';
+    g.clearRect(0, 0, RW, HEAD + ROW * 6);
+    text(g, 'OPERATORS', 0, 8, { size: 9, align: 'left', colour: c, alpha: 0.55 });
     v.ops.forEach((p, k) => {
-      const y = k * STRIP_H, carrier = alg.carriers.includes(k), colour = carrier ? pal.carrier : pal.mod || c;
-      g.fillStyle = 'rgba(128,128,128,0.12)'; g.fillRect(1, y + 1, W - 2, STRIP_H - 2);
-      g.strokeStyle = k === op ? pal.select : c; g.globalAlpha = k === op ? 1 : 0.3; g.lineWidth = k === op ? 2 : 1;
-      g.strokeRect(1.5, y + 1.5, W - 3, STRIP_H - 3);
-      g.globalAlpha = 1; g.fillStyle = c;
-      g.fillText(`${k + 1} ${names[k]}`, 6, y + 6);
-      g.globalAlpha = 0.6; g.fillText(`${carrier ? 'carrier' : 'modulator'} x${ratioOf(p).toFixed(2)}`, 6, y + 18);
-      g.fillText(`lv ${p.ol}`, 6, y + 29); g.globalAlpha = 1;
-      miniEnvelope(g, p, 100, y + 4, 100, STRIP_H - 8, colour);
-      miniWave(g, sound.ops[k], 210, y + 4, 100, STRIP_H - 8, colour);
-      g.fillStyle = 'rgba(128,128,128,0.3)'; g.fillRect(320, y + 16, 30, 5);
-      g.fillStyle = colour; g.fillRect(320, y + 16, 30 * p.ol / 99, 5);
+      const y = HEAD + k * ROW, carrier = alg.carriers.includes(k), colour = carrier ? pal.carrier : pal.mod || c, on = k === op;
+      g.globalAlpha = on ? 1 : 0.72;
+      if (on) { g.fillStyle = pal.carrier; g.fillRect(0, y + 5, 2, ROW - 10); }
+      text(g, `${k + 1}  ${names[k]}`, 10, y + 15, { size: 12, align: 'left', colour: c, alpha: on ? 1 : 0.8 });
+      text(g, `x${ratioOf(p).toFixed(2).replace(/\.?0+$/, '')}${v.fb && alg.fb[0] === k ? (alg.fb[1] === k ? '  fb' : `  fb>${alg.fb[1] + 1}`) : ''}`, 10, y + 31, { size: 10, align: 'left', colour: c, alpha: 0.5 });
+      miniEnvelope(g, p, 130, y + 5, 130, ROW - 12, colour);
+      miniWave(g, sound.ops[k], 280, y + 5, 110, ROW - 12, colour);
+      knob(g, 412, y + ROW / 2 - 2, p.ol / 99, colour, 'rgba(128,128,128,0.35)');
+      text(g, String(p.ol), 428, y + ROW / 2 - 2, { size: 10, align: 'left', colour: c, alpha: 0.55 });
+      g.globalAlpha = 1;
     });
     const o = outCtx;
-    o.clearRect(0, 0, W, 70);
-    o.font = '9px ui-monospace, Consolas, monospace'; o.textBaseline = 'top';
-    o.fillStyle = 'rgba(128,128,128,0.12)'; o.fillRect(1, 1, W - 2, 68);
-    o.fillStyle = c; o.globalAlpha = 0.6; o.fillText('output', 6, 4); o.fillText('spectrum', 186, 4); o.globalAlpha = 1;
-    miniWave(o, sound.mix, 6, 14, 168, 52, pal.carrier);
+    o.clearRect(0, 0, RW, 76);
+    text(o, 'OUTPUT', 0, 8, { size: 9, align: 'left', colour: c, alpha: 0.55 });
+    text(o, 'SPECTRUM', 240, 8, { size: 9, align: 'left', colour: c, alpha: 0.55 });
+    miniWave(o, sound.mix, 0, 18, 216, 56, pal.carrier);
     o.fillStyle = pal.carrier;
-    const bw = 168 / sound.spectrum.length;
-    sound.spectrum.forEach((m, i) => { const h = Math.max(1, m * 48); o.fillRect(186 + i * bw, 66 - h, Math.max(1, bw - 1), h); });
+    const bw = 216 / sound.spectrum.length;
+    sound.spectrum.forEach((m, i) => { const h = Math.max(1, m * 54); o.fillRect(240 + i * bw, 74 - h, Math.max(1, bw - 1), h); });
   };
 
   const nameInput = el('input', { className: 'dx-name', maxLength: 10 });
@@ -212,7 +218,7 @@ export function createDxView({ doc = document, bank, getVoice, setVoice, getPara
     algCanvas,
     el('div', { className: 'tag' }, 'click a thumbnail to pick the algorithm · click an operator or a strip to select it · M mute, S solo'));
   const rightColumn = el('div', { className: 'dx-col' }, stripCanvas, outCanvas);
-  if (leftColumn.style) { leftColumn.style.width = `${LW}px`; rightColumn.style.width = `${W}px`; }
+  if (leftColumn.style) { leftColumn.style.width = `${LW}px`; rightColumn.style.width = `${RW}px`; }
   const voiceTab = el('div', {},
     el('div', { className: 'prow' }, button('◀', () => setVoice(clamp(cur() - 1, 0, VOICES - 1))), nameInput, button('▶', () => setVoice(clamp(cur() + 1, 0, VOICES - 1))),
       button('init', () => edit(v => { Object.assign(v, initVoice({ name: v.name })); }), 'reset this voice to the DX7 init voice'),
@@ -220,13 +226,13 @@ export function createDxView({ doc = document, bank, getVoice, setVoice, getPara
       button('colours', () => {
         pal = PALETTES[(PALETTES.indexOf(pal) + 1) % PALETTES.length];
         try { localStorage.setItem('wax.dxPalette', pal.name); } catch { /* no storage */ }
-        say(`DX panel colours: ${pal.name}.`); refreshAll();
+        refreshAll();
       }, 'cycle the colour set of the drawings')),
     el('div', { className: 'dx-cols' }, leftColumn, rightColumn));
   refreshers.push(drawAlg, drawVoiceTab);
 
   // ---- an envelope you drag: four rates and four levels ----
-  const envGraph = ({ get, set, yOf, levelAt, seconds, label, onGrab, W: EW = 340, H: EH = 118 }) => {
+  const envGraph = ({ get, set, yOf, levelAt, seconds, label, onGrab, bare = false, active = () => -1, W: EW = 340, H: EH = 118 }) => {
     const canvas = sharpCanvas(doc, EW, EH);
     const g = canvas.getContext('2d');
     const PAD = 14;
@@ -248,15 +254,16 @@ export function createDxView({ doc = document, bank, getVoice, setVoice, getPara
     const draw = () => {
       const c = ink(canvas), geo = geometry();
       g.clearRect(0, 0, EW, EH);
-      g.fillStyle = 'rgba(128,128,128,0.14)'; g.fillRect(0, 0, EW, EH);
-      g.font = '9px ui-monospace, Consolas, monospace'; g.textBaseline = 'top';
-      g.fillStyle = c; g.globalAlpha = 0.5; g.fillText(label, 6, 3); g.globalAlpha = 1;
-      g.strokeStyle = pal.carrier; g.lineWidth = 2.5;
+      if (!bare) { g.fillStyle = 'rgba(128,128,128,0.14)'; g.fillRect(0, 0, EW, EH); }
+      g.font = '9px ui-monospace, Consolas, monospace'; g.textBaseline = 'top'; g.textAlign = 'left';
+      g.fillStyle = c; g.globalAlpha = 0.5; g.fillText(typeof label === 'function' ? label() : label, bare ? 0 : 6, bare ? 0 : 3); g.globalAlpha = 1;
+      g.strokeStyle = pal.carrier; g.lineWidth = bare ? 1.6 : 2.5;
       g.beginPath(); g.moveTo(...geo.start);
       for (let i = 0; i < 3; i++) g.lineTo(...geo.pts[i]);
       g.lineTo(geo.sustainEnd, geo.pts[2][1]); g.lineTo(...geo.pts[3]); g.stroke();
       geo.pts.forEach(([x, y], i) => {
-        g.fillStyle = pal.select; g.beginPath(); g.arc(x, y, i === dragging?.i ? 6 : 4.5, 0, Math.PI * 2); g.fill();
+        g.fillStyle = bare && i !== active() && i !== dragging?.i ? pal.carrier : pal.select;
+        g.beginPath(); g.arc(x, y, bare ? (i === dragging?.i ? 5 : 3.5) : i === dragging?.i ? 6 : 4.5, 0, Math.PI * 2); g.fill();
         g.fillStyle = c; g.fillText(`R${i + 1} ${geo.r[i]}`, clamp(x - 22, 2, EW - 46), EH - 11);
         g.fillText(`L${i + 1} ${geo.l[i]}`, clamp(x + 6, 2, EW - 40), y + (y > 20 ? -12 : 4));
       });
@@ -294,8 +301,8 @@ export function createDxView({ doc = document, bank, getVoice, setVoice, getPara
   // the same envelope again on the Voice tab, so the whole sound can be shaped without changing tabs:
   // grabbing a point (attack, decay, sustain) also sets which moment of the note the waves and spectrum show
   const voiceEnv = envGraph({
-    label: 'selected operator: drag the dots',
-    W: 360, H: 100,
+    label: () => `ENVELOPE · ${operatorNames(voice())[op].toUpperCase()}`, bare: true, active: () => stage,
+    W: RW, H: 100,
     get: () => ({ l: voice().ops[op].l, r: voice().ops[op].r }),
     set: (kind, i, value) => { voice().ops[op][kind][i] = value; commit(); drawAlg(); drawVoiceTab(); },
     onGrab: i => { stage = Math.min(i, 2); drawVoiceTab(); },
@@ -461,7 +468,7 @@ export function createDxView({ doc = document, bank, getVoice, setVoice, getPara
     refreshAll();
   };
   for (const name of Object.keys(sections)) tabs.append(button(name, () => showTab(name)));
-  const refreshAll = () => { for (const f of refreshers) f(); };
+  const refreshAll = () => { root.style.setProperty('--dx-accent', pal.carrier); for (const f of refreshers) f(); };
   const hint = el('div', { className: 'dx-hint', textContent: 'The piano keys play this instrument while the mouse is over this box ([ and ] change the octave).' });
   const root = el('div', { className: 'curve-editor dx-view dx-box', title: 'Keyjazz: with the mouse over this box the piano keys play the instrument' }, tabs, ...Object.values(sections), info, hint);
   showTab(tab);

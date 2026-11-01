@@ -43,35 +43,29 @@ export function layoutAlgorithm(alg, W, H, nw, nh, padB = 5) {
   return { pos, lines, bus, busY };
 }
 
-// Draws the whole bank into a canvas context: `cols` thumbnails per row, the selected one highlighted.
-// Returns the cell size so the caller can turn a click into an algorithm number.
-export function drawBank(ctx, { width, cols, cellH, selected, ink, accent, modulator = ink, select = accent }) {
-  const cellW = width / cols, rows = Math.ceil(ALGORITHMS.length / cols);
+// Draws the whole bank into a canvas context: `cols` thumbnails per row, no boxes. Each is a few dots joined by
+// thin lines (carriers in the accent colour, modulators in the second colour) with its number in the corner; the
+// selected one is drawn fully and underlined, the others a little faded.
+export function drawBank(ctx, { width, cols, cellH, selected, ink, accent, modulator = ink }) {
+  const cellW = width / cols, rows = Math.ceil(ALGORITHMS.length / cols), dot = 3.5;
   ctx.clearRect(0, 0, width, rows * cellH);
   ctx.font = '8px ui-monospace, Consolas, monospace';
-  ctx.textBaseline = 'top';
+  ctx.textBaseline = 'top'; ctx.textAlign = 'left';
   ALGORITHMS.forEach((alg, i) => {
     const x = (i % cols) * cellW, y = Math.floor(i / cols) * cellH, on = i === selected;
-    ctx.fillStyle = 'rgba(128,128,128,0.12)';
-    ctx.fillRect(x + 1, y + 1, cellW - 2, cellH - 2);
-    if (on) { ctx.globalAlpha = 0.22; ctx.fillStyle = select; ctx.fillRect(x + 1, y + 1, cellW - 2, cellH - 2); ctx.globalAlpha = 1; }
-    ctx.strokeStyle = on ? select : ink; ctx.globalAlpha = on ? 1 : 0.35; ctx.lineWidth = on ? 2 : 1;
-    ctx.strokeRect(x + 1.5, y + 1.5, cellW - 3, cellH - 3);
-    ctx.globalAlpha = 1;
-    const nw = Math.max(5, cellW * 0.16), nh = Math.max(4, cellH * 0.12);
-    const { pos, lines, bus } = layoutAlgorithm(alg, cellW, cellH, nw, nh);
-    ctx.strokeStyle = ink; ctx.globalAlpha = 0.6; ctx.lineWidth = 1;
+    const { pos, lines } = layoutAlgorithm(alg, cellW, cellH - 4, 2 * dot, 2 * dot, 6);
+    ctx.globalAlpha = on ? 1 : 0.6;
+    ctx.strokeStyle = ink; ctx.lineWidth = 1;
     ctx.beginPath();
-    for (const [x1, y1, x2, y2] of [...lines, ...bus]) { ctx.moveTo(x + x1 + 0.5, y + y1 + 0.5); ctx.lineTo(x + x2 + 0.5, y + y2 + 0.5); }
+    for (const [x1, y1, x2, y2] of lines) { ctx.moveTo(x + x1 + 0.5, y + y1 + 0.5); ctx.lineTo(x + x2 + 0.5, y + y2 + 0.5); }
     ctx.stroke();
-    ctx.globalAlpha = 1;
     pos.forEach((p, k) => {
       ctx.fillStyle = alg.carriers.includes(k) ? accent : modulator;
-      ctx.globalAlpha = alg.carriers.includes(k) ? 1 : modulator === ink ? 0.55 : 0.9;
-      ctx.fillRect(x + p.cx - nw / 2, y + p.top, nw, nh);
+      ctx.beginPath(); ctx.arc(x + p.cx, y + p.top + dot, dot, 0, 2 * Math.PI); ctx.fill();
     });
-    ctx.globalAlpha = on ? 1 : 0.6; ctx.fillStyle = ink;
-    ctx.fillText(String(i + 1), x + 4, y + 3);
+    ctx.fillStyle = on ? accent : ink; ctx.globalAlpha = on ? 1 : 0.45;
+    ctx.fillText(String(i + 1), x + 3, y + 1);
+    if (on) { ctx.globalAlpha = 1; ctx.fillStyle = accent; ctx.fillRect(x + 4, y + cellH - 3, cellW - 8, 2); }
     ctx.globalAlpha = 1;
   });
   return { cellW, cellH, cols };

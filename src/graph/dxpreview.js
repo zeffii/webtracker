@@ -3,7 +3,7 @@ import { ALGORITHMS, scaleOL } from '../audio/nodes/dx7.js';
 // A rough picture of what a DX voice sounds like, for the panel: it runs a few cycles of the six operators in
 // the voice's algorithm (frequency ratios, output levels, feedback) at one point of the note, and gives back
 // each operator's waveform, the summed output and its spectrum. It is a sketch for the eye, not the engine.
-const SAMPLES = 256, PERIOD = 32;
+const SAMPLES = 1024, PERIOD = 128;   // eight cycles of the note, 128 samples to a cycle
 
 export const STAGES = ['attack', 'decay', 'sustain'];
 
@@ -42,18 +42,18 @@ export function previewVoice(voice, stage = 0) {
   const order = [0, 1, 2, 3, 4, 5].sort((a, b) => rankOf(a) - rankOf(b));
 
   const out = Array.from({ length: 6 }, () => new Float32Array(SAMPLES));
-  const [fbFrom, fbTo] = alg.fb, fbAmount = voice.fb ? 0.35 * voice.fb / 7 * 9 : 0;
+  const [fbFrom, fbTo] = alg.fb, fbAmount = (voice.fb / 7) * 1.8;   // feedback: the operator hears the average of its last two samples
   for (let n = 0; n < SAMPLES; n++) {
     for (const k of order) {
       let m = 0;
       for (const s of feeders[k]) m += (5 * out[s][n]) / Math.max(1, 0.6 * feeders[k].length);
-      if (k === fbTo && n > 0) m += fbAmount * out[fbFrom][n - 1];
+      if (k === fbTo && n > 1) m += fbAmount * (out[fbFrom][n - 1] + out[fbFrom][n - 2]);
       out[k][n] = Math.sin((2 * Math.PI * ratioOf(voice.ops[k]) * n) / PERIOD + m) * Math.min(1, amp[k] * 1.6);
     }
   }
   const mix = new Float32Array(SAMPLES);
   for (let n = 0; n < SAMPLES; n++) for (const c of alg.carriers) mix[n] += out[c][n];
-  return { ops: out, mix, spectrum: spectrumOf(mix, 64) };
+  return { ops: out, mix, spectrum: spectrumOf(mix, 128) };
 }
 
 // magnitudes of the first `bins` harmonics of a buffer holding a whole number of cycles, scaled 0..1

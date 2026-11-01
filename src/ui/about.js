@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['605', ['DX panel redrawn without boxes (dots, circles, thin lines, round knobs), sharper wave sketches (128 samples to a cycle), no status message from the colours button']],
   ['604', ['DX panel: the ice colour set (light blue carriers, dark blue modulators) is the default']],
   ['603', ['DX panel: two columns (half the height), sharp drawings instead of blurry ones, no overlapping operators, and a colours button with four colour sets']],
   ['602', ['F3 from the pattern editor or the arrangement opens the graph of the lane you are in']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['598', ['Listen node: an instrument plays the notes of another (transpose, level, on/off), to audition other machines on the same notes']],
   ['597', ['DX-style synth: six more built-in voices (four pianos, a reed-and-vibe key sound, a harpsichord-vibraphone)']],
   ['596', ['Mosh: a lost keyframe as sound. A held chord wears the movement of another sound (louder, quieter, sliding up or down), until a keyframe puts it back; with a ?demo=mosh demo']],
-  ['595', ['Detect chords: click a chord to hear it for half a second on the chosen lane, with or without the extra notes']],
                     ];
