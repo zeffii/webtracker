@@ -8916,6 +8916,33 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     console.log('ok: membrane');
   }
 
+  // the machine tree: every machine is in it exactly once, and the guide lines are right
+  {
+    const { buildMachineTree, visibleRows } = await import('../src/ui/machinetree.js');
+    const { synthKinds, MACHINE_TREE } = await import('../src/instruments.js');
+    const items = [...Object.keys(synthKinds).map(k => ({ value: `synth:${k}`, label: synthKinds[k].label })), { value: 'sampler', label: 'Sampler', disabled: true }];
+    const tree = buildMachineTree(items);
+    const leaves = []; const collect = ns => ns.forEach(n => (n.children ? collect(n.children) : leaves.push(n)));
+    collect(tree);
+    assert.equal(leaves.length, items.length, 'every machine is in the tree');
+    assert.equal(new Set(leaves.map(l => l.value)).size, items.length, 'and only once');
+    assert.ok(!tree.some(g => g.name === 'other'), 'the layout names every machine, so there is no "other" group');
+    assert.ok(leaves.find(l => l.value === 'sampler').disabled, 'a disabled entry stays disabled');
+    for (const g of MACHINE_TREE) for (const [kind] of [...(g.items ?? []), ...(g.groups ?? []).flatMap(s => s.items)]) assert.ok(kind === 'sampler' || synthKinds[kind], `the tree names a real machine: ${kind}`);
+    const extra = buildMachineTree([...items, { value: 'synth:newthing', label: 'New thing' }]);
+    assert.equal(extra.at(-1).name, 'other', 'a machine the layout does not name goes under "other"');
+    const open = new Set(['synths', 'synths/digital']);
+    const rows = visibleRows(tree, open);
+    const names = rows.map(r => r.node.name);
+    assert.ok(names.includes('FM synth') && !names.includes('Subtractive'), 'only the open groups show their machines');
+    const fm = rows.find(r => r.node.name === 'FM synth'), analogue = rows.find(r => r.node.name === 'analogue'), physical = rows.find(r => r.node.name === 'physical');
+    assert.deepEqual(analogue.guides, ['t'], 'a group with more after it has a branch');
+    assert.deepEqual(physical.guides, ['l'], 'the last group has an elbow');
+    assert.deepEqual(fm.guides, ['v', 't'], 'a machine under a group that has more after it carries the line through');
+    assert.deepEqual(rows.find(r => r.node.name === 'Granular').guides, ['v', 'l'], 'the last machine in the group has an elbow');
+    console.log('ok: machine tree');
+  }
+
   // the keyboard on a Chord tile: naming the notes, stray notes, editing notes and volumes, and where the keys are
   {
     const { identifyChord, describeChord, editNote, editVolume, chordView, noteLimit } = await import('../src/nodeseq/chordtext.js');

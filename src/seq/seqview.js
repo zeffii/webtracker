@@ -7,6 +7,7 @@ import { createPlayline, createLoopLines } from '../ui/playline.js';
 import { placementAt, puidByIndex, startsAt } from './edit.js';
 import { setLoopPoint, toggleLoop } from './loop.js';
 import { showContextMenu } from '../ui/ctxmenu.js';
+import { showMachineTree, buildMachineTree } from '../ui/machinetree.js';
 import { createMinimap } from './minimap.js';
 import { createCurveView, headMark, shownCurve } from './curveview.js';
 import { newCurve, normalise, addSection, removeSection } from './automation.js';
@@ -267,6 +268,13 @@ export function createSequenceView({ el, statusEl, undoEl = null, listEl, transp
   const laneItems = e => [{
     label: 'Insert lane…', hint: 'next to this one', run: () => insertMenu(e),
   }];
+  // The machine tree: pick a kind of instrument; it is added with its own lane, on `side` of the cursor's lane.
+  const newInstrumentTree = at => {
+    const here = lane();
+    if (!here) return;
+    if (here.instrument === MASTER && side === 'left') side = 'right';
+    showMachineTree(at, buildMachineTree(newKinds()), { title: `new instrument, ${side} of ${here.id}`, onPick: value => { onNewInstrument(value, side); draw(); } });
+  };
   const insertMenu = e => {
     const free = unassigned(), here = lane(), isMaster = here.instrument === MASTER;
     if (isMaster && side === 'left') side = 'right';   // nothing goes before the master lane
@@ -275,10 +283,7 @@ export function createSequenceView({ el, statusEl, undoEl = null, listEl, transp
       { label: `${side === 'left' ? '●' : '○'} To the left of ${here.id}`, disabled: isMaster, run: pick('left') },
       { label: `${side === 'right' ? '●' : '○'} To the right of ${here.id}`, run: pick('right') },
       { separator: true },
-      { label: 'New instrument…', run: () => showContextMenu(e, [
-        { label: `New instrument, ${side} of ${here.id}:`, disabled: true },
-        ...newKinds().map(k => ({ label: k.label, disabled: k.disabled, run: () => { onNewInstrument(k.value, side); draw(); } })),
-      ]) },
+      { label: 'New instrument…', hint: 'Shift+I', run: () => newInstrumentTree({ x: e.clientX, y: e.clientY }) },
       { label: 'Instruments without a lane…', hint: free.length ? `${free.length}` : 'none', disabled: !free.length, run: () => showContextMenu(e, [
         { label: `Instrument without a lane, ${side} of ${here.id}:`, disabled: true },
         ...free.map(id => ({ label: id, run: () => { onAddLane(id, side); draw(); } })),
@@ -474,7 +479,11 @@ export function createSequenceView({ el, statusEl, undoEl = null, listEl, transp
       case 'h': config.set('seqNames', !config.get('seqNames')); message = config.get('seqNames') ? 'Pattern names shown.' : 'Pattern names hidden.'; break;   // H: pattern names in the cells on or off
       case 'v': config.set('minimapOn', !config.get('minimapOn')); message = config.get('minimapOn') ? 'Pattern minimaps on.' : 'Pattern minimaps off.'; break;   // V: the pattern minimaps in the cells on or off
       case 'l': message = toggleLoop(song); onSong(); break;   // L: the loop on or off (Ctrl+L too, where the browser lets it through)
-      case 'i': act('insert a pattern', editor.insertPattern(li, t, { overlay: true }), 'Pattern inserted.'); break;
+      case 'i': {
+        if (e.shiftKey) { const r = el.getBoundingClientRect(); newInstrumentTree({ x: r.left + 40, y: r.top + 40 }); break; }   // Shift+I: the machine tree, for a new instrument and its lane
+        act('insert a pattern', editor.insertPattern(li, t, { overlay: true }), 'Pattern inserted.');
+        break;
+      }
       case 'n': act('clone', editor.clone(li, t), 'Cloned: this placement now has its own copy.'); break;
       case 's': act('slice', editor.slice(li, t), 'Sliced.'); break;
       case '+': case '=': act('extend', editor.resize(li, t, 16), 'Extended.'); break;

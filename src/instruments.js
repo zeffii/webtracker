@@ -225,6 +225,22 @@ const combPercKind = params => ({
 });
 
 // Synth instruments: one synth node into out, with a few parameters exposed as pattern columns.
+// How the machines are grouped in the machine tree (ui/machinetree.js): [kind, the short name shown]. A kind that is not named here
+// still shows up, under "other". The sampler is the one that is not a synth kind.
+export const MACHINE_TREE = [
+  { name: 'samplers', items: [['sampler', 'Sampler'], ['modchan', 'MOD channel']] },
+  { name: 'synths', groups: [
+    { name: 'analogue', items: [['subtractive', 'Subtractive'], ['fourpole', 'Fourpole'], ['oberheim', 'Oberheim-style'], ['squelch', 'Squelch'], ['duette', 'Duette'], ['cardinal', 'Cardinal'], ['snarl', 'Snarl']] },
+    { name: 'digital', items: [['fm', 'FM synth'], ['dvii', 'DVIIloader'], ['wavetable', 'Wavetable'], ['additive', 'Additive'], ['spectral', 'Spectral'], ['granular', 'Granular']] },
+    { name: 'physical', items: [['piano', 'Piano'], ['string', 'Plucked string'], ['jawharp', 'Jaw harp']] },
+  ] },
+  { name: 'drums', groups: [
+    { name: 'machines', items: [['kick', 'Kick'], ['drumsynth', 'Drum synth'], ['hat808', '808 hi-hat'], ['clap', 'Clap'], ['combperc', 'Comb perc'], ['combtom', 'Comb tom']] },
+    { name: 'struck', items: [['woodblock', 'Woodblock'], ['clang', 'Clang'], ['membrane', 'Membrane']] },
+  ] },
+  { name: 'tools', items: [['chords', 'Chords'], ['meta', 'Meta machine'], ['code', 'Code'], ['osc', 'OSC out'], ['empty', 'Empty']] },
+];
+
 export const synthKinds = {
   kick: {
     label: 'Kick synth',

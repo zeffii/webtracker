@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 614 · 2026-11-01
+
+- **The machine tree: a new way to pick an instrument.** A tree of thin lines in orange on dark, in the style of your ztrk menu: samplers, synths (analogue, digital, physical), drums (machines, struck) and tools. Up/Down move, Right opens a group (or steps into it), Left closes it (or steps out), Enter picks, a letter jumps to the next row that starts with it, and the groups you opened stay open. It opens on the machine you picked last. In the Sequence Editor, press Shift+I, or right-click, Insert lane, New instrument. A machine that is not named in the layout (MACHINE_TREE in instruments.js) still shows up, in a group called "other".
+
 ## 613 · 2026-11-01
 
 - **New machine: Membrane (drum skin).** A circular head rings in the patterns (modes) a real skin has, and the pitch of each is a zero of a Bessel function, found in the code itself: the overtones sit at 1, 1.59, 2.14, 2.30, 2.65, 2.92 times the lowest, as on a tom. Where the head is hit (`position`, middle to rim) decides how loud each mode is, also through Bessel functions: the middle only shakes the round patterns (a deep boom), near the rim everything rings. The note you play is the main tone (the second mode), the lowest sits a ratio of 0.63 below it. Other controls: `strike` (soft mallet to hard stick), `damping`, `highdamp`, `stiffness` (a thick head pushes the high modes sharp), `glide` (the pitch of a hard hit falls back, the tom zap), `shell` (a deep boom under the head), `width` (two pick-ups at different angles), `quality` (eco uses 16 modes instead of 40). Machine "Membrane (drum skin)" in the new-instrument list, and the node under Sources, Synths.
