@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 608 · 2026-11-01
+
+- **DX panel: the Voice tab in four columns,** laid out like your sketch. The tabs and the voice name sit over the algorithm bank and the algorithm picture (with the feedback slider and its name under it); then the operators; then the envelope, the output and spectrum, and the notes. The columns wrap if the window is too narrow for all four.
+
 ## 607 · 2026-11-01
 
 - **DX panel: the last frames go.** The feedback slider is a hairline with a small dot (it was a black bar), the name and other inputs are underlined text, and the lines of the algorithm picture stop short of the operator names instead of running through them.

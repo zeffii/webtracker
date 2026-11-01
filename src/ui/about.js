@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['608', ['DX panel: the Voice tab in four columns (bank and algorithm, operators, envelope and output)']],
   ['607', ['DX panel: hairline sliders, underlined inputs, and lines that stop short of the operator names']],
   ['606', ['DX panel: the two columns sit side by side and the drawings lose their frames']],
   ['605', ['DX panel redrawn without boxes (dots, circles, thin lines, round knobs), sharper wave sketches (128 samples to a cycle), no status message from the colours button']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['601', ['DX panel redesign: a bank of all 32 algorithms as thumbnails, named operators, per-operator envelope and wave strips, an output scope and spectrum, and a draggable envelope on the Voice tab']],
   ['600', ['Fix: the listen node now sounds (it was silent, and stopped the audio engine while it was in a graph)']],
   ['599', ['DX panel in a box with keyjazz; sample editor: Select all button, Delete over the waveform, Save sample to disk, auto-slice on the whole sample']],
-  ['598', ['Listen node: an instrument plays the notes of another (transpose, level, on/off), to audition other machines on the same notes']],
                     ];

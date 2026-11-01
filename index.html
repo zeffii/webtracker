@@ -917,6 +917,12 @@
     .dx-view .dx-name:focus { border-bottom-color: var(--dx-accent, hsl(35 80% 55%)); outline: none; }
     .dx-cols { display: flex; gap: .6rem; flex-wrap: wrap; align-items: flex-start; }
     .dx-col { display: flex; flex-direction: column; gap: .3rem; }
+    .dx-cols.dx-voice { gap: 1rem; }
+    .dx-head { display: flex; flex-wrap: wrap; align-items: center; gap: .3rem 1.2rem; margin-bottom: .3rem; }
+    .dx-slider.dx-fb { display: grid; grid-template-columns: 1fr auto; gap: 2px .4rem; margin: 0; }   /* the slider with its name under it */
+    .dx-slider.dx-fb input { grid-column: 1; grid-row: 1; max-width: none; }
+    .dx-slider.dx-fb .dx-val { grid-column: 2; grid-row: 1; width: auto; }
+    .dx-slider.dx-fb .dx-lab { grid-column: 1; grid-row: 2; width: auto; text-align: center; }
     .dx-hint { font-size: 11px; opacity: .6; margin-top: .3rem; }
     .dx-view canvas { display: block; }
     .dx-view.curve-editor canvas { border: 0; background: none; cursor: default; }   /* no frames: the drawings sit straight on the page */

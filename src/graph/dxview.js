@@ -7,7 +7,7 @@ import { previewVoice, operatorNames, ratioOf, STAGES } from './dxpreview.js';
 // Scaling (keyboard level scaling), LFO / Pitch (the LFO and the pitch envelope) and Bank (load, save, search,
 // move, compare). Every edit is written into the node's copy of the bank, which is sent to the engine at once.
 const W = 360;                       // the other tabs' canvases
-const LW = 448, AH = 232, R = 19;    // the bank and the algorithm picture on the left; R is an operator's radius
+const LW = 448, DW = 300, AH = 232, R = 19;   // the bank, the algorithm picture (DW wide, AH tall) and an operator's radius R
 const RW = 456, HEAD = 20, ROW = 44; // the operator rows, envelope and output on the right
 const BANK_COLS = 8, BANK_CELL_H = 46;
 
@@ -81,13 +81,13 @@ export function createDxView({ doc = document, bank, getVoice, setVoice, getPara
   const toggle = (text, get, set) => { const b = button(text, () => set(!get())); return track(b, () => b.classList.toggle('on', !!get())); };
 
   // ---- the voice tab: algorithm picture ----
-  const algCanvas = sharpCanvas(doc, LW, AH);
+  const algCanvas = sharpCanvas(doc, DW, AH);
   const actx = algCanvas.getContext('2d');
   let boxes = [];
   // the shared layout of dxbank.js: no two operators overlap, whatever the algorithm; at[k] is the centre of operator k
   const TOP = 14;   // room above the top row for the ratios
   const layout = alg => {
-    const { pos, lines } = layoutAlgorithm(alg, LW, AH - TOP, 2 * R, 2 * R, 16);
+    const { pos, lines } = layoutAlgorithm(alg, DW, AH - TOP, 2 * R, 2 * R, 16);
     return { at: pos.map(p => ({ x: p.cx, y: p.top + TOP + R })), lines: lines.map(([x1, y1, x2, y2]) => [x1, y1 + TOP, x2, y2 + TOP]) };
   };
   const text = (g, str, x, y, { size = 10, align = 'center', alpha = 1, colour, knockout = false } = {}) => {
@@ -98,7 +98,7 @@ export function createDxView({ doc = document, bank, getVoice, setVoice, getPara
   const drawAlg = () => {
     const v = voice(), alg = ALGORITHMS[v.alg], c = ink(algCanvas), g = actx;
     const mute = Math.round(getParam('mute')), solo = Math.round(getParam('solo'));
-    g.clearRect(0, 0, LW, AH);
+    g.clearRect(0, 0, DW, AH);
     const { at, lines } = layout(alg), names = operatorNames(v);
     boxes = at;
     g.strokeStyle = c; g.lineWidth = 1; g.globalAlpha = 0.4;
@@ -131,7 +131,7 @@ export function createDxView({ doc = document, bank, getVoice, setVoice, getPara
     g.globalAlpha = 1;
   };
   algCanvas.addEventListener('mousedown', e => {
-    const r = algCanvas.getBoundingClientRect(), s = r.width ? LW / r.width : 1, x = (e.clientX - r.left) * s, y = (e.clientY - r.top) * s;
+    const r = algCanvas.getBoundingClientRect(), s = r.width ? DW / r.width : 1, x = (e.clientX - r.left) * s, y = (e.clientY - r.top) * s;
     boxes.forEach((b, k) => {
       if (Math.hypot(x - b.x, y - b.y) <= R) { op = k; refreshAll(); }
       else if (x > b.x + R + 2 && x < b.x + R + 16 && Math.abs(y - (b.y - 6)) < 6) setParamValue('mute', Math.round(getParam('mute')) ^ (1 << k)), refreshAll();
@@ -213,23 +213,40 @@ export function createDxView({ doc = document, bank, getVoice, setVoice, getPara
   nameInput.addEventListener('change', () => edit(v => { v.name = nameInput.value.toUpperCase().slice(0, 10); }));
   refreshers.push(() => { if (doc.activeElement !== nameInput) nameInput.value = voice().name; });
 
-  // two columns (they stack when the panel is narrow): the algorithms on the left, the operators' sound on the right
-  const leftColumn = el('div', { className: 'dx-col' }, bankCanvas,
-    slider('feedback', 0, 7, () => voice().fb, n => edit(v => { v.fb = n; })),
-    algCanvas,
-    el('div', { className: 'tag' }, 'click a thumbnail to pick the algorithm · click an operator or a strip to select it · M mute, S solo'));
-  const rightColumn = el('div', { className: 'dx-col' }, stripCanvas, outCanvas);
-  if (leftColumn.style) { leftColumn.style.width = `${LW}px`; rightColumn.style.width = `${RW}px`; }
-  const voiceTab = el('div', {},
-    el('div', { className: 'prow' }, button('◀', () => setVoice(clamp(cur() - 1, 0, VOICES - 1))), nameInput, button('▶', () => setVoice(clamp(cur() + 1, 0, VOICES - 1))),
-      button('init', () => edit(v => { Object.assign(v, initVoice({ name: v.name })); }), 'reset this voice to the DX7 init voice'),
-      button('randomise', () => edit(v => Object.assign(v, randomVoice(v.name)))),
-      button('colours', () => {
-        pal = PALETTES[(PALETTES.indexOf(pal) + 1) % PALETTES.length];
-        try { localStorage.setItem('wax.dxPalette', pal.name); } catch { /* no storage */ }
-        refreshAll();
-      }, 'cycle the colour set of the drawings')),
-    el('div', { className: 'dx-cols' }, leftColumn, rightColumn));
+  // The Voice tab is laid out as four columns that wrap when the window is narrow: the tabs and voice name over the
+  // bank and the algorithm picture, then the operators, then the envelope, the output and the notes.
+  const TAB_NAMES = ['voice', 'operator', 'scaling', 'lfo / pitch', 'bank'];
+  const tabRows = [];   // the Voice tab has its own copy of the tabs, up in its corner; the other tabs share the one at the top
+  const makeTabs = () => {
+    const row = el('div', { className: 'prow dx-tabs' });
+    for (const name of TAB_NAMES) row.append(button(name, () => showTab(name)));
+    tabRows.push(row);
+    return row;
+  };
+  const infoLines = [], hintLines = [];
+  const makeNotes = () => {
+    const i = el('div', { className: 'dx-info' }), h = el('div', { className: 'dx-hint', textContent: 'The piano keys play this instrument while the mouse is over this box ([ and ] change the octave).' });
+    infoLines.push(i); hintLines.push(h);
+    return [i, h];
+  };
+  const feedback = slider('feedback', 0, 7, () => voice().fb, n => edit(v => { v.fb = n; }));
+  feedback.classList.add('dx-fb');
+  const nameRow = el('div', { className: 'prow' }, button('◀', () => setVoice(clamp(cur() - 1, 0, VOICES - 1))), nameInput, button('▶', () => setVoice(clamp(cur() + 1, 0, VOICES - 1))),
+    button('init', () => edit(v => { Object.assign(v, initVoice({ name: v.name })); }), 'reset this voice to the DX7 init voice'),
+    button('randomise', () => edit(v => Object.assign(v, randomVoice(v.name)))),
+    button('colours', () => {
+      pal = PALETTES[(PALETTES.indexOf(pal) + 1) % PALETTES.length];
+      try { localStorage.setItem('wax.dxPalette', pal.name); } catch { /* no storage */ }
+      refreshAll();
+    }, 'cycle the colour set of the drawings'));
+  const colBank = el('div', { className: 'dx-col' }, bankCanvas, el('div', { className: 'tag' }, 'click a thumbnail to pick the algorithm · click an operator or a strip to select it · M mute, S solo'));
+  const colAlg = el('div', { className: 'dx-col' }, algCanvas, feedback);
+  const colOps = el('div', { className: 'dx-col' }, stripCanvas);
+  const colSound = el('div', { className: 'dx-col' }, outCanvas, ...makeNotes());
+  for (const [node, width] of [[colBank, LW], [colAlg, DW], [colOps, RW], [colSound, RW]]) if (node.style) node.style.width = `${width}px`;
+  const voiceTab = el('div', { className: 'dx-cols dx-voice' },
+    el('div', { className: 'dx-col' }, el('div', { className: 'dx-head' }, makeTabs(), nameRow), el('div', { className: 'dx-cols' }, colBank, colAlg)),
+    colOps, colSound);
   refreshers.push(drawAlg, drawVoiceTab);
 
   // ---- an envelope you drag: four rates and four levels ----
@@ -310,7 +327,7 @@ export function createDxView({ doc = document, bank, getVoice, setVoice, getPara
     yOf: lv => scaleOL(lv) / 127, levelAt: nearestLevel,
     seconds: (i, a, b, r) => (Math.abs(scaleOL(b) - scaleOL(a)) / stepsPerSecond(r)) / (b > a && i === 0 ? 3 : 1),
   });
-  rightColumn.insertBefore(voiceEnv, outCanvas);
+  colSound.insertBefore(voiceEnv, outCanvas);
   const pitchEnv = envGraph({
     label: 'pitch envelope: 50 is no change, ±4 octaves',
     W: 360, H: 100,
@@ -458,20 +475,18 @@ export function createDxView({ doc = document, bank, getVoice, setVoice, getPara
     grid);
 
   // ---- assembly ----
-  const info = el('div', { className: 'dx-info' });
-  refreshers.push(() => { info.textContent = `voice ${cur()} · algorithm ${voice().alg + 1} · feedback ${voice().fb} · ${source}`; });
   const sections = { voice: voiceTab, operator: opTab, scaling: scaleTab, 'lfo / pitch': lfoTab, bank: bankTab };
-  const tabs = el('div', { className: 'prow dx-tabs' });
+  const tabsTop = makeTabs(), [infoTop, hintTop] = makeNotes();   // the other tabs' copy of the tabs and the notes
+  refreshers.push(() => { for (const i of infoLines) i.textContent = `voice ${cur()} · algorithm ${voice().alg + 1} · feedback ${voice().fb} · ${source}`; });
   const showTab = name => {
     tab = name;
     for (const [k, node] of Object.entries(sections)) node.style.display = k === name ? '' : 'none';
-    for (const b of tabs.children) b.classList.toggle('on', b.textContent === name);
+    tabsTop.style.display = infoTop.style.display = hintTop.style.display = name === 'voice' ? 'none' : '';
+    for (const row of tabRows) for (const b of row.children) b.classList.toggle('on', b.textContent === name);
     refreshAll();
   };
-  for (const name of Object.keys(sections)) tabs.append(button(name, () => showTab(name)));
   const refreshAll = () => { root.style.setProperty('--dx-accent', pal.carrier); for (const f of refreshers) f(); };
-  const hint = el('div', { className: 'dx-hint', textContent: 'The piano keys play this instrument while the mouse is over this box ([ and ] change the octave).' });
-  const root = el('div', { className: 'curve-editor dx-view dx-box', title: 'Keyjazz: with the mouse over this box the piano keys play the instrument' }, tabs, ...Object.values(sections), info, hint);
+  const root = el('div', { className: 'curve-editor dx-view dx-box', title: 'Keyjazz: with the mouse over this box the piano keys play the instrument' }, tabsTop, ...Object.values(sections), infoTop, hintTop);
   showTab(tab);
 
   return {
