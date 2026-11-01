@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 604 · 2026-11-01
+
+- **DX panel: "ice" is now the default colour set,** with a darker blue for the modulators where it had violet. The colours button still cycles the other sets.
+
 ## 603 · 2026-11-01
 
 - **DX panel: cleaner, wider, half as tall.** The Voice tab is now two columns (they stack when the panel is narrow): the algorithm bank and a wider algorithm picture on the left, the operator strips, the draggable envelope and the output on the right. The picture uses the bank's layout, so no two operators overlap in any algorithm. The panel's drawings are now sharp: they are drawn at the screen's pixel density and shown at their true size, where they used to be stretched and looked blurry. A new colours button cycles four colour sets (amber, slate, phosphor, ice) and remembers the choice.

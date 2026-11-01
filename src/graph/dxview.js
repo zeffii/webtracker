@@ -14,9 +14,9 @@ const PALETTES = [
   { name: 'amber', carrier: 'hsl(35 85% 52%)', mod: null, select: '#d03040' },
   { name: 'slate', carrier: '#2f5fd0', mod: '#b0661d', select: '#d03040' },
   { name: 'phosphor', carrier: '#3fbf6a', mod: '#6f8fa8', select: '#e8d44d' },
-  { name: 'ice', carrier: '#27a6c9', mod: '#9a7be0', select: '#f0647a' },
+  { name: 'ice', carrier: '#27a6c9', mod: '#2f55a8', select: '#f0647a' },
 ];
-let pal = PALETTES[0];
+let pal = PALETTES[3];   // ice
 try { pal = PALETTES.find(p => p.name === localStorage.getItem('wax.dxPalette')) || pal; } catch { /* no storage: the default */ }
 
 // A canvas that draws crisply: its backing store has one pixel per screen pixel (the context is scaled so the
