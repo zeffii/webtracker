@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 612 · 2026-11-01
+
+- **File, Save folder...: pick the folder every save dialog opens in.** Alt+click the menu item to forget it again. Without one, each kind of file (project, audio, instrument, other) now remembers its own folder, so saving a bounce somewhere else no longer moves your project saves. Used by Save, Export, Save sample, Save instrument and Save presets. A rendered export can finish after the browser has stopped allowing a save dialog; then the file goes to the download folder as before. Chromium browsers (Brave included) only.
+
 ## 611 · 2026-11-01
 
 - **Config: long drop-downs no longer squeeze their text.** The text of a setting takes the room that is left, and a drop-down is at most 45% of the card wide, cutting a long choice with an ellipsis. Fixes "Left and Right move by".

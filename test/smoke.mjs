@@ -6650,6 +6650,29 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   console.log('ok: nugget navigation');
 }
 
+// Save folder: each kind of file has its own picker id, and the default folder is where the dialogs open
+{
+  const { createSaveFolder } = await import('../src/project/savefolder.js');
+  const kept = {};
+  const store = { load: async () => kept.h ?? null, save: async h => { kept.h = h; }, clear: async () => { delete kept.h; } };
+  const seen = [], written = [];
+  const savePicker = async o => { seen.push(o); return { name: o.suggestedName, createWritable: async () => ({ write: async d => written.push(d), close: async () => {} }) }; };
+  const dir = { name: 'Tracks', queryPermission: async () => 'granted' };
+  const sf = createSaveFolder({ store, savePicker, dirPicker: async () => dir });
+  await sf.save('a.wax', 'x', 'project'); await sf.save('a.wav', new Uint8Array(1), 'wav');
+  assert.notEqual(seen[0].id, seen[1].id, 'a project and a bounce remember their folders separately');
+  assert.ok(!('startIn' in seen[0]), 'with no default folder the browser decides');
+  assert.equal(await sf.pick(), 'Tracks');
+  await sf.save('b.wax', n => `named ${n}`, 'project');
+  assert.equal(seen[2].startIn, dir, 'the default folder is where the dialog opens');
+  assert.equal(written[2], 'named b.wax', 'data can depend on the chosen name');
+  await sf.forget();
+  await sf.save('c.wax', 'x', 'project');
+  assert.ok(!('startIn' in seen[3]), 'forgotten again');
+  assert.equal(await createSaveFolder({ store, savePicker: undefined }).save('d', 'x'), null, 'no dialog: the caller downloads');
+  console.log('ok: save folder');
+}
+
 // Squelch: the 303-style bassline voice, driven by real pattern rows (Acc and Sld count for their note only)
 {
   const def = synthKinds.squelch.make();

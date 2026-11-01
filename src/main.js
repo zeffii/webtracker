@@ -64,6 +64,7 @@ import { attachGrip } from './ui/grip.js';
 import { createTrackerView } from './seq/view.js';
 import { createTabs } from './ui/tabs.js';
 import { createMixer } from './ui/mixer.js';
+import { createSaveFolder } from './project/savefolder.js';
 import { createScriptRunner } from './script/client.js';
 import { createScriptScreen } from './script/screen.js';
 import { createScratch, sendEdits } from './script/scratch.js';
@@ -1010,16 +1011,14 @@ $('lib-save').addEventListener('click', () => {
   const count = addToLibrary(library, project.instruments[id], id, selectedPreset === null ? null : [selectedPreset]);
   if (!count) { $('patch-status').textContent = 'This instrument has no presets to save.'; return; }
   renderLibrary();
-  download(`presets${LIBRARY_EXT}`, serializeLibrary(library));
-  $('patch-status').textContent = `Saved ${count} to presets${LIBRARY_EXT} (${library.presets.length} in the library).`;
+  saveFile(`presets${LIBRARY_EXT}`, serializeLibrary(library), 'other', 'application/json').then(saved => { if (saved) $('patch-status').textContent = `Saved ${count} to ${saved} (${library.presets.length} in the library).`; });
 });
 
 // ---- instrument files ----
 $('inst-export').addEventListener('click', () => {
   const id = patcher.instrument;
   if (!id) return;
-  download(`${id}${INSTRUMENT_EXT}`, serializeInstrument(project, id));
-  $('patch-status').textContent = `Saved ${id}${INSTRUMENT_EXT}.`;
+  saveFile(`${id}${INSTRUMENT_EXT}`, serializeInstrument(project, id), 'instrument', 'application/json').then(saved => { if (saved) $('patch-status').textContent = `Saved ${saved}.`; });
 });
 $('inst-import').addEventListener('click', () => $('inst-file').click());
 $('inst-file').addEventListener('change', async e => {
@@ -1421,8 +1420,7 @@ function saveSampleToDisk(whole) {
   const [from, to] = sampleScreen.selection, part = !whole && to > from;
   const base = id.replace(/\.(wav|aiff?|flac|mp3|ogg|m4a)$/i, '').replace(/[\\/:*?"<>|]/g, '_') || 'sample';
   const name = `${base}${part ? '-selection' : ''}.wav`;
-  downloadBytes(name, sampleToWav(s, part ? { from, to } : {}), 'audio/wav');
-  projStatus(`Saved ${part ? `the selection of ${id}` : id} as ${name}.`);
+  saveFile(name, sampleToWav(s, part ? { from, to } : {}), 'wav', 'audio/wav').then(saved => { if (saved) projStatus(`Saved ${part ? `the selection of ${id}` : id} as ${saved}.`); });
 }
 attachGrip({ grip: $('wave-grip'), key: 'webtracker.waveformHeight', get: () => waveform.height, set: h => region.resize(waveform.resize(h)), step: 20, bigStep: 100, normal: 160 });
 
@@ -1669,6 +1667,21 @@ const download = (name, text) => {
   a.download = name;
   a.click();
   URL.revokeObjectURL(a.href);
+};
+
+// Save with the browser's save dialog (per-kind remembered folder, or the default save folder), else a plain download.
+// `kind` is project, instrument, wav or other; `data` is text or bytes. A dialog needs a recent click, so after a long wait
+// (a rendered export) the browser refuses it and the file is downloaded instead. Returns the file name, or null when cancelled.
+const saveFolder = createSaveFolder();
+const saveFile = async (name, data, kind = 'other', mime = 'application/octet-stream') => {
+  try {
+    const saved = await saveFolder.save(name, data, kind);
+    if (saved) return saved;
+  } catch (err) {
+    if (err?.name === 'AbortError') return null;
+  }
+  downloadBytes(name, typeof data === 'function' ? data(name) : data, mime);
+  return name;
 };
 
 // New: clear part of the project or all of it. Clearing patterns or the arrangement works on a copy of what is saved,
@@ -2133,12 +2146,12 @@ $('export').addEventListener('click', async () => {
       const file = await encodeMp4(out, { art, cancel, onProgress: f => { show(.5 + f / 2); say(`Encoding the MP4: ${Math.round(f * 100)}%`); } });
       if (!file) say('Export cancelled.');
       else {
-        download(`${name}.mp4`, file.blob);
+        await saveFile(`${name}.mp4`, file.blob, 'other', 'video/mp4');
         say(`Exported ${Math.floor(out.seconds / 60)}:${String(Math.round(out.seconds % 60)).padStart(2, '0')} to MP4 (${file.video} picture, ${file.audio} sound, ${(file.blob.size / 1048576).toFixed(1)} MB).`);
       }
     } else {
       const bits = Number(config.get('exportBits'));
-      download(`${project.song.name ?? 'untitled'}.wav`, encodeWav(out, bits));
+      await saveFile(`${project.song.name ?? 'untitled'}.wav`, encodeWav(out, bits), 'wav', 'audio/wav');
       const db = out.peak > 0 ? 20 * Math.log10(out.peak) : -Infinity;
       say(`Exported ${Math.floor(out.seconds / 60)}:${String(Math.round(out.seconds % 60)).padStart(2, '0')} to WAV, peak ${db.toFixed(1)} dB${out.peak > 1 && bits !== 32 ? ' (it clips: lower the master volume or use 32-bit float)' : ''}.`);
     }
@@ -2179,16 +2192,15 @@ $('pname').addEventListener('keydown', e => { if (e.key === 'Enter' || e.key ===
 async function saveProject() {
   const text = serializeProject(project), name = `${project.song.name ?? 'untitled'}${FILE_EXT}`;
   try {
-    if (window.showSaveFilePicker) {
-      const handle = await window.showSaveFilePicker({ suggestedName: name, types: [{ description: 'Wax project', accept: { 'application/json': [FILE_EXT] } }] });
-      const chosen = handle.name.replace(/\.[^.]*$/, '');
-      if (chosen && chosen !== project.song.name) { project.song.name = chosen; $('pname').value = chosen; }   // the file name becomes the project name
-      const w = await handle.createWritable();
-      await w.write(serializeProject(project));
-      await w.close();
+    const saved = await saveFolder.save(name, chosen => {   // the file name the dialog gives becomes the project name
+      const base = chosen.replace(/\.[^.]*$/, '');
+      if (base && base !== project.song.name) { project.song.name = base; $('pname').value = base; }
+      return serializeProject(project);
+    }, 'project');
+    if (saved) {
       backups.snapshot('save');
       markSaved();
-      $('status').textContent = `Saved ${handle.name}.`;
+      $('status').textContent = `Saved ${saved}.`;
       return;
     }
   } catch (err) {
@@ -2577,6 +2589,14 @@ let reloading = false;   // File, Reload app: leaving on purpose, so no "Leave s
 window.addEventListener('beforeunload', e => { if (reloading) return; e.preventDefault(); e.returnValue = ''; });
 // File, Reload app: keep a snapshot of the song, drop the service worker and the caches so the newest code is fetched, and reload;
 // the next start opens that snapshot instead of the demo song.
+// File, Save folder...: the folder every save dialog opens in (Alt+click: forget it again)
+$('save-folder').addEventListener('click', async e => {
+  if (!saveFolder.canPick) { $('status').textContent = 'This browser cannot remember a folder; saves go to its download folder.'; return; }
+  try {
+    if (e.altKey) { await saveFolder.forget(); $('status').textContent = 'Save folder forgotten: the browser decides where the save dialogs open.'; return; }
+    $('status').textContent = `Save dialogs now open in the folder "${await saveFolder.pick()}". (Alt+click the menu item to forget it.)`;
+  } catch (err) { if (err?.name !== 'AbortError') $('status').textContent = `Could not use that folder: ${err.message}`; }
+});
 $('reload-app').addEventListener('click', async () => {
   try { if (project) await backups.snapshot('before reload'); } catch { /* the newest snapshot is used anyway */ }
   try {

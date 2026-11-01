@@ -63,7 +63,7 @@ export function dirEntryFromTree(files) {
 // The picked folder is kept in IndexedDB. `open` is indexedDB.open, passed in so a test can use its own.
 const DB = 'webtracker-samplefolder', STORE = 'handles', KEY = 'root';
 const request = r => new Promise((resolve, reject) => { r.onsuccess = () => resolve(r.result); r.onerror = () => reject(r.error); });
-export function createHandleStore({ factory = globalThis.indexedDB } = {}) {
+export function createHandleStore({ factory = globalThis.indexedDB, key = KEY } = {}) {
   const db = () => new Promise((resolve, reject) => {
     const open = factory.open(DB, 1);
     open.onupgradeneeded = () => open.result.createObjectStore(STORE);
@@ -72,8 +72,8 @@ export function createHandleStore({ factory = globalThis.indexedDB } = {}) {
   });
   const run = async (mode, make) => { const d = await db(); try { return await request(make(d.transaction(STORE, mode).objectStore(STORE))); } finally { d.close(); } };
   return {
-    save: handle => run('readwrite', s => s.put(handle, KEY)),
-    load: async () => { try { return (await run('readonly', s => s.get(KEY))) ?? null; } catch { return null; } },
-    clear: () => run('readwrite', s => s.delete(KEY)),
+    save: handle => run('readwrite', s => s.put(handle, key)),
+    load: async () => { try { return (await run('readonly', s => s.get(key))) ?? null; } catch { return null; } },
+    clear: () => run('readwrite', s => s.delete(key)),
   };
 }

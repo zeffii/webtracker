@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['612', ['File, Save folder: a default folder for every save dialog; each kind of file also remembers its own folder']],
   ['611', ['Config: long drop-downs are cut with an ellipsis instead of squeezing the setting text']],
   ['610', ['Pattern editor: Left/Right move one character by default; Ctrl jumps by column, Ctrl+Shift by lane']],
   ['609', ['File, Reload app: fresh code, same song. Fix: the DX panel columns now really sit side by side']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['605', ['DX panel redrawn without boxes (dots, circles, thin lines, round knobs), sharper wave sketches (128 samples to a cycle), no status message from the colours button']],
   ['604', ['DX panel: the ice colour set (light blue carriers, dark blue modulators) is the default']],
   ['603', ['DX panel: two columns (half the height), sharp drawings instead of blurry ones, no overlapping operators, and a colours button with four colour sets']],
-  ['602', ['F3 from the pattern editor or the arrangement opens the graph of the lane you are in']],
                     ];
