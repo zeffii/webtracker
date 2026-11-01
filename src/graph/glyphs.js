@@ -386,6 +386,13 @@ export const GLYPHS = {
     for (let i = 0; i <= 28; i++) { s = (s * 9301 + 49297) % 233280; pts.push([cx - w / 2 + (i / 28) * w, cy + (s / 233280 - 0.5) * h * 0.85]); }
     line(ctx, pts);
   },
+  membrane: (ctx, cx, cy, w, h) => {   // a drum head seen from the side, bowed, over a falling ring
+    const x = f => cx - w / 2 + f * w, y = f => cy + h / 2 - f * h;
+    const head = []; for (let i = 0; i <= 24; i++) { const t = i / 24; head.push([x(0.04 + t * 0.92), y(0.72 - 0.16 * Math.sin(t * Math.PI))]); }
+    line(ctx, head);
+    const ring = []; for (let i = 0; i <= 30; i++) { const t = i / 30; ring.push([x(0.04 + t * 0.92), y(0.32 + Math.sin(t * 22) * 0.2 * Math.pow(1 - t, 1.6))]); }
+    line(ctx, ring);
+  },
   combperc: (ctx, cx, cy, w, h) => {   // a comb of teeth over a falling ring
     const x = f => cx - w / 2 + f * w, y = f => cy + h / 2 - f * h;
     ctx.beginPath();

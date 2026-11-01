@@ -8875,6 +8875,47 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     console.log('ok: clang');
   }
 
+  // membrane: a drum skin whose modes sit at the zeros of the Bessel functions
+  {
+    const { bessel, zerosOfBessel, MEMBRANE_MODES } = await import('../src/audio/nodes/membrane.js');
+    assert.ok(Math.abs(bessel(1, 1) - 0.4400505857) < 1e-6 && Math.abs(bessel(0, 2.404825557695773)) < 1e-9, 'the Bessel function is right');
+    const want = [['0,1', 1], ['1,1', 1.5935], ['2,1', 2.1355], ['0,2', 2.2954], ['3,1', 2.6530], ['1,2', 2.9173]];
+    for (const [id, r] of want) { const k = MEMBRANE_MODES.find(k => `${k.m},${k.n}` === id); assert.ok(k && Math.abs(k.ratio - r) < 0.002, `mode ${id} is at ${r} times the lowest`); }
+    assert.equal(zerosOfBessel(0, 12).length, 4, 'J0 has four zeros below 12');
+    const me = NODE_TYPES.membrane, mslots = me.params.map((_, i) => i);
+    const hit = (set = {}, note = 60, secs = 3, offAt = null) => {
+      const node = me.create({ sampleRate: sr, connected: [false] });
+      const values = me.params.map(p => set[p.name] ?? p.def);
+      node.note({ type: 'noteOn', note, vel: 1 });
+      const out = [], right = []; let peak = 0;
+      for (let b = 0; b < (secs * sr) / block; b++) {
+        if (offAt !== null && b === Math.round((offAt * sr) / block)) node.note({ type: 'noteOff', note });
+        const L = new Float32Array(block), R = new Float32Array(block);
+        node.process([[new Float32Array(block)]], [[L, R]], block, values, mslots);
+        assert.ok(L.every(Number.isFinite) && R.every(Number.isFinite), 'membrane stays finite');
+        for (const x of L) { peak = Math.max(peak, Math.abs(x)); out.push(x); }
+        for (const x of R) right.push(x);
+      }
+      return { out, right, peak };
+    };
+    const mrms = (a, from, to) => Math.sqrt(a.slice(from, to).reduce((t, x) => t + x * x, 0) / (to - from));
+    const bright = a => { let hi = 0, lo = 0; for (let i = 1; i < 12000; i++) { const d = a[i + 500] - a[i + 499]; hi += d * d; lo += a[i + 500] * a[i + 500]; } return hi / lo; };
+    const base = { shell: 0, glide: 0 };
+    assert.ok(mrms(hit(base).out, 500, 5000) > 0.03 && hit(base).peak < 1, 'a hit sounds, within full scale');
+    assert.ok(bright(hit({ ...base, position: 0.9, strike: 1 }).out) > 1.5 * bright(hit({ ...base, position: 0.05, strike: 0.2 }).out), 'a hard hit near the rim is brighter than a soft one in the middle');
+    assert.ok(mrms(hit({ ...base, damping: 1 }).out, 48000, 50000) < 0.2 * mrms(hit({ ...base, damping: 0 }).out, 48000, 50000), 'damping shortens the ringing');
+    assert.ok(mrms(hit({ shell: 1, glide: 0 }).out, 200, 4000) > 1.1 * mrms(hit(base).out, 200, 4000), 'the shell adds weight to the hit');
+    const damped = hit({ ...base, damping: 0 }, 60, 3, 0.5);
+    assert.ok(mrms(damped.out, 96000, 98000) < 0.2 * mrms(hit({ ...base, damping: 0 }).out, 96000, 98000), 'note off damps the ringing');
+    const wide = hit({ ...base, width: 1 }), narrow = hit({ ...base, width: 0 });
+    assert.ok(narrow.out.every((x, i) => Math.abs(x - narrow.right[i]) < 1e-6), 'width 0 is mono');
+    assert.ok(wide.out.some((x, i) => Math.abs(x - wide.right[i]) > 0.01), 'width pulls the two sides apart');
+    assert.ok(hit({ quality: 1 }).out.every(Number.isFinite) && mrms(hit({ quality: 1, ...base }).out, 500, 5000) > 0.02, 'eco still sounds');
+    assert.ok(hit({ stiffness: 1, strike: 1, glide: 1, shell: 1, damping: 0, width: 1 }, 96).peak < 1.2, 'extreme settings stay in range');
+    assert.ok(hit({}, 24).out.every(Number.isFinite) && hit({}, 108).out.every(Number.isFinite), 'the extremes of pitch stay finite');
+    console.log('ok: membrane');
+  }
+
   // the keyboard on a Chord tile: naming the notes, stray notes, editing notes and volumes, and where the keys are
   {
     const { identifyChord, describeChord, editNote, editVolume, chordView, noteLimit } = await import('../src/nodeseq/chordtext.js');

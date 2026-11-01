@@ -806,6 +806,29 @@ export const synthKinds = {
       ],
     }),
   },
+  membrane: {
+    label: 'Membrane (drum skin)',
+    make: () => ({
+      graph: { nodes: [{ id: 'synth', type: 'membrane' }, { id: 'poly', type: 'voices' }, { id: 'out', type: 'out', params: { gain: 0.5 } }], connections: [['synth.out', 'poly.in'], ['poly.out', 'out.in']], voices: 4 },
+      noteColumns: 2,
+      exposed: [
+        { node: 'synth', param: 'position', label: 'Pos' },
+        { node: 'synth', param: 'damping', label: 'Dmp' },
+        { node: 'synth', param: 'strike', label: 'Str' },
+        { node: 'synth', param: 'glide', label: 'Gld' },
+      ],
+      commands: [
+        { id: 0x01, node: 'synth', param: 'position' },
+        { id: 0x02, node: 'synth', param: 'damping' },
+        { id: 0x03, node: 'synth', param: 'strike' },
+        { id: 0x04, node: 'synth', param: 'glide' },
+        { id: 0x05, node: 'synth', param: 'highdamp' },
+        { id: 0x06, node: 'synth', param: 'stiffness' },
+        { id: 0x07, node: 'synth', param: 'shell' },
+        { id: 0x08, node: 'synth', param: 'tune' },
+      ],
+    }),
+  },
   clang: {
     label: 'Clang (struck plate or barrel)',
     make: () => ({

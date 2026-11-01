@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 613 · 2026-11-01
+
+- **New machine: Membrane (drum skin).** A circular head rings in the patterns (modes) a real skin has, and the pitch of each is a zero of a Bessel function, found in the code itself: the overtones sit at 1, 1.59, 2.14, 2.30, 2.65, 2.92 times the lowest, as on a tom. Where the head is hit (`position`, middle to rim) decides how loud each mode is, also through Bessel functions: the middle only shakes the round patterns (a deep boom), near the rim everything rings. The note you play is the main tone (the second mode), the lowest sits a ratio of 0.63 below it. Other controls: `strike` (soft mallet to hard stick), `damping`, `highdamp`, `stiffness` (a thick head pushes the high modes sharp), `glide` (the pitch of a hard hit falls back, the tom zap), `shell` (a deep boom under the head), `width` (two pick-ups at different angles), `quality` (eco uses 12 modes instead of 26). Machine "Membrane (drum skin)" in the new-instrument list, and the node under Sources, Synths.
+
 ## 612 · 2026-11-01
 
 - **File, Save folder...: pick the folder every save dialog opens in.** Alt+click the menu item to forget it again. Without one, each kind of file (project, audio, instrument, other) now remembers its own folder, so saving a bounce somewhere else no longer moves your project saves. Used by Save, Export, Save sample, Save instrument and Save presets. A rendered export can finish after the browser has stopped allowing a save dialog; then the file goes to the download folder as before. Chromium browsers (Brave included) only.
