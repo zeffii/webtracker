@@ -171,7 +171,7 @@ let replaceTarget = null;   // the slot a Replace button was pressed on, while t
 let tabBefore = 'patterns', tabNow = 'patterns';   // where the Info close button goes back to
 let onArrange = () => {};   // set once the mixer and the arrangement fit exist: the tabs may open on the arrangement before then
 const tabs = createTabs({
-  onChange: id => { if (id !== 'samples') sampleBrowser?.stop(); if (id === 'dsp') dspView?.open(patcher?.instrument); if (id === 'nodeseq') nsView?.refresh(); if (id === 'arrange') onArrange(); nsFlags(); if (id === 'shader') { shaderView?.load(); if (!vizOn) config.set('visualOn', true); } if (id !== tabNow) { tabBefore = tabNow; tabNow = id; } applyDock(id); keysRefresh(id); requestAnimationFrame(() => { fitArrangement(); syncFloat(); placeViz(); placeMeters(); }); },
+  onChange: id => { if (id === 'instruments' && (tabNow === 'patterns' || tabNow === 'arrange')) showLaneInstrument(); if (id !== 'samples') sampleBrowser?.stop(); if (id === 'dsp') dspView?.open(patcher?.instrument); if (id === 'nodeseq') nsView?.refresh(); if (id === 'arrange') onArrange(); nsFlags(); if (id === 'shader') { shaderView?.load(); if (!vizOn) config.set('visualOn', true); } if (id !== tabNow) { tabBefore = tabNow; tabNow = id; } applyDock(id); keysRefresh(id); requestAnimationFrame(() => { fitArrangement(); syncFloat(); placeViz(); placeMeters(); }); },
   tabs: [
     { id: 'patterns', key: 'F1', el: $('pane-patterns'), button: $('tab-patterns'), focus: $('view') },
     { id: 'samples', key: 'F2', el: $('pane-samples'), button: $('tab-samples'), focus: $('smp') },
@@ -277,6 +277,13 @@ syncFollow();
 // The instrument editor shows the machine of the lane the cursor is in (a setting on the Config tab).
 let lastLane = -1;
 let floatWanted = false;   // the floating parameter window is on: it needs the cursor lane's machine
+// F3 from the pattern editor or the arrangement opens the graph of the lane the cursor is in
+function showLaneInstrument() {
+  const id = project?.lanes?.[view.lane]?.instrument;
+  if (!id || id === patcher.instrument || !(id in project.instruments)) return;
+  patcher.show(id);
+  renderInstList();
+}
 function followLane(laneIdx) {
   if (laneIdx === lastLane) return;
   lastLane = laneIdx;

@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 602 · 2026-11-01
+
+- **F3 opens the graph of the lane you are in.** From the pattern editor or the arrangement, F3 (or the Instruments tab) now shows the instrument of the cursor's lane, whether or not "follow lane" is on in Config.
+
 ## 601 · 2026-11-01
 
 - **DX panel: a new Voice tab.** A bank of all 32 algorithms is drawn as thumbnails (carriers amber, modulators grey): click one to hear the voice through it. The selected algorithm is drawn larger with named operators (Body, Octave, Warmth, Edge, Click, Metal…, from role and ratio). Under it, one strip per operator shows its envelope, its wave and its level, and an output scope and spectrum show the sum. A draggable envelope for the selected operator sits on the same tab, so attack, decay, sustain and release can all be shaped without changing tab; grabbing a point also sets which moment of the note the waves and spectrum show. The waves and spectrum are a quick sketch of the voice, not the engine. New files: `src/graph/dxbank.js` (thumbnail drawing) and `src/graph/dxpreview.js` (the sketch and the names).
