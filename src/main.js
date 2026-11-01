@@ -40,6 +40,7 @@ import { createNodeSeqEditor } from './nodeseq/editor.js';
 import { ensureGraph, cleanGraph } from './nodeseq/graphops.js';
 import { createSampleScreen } from './project/samplescreen.js';
 import { createWaveformView } from './project/waveform.js';
+import { sampleToWav } from './project/samplewav.js';
 import { showContextMenu } from './ui/ctxmenu.js';
 import { buildInstrument, fitTail } from './project/ptr.js';
 import { ABOUT, CHANGELOG } from './ui/about.js';
@@ -1381,6 +1382,8 @@ const waveform = createWaveformView({
       { label: 'Trim to selection', hint: has ? 'Shift+C' : 'no selection: loop region', run: edit('crop') },
       { label: 'Cut selection', hint: 'Shift+X', disabled: !has, run: edit('cut') },
       { label: 'Copy selection to a new sample', disabled: !has, run: copySelection },
+      { label: 'Save sample to disk…', hint: '.wav', disabled: !s, run: () => saveSampleToDisk(true) },
+      { label: 'Save selection to disk…', hint: '.wav', disabled: !has, run: () => saveSampleToDisk(false) },
       { label: 'Silence', hint: `Shift+S · ${scope}`, run: edit('silence') },
       { separator: true },
       { label: 'Reverse', hint: `Shift+R · ${scope}`, run: edit('reverse') },
@@ -1404,6 +1407,16 @@ const waveform = createWaveformView({
     ]);
   },
 });
+// Right click on the display: the sample (or the selection) as a .wav file, at its own rate, 24 bit, with its slice markers as cue points.
+function saveSampleToDisk(whole) {
+  const id = sampleScreen.selected, s = id ? project?.samples?.[id] : null;
+  if (!s) { projStatus('Pick a sample first.'); return; }
+  const [from, to] = sampleScreen.selection, part = !whole && to > from;
+  const base = id.replace(/\.(wav|aiff?|flac|mp3|ogg|m4a)$/i, '').replace(/[\\/:*?"<>|]/g, '_') || 'sample';
+  const name = `${base}${part ? '-selection' : ''}.wav`;
+  downloadBytes(name, sampleToWav(s, part ? { from, to } : {}), 'audio/wav');
+  projStatus(`Saved ${part ? `the selection of ${id}` : id} as ${name}.`);
+}
 attachGrip({ grip: $('wave-grip'), key: 'webtracker.waveformHeight', get: () => waveform.height, set: h => region.resize(waveform.resize(h)), step: 20, bigStep: 100, normal: 160 });
 
 // Keyjazz in the sample screen: the sample on its own, through a hidden instrument that is just a sampler
@@ -1468,6 +1481,15 @@ let waveX = null;
       const slice = from >= 0 && (e.altKey || e.ctrlKey) ? (waveform.sample()?.slices ?? []).slice().sort((a, b) => a - b).indexOf(from) : -1;
       sampleScreen.say(e.altKey || e.ctrlKey ? (from >= 0 ? `Playing from slice ${slice.toString(16).toUpperCase().padStart(2, '0')}, frame ${from}.` : 'No slice marker to the left: playing from the start.') : 'Playing from the start.');
     }
+  }, true);
+  // Delete with the mouse over the waveform takes out the selected part (the same as Shift+X); it never removes the sample from the list
+  document.addEventListener('keydown', e => {
+    if (e.key !== 'Delete' || waveX === null || tabs.active !== 'samples') return;
+    if (/^(INPUT|TEXTAREA|SELECT)$/.test(e.target?.tagName) || $('autoslice').open) return;
+    e.preventDefault(); e.stopImmediatePropagation();
+    const [from, to] = sampleScreen.selection;
+    if (to > from) sampleScreen.runEdit('cut');
+    else sampleScreen.say('Nothing is selected: drag on the waveform to choose what to delete.');
   }, true);
   document.addEventListener('keyup', e => { if (e.key === ' ') sampleScreen.release('wave-space'); }, true);
   window.addEventListener('blur', () => sampleScreen.release('wave-space'));
@@ -1627,6 +1649,13 @@ function openProject({ song, instruments, samples }, { stay = false, instrument 
   if (!stay) { tabs.show('arrange'); backups.baselineDownload?.(); }
 }
 
+const downloadBytes = (name, bytes, type) => {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([bytes], { type }));
+  a.download = name;
+  a.click();
+  URL.revokeObjectURL(a.href);
+};
 const download = (name, text) => {
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
@@ -1877,7 +1906,7 @@ dspView = createDspView({
   value: (inst, node, param) => { const slot = engine.registry.slots.get(`${inst}.${node}.${param}`); return slot === undefined ? undefined : engine.registry.values[slot]; },
 });
 mountConfig($('shader-cfg'), config, [['visualSize', 'Resolution'], ['visualDecay', 'Hit fade (ms)'], ['visualSkeleton', 'Pattern skeleton']]);
-mountConfig($('as-cfg'), config, [['sliceSensitivity', 'Sensitivity (%)', 'range'], ['sliceMinGap', 'Shortest gap (ms)'], ['sliceReplace', 'Replace the markers in range']]);
+mountConfig($('as-cfg'), config, [['sliceSensitivity', 'Sensitivity (%)', 'range'], ['sliceMinGap', 'Shortest gap (ms)'], ['sliceReplace', 'Replace the markers in range'], ['sliceWhole', 'Operate on the whole sample']]);
 // Auto-slice: a dialog with its two settings and a live count of the hits they find, so a setting can be tried before it is applied
 {
   const dlg = $('autoslice'), count = $('as-count');
@@ -1889,7 +1918,7 @@ mountConfig($('as-cfg'), config, [['sliceSensitivity', 'Sensitivity (%)', 'range
     count.textContent = !r.name ? 'Pick a sample first.' : r.hits.length ? `${r.hits.length} hits found${r.whole ? '' : ' in the selection'}.` : `No hits found${r.whole ? '' : ' in the selection'}: raise the sensitivity or shorten the gap.`;
   };
   const open = () => { if (!started) return; if (!sampleScreen.selected) { $('proj-status').textContent = 'Pick a sample first.'; return; } dlg.showModal(); refresh(); $('as-cfg').querySelector('input')?.focus(); };
-  config.onChange(k => { if (k === 'sliceSensitivity' || k === 'sliceMinGap' || k === 'sliceReplace') refresh(); });
+  config.onChange(k => { if (k === 'sliceSensitivity' || k === 'sliceMinGap' || k === 'sliceReplace' || k === 'sliceWhole') refresh(); });
   dlg.addEventListener('keydown', e => e.stopPropagation());
   $('as-go').addEventListener('click', () => { const msg = sampleScreen.autoSlice.apply(); dlg.close(); $('proj-status').textContent = msg; $('smp').focus(); });
   $('as-cancel').addEventListener('click', () => { dlg.close(); $('smp').focus(); });

@@ -362,7 +362,8 @@ export function createDxView({ doc = document, bank, getVoice, setVoice, getPara
   };
   for (const name of Object.keys(sections)) tabs.append(button(name, () => showTab(name)));
   const refreshAll = () => { for (const f of refreshers) f(); };
-  const root = el('div', { className: 'curve-editor dx-view' }, tabs, ...Object.values(sections), info);
+  const hint = el('div', { className: 'dx-hint', textContent: 'The piano keys play this instrument while the mouse is over this box ([ and ] change the octave).' });
+  const root = el('div', { className: 'curve-editor dx-view dx-box', title: 'Keyjazz: with the mouse over this box the piano keys play the instrument' }, tabs, ...Object.values(sections), info, hint);
   showTab(tab);
 
   return {

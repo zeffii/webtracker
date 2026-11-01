@@ -2,6 +2,14 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 599 · 2026-11-01
+
+- **DX panel: keyjazz in a box.** The DX-style synth's panel is now drawn in a box, and while the mouse is over it the piano keys play the instrument (`[` and `]` change the octave), even when a slider or button in the panel has the focus. Typing in a text field of the panel still types.
+- **Sample editor: Select all / Deselect button.** The "(whole sample)" note on the Select line is now a button: it selects the whole sample, and when all of it is selected it lets go (edits still act on the whole sample when nothing is selected).
+- **Sample editor: Delete over the waveform.** With the mouse over the waveform, Delete takes out the selected part (the same as Shift+X). With nothing selected it says so, and never removes the sample from the list.
+- **Sample editor: save to disk.** Right click on the waveform: "Save sample to disk…" writes the sample as a 24 bit .wav at its own rate (mono or stereo as it is), with its slice markers as cue points; "Save selection to disk…" does the same for the selection.
+- **Auto-slice: "Operate on the whole sample".** A tick box in the dialog (and in Config): the selection is ignored and the whole sample is sliced.
+
 ## 598 · 2026-11-01
 
 - **A `listen` node: play another instrument's notes.** Put it in an instrument's graph (it has no wires, like the chord and the arp), choose in its panel which instrument it listens to, and every note that instrument is given (patterns, the Node Sequencer, the keyboard, MIDI) is played here too, with its velocity, its note off and its cut. It is for trying how another machine sounds on the same notes without using replace or touching the lane. `transpose` shifts what it hears, `level` scales the velocity, `on` switches it (it can be a pattern column); a note already sounding still ends if `on` goes to 0 or the transpose changes, so nothing sticks. A `^^^` kill on the source kills the listener as well. Two instruments that listen to each other pass a note round once and stop. It passes notes only, not the other lane's other columns or automation. Found under Routing in the add menu. Renaming or removing the source follows, as for the sidechain.

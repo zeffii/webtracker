@@ -9759,6 +9759,41 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   for (let i = 0; i < 40; i++) rt.process(l, r, block);
   assert.ok(!rt.killed.has('x') && peakOf() > 0.01, 'a note-on wakes it and it sounds again');
 }
+// Sample editor: a select-all button, auto-slice on the whole sample, and a sample saved as a .wav (with its slice markers)
+{
+  const { sampleToWav } = await import('../src/project/samplewav.js');
+  const mono = { rate: 22050, data: Float32Array.from({ length: 100 }, (_, i) => i / 100), slices: [10, 50] };
+  const v = new DataView(sampleToWav(mono, { bits: 16 }));
+  const tag = at => String.fromCharCode(v.getUint8(at), v.getUint8(at + 1), v.getUint8(at + 2), v.getUint8(at + 3));
+  assert.ok(tag(0) === 'RIFF' && tag(8) === 'WAVE' && v.getUint16(22, true) === 1 && v.getUint32(24, true) === 22050 && v.getUint16(34, true) === 16, 'a mono 16 bit wav at the sample rate');
+  assert.equal(v.getUint32(40, true), 200, 'one 16 bit frame per sample frame');
+  assert.equal(v.getInt16(44 + 50 * 2, true), Math.round(0.5 * 32767), 'the samples are in');
+  assert.ok(tag(244) === 'cue ' && v.getUint32(252, true) === 2 && v.getUint32(260, true) === 10 && v.getUint32(284, true) === 50, 'the slice markers are cue points');
+  const part = new DataView(sampleToWav(mono, { from: 20, to: 60, bits: 24 }));
+  assert.equal(part.getUint32(40, true), 40 * 3, 'a part of the sample, 24 bit');
+  assert.equal(part.getUint32(44 + 40 * 3 + 12 + 4, true), 30, 'only the markers inside the part, counted from its start');
+  const stereo = new DataView(sampleToWav({ rate: 44100, data: new Float32Array(10), right: new Float32Array(10) }));
+  assert.equal(stereo.getUint16(22, true), 2, 'a stereo sample stays stereo');
+  const { project: pr } = makeProject();
+  pops.addSample(pr, 'loop', 44100, Float32Array.from({ length: 44100 }, (_, i) => (i % 11025 < 400 ? Math.sin(i) : 0)));
+  const on = {}, el = { addEventListener: (type, f) => { on[type] = f; }, focus() {}, innerHTML: '' };
+  const picked = [];
+  const sc = createSampleScreen({ el, statusEl: { textContent: '' }, getProject: () => pr, onSelection: (a, b) => picked.push([a, b]) });
+  sc.select('loop'); sc.draw();
+  assert.ok(el.innerHTML.includes('data-act="selall"') && el.innerHTML.includes('Select all') && !el.innerHTML.includes('(whole sample)'), 'a button where the note said whole sample');
+  const press = () => on.mousedown({ target: { closest: () => ({ dataset: { act: 'selall' } }) }, preventDefault() {} });
+  press(); assert.deepEqual(sc.selection, [0, 44100], 'the button selects the whole sample');
+  sc.draw(); assert.ok(el.innerHTML.includes('Deselect'), 'and then offers to let go');
+  press(); assert.deepEqual(sc.selection, [0, 0], 'pressed again it selects nothing');
+  sc.setSelection(11025, 22050);
+  uiConfig.set('sliceWhole', false);
+  const some = sc.autoSlice.preview();
+  assert.ok(!some.whole && some.from === 11025 && some.to === 22050, 'with a selection auto-slice works on it');
+  uiConfig.set('sliceWhole', true);
+  const all = sc.autoSlice.preview();
+  assert.ok(all.whole && all.from === 0 && all.to === 44100 && all.hits.length > some.hits.length, 'with the whole-sample option it works on all of it, selection or not');
+  uiConfig.set('sliceWhole', false);
+}
 // Listen: an instrument plays the notes of another (with a transpose and a velocity factor), ends them even when the settings
 // change meanwhile, is killed with it, and a loop of listeners stops where it closes.
 {

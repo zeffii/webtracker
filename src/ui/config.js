@@ -60,6 +60,7 @@ export const SCHEMA = [
   { group: 'Editing', key: 'laneWrap', label: 'Left and Right wrap round the ends', hint: 'off: the caret stops at the first and last column; on: Left on the first column goes to the last lane\'s last column, and Right on that one goes back to the start', type: 'bool', def: false },
   { group: 'Sample', key: 'sliceSensitivity', label: 'Auto-slice: sensitivity (%)', hint: 'Shift+E marks a slice at each hit: higher finds smaller or softer hits', type: 'int', min: 0, max: 100, def: 50 },
   { key: 'sliceReplace', label: 'Auto-slice: replace the markers in range', hint: 'on: the slice markers inside the range being sliced (the selection, or the whole sample) are replaced by the new ones; off: they stay and the new ones are added', type: 'bool', def: true },
+  { key: 'sliceWhole', label: 'Auto-slice: operate on the whole sample', hint: 'on: Auto-slice ignores the selection and works on the whole sample; off: it works on the selection when there is one', type: 'bool', def: false },
   { key: 'waveHideLoop', label: 'Waveform: hide the loop region', hint: 'the hide switch at the end of the Loop line on the sample screen', type: 'bool', def: false },
   { key: 'waveHideSel', label: 'Waveform: hide the selection', hint: 'the hide switch at the end of the Select line on the sample screen; the edit tools still act on the selection', type: 'bool', def: false },
   { key: 'waveHideSus', label: 'Waveform: hide the sustain loop region', hint: 'the hide switch at the end of the SusLoop line on the sample screen', type: 'bool', def: false },

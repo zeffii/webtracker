@@ -347,6 +347,7 @@ export function createSampleScreen({ el, statusEl, getProject, onChange = () => 
       if (what === 'load') onLoad();
       else if (what === 'replace') { commit(); select(id); onReplace(id); }
       else if (what === 'remove') { commit(); removeAt(id); }
+      else if (what === 'selall') { commit(); const s = sample(); if (s) setSelection(0, selFrom === 0 && selTo >= s.data.length ? 0 : s.data.length); }
       else if (what === 'play') {
         commit(); select(id);
         const code = 'slot-play';
@@ -436,6 +437,9 @@ export function createSampleScreen({ el, statusEl, getProject, onChange = () => 
       const loopLine = (label, p, onField, begField, endField, xfField, hideField) => line(
         ` ${label.padEnd(9)}`, fieldCell(onField, isOn(s, p) ? ' on' : ' off', 4), ' Beg ', numCell(begField), ' End ', numCell(endField), ' Xfade ', numCell(xfField), '  ',
         fieldCell(hideField, config.get(p === 'sus' ? 'waveHideSus' : 'waveHideLoop') ? 'show' : 'hide', 4));   // hide: keeps the region off the waveform
+      // one button for the whole sample: select all of it, or (when all of it is selected) let go; edits act on the whole sample when nothing is selected
+      const allSelected = selFrom === 0 && selTo >= s.data.length;
+      const selAll = seg(allSelected ? ' Deselect ' : ' Select all ', 'sbtn', ` data-act="selall" title="${allSelected ? 'Select nothing: the edits then act on the whole sample' : 'Select the whole sample'}"`);
       const right = [
         line(' Sample'),
         line(' Name     ', fieldCell('name', sel, 24)),
@@ -444,7 +448,7 @@ export function createSampleScreen({ el, statusEl, getProject, onChange = () => 
         line(''),
         loopLine('Loop', 'loop', 'loopOn', 'loopBeg', 'loopEnd', 'loopXf', 'loopHide'),
         loopLine('SusLoop', 'sus', 'susOn', 'susBeg', 'susEnd', 'susXf', 'susHide'),
-        line(' Select   ', seg('    ', ''), ' Beg ', numCell('selBeg'), ' End ', numCell('selEnd'), (selTo > selFrom ? '' : '(whole sample)').padStart(7 + 8 + 1) + ' ', fieldCell('selHide', config.get('waveHideSel') ? 'show' : 'hide', 4)),   // hide lines up with the ones above
+        line(' Select   ', seg('    ', ''), ' Beg ', numCell('selBeg'), ' End ', numCell('selEnd'), ' '.repeat(16 - selAll.t), selAll, ' ', fieldCell('selHide', config.get('waveHideSel') ? 'show' : 'hide', 4)),   // hide lines up with the ones above
         line(''),
         line(' Levels'),
         ...Object.keys(SLIDERS).map(f => line(' ', slider(f))),
@@ -485,7 +489,7 @@ export function createSampleScreen({ el, statusEl, getProject, onChange = () => 
     preview({ sensitivity = config.get('sliceSensitivity'), gap = config.get('sliceMinGap'), replace = config.get('sliceReplace') } = {}) {
       const s = sample();
       if (!s) return { hits: [], marks: [], whole: true, name: '' };
-      const whole = selTo <= selFrom, from = whole ? 0 : selFrom, to = whole ? s.data.length : selTo;
+      const whole = config.get('sliceWhole') || selTo <= selFrom, from = whole ? 0 : selFrom, to = whole ? s.data.length : selTo;
       const hits = detectOnsets(s.data, s.right, s.rate, { from, to, sensitivity: sensitivity / 100, minGapMs: gap });
       // the markers it would add: one on each hit, and one at the start of the range when the first hit is well after it
       const marks = hits.length ? [...(hits[0] - from > Math.round(0.02 * s.rate) ? [from] : []), ...hits] : [];

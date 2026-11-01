@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['599', ['DX panel in a box with keyjazz; sample editor: Select all button, Delete over the waveform, Save sample to disk, auto-slice on the whole sample']],
   ['598', ['Listen node: an instrument plays the notes of another (transpose, level, on/off), to audition other machines on the same notes']],
   ['597', ['DX-style synth: six more built-in voices (four pianos, a reed-and-vibe key sound, a harpsichord-vibraphone)']],
   ['596', ['Mosh: a lost keyframe as sound. A held chord wears the movement of another sound (louder, quieter, sliding up or down), until a keyframe puts it back; with a ?demo=mosh demo']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['592', ['^^^ is a kill (120 ms fade, machine reset, asleep until the next note); Clone with machine copies a lane and its instrument, with or without patterns and automation']],
   ['591', ['The flask button also hides the Script view and the Dock toggle (shortcuts still work)']],
   ['590', ['Presets: moving a slider empties the preset name box ("> Enter new preset name <") so a named preset is not changed by accident']],
-  ['589', ['The arrangement line is every 256 ticks; no error in the graph editor of an empty song']],
                     ];

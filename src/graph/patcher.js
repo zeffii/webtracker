@@ -233,7 +233,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
   // instrument while held, as in the pattern view; [ and ] change the octave.
   const PIANO = { ...LOWER, ...UPPER };
   const held = new Map();   // key -> the note it started, so a key released after an octave change stops the right one
-  let octave = 3;
+  let octave = 3, overDx = false;   // overDx: the mouse is over the DX panel (its keys play notes)
   const generatorSelected = () => {
     const node = selected?.kind === 'node' ? desc().nodes.find(n => n.id === selected.id) : null;
     return !!node && !!nodeTypes[node.type]?.generator;
@@ -562,7 +562,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
       });
       items.splice(1, 0, code.el);
     }
-    dxView = null;
+    dxView = null; overDx = false;
     if (type.editor === 'dx') {   // a DX7 bank on the node, sent live; the voice parameter picks from it
       const voiceParam = () => Math.round(readLive(instId, node.id, 'voice') ?? node.params?.voice ?? 0);
       dxView = createDxView({
@@ -573,6 +573,8 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
         setParamValue: (name, value) => { setParam(desc(), node.id, name, value); onParam(instId, node.id, name, value); paramView?.refresh(); },
         onBank: points => { node.data = { ...node.data, bank: points }; onData(instId, node.id, { type: 'bank', points }); },
       });
+      dxView.el.addEventListener('mouseenter', () => { overDx = true; });
+      dxView.el.addEventListener('mouseleave', () => { overDx = false; });
       items.splice(1, 0, dxView.el);
     }
     specView = null;
@@ -1064,6 +1066,22 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
     if (held.has(k)) { onNote(instId, held.get(k), false); held.delete(k); }
   });
   canvas.addEventListener('blur', releaseKeys);
+
+  // Keyjazz over the DX panel: while the mouse is over its box the piano keys play the instrument, whatever has the focus
+  // (a slider or a button in the panel would otherwise keep the keys); typing in a text field is left alone.
+  const typing = t => /^(TEXTAREA|SELECT)$/.test(t?.tagName) || (t?.tagName === 'INPUT' && !/^(range|checkbox|radio|button|file)$/.test(t.type)) || t?.isContentEditable === true;
+  doc.addEventListener?.('keydown', e => {
+    if (!overDx || typing(e.target) || e.ctrlKey || e.altKey || e.metaKey) return;
+    const k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+    if (k === '[' || k === ']') { octave = Math.min(8, Math.max(0, octave + (k === ']' ? 1 : -1))); say(`Keyjazz octave ${octave}`); e.preventDefault(); e.stopImmediatePropagation(); return; }
+    if (!Object.hasOwn(PIANO, k)) return;
+    e.preventDefault(); e.stopImmediatePropagation();
+    if (!e.repeat && !held.has(k)) { const note = (octave + 1) * 12 + PIANO[k]; held.set(k, note); onNote(instId, note, true); }
+  }, true);
+  doc.addEventListener?.('keyup', e => {
+    const k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+    if (overDx && held.has(k)) { onNote(instId, held.get(k), false); held.delete(k); e.stopImmediatePropagation(); }
+  }, true);
 
   // ---- drawing ----
   // The envelope of the selected node, drawn big in a box beside it: every ADSR the node type lists (a synth with

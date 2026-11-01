@@ -908,6 +908,9 @@
     .field:focus-within { outline: 2px solid var(--hi); outline-offset: 0; }
     .field input { border: 0; outline: 0; background: transparent; }
     .field .unit { opacity: .6; font-size: 11px; user-select: none; }
+    .dx-box { border: 1px solid color-mix(in srgb, currentColor 35%, transparent); border-radius: 3px; padding: .4rem .5rem; }
+    .dx-box:hover { border-color: hsl(35 80% 55%); }
+    .dx-hint { font-size: 11px; opacity: .6; margin-top: .3rem; }
     .dx-view canvas { display: block; width: 100%; max-width: 420px; height: auto; border: 0; cursor: default; }
     .dx-view .prow { display: flex; gap: .4rem; align-items: center; flex-wrap: wrap; }
     .dx-tabs button.on, .dx-grid button.on { background: hsl(35 80% 55%); }
@@ -1505,6 +1508,7 @@
           <dt>Shift+H</dt><dd><b class="kw">detect chords</b>: finds the notes of each chord in the sample, or the selection, and writes them into a new pattern of a lane you choose (a dialog shows the chords first). Works best on a piano playing chords</dd>
           <dt>Shift+M, Shift+U</dt><dd>mark a <b class="kw">slice</b> at the selection start, unmark the nearest one. The Slices list shows each one's number and hex value; in a pattern, command 10 0000 starts a note at the first, 10 0001 at the second, and so on (10 FFFF gives the Off column back its say)</dd>
           <dt>Alt+click, Alt+drag on a marker</dt><dd>on the display: add a <b class="kw">slice marker</b> (Alt+click), move one (Alt+drag it). Alt+double-click removes the nearest</dd>
+          <dt>Delete, with the mouse over the waveform</dt><dd><b class="kw">deletes the selected part</b> (the same as Shift+X). It never removes the sample from the list. Right click on the waveform: <b class="kw">Save sample to disk…</b> (or the selection) writes a 24 bit .wav, with the slice markers as cue points.</dd>
           <dt>Shift+Z, Shift+A, Shift+W</dt><dd><b class="kw">zoom</b> the display to the selection, out one step, to the whole sample. Ctrl+wheel zooms about the mouse; the wheel, or dragging with the middle button, moves along a zoomed view</dd>
           <dt>Shift+C / T</dt><dd><b class="kw">trim</b></dd>
           <dt>Shift+X</dt><dd><b class="kw">cut</b></dd>
