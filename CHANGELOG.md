@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 606 · 2026-11-01
+
+- **DX panel: the two columns sit side by side,** and the drawings no longer have frames. The panel had been held to the width of the other panels, so the right-hand column dropped underneath, and the page's default frame and fill around every canvas were still showing. Both are gone.
+
 ## 605 · 2026-11-01
 
 - **DX panel redrawn in a quieter style.** No more boxes: the algorithm bank is a field of small dots and thin lines (the selected one underlined), the algorithm picture is plain circles with the operator's number, ratio above and name below (M and S beside each), the operators are one line each (name, envelope, wave, a round level knob), the envelope is a bare curve with dots, and the tabs and buttons are plain text with an underline for the active one. The box around the panel is gone: a thin line at its left edge lights up while the mouse is over it (the keyjazz zone).

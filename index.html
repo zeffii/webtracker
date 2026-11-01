@@ -918,7 +918,9 @@
     .dx-cols { display: flex; gap: .6rem; flex-wrap: wrap; align-items: flex-start; }
     .dx-col { display: flex; flex-direction: column; gap: .3rem; }
     .dx-hint { font-size: 11px; opacity: .6; margin-top: .3rem; }
-    .dx-view canvas { display: block; width: 100%; max-width: 420px; height: auto; border: 0; cursor: default; }
+    .dx-view canvas { display: block; }
+    .dx-view.curve-editor canvas { border: 0; background: none; cursor: default; }   /* no frames: the drawings sit straight on the page */
+    #patch-panel .dx-view { width: min(max-content, calc(100vw - 4rem)); max-width: none; }   /* wide enough for the two columns side by side */
     .dx-view .prow { display: flex; gap: .4rem; align-items: center; flex-wrap: wrap; }
     .dx-tabs button.on, .dx-grid button.on { background: hsl(35 80% 55%); }
     .dx-slider { display: flex; align-items: center; gap: .4rem; margin: 2px 0; }
