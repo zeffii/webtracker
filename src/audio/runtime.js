@@ -239,7 +239,7 @@ export class GraphRuntime {
         let out = msg;
         if (msg.type === 'noteOn') {
           if (!on) continue;
-          out = { ...msg, note: at(msg.note), vel: Math.min(1, msg.vel * scale), from: msg.from >= 0 ? at(msg.from) : msg.from };
+          out = { ...msg, note: at(msg.note), vel: Math.min(1, (msg.vel ?? 1) * scale), from: msg.from >= 0 ? at(msg.from) : msg.from };
           f.sent.set(msg.note, out.note);
         } else if (msg.type === 'noteOff') {
           const was = f.sent.get(msg.note);

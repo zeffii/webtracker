@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 600 · 2026-11-01
+
+- **Fix: the listen node did not sound.** It had no `process` step, so the audio engine failed on every block as soon as one was in an instrument's graph, and the listener stayed silent. It now runs, and a test plays audio through a listener on a source whose Out `master` is off (the source's master switch never mattered for the notes; the listener hears them either way). A note that arrives without a velocity now counts as full.
+
 ## 599 · 2026-11-01
 
 - **DX panel: keyjazz in a box.** The DX-style synth's panel is now drawn in a box, and while the mouse is over it the piano keys play the instrument (`[` and `]` change the octave), even when a slider or button in the panel has the focus. Typing in a text field of the panel still types.

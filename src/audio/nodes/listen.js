@@ -22,5 +22,5 @@ export default {
     { name: 'transpose', min: -48, max: 48, def: 0, int: true },   // semitones
     { name: 'level', min: 0, max: 2, def: 1 },                     // velocity, as a factor
   ],
-  create() { return {}; },
+  create() { return { process() {} }; },   // (the runtime runs every node each block)
 };

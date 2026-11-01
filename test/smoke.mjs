@@ -9822,6 +9822,21 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   registry.values[slotOf[0]] = 1; seen.length = 0;
   rt.kill('a');
   assert.ok(rt.instruments.get('a').kill && rt.instruments.get('b').kill, 'a kill on the source kills the listener too');
+  // the graph runs with a listen node in it, and the listener sounds on a source that is not in the mix (its Out master is off)
+  {
+    const reg4 = new ParamRegistry(), rt4 = new GraphRuntime({ sampleRate: sr, params: reg4.values });
+    const g = (extra = [], outParams = {}) => ({ nodes: [{ id: 'osc', type: 'osc' }, { id: 'poly', type: 'voices' }, { id: 'out', type: 'out', params: outParams }, ...extra], connections: [['osc.out', 'poly.in'], ['poly.out', 'out.in']] });
+    rt4.load(compile(g([], { master: 0 }), { instrument: 'src', nodeTypes: NODE_TYPES, registry: reg4 }));
+    const l4 = new Float32Array(128), r4 = new Float32Array(128);
+    rt4.note('src', { type: 'noteOn', note: 60, vel: 1 });
+    let quiet = 0; for (let i = 0; i < 40; i++) { rt4.process(l4, r4, 128); quiet = Math.max(quiet, ...l4.map(Math.abs)); }
+    assert.equal(quiet, 0, 'a source with master off is not in the mix');
+    rt4.note('src', { type: 'noteOff', note: 60 });
+    rt4.load(compile(g([{ id: 'l', type: 'listen', source: 'src' }]), { instrument: 'test', nodeTypes: NODE_TYPES, registry: reg4 }));
+    rt4.note('src', { type: 'noteOn', note: 62 });   // (no velocity field: it counts as full)
+    let heard = 0; for (let i = 0; i < 40; i++) { rt4.process(l4, r4, 128); heard = Math.max(heard, ...l4.map(Math.abs)); }
+    assert.ok(heard > 0.01, `the listener sounds the notes of a source that is not in the mix (${heard})`);
+  }
   // a loop: a listens to b and b to a; a note goes round once and stops
   const reg2 = new ParamRegistry();
   const rt3 = new GraphRuntime({ sampleRate: sr, params: reg2.values });
