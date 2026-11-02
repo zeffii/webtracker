@@ -137,9 +137,12 @@ export function createMetaEditor({ root, doc = document, getProject, onChange = 
     return box;
   };
 
-  let note = '';
+  let note = '', fresh = true;   // fresh: a different machine is shown, so the lists start from the top
   function render(message = note) {
     note = message ?? '';
+    // The lists scroll; drawing them again would put them back at the top, so a click low in a long list seemed to do nothing.
+    const kept = fresh ? [0, 0] : ['.me-left', '.me-right'].map(sel => root.querySelector(sel)?.scrollTop ?? 0);
+    fresh = false;
     if (!metaId || !project()?.instruments[metaId]?.meta) { root.hidden = true; return; }
     root.hidden = false;
     const l = lane();
@@ -158,10 +161,11 @@ export function createMetaEditor({ root, doc = document, getProject, onChange = 
       el('p', { className: 'me-help', textContent: 'A new column is empty in every pattern; nothing already written moves. Headers are automatic: n1 n2 notes, v1 velocities, t1 triggers, p1 p2 parameters, numbered in column order. A relative note is a 2hex cell: 80 plays the root note, 81 a semitone above, 7F one below, 00 is a note off. A machine that only a meta machine plays needs no lane of its own.' }),
     );
     root.replaceChildren(head, el('div', { className: 'me-body' }, left, right));
+    left.scrollTop = kept[0]; right.scrollTop = kept[1];
   }
 
   return {
-    show(id) { if (id !== metaId) { selected = null; pending = null; } metaId = id; render(''); },
+    show(id) { if (id !== metaId) { selected = null; pending = null; fresh = true; } metaId = id; render(''); },
     hide() { metaId = null; root.hidden = true; },
     render,
     get shown() { return !root.hidden; },

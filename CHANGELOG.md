@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 617 · 2026-11-02
+
+- **Fix: the Selections editor of a meta machine jumped back to the top of its list on every click.** The list of machines and their parameters scrolls inside its box, and each click drew it again from the top, so a parameter low in a long list was added but scrolled out of sight, and looked as if nothing had happened until you folded or opened something. The list (and the column table beside it) now stay where they are.
+
 ## 616 · 2026-11-02
 
 - **Sequence Editor: Ctrl+Shift+Left / Right move the machine** under the cursor (its lane, with all its patterns) one place earlier or later. The cursor stays on the lane and on the same tick, and playback carries on. The master lane stays first and cannot be moved.
