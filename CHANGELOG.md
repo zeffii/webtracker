@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 616 · 2026-11-02
+
+- **Sequence Editor: Ctrl+Shift+Left / Right move the machine** under the cursor (its lane, with all its patterns) one place earlier or later. The cursor stays on the lane and on the same tick, and playback carries on. The master lane stays first and cannot be moved.
+
 ## 615 · 2026-11-02
 
 - **Pictures for the Membrane and Granular machines,** in the node panel, drawn thin and sharp from the sliders. Membrane: the drum head from above with the vibration pattern of the mode you pick (filled dots move up, hollow ones down, the empty lines between are the nodal lines), a cross where it is struck, and every mode as a stem along its pitch, as tall as the strike sets it going; click a stem to see its pattern. Granular: the sample with the position, the spray band and a scan arrow; a stretch of time with the grains as they start (their size, fade shape and density, and how many sound at once); and lines for pitch, the chance of backwards grains and the stereo spread. The pictures use the machines' own code (the mode table and the grain window), so they match what you hear.

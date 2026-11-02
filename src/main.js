@@ -330,6 +330,12 @@ const seqView = createSequenceView({
   ],
   onNewInstrument: (value, side) => makeInstrument(value, '', side),
   onAddLane: (id, side) => { try { const at = cursorLane(), lane = addLaneFor(id); placeLane(lane.id, at, side); projStatus(`Added lane ${lane.id}.`); } catch (err) { projStatus(err.message); } },
+  onMoveLane: (id, d) => {   // Ctrl+Shift+Left / Right in the Sequence Editor: the cursor stays on the lane and the row
+    const tick = seqView.tick;
+    reshape(() => { ops.moveLane(project, id, d); return { lane: id }; }, { keepPlaying: true });
+    const at = project.lanes.findIndex(l => l.id === id);
+    if (at >= 0) { seqView.goto(at, tick); view.goto(at, 0); followLane(at); }
+  },
   onSeek: tick => { if (!started) return; if (playing) engine.play(tick); else setPlaying(true, tick); },
   onSong: () => songChanged(),
   onShape: li => { mixer?.refresh(); const l = project?.lanes?.[li]; if (l) engine.setLane({ id: l.id, instrument: l.instrument, columns: l.columns, pages: l.pages, mask: l.mask, auto: l.auto }); },

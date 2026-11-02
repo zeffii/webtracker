@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['616', ['Sequence Editor: Ctrl+Shift+Left/Right move the machine under the cursor to an earlier or later lane']],
   ['615', ['Pictures for Membrane (the head and its modes) and Granular (sample, grains, cloud) in the node panel']],
   ['614', ['The machine tree: pick a new instrument from a foldable tree of groups (Shift+I in the Sequence Editor)']],
   ['613', ['New machine: Membrane, a drum skin whose resonances are the zeros of Bessel functions (position, strike, damping, stiffness, glide, shell)']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['609', ['File, Reload app: fresh code, same song. Fix: the DX panel columns now really sit side by side']],
   ['608', ['DX panel: the Voice tab in four columns (bank and algorithm, operators, envelope and output)']],
   ['607', ['DX panel: hairline sliders, underlined inputs, and lines that stop short of the operator names']],
-  ['606', ['DX panel: the two columns sit side by side and the drawings lose their frames']],
                     ];

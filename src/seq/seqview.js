@@ -23,7 +23,7 @@ const hex2 = n => n.toString(16).toUpperCase().padStart(2, '0');
 // column. The cursor sits on a row; edits happen at the row's start, or at the start of a
 // pattern that begins inside it. A pattern is a block that starts with its index and name; a later
 // pattern covers the ones under it. Keyboard-driven.
-export function createSequenceView({ el, statusEl, undoEl = null, listEl, transport, onToggle, onOpen, onMove, onSeek, onParams = () => {}, instruments = () => [], unassigned = () => [], newKinds = () => [], onNewInstrument = () => {}, onAddLane = () => {}, onSong = () => {}, onShape = () => {}, follow = () => false }) {
+export function createSequenceView({ el, statusEl, undoEl = null, listEl, transport, onToggle, onOpen, onMove, onSeek, onParams = () => {}, instruments = () => [], unassigned = () => [], newKinds = () => [], onNewInstrument = () => {}, onAddLane = () => {}, onMoveLane = () => {}, onSong = () => {}, onShape = () => {}, follow = () => false }) {
   let lanes = null, len = 0, editor = null, song = null;
   const cur = { lane: 0, tick: 0 };
   let typed = '', message = '';
@@ -366,6 +366,16 @@ export function createSequenceView({ el, statusEl, undoEl = null, listEl, transp
     const o = here();
     return o && order.includes(o.puid) ? o.puid : order[0] ?? null;
   };
+  // Ctrl+Shift+Left / Right: the machine under the cursor (its lane, with the patterns on it) swaps places with the lane before or after it.
+  // The master lane stays first. main.js does the move and puts the cursor back on the lane.
+  const moveMachine = d => {
+    const here = lane(), first = lanes[0].instrument === MASTER ? 1 : 0;
+    if (here.instrument === MASTER) { message = 'The master lane stays where it is.'; return; }
+    const to = cur.lane + d;
+    if (to < first || to >= lanes.length) { message = d < 0 ? `${here.id} is already the first lane.` : `${here.id} is already the last lane.`; return; }
+    onMoveLane(here.id, d);
+    message = `Moved ${here.id} ${d < 0 ? 'earlier' : 'later'}.`;
+  };
   const stepList = dir => {
     const order = listOrder();
     if (!order.length) { message = 'No patterns in this lane yet.'; return; }
@@ -380,6 +390,7 @@ export function createSequenceView({ el, statusEl, undoEl = null, listEl, transp
     if (curves.key(e)) { e.preventDefault(); e.stopPropagation(); draw(); return; }   // an anchor of a lane curve is selected: E, Shift+E, B, [ ], Left/Right, Delete, Esc
     if (e.ctrlKey || e.metaKey) {
       const key = e.key.toLowerCase(), li0 = cur.lane, tick0 = cur.tick;
+      if (e.shiftKey && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) { moveMachine(e.key === 'ArrowRight' ? 1 : -1); draw(); e.preventDefault(); return; }
       if ((key === 'b' || key === 'e') && !e.shiftKey) {   // the loop: Ctrl+B starts it at this row, Ctrl+E ends it where this row starts (this row is not in the loop)
         const row = rowStart(cur.tick);
         message = key === 'b' ? setLoopPoint(song, 'start', row) : setLoopPoint(song, 'end', row);

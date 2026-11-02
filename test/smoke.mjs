@@ -3661,6 +3661,27 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     press('m'); assert.deepEqual(lanes[0].mutes, [0, 16]);
     press('m'); assert.deepEqual(lanes[0].mutes, [0], 'the same key on a flip removes it');
 
+    // Ctrl+Shift+Left / Right asks for the machine under the cursor to move one lane; the master lane stays put
+    {
+      const asked = [];
+      let key2;
+      const el2 = { addEventListener: (type, f) => { if (type === 'keydown') key2 = f; }, innerHTML: '' };
+      const v2 = createSequenceView({ el: el2, statusEl: { textContent: '' }, transport: new Int32Array(new SharedArrayBuffer(8)), onToggle() {}, onOpen() {}, onMoveLane: (id, d) => asked.push([id, d]) });
+      v2.load({ lanes, song: demoSong, editor });
+      const { MASTER } = await import('../src/instruments.js');
+      const first = lanes[0].instrument === MASTER ? 1 : 0;
+      v2.goto(first + 1, 0);
+      key2({ key: 'ArrowRight', ctrlKey: true, shiftKey: true, preventDefault() {} });
+      key2({ key: 'ArrowLeft', ctrlKey: true, shiftKey: true, preventDefault() {} });
+      assert.deepEqual(asked, [[lanes[first + 1].id, 1], [lanes[first + 1].id, -1]], 'Ctrl+Shift+Right and Left ask to move the lane later and earlier');
+      v2.goto(first, 0); asked.length = 0;
+      key2({ key: 'ArrowLeft', ctrlKey: true, shiftKey: true, preventDefault() {} });
+      assert.equal(asked.length, 0, 'the first lane cannot go earlier');
+      v2.goto(lanes.length - 1, 0);
+      key2({ key: 'ArrowRight', ctrlKey: true, shiftKey: true, preventDefault() {} });
+      assert.equal(asked.length, 0, 'the last lane cannot go later');
+    }
+
     // the loop: Ctrl+B starts it at the cursor's row, Ctrl+E ends it with the row; the same key on the same point takes it away
     {
       const ctrl = key => onKey({ key, ctrlKey: true, preventDefault() {} });
