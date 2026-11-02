@@ -37,6 +37,7 @@ import { poolId, isPool, ensurePool, usersOfSample } from './project/ops.js';
 import { idFromName, uniqueId, addLane, addSample, replaceSample, addSamplerInstrument, addSynthInstrument, channelsOf, sampleMessage, slotsOf, syncSamplerStereo } from './project/ops.js';
 import { MASTER, SHADER, GRAPH, ensureMaster, synthKinds } from './instruments.js';
 import { createMetaEditor } from './ui/metaeditor.js';
+import { playedBy } from './graph/sidechain.js';
 import { createStreams } from './ui/streams.js';
 import { createNodeSeqEditor } from './nodeseq/editor.js';
 import { ensureGraph, cleanGraph } from './nodeseq/graphops.js';
@@ -785,6 +786,7 @@ const osc = createOscClient({ port: () => config.get('oscPort'), onState: ({ up,
 
 // The lists that depend on what the project holds: instruments, samples, the sample list.
 function refreshProjectUi() {
+  pushMetaSources();
   const fill = (select, ids) => {
     const keep = select.value;
     select.replaceChildren(...ids.map(id => new Option(id, id)));
@@ -816,7 +818,7 @@ $('inst-list').addEventListener('keydown', e => {
 const metaEditor = createMetaEditor({
   root: $('meta-editor'),
   getProject: () => project,
-  onChange: id => { refreshLanes(id); patcher.refreshExposed(); },
+  onChange: id => { refreshLanes(id); patcher.refreshExposed(); pushMetaSources(); },
   onAddLane: id => { addLaneFor(id); refreshProjectUi(); },
   // A machine that a meta machine plays for the first time has no use for an empty lane of its own: it goes from the arrangement
   // (a lane that holds patterns stays, and can be removed by hand).
@@ -1815,7 +1817,14 @@ function nsResolve() {
   return { slots, groupSlots: Array.from({ length: 8 }, (_, i) => reg.slots.get(`${GRAPH}.g.g${i + 1}`) ?? -1) };
 }
 const nsEmpty = { sub: 4, groups: [], nodes: [], wires: [] };
-function nsPush() { if (!project || !engine.node) return; engine.setNodeseq(JSON.parse(JSON.stringify(project.song.nodeseq ?? nsEmpty)), nsResolve()); }
+// Which machines each meta machine plays, for the sidechain nodes that listen to a meta machine (they hear those machines added together).
+function pushMetaSources() {
+  if (!project || !engine.node) return;
+  const map = {};
+  for (const [id, def] of Object.entries(project.instruments)) { const played = playedBy(def, id).filter(t => t in project.instruments); if (played.length) map[id] = played; }
+  engine.setMetaSources(map);
+}
+function nsPush() { if (!project || !engine.node) return; pushMetaSources(); engine.setNodeseq(JSON.parse(JSON.stringify(project.song.nodeseq ?? nsEmpty)), nsResolve()); }
 function nsFlags() { if (engine.node) engine.nodeseqFlags({ watch: tabs.active === 'nodeseq' && playing, record: recording && playing }); }
 const nsSay = t => { $('proj-status').textContent = t; };
 function nsLane() {

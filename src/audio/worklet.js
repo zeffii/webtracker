@@ -53,6 +53,7 @@ class TrackerEngine extends AudioWorkletProcessor {
         this.seq.reset(fresh);
       }
       else if (data.type === 'song') this.seq.setSong(data.song);
+      else if (data.type === 'metasrc') this.rt.setMetaSources(data.map);
       else if (data.type === 'nodeseq') this.seq.setNodeseq(data.graph, data.resolve);
       else if (data.type === 'nsp') this.seq.ns.setParam(data.id, data.name, data.value);
       else if (data.type === 'nsd') this.seq.ns.setData(data.id, data.data);

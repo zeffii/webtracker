@@ -6288,6 +6288,42 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   // with voices: the sidechain runs once and every voice can read it
   const poly = rig({ a: tone(), b: { graph: { nodes: [{ id: 'osc', type: 'osc', params: { freq: 110 } }, { id: 'sc', type: 'sidechain', source: 'a' }, { id: 'poly', type: 'voices' }, { id: 'out', type: 'out' }], connections: [['osc.out', 'poly.in'], ['poly.out', 'out.in'], ['sc.out', 'out.in']], voices: 4 } } });
   assert.ok(renderOne(poly.rt, 'a').every(blk => blk.every(Number.isFinite)), 'a sidechain beside voices runs');
+  // a meta machine as the source: it makes no sound, so the listener hears the machines it plays, added together
+  {
+    const quiet = { graph: { nodes: [{ id: 'out', type: 'out' }], connections: [] } };
+    const other = () => ({ graph: { nodes: [{ id: 'osc', type: 'osc', params: { freq: 330 } }, { id: 'out', type: 'out' }], connections: [['osc.out', 'out.in']] } });
+    const play = (listen, order, metaOf = { meta: ['a', 'c'] }) => {
+      const { rt } = rig({ a: tone(), c: other(), meta: quiet, bus: listen }, order);
+      rt.setMetaSources({ meta: metaOf.meta });
+      const l = new Float32Array(block), r = new Float32Array(block), out = [];
+      rt.note('a', { type: 'noteOn', note: 60, vel: 1 }); rt.note('c', { type: 'noteOn', note: 60, vel: 1 });
+      for (let i = 0; i < 20; i++) { rt.process(l, r, block); out.push(l.slice()); }
+      return out;
+    };
+    const direct = rig({ a: tone(), c: other() });
+    const both = (() => { const l = new Float32Array(block), r = new Float32Array(block), out = []; direct.rt.note('a', { type: 'noteOn', note: 60, vel: 1 }); direct.rt.note('c', { type: 'noteOn', note: 60, vel: 1 }); for (let i = 0; i < 20; i++) { direct.rt.process(l, r, block); out.push(l.slice()); } return out; })();
+    for (const order of [['a', 'c', 'meta', 'bus'], ['bus', 'meta', 'c', 'a']]) {   // the listener runs after the machines whatever the load order
+      const heard = play(listener('meta'), order);
+      assert.ok(heard.every((blk, i) => blk.every((v, k) => Math.abs(v - 1.8 * both[i][k]) < 1e-5)), `a listener on a meta machine hears the machines it plays (load order ${order})`);
+    }
+    const onlyA = { graph: { nodes: [{ id: 'sc', type: 'sidechain', source: 'meta', parts: ['a'] }, { id: 'out', type: 'out' }], connections: [['sc.out', 'out.in']] } };
+    const partial = play(onlyA, ['a', 'c', 'meta', 'bus']);
+    assert.ok(partial.some((blk, i) => blk.some((v, k) => Math.abs(v - 1.8 * both[i][k]) > 1e-3)), 'with parts, the other machine is left out');
+    const deaf = play(listener('meta'), ['a', 'c', 'meta', 'bus'], { meta: [] });
+    assert.ok(deaf.every((blk, i) => blk.every((v, k) => Math.abs(v - both[i][k]) < 1e-5)), 'a meta machine that plays nothing is silent');
+    // helpers: what a meta machine plays, loops through it, renaming and dropping
+    const { playedBy, setParts } = await import('../src/graph/sidechain.js');
+    const metaDef = { meta: { columns: [{ role: 'note', instrument: 'a' }, { role: 'vel', instrument: 'a' }, { role: 'param', instrument: 'x', node: 'n', param: 'p' }, { role: 'trig', instrument: 'c' }, { role: 'rnote', instrument: 'a' }] }, graph: { nodes: [], connections: [] } };
+    assert.deepEqual(playedBy(metaDef), ['a', 'c'], 'notes and triggers count; velocities and parameters add no machine');
+    const set = { a: tone(), c: other(), meta: metaDef, bus: listener('meta') };
+    assert.ok(wouldLoop({ ...set, a: listener('bus') }, 'bus', 'meta'), 'a machine the meta machine plays that listens to the listener makes a loop');
+    assert.equal(wouldLoop(set, 'bus', 'meta'), false);
+    assert.deepEqual(setParts(set, 'bus', 'sc', ['a']), ['a']);
+    assert.equal(setParts(set, 'bus', 'sc', ['a', 'c']), undefined, 'ticking every machine is the same as none');
+    set.bus.graph.nodes[0].parts = ['a', 'c'];
+    renameSource(set, 'a', 'lead'); assert.deepEqual(set.bus.graph.nodes[0].parts, ['lead', 'c']);
+    dropSource(set, 'c'); assert.deepEqual(set.bus.graph.nodes[0].parts, ['lead']);
+  }
   // the saved project keeps the source
   const proj = { song: { name: 's', bpm: 100, ticksPerBeat: 4, length: 16 }, instruments: { a: tone(), b: listener('a') }, samples: {}, lanes: [] };
   assert.equal(parseProject(serializeProject(proj)).instruments.b.graph.nodes[0].source, 'a');

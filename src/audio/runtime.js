@@ -40,6 +40,8 @@ export class GraphRuntime {
   prof = null;             // while the Stream Manager is open: id -> { ms, peak }, what each instrument cost since the last report
   scopes = new Map();      // watched nodes: key -> { instrument, node, l, r, at, since }
   followMap = null;        // source instrument -> the listen nodes that hear its notes: [{ id, slots, sent }] (made when first needed)
+  metaTargets = new Map(); // a meta machine -> the machines it plays: a sidechain on it hears them added together (see tap)
+  mixes = new Map();       // the added-together sound of a meta machine's machines, one entry for each way a sidechain asks for it
   following = new Set();   // the instruments whose notes are being passed on right now (a loop of listeners stops where it closes)
 
   constructor({ sampleRate, params, maxBlock = 512, wasm = null }) {
@@ -69,6 +71,7 @@ export class GraphRuntime {
     this.samples.clear();
     this.order = null;
     this.followMap = null;
+    this.metaTargets.clear(); this.mixes.clear();
   }
 
   // Allocates buffers and node state. Runs on a message, not per block.
@@ -86,7 +89,7 @@ export class GraphRuntime {
     const fresh = () => Array.from({ length: compiled.bufferCount }, () => new Float32Array(this.maxBlock));
     const resolver = buffers => ref => (Array.isArray(ref) ? ref.map(b => buffers[b]) : buffers[ref]);   // stereo ports are [left, right]
     const make = (n, resolve) => {
-      const create = () => NODE_TYPES[n.type].create({ sampleRate: this.sampleRate, maxBlock: this.maxBlock, connected: n.connected, wasm: this.wasm, data: n.data, init: n.init, target: n.target, stereo: n.stereo === true, clock: this.clock, notes: msg => this.deliver(compiled.instrument, msg), source: n.source, tap: id => this.tap(id), emit: (msg, transfer) => this.onEmit?.(compiled.instrument, n.id, msg, transfer) });
+      const create = () => NODE_TYPES[n.type].create({ sampleRate: this.sampleRate, maxBlock: this.maxBlock, connected: n.connected, wasm: this.wasm, data: n.data, init: n.init, target: n.target, stereo: n.stereo === true, clock: this.clock, notes: msg => this.deliver(compiled.instrument, msg), source: n.source, tap: (id, parts) => this.tap(id, parts), parts: n.parts, emit: (msg, transfer) => this.onEmit?.(compiled.instrument, n.id, msg, transfer) });
       const node = { id: n.id, instance: create(), slots: Int32Array.from(n.slots), inputs: n.inputs.map(resolve), outputs: n.outputs.map(resolve) };
       if (n.dual) {   // a mono node on a stereo signal: one copy per channel over the same parameters
         const left = node.instance, right = create();
@@ -336,9 +339,35 @@ export class GraphRuntime {
 
   // The sound of an instrument that has already run in this block, for a sidechain node: its left and right buffers, or null
   // when it does not exist or has not run yet (so a loop of listeners, should one get in, hears silence instead of looping).
-  tap(id) {
+  // A meta machine has no sound of its own: what is heard is the machines it plays added together (or, with `parts`, the ones listed).
+  tap(id, parts = null) {
+    const played = this.metaTargets.get(id);
+    if (played) return this.tapMix(id, parts ? played.filter(t => parts.includes(t)) : played);
     const inst = this.instruments.get(id);
     return inst && inst.block === this.blockNo ? inst : null;
+  }
+
+  tapMix(id, list) {
+    const key = `${id}|${list.join(',')}`;
+    let mix = this.mixes.get(key);
+    if (!mix) this.mixes.set(key, mix = { left: new Float32Array(this.maxBlock), right: new Float32Array(this.maxBlock), block: -1 });
+    if (mix.block !== this.blockNo) {   // once for each block, however many nodes ask
+      mix.block = this.blockNo;
+      mix.left.fill(0); mix.right.fill(0);
+      for (const t of list) {
+        const inst = this.instruments.get(t);
+        if (!inst || inst.block !== this.blockNo) continue;
+        for (let i = 0; i < this.blockSize; i++) { mix.left[i] += inst.left[i]; mix.right[i] += inst.right[i]; }
+      }
+    }
+    return mix;
+  }
+
+  // Which machines each meta machine plays: { metaId: [machine ids] }. Replaces what was set before.
+  setMetaSources(map) {
+    this.metaTargets = new Map(Object.entries(map ?? {}).filter(([, list]) => list?.length));
+    this.mixes.clear();
+    this.order = null;
   }
 
   // The order the instruments run in: one that listens to another (through a sidechain node) comes after it. Otherwise the
@@ -349,7 +378,11 @@ export class GraphRuntime {
     const visit = id => {
       if (state.has(id)) return;
       state.set(id, 1);
-      for (const n of this.graphs.get(id)?.nodes ?? []) if (n.type === 'sidechain' && n.source && this.instruments.has(n.source)) visit(n.source);
+      for (const n of this.graphs.get(id)?.nodes ?? []) {
+        if (n.type !== 'sidechain' || !n.source || !this.instruments.has(n.source)) continue;
+        for (const t of this.metaTargets.get(n.source) ?? []) if (this.instruments.has(t)) visit(t);   // a meta machine's sound is its machines': they run first
+        visit(n.source);
+      }
       order.push(id);
     };
     for (const id of this.instruments.keys()) visit(id);
@@ -383,6 +416,7 @@ export class GraphRuntime {
     right.fill(0, 0, n);
     if (this.dying.size) { for (const id of this.dying) { this.rebuild(id); this.killed.add(id); } this.dying.clear(); }   // the fades that ended last block
     this.blockNo = (this.blockNo ?? 0) + 1;
+    this.blockSize = n;
     for (const id of this.runOrder()) {
       const inst = this.instruments.get(id);
       if (!inst) continue;

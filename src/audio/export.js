@@ -27,6 +27,7 @@ export function buildOffline(state, Seq, tweak = m => m) {
     if (!m) continue;
     if (m.type === 'delaycomp') rt.setDelayComp(m.on);
     else if (m.type === 'load') rt.load(m.graph);
+    else if (m.type === 'metasrc') rt.setMetaSources(m.map);
     else if (m.type === 'node') rt.message(m.instrument, m.node, m.msg);
     else if (m.type === 'song') seq.setSong({ ...m.song, loop: undefined });
     else if (m.type === 'nodeseq') seq.setNodeseq(m.graph, m.resolve);

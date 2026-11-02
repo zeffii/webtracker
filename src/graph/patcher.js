@@ -11,7 +11,7 @@ import { addNode, replaceNode, autoLayout, connect, disconnect, duplicateNodes, 
 import { GLYPHS, drawFace } from './glyphs.js';
 import { LOWER, UPPER } from '../seq/piano.js';
 import { inputsOf, portKind, resolveKinds } from './kinds.js';
-import { eligibleSources } from './sidechain.js';
+import { eligibleSources, playedBy, setParts } from './sidechain.js';
 import { factsFor, hintFor } from './hints.js';
 import { choices, display, unitOf } from './units.js';
 import { timeKind, toTicks, fromTicks, tickMarks, snapTo, tickText } from './ticks.js';
@@ -530,12 +530,29 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
       const pick = el('select', { ariaLabel: 'Instrument to listen to' }, el('option', { value: '', textContent: '(none)' }), ...options.map(id => el('option', { value: id, textContent: id })));
       pick.value = options.includes(node.source) ? node.source : '';
       pick.addEventListener('change', () => {
+        if (pick.value !== node.source) delete node.parts;   // a new source starts with all of what it plays
         if (pick.value) node.source = pick.value; else delete node.source;
         structure();
+        renderNodePanel();
         dirty = true;
       });
       items.splice(1, 0, el('div', { className: 'prow' }, el('span', { textContent: 'listens to' }), pick),
         el('p', { className: 'help' }, 'Instruments that already listen to this one are not offered: an instrument cannot hear itself, not even by way of others.'));
+      const played = node.type === 'sidechain' && node.source ? playedBy(instruments[node.source], node.source) : [];
+      if (played.length) {   // a meta machine has no sound of its own: this node hears the machines it plays, added together
+        const heard = new Set(node.parts ?? played);
+        const boxes = played.map(id => {
+          const box = el('input', { type: 'checkbox', checked: heard.has(id), ariaLabel: `Hear ${id}` });
+          box.addEventListener('change', () => {
+            if (box.checked) heard.add(id); else heard.delete(id);
+            setParts(instruments, instId, node.id, [...heard]);
+            structure();
+            renderNodePanel();
+          });
+          return el('label', { className: 'prow' }, box, el('span', { textContent: id }));
+        });
+        items.splice(3, 0, el('p', { className: 'help' }, `${node.source} is a meta machine: this node hears the machines it plays, added together. Untick the ones to leave out.`), ...boxes);
+      }
     }
     if (type.editor === 'curve') {   // a drawable transfer curve, kept on the node and sent live
       const editor = createCurveEditor({

@@ -2,6 +2,11 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 620 · 2026-11-02
+
+- **A Sidechain node can listen to a meta machine.** A meta machine makes no sound of its own, so listening to one used to give silence. Now the node hears the machines the meta machine plays (the ones in its note, relative-note and trigger columns), added together, after their own effects and levels. When the picked source is a meta machine, the node's panel lists those machines with a tick each, so you can leave some out; with none unticked it hears them all. The meta machine's machines run before the listener, a choice that would make a loop (one of them listens to the listener) is refused, and renaming or removing a machine keeps the lists right. Export and Bounce hear the same.
+- This is the base for a Group machine: a machine whose Sidechain hears a meta machine, followed by any effects, with the members' *mix* switched off.
+
 ## 619 · 2026-11-02
 
 - **A meta machine now has a parameter window.** The floating parameters window (Ctrl+Alt+P, over the pattern editor and the Sequence Editor) and the exposed dock of the Instruments screen used to say "Nothing exposed" for a meta machine, because it exposes nothing of its own. They now show the parameters it plays, the ones picked in its Selections, as sliders that move the real parameter of the machine they belong to, named `machine · parameter`. Its notes, velocities and triggers have no slider and are left out. The list follows the Selections as you change them. The window can be dragged wider from its left edge to read longer names.

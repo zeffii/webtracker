@@ -126,7 +126,7 @@ export function compile(source, { instrument, nodeTypes, registry, delayComp = f
       const at = n.def.params.findIndex(p => p.name === name), spec = n.def.params[at];
       return { input: n.def.inputs.length + k, slot: slots[at], min: spec.min, max: spec.max, log: isLogSpec(spec), int: spec.int === true };
     }).filter(p => live(inputs[p.input]));
-    nodes.push({ id, type: n.type, slots, inputs, outputs: outBufs.get(id), connected: inputs.map(live), ...(paramPorts.length ? { paramPorts } : {}), ...(hints.get(id) !== undefined ? { init: hints.get(id) } : {}), ...(wide.has(id) ? { dual: true } : {}), ...(n.stereo ? { stereo: true } : {}), ...(n.source ? { source: n.source } : {}), ...(n.data ? { data: n.data } : {}), ...(n.type === 'range' && rangeTargetOf(desc, nodeTypes, id) ? { target: (({ min, max, log, int }) => ({ min, max, log, int }))(rangeTargetOf(desc, nodeTypes, id)) } : {}) });
+    nodes.push({ id, type: n.type, slots, inputs, outputs: outBufs.get(id), connected: inputs.map(live), ...(paramPorts.length ? { paramPorts } : {}), ...(hints.get(id) !== undefined ? { init: hints.get(id) } : {}), ...(wide.has(id) ? { dual: true } : {}), ...(n.stereo ? { stereo: true } : {}), ...(n.source ? { source: n.source } : {}), ...(n.parts ? { parts: n.parts } : {}), ...(n.data ? { data: n.data } : {}), ...(n.type === 'range' && rangeTargetOf(desc, nodeTypes, id) ? { target: (({ min, max, log, int }) => ({ min, max, log, int }))(rangeTargetOf(desc, nodeTypes, id)) } : {}) });
   }
 
   const masters = order.filter(id => byId.get(id).def.master);

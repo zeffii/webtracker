@@ -3,6 +3,8 @@
 // duck this instrument under the other (a pad under a kick); or just mix it in. It hears the other instrument as it sounds
 // after its own graph, in the same block, so there is no delay. An instrument can only listen to ones that do not listen to
 // it in turn, directly or through others; the instrument list refuses a loop, and a loop that gets in anyway is silent.
+// A meta machine has no sound of its own, so listening to one is listening to the machines it plays, added together; `parts`
+// (instrument ids) narrows that to some of them.
 export default {
   type: 'sidechain',
   inputs: [],
@@ -14,11 +16,11 @@ export default {
   glyph: 'sidechain',
   kinds: { out: 'stereo' },
   params: [{ name: 'level', min: 0, max: 2, def: 1 }],
-  create({ source, tap }) {
+  create({ source, parts, tap }) {
     return {
       process(inputs, outputs, n, params, slots) {
         const [outL, outR] = outputs[0];
-        const from = source && tap ? tap(source) : null;
+        const from = source && tap ? tap(source, parts) : null;
         if (!from) { outL.fill(0, 0, n); outR.fill(0, 0, n); return; }
         const gain = params[slots[0]];
         for (let i = 0; i < n; i++) { outL[i] = from.left[i] * gain; outR[i] = from.right[i] * gain; }

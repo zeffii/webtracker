@@ -167,6 +167,12 @@ export class Engine {
     this.node.port.postMessage({ type: 'song', song: { bpm, ticksPerBeat, length, swing, beatsPerBar, ...(master ? { master } : {}), ...(loop && !loop.off ? { loop: { start: loop.start, end: loop.end } } : {}) } });
   }
 
+  // Which machines each meta machine plays, for the sidechain nodes that listen to one: { metaId: [machine ids] }.
+  setMetaSources(map) {
+    this.sent?.set('metasrc', { type: 'metasrc', map });
+    this.node.port.postMessage({ type: 'metasrc', map });
+  }
+
   // The Node Sequencer's graph and what its names mean here (see audio/nodeseq.js); live edits of one parameter or one node's data go on their own.
   setNodeseq(graph, resolve) {
     this.sent?.set('nodeseq', { type: 'nodeseq', graph, resolve });
@@ -185,7 +191,7 @@ export class Engine {
   // Everything an offline render needs: what the audio thread was told (graphs first, then node data, the song, the
   // lanes), a private copy of the parameter values, the compiled DSP and the sample rate.
   exportState() {
-    const order = { load: 0, node: 1, song: 2, nodeseq: 3, lane: 4 };
+    const order = { load: 0, metasrc: 1, node: 1, song: 2, nodeseq: 3, lane: 4 };
     const messages = [{ type: 'delaycomp', on: this.delayComp }, ...[...this.sent.values()].sort((a, b) => order[a.type] - order[b.type])];
     return { messages, params: new Float32Array(new Float32Array(this.registry.sab)), wasm: this.wasmModule, sampleRate: this.ctx?.sampleRate ?? 44100 };
   }
