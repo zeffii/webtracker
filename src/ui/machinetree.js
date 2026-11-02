@@ -79,7 +79,7 @@ export function showMachineTree(at, tree, { onPick, title = '', doc = document }
       label.className = 'mt-lab';
       label.textContent = row.node.children ? `${row.node.name}${open.has(row.path) ? '' : ' +'}` : row.node.name;
       el.append(label);
-      el.addEventListener('mouseenter', () => { if (at_ !== i) { at_ = i; mark(); } });
+      el.addEventListener('mousemove', () => { if (at_ !== i) { at_ = i; mark(); } });   // moving, not entering: a redraw under a still mouse must not take the highlight
       el.addEventListener('mousedown', ev => { ev.preventDefault(); ev.stopPropagation(); at_ = i; activate(); });
       menu.append(el);
     });
@@ -121,8 +121,10 @@ export function showMachineTree(at, tree, { onPick, title = '', doc = document }
     else if (ev.key === 'End') { at_ = rows.length - 1; mark(); }
     else if (ev.key === 'Enter') activate();
     else if (ev.key === 'ArrowRight') {
-      if (row.node.children && !open.has(row.path)) { open.add(row.path); keepOn(row); }
-      else if (row.node.children) { at_ += 1; mark(); }   // an open group: step into it
+      if (row.node.children) {   // open the group if it is shut, and go to its first machine
+        if (!open.has(row.path)) { open.add(row.path); keepOn(row); }
+        at_ += 1; mark();
+      }
     } else if (ev.key === 'ArrowLeft') {
       if (row.node.children && open.has(row.path)) { open.delete(row.path); keepOn(row); }
       else if (row.parent) { at_ = rows.indexOf(row.parent); mark(); }

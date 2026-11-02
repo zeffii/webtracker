@@ -2,6 +2,11 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 615 · 2026-11-02
+
+- **Pictures for the Membrane and Granular machines,** in the node panel, drawn thin and sharp from the sliders. Membrane: the drum head from above with the vibration pattern of the mode you pick (filled dots move up, hollow ones down, the empty lines between are the nodal lines), a cross where it is struck, and every mode as a stem along its pitch, as tall as the strike sets it going; click a stem to see its pattern. Granular: the sample with the position, the spray band and a scan arrow; a stretch of time with the grains as they start (their size, fade shape and density, and how many sound at once); and lines for pitch, the chance of backwards grains and the stereo spread. The pictures use the machines' own code (the mode table and the grain window), so they match what you hear.
+- **Machine tree: Right on a closed group opens it and moves to its first machine,** and a mouse resting over the menu no longer pulls the highlight to another row when a group opens.
+
 ## 614 · 2026-11-01
 
 - **The machine tree: a new way to pick an instrument.** A tree of thin lines in orange on dark, in the style of your ztrk menu: samplers, synths (analogue, digital, physical), drums (machines, struck) and tools. Up/Down move, Right opens a group (or steps into it), Left closes it (or steps out), Enter picks, a letter jumps to the next row that starts with it, and the groups you opened stay open. It opens on the machine you picked last. In the Sequence Editor, press Shift+I, or right-click, Insert lane, New instrument. A machine that is not named in the layout (MACHINE_TREE in instruments.js) still shows up, in a group called "other".

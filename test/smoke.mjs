@@ -8913,6 +8913,12 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     assert.ok(hit({ quality: 1 }).out.every(Number.isFinite) && mrms(hit({ quality: 1, ...base }).out, 500, 5000) > 0.02, 'eco still sounds');
     assert.ok(hit({ stiffness: 1, strike: 1, glide: 1, shell: 1, damping: 0, width: 1 }, 96).peak < 1.2, 'extreme settings stay in range');
     assert.ok(hit({}, 24).out.every(Number.isFinite) && hit({}, 108).out.every(Number.isFinite), 'the extremes of pitch stay finite');
+    const { describeModes } = await import('../src/audio/nodes/membrane.js');
+    const mid = describeModes({ position: 0, stiffness: 0, damping: 0.5, highdamp: 0.5 }), rim = describeModes({ position: 0.9, stiffness: 0, damping: 0.5, highdamp: 0.5 });
+    assert.ok(mid.filter(k => k.m > 0).every(k => Math.abs(k.weight) < 1e-9), 'hit in the exact middle, only the round modes (no nodal lines) move');
+    assert.ok(mid.some(k => k.m === 0 && Math.abs(k.weight) > 0.1) && rim.some(k => k.m > 0 && Math.abs(k.weight) > 0.1), 'near the rim the modes with nodal lines move too');
+    assert.ok(describeModes({ position: 0.5, stiffness: 1, damping: 0.5, highdamp: 0.5 }).at(-1).ratio > describeModes({ position: 0.5, stiffness: 0, damping: 0.5, highdamp: 0.5 }).at(-1).ratio * 1.02, 'stiffness pushes the high modes sharp');
+    assert.equal(describeModes({ position: 0.5, stiffness: 0, damping: 0.5, highdamp: 0.5, quality: 1 }).length, 16, 'eco keeps 16 modes');
     console.log('ok: membrane');
   }
 

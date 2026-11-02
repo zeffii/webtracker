@@ -1,4 +1,5 @@
 import { ALGORITHMS, VOICES, unpackBank, packVoice, parseSyx, initVoice, blankOp, scaleOL, levelScaling, bankToSyx, voiceToSyx, DEFAULT_BANK } from '../audio/nodes/dx7.js';
+import { sharpCanvas } from './sharp.js';
 import { drawBank, layoutAlgorithm } from './dxbank.js';
 import { previewVoice, operatorNames, ratioOf, STAGES } from './dxpreview.js';
 
@@ -21,15 +22,6 @@ const PALETTES = [
 let pal = PALETTES[3];   // ice
 try { pal = PALETTES.find(p => p.name === localStorage.getItem('wax.dxPalette')) || pal; } catch { /* no storage: the default */ }
 
-// A canvas that draws crisply: its backing store has one pixel per screen pixel (the context is scaled so the
-// code still draws in the logical w x h), and it is shown at exactly that size instead of being stretched.
-const sharpCanvas = (doc, w, h) => {
-  const canvas = doc.createElement('canvas'), ratio = Math.max(1, globalThis.devicePixelRatio || 1);
-  canvas.width = Math.round(w * ratio); canvas.height = Math.round(h * ratio); canvas.className = 'dx';
-  if (canvas.style) { canvas.style.width = `${w}px`; canvas.style.height = `${h}px`; canvas.style.maxWidth = 'none'; }
-  canvas.getContext?.('2d')?.setTransform?.(ratio, 0, 0, ratio, 0, 0);
-  return canvas;
-};
 const NOTE = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 const noteName = n => `${NOTE[n % 12]}${Math.floor(n / 12) - 2}`;
 const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));

@@ -86,6 +86,23 @@ const MODES = (() => {
 })();
 const MAIN = MODES.find(k => k.m === 1 && k.n === 1);   // the mode the ear hears as the pitch of the drum
 export const MEMBRANE_MODES = MODES;
+export const STRIKE_ANGLE = 0.4;   // where the head is struck, round its edge, in radians (the two pick-ups sit either side of it)
+
+// What the settings do to each mode, one entry per mode: its pitch as a ratio of the lowest (stiffness pushes the high ones sharp),
+// the seconds it takes to fall 60 dB, and how hard the strike moves it (`weight`: the Bessel shape where the head is hit, and a gentle
+// tilt that favours the low modes). The sound uses this, and so does the picture of the node, so they cannot disagree.
+export function describeModes({ position, stiffness, damping, highdamp, quality = 0 }) {
+  const limit = quality >= 0.5 ? ECO_MODES : MODES.length;
+  const t60 = 3 * Math.pow(0.05 / 3, damping);                       // seconds for the lowest mode to fall 60 dB
+  const slope = 0.3 + 1.2 * highdamp;                                // how fast the decay time shortens up the modes
+  return MODES.slice(0, limit).map(md => ({
+    m: md.m, n: md.n, j: md.j,
+    ratio: md.ratio * Math.sqrt(1 + stiffness * 0.02 * md.ratio * md.ratio),
+    t60: Math.max(0.004, t60 * Math.pow(md.ratio, -slope) * (md.m === 0 && md.n === 1 ? 1 : 0.85)),
+    // (the very rim is held still, so the furthest hit is 90% of the way out)
+    weight: bessel(md.m, md.j * position * 0.9) * md.norm * Math.pow(md.ratio, -0.35),
+  }));
+}
 
 export default {
   type: 'membrane',
@@ -95,6 +112,7 @@ export default {
   generator: true,
   shape: 'rounded',
   glyph: 'membrane',
+  editor: 'membrane',   // the patcher panel draws the head, the mode that is picked and the modes that ring
   kinds: { pitch: 'control', out: 'stereo' },
   params: SPEC,
   create({ sampleRate, connected }) {
@@ -109,30 +127,20 @@ export default {
     let seed = 0x2468ace1;
     const rand = () => { seed ^= seed << 13; seed ^= seed >>> 17; seed ^= seed << 5; return (seed >>> 0) / 4294967296 * 2 - 1; };
 
-    // Where the head is struck on its angle, and how far the pick-ups sit from that, in radians.
-    const STRIKE_ANGLE = 0.4;
-
     // The resonators for the settings and the note: pitch (so also the glide), decay and loudness of every mode.
     // `lift` is the glide: how far above rest the whole head is pitched right now (1 is at rest).
     const aim = (g, main, lift, loudness) => {
-      const position = g('position'), stiff = g('stiffness'), high = g('highdamp'), width = g('width');
-      const limit = g('quality') >= 0.5 ? ECO_MODES : count;
-      const t60 = 3 * Math.pow(0.05 / 3, g('damping'));                  // seconds for the lowest mode to fall 60 dB
-      const slope = 0.3 + 1.2 * high;                                    // how fast the decay time shortens up the modes
-      const spread = width * 1.2;                                        // angle of the two pick-ups either side of the strike
+      const modes = describeModes({ position: g('position'), stiffness: g('stiffness'), damping: g('damping'), highdamp: g('highdamp'), quality: g('quality') });
+      const spread = g('width') * 1.2;                                   // angle of the two pick-ups either side of the strike
       const base = main * lift / MAIN.ratio;                             // the pitch of the lowest mode
       used = 0;
-      for (let k = 0; k < limit; k++) {
-        const md = MODES[k];
-        const f = base * md.ratio * Math.sqrt(1 + stiff * 0.02 * md.ratio * md.ratio);
+      for (let k = 0; k < modes.length; k++) {
+        const md = modes[k], f = base * md.ratio;
         if (f > sampleRate * 0.45) { gL[k] = gR[k] = 0; continue; }
         used = k + 1;
-        const t = Math.max(0.004, t60 * Math.pow(md.ratio, -slope) * (md.m === 0 && md.n === 1 ? 1 : 0.85));
-        const r = Math.pow(10, -3 / (t * sampleRate)), th = 2 * Math.PI * f / sampleRate;
+        const r = Math.pow(10, -3 / (md.t60 * sampleRate)), th = 2 * Math.PI * f / sampleRate;
         a1[k] = 2 * r * Math.cos(th); a2[k] = r * r;
-        const shape = bessel(md.m, md.j * position * 0.9) * md.norm;    // (the very rim is held still, so the furthest hit is 90% of the way out)             // how far this mode moves where the head is hit
-        const beater = Math.pow(md.ratio, -0.35);
-        const w = shape * beater * Math.sin(th) * 0.12 * loudness;
+        const w = md.weight * Math.sin(th) * 0.12 * loudness;
         gL[k] = w * Math.cos(md.m * (STRIKE_ANGLE - spread));
         gR[k] = w * Math.cos(md.m * (STRIKE_ANGLE + spread));
       }

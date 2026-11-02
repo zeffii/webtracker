@@ -12,6 +12,12 @@ import { Adsr } from './adsr.js';
 const MAX_GRAINS = 96;
 const TS = 512;   // the fade in and out come from a table: a quarter-cycle cosine, rather than a cos() per grain per sample
 const FADE = Float64Array.from({ length: TS + 2 }, (_, j) => 0.5 - 0.5 * Math.cos(Math.PI * Math.min(j, TS) / TS));
+// The shape of a grain: how loud it is, 0 to 1, a fraction p of the way through it. `shape` is how much of the grain is fade in and
+// out (each fade covers half of it): 1 is a full Hann window, near 0 a rectangle. The same curve the grains use, for the picture of the node.
+export const grainWindow = (p, shape) => {
+  const edge = Math.min(p, 1 - p) * 2 / Math.max(0.02, shape);
+  return 0.5 - 0.5 * Math.cos(Math.PI * Math.min(1, Math.max(0, edge)));
+};
 const SPEC = [
   { name: 'sample', min: 0, max: 255, def: 0, int: true },
   { name: 'position', min: 0, max: 1, def: 0.2 },
@@ -43,6 +49,7 @@ export default {
   category: 'Sources',
   generator: true,
   samples: true,   // plays the samples listed for the node, like the sampler
+  editor: 'granular',   // the patcher panel draws where the grains are read from and what a grain looks like
   adsr: [{ atk: 'attack', dec: 'decay', sus: 'sustain', rel: 'release' }],
   shape: 'rounded',
   glyph: 'granular',
