@@ -16,6 +16,7 @@ const CHORD = [['f', 'M4.7 9.2a1.7 1.2 0 1 0-3.4 0a1.7 1.2 0 1 0 3.4 0M8.7 6.2a1
 export const GLYPHS = {
   clock: [['s', 'M10.6 6a4.6 4.6 0 1 0-9.2 0a4.6 4.6 0 1 0 9.2 0'], ['s', 'M6 3v3l2 1.5']],
   every: [['s', 'M2 6h8'], ['f', dot(6, 2.6, 1) + dot(6, 9.4, 1)]],
+  modulo: [['s', 'M2 10l8-8'], ['f', dot(3.2, 3.2, 1.3) + dot(8.8, 8.8, 1.3)]],
   Pseq: [['s', 'M1 3h10M1 6h10M1 9h6']],
   Prand: DICE,
   Pchord: CHORD, Chord: CHORD,
@@ -80,6 +81,7 @@ export function tileLabel(n, live, chordCount = 0) {
     case 'math': return `${p.mul !== undefined && p.mul !== 1 ? `×${p.mul} ` : ''}${p.add ? (p.add > 0 ? '+' : '') + p.add : ''}`.trim().slice(0, 7);
     case 'section': return `${Math.round(p.start ?? 0)}-${Math.round(p.end ?? 64)}${p.unit >= 0.5 ? 'b' : ''}`;
     case 'every': return `÷${p.n ?? 4}`;
+    case 'modulo': return `%${p.n ?? 4}${['', 'b', 'B'][Math.round(p.unit ?? 0)] ?? ''}${p.offset ? `+${p.offset}` : ''}`;
     case 'chance': return `${Math.round((p.p ?? 0.5) * 100)}%`;
     case 'run': return `G${Math.round(p.group ?? 2)}`;
     case 'Phrase': return live && live.i >= 0 ? `${live.i + 1}/${chordCount}` : `${chordCount}`;

@@ -27,6 +27,32 @@ export const LOGIC_TYPES = {
       };
     },
   },
+  modulo: {
+    title: 'modulo', cat: 'time', hint: 'looks at the song\'s tick, not at how many events have come: an event passes when its tick is on every nth tick (or beat, or bar), counting from offset; the others leave by else. hit is an event of its own on those ticks (its number counts the periods), rem sends the tick modulo n on every tick, and phase is a control that climbs from 0 to 1 across each period. Unlike every, it stays on the grid however the events arrive',
+    ins: [ev('in')], outs: [out('out'), out('else'), out('hit'), out('rem'), { n: 'phase', k: 'c' }],
+    params: [par('n', 1, 4096, 4, { int: true }), par('offset', 0, 4095, 0, { int: true }), par('unit', 0, 2, 0, { int: true, labels: ['ticks', 'beats', 'bars'] })],
+    create: cx => {
+      let phase = 0;
+      const unit = () => [1, cx.info.tpb, cx.info.barTicks][Math.round(cx.p.unit)] ?? 1;
+      // where a tick falls: the period, the tick's place in it (0 is on the beat of the period), and which period it is
+      const place = tick => {
+        const period = Math.max(1, Math.round(cx.p.n)) * unit(), t = tick - Math.round(cx.p.offset) * unit();
+        return { period, at: ((t % period) + period) % period, count: Math.max(0, Math.floor(t / period)) };
+      };
+      return {
+        event(_p, v, vel) { cx.emit(place(cx.info.tick).at === 0 ? 'out' : 'else', v, vel); },
+        tick() {
+          const { period, at, count } = place(cx.info.tick);
+          phase = at / period;
+          if (at === 0) cx.emit('hit', count, -1);
+          cx.emit('rem', at, -1);
+          cx.ctl('phase', phase);
+        },
+        reset() { phase = 0; },
+        view: () => ({ v: phase }),
+      };
+    },
+  },
   switch: {
     title: 'switch', cat: 'logic', hint: 'sends each event out of one of four outputs. A number at pick chooses which (0 is the first); or, with "by" set to value, the event\'s own number chooses',
     ins: [ev('in'), ev('pick')], outs: [out('o1'), out('o2'), out('o3'), out('o4')],

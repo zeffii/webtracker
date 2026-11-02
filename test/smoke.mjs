@@ -4053,6 +4053,12 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
       assert.deepEqual([ons(t.log).filter(e => e.instrument === 'n').map(e => e.at / 2), ons(t.log).filter(e => e.instrument === 'b').map(e => e.at / 2), ons(t.log).filter(e => e.instrument === 'e').map(e => e.at / 2)], [[2, 3, 4], [2], [4]], 'section 2 to 5: ticks 2, 3, 4; start fires on 2, end on 4');
       t = play([{ id: 's', type: 'section', params: { start: 2, end: 5, inclusive: 1 } }, note('n')], [{ from: 'c.tick', to: 's.in' }, { from: 's.out', to: 'n.note' }], 8);
       assert.deepEqual(ons(t.log).map(e => e.at / 2), [2, 3, 4, 5], 'inclusive: the end tick passes too');
+      // modulo works on the song's tick: events on every 4th tick pass, the others leave by else, whatever the events before them were
+      t = play([{ id: 'm', type: 'modulo', params: { n: 4, offset: 1 } }, note('n'), note('e'), note('h')], [{ from: 'c.tick', to: 'm.in' }, { from: 'm.out', to: 'n.note' }, { from: 'm.else', to: 'e.note' }, { from: 'm.hit', to: 'h.note' }], 10);
+      assert.deepEqual([ons(t.log).filter(e => e.instrument === 'n').map(e => e.at / 2), ons(t.log).filter(e => e.instrument === 'e').map(e => e.at / 2).length, ons(t.log).filter(e => e.instrument === 'h').map(e => e.at / 2)], [[1, 5, 9], 7, [1, 5, 9]], 'modulo 4 from 1: ticks 1, 5, 9 pass and hit; the other seven leave by else');
+      // an uneven stream (ticks 1, 4, 7, 10 from every 3): every counts events, modulo reads the tick
+      t = play([{ id: 'e', type: 'every', params: { n: 3, offset: 1 } }, { id: 'm', type: 'modulo', params: { n: 2 } }, note('n')], [{ from: 'c.tick', to: 'e.in' }, { from: 'e.out', to: 'm.in' }, { from: 'm.out', to: 'n.note' }], 12);
+      assert.deepEqual(ons(t.log).map(e => e.at / 2), [4, 10], 'modulo 2 lets through the events that fall on an even tick');
       // ratchet repeats an event inside its tick
       t = play([{ id: 'r', type: 'ratchet', params: { count: 3, gap: 1 } }, note('n')], [{ from: 'c.bar', to: 'r.in' }, { from: 'r.out', to: 'n.note' }], 2);
       assert.deepEqual(ons(t.log).map(e => e.at), [0, 1, 2], 'ratchet: three notes a subtick apart');

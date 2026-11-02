@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 623 · 2026-11-02
+
+- **Node Sequencer: a `modulo` node that works on the song's tick.** `every` counts the events that reach it, so it drifts off the grid when they do not come on every tick. `modulo` reads the tick itself: an event passes (`out`) when its tick is on every n-th tick, beat or bar, counting from an offset, and the others leave by `else`. It also makes events of its own, with no wire in: `hit` fires on those ticks (its number counts the periods), `rem` sends the tick modulo n every tick (to drive a switch or a pick), and `phase` is a control that climbs 0 to 1 across each period. The tile shows `%4`, `%2b` for beats, `%1B` for bars, with `+offset` when there is one.
+
 ## 622 · 2026-11-02
 
 - **Quiet machines sleep.** A machine with no note sounding whose output has stayed below about −90 dB for 2 seconds (longer when it has a delay with a longer time, so no echo is cut off) stops running and costs no CPU. Nothing is reset: filters, delay lines, envelopes and phases stay exactly where they were, so it wakes for free, in the same block, on a note, a parameter change (or a pattern writing one), a message to one of its nodes, a kill, or the machine its sidechain listens to sounding. LFO and ctrl nodes keep running while it sleeps, so sweeps and synced LFOs stay in time.
