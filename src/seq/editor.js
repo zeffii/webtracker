@@ -71,9 +71,11 @@ export function createEditor(lanes, length, { limit = 20 } = {}) {
     placePattern: (li, tick, puid) => change('place pattern', null, () => ops.placePattern(at(li), length, snap(tick), puid)),
     // A new pattern of `rows` rows at the tick (snapped to a row of the arrangement) with cells written into it: items are
     // { tick, col, token } with the tick counted from the pattern's start. Returns the pattern's puid, or null when one already starts there.
-    transcribe: (li, tick, rows, items, label = 'detect chords') => change(label, null, () => {
+    // name(index, names), when given, names the new pattern from its index and the names of the lane's other patterns.
+    transcribe: (li, tick, rows, items, label = 'detect chords', name = null) => change(label, null, () => {
       const base = snap(tick), puid = ops.insertPattern(at(li), length, base, rows);
       if (puid === null) return null;
+      if (name) { const pats = at(li).patterns, others = Object.entries(pats).filter(([k]) => k !== puid).map(([, p]) => p.name); pats[puid].name = name(pats[puid].index, others); }
       ops.setCells(at(li), length, items.map(i => ({ ...i, tick: i.tick + base })));
       return puid;
     }),

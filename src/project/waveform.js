@@ -1,6 +1,6 @@
 import { setLoop, setSlices, sliceHex, frameHex } from './ops.js';
 import * as config from '../ui/config.js';
-import { computeSpectrogram, heat } from './spectrogram.js';
+import { computeSpectrogram, computePitchSpectrogram, heat } from './spectrogram.js';
 
 // Min and max of the sample for each pixel column: what the waveform view draws.
 export function computePeaks(data, width, a = 0, b = data.length) {
@@ -40,6 +40,8 @@ export function createWaveformView({ canvas, statusEl, getProject, onLoop, onSel
   }
 
   let ghost = null;   // the auto-slice preview (see setGhost)
+  let overlay = null;   // the piano roll (pianorollview.js): drawn on top, and it takes the mouse first while it is on
+  const viewOf = () => ({ W, H, frameToX, xToFrame });
   let active = -1;   // the slice marker the keys nudge, drawn brighter
   let settled = true, settleTimer = null;   // while the size is being dragged the spectrogram is the old picture stretched; it is computed afresh once the size has rested
   const SETTLE_MS = 250;
@@ -86,6 +88,8 @@ export function createWaveformView({ canvas, statusEl, getProject, onLoop, onSel
   // The cursor says what a drag would do: a marker within reach (and free to grab: Alt held, or every region hidden) shows the move cursor.
   let lastX = -1e9;
   const showCursor = () => {
+    const own = overlay?.cursor();
+    if (own) { canvas.style.cursor = own; return; }
     const s = sample();
     const over = !drag && s && frames() && (altHeld || regionsHidden()) && nearestSlice(s, lastX, GRAB) >= 0;
     canvas.style.cursor = drag?.kind === 'slice' || over ? 'col-resize' : 'default';
@@ -106,6 +110,7 @@ export function createWaveformView({ canvas, statusEl, getProject, onLoop, onSel
     if (!sample() || !frames()) return;
     e.preventDefault();
     drag = null;
+    if (overlay?.menu(e, viewOf())) { lastKey = null; return; }
     onMenu(e, Math.min(xToFrame(e.offsetX), frames() - 1));
   });
   let pan = null;   // a middle-button drag: where it began and the frames the view showed then
@@ -127,6 +132,7 @@ export function createWaveformView({ canvas, statusEl, getProject, onLoop, onSel
     if ((e.button ?? 0) !== 0) return;
     const s = sample();
     if (!s || !frames()) return;
+    if (overlay?.down(e, viewOf())) { lastKey = null; showCursor(); return; }
     // Plain drag (or Shift): the selection. Alt: the loop, or a slice marker when one is under the mouse (Alt+click alone makes a marker).
     // Ctrl: the sustain loop. The start or end of the loop being worked on is grabbed when the mouse is on it.
     const region = (target, markOnClick) => {
@@ -159,11 +165,20 @@ export function createWaveformView({ canvas, statusEl, getProject, onLoop, onSel
     else if (drag.kind === 'end') drag.preview = { start: drag.preview.start, end: Math.max(f, drag.preview.start + 2) };
     else if (Math.abs(f - drag.anchor) >= 2) drag.preview = { start: Math.min(f, drag.anchor), end: Math.max(f, drag.anchor) };
   };
-  canvas.addEventListener('mousemove', e => { move(e.offsetX); lastX = e.offsetX; altHeld = !!e.altKey; showCursor(); });
+  canvas.addEventListener('mousemove', e => { if (overlay) { overlay.move(e, viewOf()); lastKey = null; } move(e.offsetX); lastX = e.offsetX; altHeld = !!e.altKey; showCursor(); });
+  canvas.addEventListener('mouseleave', () => { if (overlay) { overlay.leave(); lastKey = null; } });
   // a drag goes on outside the display: the pointer past either edge holds the selection at the first or last frame of the view
   // (it used to be cancelled the moment the mouse left, which threw away selections reaching the edge)
-  globalThis.addEventListener?.('mousemove', e => { if (drag && e.target !== canvas) move(e.clientX - canvas.getBoundingClientRect().left); });
-  globalThis.addEventListener?.('mouseup', e => { if (drag && e.target !== canvas) finish(); });
+  globalThis.addEventListener?.('mousemove', e => {
+    if (e.target === canvas) return;
+    const box = canvas.getBoundingClientRect();
+    if (overlay?.dragging) { overlay.move({ offsetX: e.clientX - box.left, offsetY: e.clientY - box.top, shiftKey: e.shiftKey }, viewOf()); lastKey = null; }
+    if (drag) move(e.clientX - box.left);
+  });
+  globalThis.addEventListener?.('mouseup', e => {
+    if (overlay?.dragging) { overlay.up(); lastKey = null; showCursor(); }
+    if (drag && e.target !== canvas) finish();
+  });
 
   const finish = () => {
     const d = drag;
@@ -173,10 +188,11 @@ export function createWaveformView({ canvas, statusEl, getProject, onLoop, onSel
     if (d?.preview) commit(Math.max(0, d.preview.start), d.preview.end, d.target ?? 'loop');
     else if (d?.kind === 'region' && d.markOnClick !== undefined) commitSlices([...(sample()?.slices ?? []), d.markOnClick], d.markOnClick);   // Alt+click without a drag: a slice marker
   };
-  canvas.addEventListener('mouseup', finish);
+  canvas.addEventListener('mouseup', () => { if (overlay?.dragging) { overlay.up(); lastKey = null; showCursor(); return; } finish(); });
   canvas.addEventListener('mouseleave', e => { if (drag && !globalThis.addEventListener) { move(e.offsetX); finish(); } });
   canvas.addEventListener('wheel', e => {   // Ctrl+wheel zooms about the mouse; the plain wheel moves along a zoomed view
     if (!sample() || !frames()) return;
+    if (overlay?.wheel(e, viewOf())) { e.preventDefault?.(); lastKey = null; return; }   // over the piano roll's key strip: its pitch range
     const [a, b] = range();
     if (e.ctrlKey) {
       e.preventDefault?.();
@@ -208,7 +224,7 @@ export function createWaveformView({ canvas, statusEl, getProject, onLoop, onSel
     const sp = prevFor('sus');
     const pick = drag?.kind === 'select' && drag.preview ? { from: drag.preview.start, to: drag.preview.end } : config.get('waveHideSel') ? { from: 0, to: 0 } : selection;   // hidden: drawn as no selection (it still stands)
     const [va0, vb0] = s ? range() : [0, 0];
-    const key = s ? `${va0}-${vb0}:${id}:${mode}:${s.data.length}:${start}:${end}:${LOOPS.slice(1).map(l => `${s[l.start]}.${s[l.end]}.${s[l.on]}`).join()}:${sp ? `${sp.start}-${sp.end}` : ''}:${hidden(0)}${hidden(1)}:${s.loopOn}:${s.loopXfade}:${s.susXfade}:${pick.from}-${pick.to}:${slicesOf(s).join(',')}:${active}:${ghost ? `${ghost.frames.join(',')}/${ghost.replaced?.from}-${ghost.replaced?.to}` : ''}:${W}:${H}:${settled}:${typeof getComputedStyle === 'function' ? getComputedStyle(canvas).color : ''}` : 'none';
+    const key = s ? `${va0}-${vb0}:${id}:${mode}:${s.data.length}:${start}:${end}:${LOOPS.slice(1).map(l => `${s[l.start]}.${s[l.end]}.${s[l.on]}`).join()}:${sp ? `${sp.start}-${sp.end}` : ''}:${hidden(0)}${hidden(1)}:${s.loopOn}:${s.loopXfade}:${s.susXfade}:${pick.from}-${pick.to}:${slicesOf(s).join(',')}:${active}:${ghost ? `${ghost.frames.join(',')}/${ghost.replaced?.from}-${ghost.replaced?.to}` : ''}:${W}:${H}:${settled}:${overlay?.key() ?? ''}:${typeof getComputedStyle === 'function' ? getComputedStyle(canvas).color : ''}` : 'none';
     if (key === lastKey) return;
     lastKey = key;
     ctx.clearRect(0, 0, W, H);
@@ -217,11 +233,22 @@ export function createWaveformView({ canvas, statusEl, getProject, onLoop, onSel
     if (mode === 'spec') {
       const sl = x => (x && (va0 > 0 || vb0 < s.data.length) ? x.subarray(va0, vb0) : x);
       const pw = canvas.width, ph = canvas.height;
-      const fresh = cache?.data === s.data && cache.spec?.pw === pw && cache.spec?.ph === ph && cache.spec?.a === va0 && cache.spec?.b === vb0;
-      if (!fresh && cache?.data === s.data && cache.spec?.img && !settled && cache.spec.a === va0 && cache.spec.b === vb0) {   // the size is still changing: show the last picture, stretched
+      const axis = overlay?.pitch() ?? null, sig = axis?.sig ?? '';
+      const fresh = cache?.data === s.data && cache.spec?.pw === pw && cache.spec?.ph === ph && cache.spec?.a === va0 && cache.spec?.b === vb0 && cache.spec?.sig === sig;
+      if (axis) {   // the piano roll's pitch axis: worked out on at most 1200 columns (a long FFT each) and stretched to the display
+        if (!(fresh && cache.spec.img) && (settled || !cache?.spec?.img)) {
+          const cols = Math.min(pw, 1200), cells = computePitchSpectrogram(sl(s.data), sl(s.right), s.rate, cols, ph, axis);
+          const image = ctx.createImageData(cols, ph);
+          for (let i = 0; i < cols * ph; i++) image.data.set(heat(cells[i]), i * 4);
+          const img = typeof document !== 'undefined' ? document.createElement?.('canvas') : null;
+          if (img?.getContext) { img.width = cols; img.height = ph; img.getContext('2d').putImageData(image, 0, 0); }
+          cache = { ...(cache?.data === s.data ? cache : { data: s.data }), spec: { pw, ph, a: va0, b: vb0, sig, img: img?.getContext ? img : null } };
+        }
+        if (cache.spec.img) ctx.drawImage(cache.spec.img, 0, 0, W, H);
+      } else if (!fresh && cache?.data === s.data && cache.spec?.img && !settled && cache.spec.a === va0 && cache.spec.b === vb0 && !cache.spec.sig) {   // the size is still changing: show the last picture, stretched
         ctx.drawImage(cache.spec.img, 0, 0, W, H);
       } else {
-        if (!fresh) cache = { ...(cache?.data === s.data ? cache : { data: s.data }), spec: { pw, ph, a: va0, b: vb0, cells: computeSpectrogram(sl(s.data), sl(s.right), pw, ph) } };
+        if (!fresh) cache = { ...(cache?.data === s.data ? cache : { data: s.data }), spec: { pw, ph, a: va0, b: vb0, sig: '', cells: computeSpectrogram(sl(s.data), sl(s.right), pw, ph) } };
         const image = ctx.createImageData(pw, ph);
         for (let i = 0; i < pw * ph; i++) image.data.set(heat(cache.spec.cells[i]), i * 4);
         if (!cache.spec.img && typeof document !== 'undefined' && document.createElement) {   // kept to stretch while the size is dragged
@@ -317,6 +344,7 @@ export function createWaveformView({ canvas, statusEl, getProject, onLoop, onSel
       });
       ctx.restore();
     }
+    overlay?.draw(ctx, viewOf());
     ctx.fillStyle = mode === 'spec' ? '#fff' : ink;
     ctx.textBaseline = 'bottom';
     ctx.textAlign = 'left';
@@ -389,6 +417,9 @@ export function createWaveformView({ canvas, statusEl, getProject, onLoop, onSel
     sliceBefore(frame) { const s = sample(); return (s?.slices ?? []).reduce((best, f) => (f <= frame && f > best ? f : best), -1); },
     sample,
     setSelection(from, to) { selection = { from, to }; lastKey = null; },
+    // the piano roll overlay (pianorollview.js), or null
+    setOverlay(next) { overlay = next; lastKey = null; },
+    redraw() { lastKey = null; },
     setMode(next) { mode = next === 'spec' ? 'spec' : 'wave'; lastKey = null; },
     get mode() { return mode; },
     get sampleId() { return id; },

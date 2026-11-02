@@ -33,7 +33,7 @@ const EDITS = { C: 'crop', T: 'crop', X: 'cut', S: 'silence', R: 'reverse', N: '
 const ROOT = 60;
 const round2 = v => Math.round(v * 100) / 100;
 
-export function createSampleScreen({ el, statusEl, getProject, onChange = () => {}, onSelect = () => {}, onRemove = () => {}, onRename = () => {}, onNote = () => {}, onLoad = () => {}, onReplace = () => {}, onKeep = () => {}, onView = () => {}, onSelection = () => {}, onSlice = () => {}, onZoom = () => '', onAutoSlice = null, onChords = null, onEdited = () => {} }) {
+export function createSampleScreen({ el, statusEl, getProject, onChange = () => {}, onSelect = () => {}, onRemove = () => {}, onRename = () => {}, onNote = () => {}, onLoad = () => {}, onReplace = () => {}, onKeep = () => {}, onView = () => {}, onSelection = () => {}, onSlice = () => {}, onZoom = () => '', onAutoSlice = null, onChords = null, onRoll = null, rollUndo = null, onEdited = () => {} }) {
   let sel = null, focus = 'list', edit = null, mode = 'wave', announced = null, last = null, top = 0;
   let selFrom = 0, selTo = 0, octave = 5, activeSlice = -1;   // the slice marker + and - move
   const held = new Map();   // key -> note it is playing
@@ -228,6 +228,7 @@ export function createSampleScreen({ el, statusEl, getProject, onChange = () => 
   function key(e) {
     if (e.ctrlKey && !e.altKey && !e.metaKey && ['z', 'y', 'Z'].includes(e.key) && sel) {
       const redo = e.key === 'y' || e.shiftKey;
+      if (rollUndo?.(redo)) { e.preventDefault?.(); return true; }   // while the piano roll is on, its own edits are undone first
       if (attempt(() => (redo ? redoEdit : undoEdit)(getProject(), sel, history)) && selTo > sample().data.length) setSelection(0, 0);
       e.preventDefault?.();
       return true;
@@ -265,7 +266,8 @@ export function createSampleScreen({ el, statusEl, getProject, onChange = () => 
       return eat();
     }
     if (e.shiftKey && focus !== 'name' && k === 'E') { if (onAutoSlice) onAutoSlice(); else say(autoSlice.apply()); return eat(); }   // auto-slice: the dialog (main.js) asks for the settings, or it just runs
-    if (e.shiftKey && focus !== 'name' && k === 'H' && onChords) { onChords(); return eat(); }   // detect chords: the dialog (main.js)
+    if (e.shiftKey && focus !== 'name' && k === 'H' && onChords) { onChords(); return eat(); }
+    if (e.shiftKey && focus !== 'name' && k === 'P' && onRoll) { onRoll(); return eat(); }   // the piano roll over the display (main.js)   // detect chords: the dialog (main.js)
     if (e.shiftKey && focus !== 'name' && (k === 'Z' || k === 'A' || k === 'W')) { say(onZoom(k === 'Z' ? 'selection' : k === 'A' ? 'out' : 'all') ?? ''); return eat(); }   // zoom the display: to the selection, out, whole sample
     if ((k === '[' || k === ']') && focus !== 'name') {
       octave = Math.min(9, Math.max(0, octave + (k === ']' ? 1 : -1)));

@@ -54,6 +54,8 @@ import { createMidiInput } from './ui/midiin.js';
 import { createOscClient } from './ui/oscclient.js';
 import { noteMessage } from './osc.js';
 import { scanChords, patternFrom } from './project/chordscan.js';
+import { defaultRoll, cleanRoll, withFields, rollToPattern, transcribeName, noteLabel } from './project/pianoroll.js';
+import { createPianoRollOverlay } from './project/pianorollview.js';
 import { noteToken } from './seq/cells.js';
 import { createMidiWriter } from './seq/midiwrite.js';
 import { createMarkerRegionView } from './project/markerregion.js';
@@ -1512,10 +1514,11 @@ let waveX = null;
 }
 let autoSliceOpen = () => {};
 let chordScanOpen = () => {};
+let rollToggle = () => {}, rollOverlay = null;
 const sampleScreen = createSampleScreen({
   el: $('smp'), statusEl: $('proj-status'), getProject: () => project,
   onChange: users => { sendLoop(users); auditionDirty = true; },   // loops, levels and edits change what the sample plays
-  onSelect: id => { waveform.show(id); auditionDirty = true; },
+  onSelect: id => { waveform.show(id); rollOverlay?.forget(); auditionDirty = true; },
   onRemove: refreshProjectUi,
   onRename: () => { refreshProjectUi(); patcher.show(patcher.instrument); },
   onNote: playSample,
@@ -1524,6 +1527,8 @@ const sampleScreen = createSampleScreen({
   onZoom: kind => waveform.zoom(kind),
   onAutoSlice: () => autoSliceOpen(),
   onChords: () => chordScanOpen(),
+  onRoll: () => rollToggle(),
+  rollUndo: redo => !!rollOverlay?.undo(redo),
   onLoad: () => $('sample-file').click(),
   onReplace: id => { replaceTarget = id; $('replace-file').click(); },
   onKeep: id => {   // K: copy the sample under the cursor into a new normal sample
@@ -2042,6 +2047,145 @@ mountConfig($('as-cfg'), config, [['sliceSensitivity', 'Sensitivity (%)', 'range
   dlg.addEventListener('close', () => { stopHeard(); $('smp').focus(); });
   $('chordscan-open').addEventListener('click', open);
   chordScanOpen = open;
+}
+// The piano roll over the sample display (pianoroll.js holds the data, pianorollview.js draws it and takes the mouse). Its notes are an
+// annotation kept with the sample (`sample.roll`, saved in the .wax); "write pattern" turns them into a new pattern of a lane.
+let rollBarSync = () => {};
+{
+  const bar = $('roll-bar'), msg = $('rb-msg'), instSel = $('rb-inst'), laneSel = $('rb-lane');
+  const NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+  const noteCols = lane => lane.columns.flatMap((c, i) => (c.token === 'note' ? [i] : []));
+  // 'C-2', 'C2', 'f#3', 'Db4' → MIDI (C-4 is 60 here, as in the roll's labels), or null
+  const parseNote = text => {
+    const m = /^\s*([a-g])\s*([#b]?)\s*-?\s*(-?\d)\s*$/i.exec(text ?? '');
+    if (!m) return null;
+    const pc = NAMES.indexOf(m[1].toUpperCase()) + (m[2] === '#' ? 1 : m[2] === 'b' ? -1 : 0);
+    return (Number(m[3]) + 1) * 12 + pc;
+  };
+  const sample = () => waveform.sample() ?? null;
+  const frames = () => sample()?.data.length ?? 0;
+  const say = text => { msg.textContent = text; };
+  // the notes sounding now, on the picked instrument
+  let sounding = null;
+  const stop = () => { if (!sounding) return; for (const m of sounding.notes) engine.noteOff(sounding.instrument, m); sounding = null; };
+  const play = notes => {
+    stop();
+    const instrument = instSel.value;
+    if (!started || !instrument || !(instrument in project.instruments)) { say('Pick an instrument to hear the notes on.'); return; }
+    for (const m of notes) engine.noteOn(instrument, m, 0.8);
+    sounding = { instrument, notes: [...notes] };
+  };
+  const store = roll => { const s = sample(); if (!s) return; s.roll = roll; waveform.redraw(); };
+  rollOverlay = createPianoRollOverlay({
+    getSample: sample,
+    getSettings: () => ({ on: config.get('rollOn'), snap: config.get('rollSnap'), overtones: config.get('rollOvertones') }),
+    onChange: store, onPlay: play, onStop: stop,
+  });
+  waveform.setOverlay(rollOverlay);
+  // a sample gets its roll the first time the roll is shown on it: over the selection when there is one, else the whole sample
+  const ensure = () => {
+    const s = sample();
+    if (!s || !config.get('rollOn')) return null;
+    if (!s.roll) {
+      const [from, to] = sampleScreen.selection;
+      s.roll = to > from ? { ...defaultRoll(s.data.length), start: from, end: to } : defaultRoll(s.data.length);
+    }
+    return s.roll;
+  };
+  const fillInstruments = () => {
+    const ids = Object.keys(project.instruments ?? {}).filter(id => id !== 'master');
+    const keep = instSel.value || project.lanes[seqView.lane]?.instrument;
+    if (instSel.options.length !== ids.length || [...instSel.options].some((o, i) => o.value !== ids[i])) instSel.replaceChildren(...ids.map(id => Object.assign(document.createElement('option'), { value: id, textContent: id })));
+    if (ids.includes(keep)) instSel.value = keep;
+  };
+  const fillLanes = () => {
+    const opts = project.lanes.map((l, i) => [i, l, noteCols(l).length]).filter(([, , n]) => n);
+    const keep = laneSel.value || String(seqView.lane);
+    const sig = opts.map(([i, l, n]) => `${i}:${l.id}:${n}`).join();
+    if (laneSel.dataset.sig !== sig) {
+      laneSel.dataset.sig = sig;
+      laneSel.replaceChildren(...opts.map(([i, l, n]) => Object.assign(document.createElement('option'), { value: String(i), textContent: `${l.id} (${n})` })));
+    }
+    if ([...laneSel.options].some(o => o.value === keep)) laneSel.value = keep;
+  };
+  // the fields follow the roll of the sample shown (unless one is being typed in)
+  let shownKey = '';
+  rollBarSync = () => {
+    const on = !!config.get('rollOn');
+    bar.hidden = !on;
+    $('roll-toggle').setAttribute('aria-pressed', String(on));
+    $('rb-snap').setAttribute('aria-pressed', String(!!config.get('rollSnap')));
+    $('rb-over').setAttribute('aria-pressed', String(!!config.get('rollOvertones')));
+    if (!on || !project) return;
+    const r = ensure();
+    const key = r ? `${waveform.sampleId}:${r.rows}:${r.a4}:${r.cents}:${r.lo}:${r.hi}` : 'none';
+    if (key === shownKey) return;
+    shownKey = key;
+    fillInstruments(); fillLanes();
+    if (!r) { say('Pick a sample first.'); return; }
+    const set = (id, v) => { const el = $(id); if (document.activeElement !== el) el.value = v; };
+    set('rb-rows', r.rows); set('rb-a4', r.a4); set('rb-cents', r.cents); set('rb-lo', noteLabel(r.lo)); set('rb-hi', noteLabel(r.hi));
+    if ($('rb-tick').value === '') $('rb-tick').value = String(Math.floor(seqView.tick / 16) * 16);
+  };
+  // a field typed in: the roll takes the new value (cleaned into range), as one undoable step
+  const field = (id, read) => $(id).addEventListener('change', () => {
+    const s = sample(), r = ensure();
+    if (!s || !r) return;
+    const v = read($(id).value);
+    if (v === null || v === undefined || Number.isNaN(v)) { shownKey = ''; say('That is not a value the roll can take.'); return; }
+    const next = withFields(r, v, s.data.length);
+    rollOverlay.commit(next);
+    shownKey = ''; say('');
+  });
+  field('rb-rows', v => ({ rows: Math.round(Number(v)) }));
+  field('rb-a4', v => ({ a4: Number(v) }));
+  field('rb-cents', v => ({ cents: Number(v) }));
+  field('rb-lo', v => { const m = parseNote(v); return m === null ? null : { lo: m }; });
+  field('rb-hi', v => { const m = parseNote(v); return m === null ? null : { hi: m }; });
+  for (const id of ['rb-rows', 'rb-a4', 'rb-cents', 'rb-lo', 'rb-hi', 'rb-tick']) $(id).addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') e.target.blur(); });
+  for (const id of ['rb-inst', 'rb-lane']) $(id).addEventListener('keydown', e => e.stopPropagation());
+  $('rb-snap').addEventListener('click', () => config.set('rollSnap', !config.get('rollSnap')));
+  $('rb-over').addEventListener('click', () => { config.set('rollOvertones', !config.get('rollOvertones')); waveform.redraw(); });
+  $('rb-sel').addEventListener('click', () => {
+    const s = sample(), r = ensure();
+    if (!s || !r) return;
+    let [from, to] = sampleScreen.selection;
+    if (!(to > from)) { from = s.loopStart ?? 0; to = s.loopEnd ?? 0; }
+    if (!(to > from)) { say('Select a range (or set a loop) first.'); return; }
+    const next = withFields(r, { start: from, end: to }, s.data.length);
+    rollOverlay.commit(next);
+    say('');
+  });
+  $('rb-clear').addEventListener('click', () => {
+    const s = sample(), r = ensure();
+    if (!s || !r?.notes.length) return;
+    rollOverlay.commit({ ...r, notes: [] });
+    say('Cleared. Ctrl+Z brings the notes back.');
+  });
+  $('rb-write').addEventListener('click', () => {
+    const s = sample(), r = s?.roll ? cleanRoll(s.roll, s.data.length) : null;
+    const li = Number(laneSel.value), lane = project.lanes[li];
+    if (!r?.notes.length) { say('Draw some notes first.'); return; }
+    if (!lane) { say('Pick a lane with note columns.'); return; }
+    const cols = noteCols(lane), at = Math.max(0, Math.round(Number($('rb-tick').value) || 0)), base = Math.floor(at / 16) * 16;
+    const { rows, items, dropped } = rollToPattern(r, { cols: cols.length, noteToken });
+    const clash = lane.placements.find(p => p.start < base + rows && p.start + p.length > base);
+    if (clash) { say(`A pattern of ${lane.id} is in the way (at tick ${clash.start}): pick a later tick or another lane.`); return; }
+    const puid = project.editor.transcribe(li, base, rows, items.map(i => ({ ...i, col: cols[i.col] })), 'piano roll', transcribeName);
+    if (puid === null || puid === undefined) { say('Could not make a pattern there.'); return; }
+    engine.setLane({ id: lane.id, instrument: lane.instrument, columns: lane.columns, pages: lane.pages, mask: lane.mask, auto: lane.auto });
+    songChanged();
+    $('rb-tick').value = String(base + Math.ceil(rows / 16) * 16);   // the next write goes after this one
+    say(`Wrote "${lane.patterns[puid].name}" into ${lane.id} at tick ${base}, ${rows} rows${dropped ? `; ${dropped} note${dropped === 1 ? '' : 's'} left out (past E, or no free column)` : ''}.`);
+  });
+  rollToggle = () => {
+    if (!sample()) { $('proj-status').textContent = 'Pick a sample first.'; return; }
+    config.set('rollOn', !config.get('rollOn'));
+    if (!config.get('rollOn')) stop();
+    shownKey = ''; waveform.redraw();
+  };
+  $('roll-toggle').addEventListener('click', () => { rollToggle(); $('smp').focus(); });
+  config.onChange(k => { if (k.startsWith('roll')) { shownKey = ''; waveform.redraw(); } });
 }
 const placeViz = () => { if (pip) return; vizBox.style.bottom = `${$('footer').offsetHeight + (meters.open ? config.get('meterHeight') : 0) + 14}px`; };
 const showViz = on => {
@@ -2616,7 +2760,7 @@ $('start').addEventListener('click', async () => {
       if (tab === 'dsp') dspView?.live();
       if (tab === 'nodeseq') nsView?.draw();
       if (streams.open) streams.place();
-      if (tab === 'samples' || !tab) { sampleScreen.draw(); waveform.draw(); region.draw(); waveform.playhead(auditionHead()); }
+      if (tab === 'samples' || !tab) { rollBarSync(); sampleScreen.draw(); waveform.draw(); region.draw(); waveform.playhead(auditionHead()); }
       requestAnimationFrame(frame);
     };
     frame();

@@ -2,6 +2,15 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 621 · 2026-11-02
+
+- **Piano roll over the sample display** (Shift+P on the Samples screen, or the *Piano roll* button). An annotation layer for transcribing a recording by ear and eye: the S and E markers in its top ruler span a virtual pattern, cut into the number of rows you set, and a grid is drawn in the time domain. Drag on empty space to draw a note, drag a note to move it in time and pitch, drag its right end to lengthen it, right click to remove it. Notes snap to the row lines (or roam free with snap off; Shift does the opposite while held).
+- **Hear what you drew.** Press a row number in the ruler to hear the chord sounding at that virtual tick, a key on the left strip to hear one pitch, or a note to hear it, on the instrument you pick in *hear*.
+- **Overtones mode** draws the 2nd to 8th partials of every note as dashed lines in the note's colour, and the label under the mouse warns when the pitch there may only be an overtone of a lower note (`≈ 3× C-3 (+2¢)`), so you add notes and not stacked partials.
+- **Master tuning**: A4 in Hz and a fine offset in cents shift the whole pitch axis, for recordings not tuned to 440. With the Spectrum display on, the spectrogram uses the roll's pitch axis (equal room for every semitone, under the same tuning), so partials sit on the note rows. The wheel over the key strip scrolls the range, Ctrl+wheel zooms it.
+- **Write pattern** turns the notes into a new pattern of the lane you pick, at the tick you give, named `<index> transcribe <n>` (e.g. `0A transcribe 3`). Each chord's notes go into the note columns in ascending order of pitch; a held note keeps its column, offs are written where notes end. The roll is kept with the sample in the .wax; Ctrl+Z / Ctrl+Y undo its edits while it is on.
+- New code: `src/project/pianoroll.js` (the data and maths) and `src/project/pianorollview.js` (drawing and mouse); the pitch-axis spectrogram is in `spectrogram.js`.
+
 ## 620 · 2026-11-02
 
 - **A Sidechain node can listen to a meta machine.** A meta machine makes no sound of its own, so listening to one used to give silence. Now the node hears the machines the meta machine plays (the ones in its note, relative-note and trigger columns), added together, after their own effects and levels. When the picked source is a meta machine, the node's panel lists those machines with a tick each, so you can leave some out; with none unticked it hears them all. The meta machine's machines run before the listener, a choice that would make a loop (one of them listens to the listener) is refused, and renaming or removing a machine keeps the lists right. Export and Bounce hear the same.

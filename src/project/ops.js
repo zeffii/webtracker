@@ -9,7 +9,7 @@ import { buildPages, createLane, flattenLane, writeMask } from '../seq/lane.js';
 // project object { song, instruments, samples, lanes } so the page and the tests share them.
 
 // Everything a sample carries besides its audio.
-export const SAMPLE_KEYS = ['loopStart', 'loopEnd', 'loopOn', 'loopXfade', 'susStart', 'susEnd', 'susOn', 'susXfade', 'volume', 'globalVolume', 'pan', 'slices'];
+export const SAMPLE_KEYS = ['loopStart', 'loopEnd', 'loopOn', 'loopXfade', 'susStart', 'susEnd', 'susOn', 'susXfade', 'volume', 'globalVolume', 'pan', 'slices', 'roll'];   // roll: the piano roll annotation (pianoroll.js)
 
 export function uniqueId(taken, base) {
   let id = base, i = 2;

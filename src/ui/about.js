@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['621', ['Piano roll over the sample display (Shift+P): mark a virtual pattern, draw notes, hear chords per row, overtone guides, master tuning, write to a "NN transcribe N" pattern']],
   ['620', ['Sidechain node: listening to a meta machine hears the machines it plays, added together; tick the ones to leave out']],
   ['619', ['Meta machine: the floating parameters window (Ctrl+Alt+P) shows the parameters it plays, as sliders on the machines they belong to']],
   ['618', ['Bounce to sample (Ctrl+Shift+B in the Sequence Editor): a pattern, selection, loop or lane rendered offline, with its tails and a slice marker where the range ends']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['614', ['The machine tree: pick a new instrument from a foldable tree of groups (Shift+I in the Sequence Editor)']],
   ['613', ['New machine: Membrane, a drum skin whose resonances are the zeros of Bessel functions (position, strike, damping, stiffness, glide, shell)']],
   ['612', ['File, Save folder: a default folder for every save dialog; each kind of file also remembers its own folder']],
-  ['611', ['Config: long drop-downs are cut with an ellipsis instead of squeezing the setting text']],
                     ];

@@ -26,6 +26,9 @@ import * as pops from '../src/project/ops.js';
 import { createSampleScreen } from '../src/project/samplescreen.js';
 import { computeSpectrogram, fft } from '../src/project/spectrogram.js';
 import { computePeaks, createWaveformView } from '../src/project/waveform.js';
+import * as roll from '../src/project/pianoroll.js';
+import { createPianoRollOverlay } from '../src/project/pianorollview.js';
+import { computePitchSpectrogram } from '../src/project/spectrogram.js';
 import { parseProject, serializeProject } from '../src/project/file.js';
 import { song as demoSong } from '../src/song.js';
 import { createCurveEditor, SIZE } from '../src/graph/curveeditor.js';
@@ -10088,6 +10091,114 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   assert.equal(whole.marker, 16 * 6000);
   assert.ok(whole.left.length > whole.marker);
   await assert.rejects(bounceRange(state, { from: 20, to: 24, lane: 'lead' }), /Nothing to render|empty/);
+}
+
+// The piano roll: tuning, the time grid, chords sorted ascending, overtones, pattern writing and the overlay's mouse.
+{
+  const r0 = roll.defaultRoll(16000);
+  assert.ok(Math.abs(roll.hzOf(r0, 69) - 440) < 1e-9 && Math.abs(roll.hzOf(r0, 81) - 880) < 1e-9);
+  const sharp = roll.withFields(r0, { a4: 442, cents: 10 }, 16000);
+  assert.ok(Math.abs(roll.midiOf(sharp, roll.hzOf(sharp, 57)) - 57) < 1e-9, 'midiOf undoes hzOf under any tuning');
+  assert.ok(roll.hzOf(sharp, 69) > 442, 'the cents add to A4');
+  assert.equal(roll.withFields(r0, { rows: 999, lo: 200 }, 16000).rows, roll.MAX_ROWS);
+  assert.equal(roll.noteLabel(60), 'C-4'); assert.equal(roll.noteLabel(61), 'C#4');
+  // the grid: 16 rows over 16000 frames is 1000 frames a row
+  assert.equal(roll.rowFrame(r0, 3), 3000); assert.equal(roll.snapFrame(r0, 3490), 3000); assert.equal(roll.snapFrame(r0, 3510), 4000);
+  const moved = roll.withFields(r0, { start: 2000, end: 10000, rows: 8 }, 16000);
+  assert.equal(roll.rowFrame(moved, 1), 3000); assert.equal(roll.rowAt(moved, 2000), 0);
+  // notes, kept in time order; a chord comes back lowest first
+  let r = r0;
+  for (const midi of [67, 60, 64]) r = roll.addNote(r, { from: 0, to: 4000, midi });
+  r = roll.addNote(r, { from: 4000, to: 8000, midi: 62 });
+  assert.deepEqual(roll.notesAtRow(r, 0).map(n => n.midi), [60, 64, 67]);
+  assert.deepEqual(roll.notesAtFrame(r, 500).map(n => n.midi), [60, 64, 67]);
+  assert.deepEqual(roll.notesAtRow(r, 4).map(n => n.midi), [62]);
+  assert.ok(roll.noteAt(r, 100, 64) >= 0 && roll.noteAt(r, 100, 65) < 0);
+  // the 3rd partial of C-4 is close to G-5: flagged as a possible overtone, a real E-5 is not near any partial of C-4 below the 5th
+  assert.equal(roll.overtoneOf(r, 100, 79).harmonic, 2, 'G-5 is first the octave of the G-4 in the chord');
+  const ot = roll.overtoneOf(roll.addNote(r0, { from: 0, to: 4000, midi: 60 }), 100, 79);
+  assert.ok(ot && ot.harmonic === 3 && ot.note.midi === 60 && Math.abs(ot.off - 1.955) < 0.01, 'the 3rd partial of C-4 is about 2 cents above G-5');
+  assert.equal(roll.overtoneOf(r, 100, 61), null);
+  // the roll as a pattern: the chord across three columns in ascending order, offs where it ends, the next note in a free column
+  const { rows, items, dropped } = roll.rollToPattern(r, { cols: 4, noteToken });
+  assert.equal(rows, 16); assert.equal(dropped, 0);
+  assert.deepEqual(items.filter(i => i.tick === 0), [{ tick: 0, col: 0, token: noteToken(48) }, { tick: 0, col: 1, token: noteToken(52) }, { tick: 0, col: 2, token: noteToken(55) }]);
+  assert.deepEqual(items.filter(i => i.tick === 4).map(i => [i.col, i.token]), [[0, noteToken(50)], [1, '==='], [2, '===']], 'D-4 takes the first freed column, the others are let go');
+  assert.deepEqual(items.filter(i => i.tick === 8).map(i => [i.col, i.token]), [[0, '===']]);
+  assert.equal(roll.rollToPattern(r, { cols: 2, noteToken }).dropped, 1, 'a chord wider than the lane loses its top note');
+  assert.equal(roll.transcribeName(10, ['pat00', '03 transcribe 1', '05 transcribe 4']), '0A transcribe 5');
+  assert.equal(roll.transcribeName(0, []), '00 transcribe 1');
+  // a bad roll from a file is cleaned up
+  const bad = roll.cleanRoll({ start: -5, end: 99999, rows: 0, a4: 'x', notes: [{ from: 10, to: 5, midi: 300 }, { nope: 1 }] }, 16000);
+  assert.deepEqual([bad.start, bad.end, bad.rows, bad.a4, bad.notes.length, bad.notes[0].midi, bad.notes[0].to], [0, 16000, 16, 440, 1, 127, 11]);
+
+  // the pitch axis: a 440 Hz sine is brightest on the A-4 row, and with A4 at 452 it moves half a semitone down the picture
+  const rate = 44100, sine = Float32Array.from({ length: 8192 }, (_, i) => Math.sin(2 * Math.PI * 440 * i / rate));
+  const brightestRow = r1 => {
+    const cells = computePitchSpectrogram(sine, null, rate, 4, 120, { lo: r1.lo, hi: r1.hi, hzOf: m => roll.hzOf(r1, m) });
+    let best = 0; for (let y = 0; y < 120; y++) if (cells[y * 4 + 2] > cells[best * 4 + 2]) best = y;
+    return r1.hi - (best + 0.5) / 120 * (r1.hi - r1.lo);
+  };
+  const axis = { ...r0, lo: 57, hi: 81 };
+  assert.ok(Math.abs(brightestRow(axis) - 69) < 0.25, 'A-4 row');
+  assert.ok(Math.abs(brightestRow({ ...axis, a4: 452.89 }) - 68.5) < 0.25, 'retuned: the sine is now half a semitone flat');
+
+  // the overlay on the display: draw a note, hear it, move it, undo, write it out
+  const ctx = new Proxy({}, { get: (t, k) => (k in t ? t[k] : k === 'measureText' ? () => ({ width: 10 }) : () => {}), set: (t, k, v) => { t[k] = v; return true; } });
+  const canvas = { width: 1000, height: 120, style: {}, listeners: {}, getContext: () => ctx, addEventListener(type, f) { this.listeners[type] = f; } };
+  const smp = { rate: sr, data: new Float32Array(16000) };
+  const project = { samples: { s: smp }, instruments: {} };
+  const settings = { on: true, snap: true, overtones: true }, heard = [];
+  const ov = createPianoRollOverlay({ getSample: () => project.samples.s, getSettings: () => settings, onChange: next => { smp.roll = next; }, onPlay: ms => heard.push(['on', ...ms]), onStop: () => heard.push(['off']) });
+  const wv = createWaveformView({ canvas, statusEl: { textContent: '' }, getProject: () => project });
+  wv.setOverlay(ov); wv.show('s');
+  smp.roll = { ...roll.defaultRoll(16000), lo: 48, hi: 72 };   // 24 semitones over 120 px: 5 px a semitone; 16 rows over 1000 px
+  const yOf = midi => (72 - midi) / 24 * 120;
+  const fire = (type, x, y, extra = {}) => canvas.listeners[type]?.({ offsetX: x, offsetY: y, button: 0, ...extra });
+  wv.draw();
+  fire('mousedown', 130, yOf(60)); fire('mousemove', 250, yOf(60)); fire('mouseup', 250, yOf(60));   // drag on the body: a C-4 from row 2 to row 4 (snapped)
+  assert.deepEqual(smp.roll.notes, [{ from: 2000, to: 4000, midi: 60 }]);
+  assert.deepEqual(heard.slice(-2), [['on', 60], ['off']]);
+  wv.draw();
+  fire('mousedown', 150, yOf(60)); fire('mousemove', 214, yOf(64)); fire('mouseup', 214, yOf(64));   // grab it and move it a row later and up to E-4
+  assert.deepEqual(smp.roll.notes, [{ from: 3000, to: 5000, midi: 64 }]);
+  assert.ok(heard.some(h => h[0] === 'on' && h[1] === 64), 'the pitch is heard while it moves');
+  fire('mousedown', 310, yOf(64)); fire('mousemove', 380, yOf(64)); fire('mouseup', 380, yOf(64));   // its right end, dragged on
+  assert.deepEqual(smp.roll.notes, [{ from: 3000, to: 6000, midi: 64 }]);
+  fire('mousedown', 70, yOf(67)); fire('mouseup', 70, yOf(67));   // a click on empty space: a note one row long, in the row clicked
+  assert.deepEqual(smp.roll.notes.map(n => [n.from, n.to, n.midi]), [[1000, 2000, 67], [3000, 6000, 64]]);
+  fire('mousedown', 340, 5); assert.deepEqual(heard.at(-1), ['on', 64], 'the ruler plays the chord of row 5'); fire('mouseup', 340, 5);
+  fire('mousedown', 10, yOf(55)); assert.deepEqual(heard.at(-1), ['on', 55], 'the key strip plays its pitch'); fire('mouseup', 10, yOf(55));
+  canvas.listeners.contextmenu?.({ offsetX: 70, offsetY: yOf(67), preventDefault() {} });   // right click removes a note
+  assert.deepEqual(smp.roll.notes.map(n => n.midi), [64]);
+  assert.ok(ov.undo(false)); assert.equal(smp.roll.notes.length, 2, 'Ctrl+Z brings it back');
+  assert.ok(ov.undo(true)); assert.equal(smp.roll.notes.length, 1);
+  fire('mousedown', 0.5, 2); fire('mousemove', 125, 2); fire('mouseup', 125, 2);   // the S marker, dragged to 2000 frames
+  assert.equal(smp.roll.start, 2000);
+  settings.overtones = false; wv.draw(); settings.on = false; wv.draw();
+  fire('mousedown', 500, 60); fire('mouseup', 500, 60);   // off: the display does its own thing again
+  assert.equal(smp.roll.notes.length, 1);
+
+  // written into a lane: named after the pattern's index, in a new pattern of the roll's rows
+  const registry = new ParamRegistry();
+  for (const [id, def] of Object.entries(instruments)) compile(def.graph, { instrument: id, nodeTypes: NODE_TYPES, registry });
+  const lanes = prepareSong(demoSong, instruments, registry);
+  const li = lanes.findIndex(l => l.columns.some(c => c.token === 'note'));
+  const editor = createEditor(lanes, 64);
+  const cols = lanes[li].columns.flatMap((c, i) => (c.token === 'note' ? [i] : []));
+  const out = roll.rollToPattern(roll.cleanRoll(r, 16000), { cols: cols.length, noteToken });
+  const free = (Math.ceil(Math.max(0, ...lanes[li].placements.map(p => p.start + p.length)) / 16) + 1) * 16;
+  assert.ok(free + out.rows <= 64, 'room for the test pattern');
+  {
+    const puid = editor.transcribe(li, free, out.rows, out.items.map(i => ({ ...i, col: cols[i.col] })), 'piano roll', roll.transcribeName);
+    const pat = lanes[li].patterns[puid];
+    assert.match(pat.name, /^[0-9A-F]{2} transcribe 1$/);
+    assert.equal(pat.name.slice(0, 2), pat.index.toString(16).toUpperCase().padStart(2, '0'));
+  }
+  // saved with the sample
+  const saved = parseProject(serializeProject({ song: demoSong, instruments: {}, samples: { s: smp }, lanes: [] })).samples.s;
+  assert.deepEqual(saved.roll, smp.roll);
+  console.log('ok: piano roll');
 }
 
 console.log('smoke test passed');
