@@ -19,7 +19,7 @@ export function createStreams({ root, button, footer, engine, lanes, instruments
   // fixed columns, so a longer name or a number gaining a digit never moves the columns beside it
   const widths = ['11rem', '13rem', '12rem', '8rem', '10rem', ''];
   table.append(el('colgroup', {}, ...widths.map(w => { const c = el('col'); if (w) c.style.width = w; return c; })), el('thead', {}, el('tr', {}, ...['lane', 'machine', 'voices', 'level', 'load', ''].map(t => el('th', { textContent: t })))), body);
-  const scroll = el('div', { className: 'st-scroll' }, table), foot = el('div', { className: 'st-foot', textContent: 'Cut: the machine stops and is skipped (no CPU) until Play is pressed. Reset: clears its voices, delay tails and filter state, then carries on. Load is the time spent in it per audio block.' });
+  const scroll = el('div', { className: 'st-scroll' }, table), foot = el('div', { className: 'st-foot', textContent: 'Cut: the machine stops and is skipped (no CPU) until Play is pressed. Reset: clears its voices, delay tails and filter state, then carries on. Load is the time spent in it per audio block. zz: asleep, a quiet machine that costs nothing until a note, a parameter change or its sidechain wakes it.' });
   root.append(head, scroll, foot);
 
   const hue = s => { let h = 0; for (const c of s) h = (h * 31 + c.charCodeAt(0)) % 360; return h; };
@@ -61,7 +61,8 @@ export function createStreams({ root, button, footer, engine, lanes, instruments
       const n = row.vt || 1;
       if (c.vbar.childElementCount !== Math.min(n, 16)) { c.vbar.replaceChildren(...Array.from({ length: Math.min(n, 16) }, () => el('u'))); }
       [...c.vbar.children].forEach((u, i) => u.classList.toggle('a', i < row.v));
-      c.vn.textContent = ` ${row.v}`;
+      c.vn.textContent = row.asleep ? ' zz' : ` ${row.v}`;   // zz: asleep (audio/sleep.js), costing nothing
+      c.tr.classList.toggle('asleep', !!row.asleep);
       c.level.style.width = `${Math.max(0, Math.min(1, (20 * Math.log10(m.peak || 1e-6) + 60) / 60)) * 100}%`;
       c.load.style.width = `${Math.min(100, m.ms * 100)}%`; c.load.parentElement.classList.toggle('hot', m.ms > 0.2);
       c.pct.textContent = ` ${Math.round(m.ms * 100)}%`;

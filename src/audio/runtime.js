@@ -1,5 +1,6 @@
 import { NODE_TYPES } from './nodes/index.js';
 import { PARAM_CAPACITY } from './params.js';
+import { sleepState, holdSamples, fallAsleep, shouldWake, SILENT, FREE } from './sleep.js';
 
 const MAX_VOICES = 16;
 
@@ -26,6 +27,7 @@ const KILL_MS = 120;   // how long a kill (^^^) takes to fade the instrument out
 
 export class GraphRuntime {
   instruments = new Map();
+  sleepIdle = true;        // machines that have gone quiet stop running until something could make them sound (see sleep.js)
   delayComp = false;       // line the instruments up: the quicker ones are delayed to match the slowest (see latency.js)
   maxDelay = null;         // the longest delay among the instruments, in samples (found when asked, forgotten when one loads)
   graphs = new Map();      // compiled graphs, to rebuild an instrument that went bad
@@ -138,6 +140,8 @@ export class GraphRuntime {
     const inst = { nodes: [], sets: [], byId: new Map(), left: null, right: null, amp: compiled.amp, send: compiled.send, ampPrev: 1, latency: compiled.latency ?? 0, lag: null };
     const register = (node, at) => { const list = inst.byId.get(node.id) ?? []; list[at] = node; inst.byId.set(node.id, list); };
     this.instruments.set(compiled.instrument, inst);
+    inst.sleep = sleepState(compiled, NODE_TYPES);   // null: this machine never sleeps
+    inst.peak = 0;                                   // the peak of its last block, for the sidechains that listen to it
 
     inst.columnVoice = compiled.nodes.some(n => NODE_TYPES[n.type]?.columnVoice === true);
     inst.pre = [];   // shared nodes that run before the voices (see below)
@@ -209,7 +213,9 @@ export class GraphRuntime {
   // Message for one node (every copy of it), for example the sample data for a sampler.
   message(instrument, nodeId, msg) {
     if (msg.type === 'sample' || msg.type === 'curve' || msg.type === 'spectrum' || msg.type === 'waves' || msg.type === 'table' || msg.type === 'pair' || msg.type === 'taps' || msg.type === 'bank' || msg.type === 'gate' || msg.type === 'chords' || msg.type === 'code') this.samples.set(`${instrument}\u0000${nodeId}\u0000${msg.type}${msg.slot ?? ''}`, msg);   // replayed if the instrument is rebuilt
-    for (const node of this.instruments.get(instrument)?.byId.get(nodeId) ?? []) node.instance.message?.(msg);
+    const inst = this.instruments.get(instrument);
+    if (inst?.sleep) inst.sleep.woken = true;
+    for (const node of inst?.byId.get(nodeId) ?? []) node.instance.message?.(msg);
   }
 
   // The listen nodes that hear the notes of an instrument (see listen.js).
@@ -263,6 +269,7 @@ export class GraphRuntime {
     this.passOn(instrument, msg);
     const inst = this.instruments.get(instrument);
     if (!inst || this.cut.has(instrument)) return;
+    if (inst.sleep) inst.sleep.woken = true;
     if (this.killed.has(instrument)) {   // a killed machine sleeps until a note-on: then it runs again, from its reset state
       if (msg.type !== 'noteOn') return;
       this.killed.delete(instrument);
@@ -327,7 +334,7 @@ export class GraphRuntime {
     const rows = {};
     for (const [id, inst] of this.instruments) {
       const p = this.prof?.get(id);
-      rows[id] = { v: inst.sets.length ? inst.sets.filter(s => s.active).length : 0, vt: inst.sets.length, peak: p?.peak ?? 0, ms: p?.ms ?? 0, cut: this.cut.has(id) };
+      rows[id] = { v: inst.sets.length ? inst.sets.filter(s => s.active).length : 0, vt: inst.sets.length, peak: p?.peak ?? 0, ms: p?.ms ?? 0, cut: this.cut.has(id), asleep: !!inst.sleep?.asleep };
     }
     return rows;
   }
@@ -404,6 +411,38 @@ export class GraphRuntime {
 
   setDelayComp(on) { this.delayComp = on === true; this.maxDelay = null; }
 
+  // Machine sleep on or off for every machine (Config); off wakes the sleeping ones.
+  setSleep(on) {
+    this.sleepIdle = on !== false;
+    if (!this.sleepIdle) for (const inst of this.instruments.values()) if (inst.sleep) { inst.sleep.asleep = false; inst.sleep.quiet = 0; }
+  }
+
+  // Asleep this block? Wakes the machine when something could make it sound (see sleep.js). A sleeping machine's buffers hold silence.
+  dozing(id, inst, n) {
+    const z = inst.sleep;
+    if (!z?.asleep) return false;
+    if (!this.sleepIdle || inst.kill || shouldWake(z, this.params, this.clock.stamps, id => this.instruments.get(id)?.peak ?? 0)) { z.asleep = false; z.quiet = 0; z.woken = false; return false; }
+    if (inst.keep === undefined) {   // the free-running modulators outside the voices: they keep time while it sleeps
+      const types = new Map((this.graphs.get(id)?.nodes ?? []).map(k => [k.id, k.type]));
+      inst.keep = [...inst.pre, ...inst.nodes].filter(node => FREE.has(types.get(node.id)));
+    }
+    for (const node of inst.keep) node.instance.process(node.inputs, node.outputs, n, this.params, node.slots);
+    return true;
+  }
+
+  // After a machine has run: counts its silence, and puts it to sleep once that has lasted long enough with no voice sounding.
+  settle(inst, n) {
+    const z = inst.sleep;
+    if (!z || !this.sleepIdle) return;
+    z.woken = false;
+    if (inst.peak >= SILENT || inst.kill || inst.sets.some(s => s.active)) { z.quiet = 0; return; }
+    z.quiet += n;
+    if (z.quiet < holdSamples(z, this.params, this.sampleRate)) return;
+    fallAsleep(z, this.params, this.clock.stamps);
+    inst.left.fill(0); inst.right.fill(0);
+    inst.peak = 0;
+  }
+
   // How many samples everything is held back by, with delay compensation on: the delay of the slowest instrument.
   alignment() {
     if (!this.delayComp) return 0;
@@ -421,6 +460,7 @@ export class GraphRuntime {
       const inst = this.instruments.get(id);
       if (!inst) continue;
       if (this.cut.has(id) || this.killed.has(id)) { this.onLane?.(id, inst.left, inst.right, n); continue; }   // switched off in the Stream Manager: it runs nothing, and its buffers hold silence
+      if (this.dozing(id, inst, n)) { inst.block = this.blockNo; this.onLane?.(id, inst.left, inst.right, n); continue; }   // asleep: nothing runs, its buffers hold silence (a sidechain on it hears that)
       const t0 = this.prof ? Date.now() : 0;
       for (const node of inst.pre) node.instance.process(node.inputs, node.outputs, n, this.params, node.slots);
       if (inst.sets.length) {
@@ -460,14 +500,17 @@ export class GraphRuntime {
         continue;
       }
       inst.block = this.blockNo;
+      let pk = 0;
+      for (let i = 0; i < n; i++) { const a = Math.abs(inst.left[i]), b = Math.abs(inst.right[i]); if (a > pk) pk = a; if (b > pk) pk = b; }
+      inst.peak = pk;
       if (this.prof) {
-        let pk = 0;
-        for (let i = 0; i < n; i++) { const a = Math.abs(inst.left[i]), b = Math.abs(inst.right[i]); if (a > pk) pk = a; if (b > pk) pk = b; }
         const p = this.prof.get(id) ?? this.prof.set(id, { ms: 0, peak: 0 }).get(id);
         p.ms += Date.now() - t0; if (pk > p.peak) p.peak = pk;
       }
       this.onLane?.(id, inst.left, inst.right, n);   // the page's layered spectrum, when it is on
       if (this.scopes.size) for (const scope of this.scopes.values()) if (scope.instrument === id) this.watch(scope, inst, n);
+      this.settle(inst, n);
+      if (inst.sleep?.asleep) continue;   // it just fell asleep: this block was silent anyway
       if (inst.send !== undefined && this.params[inst.send] < 0.5) continue;   // out node's master switch off: heard only by sidechain nodes, not in the mix
       const gap = this.alignment() - (inst.latency ?? 0);   // a quicker instrument waits for the slowest
       if (gap > 0) {

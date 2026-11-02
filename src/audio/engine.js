@@ -15,6 +15,7 @@ export class Engine {
   ctx = null;
   wasmModule = null;
   node = null;
+  sleep = true;       // machine sleep: quiet machines stop running until something could make them sound (audio/sleep.js)
   delayComp = false;  // delay compensation: audio paths of different delay are lined up (see graph/compile.js)
   dither = false;   // a whisper of noise on the output (see the worklet): a diagnostic for crackle at very quiet levels
   volFloor = false; // a Volume curve never closes completely (the sequencer): a diagnostic for pops when waking from silence
@@ -52,6 +53,7 @@ export class Engine {
     };
     this.node.port.postMessage({ type: 'dither', on: this.dither });
     this.setDelayComp(this.delayComp);
+    this.setSleep(this.sleep);
     this.node.port.postMessage({ type: 'volfloor', on: this.volFloor });
     if (this.laneIds.length) this.node.port.postMessage({ type: 'lanetaps', ids: this.laneIds });
     if (this.levelsWanted) this.node.port.postMessage({ type: 'levels', on: true });
@@ -78,6 +80,7 @@ export class Engine {
     this.delayComp = on;
     this.node?.port.postMessage({ type: 'delaycomp', on });
   }
+  setSleep(on) { this.sleep = on; this.node?.port.postMessage({ type: 'sleep', on }); }
   setDither(on) { this.dither = on; this.node?.port.postMessage({ type: 'dither', on }); }
   // The Stream Manager: watching (the engine times each instrument while it is on), and switching instruments off and on, or rebuilding them.
   watchStreams(on) { this.node?.port.postMessage({ type: 'streamwatch', on }); }

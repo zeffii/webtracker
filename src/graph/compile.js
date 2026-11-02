@@ -3,6 +3,7 @@
 // desc = {
 //   nodes: [{ id, type, params?: { name: value } }],
 //   connections: [['sampler.out', 'filter.in'], ...],
+//   sleep?: 'never',  // keeps the machine running when it goes quiet (see audio/sleep.js); otherwise it may sleep
 //   voices?: 1..16,   // copies of the graph that play notes at once (see the voices node)
 // }
 // Buffer 0 is reserved as silence for unconnected inputs. A mono port is one buffer, a
@@ -136,5 +137,5 @@ export function compile(source, { instrument, nodeTypes, registry, delayComp = f
   // The hidden channel stage after the output node: a level (0..1) the sequencer's Volume curve moves, applied smoothly to the whole machine.
   const amp = registry.allocate(`${instrument}.mix.amp`, 1, 0, 1);
   const sendSlot = nodes.find(x => x.id === masters[0])?.slots?.[byId.get(masters[0]).def.params.findIndex(p => p.name === 'master')];   // the out node's "master" switch
-  return { instrument, nodes, bufferCount: nextBuf, master: outBufs.get(masters[0]), voices, amp, send: sendSlot, latency: arrive.get(masters[0]) ?? 0 };
+  return { instrument, nodes, bufferCount: nextBuf, master: outBufs.get(masters[0]), voices, sleep: desc.sleep !== 'never', amp, send: sendSlot, latency: arrive.get(masters[0]) ?? 0 };
 }

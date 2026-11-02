@@ -29,6 +29,7 @@ import { computePeaks, createWaveformView } from '../src/project/waveform.js';
 import * as roll from '../src/project/pianoroll.js';
 import { createPianoRollOverlay } from '../src/project/pianorollview.js';
 import { computePitchSpectrogram } from '../src/project/spectrogram.js';
+import { sleepState, holdSamples } from '../src/audio/sleep.js';
 import { parseProject, serializeProject } from '../src/project/file.js';
 import { song as demoSong } from '../src/song.js';
 import { createCurveEditor, SIZE } from '../src/graph/curveeditor.js';
@@ -10199,6 +10200,71 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   const saved = parseProject(serializeProject({ song: demoSong, instruments: {}, samples: { s: smp }, lanes: [] })).samples.s;
   assert.deepEqual(saved.roll, smp.roll);
   console.log('ok: piano roll');
+}
+
+// Machine sleep: a quiet machine stops running, keeps its state, and wakes on a note, a parameter change or a node message.
+{
+  // which machines may sleep, and for how long they must be silent first
+  const fake = (types, extra = {}) => ({ nodes: types.map((type, i) => ({ id: `n${i}`, type, slots: [] })), ...extra });
+  assert.ok(sleepState(fake(['osc', 'delay', 'out']), NODE_TYPES));
+  for (const t of ['lfo', 'ctrl', 'cardinal', 'genexpr']) assert.equal(sleepState(fake(['osc', t, 'out']), NODE_TYPES), null, `${t} may make a quiet machine sound: never sleeps`);
+  assert.ok(sleepState(fake(['noise', 'lfo', 'filter', 'env', 'gain', 'out']), NODE_TYPES), 'an LFO on an enveloped sound: may sleep');
+  assert.equal(sleepState(fake(['noise', 'lfo', 'filter', 'env', 'gain', 'cardinal', 'out']), NODE_TYPES), null);
+  for (const t of ['arp', 'chord', 'gater']) assert.ok(sleepState(fake(['subsynth', t, 'out']), NODE_TYPES), `${t} only works on notes or sound coming in: may sleep`);
+  assert.equal(sleepState(fake(['osc', 'out'], { sleep: false }), NODE_TYPES), null, 'sleep: never');
+  {
+    const registry = new ParamRegistry();
+    const c = compile({ ...samplerPreset, sleep: 'never' }, { instrument: 'x', nodeTypes: NODE_TYPES, registry });
+    assert.equal(c.sleep, false);
+    const d = compile(samplerPreset, { instrument: 'y', nodeTypes: NODE_TYPES, registry }), z = sleepState(d, NODE_TYPES);
+    assert.equal(z.times.length, 1, 'the delay time is watched');
+    registry.values[z.times[0]] = 3000;
+    assert.equal(holdSamples(z, registry.values, sr), Math.round(3.5 * sr), 'a 3 s delay keeps it awake 3.5 s');
+    registry.values[z.times[0]] = 100;
+    assert.equal(holdSamples(z, registry.values, sr), 2 * sr);
+  }
+  const { rt, registry } = setup();
+  const awake = setup(); awake.rt.setSleep(false);
+  const inst = rt.instruments.get('lead'), z = inst.sleep;
+  let runs = 0;
+  const first = inst.nodes[0].instance, plain = first.process.bind(first);
+  first.process = (...a) => { runs++; plain(...a); };
+  for (const r of [rt, awake.rt]) r.note('lead', { type: 'noteOn', note: 60, vel: 1 });
+  render(rt, 0.3); render(awake.rt, 0.3);
+  for (const r of [rt, awake.rt]) r.note('lead', { type: 'noteOff', note: 60 });
+  let waited = 0;
+  while (!z.asleep && waited < 20) { render(rt, 0.1); render(awake.rt, 0.1); waited += 0.1; }
+  assert.ok(z.asleep, 'the sampler fell asleep once its tail died away');
+  assert.ok(waited >= 2, 'not before two seconds of silence');
+  assert.equal(rt.streamStats().lead.asleep, true);
+  runs = 0;
+  const quiet = render(rt, 1); render(awake.rt, 1);
+  assert.equal(runs, 0, 'asleep: nothing runs');
+  assert.equal(peak(quiet.left), 0);
+  // a note wakes it at once, and it sounds as if it had never slept
+  for (const r of [rt, awake.rt]) r.note('lead', { type: 'noteOn', note: 64, vel: 1 });
+  const a = render(rt, 0.25), b = render(awake.rt, 0.25);
+  assert.ok(runs > 0 && !z.asleep);
+  assert.ok(peak(a.left) > 0.05, 'the note is heard');
+  let diff = 0; for (let i = 0; i < a.left.length; i++) diff = Math.max(diff, Math.abs(a.left[i] - b.left[i]));
+  assert.ok(diff < 1e-3, `slept and awake sound the same (${diff})`);
+  for (const r of [rt, awake.rt]) r.note('lead', { type: 'noteOff', note: 64 });
+  while (!z.asleep) render(rt, 0.1);
+  // a parameter change wakes it, and so does a pattern writing the same value again
+  const slot = inst.nodes[1].slots[0];
+  registry.values[slot] += 1; runs = 0; render(rt, 0.01);
+  assert.ok(runs > 0 && !z.asleep, 'a parameter moved: awake');
+  while (!z.asleep) render(rt, 0.1);
+  rt.clock.stamps[slot]++; runs = 0; render(rt, 0.01);
+  assert.ok(runs > 0, 'a pattern wrote the parameter: awake');
+  while (!z.asleep) render(rt, 0.1);
+  rt.message('lead', 'sampler', { type: 'sample', data: makePluck(sr), rate: sr }); runs = 0; render(rt, 0.01);
+  assert.ok(runs > 0, 'a node message: awake');
+  // with sleep off in Config, nothing sleeps
+  assert.ok(!awake.rt.instruments.get('lead').sleep.asleep);
+  rt.setSleep(false); runs = 0; render(rt, 4);
+  assert.ok(!z.asleep && runs > 0);
+  console.log('ok: machine sleep');
 }
 
 console.log('smoke test passed');

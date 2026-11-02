@@ -76,9 +76,10 @@ import { createScratch, sendEdits } from './script/scratch.js';
 import { placementAt } from './seq/edit.js';
 
 const engine = new Engine();
-engine.dither = config.get('dither'); engine.volFloor = config.get('volFloor'); engine.delayComp = config.get('delayComp');
+engine.dither = config.get('dither'); engine.volFloor = config.get('volFloor'); engine.delayComp = config.get('delayComp'); engine.sleep = config.get('sleepIdle');
 config.onChange((k, v) => {
   if (k === 'dither') engine.setDither(v); else if (k === 'volFloor') engine.setVolFloor(v);
+  else if (k === 'sleepIdle') engine.setSleep(v);
   else if (k === 'delayComp') { engine.setDelayComp(v); for (const id of Object.keys(project?.instruments ?? {})) reloadInstrument(id); }   // every machine is compiled again, with or without the lining up
 });
 const $ = id => document.getElementById(id);
@@ -1361,7 +1362,16 @@ function syncPoly() {
   const def = project.instruments[patcher.instrument];
   $('inst-voices').value = def?.graph.voices ?? 1;
   $('inst-notecols').value = def?.noteColumns ?? 1;
+  $('inst-sleep').checked = def?.graph.sleep !== 'never';
 }
+// Sleep when quiet (audio/sleep.js): on by default; unticked, the machine runs all the time.
+$('inst-sleep').addEventListener('change', () => {
+  const def = project.instruments[patcher.instrument];
+  if (!def) return;
+  if ($('inst-sleep').checked) delete def.graph.sleep; else def.graph.sleep = 'never';
+  reloadInstrument(patcher.instrument);
+  syncPoly();
+});
 
 // Polyphony: how many copies of the instrument play at once, and how many notes a row can hold.
 for (const [id, field, max] of [['inst-voices', 'voices', 16], ['inst-notecols', 'noteColumns', 8]]) {
@@ -2746,7 +2756,7 @@ $('start').addEventListener('click', async () => {
     navigator.storage?.persist?.();   // ask the browser not to clear the snapshots when it is short of space
     for (const id of ['start']) $(id).disabled = true;
     $('logo').classList.remove('idle'); $('logo').removeAttribute('title'); $('logo').removeAttribute('role'); $('logo').removeAttribute('tabindex');
-    for (const id of ['filemenu-btn', 'play', 'pause', 'panic', 'cut', 'rec-take', 'rec-source', 'add-inst', 'add-lane', 'add-lane-inst', 'inst-voices', 'inst-notecols', 'inst-up', 'inst-down', 'inst-dup', 'inst-remove', 'lane-name', 'lane-rename', 'lane-left', 'lane-right', 'lane-dup', 'lane-clone', 'lane-remove', 'lane-remove-all', 'length', 'ins-n', 'ins-go', 'bpm', 'swing', 'tpb', 'bar', 'preset-name', 'preset-save', 'preset-over', 'preset-rename', 'preset-remove', 'inst-export', 'inst-import', 'lib-load', 'lib-add', 'lib-save']) $(id).disabled = false;
+    for (const id of ['filemenu-btn', 'play', 'pause', 'panic', 'cut', 'rec-take', 'rec-source', 'add-inst', 'add-lane', 'add-lane-inst', 'inst-voices', 'inst-notecols', 'inst-sleep', 'inst-up', 'inst-down', 'inst-dup', 'inst-remove', 'lane-name', 'lane-rename', 'lane-left', 'lane-right', 'lane-dup', 'lane-clone', 'lane-remove', 'lane-remove-all', 'length', 'ins-n', 'ins-go', 'bpm', 'swing', 'tpb', 'bar', 'preset-name', 'preset-save', 'preset-over', 'preset-rename', 'preset-remove', 'inst-export', 'inst-import', 'lib-load', 'lib-add', 'lib-save']) $(id).disabled = false;
     $('status').textContent =
       `Running at ${engine.ctx.sampleRate} Hz, base latency ${(engine.ctx.baseLatency * 1000).toFixed(1)} ms`;
     // Only the screen that is showing is drawn: a hidden one has nothing to measure or paint, and its work would only delay the one you are using.

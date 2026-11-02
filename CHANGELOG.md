@@ -2,6 +2,14 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 622 · 2026-11-02
+
+- **Quiet machines sleep.** A machine with no note sounding whose output has stayed below about −90 dB for 2 seconds (longer when it has a delay with a longer time, so no echo is cut off) stops running and costs no CPU. Nothing is reset: filters, delay lines, envelopes and phases stay exactly where they were, so it wakes for free, in the same block, on a note, a parameter change (or a pattern writing one), a message to one of its nodes, a kill, or the machine its sidechain listens to sounding. LFO and ctrl nodes keep running while it sleeps, so sweeps and synced LFOs stay in time.
+- On the default demo this takes the audio load from about 48% to 1% while stopped, and from about 55% to 22% while it plays (measured in a headless browser; your numbers will differ). Rendering all the demos with sleep on and off gives the same notes and the same levels, within the small differences a free-running chorus or a random pan already gives when a note comes a little earlier or later.
+- Some machines never sleep: a modular (Cardinal) or code (genexpr) that may sound on its own, and an LFO or ctrl in a machine that has nothing note-gated (a drone that swells in and out). Any machine can be kept awake with the new **Sleep** switch beside Voices on the Instruments screen, and Config, Playing, *Sleep quiet machines* turns it off everywhere.
+- The Stream Manager shows a sleeping machine as **zz**.
+- New code: `src/audio/sleep.js` (the rules), used by `src/audio/runtime.js`.
+
 ## 621 · 2026-11-02
 
 - **Piano roll over the sample display** (Shift+P on the Samples screen, or the *Piano roll* button). An annotation layer for transcribing a recording by ear and eye: the S and E markers in its top ruler span a virtual pattern, cut into the number of rows you set, and a grid is drawn in the time domain. Drag on empty space to draw a note, drag a note to move it in time and pitch, drag its right end to lengthen it, right click to remove it. Notes snap to the row lines (or roam free with snap off; Shift does the opposite while held).
