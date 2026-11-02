@@ -1261,6 +1261,7 @@
     .pv-pin.on { color: #f0707a; border-color: #f0707a; background: color-mix(in srgb, #f0707a 22%, transparent); }
     .pv-pin.on svg { transform: none; }
     .pv-row { display: grid; grid-template-columns: 9ch 1fr; height: 16px; align-items: center; }
+    #float-scroll.wide .pv-row { grid-template-columns: 11ch 1fr auto; }   /* a meta machine's rows are named "machine · parameter" */
     .pv-name { padding-left: 5px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; cursor: help; }
     .pv-tg { display: none; gap: 2px; margin-right: 4px; }
     .pv-tb { min-width: 14px; height: 12px; line-height: 12px; text-align: center; font-size: 10px; border: 1px solid color-mix(in srgb, currentColor 35%, transparent); opacity: .5; cursor: pointer; box-sizing: border-box; padding: 0 2px; }

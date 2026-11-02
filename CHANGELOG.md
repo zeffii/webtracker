@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 619 · 2026-11-02
+
+- **A meta machine now has a parameter window.** The floating parameters window (Ctrl+Alt+P, over the pattern editor and the Sequence Editor) and the exposed dock of the Instruments screen used to say "Nothing exposed" for a meta machine, because it exposes nothing of its own. They now show the parameters it plays, the ones picked in its Selections, as sliders that move the real parameter of the machine they belong to, named `machine · parameter`. Its notes, velocities and triggers have no slider and are left out. The list follows the Selections as you change them. The window can be dragged wider from its left edge to read longer names.
+
 ## 618 · 2026-11-02
 
 - **Bounce to sample.** Ctrl+Shift+B in the Sequence Editor (or right-click a pattern: *Bounce this pattern to a sample…* / *Bounce the lane to a sample…*) renders ticks offline into a new sample. The dialog starts on the pattern under the cursor, or on the selected block, and the range can also be the loop, the whole lane or any two ticks you type. You choose whether the lane is heard on its own (with whatever it plays through) or the whole mix, and the sample is named from the lane and ticks (`Lead 064–128`) or the pattern.

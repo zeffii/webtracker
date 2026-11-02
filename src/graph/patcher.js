@@ -309,18 +309,20 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
   // to give them ids: they count as command parameters for hiding.
   const SAMPLER_CMD = new Set(samplerCommands.filter(c => c.node === 'sampler' && c.param).map(c => c.param));
   const shownRows = rows => (config.get('pvHideCc') ? rows.filter(r => r.cc === undefined && !r.adv) : rows);
-  function rowsFor(node, type) {
-    const tgt = type.type === 'range' ? rangeTargetOf(desc(), nodeTypes, node.id) : null;
+  // `id` is the instrument the node belongs to: the one open in the graph, or (for a meta machine's parameters) another one.
+  function rowsFor(node, type, id = instId) {
+    const D = () => instruments[id], G = () => D().graph, here = id === instId;
+    const tgt = type.type === 'range' ? rangeTargetOf(G(), nodeTypes, node.id) : null;
     return type.params.map(base => {
       const ruled = !!tgt && base.name !== 'at';   // a range node's lo and hi are in the units of the port it feeds
       const spec = ruled ? { ...base, min: tgt.min, max: tgt.max, int: tgt.int, def: base.name === 'lo' ? tgt.min : tgt.max } : base;
       const uType = ruled ? tgt.type : node.type, uName = ruled ? tgt.param : spec.name;
-      const get = () => readLive(instId, node.id, spec.name) ?? node.params?.[spec.name] ?? spec.def;
-      const entry = () => def().exposed.find(e => e.node === node.id && e.param === spec.name);
+      const get = () => readLive(id, node.id, spec.name) ?? node.params?.[spec.name] ?? spec.def;
+      const entry = () => D().exposed.find(e => e.node === node.id && e.param === spec.name);
       const span = spec.max - spec.min;
       const apply = v => {
-        setParam(desc(), node.id, spec.name, v);
-        onParam(instId, node.id, spec.name, v);
+        setParam(G(), node.id, spec.name, v);
+        onParam(id, node.id, spec.name, v);
         dirty = true;   // the envelope drawn beside the node follows
         if (spec.name === 'position' || spec.name === 'mix' || spec.name === 'source') tableEditor?.refresh();
         if (type.editor === 'taps') tapEditor?.refresh();
@@ -340,7 +342,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
       const names = choices(uType, uName);
       return {
         name: spec.name,
-        cc: (() => { const c = (def().commands ?? []).find(k => k.node === node.id && k.param === spec.name); return c ? c.id.toString(16).toUpperCase().padStart(2, '0') : undefined; })(),   // the command that writes it from a pattern
+        cc: (() => { const c = (D().commands ?? []).find(k => k.node === node.id && k.param === spec.name); return c ? c.id.toString(16).toUpperCase().padStart(2, '0') : undefined; })(),   // the command that writes it from a pattern
         adv: node.type === 'sampler' && SAMPLER_CMD.has(spec.name),
         pos: () => clamp01(toPos(spec, get())),
         setPos: p => apply(toValue(spec, p)),
@@ -371,15 +373,15 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
         step: spec.int ? 1 / span : 0.005,
         big: spec.int ? Math.max(1, Math.round(span / 10)) / span : 0.05,
         fine: spec.int ? 1 / span : 0.001,
-        wired: desc().connections.some(([, to]) => to === `${node.id}.@${spec.name}`),
+        wired: G().connections.some(([, to]) => to === `${node.id}.@${spec.name}`),
         get exposed() { return !!entry(); },
         get bits() { return entry()?.bits ?? 8; },
         get ported() { return (node.ports ?? []).includes(spec.name); },
         hint: () => ({ title: spec.name, text: hintFor(node.type, base) + (ruled ? ` Now in the units of ${tgt.node}.${tgt.param}.` : ''), facts: factsFor(spec) }),
         reset: () => apply(spec.def),
-        expose: on => { setExposed(def(), nodeTypes, node.id, spec.name, on); structure(); renderPanel(); },
-        setBits: bits => { setBits(def(), node.id, spec.name, bits); structure(); renderPanel(); },
-        port: on => { setPort(desc(), nodeTypes, node.id, spec.name, on); structure(); dirty = true; renderPanel(); },
+        expose: on => { if (!here) return; setExposed(D(), nodeTypes, node.id, spec.name, on); structure(); renderPanel(); },
+        setBits: bits => { if (!here) return; setBits(D(), node.id, spec.name, bits); structure(); renderPanel(); },
+        port: on => { if (!here) return; setPort(G(), nodeTypes, node.id, spec.name, on); structure(); dirty = true; renderPanel(); },
       };
     });
   }
@@ -456,9 +458,12 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
     }
   }
 
-  // The exposed parameters: the rows of the left dock, each named by its pattern-column label.
+  // The exposed parameters: the rows of the left dock, each named by its pattern-column label. A meta machine exposes the
+  // parameters it plays (its Selections): the rows are those of the machines they belong to, named after the machine; its
+  // notes, velocities and triggers have no slider, so they are left out.
   function exposedRows() {
     if (!instId) return [];
+    if (def().meta) return metaRows();
     return def().exposed.flatMap(x => {
       const node = desc().nodes.find(n => n.id === x.node);
       const type = node && nodeTypes[node.type];
@@ -467,17 +472,31 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
     });
   }
 
+  function metaRows() {
+    return (def().meta.columns ?? []).flatMap(spec => {
+      const target = spec.role === 'param' && spec.instrument !== instId ? instruments[spec.instrument] : null;
+      const x = target?.exposed?.find(e => e.node === spec.node && e.param === spec.param);
+      const node = x && target.graph.nodes.find(n => n.id === x.node);
+      const type = node && nodeTypes[node.type];
+      const row = type && rowsFor(node, type, spec.instrument).find(r => r.name === x.param);
+      return row ? [Object.create(row, { name: { value: spec.header || `${spec.instrument} · ${x.label ?? x.param}` } })] : [];
+    });
+  }
+
+  const nothingExposed = () => (instId && def().meta ? 'This meta machine plays no parameters yet: add some in its Selections.' : 'Nothing exposed in this machine yet.');
+
   function renderFloat() {
     if (!floatView) return;
     if (!floatOn || !instId) { floatView.hide(); return; }
-    floatView.show('', exposedRows(), floatView.cursor, 'Nothing exposed in this machine yet.');
+    floatDock.classList.toggle('wide', !!def().meta);   // a meta machine's rows are named after the machine they belong to
+    floatView.show('', exposedRows(), floatView.cursor, nothingExposed());
   }
 
   function renderExposed() {
     renderFloat();
     if (!exposedView) return;
     if (!instId) { exposedView.hide(); return; }
-    exposedView.show('exposed', exposedRows(), exposedView.cursor, 'Nothing exposed yet. Select a node, press Enter on a row and choose "Expose".');
+    exposedView.show('exposed', exposedRows(), exposedView.cursor, instId && def().meta ? nothingExposed() : 'Nothing exposed yet. Select a node, press Enter on a row and choose "Expose".');
   }
 
   const renderPanel = () => { renderNodePanel(); renderExposed(); };
@@ -1680,6 +1699,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
     draw,
     // the floating exposed-parameters window: on or off, and kept current while another screen is showing
     float(on) { floatOn = !!on; renderFloat(); },
+    refreshExposed() { renderExposed(); },   // a meta machine's Selections changed: its parameter rows are the ones it plays
     live() { followLive(); },
     get floating() { return !!floatView?.open; },
     get instrument() { return instId; },

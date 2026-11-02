@@ -816,7 +816,7 @@ $('inst-list').addEventListener('keydown', e => {
 const metaEditor = createMetaEditor({
   root: $('meta-editor'),
   getProject: () => project,
-  onChange: id => refreshLanes(id),
+  onChange: id => { refreshLanes(id); patcher.refreshExposed(); },
   onAddLane: id => { addLaneFor(id); refreshProjectUi(); },
   // A machine that a meta machine plays for the first time has no use for an empty lane of its own: it goes from the arrangement
   // (a lane that holds patterns stays, and can be removed by hand).

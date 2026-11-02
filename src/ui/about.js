@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['619', ['Meta machine: the floating parameters window (Ctrl+Alt+P) shows the parameters it plays, as sliders on the machines they belong to']],
   ['618', ['Bounce to sample (Ctrl+Shift+B in the Sequence Editor): a pattern, selection, loop or lane rendered offline, with its tails and a slice marker where the range ends']],
   ['617', ['Fix: the meta machine Selections list no longer jumps to the top when you click a parameter in a long list']],
   ['616', ['Sequence Editor: Ctrl+Shift+Left/Right move the machine under the cursor to an earlier or later lane']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['612', ['File, Save folder: a default folder for every save dialog; each kind of file also remembers its own folder']],
   ['611', ['Config: long drop-downs are cut with an ellipsis instead of squeezing the setting text']],
   ['610', ['Pattern editor: Left/Right move one character by default; Ctrl jumps by column, Ctrl+Shift by lane']],
-  ['609', ['File, Reload app: fresh code, same song. Fix: the DX panel columns now really sit side by side']],
                     ];
