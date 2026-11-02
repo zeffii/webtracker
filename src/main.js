@@ -1,6 +1,8 @@
 import { createFileMenu } from './ui/filemenu.js';
 import { Engine } from './audio/engine.js';
 import { encodeWav, renderSong } from './audio/export.js';
+import { bounceRange } from './audio/bounce.js';
+import { askBounce } from './ui/bouncedialog.js';
 import { createMeters } from './ui/meters.js';
 import { createSplash } from './ui/splash.js';
 import { createMachineHelp } from './ui/machinehelp.js';
@@ -336,6 +338,7 @@ const seqView = createSequenceView({
     const at = project.lanes.findIndex(l => l.id === id);
     if (at >= 0) { seqView.goto(at, tick); view.goto(at, 0); followLane(at); }
   },
+  onBounce: info => bounceToSample(info),
   onSeek: tick => { if (!started) return; if (playing) engine.play(tick); else setPlaying(true, tick); },
   onSong: () => songChanged(),
   onShape: li => { mixer?.refresh(); const l = project?.lanes?.[li]; if (l) engine.setLane({ id: l.id, instrument: l.instrument, columns: l.columns, pages: l.pages, mask: l.mask, auto: l.auto }); },
@@ -2131,6 +2134,34 @@ $('meters-btn').addEventListener('click', toggleMeters);
 addEventListener('resize', placeMeters);
 showMeters(config.get('meterOn'));
 showViz(config.get('visualOn'));
+
+// Bounce to sample (Ctrl+Shift+B in the Sequence Editor, or its right-click menu): a range of ticks, of one lane or of the whole
+// mix, rendered offline into a new sample as long as the range plus whatever still rings. A slice marker sits where the range
+// ends, so the tails can be seen. The progress shows in the same bar as Export, and pressing Export's button cancels it.
+let bouncing = false;
+async function bounceToSample(info) {
+  if (!project || !engine.node) return projStatus('Press Start first: the sound is made by the audio engine.');
+  if (exporting || bouncing) return projStatus('Another render is running.');
+  const choice = await askBounce(info);
+  $('seq').focus();
+  if (!choice) return;
+  const cancel = exporting = { on: false }, say = text => { $('status').textContent = text; }, bar = $('xprog');
+  const show = f => { bar.hidden = false; bar.firstElementChild.style.width = `${Math.round(Math.min(1, Math.max(0, f)) * 100)}%`; };
+  bouncing = true; show(0);
+  try {
+    if (playing) setPlaying(false);
+    const lane = choice.solo ? project.lanes[info.lane].id : null;
+    const out = await bounceRange(engine.exportState(), { from: choice.from, to: choice.to, lane, maxTail: choice.maxTail, cancel, onProgress: f => { show(f); say(`Bouncing ${choice.name}: ${Math.round(f * 100)}%`); } });
+    if (!out) return say('Bounce cancelled.');
+    const id = addSample(project, choice.name, out.sampleRate, out.left, out.right ?? undefined);
+    if (choice.marker && out.marker > 0 && out.marker < out.left.length) ops.setSlices(project, id, [out.marker]);
+    refreshProjectUi(); sampleScreen.select(id);
+    const tail = out.seconds - out.marker / out.sampleRate;
+    projStatus(`Bounced ticks ${choice.from}–${choice.to} to ${id}: ${out.seconds.toFixed(2)} s, of which ${tail.toFixed(2)} s is tail${out.right ? '' : ' (mono: both sides were alike)'}.`);
+    say(`Bounced ${id}.`);
+  } catch (e) { say(`Bounce failed: ${e.message}`); }
+  finally { exporting = null; bouncing = false; bar.hidden = true; }
+}
 
 // Export: the whole song, once, offline, as a WAV file. Pressing the button again while it renders cancels.
 let exporting = null;

@@ -5,7 +5,7 @@ import * as config from '../ui/config.js';
 import { dimLevel, dimFilter } from '../ui/dim.js';
 import { createPlayline, createLoopLines } from '../ui/playline.js';
 import { placementAt, puidByIndex, startsAt } from './edit.js';
-import { setLoopPoint, toggleLoop } from './loop.js';
+import { loopRange, setLoopPoint, toggleLoop } from './loop.js';
 import { showContextMenu } from '../ui/ctxmenu.js';
 import { showMachineTree, buildMachineTree } from '../ui/machinetree.js';
 import { createMinimap } from './minimap.js';
@@ -23,7 +23,7 @@ const hex2 = n => n.toString(16).toUpperCase().padStart(2, '0');
 // column. The cursor sits on a row; edits happen at the row's start, or at the start of a
 // pattern that begins inside it. A pattern is a block that starts with its index and name; a later
 // pattern covers the ones under it. Keyboard-driven.
-export function createSequenceView({ el, statusEl, undoEl = null, listEl, transport, onToggle, onOpen, onMove, onSeek, onParams = () => {}, instruments = () => [], unassigned = () => [], newKinds = () => [], onNewInstrument = () => {}, onAddLane = () => {}, onMoveLane = () => {}, onSong = () => {}, onShape = () => {}, follow = () => false }) {
+export function createSequenceView({ el, statusEl, undoEl = null, listEl, transport, onToggle, onOpen, onMove, onSeek, onParams = () => {}, instruments = () => [], unassigned = () => [], newKinds = () => [], onNewInstrument = () => {}, onAddLane = () => {}, onMoveLane = () => {}, onBounce = () => {}, onSong = () => {}, onShape = () => {}, follow = () => false }) {
   let lanes = null, len = 0, editor = null, song = null;
   const cur = { lane: 0, tick: 0 };
   let typed = '', message = '';
@@ -290,6 +290,16 @@ export function createSequenceView({ el, statusEl, undoEl = null, listEl, transp
       ]) },
     ]);
   };
+  // What the Bounce to sample dialog needs: the lane, and the ranges it can start from (ticks; the end is the first tick not played).
+  const bounceInfo = scope => {
+    const l = lane(), pl = here(), b = sel ? block() : null, lp = song?.loop ? loopRange(song) : null;
+    const pattern = pl ? { start: pl.start, end: pl.start + Math.min(pl.length, l.patterns[pl.puid].length), name: l.patterns[pl.puid].name } : null;
+    return {
+      laneId: l.id, lane: cur.lane, patternName: pattern?.name, barTicks: barTicks(),
+      ranges: { pattern, selection: b ? { start: b.t0, end: Math.min(len, b.t1 + CELL) } : null, loop: lp, lane: { start: 0, end: len } },
+      scope: scope ?? (b ? 'selection' : pattern ? 'pattern' : 'lane'),
+    };
+  };
   el.addEventListener('contextmenu', e => {
     if (!lanes) return;
     const hit = pointed(e);
@@ -307,6 +317,9 @@ export function createSequenceView({ el, statusEl, undoEl = null, listEl, transp
       { label: 'Give it its own copy', hint: 'N', run: () => go('clone', editor.clone(li, t), 'Cloned: this placement now has its own copy.') },
       { label: 'Slice here', hint: 'S', run: () => go('slice', editor.slice(li, t), 'Sliced.') },
       { label: 'Remove from the arrangement', hint: 'Delete', run: () => go('remove', editor.remove(li, t), 'Removed. The pattern stays in the list.') },
+      { separator: true },
+      { label: 'Bounce this pattern to a sample…', hint: 'Ctrl+Shift+B', run: () => onBounce(bounceInfo('pattern')) },
+      { label: 'Bounce the lane to a sample…', run: () => onBounce(bounceInfo('lane')) },
       { separator: true },
       { label: 'Rename… (not yet)', disabled: true },
       { label: 'Params', hint: 'Ctrl+Alt+P', run: () => { onParams(li); draw(); } },
@@ -391,6 +404,7 @@ export function createSequenceView({ el, statusEl, undoEl = null, listEl, transp
     if (e.ctrlKey || e.metaKey) {
       const key = e.key.toLowerCase(), li0 = cur.lane, tick0 = cur.tick;
       if (e.shiftKey && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) { moveMachine(e.key === 'ArrowRight' ? 1 : -1); draw(); e.preventDefault(); return; }
+      if (key === 'b' && e.shiftKey) { onBounce(bounceInfo()); e.preventDefault(); return; }   // Ctrl+Shift+B: bounce to a sample
       if ((key === 'b' || key === 'e') && !e.shiftKey) {   // the loop: Ctrl+B starts it at this row, Ctrl+E ends it where this row starts (this row is not in the loop)
         const row = rowStart(cur.tick);
         message = key === 'b' ? setLoopPoint(song, 'start', row) : setLoopPoint(song, 'end', row);

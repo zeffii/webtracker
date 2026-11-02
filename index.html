@@ -626,6 +626,22 @@
     .dlg { position: absolute; z-index: 20; left: 50%; top: 35%; transform: translateX(-50%); padding: .6rem .8rem; background: var(--panel); color: var(--fg); border: 1px solid var(--fg); box-shadow: 0 4px 16px #0006; font: 12px/1.4 ui-monospace, Consolas, monospace; }
     .dlg p { margin: 0 0 .5rem; }
     .dlg div { display: flex; gap: 6px; }
+    .bounce { position: fixed; z-index: 40; left: 50%; top: 14%; transform: translateX(-50%); width: min(520px, 94vw); box-sizing: border-box; padding: 16px 22px; background: var(--panel); color: var(--fg); border: 1px solid var(--fg); box-shadow: 0 6px 24px #0007; font: 12px/1.5 ui-monospace, Consolas, monospace; }
+    .bounce h3 { margin: 0 0 8px; font-size: 14px; font-weight: 600; }
+    .bounce h4 { margin: 12px 0 4px; font-size: 10px; font-weight: normal; letter-spacing: .08em; text-transform: uppercase; opacity: .65; }
+    .bounce .bn-dim { opacity: .65; font-weight: normal; }
+    .bounce .bn-row { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; min-height: 24px; }
+    .bounce .bn-col { display: flex; flex-direction: column; align-items: flex-start; }
+    .bounce .bn-end { justify-content: flex-end; margin-top: 14px; }
+    .bounce button { font: inherit; color: inherit; background: none; border: 0; border-bottom: 1px solid transparent; padding: 1px 2px; cursor: pointer; text-align: left; }
+    .bounce button:hover:not(:disabled) { border-bottom-color: currentColor; }
+    .bounce button:disabled { opacity: .35; cursor: default; }
+    .bounce button.on::before { content: '● '; }
+    .bounce button:not(.on):not(.bn-go):not(:only-child)::before { content: '○ '; opacity: .6; }
+    .bounce .bn-go { font-weight: 600; }
+    .bounce input[type=number], .bounce input[type=text] { font: inherit; color: inherit; background: none; border: 0; border-bottom: 1px solid currentColor; padding: 0 2px; text-align: center; }
+    .bounce input[type=text].bn-name { text-align: left; width: 26ch; }
+    .bounce button.bn-plain::before { content: none; }
     /* lane curves over the arrangement */
     .cv { position: absolute; left: 0; top: 0; pointer-events: none; z-index: 2; font: 11px/1 system-ui, sans-serif; }
     .cv .ln { fill: none; stroke: var(--fg); stroke-opacity: .5; stroke-width: 1.4; stroke-linejoin: round; }
@@ -1715,6 +1731,7 @@
           <dt>Shift+I</dt><dd>the <b class="kw">machine tree</b>: pick a kind of instrument and it is added with its own lane next to this one (Up/Down move, Right and Left open and close groups, Enter picks, a letter jumps). The same menu is under the right-click, Insert lane, New instrument</dd>
           <dt>Ctrl+Up/Down</dt><dd>step through the <b class="kw">pattern list</b> (the outlined one)</dd>
           <dt>Ctrl+Shift+Left/Right</dt><dd><b class="kw">move the machine</b> (its lane, with its patterns) one place earlier or later; the master lane stays first</dd>
+          <dt>Ctrl+Shift+B</dt><dd><b class="kw">bounce to a sample</b>: the pattern under the cursor, the selection, the loop or the lane, with its tails and a slice marker at the end of the range</dd>
           <dt>Space</dt><dd>place the outlined pattern here and jump to its end</dd>
           <dt>Right-click</dt><dd>a lane's menu, with <b class="kw">Add automation curve</b>: the lane's volume or any parameter in its Params list, over time</dd>
           <dt>Click a curve line</dt><dd>switches that segment on: C <b class="kw">curve</b>, L straight line, G gap. Double-click the line to add an anchor</dd>

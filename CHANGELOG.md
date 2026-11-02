@@ -2,6 +2,12 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 618 · 2026-11-02
+
+- **Bounce to sample.** Ctrl+Shift+B in the Sequence Editor (or right-click a pattern: *Bounce this pattern to a sample…* / *Bounce the lane to a sample…*) renders ticks offline into a new sample. The dialog starts on the pattern under the cursor, or on the selected block, and the range can also be the loop, the whole lane or any two ticks you type. You choose whether the lane is heard on its own (with whatever it plays through) or the whole mix, and the sample is named from the lane and ticks (`Lead 064–128`) or the pattern.
+- **The sample is as long as the range plus the tails.** At the end of the range the notes are let go and the render carries on until every voice is below −72 dB (at most 10 s, which you can change), so reverbs, delays and long releases are in the sample. A slice marker sits where the range ended, so the Samples screen shows how much is tail (a checkbox turns it off). A lane's parameter cells before the range are still read, so a filter set earlier is where it should be; its notes are not played. Stereo only when the two sides differ.
+- Offline rendering now shares its setup with Export (`buildOffline` in `src/audio/export.js`); the new code is `src/audio/bounce.js` and `src/ui/bouncedialog.js`. Freeze comes next, on top of this.
+
 ## 617 · 2026-11-02
 
 - **Fix: the Selections editor of a meta machine jumped back to the top of its list on every click.** The list of machines and their parameters scrolls inside its box, and each click drew it again from the top, so a parameter low in a long list was added but scrolled out of sight, and looked as if nothing had happened until you folded or opened something. The list (and the column table beside it) now stay where they are.

@@ -3682,6 +3682,27 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
       assert.equal(asked.length, 0, 'the last lane cannot go later');
     }
 
+    // Ctrl+Shift+B asks to bounce: the lane, the pattern under the cursor and the ranges the dialog can start from
+    {
+      const asked = [];
+      let key3;
+      const el3 = { addEventListener: (type, f) => { if (type === 'keydown') key3 = f; }, innerHTML: '' };
+      const v3 = createSequenceView({ el: el3, statusEl: { textContent: '' }, transport: new Int32Array(new SharedArrayBuffer(8)), onToggle() {}, onOpen() {}, onBounce: info => asked.push(info) });
+      v3.load({ lanes, song: demoSong, editor });
+      const { MASTER } = await import('../src/instruments.js');
+      const first = lanes[0].instrument === MASTER ? 1 : 0;
+      v3.goto(first, 0);
+      key3({ key: 'B', ctrlKey: true, shiftKey: true, preventDefault() {} });
+      assert.equal(asked.length, 1);
+      const [info] = asked;
+      assert.equal(info.laneId, lanes[first].id);
+      assert.equal(info.scope, 'pattern', 'on a pattern the dialog starts with that pattern');
+      assert.equal(info.ranges.pattern.start, 0);
+      assert.ok(info.ranges.pattern.end > 0 && info.ranges.pattern.end <= demoSong.length);
+      assert.deepEqual(info.ranges.lane, { start: 0, end: demoSong.length });
+      assert.equal(info.ranges.selection, null, 'no selection, no selection range');
+    }
+
     // the loop: Ctrl+B starts it at the cursor's row, Ctrl+E ends it with the row; the same key on the same point takes it away
     {
       const ctrl = key => onKey({ key, ctrlKey: true, preventDefault() {} });
@@ -9998,4 +10019,39 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   sc.dropSource(defs, 'z'); assert.equal(defs.x.graph.nodes[0].source, undefined, 'a removed instrument is listened to no more');
   assert.ok(sc.setSource({ x: defs.x, y: { graph: { nodes: [{ id: 's', type: 'sidechain', source: 'x' }] } } }, 'x', 'l', 'y'), 'a listener can name an instrument that hears it by sound');
 }
+// Bounce: a range of one lane rendered offline, as long as the range plus the tails, with a marker where the range ends.
+{
+  const { bounceRange } = await import('../src/audio/bounce.js');
+  const registry = new ParamRegistry();
+  const messages = [{ type: 'delaycomp', on: false }];
+  for (const [id, def] of Object.entries(instruments)) {
+    messages.push({ type: 'load', graph: compile(def.graph, { instrument: id, nodeTypes: NODE_TYPES, registry }) });
+    messages.push({ type: 'node', instrument: id, node: 'sampler', msg: { type: 'sample', data: makePluck(sr), rate: sr } });
+  }
+  const song = song120([
+    oneLane('lead', 'lead', patternText(16, { 2: 'C-4 .. .. .... .... .. .. ..', 6: 'C-4 .. .. .... .... .. .. ..' })),
+    oneLane('bass', 'bass', patternText(16, { 6: 'C-2 .. .. .... .... .. .. ..' })),
+  ]);
+  messages.push({ type: 'song', song });
+  for (const lane of prepareSong(song, instruments, registry)) messages.push({ type: 'lane', lane });
+  const state = { messages, params: new Float32Array(registry.values), wasm: null, sampleRate: sr };
+  const solo = await bounceRange(state, { from: 4, to: 12, lane: 'lead' });
+  assert.equal(solo.marker, 8 * 6000, 'the marker is where the range ends');
+  assert.ok(solo.left.length > solo.marker, 'the tails come after the range');
+  const at = firstSound(solo.left);
+  assert.ok(at >= 12000 && at <= 12003, `the note at tick 6 starts 2 ticks into a range that begins at tick 4, not at ${at}`);   // the note at tick 2 is before the range
+  const all = await bounceRange(state, { from: 4, to: 12, lane: null });
+  assert.ok(peak(all.left) > peak(solo.left) * 1.01, 'everything is louder than one lane');
+  const short = await bounceRange(state, { from: 4, to: 8, lane: 'lead' });   // the note at tick 6 is let go at the end of the range, and still rings
+  assert.equal(short.marker, 4 * 6000);
+  console.log('bounce tail seconds', ((short.left.length - short.marker) / sr).toFixed(2));
+  assert.ok(short.left.length - short.marker > sr * 0.05, 'a note that rings past the range end is kept, after the marker');
+  const capped = await bounceRange(state, { from: 4, to: 8, lane: 'lead', maxTail: 0.1 });
+  assert.ok(capped.left.length - capped.marker <= Math.round(sr * 0.1) + 128 * 3, 'the longest tail is a limit');
+  const whole = await bounceRange(state, { from: 0, to: 16, lane: 'lead' });
+  assert.equal(whole.marker, 16 * 6000);
+  assert.ok(whole.left.length > whole.marker);
+  await assert.rejects(bounceRange(state, { from: 20, to: 24, lane: 'lead' }), /Nothing to render|empty/);
+}
+
 console.log('smoke test passed');

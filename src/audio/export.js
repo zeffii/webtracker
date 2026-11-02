@@ -4,7 +4,7 @@
 import { GraphRuntime } from './runtime.js';
 import { Sequencer } from './sequencer.js';
 
-const BLOCK = 128;
+export const BLOCK = 128;
 
 // A sequencer that plays the song once: when the last row has had its full length it stops (every note is released) instead
 // of starting again from the top.
@@ -16,13 +16,15 @@ class Once extends Sequencer {
   }
 }
 
-// state: Engine.exportState(). Resolves to { left, right, sampleRate, seconds, peak }; onProgress(0..1 of the song) is
-// called now and then, and the render hands the thread back between slices so the page stays alive. `cancel.on` stops it.
-export async function renderSong(state, { tail = 10, onProgress = () => {}, cancel = { on: false }, maxSeconds = 7200 } = {}) {
+// The runtime and sequencer of an offline render, fed what the audio thread was told. `Seq` is the sequencer class (one that
+// stops where it should); `tweak(message, seq)` may return a changed copy of a message, or null to leave it out.
+export function buildOffline(state, Seq, tweak = m => m) {
   const { messages, params, wasm, sampleRate } = state;
   const rt = new GraphRuntime({ sampleRate, params, wasm, maxBlock: BLOCK });
-  const seq = new Once({ sampleRate, runtime: rt, params, transport: new Int32Array(new SharedArrayBuffer(16)) });
-  for (const m of messages) {
+  const seq = new Seq({ sampleRate, runtime: rt, params, transport: new Int32Array(new SharedArrayBuffer(16)) });
+  for (const original of messages) {
+    const m = tweak(original, seq);
+    if (!m) continue;
     if (m.type === 'delaycomp') rt.setDelayComp(m.on);
     else if (m.type === 'load') rt.load(m.graph);
     else if (m.type === 'node') rt.message(m.instrument, m.node, m.msg);
@@ -30,6 +32,13 @@ export async function renderSong(state, { tail = 10, onProgress = () => {}, canc
     else if (m.type === 'nodeseq') seq.setNodeseq(m.graph, m.resolve);
     else if (m.type === 'lane') seq.setLane(m.lane);
   }
+  return { rt, seq, params, sampleRate };
+}
+
+// state: Engine.exportState(). Resolves to { left, right, sampleRate, seconds, peak }; onProgress(0..1 of the song) is
+// called now and then, and the render hands the thread back between slices so the page stays alive. `cancel.on` stops it.
+export async function renderSong(state, { tail = 10, onProgress = () => {}, cancel = { on: false }, maxSeconds = 7200 } = {}) {
+  const { rt, seq, sampleRate } = buildOffline(state, Once);
   if (!seq.song?.length) throw new Error('There is no song to render.');
   const chunks = [], limit = Math.floor(sampleRate * maxSeconds);
   const lag = rt.alignment();   // with delay compensation on, the whole mix comes out this many samples late: the start is trimmed off below
