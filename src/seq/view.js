@@ -100,7 +100,7 @@ export function createTrackerView({ showMenu = (e, items) => showContextMenu(e, 
   const overlay = () => head === 'line' || head === 'band';
   config.onChange(k => { if (k === 'playhead') { head = config.get('playhead'); if (lanes) draw(); } });
   let measured = null;   // the line height and top padding, measured again only when the font size changes
-  const lineMetrics = () => { if (!measured || measured.px !== fontPx) { const m = metrics(); measured = { px: fontPx, lh: m.lh, up: m.up }; } return measured; };
+  const lineMetrics = () => { if (!measured || measured.px !== fontPx) { const m = metrics(); measured = { px: fontPx, lh: m.lh, up: m.up, cw: m.cw, left: m.left }; } return measured; };
   const sounding = new Map();   // key -> { instrument, note }, so the release stops what the press started
   const stopSound = k => { const s = sounding.get(k); if (s) { onNote(s.instrument, s.note, false); sounding.delete(k); } };
   const startSound = (k, note) => {
@@ -940,6 +940,26 @@ export function createTrackerView({ showMenu = (e, items) => showContextMenu(e, 
     else { const first = body[0]; for (const d of body.slice(shift)) el.insertBefore(d, first); }
     for (let i = 0; i < m; i++) { rowEls[2 + i] = order[i]; rowHtml[2 + i] = orderHtml[i]; }
   };
+  // The selected block is one thin box laid over the grid, not a highlight written into the markup of every row it covers: dragging a
+  // selection then rewrites no row at all, only moves a box. Columns are whole characters in a monospaced grid, so the box's edges
+  // are character counts times the width of one character.
+  const selbox = real ? Object.assign(document.createElement('div'), { className: 'selbox' }) : null;
+  const showSelection = (r, geo, rowsBefore) => {
+    if (!selbox) return;
+    const hide = () => { if (selbox.parentNode) selbox.remove(); };
+    if (!r) return hide();
+    const from = Math.max(r.t0, top), to = Math.min(r.t1, top + rowCount - 1, showHi() - 1);
+    const li = r.lane, cols = vis[li]?.filter(ci => ci >= r.c0 && ci <= r.c1);
+    if (to < from || !cols?.length || (windowed() && li !== solo.lane)) return hide();
+    let x = GUTTER;
+    for (let i = 0; i < li; i++) if (!windowed()) x += 1 + block(i) + 2;
+    const offset = ci => 1 + vis[li].slice(0, vis[li].indexOf(ci)).reduce((a, c) => a + widths[li][c] + 1, 0);
+    const first = x + offset(cols[0]), last = x + offset(cols.at(-1)) + widths[li][cols.at(-1)];
+    const m = lineMetrics(), step = geo && rowEls.length === rowsBefore ? geo.step : m.lh;
+    const y = geo && rowEls.length === rowsBefore ? geo.top + (2 + from - top - 2) * geo.step : m.up - el.clientTop + m.lh * (2 + from - top);
+    Object.assign(selbox.style, { left: `${m.left + first * m.cw}px`, width: `${(last - first) * m.cw}px`, top: `${y}px`, height: `${(to - from + 1) * step}px` });
+    if (selbox.parentNode !== el) el.appendChild(selbox);
+  };
   const draw = () => {
     if (!lanes) return;
     const playing = Atomics.load(transport, 1) === 1, playTick = Atomics.load(transport, 0);
@@ -981,7 +1001,7 @@ export function createTrackerView({ showMenu = (e, items) => showContextMenu(e, 
     if (shared !== rowShared) { rowCache.clear(); rowShared = shared; }
     if (rowCache.size > 800) rowCache.clear();
     for (let t = top; t < Math.min(showHi(), top + rowCount); t++) {
-      const plain = t !== cur.tick && !(playing && t === playTick) && !(r && t >= r.t0 && t <= r.t1);
+      const plain = t !== cur.tick && !(playing && t === playTick) && !(r && !real && t >= r.t0 && t <= r.t1);   // with a real page the selection is a box drawn over the grid, so its rows keep their cached markup
       const rowKey = plain ? shown.map(({ li }) => lanes[li].rows[t].join('\u0001')).join('\u0002') : null;
       const had = plain ? rowCache.get(t) : null;
       if (had && had.key === rowKey) { lines.push(had.line); continue; }
@@ -998,7 +1018,7 @@ export function createTrackerView({ showMenu = (e, items) => showContextMenu(e, 
             const cls = [isCur && i === cur.ch ? 'cur' : '', c.token === 'cmd' && i < 2 ? 'cc' : '', c.kind === 'spacer' ? 'spc' : '', c.rel && text.trimEnd() === '00' ? 'noff' : ''].filter(Boolean).join(' ');   // 00 in a relative note column is a note off, in the accent colour
             return cls ? `<span class="${cls}">${esc(ch)}</span>` : esc(ch);
           }).join('').replace(/\.+/g, dots => `<span class="d">${dots}</span>`);   // empty digits, dimmer
-          const picked = r && li === r.lane && t >= r.t0 && t <= r.t1 && ci >= r.c0 && ci <= r.c1;
+          const picked = r && !real && li === r.lane && t >= r.t0 && t <= r.t1 && ci >= r.c0 && ci <= r.c1;
           if (isCur) return `<span class="cell${picked ? ' sel' : ''}">${html}</span>`;
           if (picked) return `<span class="sel">${html}</span>`;
           return covered ? html : `<span class="off">${html}</span>`;
@@ -1041,6 +1061,7 @@ export function createTrackerView({ showMenu = (e, items) => showContextMenu(e, 
       const row = 2 + playTick - top;
       playline.show(rowY(row), head === 'band' ? rowH(row) : 0, gridW);
     } else playline.show(null);
+    showSelection(r, geo, rowsBefore);
     // Coming in from the arrangement: scroll so the whole of the lane's columns can be seen, if they fit.
     if (fitLane !== null && el.clientWidth > 0 && el.querySelector) {
       const m = metrics(), shown = widths.map((w, li) => w.filter((_, ci) => (vis[li] ?? w.map((__, i) => i)).includes(ci)));

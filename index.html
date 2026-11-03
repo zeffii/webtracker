@@ -738,6 +738,7 @@
     #rail button[hidden] { display: none; }
     #seq .cell.sel::after { content: ""; position: absolute; inset: 0; background: color-mix(in srgb, var(--hi) 40%, transparent); pointer-events: none; }
     #view .sel { background: color-mix(in srgb, var(--hi) 40%, transparent); }
+    #view .selbox { position: absolute; box-sizing: border-box; pointer-events: none; border: 1px solid var(--hi); background: color-mix(in srgb, var(--hi) 16%, transparent); }
     #view .cur { background: var(--hi); color: var(--hi-fg); }
     /* every list of keyboard shortcuts: one small monospace style in all views */
     .help { font: 11px/1.45 ui-monospace, Consolas, monospace; opacity: .7; max-width: 60rem; }

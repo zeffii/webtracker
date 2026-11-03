@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 625 · 2026-11-03
+
+- **The pattern editor's selection is a box over the grid.** A thin border with a faint fill, instead of a highlight written into every character of every row it covers. Dragging or extending a selection now rewrites no row at all, so the rows keep their cached markup and only the box moves.
+
 ## 624 · 2026-11-03
 
 - **A frame-timing panel, and a much faster pattern editor on big songs.** Ctrl+Alt+F shows fps, the worst frame gaps and long tasks of the last two seconds, and what each part of the screen (pattern editor, arrangement, patcher, ...) costs per frame; "copy" puts the numbers on the clipboard.
