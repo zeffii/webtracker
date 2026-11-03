@@ -728,7 +728,7 @@
     .cp-bar { display: flex; gap: 6px; justify-content: flex-end; }
     .cp-hint { opacity: .6; font-size: 11px; }
     #view, #seq { user-select: none; }   /* the grids have their own selection: a native text selection would survive the row-by-row redraw and smear across the lines */
-    #view .ln { width: max-content; min-width: 100%; }
+    #view .ln { width: max-content; min-width: 100%; contain: layout style; }   /* a rewritten row cannot move any other row, so the browser need not re-lay-out the whole grid */
     #view .ln:empty::before { content: "\00a0"; }
     .playline.band { border-top: 0; box-shadow: none; background: color-mix(in srgb, var(--hi) 20%, transparent); }
     #view .now { background: rgba(90, 150, 255, .22); }
@@ -1017,6 +1017,11 @@
     #pane-instruments { position: relative; }
     #meters { position: fixed; left: var(--rail); right: 0; z-index: 2; display: flex; background: #0b0c0f; color: #cfd3da; border-top: 1px solid #000; }
     #meters[hidden] { display: none; }
+    #perfmeter { position: fixed; top: 6px; right: 6px; z-index: 50; padding: 6px 8px; background: color-mix(in srgb, var(--bg) 88%, transparent); color: var(--fg); border: 1px solid var(--line, currentColor); font: 11px/1.35 ui-monospace, Consolas, monospace; }
+    #perfmeter[hidden] { display: none; }
+    #perfmeter pre { margin: 4px 0 0; font: inherit; }
+    #perfmeter canvas { display: block; width: 240px; height: 40px; }
+    #perfmeter button { position: absolute; top: 4px; right: 6px; font: inherit; background: none; border: 0; color: inherit; opacity: .6; cursor: pointer; }
     #viz { position: fixed; right: 14px; z-index: 3; width: 300px; height: 300px; border-radius: 8px; overflow: hidden; box-shadow: 0 6px 24px rgba(0,0,0,.35); background: #111; }
     #viz[hidden] { display: none; }
     #viz canvas { width: 300px; height: 300px; display: block; }
@@ -1505,6 +1510,7 @@
           <dt>Ctrl+, / Ctrl+.</dt><dd><b class="kw">lower / raise</b> every other value in the selection by one (Ctrl+&lt; / Ctrl+&gt;: a bigger step); commands keep their id</dd>
           <dt>Left / Right</dt><dd>one <b class="kw">character</b> at a time (nugget navigation: Up and Down keep the character); it crosses into the next cell, column and lane at the ends. Config, Left and Right move by, has the older styles</dd>
           <dt>Ctrl+Left/Right</dt><dd>to the first character of the next / previous <b class="kw">column</b></dd>
+          <dt>Ctrl+Alt+F</dt><dd><b class="kw">frame timing</b> panel: fps, the longest frames and tasks, and how many milliseconds each part of the screen costs; "copy" puts it on the clipboard</dd>
           <dt>Ctrl+Shift+Left/Right</dt><dd>to the next / previous <b class="kw">lane</b></dd>
           <dt>Ctrl+Shift+H</dt><dd><b class="kw">hide</b> or show the empty columns of the lane the cursor is in (a column with no value at any row; the one under the cursor stays)</dd>
           <dt>Ctrl+Space</dt><dd>the same for every parameter column of this row (not notes, velocities or commands)</dd>

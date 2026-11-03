@@ -6,13 +6,13 @@ export function createPlayline(el) {
   const line = typeof document !== 'undefined' ? document.createElement('div') : null;
   if (line) line.className = 'playline';
   return {
-    show(y, h = 0) {   // h > 0: a soft band that tall instead of a line
+    show(y, h = 0, width) {   // h > 0: a soft band that tall instead of a line; width: the grid's width if the caller already measured it (asking here would force a layout)
       if (!line || !el.appendChild) return;
       if (y === null) { line.remove(); return; }
       line.className = h > 0 ? 'playline band' : 'playline';
       line.style.height = h > 0 ? `${h}px` : '';
       line.style.top = `${y}px`;
-      line.style.width = `${Math.max(el.scrollWidth, el.clientWidth)}px`;
+      line.style.width = `${width ?? Math.max(el.scrollWidth, el.clientWidth)}px`;
       if (line.parentNode !== el) el.appendChild(line);
     },
   };
@@ -24,14 +24,14 @@ export function createLoopLines(el) {
   const mk = () => { const d = typeof document !== 'undefined' ? document.createElement('div') : null; if (d) d.className = 'looplines'; return d; };
   const lines = [mk(), mk()];
   return {
-    show(ys, off = false) {   // ys: [start y, end y], either may be null when out of view; null hides both
+    show(ys, off = false, width) {   // ys: [start y, end y], either may be null when out of view; null hides both; width as for the playline
       if (!lines[0] || !el.appendChild) return;
       lines.forEach((d, i) => {
         const y = ys?.[i];
         if (y === null || y === undefined) { d.remove(); return; }
         d.className = off ? 'looplines off' : 'looplines';
         d.style.top = `${y}px`;
-        d.style.width = `${Math.max(el.scrollWidth, el.clientWidth)}px`;
+        d.style.width = `${width ?? Math.max(el.scrollWidth, el.clientWidth)}px`;
         if (d.parentNode !== el) el.appendChild(d);
       });
     },

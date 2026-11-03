@@ -2,6 +2,11 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 624 · 2026-11-03
+
+- **A frame-timing panel, and a much faster pattern editor on big songs.** Ctrl+Alt+F shows fps, the worst frame gaps and long tasks of the last two seconds, and what each part of the screen (pattern editor, arrangement, patcher, ...) costs per frame; "copy" puts the numbers on the clipboard.
+- Found with it: the pattern editor, while playing a song with many lanes, spent most of every frame making the browser lay out the whole grid again. Three causes fixed: the playhead and loop lines asked the page for positions right after the rows were rewritten (now measured before), following the song re-inserted every row each tick (now only the row that scrolls moves), and rows are marked so one rewritten row cannot reflow the others. A 36-lane test song went from about 11 to about 38 fps in a software-rendered headless browser; the drawing code itself from 45 ms to 5 ms per frame.
+
 ## 623 · 2026-11-02
 
 - **Node Sequencer: a `modulo` node that works on the song's tick.** `every` counts the events that reach it, so it drifts off the grid when they do not come on every tick. `modulo` reads the tick itself: an event passes (`out`) when its tick is on every n-th tick, beat or bar, counting from an offset, and the others leave by `else`. It also makes events of its own, with no wire in: `hit` fires on those ticks (its number counts the periods), `rem` sends the tick modulo n every tick (to drive a switch or a pick), and `phase` is a control that climbs 0 to 1 across each period. The tile shows `%4`, `%2b` for beats, `%1B` for bars, with `+offset` when there is one.

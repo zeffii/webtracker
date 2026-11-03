@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['624', ['Frame-timing panel (Ctrl+Alt+F); the pattern editor on big songs is several times faster (no more whole-grid re-layout every frame)']],
   ['623', ['Node Sequencer: a modulo node that works on the song tick (every n ticks, beats or bars from an offset), with hit, rem and phase outputs']],
   ['622', ['Quiet machines sleep: no CPU until a note, parameter change or sidechain wakes them, state kept (Sleep switch per machine, zz in the Stream Manager)']],
   ['621', ['Piano roll over the sample display (Shift+P): mark a virtual pattern, draw notes, hear chords per row, overtone guides, master tuning, write to a "NN transcribe N" pattern']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['617', ['Fix: the meta machine Selections list no longer jumps to the top when you click a parameter in a long list']],
   ['616', ['Sequence Editor: Ctrl+Shift+Left/Right move the machine under the cursor to an earlier or later lane']],
   ['615', ['Pictures for Membrane (the head and its modes) and Granular (sample, grains, cloud) in the node panel']],
-  ['614', ['The machine tree: pick a new instrument from a foldable tree of groups (Shift+I in the Sequence Editor)']],
                     ];

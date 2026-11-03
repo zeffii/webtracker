@@ -74,6 +74,8 @@ import { createScriptRunner } from './script/client.js';
 import { createScriptScreen } from './script/screen.js';
 import { createScratch, sendEdits } from './script/scratch.js';
 import { placementAt } from './seq/edit.js';
+import { createPerfMeter } from './ui/perfmeter.js';
+const perf = createPerfMeter();
 
 const engine = new Engine();
 engine.dither = config.get('dither'); engine.volFloor = config.get('volFloor'); engine.delayComp = config.get('delayComp'); engine.sleep = config.get('sleepIdle');
@@ -202,6 +204,7 @@ document.addEventListener('keydown', e => {
   if (tabs.handleKey(e)) return;
   const here = () => (tabs.active === 'arrange' ? seqView : view).tick;   // the row the cursor is on
   // Ctrl+Shift+R arms and disarms MIDI recording; Alt+V switches MIDI velocity on and off.
+  if (e.ctrlKey && e.altKey && !e.shiftKey && !e.metaKey && e.code === 'KeyF') { e.preventDefault(); const on = perf.toggle(); $('status').textContent = on ? 'Frame timing on (Ctrl+Alt+F to close).' : 'Frame timing off.'; return; }
   if (e.ctrlKey && e.altKey && !e.shiftKey && !e.metaKey && e.code === 'KeyM') { e.preventDefault(); toggleMeters(); return; }
   if (e.ctrlKey && e.altKey && !e.shiftKey && !e.metaKey && e.code === 'KeyV') { e.preventDefault(); toggleViz(); return; }
   if (e.ctrlKey && e.altKey && !e.shiftKey && !e.metaKey && e.code === 'KeyO') { e.preventDefault(); toggleScope(); return; }
@@ -2762,15 +2765,17 @@ $('start').addEventListener('click', async () => {
     // Only the screen that is showing is drawn: a hidden one has nothing to measure or paint, and its work would only delay the one you are using.
     const frame = now => {
       const tab = tabs.active;
-      if (vizOn && visual && !pip) drawViz(now);
-      songInfo(); syncLaneName();
-      if (tab === 'arrange' || !tab) seqView.draw();
-      if (tab === 'patterns' || !tab) view.draw();
-      if (tab === 'instruments' || !tab) patcher.draw(); else if (floatWanted) patcher.live();
-      if (tab === 'dsp') dspView?.live();
-      if (tab === 'nodeseq') nsView?.draw();
-      if (streams.open) streams.place();
-      if (tab === 'samples' || !tab) { rollBarSync(); sampleScreen.draw(); waveform.draw(); region.draw(); waveform.playhead(auditionHead()); }
+      perf.frame(now);
+      const T = perf.time;
+      if (vizOn && visual && !pip) T('viz', () => drawViz(now));
+      T('info', () => { songInfo(); syncLaneName(); });
+      if (tab === 'arrange' || !tab) T('arrange', () => seqView.draw());
+      if (tab === 'patterns' || !tab) T('patterns', () => view.draw());
+      if (tab === 'instruments' || !tab) T('patcher', () => patcher.draw()); else if (floatWanted) T('float', () => patcher.live());
+      if (tab === 'dsp') T('dsp', () => dspView?.live());
+      if (tab === 'nodeseq') T('nodeseq', () => nsView?.draw());
+      if (streams.open) T('streams', () => streams.place());
+      if (tab === 'samples' || !tab) T('samples', () => { rollBarSync(); sampleScreen.draw(); waveform.draw(); region.draw(); waveform.playhead(auditionHead()); });
       requestAnimationFrame(frame);
     };
     frame();

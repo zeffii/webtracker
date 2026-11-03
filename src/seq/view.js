@@ -934,8 +934,10 @@ export function createTrackerView({ showMenu = (e, items) => showContextMenu(e, 
     const body = rowEls.slice(2), bodyHtml = rowHtml.slice(2), m = body.length, shift = ((k % m) + m) % m;
     // k > 0: the first k rows leave at the top and come back at the bottom; k < 0: the other way round
     const order = [...body.slice(shift), ...body.slice(0, shift)], orderHtml = [...bodyHtml.slice(shift), ...bodyHtml.slice(0, shift)];
-    const after = rowEls[n - 1].nextSibling;
-    for (const d of order) el.insertBefore(d, after);
+    // Only the rows that change sides are moved in the page (one row for a one-row scroll); the others stay where they are.
+    // Every element moved is a layout the browser has to redo, and re-inserting all of them each tick was the bulk of the cost.
+    if (shift <= m / 2) { const after = rowEls[n - 1].nextSibling; for (const d of body.slice(0, shift)) el.insertBefore(d, after); }
+    else { const first = body[0]; for (const d of body.slice(shift)) el.insertBefore(d, first); }
     for (let i = 0; i < m; i++) { rowEls[2 + i] = order[i]; rowHtml[2 + i] = orderHtml[i]; }
   };
   const draw = () => {
@@ -1015,23 +1017,29 @@ export function createTrackerView({ showMenu = (e, items) => showContextMenu(e, 
       lines.push(finished);
     }
     while (lines.length < 2 + rowCount) lines.push('');   // always rowCount rows tall, so the drag bar works on a short song
+    // Read where the rows are BEFORE rewriting them: the page's layout is clean now, so the read is free. Asking an element for its
+    // offsetTop after the rows were rewritten forces the browser to lay out the whole grid on the spot, and with many lanes that took
+    // most of a frame. Rows are all the same height, so the first body row and the step to the next give every other row.
+    const geo = real && rowEls.length > 3 ? { top: rowEls[2].offsetTop, step: rowEls[3].offsetTop - rowEls[2].offsetTop, h: rowEls[2].offsetHeight } : null;
+    const rowsBefore = rowEls.length, gridW = real ? Math.max(el.scrollWidth, el.clientWidth) : undefined;
     paintLines(lines);
     // The playhead and the loop lines sit on the real rows (each row is an element, so its offsetTop is where it is drawn, whatever
     // the font, the zoom or the screen's pixel ratio). Without a page (the tests) the row height is measured instead.
     const rowY = row => {
+      if (geo && rowEls.length === rowsBefore && row >= 2) return geo.top + (row - 2) * geo.step;
       const d = real ? rowEls[row] : null;
       if (d) return d.offsetTop;
       const m = lineMetrics();
       return m.up - el.clientTop + m.lh * row;
     };
-    const rowH = row => (real && rowEls[row] ? rowEls[row].offsetHeight : lineMetrics().lh);
+    const rowH = row => (geo && rowEls.length === rowsBefore ? geo.h : real && rowEls[row] ? rowEls[row].offsetHeight : lineMetrics().lh);
     if (song.loop && typeof getComputedStyle === 'function') {
       const lp = song.loop, yOf = t => t >= top && t <= top + rowCount ? rowY(2 + t - top) : null;
-      looplines.show([yOf(lp.start), yOf(lp.end)], !!lp.off);
+      looplines.show([yOf(lp.start), yOf(lp.end)], !!lp.off, gridW);
     } else looplines.show(null);
     if (overlay() && playing && playTick >= top && playTick < Math.min(showHi(), top + rowCount) && playTick >= showLo()) {
       const row = 2 + playTick - top;
-      playline.show(rowY(row), head === 'band' ? rowH(row) : 0);
+      playline.show(rowY(row), head === 'band' ? rowH(row) : 0, gridW);
     } else playline.show(null);
     // Coming in from the arrangement: scroll so the whole of the lane's columns can be seen, if they fit.
     if (fitLane !== null && el.clientWidth > 0 && el.querySelector) {
