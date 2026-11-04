@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 641 · 2026-11-04
+
+- **The page now opens with raens.** It replaces the old demo song as the one you get without `?demo=`. The old song is kept as a demo, `?demo=original`, and the tests that check what it holds (the depth charge, the arp, the Shepard tone) run on it from there.
+
 ## 640 · 2026-11-04
 
 - **New demo: raens.** Your song "raens" (142 bpm, 7 lanes, 7 instruments) is now one of the demos: open the page with `?demo=raens`.

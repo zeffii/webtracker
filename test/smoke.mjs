@@ -4812,11 +4812,13 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     const fr = foldRegions("export default {\n  params: [\n    { name: 'a' },\n  ],\n  create({ x }) {\n    // a { in a comment\n    const s = '}';\n    return {\n      process() {\n      },\n    };\n  },\n};");
     assert.deepEqual(fr.map(r => [r.s, r.e, r.depth]), [[0, 12, 0], [1, 3, 1], [4, 11, 1], [7, 10, 2], [8, 9, 3]], 'brackets in strings and comments do not count, and regions know their depth');
   }
-  for (const name of ['bugsong', 'weights', 'raens']) {
+  for (const name of ['bugsong', 'weights']) {
     const demo = parseProject(readFileSync(new URL(`../src/project/demos/${name}.wax`, import.meta.url), 'utf8'));
     assert.ok(demo.song.length > 0 && demo.song.lanes.length > 1, `the ${name} demo loads`);
   }
-  const loaded = parseProject(readFileSync(new URL('../src/project/demo.wax', import.meta.url), 'utf8'));
+  const opening = parseProject(readFileSync(new URL('../src/project/demo.wax', import.meta.url), 'utf8'));   // the song the page opens with
+  assert.ok(opening.song.length > 0 && opening.song.lanes.length > 1 && Object.keys(opening.instruments).length > 1, 'the song the page opens with loads');
+  const loaded = parseProject(readFileSync(new URL('../src/project/demos/original.wax', import.meta.url), 'utf8'));   // the first demo song, still tested for what it holds
   assert.ok(loaded.song.lanes.length >= 5 && Object.keys(loaded.instruments).length >= 5, 'the demo has its instruments and lanes');
   const registry = new ParamRegistry();
   for (const [id, def] of Object.entries(loaded.instruments)) compile(def.graph, { instrument: id, nodeTypes: NODE_TYPES, registry });
@@ -4845,7 +4847,7 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
 // The Wax tools: the song is checked, outlined, rendered and measured without a browser.
 {
   const core = await import('../tools/wax-mcp/core.mjs');
-  const path = new URL('../src/project/demo.wax', import.meta.url).pathname;
+  const path = new URL('../src/project/demos/original.wax', import.meta.url).pathname;
   const v = core.validate(path);
   assert.ok(v.ok && !v.problems.length, `the demo validates (${v.problems})`);
   const bad = core.validate(new URL('../package.json', import.meta.url).pathname);
