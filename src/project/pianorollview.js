@@ -297,10 +297,10 @@ export function createPianoRollOverlay({ getSample, getSettings, onChange, onPla
   const key = () => {
     const r = roll(), set = getSettings();
     if (!active()) return 'off';
-    return `${r.start}.${r.end}.${r.rows}.${r.lo}.${r.hi}.${r.a4}.${r.cents}:${r.notes.length}:${r.notes.map(n => `${n.from}/${n.to}/${n.midi}`).join(',')}:${set.overtones}:${hover ? `${hover.x}.${hover.y}` : ''}:${drag ? `${drag.kind}.${drag.row ?? ''}.${drag.midi ?? ''}.${drag.preview ? drag.preview.map(n => `${n.from}/${n.to}/${n.midi}`).join(',') : ''}` : ''}`;
+    return `${r.start}.${r.end}.${r.rows}.${r.lo}.${r.hi}.${r.a4}.${r.cents}:${r.notes.length}:${r.notes.map(n => `${n.from}/${n.to}/${n.midi}`).join(',')}:${set.overtones}:${set.contrast ?? 0}:${set.islands ?? 0}:${hover ? `${hover.x}.${hover.y}` : ''}:${drag ? `${drag.kind}.${drag.row ?? ''}.${drag.midi ?? ''}.${drag.preview ? drag.preview.map(n => `${n.from}/${n.to}/${n.midi}`).join(',') : ''}` : ''}`;
   };
   // the pitch axis the spectrogram should use while the roll is on, or null
-  const pitch = () => { const r = roll(); return active() ? { lo: r.lo, hi: r.hi, hzOf: m => hzOf(r, m), sig: `${r.lo}.${r.hi}.${r.a4}.${r.cents}` } : null; };
+  const pitch = () => { const r = roll(), set = getSettings(); return active() ? { lo: r.lo, hi: r.hi, hzOf: m => hzOf(r, m), sig: `${r.lo}.${r.hi}.${r.a4}.${r.cents}`, contrast: set.contrast ?? 0, islands: set.islands ?? 0 } : null; };
   const leave = () => { if (!drag) hover = null; };
   const forget = () => { history = []; future = []; drag = null; hover = null; };
 

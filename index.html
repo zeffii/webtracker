@@ -54,6 +54,7 @@
     #roll-bar label { display: inline-flex; align-items: center; gap: .3rem; }
     #roll-bar input, #roll-bar select { font: inherit; color: var(--fg); background: transparent; border: 0; border-bottom: 1px solid color-mix(in srgb, var(--fg) 35%, transparent); padding: 0 1px; width: 5ch; }
     #roll-bar input[type=number] { width: 6ch; }
+    #roll-bar input[type=range].rect { width: 10ch; padding: 0; border: 1px solid color-mix(in srgb, currentColor 55%, transparent); background: linear-gradient(to right, color-mix(in srgb, var(--accent) 70%, transparent) var(--p, 0%), transparent var(--p, 0%)); }
     #roll-bar select { width: auto; max-width: 14ch; }
     #roll-bar select option { background: var(--bg); }
     #roll-bar input:focus, #roll-bar select:focus { outline: none; border-bottom-color: var(--accent); }
@@ -1555,6 +1556,8 @@
         <label>range <input id="rb-lo" type="text" size="3" title="Lowest note shown (C-2, F#3…)"> – <input id="rb-hi" type="text" size="3" title="Highest note shown"></label>
         <button id="rb-snap" type="button" aria-pressed="true" title="Notes snap to the row lines (Shift does the opposite while held)">snap</button>
         <button id="rb-over" type="button" aria-pressed="false" title="Show the 2nd to 8th partials of every note, to tell real notes from stacked overtones">overtones</button>
+        <label>contrast <input id="rb-contrast" class="rect" type="range" min="0" max="100" step="1" title="Sharpens the spectrogram: the quiet smear fades out and the blobs get edges"></label>
+        <label>islands <input id="rb-islands" class="rect" type="range" min="0" max="100" step="1" title="A thin bright ridge on the peak inside every blob, with the rest pushed quieter"></label>
         <button id="rb-sel" type="button" title="Put the S and E markers on the selection (else the loop)">S·E ← selection</button>
         <span class="rb-sep"></span>
         <label>hear <select id="rb-inst" title="The instrument that plays the roll's notes and chords"></select></label>

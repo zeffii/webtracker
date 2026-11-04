@@ -2103,7 +2103,7 @@ let rollBarSync = () => {};
   const store = roll => { const s = sample(); if (!s) return; s.roll = roll; waveform.redraw(); };
   rollOverlay = createPianoRollOverlay({
     getSample: sample,
-    getSettings: () => ({ on: config.get('rollOn'), snap: config.get('rollSnap'), overtones: config.get('rollOvertones') }),
+    getSettings: () => ({ on: config.get('rollOn'), snap: config.get('rollSnap'), overtones: config.get('rollOvertones'), contrast: config.get('rollContrast') / 100, islands: config.get('rollIslands') / 100 }),
     onChange: store, onPlay: play, onStop: stop,
   });
   waveform.setOverlay(rollOverlay);
@@ -2151,6 +2151,7 @@ let rollBarSync = () => {};
     fillInstruments(); fillLanes();
     if (!r) { say('Pick a sample first.'); return; }
     const set = (id, v) => { const el = $(id); if (document.activeElement !== el) el.value = v; };
+    for (const [id, key] of [['rb-contrast', 'rollContrast'], ['rb-islands', 'rollIslands']]) { set(id, config.get(key)); $(id).style.setProperty('--p', `${config.get(key)}%`); }
     set('rb-rows', r.rows); set('rb-a4', r.a4); set('rb-cents', r.cents); set('rb-lo', noteLabel(r.lo)); set('rb-hi', noteLabel(r.hi));
     if ($('rb-tick').value === '') $('rb-tick').value = String(Math.floor(seqView.tick / 16) * 16);
   };
@@ -2172,6 +2173,12 @@ let rollBarSync = () => {};
   for (const id of ['rb-rows', 'rb-a4', 'rb-cents', 'rb-lo', 'rb-hi', 'rb-tick']) $(id).addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') e.target.blur(); });
   for (const id of ['rb-inst', 'rb-lane']) $(id).addEventListener('keydown', e => e.stopPropagation());
   $('rb-snap').addEventListener('click', () => config.set('rollSnap', !config.get('rollSnap')));
+  for (const [id, key] of [['rb-contrast', 'rollContrast'], ['rb-islands', 'rollIslands']]) {
+    const shade = () => $(id).style.setProperty('--p', `${$(id).value}%`);
+    $(id).value = String(config.get(key)); shade();
+    $(id).addEventListener('input', () => { config.set(key, Number($(id).value)); shade(); waveform.redraw(); });
+    $(id).addEventListener('keydown', e => e.stopPropagation());
+  }
   $('rb-over').addEventListener('click', () => { config.set('rollOvertones', !config.get('rollOvertones')); waveform.redraw(); });
   $('rb-sel').addEventListener('click', () => {
     const s = sample(), r = ensure();

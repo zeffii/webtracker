@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 636 · 2026-11-04
+
+- **Piano roll: contrast and islands for the spectrogram.** Two sliders in the roll bar make a chord easier to read. *Contrast* fades the quiet smear and gives the blobs edges. *Islands* finds the peak inside every blob at every moment, lifts a thin bright ridge there, and pushes the rest of the blob and the background quieter, so each note stands out from its overtones and its neighbours. Both start at 0 (the picture as it was); the same two values are in Settings as "Piano roll: spectrum contrast" and "add islands". They work on the finished picture, so moving them is instant and does not redo the analysis. The code is in `src/project/spectralfx.js`.
+
 ## 635 · 2026-11-04
 
 - **Trance gate: faster steps and longer patterns.** `div` now goes down to half and quarter ticks (it snaps to 1/4, 1/2, 1, 2, 3, 4, 6 or 8), so at 8 ticks to the beat the gate can run in 32nds, 64ths and 128ths for rolls and stutters; it was stuck at one tick per step at its fastest. `steps` goes up to 64 (it was 16), and the panel shows as many bars as `steps` says. A pattern drawn when there were 16 steps repeats to fill any longer length, so raising `steps` plays the same rhythm again and you edit from there; old projects sound the same.

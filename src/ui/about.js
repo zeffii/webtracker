@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['636', ['Piano roll: contrast and islands sliders sharpen the spectrogram, with a bright ridge on each note\'s peak']],
   ['635', ['Trance gate: steps run down to quarter-ticks and patterns up to 64 steps long']],
   ['634', ['Flanger, chorus, phaser: writing phase slides the sweep (new glide parameter, default 20 ms) instead of clicking']],
   ['633', ['Piano roll: the overtone lines are thicker, with a dark rim, so they stand out on bright backgrounds']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['629', ['Chord machine: a slot starting with > holds plain notes (>G-4 A-5 C-5) played at exactly those pitches']],
   ['628', ['Flanger, chorus and phaser: a phase parameter a pattern can write to restart the sweep at a chosen point and let it run on']],
   ['627', ['Pattern editor: Ctrl+Alt+Up / Down (nothing selected) add or remove a Note + Vol column pair for the lane under the cursor']],
-  ['626', ['Fix: the pattern editor selection box and playhead line no longer drift off the rows when the line height is fractional']],
                     ];

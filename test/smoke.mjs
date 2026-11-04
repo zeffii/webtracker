@@ -10344,4 +10344,30 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   console.log('ok: machine sleep');
 }
 
+// Spectrum contrast and islands (the piano roll's spectrogram): both are no-ops at 0; islands lifts a ridge on each note's peak and quiets the rest.
+{
+  const { computePitchSpectrogram } = await import('../src/project/spectrogram.js');
+  const { sharpen } = await import('../src/project/spectralfx.js');
+  const rate = 22050, len = rate, data = new Float32Array(len), notes = [57, 60, 64, 67];   // A3 C4 E4 G4
+  for (const m of notes) for (let h = 1; h <= 4; h++) { const f = 440 * 2 ** ((m - 69) / 12) * h; for (let i = 0; i < len; i++) data[i] += Math.sin(2 * Math.PI * f * i / rate) / h ** 1.2 / 6; }
+  const lo = 48, hi = 84, cols = 40, rows = 36 * 6, rps = rows / (hi - lo);
+  const cells = computePitchSpectrogram(data, null, rate, cols, rows, { lo, hi, hzOf: m => 440 * 2 ** ((m - 69) / 12) });
+  assert.deepEqual(sharpen(cells, cols, rows, { contrast: 0, islands: 0 }), cells, 'both at 0 leave the picture alone');
+  const rowOf = m => Math.round((hi - m) * rps - rps / 2), col = 20;
+  const raw = y => cells[y * cols + col];
+  const fx = sharpen(cells, cols, rows, { contrast: 0.5, islands: 0.8, rowsPerSemitone: rps }), seen = y => fx[y * cols + col];
+  for (const m of notes) {
+    const y = rowOf(m);
+    let best = 0; for (let k = -2; k <= 2; k++) best = Math.max(best, seen(y + k));
+    assert.ok(best > 200, `an island sits on the note ${m}`);
+  }
+  const partials = notes.flatMap(m => [1, 2, 3, 4].map(h => m + 12 * Math.log2(h)));
+  let rawQuiet = 0, fxQuiet = 0, n = 0;   // the rows a semitone and a half away from every partial of every note
+  for (let y = 0; y < rows; y++) if (partials.every(m => Math.abs(y - rowOf(m)) > 1.5 * rps)) { rawQuiet += raw(y); fxQuiet += seen(y); n++; }
+  assert.ok(fxQuiet / n < rawQuiet / n * 0.6, 'between the notes it is quieter than before');
+  const onlyContrast = sharpen(cells, cols, rows, { contrast: 0.8 });
+  assert.ok(onlyContrast.every(v => v >= 0 && v <= 255) && onlyContrast.some((v, i) => v !== cells[i]), 'contrast changes the picture and stays in range');
+  console.log('ok: spectrum contrast and islands');
+}
+
 console.log('smoke test passed');

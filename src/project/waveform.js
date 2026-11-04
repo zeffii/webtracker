@@ -1,6 +1,7 @@
 import { setLoop, setSlices, sliceHex, frameHex } from './ops.js';
 import * as config from '../ui/config.js';
 import { computeSpectrogram, computePitchSpectrogram, heat } from './spectrogram.js';
+import { sharpen } from './spectralfx.js';
 
 // Min and max of the sample for each pixel column: what the waveform view draws.
 export function computePeaks(data, width, a = 0, b = data.length) {
@@ -236,13 +237,16 @@ export function createWaveformView({ canvas, statusEl, getProject, onLoop, onSel
       const axis = overlay?.pitch() ?? null, sig = axis?.sig ?? '';
       const fresh = cache?.data === s.data && cache.spec?.pw === pw && cache.spec?.ph === ph && cache.spec?.a === va0 && cache.spec?.b === vb0 && cache.spec?.sig === sig;
       if (axis) {   // the piano roll's pitch axis: worked out on at most 1200 columns (a long FFT each) and stretched to the display
-        if (!(fresh && cache.spec.img) && (settled || !cache?.spec?.img)) {
-          const cols = Math.min(pw, 1200), cells = computePitchSpectrogram(sl(s.data), sl(s.right), s.rate, cols, ph, axis);
+        const fx = `${axis.contrast ?? 0}.${axis.islands ?? 0}`, cols = Math.min(pw, 1200);
+        if (!(fresh && cache.spec.img && cache.spec.fx === fx) && (settled || !cache?.spec?.img)) {
+          // the contrast and island passes run on the finished cells, so moving their sliders does not redo the FFT
+          const cells = fresh && cache.spec.cells ? cache.spec.cells : computePitchSpectrogram(sl(s.data), sl(s.right), s.rate, cols, ph, axis);
+          const shown = sharpen(cells, cols, ph, { contrast: axis.contrast, islands: axis.islands, rowsPerSemitone: ph / Math.max(1, axis.hi - axis.lo) });
           const image = ctx.createImageData(cols, ph);
-          for (let i = 0; i < cols * ph; i++) image.data.set(heat(cells[i]), i * 4);
+          for (let i = 0; i < cols * ph; i++) image.data.set(heat(shown[i]), i * 4);
           const img = typeof document !== 'undefined' ? document.createElement?.('canvas') : null;
           if (img?.getContext) { img.width = cols; img.height = ph; img.getContext('2d').putImageData(image, 0, 0); }
-          cache = { ...(cache?.data === s.data ? cache : { data: s.data }), spec: { pw, ph, a: va0, b: vb0, sig, img: img?.getContext ? img : null } };
+          cache = { ...(cache?.data === s.data ? cache : { data: s.data }), spec: { pw, ph, a: va0, b: vb0, sig, cells, fx, img: img?.getContext ? img : null } };
         }
         if (cache.spec.img) ctx.drawImage(cache.spec.img, 0, 0, W, H);
       } else if (!fresh && cache?.data === s.data && cache.spec?.img && !settled && cache.spec.a === va0 && cache.spec.b === vb0 && !cache.spec.sig) {   // the size is still changing: show the last picture, stretched

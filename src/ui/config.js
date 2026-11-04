@@ -88,6 +88,8 @@ export const SCHEMA = [
   { key: 'rollOn', label: 'Piano roll over the sample display', hint: 'Shift+P on the sample screen, or the Piano roll button: mark a pattern on the sample, draw the notes you hear, play them back and write them into a pattern', type: 'bool', def: false },
   { key: 'rollSnap', label: 'Piano roll: notes snap to the rows', hint: 'Shift does the opposite while it is held', type: 'bool', def: true },
   { key: 'rollOvertones', label: 'Piano roll: show overtones', hint: 'each note\'s 2nd to 8th partials as dashed lines, and a warning when the pitch under the mouse may only be an overtone of a lower note', type: 'bool', def: false },
+  { key: 'rollContrast', label: 'Piano roll: spectrum contrast (%)', hint: 'sharpens the spectrogram behind the roll: the quiet smear fades out and the blobs get edges; 0 leaves it as it was', type: 'int', min: 0, max: 100, def: 0 },
+  { key: 'rollIslands', label: 'Piano roll: add islands (%)', hint: 'puts a thin bright ridge on the peak inside every blob, at every moment, and pushes the rest of the spectrum quieter, so each note stands out from its overtones and its neighbours; 0 leaves it as it was', type: 'int', min: 0, max: 100, def: 0 },
   { group: 'OSC', key: 'oscPort', label: 'OSC relay port', hint: 'where an OSC out machine sends: run node tools/osc-relay.mjs (it passes the messages on as UDP, to Renoise for one)', type: 'int', min: 1024, max: 65535, def: 8765 },
   { group: 'MIDI', key: 'midiOn', label: 'Use MIDI input', hint: 'the browser asks for permission when this is switched on', type: 'bool', def: false },
   { key: 'midiChannel', label: 'MIDI channel', hint: '0 listens to every channel', type: 'int', min: 0, max: 16, def: 0 },
