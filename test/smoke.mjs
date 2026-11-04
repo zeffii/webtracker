@@ -1724,6 +1724,28 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     };
   };
 
+  // phase: a pattern write to `phase` (counted by the stamps) puts the sweep at that point and lets it run on; the phase it already has changes nothing
+  for (const type of ['flanger', 'chorus', 'phaser']) {
+    const def = NODE_TYPES[type], slots = Int32Array.from(def.params.map((_, i) => i)), P = def.params.findIndex(p => p.name === 'phase');
+    assert.ok(P > 0, `${type} has a phase parameter`);
+    let seed = 7; const input = Float32Array.from({ length: 6000 }, () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 2147483648 - 1; });
+    const warm = 4800, rate = 0.1 * sr / warm;   // after the warm-up the sweep is a tenth of a cycle in
+    const run = phaseAfter => {
+      const stamps = new Uint32Array(64);
+      const params = Float32Array.from(def.params.map(p => (p.name === 'rate' ? rate : p.name === 'mix' ? 1 : p.def)));
+      const node = def.create({ sampleRate: sr, connected: [true], clock: { stamps } });
+      const out = [new Float32Array(warm + 1000), new Float32Array(warm + 1000)];
+      const feed = (from, n) => node.process([[input.subarray(from, from + n), input.subarray(from, from + n)]], [[out[0].subarray(from, from + n), out[1].subarray(from, from + n)]], n, params, slots);
+      for (let at = 0; at < warm; at += 100) feed(at, 100);
+      if (phaseAfter !== null) { params[P] = phaseAfter; stamps[slots[P]]++; }
+      for (let at = warm; at < warm + 1000; at += 100) feed(at, 100);
+      return out[0].slice(warm);
+    };
+    const free = run(null), here = run(0.1), elsewhere = run(0.6);
+    assert.ok(here.every((v, i) => Math.abs(v - free[i]) < 1e-3), `${type}: setting the phase it already has changes nothing`);
+    assert.ok(elsewhere.some((v, i) => Math.abs(v - free[i]) > 1e-3), `${type}: setting another phase moves the sweep`);
+  }
+
   // chorus: mix 0 is the dry signal, silence stays silent, a wet signal differs and stays finite
   const noise = new Float32Array(9600); let seed = 5;
   for (let i = 0; i < noise.length; i++) noise[i] = ((seed = (seed * 16807) % 2147483647) / 2147483647 - 0.5) * 0.5;

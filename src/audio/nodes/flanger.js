@@ -3,7 +3,7 @@
 // ms; `feedback` sends the delayed signal back in (negative values invert it) for a harder, more
 // metallic sound. The right channel's lfo is offset by `width` (a quarter cycle at 1).
 // out = dry + wet * mix, so mix 1 is the deepest comb.
-const RATE = 0, DEPTH = 1, DELAY = 2, FEEDBACK = 3, WIDTH = 4, MIX = 5;
+const RATE = 0, DEPTH = 1, DELAY = 2, FEEDBACK = 3, WIDTH = 4, MIX = 5, PHASE = 6;
 const MAX_MS = 25;
 
 export default {
@@ -21,15 +21,23 @@ export default {
     { name: 'feedback', min: -0.95, max: 0.95, def: 0.5 },
     { name: 'width', min: 0, max: 1, def: 1 },
     { name: 'mix', min: 0, max: 1, def: 0.5 },
+    { name: 'phase', min: 0, max: 1, def: 0 },   // where in its cycle the sweep restarts when a pattern writes this (the sweep then runs on)
   ],
-  create({ sampleRate }) {
+  create({ sampleRate, clock }) {
     const size = Math.ceil(sampleRate * MAX_MS / 1000) + 4;
     const buf = [new Float32Array(size), new Float32Array(size)];
     const fbState = [0, 0];
     let w = 0, phase = 0;
+    const stamps = clock?.stamps;   // counts every pattern write to a parameter, even of the same value
+    let seen = 0;   // a fresh node starts at phase 0 anyway, so a write made before its first block still counts
     const ms = sampleRate / 1000;
     return {
       process(inputs, outputs, n, params, slots) {
+        if (stamps) {   // a write to `phase` (a Phs column in the pattern) puts the sweep at that point in its cycle, then it runs on
+          const stamp = stamps[slots[PHASE]];
+          if (stamp !== seen) phase = params[slots[PHASE]] % 1;
+          seen = stamp;
+        }
         const ins = inputs[0], outs = outputs[0];
         const inc = params[slots[RATE]] / sampleRate, depth = params[slots[DEPTH]], delay = params[slots[DELAY]];
         const fb = params[slots[FEEDBACK]], offset = 0.25 * params[slots[WIDTH]], mix = params[slots[MIX]];

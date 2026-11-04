@@ -3,7 +3,7 @@
 // `feedback` feeds the last stage back to the first for a sharper, more vocal sweep (negative values
 // give the hollow, inverted sound). The right channel's lfo is offset by `width` (a quarter cycle at 1).
 // out = dry + wet * mix, so mix 1 is the deepest notches.
-const RATE = 0, DEPTH = 1, FREQ = 2, STAGES = 3, FEEDBACK = 4, WIDTH = 5, MIX = 6;
+const RATE = 0, DEPTH = 1, FREQ = 2, STAGES = 3, FEEDBACK = 4, WIDTH = 5, MIX = 6, PHASE = 7;
 const MAX_STAGES = 12;
 
 export default {
@@ -22,14 +22,22 @@ export default {
     { name: 'feedback', min: -0.95, max: 0.95, def: 0.4 },
     { name: 'width', min: 0, max: 1, def: 1 },
     { name: 'mix', min: 0, max: 1, def: 0.5 },
+    { name: 'phase', min: 0, max: 1, def: 0 },   // where in its cycle the sweep restarts when a pattern writes this (the sweep then runs on)
   ],
-  create({ sampleRate }) {
+  create({ sampleRate, clock }) {
     const z = [new Float64Array(MAX_STAGES), new Float64Array(MAX_STAGES)];
     const last = [0, 0];
     let phase = 0;
+    const stamps = clock?.stamps;   // counts every pattern write to a parameter, even of the same value
+    let seen = 0;   // a fresh node starts at phase 0 anyway, so a write made before its first block still counts
     const top = sampleRate * 0.45;
     return {
       process(inputs, outputs, n, params, slots) {
+        if (stamps) {   // a write to `phase` (a Phs column in the pattern) puts the sweep at that point in its cycle, then it runs on
+          const stamp = stamps[slots[PHASE]];
+          if (stamp !== seen) phase = params[slots[PHASE]] % 1;
+          seen = stamp;
+        }
         const ins = inputs[0], outs = outputs[0];
         const inc = params[slots[RATE]] / sampleRate, depth = params[slots[DEPTH]], centre = params[slots[FREQ]];
         const stages = Math.max(2, Math.min(MAX_STAGES, Math.round(params[slots[STAGES]])));

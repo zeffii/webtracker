@@ -1,7 +1,7 @@
 // Stereo chorus: up to four modulated taps per channel, spread around the lfo cycle so
 // they drift against each other. The right channel's lfo is offset by `width` (a quarter
 // cycle at 1), which is what makes it wide. out = dry + wet * mix.
-const RATE = 0, DEPTH = 1, DELAY = 2, VOICES = 3, WIDTH = 4, MIX = 5;
+const RATE = 0, DEPTH = 1, DELAY = 2, VOICES = 3, WIDTH = 4, MIX = 5, PHASE = 6;
 const MAX_MS = 60;
 
 export default {
@@ -19,11 +19,14 @@ export default {
     { name: 'voices', min: 1, max: 4, def: 3, int: true },
     { name: 'width', min: 0, max: 1, def: 1 },
     { name: 'mix', min: 0, max: 1, def: 0.5 },
+    { name: 'phase', min: 0, max: 1, def: 0 },   // where in its cycle the sweep restarts when a pattern writes this (the sweep then runs on)
   ],
-  create({ sampleRate }) {
+  create({ sampleRate, clock }) {
     const size = Math.ceil(sampleRate * MAX_MS / 1000) + 4;
     const bufL = new Float32Array(size), bufR = new Float32Array(size);
     let w = 0, phase = 0, depth = -1, delay = -1;
+    const stamps = clock?.stamps;   // counts every pattern write to a parameter, even of the same value
+    let seen = 0;   // a fresh node starts at phase 0 anyway, so a write made before its first block still counts
     const slew = 1 - Math.exp(-1 / (sampleRate * 0.05));   // per sample, so parameter moves do not click
     const ms = sampleRate / 1000;
     const read = (buf, pos) => {
@@ -34,6 +37,11 @@ export default {
     };
     return {
       process(inputs, outputs, n, params, slots) {
+        if (stamps) {   // a write to `phase` (a Phs column in the pattern) puts the sweep at that point in its cycle, then it runs on
+          const stamp = stamps[slots[PHASE]];
+          if (stamp !== seen) phase = params[slots[PHASE]] % 1;
+          seen = stamp;
+        }
         const [inL, inR] = inputs[0], [outL, outR] = outputs[0];
         const inc = params[slots[RATE]] / sampleRate, voices = Math.max(1, Math.round(params[slots[VOICES]]));
         const depthT = params[slots[DEPTH]], delayT = params[slots[DELAY]];

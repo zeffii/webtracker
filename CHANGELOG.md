@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 628 · 2026-11-04
+
+- **Flanger, chorus and phaser: a `phase` parameter that sets the sweep and lets it run on.** Write to it from a pattern (expose `phase` as a column on the machine) and the effect's LFO jumps to that point of its cycle, 0 to 1, then carries on at its own rate. Every write counts, even of the same value, so a row of `00` restarts the sweep at the start of each bar. Without a write nothing changes: the sweeps still free-run exactly as before.
+
 ## 627 · 2026-11-04
 
 - **Ctrl+Alt+Up / Down in the pattern editor add and remove note columns.** With nothing selected, Up gives the machine of the lane under the cursor one more Note + Vol pair (up to 8) and Down takes the last pair away, but only when it is empty everywhere in the lane, so a key never throws notes away. The machine keeps at least one pair. With rows selected the keys still rotate them, as before.
