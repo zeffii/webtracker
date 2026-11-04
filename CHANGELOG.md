@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 632 · 2026-11-04
+
+- **Fix: the Hear list of the piano roll bar stayed out of date.** It listed the song's instruments (and the lane picker its lanes) only when the roll's own settings or the sample on show changed, so an instrument added, removed or renamed afterwards was missing until you switched the roll off and on. Both lists now refill whenever the song's instruments or lanes change.
+
 ## 631 · 2026-11-04
 
 - **Samples: an × at the end of each slice marker row takes that marker away.** Click it and the marker goes; the markers after it move up one number, and the one you were on stays selected. Like every change to the markers, it cannot be undone (Shift+M or Alt+click on the display puts one back).

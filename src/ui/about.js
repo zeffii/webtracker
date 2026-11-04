@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['632', ['Fix: the piano roll bar\'s Hear list now follows instruments added, removed or renamed (it needed the roll switched off and on)']],
   ['631', ['Samples: an x at the end of each slice marker row removes that marker']],
   ['630', ['Node Sequencer: section can follow the number of the events (a counter, a modulo rem) instead of the song tick, so a looping count can have parts of its own']],
   ['629', ['Chord machine: a slot starting with > holds plain notes (>G-4 A-5 C-5) played at exactly those pitches']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['625', ['The pattern editor selection is a thin box with a faint fill laid over the grid, so selecting no longer rewrites the rows']],
   ['624', ['Frame-timing panel (Ctrl+Alt+F); the pattern editor on big songs is several times faster (no more whole-grid re-layout every frame)']],
   ['623', ['Node Sequencer: a modulo node that works on the song tick (every n ticks, beats or bars from an offset), with hit, rem and phase outputs']],
-  ['622', ['Quiet machines sleep: no CPU until a note, parameter change or sidechain wakes them, state kept (Sleep switch per machine, zz in the Stream Manager)']],
                     ];

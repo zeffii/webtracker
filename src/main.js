@@ -2143,7 +2143,9 @@ let rollBarSync = () => {};
     $('rb-over').setAttribute('aria-pressed', String(!!config.get('rollOvertones')));
     if (!on || !project) return;
     const r = ensure();
-    const key = r ? `${waveform.sampleId}:${r.rows}:${r.a4}:${r.cents}:${r.lo}:${r.hi}` : 'none';
+    // the two pickers list the song's instruments and its lanes with note columns, so a change there refills them too (not only a change of the roll)
+    const songSig = `${Object.keys(project.instruments ?? {}).join()}|${project.lanes.map(l => `${l.id}:${noteCols(l).length}`).join()}`;
+    const key = `${r ? `${waveform.sampleId}:${r.rows}:${r.a4}:${r.cents}:${r.lo}:${r.hi}` : 'none'}|${songSig}`;
     if (key === shownKey) return;
     shownKey = key;
     fillInstruments(); fillLanes();
