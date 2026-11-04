@@ -1730,9 +1730,9 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     assert.ok(P > 0, `${type} has a phase parameter`);
     let seed = 7; const input = Float32Array.from({ length: 6000 }, () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 2147483648 - 1; });
     const warm = 4800, rate = 0.1 * sr / warm;   // after the warm-up the sweep is a tenth of a cycle in
-    const run = phaseAfter => {
+    const run = (phaseAfter, glide) => {
       const stamps = new Uint32Array(64);
-      const params = Float32Array.from(def.params.map(p => (p.name === 'rate' ? rate : p.name === 'mix' ? 1 : p.def)));
+      const params = Float32Array.from(def.params.map(p => (p.name === 'rate' ? rate : p.name === 'mix' ? 1 : p.name === 'glide' && glide !== undefined ? glide : p.def)));
       const node = def.create({ sampleRate: sr, connected: [true], clock: { stamps } });
       const out = [new Float32Array(warm + 1000), new Float32Array(warm + 1000)];
       const feed = (from, n) => node.process([[input.subarray(from, from + n), input.subarray(from, from + n)]], [[out[0].subarray(from, from + n), out[1].subarray(from, from + n)]], n, params, slots);
@@ -1744,6 +1744,12 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     const free = run(null), here = run(0.1), elsewhere = run(0.6);
     assert.ok(here.every((v, i) => Math.abs(v - free[i]) < 1e-3), `${type}: setting the phase it already has changes nothing`);
     assert.ok(elsewhere.some((v, i) => Math.abs(v - free[i]) > 1e-3), `${type}: setting another phase moves the sweep`);
+    // glide: the sweep slides to the written phase instead of jumping, so the first samples stay with the free-running sound
+    const jump = run(0.6, 0), slide = run(0.6, 100);
+    const early = (a) => { let m = 0; for (let i = 0; i < 2; i++) m = Math.max(m, Math.abs(a[i] - free[i])); return m; };
+    assert.ok(early(jump) > 0.01, `${type}: glide 0 jumps at once`);
+    assert.ok(early(slide) < early(jump) * 0.3, `${type}: glide slides instead of jumping`);
+    assert.ok(slide.every(Number.isFinite), `${type}: glide stays finite`);
   }
 
   // chorus: mix 0 is the dry signal, silence stays silent, a wet signal differs and stays finite

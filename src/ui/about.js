@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['634', ['Flanger, chorus, phaser: writing phase slides the sweep (new glide parameter, default 20 ms) instead of clicking']],
   ['633', ['Piano roll: the overtone lines are thicker, with a dark rim, so they stand out on bright backgrounds']],
   ['632', ['Fix: the piano roll bar\'s Hear list now follows instruments added, removed or renamed (it needed the roll switched off and on)']],
   ['631', ['Samples: an x at the end of each slice marker row removes that marker']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['627', ['Pattern editor: Ctrl+Alt+Up / Down (nothing selected) add or remove a Note + Vol column pair for the lane under the cursor']],
   ['626', ['Fix: the pattern editor selection box and playhead line no longer drift off the rows when the line height is fractional']],
   ['625', ['The pattern editor selection is a thin box with a faint fill laid over the grid, so selecting no longer rewrites the rows']],
-  ['624', ['Frame-timing panel (Ctrl+Alt+F); the pattern editor on big songs is several times faster (no more whole-grid re-layout every frame)']],
                     ];

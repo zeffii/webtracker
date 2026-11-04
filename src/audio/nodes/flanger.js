@@ -3,7 +3,7 @@
 // ms; `feedback` sends the delayed signal back in (negative values invert it) for a harder, more
 // metallic sound. The right channel's lfo is offset by `width` (a quarter cycle at 1).
 // out = dry + wet * mix, so mix 1 is the deepest comb.
-const RATE = 0, DEPTH = 1, DELAY = 2, FEEDBACK = 3, WIDTH = 4, MIX = 5, PHASE = 6;
+const RATE = 0, DEPTH = 1, DELAY = 2, FEEDBACK = 3, WIDTH = 4, MIX = 5, PHASE = 6, GLIDE = 7;
 const MAX_MS = 25;
 
 export default {
@@ -22,6 +22,7 @@ export default {
     { name: 'width', min: 0, max: 1, def: 1 },
     { name: 'mix', min: 0, max: 1, def: 0.5 },
     { name: 'phase', min: 0, max: 1, def: 0 },   // where in its cycle the sweep restarts when a pattern writes this (the sweep then runs on)
+    { name: 'glide', min: 0, max: 500, def: 20 },   // ms: how long the sweep takes to slide to a written phase (0 jumps, which can click)
   ],
   create({ sampleRate, clock }) {
     const size = Math.ceil(sampleRate * MAX_MS / 1000) + 4;
@@ -29,13 +30,19 @@ export default {
     const fbState = [0, 0];
     let w = 0, phase = 0;
     const stamps = clock?.stamps;   // counts every pattern write to a parameter, even of the same value
+    let err = 0, decay = 0;   // the gap between the sweep and where it is heading, shrinking to nothing so a phase write slides
     let seen = 0;   // a fresh node starts at phase 0 anyway, so a write made before its first block still counts
     const ms = sampleRate / 1000;
     return {
       process(inputs, outputs, n, params, slots) {
         if (stamps) {   // a write to `phase` (a Phs column in the pattern) puts the sweep at that point in its cycle, then it runs on
           const stamp = stamps[slots[PHASE]];
-          if (stamp !== seen) phase = params[slots[PHASE]] % 1;
+          if (stamp !== seen) {
+            const target = params[slots[PHASE]] % 1, d = phase + err - target, g = params[slots[GLIDE]];
+            err = g > 0 ? d - Math.round(d) : 0;
+            phase = target;
+            decay = Math.exp(-3 / (sampleRate * g / 1000 + 1));
+          }
           seen = stamp;
         }
         const ins = inputs[0], outs = outputs[0];
@@ -43,7 +50,7 @@ export default {
         const fb = params[slots[FEEDBACK]], offset = 0.25 * params[slots[WIDTH]], mix = params[slots[MIX]];
         for (let i = 0; i < n; i++) {
           for (let c = 0; c < 2; c++) {
-            const lfo = Math.sin(2 * Math.PI * (phase + (c ? offset : 0)));
+            const lfo = Math.sin(2 * Math.PI * (phase + err + (c ? offset : 0)));
             const pos = Math.max(1, Math.min(size - 3, (delay + depth * lfo) * ms));
             let r = w - pos;
             if (r < 0) r += size;
@@ -55,6 +62,7 @@ export default {
             outs[c][i] = dry + wet * mix;
           }
           if (++w === size) w = 0;
+          err = Math.abs(err) < 1e-7 ? 0 : err * decay;
           phase += inc;
           if (phase >= 1) phase -= 1;
         }

@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 634 · 2026-11-04
+
+- **Flanger, chorus and phaser: writing `phase` now slides the sweep instead of jumping it.** A jump moves the delay (or the notches) in one sample and clicks on anything that is sounding. A new `glide` parameter (0 to 500 ms, default 20) sets how long the slide takes; the sweep takes the short way round the cycle and keeps running while it settles. Set `glide` to 0 for the old instant jump, which is fine when the phase is written as a note starts and the effect is quiet. A glide is a brief pitch wobble from the moving delay, so longer values are slower and gentler.
+
 ## 633 · 2026-11-04
 
 - **Piano roll: the overtone lines are thicker and stand out on any background.** Each is now a 3 px dashed line with a dark rim round it (it was a 1 px pastel line), brighter and fading less with the harmonic, and the harmonic number beside it has a dark outline. They read on a pale spectrogram and on a bright pink one alike.

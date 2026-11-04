@@ -211,7 +211,8 @@ const HINTS = {
   },
   chorus: {
     rate: 'Speed of the wobble in Hz.',
-    phase: 'Where in its cycle the sweep restarts, 0 to 1. Nothing happens until a pattern writes it (expose it as a column): then the sweep jumps to this point and runs on from there, so it can be lined up with the beat.',
+    phase: 'Where in its cycle the sweep restarts, 0 to 1. Nothing happens until a pattern writes it (expose it as a column): then the sweep slides to this point and runs on from there, so it can be lined up with the beat.',
+    glide: 'Milliseconds the sweep takes to slide to a phase written by a pattern. 0 jumps at once, which clicks unless the sound is silent (set it as a note starts).',
     depth: 'How far the delay swings, in ms. More is a stronger, seasick detune.',
     delay: 'Centre delay time in ms. Longer sounds more like a doubled voice, shorter more like a flanger.',
     voices: 'How many modulated copies are added (1 to 4). More is thicker.',
@@ -244,7 +245,8 @@ const HINTS = {
   },
   phaser: {
     rate: 'Speed of the sweep in Hz.',
-    phase: 'Where in its cycle the sweep restarts, 0 to 1. Nothing happens until a pattern writes it (expose it as a column): then the sweep jumps to this point and runs on from there, so it can be lined up with the beat.',
+    phase: 'Where in its cycle the sweep restarts, 0 to 1. Nothing happens until a pattern writes it (expose it as a column): then the sweep slides to this point and runs on from there, so it can be lined up with the beat.',
+    glide: 'Milliseconds the sweep takes to slide to a phase written by a pattern. 0 jumps at once, which clicks unless the sound is silent (set it as a note starts).',
     depth: 'How far the sweep goes either side of `freq`, in octaves.',
     freq: 'Centre frequency of the sweep in Hz.',
     stages: 'Number of allpass stages. Every two make one notch, so more stages are a deeper, richer phase.',
@@ -296,7 +298,8 @@ const HINTS = {
   },
   flanger: {
     rate: 'Speed of the sweep in Hz.',
-    phase: 'Where in its cycle the sweep restarts, 0 to 1. Nothing happens until a pattern writes it (expose it as a column): then the sweep jumps to this point and runs on from there, so it can be lined up with the beat.',
+    phase: 'Where in its cycle the sweep restarts, 0 to 1. Nothing happens until a pattern writes it (expose it as a column): then the sweep slides to this point and runs on from there, so it can be lined up with the beat.',
+    glide: 'Milliseconds the sweep takes to slide to a phase written by a pattern. 0 jumps at once, which clicks unless the sound is silent (set it as a note starts).',
     depth: 'How far the delay swings, in ms either side of `delay`.',
     delay: 'Centre of the sweep in ms. Shorter is a higher, thinner comb.',
     feedback: 'Sends the delayed sound back in for a harder, more metallic effect. Negative inverts it.',
