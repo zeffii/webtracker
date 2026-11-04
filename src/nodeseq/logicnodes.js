@@ -6,22 +6,30 @@ const par = (name, min, max, def, extra = {}) => ({ name, min, max, def, ...extr
 
 export const LOGIC_TYPES = {
   section: {
-    title: 'section', cat: 'time', hint: 'passes the events of the clock on only while the song is between start and end: a part of the song. Ticks, or bars; with "end inclusive" off the end tick itself is left out, so the next section can start on it. start and end are events too, on the first and the last tick; on is a control that is 1 inside; pos runs 0 to 1 across the section',
+    title: 'section', cat: 'time', hint: 'passes the events of the clock on only while the song is between start and end: a part of the song. Ticks, or bars; with "end inclusive" off the end tick itself is left out, so the next section can start on it. start and end are events too, on the first and the last tick; on is a control that is 1 inside; pos runs 0 to 1 across the section. By default it watches the song\'s own tick; with from set to event value it watches the number each event carries instead (a counter, or the rem of a modulo), so a looping count can have parts of its own',
     ins: [ev('in')], outs: [out('out'), out('start'), out('end'), { n: 'on', k: 'c' }, { n: 'pos', k: 'c' }],
-    params: [par('start', 0, 100000, 0, { int: true }), par('end', 0, 100000, 64, { int: true }), par('inclusive', 0, 1, 0, { int: true, labels: ['no', 'yes'] }), par('unit', 0, 1, 0, { int: true, labels: ['ticks', 'bars'] })],
+    params: [par('start', 0, 100000, 0, { int: true }), par('end', 0, 100000, 64, { int: true }), par('inclusive', 0, 1, 0, { int: true, labels: ['no', 'yes'] }), par('unit', 0, 1, 0, { int: true, labels: ['ticks', 'bars'] }), par('from', 0, 1, 0, { int: true, labels: ['song tick', 'event value'] })],
     create: cx => {
       let was = false;
       // the first and the last tick of the section, from the node's own parameters (in bars, a bar is barTicks ticks)
       const span = () => { const k = Math.round(cx.p.unit) === 1 ? cx.info.barTicks : 1, e = Math.round(cx.p.end) * k; return { a: Math.round(cx.p.start) * k, z: cx.p.inclusive >= 0.5 ? e : e - 1 }; };
+      const byValue = () => cx.p.from >= 0.5;   // the position is the number the event carries, not the song's tick
       const inside = tick => { const { a, z } = span(); return tick >= a && tick <= z; };
+      // where the section stands at position t: start on its first, end on its last, on and pos as controls
+      const step = t => {
+        const { a, z } = span(), now = t >= a && t <= z;
+        if (now && !was) cx.emit('start', t, -1);
+        if (now && t === z) cx.emit('end', t, -1);
+        was = now; cx.ctl('on', now ? 1 : 0); cx.ctl('pos', now ? (z === a ? 0 : (t - a) / (z - a)) : 0);
+      };
       return {
-        event(_p, v, vel) { if (inside(cx.info.tick)) cx.emit('out', v, vel); },
-        tick() {
-          const t = cx.info.tick, { a, z } = span(), now = t >= a && t <= z;
-          if (now && !was) cx.emit('start', t, -1);
-          if (now && t === z) cx.emit('end', t, -1);
-          was = now; cx.ctl('on', now ? 1 : 0); cx.ctl('pos', now ? (z === a ? 0 : (t - a) / (z - a)) : 0);
+        event(_p, v, vel) {
+          if (!byValue()) { if (inside(cx.info.tick)) cx.emit('out', v, vel); return; }
+          const at = Math.round(v);   // each event is a position (0, 1, 2 ... from a counter); the section reacts to it as it arrives
+          step(at);
+          if (inside(at)) cx.emit('out', v, vel);
         },
+        tick() { if (!byValue()) step(cx.info.tick); },
         reset() { was = false; },
         view: () => ({ v: was ? 1 : 0 }),
       };

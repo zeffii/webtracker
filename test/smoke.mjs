@@ -4073,6 +4073,15 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
       // section: the clock's ticks pass only from start to end; the end tick is left out unless it is inclusive
       t = play([{ id: 's', type: 'section', params: { start: 2, end: 5, inclusive: 0 } }, note('n'), note('b'), note('e')], [{ from: 'c.tick', to: 's.in' }, { from: 's.out', to: 'n.note' }, { from: 's.start', to: 'b.note' }, { from: 's.end', to: 'e.note' }], 8);
       assert.deepEqual([ons(t.log).filter(e => e.instrument === 'n').map(e => e.at / 2), ons(t.log).filter(e => e.instrument === 'b').map(e => e.at / 2), ons(t.log).filter(e => e.instrument === 'e').map(e => e.at / 2)], [[2, 3, 4], [2], [4]], 'section 2 to 5: ticks 2, 3, 4; start fires on 2, end on 4');
+      // section from the event value: a counter that wraps at 8 drives two parts, 0..4 and 4..8, and they come round every lap (by the song's tick they would only play the first lap)
+      t = play([{ id: 'k', type: 'counter', params: { n: 8 } }, { id: 's1', type: 'section', params: { start: 0, end: 4, from: 1 } }, { id: 's2', type: 'section', params: { start: 4, end: 8, from: 1 } }, note('a'), note('b'), note('t')],
+        [{ from: 'c.tick', to: 'k.in' }, { from: 'k.out', to: 's1.in' }, { from: 'k.out', to: 's2.in' }, { from: 's1.out', to: 'a.note' }, { from: 's2.out', to: 'b.note' }, { from: 's2.end', to: 't.note' }], 24);
+      assert.deepEqual([ons(t.log).filter(e => e.instrument === 'a').map(e => e.at / 2), ons(t.log).filter(e => e.instrument === 'b').map(e => e.at / 2), ons(t.log).filter(e => e.instrument === 't').map(e => e.at / 2)],
+        [[0, 1, 2, 3, 8, 9, 10, 11, 16, 17, 18, 19], [4, 5, 6, 7, 12, 13, 14, 15, 20, 21, 22, 23], [7, 15, 23]], 'section from event value: each part plays on every lap of the counter, and the end fires on its last number');
+      t = play([{ id: 'm', type: 'modulo', params: { n: 8 } }, { id: 's', type: 'section', params: { start: 4, end: 8, from: 1 } }, note('n')], [{ from: 'c.tick', to: 'm.in' }, { from: 'm.rem', to: 's.in' }, { from: 's.out', to: 'n.note' }], 24);
+      assert.deepEqual(ons(t.log).map(e => e.at / 2), [4, 5, 6, 7, 12, 13, 14, 15, 20, 21, 22, 23], 'the rem of a modulo is the tick within its period: a section can read it just as it reads a counter');
+      t = play([{ id: 's', type: 'section', params: { start: 2, end: 5 } }, { id: 'k', type: 'counter', params: { n: 4 } }, note('n')], [{ from: 'c.tick', to: 'k.in' }, { from: 'k.out', to: 's.in' }, { from: 's.out', to: 'n.note' }], 12);
+      assert.deepEqual(ons(t.log).map(e => e.at / 2), [2, 3, 4], 'by the song tick (the default) the counter\'s number is ignored, as before');
       t = play([{ id: 's', type: 'section', params: { start: 2, end: 5, inclusive: 1 } }, note('n')], [{ from: 'c.tick', to: 's.in' }, { from: 's.out', to: 'n.note' }], 8);
       assert.deepEqual(ons(t.log).map(e => e.at / 2), [2, 3, 4, 5], 'inclusive: the end tick passes too');
       // modulo works on the song's tick: events on every 4th tick pass, the others leave by else, whatever the events before them were

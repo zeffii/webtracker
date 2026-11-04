@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 630 · 2026-11-04
+
+- **Node Sequencer: `section` can follow the number of the events instead of the song's tick.** A new `from` setting: `song tick` (the default, as before) or `event value`. With event value the section reads the number each event carries, such as a counter's 0, 1, 2 ... or the `rem` of a modulo, so a counter that wraps at 128 can drive two parts (0 to 64 and 64 to 128) that come round on every lap. By the song's tick a section only ever plays once, because the song's tick never goes back to 0. `start`, `end`, `on` and `pos` follow the same number.
+
 ## 629 · 2026-11-04
 
 - **The Chord machine takes plain notes.** A slot that starts with `>` holds the notes themselves, for example `>G-4 A-5 C-5`, `>A2 C#3 E3` or `>57 60 64`. They play at exactly those pitches (the Oct column does not move them); `follow` shifts them with the note played, the inversion lifts the lowest, and `notes` drops the highest when there are too many. A word that is not a note is reported in the slot's row, like a bad chord name. The Node Sequencer's chord node reads the same `>` form. The list of what can be typed has a line for it.
