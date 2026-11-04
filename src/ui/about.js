@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['639', ['First screen: moving the pointer brings up a shimmer of wireframe (edges and vertices) on the blob under it']],
   ['638', ['Samples: Islands → new sample runs the island pass on a sample or its selection and writes the result to a new slot']],
   ['637', ['New node: islands (spectral): keeps the peak of every note and turns down the smear and hiss between them']],
   ['636', ['Piano roll: contrast and islands sliders sharpen the spectrogram, with a bright ridge on each note\'s peak']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['632', ['Fix: the piano roll bar\'s Hear list now follows instruments added, removed or renamed (it needed the roll switched off and on)']],
   ['631', ['Samples: an x at the end of each slice marker row removes that marker']],
   ['630', ['Node Sequencer: section can follow the number of the events (a counter, a modulo rem) instead of the song tick, so a looping count can have parts of its own']],
-  ['629', ['Chord machine: a slot starting with > holds plain notes (>G-4 A-5 C-5) played at exactly those pitches']],
                     ];

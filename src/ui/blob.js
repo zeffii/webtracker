@@ -1,9 +1,10 @@
 // The first screen's backdrop: a few metaballs drifting, merging and pinching apart, shaded as a translucent, skin-like body (light shows
 // through where it is thin, the thick middle stays deeper). One WebGL fragment shader, drawn at reduced size since the look is soft.
 // It is the live picture's built-in shader (visual.js) with its lane look-ups stubbed for a screen with no song: a bigger swell when the card is excited,
-// and the pointer drawing the first ball. createBlob(canvas) returns null when WebGL is not available, so the caller can fall back to the logo.
+// and the pointer drawing the first ball. Moving the pointer brings up a patch of wireframe under it (blobshimmer.js). createBlob(canvas) returns null when WebGL is not available, so the caller can fall back to the logo.
+import { SHIMMER_UNIFORMS, SHIMMER_FUNCS, SHIMMER_APPLY } from './blobshimmer.js';
 const VS = 'attribute vec2 a;void main(){gl_Position=vec4(a,0.,1.);}';
-const FS = `precision highp float;uniform vec2 R,M;uniform float T,B;uniform vec3 C1,C2;
+const FS = `precision highp float;uniform vec2 R,M;uniform float T,B;uniform vec3 C1,C2;${SHIMMER_UNIFORMS}
 // the picture shader's lane look-ups, for a screen with no song: a hit swells a ball a little when the card is excited (B), nothing is held
 float hit(int i){return B*.12;}
 float pitch(int i){return .5;}
@@ -20,6 +21,7 @@ float map(vec3 p){float d=1e3;for(int i=0;i<5;i++){float f=float(i);
   if(i==0)c=mix(c,vec3(M*vec2(.9,1.1),0.)*.82,.45);   // the pointer draws the first ball
   d=smin(d,length(p-c)-r,1.02);}return d;}
 vec3 nrm(vec3 p){vec2 e=vec2(.0061,0);return normalize(vec3(map(p+e.xyy)-map(p-e.xyy),map(p+e.yxy)-map(p-e.yxy),map(p+e.yyx)-map(p-e.yyx)));}
+${SHIMMER_FUNCS}
 void main(){vec2 uv=gl_FragCoord.xy/R;vec2 p=(gl_FragCoord.xy-.5*R)/min(R.x,R.y*0.96);
 vec3 bg=mix(vec3(1.9,1.28,.58),vec3(.72,0.,0.),smoothstep(.45,1.,uv.y));bg=mix(bg,vec3(.95,.93,.78),smoothstep(1.735,.0,uv.y)*.585);
 bg*=0.78-.16*pow(length(p)*.8,2.);
@@ -46,11 +48,14 @@ body+=vec3(.05,.035,.0)*pow(key,13.6)*(1.-thin);
 body+=vec3(-.02,0.,.1335)*fill*(3.78-wrap)*.58;
 body=mix(body,C2*vec3(3.2,1.4,1.58),pow(back,4.)*clamp(.25+thin,0.,3.4)*.64);
 body=mix(body,C2,hits()*.22);
-col=body;}
+col=body;${SHIMMER_APPLY}}
 // dither (triangular, about two levels) takes the banding out of the slow gradients, plus a faint grain
 vec2 fc=gl_FragCoord.xy+fract(T*7.3)*91.;
 col+=(h(fc)+h(fc+17.3)-1.)*(2.2/255.)+(h(fc*.77+5.)-.5)*.012;
 gl_FragColor=vec4(col,1.);}`;
+
+// the shimmer's colours: deep purple edges, orange vertices
+const WIRE_EDGE = [.29, .06, .48], WIRE_VERT = [1, .48, .06];
 
 export function createBlob(canvas, { colours = [[.30, .74, .80], [.62, .97, .98]] } = {}) {
   const gl = canvas.getContext('webgl', { antialias: false, alpha: false, powerPreference: 'low-power' });
@@ -65,10 +70,13 @@ export function createBlob(canvas, { colours = [[.30, .74, .80], [.62, .97, .98]
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
   const at = gl.getAttribLocation(pr, 'a'); gl.enableVertexAttribArray(at); gl.vertexAttribPointer(at, 2, gl.FLOAT, false, 0, 0);
   const u = n => gl.getUniformLocation(pr, n);
-  const uR = u('R'), uM = u('M'), uT = u('T'), uB = u('B');
+  const uR = u('R'), uM = u('M'), uT = u('T'), uB = u('B'), uSP = u('SP'), uSA = u('SA');
+  gl.uniform3fv(u('WE'), WIRE_EDGE); gl.uniform3fv(u('WV'), WIRE_VERT);
   gl.uniform3fv(u('C1'), colours[0]); gl.uniform3fv(u('C2'), colours[1]);
   const still = matchMedia?.('(prefers-reduced-motion: reduce)').matches;
   let time = 7, last = 0, mx = 0, my = 0, tx = 0, ty = 0, boost = 0, boostTo = 0;
+  // the shimmer follows the pointer closely (sx, sy) and shows while it moves: travel adds up in `moved`, `shimmer` eases after it
+  let sx = 0, sy = 0, moved = 0, shimmer = 0;
   const size = () => {
     const k = Math.min(devicePixelRatio || 1, 1100 / Math.max(1, canvas.clientWidth));   // soft, so no more than about 1100 pixels across
     const w = Math.max(2, Math.round(canvas.clientWidth * k)), h = Math.max(2, Math.round(canvas.clientHeight * k));
@@ -77,12 +85,17 @@ export function createBlob(canvas, { colours = [[.30, .74, .80], [.62, .97, .98]
   };
   return {
     // the pointer, as a place on the screen from -1 to 1 either way
-    point(x, y) { tx = x; ty = y; },
+    point(x, y) { moved += Math.hypot(x - tx, y - ty); tx = x; ty = y; },
     excite(on) { boostTo = on ? 1 : 0; },
     draw(now) {
       size();   // cheap, and right even when the box was hidden when this was made
       const dt = last ? Math.min(.1, (now - last) / 1000) : 0; last = now;
       boost += (boostTo - boost) * .04; mx += (tx - mx) * .03; my += (ty - my) * .03;
+      sx += (tx - sx) * .2; sy += (ty - sy) * .2;
+      moved = Math.min(moved, .25) * Math.exp(-dt * 2.5);   // about a second after the pointer stops, the patch is gone
+      shimmer += (Math.min(1, moved * 12) - shimmer) * .08;
+      const k = .5 / Math.min(canvas.width, canvas.height * .96);   // the pointer (-1 to 1 across the card) in the shader's picture units
+      gl.uniform2f(uSP, sx * canvas.width * k, sy * canvas.height * k); gl.uniform1f(uSA, still ? 0 : shimmer);
       if (!still) time += dt * (1 + 1.6 * boost);
       gl.uniform1f(uT, time); gl.uniform1f(uB, boost); gl.uniform2f(uM, mx, my);
       gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);

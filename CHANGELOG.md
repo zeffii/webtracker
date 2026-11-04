@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 639 · 2026-11-04
+
+- **First screen: the blob shimmers under the pointer.** Moving the pointer over the splash brings up a patch of wireframe on the blob's surface, deep purple edges with flickering orange vertices, with a ripple running through it; it follows the pointer and fades about a second after the pointer stops. The blob is a distance field with no real mesh, so the wire comes from a lattice of 3D cells the blob swims through: where the surface cuts a wall between two cells there is an edge, where it cuts a corner shared by three there is a vertex. The patch covers about a seventh of the visible blob (measured by rendering). Off with reduced motion. The code is in `src/ui/blobshimmer.js`.
+
 ## 638 · 2026-11-04
 
 - **Samples: "Islands → new sample".** A button beside Detect chords runs the island pass on the sample under the cursor (its selection if there is one, else the whole of it) and puts the result in a new sample, `NAME_islands`, leaving the original alone. The peak of every note is kept; the smear and hiss between are turned down. It uses the piano roll bar's contrast and islands sliders, so what you see there is what you get (0.5 and 0.7 when both are at 0). It runs offline, so there is no latency: the result lines up with the original, the frames are 8192 long, and the reference loudness is the whole recording's, as in the spectrogram. A few seconds of stereo take about a second. The code is in `src/project/islandrender.js`.
