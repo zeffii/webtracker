@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 640 · 2026-11-04
+
+- **New demo: raens.** Your song "raens" (142 bpm, 7 lanes, 7 instruments) is now one of the demos: open the page with `?demo=raens`.
+
 ## 639 · 2026-11-04
 
 - **First screen: the blob shimmers under the pointer.** Moving the pointer over the splash brings up a patch of wireframe on the blob's surface, deep purple edges with flickering orange vertices, with a ripple running through it; it follows the pointer and fades about a second after the pointer stops. The blob is a distance field with no real mesh, so the wire comes from a lattice of 3D cells the blob swims through: where the surface cuts a wall between two cells there is an edge, where it cuts a corner shared by three there is a vertex. The patch covers about a seventh of the visible blob (measured by rendering). Off with reduced motion. The code is in `src/ui/blobshimmer.js`.
