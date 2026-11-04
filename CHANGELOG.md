@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 626 · 2026-11-03
+
+- **Fix: the selection box and the playhead line could sit up to half a row off.** They were placed from whole-pixel row positions, so with a line height that is not a whole number of pixels (a fractional font size or display scaling) the error grew with every row down the grid. The row step is now measured across all the rows.
+
 ## 625 · 2026-11-03
 
 - **The pattern editor's selection is a box over the grid.** A thin border with a faint fill, instead of a highlight written into every character of every row it covers. Dragging or extending a selection now rewrites no row at all, so the rows keep their cached markup and only the box moves.

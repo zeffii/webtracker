@@ -1040,7 +1040,8 @@ export function createTrackerView({ showMenu = (e, items) => showContextMenu(e, 
     // Read where the rows are BEFORE rewriting them: the page's layout is clean now, so the read is free. Asking an element for its
     // offsetTop after the rows were rewritten forces the browser to lay out the whole grid on the spot, and with many lanes that took
     // most of a frame. Rows are all the same height, so the first body row and the step to the next give every other row.
-    const geo = real && rowEls.length > 3 ? { top: rowEls[2].offsetTop, step: rowEls[3].offsetTop - rowEls[2].offsetTop, h: rowEls[2].offsetHeight } : null;
+    const lastRow = rowEls.length - 1;   // offsetTop is a whole number of pixels, so the step is taken across all the rows (a line height of 17.6px is not 17 or 18)
+    const geo = real && rowEls.length > 4 ? { top: rowEls[2].offsetTop, step: (rowEls[lastRow].offsetTop - rowEls[2].offsetTop) / (lastRow - 2), h: rowEls[2].offsetHeight } : null;
     const rowsBefore = rowEls.length, gridW = real ? Math.max(el.scrollWidth, el.clientWidth) : undefined;
     paintLines(lines);
     // The playhead and the loop lines sit on the real rows (each row is an element, so its offsetTop is where it is drawn, whatever
