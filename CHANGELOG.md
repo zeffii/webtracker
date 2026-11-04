@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 638 · 2026-11-04
+
+- **Samples: "Islands → new sample".** A button beside Detect chords runs the island pass on the sample under the cursor (its selection if there is one, else the whole of it) and puts the result in a new sample, `NAME_islands`, leaving the original alone. The peak of every note is kept; the smear and hiss between are turned down. It uses the piano roll bar's contrast and islands sliders, so what you see there is what you get (0.5 and 0.7 when both are at 0). It runs offline, so there is no latency: the result lines up with the original, the frames are 8192 long, and the reference loudness is the whole recording's, as in the spectrogram. A few seconds of stereo take about a second. The code is in `src/project/islandrender.js`.
+
 ## 637 · 2026-11-04
 
 - **New node: islands (Effects → Spectral).** The piano roll's "add islands" as an effect. In every frame of the sound the peak inside each loud blob of the spectrum is found, a thin ridge of sound around it is kept, and the rest (the shoulders of the blobs, the smear between notes, the hiss) is turned down. `contrast` sharpens first, `islands` and `depth` set how far everything off a peak goes down, `smooth` keeps it from warbling, `mix` blends the dry sound back (delayed to match). `size` is the frame length, 2048 to 16384 samples, and sets the latency: the frames have to be long to tell notes apart, so it adds from about 43 ms to a third of a second, which the latency readout and delay compensation already account for. Stereo, each side on its own. The pass itself is in `src/audio/islandcore.js`, shared with the sample-editor resampler to come.

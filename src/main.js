@@ -74,6 +74,7 @@ import { createScriptRunner } from './script/client.js';
 import { createScriptScreen } from './script/screen.js';
 import { createScratch, sendEdits } from './script/scratch.js';
 import { placementAt } from './seq/edit.js';
+import { renderIslands } from './project/islandrender.js';
 import { createPerfMeter } from './ui/perfmeter.js';
 const perf = createPerfMeter();
 
@@ -1578,6 +1579,29 @@ function copySelection() {
   if (marks.length) project.samples[copy].slices = marks;
   refreshProjectUi(); sampleScreen.select(copy); projStatus(`Copied ${z - a} frames of ${id} to ${copy}.`);
 }
+
+// The island pass on the sample under the cursor (its selection, else the whole of it), written to a new sample: the peak of
+// every note kept, the smear and hiss between turned down. The amounts are the piano roll bar's sliders (a default pair when both are 0).
+function islandsToSample() {
+  const id = sampleScreen.selected, s = project?.samples[id];
+  if (!s) return projStatus('Pick a sample first.');
+  let [from, to] = sampleScreen.selection;
+  if (!(to > from)) { from = 0; to = s.data.length; }
+  const a = Math.max(0, Math.round(from)), z = Math.min(s.data.length, Math.round(to));
+  let contrast = config.get('rollContrast') / 100, islands = config.get('rollIslands') / 100;
+  if (contrast === 0 && islands === 0) { contrast = 0.5; islands = 0.7; }
+  projStatus(`Finding the islands in ${id}…`);
+  setTimeout(() => {   // let the message paint first: a long sample takes a few seconds
+    try {
+      const channels = [s.data.subarray(a, z), ...(s.right ? [s.right.subarray(a, z)] : [])];
+      const [left, right] = renderIslands(channels, { contrast, islands });
+      const copy = addSample(project, `${id}_islands`, s.rate, left, right);
+      for (const k of ['volume', 'globalVolume', 'pan']) if (s[k] !== undefined) project.samples[copy][k] = s[k];
+      refreshProjectUi(); sampleScreen.select(copy); projStatus(`Islands of ${id} (contrast ${Math.round(contrast * 100)}, islands ${Math.round(islands * 100)}) are in ${copy}.`);
+    } catch (err) { projStatus(`Islands: ${err.message}`); }
+  }, 30);
+}
+$('islands-render').addEventListener('click', islandsToSample);
 
 // A new empty lane for an instrument that is already loaded in the engine.
 // Post-transient resynthesis of the sample on the Samples screen (its selection, else the whole sample): the attack is kept

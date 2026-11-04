@@ -10410,4 +10410,22 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   console.log('ok: spectral islands');
 }
 
+// The island resampler (offline): with both amounts at 0 the sound comes back unchanged and in time; with islands up the noise between partials goes down.
+{
+  const { renderIslands } = await import('../src/project/islandrender.js');
+  const { fftPlan } = await import('../src/audio/fft.js');
+  const rate = 48000, len = 40000;
+  let seed = 7; const rnd = () => (seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296 - 0.5;
+  const x = Float32Array.from({ length: len }, (_, i) => 0.25 * (Math.sin(2 * Math.PI * 440 * i / rate) + Math.sin(2 * Math.PI * 660 * i / rate)) + 0.05 * rnd());
+  const [same] = renderIslands([x], { contrast: 0, islands: 0, size: 2048 });
+  let worst = 0; for (let i = 0; i < len; i++) worst = Math.max(worst, Math.abs(same[i] - x[i]));
+  assert.ok(worst < 1e-4, `both at 0, the sound is unchanged and in time (worst ${worst})`);
+  const [clean] = renderIslands([x], { contrast: 0.5, islands: 0.8, size: 4096 });
+  const floor = v => { const nn = 8192, plan = fftPlan(nn), re = new Float64Array(nn), im = new Float64Array(nn); for (let i = 0; i < nn; i++) re[i] = v[10000 + i] * (0.5 - 0.5 * Math.cos(2 * Math.PI * i / nn)); plan.run(re, im); let sum = 0, c = 0; for (let k = 200; k < 2000; k++) if (Math.abs(k - 440 * nn / rate) > 25 && Math.abs(k - 660 * nn / rate) > 25) { sum += Math.hypot(re[k], im[k]) ** 2; c++; } return Math.sqrt(sum / c); };
+  assert.ok(20 * Math.log10(floor(x) / floor(clean)) > 12, 'islands turn the noise between the partials down');
+  const [lo, hi] = renderIslands([x, x.map(v => v * 0.5)], { size: 2048 });
+  assert.ok(lo.length === len && hi.length === len && lo.every(Number.isFinite), 'stereo works and keeps the length');
+  console.log('ok: island resampler');
+}
+
 console.log('smoke test passed');

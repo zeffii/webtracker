@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['638', ['Samples: Islands → new sample runs the island pass on a sample or its selection and writes the result to a new slot']],
   ['637', ['New node: islands (spectral): keeps the peak of every note and turns down the smear and hiss between them']],
   ['636', ['Piano roll: contrast and islands sliders sharpen the spectrogram, with a bright ridge on each note\'s peak']],
   ['635', ['Trance gate: steps run down to quarter-ticks and patterns up to 64 steps long']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['631', ['Samples: an x at the end of each slice marker row removes that marker']],
   ['630', ['Node Sequencer: section can follow the number of the events (a counter, a modulo rem) instead of the song tick, so a looping count can have parts of its own']],
   ['629', ['Chord machine: a slot starting with > holds plain notes (>G-4 A-5 C-5) played at exactly those pitches']],
-  ['628', ['Flanger, chorus and phaser: a phase parameter a pattern can write to restart the sweep at a chosen point and let it run on']],
                     ];
