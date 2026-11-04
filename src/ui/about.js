@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['631', ['Samples: an x at the end of each slice marker row removes that marker']],
   ['630', ['Node Sequencer: section can follow the number of the events (a counter, a modulo rem) instead of the song tick, so a looping count can have parts of its own']],
   ['629', ['Chord machine: a slot starting with > holds plain notes (>G-4 A-5 C-5) played at exactly those pitches']],
   ['628', ['Flanger, chorus and phaser: a phase parameter a pattern can write to restart the sweep at a chosen point and let it run on']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['624', ['Frame-timing panel (Ctrl+Alt+F); the pattern editor on big songs is several times faster (no more whole-grid re-layout every frame)']],
   ['623', ['Node Sequencer: a modulo node that works on the song tick (every n ticks, beats or bars from an offset), with hit, rem and phase outputs']],
   ['622', ['Quiet machines sleep: no CPU until a note, parameter change or sidechain wakes them, state kept (Sleep switch per machine, zz in the Stream Manager)']],
-  ['621', ['Piano roll over the sample display (Shift+P): mark a virtual pattern, draw notes, hear chords per row, overtone guides, master tuning, write to a "NN transcribe N" pattern']],
                     ];

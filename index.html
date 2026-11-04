@@ -93,6 +93,8 @@
     #smp .sl-act { background: var(--hi); color: var(--hi-fg); }
     #smp .sl-b { position: relative; display: inline-block; cursor: pointer; opacity: .7; }   /* the two icons are drawn in the text colour, so they follow the theme */
     #smp .sl-b:hover { opacity: 1; }
+    #smp .sl-x { cursor: pointer; opacity: .55; }
+    #smp .sl-x:hover { opacity: 1; color: var(--accent, currentColor); }
     #smp .sl-b::before, #smp .sl-b::after { content: ''; position: absolute; top: .22em; bottom: .22em; background: currentColor; }
     #smp .sl-seg::before { left: .2ch; width: 1.2ch; clip-path: polygon(0 0, 100% 50%, 0 100%); }   /* play, then stop at the next marker */
     #smp .sl-seg::after { left: 1.7ch; width: .35ch; }

@@ -357,6 +357,16 @@ export function createSampleScreen({ el, statusEl, getProject, onChange = () => 
       }
       draw(); return;
     }
+    const remove = e.target.closest?.('[data-remove]');   // the × at the end of a slice row takes that marker away
+    if (remove?.dataset?.remove !== undefined && sample()) {
+      e.preventDefault(); el.focus();
+      const i = Number(remove.dataset.remove), slices = sample().slices ?? [];
+      if (i >= 0 && i < slices.length && attempt(() => setSlices(getProject(), sel, slices.filter((_, k) => k !== i)))) {
+        setActive(activeSlice === i ? -1 : activeSlice > i ? activeSlice - 1 : activeSlice);   // the markers after it move up one number
+        say(`Removed slice ${i.toString(16).toUpperCase().padStart(2, '0')}.`);
+      }
+      draw(); return;
+    }
     const play = e.target.closest?.('[data-play]');
     if (play?.dataset?.play !== undefined && sample()) { e.preventDefault(); el.focus(); const [i, how] = play.dataset.play.split(':'); playSlice(Number(i), how === 'end'); draw(); return; }
     const hit = e.target.closest?.('[data-f], [data-id]');
@@ -433,7 +443,7 @@ export function createSampleScreen({ el, statusEl, getProject, onChange = () => 
       const sliceLines = d => {
         const sl = d.slices ?? [];
         return [line(` Slices    ${sl.length ? sl.length : 'none'}${sl.length ? '' : '  (Shift+M marks one at the selection start;'}`), ...(sl.length ? [] : [line('           Alt+click the display)')]),
-          ...sl.map((f, i) => { const l = line(`${i === activeSlice ? ' >' : '  '} ${i.toString(16).toUpperCase().padStart(2, '0')}  ${placeHex(f, d.data.length, config.get('hexMode'))}  ${String(f).padStart(8, '0')}  ${(f / d.rate).toFixed(3)}s`, '  ', seg('   ', 'sl-b sl-seg', ` data-play="${i}:seg" title="Play from this slice to the next"`), ' ', seg('   ', 'sl-b sl-end', ` data-play="${i}:end" title="Play from this slice to the end of the sample"`)); return i === activeSlice ? { t: l.t, h: `<span class="sl-act">${l.h}</span>` } : l; })];
+          ...sl.map((f, i) => { const l = line(`${i === activeSlice ? ' >' : '  '} ${i.toString(16).toUpperCase().padStart(2, '0')}  ${placeHex(f, d.data.length, config.get('hexMode'))}  ${String(f).padStart(8, '0')}  ${(f / d.rate).toFixed(3)}s`, '  ', seg('   ', 'sl-b sl-seg', ` data-play="${i}:seg" title="Play from this slice to the next"`), ' ', seg('   ', 'sl-b sl-end', ` data-play="${i}:end" title="Play from this slice to the end of the sample"`), ' ', seg(' × ', 'sl-x', ` data-remove="${i}" title="Remove this slice marker"`)); return i === activeSlice ? { t: l.t, h: `<span class="sl-act">${l.h}</span>` } : l; })];
       };
       const numCell = field => fieldCell(field, frameValue(s, field).toString().padStart(8, '0'), 8);
       const loopLine = (label, p, onField, begField, endField, xfField, hideField) => line(

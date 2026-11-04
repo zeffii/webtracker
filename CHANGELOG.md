@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 631 · 2026-11-04
+
+- **Samples: an × at the end of each slice marker row takes that marker away.** Click it and the marker goes; the markers after it move up one number, and the one you were on stays selected. Like every change to the markers, it cannot be undone (Shift+M or Alt+click on the display puts one back).
+
 ## 630 · 2026-11-04
 
 - **Node Sequencer: `section` can follow the number of the events instead of the song's tick.** A new `from` setting: `song tick` (the default, as before) or `event value`. With event value the section reads the number each event carries, such as a counter's 0, 1, 2 ... or the `rem` of a modulo, so a counter that wraps at 128 can drive two parts (0 to 64 and 64 to 128) that come round on every lap. By the song's tick a section only ever plays once, because the song's tick never goes back to 0. `start`, `end`, `on` and `pos` follow the same number.

@@ -8373,6 +8373,12 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     on2.mousedown({ target: { closest: () => ({ dataset: { play: '1:end' } }) }, preventDefault() {} });
     assert.deepEqual(notes.at(-1), [true, 400], 'the second button plays from its marker to the end');
     on2.mousedown({ target: { closest: () => ({ dataset: { play: '1:end' } }) }, preventDefault() {} });
+    // the x at the end of a marker row takes that marker away; the others keep their frames and move up a number
+    project.samples.pluck.slices = [100, 400, 900]; sc.draw();
+    assert.ok(el2.innerHTML.includes('data-remove="0"') && el2.innerHTML.includes('data-remove="2"'), 'each marker row ends with an x');
+    on2.mousedown({ target: { closest: s => (s === '[data-remove]' ? { dataset: { remove: '1' } } : null) }, preventDefault() {} });
+    assert.deepEqual(project.samples.pluck.slices, [100, 900], 'the x removes that marker and no other');
+    assert.ok(!el2.innerHTML.includes('data-remove="2"'), 'and the list is one row shorter');
     delete project.samples.pluck.slices;
   }
   click({ f: 'susEnd' }); assert.equal(screen.focus, 'susEnd');
