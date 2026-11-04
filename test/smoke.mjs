@@ -10370,4 +10370,44 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   console.log('ok: spectrum contrast and islands');
 }
 
+// Spectral islands (the effect): the partials stay, the noise between them goes down, and mix 0 is the dry sound delayed by one frame.
+{
+  const { fftPlan } = await import('../src/audio/fft.js');
+  const def = NODE_TYPES.islands, slots = Int32Array.from(def.params.map((_, i) => i));
+  const rate = 48000, size = 4096, len = rate * 2;
+  let seed = 99; const rnd = () => (seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296 - 0.5;
+  const tones = [220, 330], input = Float32Array.from({ length: len }, (_, i) => 0.3 * tones.reduce((a, f) => a + Math.sin(2 * Math.PI * f * i / rate), 0) / 2 + 0.06 * rnd());
+  const run = values => {
+    const params = Float32Array.from(def.params.map(p => values[p.name] ?? p.def)), node = def.create({ sampleRate: rate });
+    const out = new Float32Array(len);
+    for (let at = 0; at < len; at += 128) {
+      const o = new Float32Array(128), x = input.subarray(at, at + 128);
+      node.process([[x, x]], [[o, new Float32Array(128)]], 128, params, slots);
+      out.set(o, at);
+    }
+    return out;
+  };
+  const spectrum = (x, from) => {
+    const n = 8192, plan = fftPlan(n), re = new Float64Array(n), im = new Float64Array(n);
+    for (let i = 0; i < n; i++) re[i] = x[from + i] * (0.5 - 0.5 * Math.cos(2 * Math.PI * i / n));
+    plan.run(re, im);
+    return Float64Array.from({ length: n / 2 }, (_, k) => Math.hypot(re[k], im[k]));
+  };
+  const bandsOf = mags => {   // the loudest value within 3 bins of each tone, and the average power everywhere else
+    const n = 8192, near = f => Math.round(f * n / rate), peak = tones.map(f => Math.max(...Array.from({ length: 7 }, (_, j) => mags[near(f) + j - 3])));
+    let sum = 0, count = 0;
+    for (let k = 8; k < 2000; k++) if (tones.every(f => Math.abs(k - near(f)) > 25)) { sum += mags[k] ** 2; count++; }
+    return { peak, floor: Math.sqrt(sum / count) };
+  };
+  const dry = bandsOf(spectrum(input, len - 20000)), wet = run({ contrast: 0.5, islands: 0.8, depth: 40, smooth: 0.3, mix: 1, size: 1 }), after = bandsOf(spectrum(wet, len - 20000));
+  assert.ok(wet.every(Number.isFinite), 'finite');
+  assert.ok(20 * Math.log10(dry.floor / after.floor) > 12, `the noise between the partials is turned down by more than 12 dB (${(20 * Math.log10(dry.floor / after.floor)).toFixed(1)})`);
+  after.peak.forEach((p, i) => assert.ok(Math.abs(20 * Math.log10(p / dry.peak[i])) < 2.5, `the partial at ${tones[i]} Hz keeps its level ${(20 * Math.log10(p / dry.peak[i])).toFixed(2)}`));
+  const dryOnly = run({ mix: 0, size: 1 });
+  const lag = [size - 2, size - 1, size, size + 1].find(l => input.subarray(1000, 3000).every((v, i) => Math.abs(dryOnly[1000 + i + l] - v) < 1e-6));
+  assert.ok(lag !== undefined && def.latency({ size: 1 }) === size - 1, 'mix 0 is the dry sound, one frame late, and the latency says so');
+  for (const sz of [0, 2, 3]) assert.ok(run({ size: sz }).every(Number.isFinite), `size ${sz} runs`);
+  console.log('ok: spectral islands');
+}
+
 console.log('smoke test passed');

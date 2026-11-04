@@ -235,6 +235,11 @@ export const PAGES = {
     best: ['Put it after a crusher or a gritty synth: smooth around 0.4, time 80 ms, and a little round, to take the crunch off the sustain while the hits stay sharp.', 'Turn time up to 300 ms or more for a sound that blooms; turn smooth up for a wash.', 'Use mix partly open to keep some of the original grit.'],
     limits: ['It works in frames, so it adds delay (bigger size, more delay). A sound that is both tone and hit, such as a tuned kick, is shared between body and hit, so only part of it is smoothed. Eco quality works out the split every other frame.'],
   },
+  islands: {
+    summary: 'The piano roll\'s "add islands", as an effect. In every frame the peak inside each loud blob of the spectrum is found and a thin ridge of sound around it is kept; the shoulders of the blobs, the smear between notes and the hiss are turned down. Pitched sound comes out cleaner, with each note standing alone.',
+    best: ['Put it after a noisy recording of a chord or a melody: the notes stay, the hiss and the room fall away. Try contrast 0.5, islands 0.7, depth 40 dB.', 'Raise depth and islands for a stark, resynthesized sound; lower them to just clean up.', 'Smooth keeps the result from warbling. Raise it for pads and chords, lower it for fast melodies.', 'Use size 8192 or 16384 to tell close low notes apart.'],
+    limits: ['It works in long frames, so it adds a lot of delay (up to about a third of a second), and the attack of a drum blurs. Low smooth values or high islands can sound watery. It cannot hear a note that the noise has buried.'],
+  },
   specdyn: {
     summary: 'A compressor for every frequency at once: loud frequencies are pressed back, quiet ones left alone, so booms and harsh rings are flattened without dulling the rest. Tilt then leans the whole spectrum brighter or darker.',
     best: ['Threshold -36 dB with ratio 4 evens out a full mix; lower the threshold and raise the ratio to flatten it further, and make up the gain.', 'Tilt of +1 or +2 dB per octave makes a dull sound clear, -1 to -2 warms a harsh one.', 'Smooth keeps the gain from changing too sharply from one frequency to the next, which stops a ringing, whistling sound.'],

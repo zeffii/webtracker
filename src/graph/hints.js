@@ -405,6 +405,14 @@ const HINTS = {
     quality: 'Eco works out the body/hit split every other frame, for about half the CPU. Standard is the full split.',
     mix: 'Dry against smoothed. The dry sound is delayed to match, so it stays in time.',
   },
+  islands: {
+    contrast: 'Sharpens first: the quiet part of the spectrum falls away and the blobs get edges. 0 leaves the sound as it is.',
+    islands: 'How far everything off a peak is turned down. Each loud blob keeps a thin ridge at its peak; 1 turns the rest down by the full depth.',
+    depth: 'The most the sound between the peaks is turned down, in dB.',
+    smooth: 'How slowly each frequency\'s gain changes from one frame to the next. Low sounds watery and flickers; high is smooth but slower to follow a changing note.',
+    mix: 'Dry/wet balance. The dry sound is delayed to match, so mixing stays in time.',
+    size: 'Frame length: 2048 to 16384 samples. Longer tells close notes apart and low notes better, and adds a lot of delay (16384 is about a third of a second).',
+  },
   specdyn: {
     threshold: 'In dB below full scale. A frequency louder than this is turned down.',
     ratio: 'How hard: 4 means 4 dB over the threshold comes out 1 dB over. 20 is nearly a limiter.',

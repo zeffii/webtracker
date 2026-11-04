@@ -66,6 +66,7 @@ const TYPE_UNIT = {
   mbsat: { f1: 'Hz', f2: 'Hz', f3: 'Hz', bias: '', mix: '%', out: 'dB', lowDrive: 'dB', lowmidDrive: 'dB', highmidDrive: 'dB', highDrive: 'dB', lowGain: 'dB', lowmidGain: 'dB', highmidGain: 'dB', highGain: 'dB' },
   hpss: { length: 'ms', width: 'Hz', sharp: '' },
   bodyblur: { smooth: '', time: 'ms', round: '', split: '', mix: '%' },
+  islands: { depth: 'dB', contrast: '%', islands: '%', smooth: '', mix: '%' },
   specdyn: { threshold: 'dB', ratio: ':1', tilt: 'dB/oct', attack: 'ms', release: 'ms', makeup: 'dB', smooth: '', mix: '%' },
   xsynth: { amount: '%', smooth: '', detail: '%', mix: '%' },
   mosh: { motion: '%', slide: '%', keyframe: 'ms', hold: '%', heal: '%', bloom: '%', smooth: '', mix: '%' },
@@ -130,6 +131,7 @@ const NAMES = {
   bodyblur: { size: ['1024', '2048', '4096'], quality: ['standard', 'eco'] },
   pogue: { stereo: ['mono', 'wide', 'spread'], interp: ['none', 'linear', 'cubic'] },
   specdyn: { size: ['1024', '2048', '4096'] },
+  islands: { size: ['2048', '4096', '8192', '16384'] },
   xsynth: { size: ['1024', '2048', '4096'] },
   mosh: { size: ['1024', '2048', '4096'] },
 };

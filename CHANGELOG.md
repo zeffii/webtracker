@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 637 · 2026-11-04
+
+- **New node: islands (Effects → Spectral).** The piano roll's "add islands" as an effect. In every frame of the sound the peak inside each loud blob of the spectrum is found, a thin ridge of sound around it is kept, and the rest (the shoulders of the blobs, the smear between notes, the hiss) is turned down. `contrast` sharpens first, `islands` and `depth` set how far everything off a peak goes down, `smooth` keeps it from warbling, `mix` blends the dry sound back (delayed to match). `size` is the frame length, 2048 to 16384 samples, and sets the latency: the frames have to be long to tell notes apart, so it adds from about 43 ms to a third of a second, which the latency readout and delay compensation already account for. Stereo, each side on its own. The pass itself is in `src/audio/islandcore.js`, shared with the sample-editor resampler to come.
+
 ## 636 · 2026-11-04
 
 - **Piano roll: contrast and islands for the spectrogram.** Two sliders in the roll bar make a chord easier to read. *Contrast* fades the quiet smear and gives the blobs edges. *Islands* finds the peak inside every blob at every moment, lifts a thin bright ridge there, and pushes the rest of the blob and the background quieter, so each note stands out from its overtones and its neighbours. Both start at 0 (the picture as it was); the same two values are in Settings as "Piano roll: spectrum contrast" and "add islands". They work on the finished picture, so moving them is instant and does not redo the analysis. The code is in `src/project/spectralfx.js`.

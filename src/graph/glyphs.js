@@ -171,6 +171,11 @@ export const GLYPHS = {
     [0.9, 0.5, 0.75, 0.4].forEach((a, i) => { const x = cx - w / 2 + (i + 0.5) * (w / 4); line(ctx, [[x, base], [x, base - Math.min(a, 0.55) * h * 0.8]]); });
     line(ctx, [[cx - w / 2, cy - h * 0.1], [cx + w / 2, cy - h * 0.25]]);
   },
+  islands: (ctx, cx, cy, w, h) => {   // a soft hump with a thin bright spike standing in it, and the rest pressed down
+    const base = cy + h * 0.4;
+    curve(ctx, cx, base, w, h * 0.9, t => Math.exp(-(((t - 0.5) / 0.22) ** 2)) * 0.9, 30);
+    line(ctx, [[cx, base], [cx, base - h * 0.8]]);
+  },
   mosh: (ctx, cx, cy, w, h) => {   // a row of bars smeared sideways: a picture dragged by motion
     const base = cy + h * 0.4;
     [0.7, 0.45, 0.8, 0.35].forEach((a, i) => { const x = cx - w / 2 + (i + 0.5) * (w / 4); line(ctx, [[x, base], [x + (i % 2 ? 1 : -1) * w * 0.06, base - a * h * 0.8]]); });
