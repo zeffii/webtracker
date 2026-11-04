@@ -342,8 +342,8 @@ const HINTS = {
     mix: 'Amount of the echoes added to the dry sound.',
   },
   gater: {
-    div: 'Ticks per step. With 4 ticks to the beat, 1 gives sixteenths, 2 eighths, 4 quarters.',
-    steps: 'How many of the 16 steps are used before the pattern starts again.',
+    div: 'Ticks per step, snapped to 1/4, 1/2, 1, 2, 3, 4, 6 or 8. With 4 ticks to the beat, 1 gives sixteenths and 2 eighths; with 8 ticks to the beat, 2 gives sixteenths. 1/2 and 1/4 are half and quarter ticks, for rolls and stutters.',
+    steps: 'How many steps (up to 64) are used before the pattern starts again. Steps you have not drawn repeat the ones before, so raise this to make a longer phrase and then edit it.',
     shift: 'Rotates the pattern by this many steps, so a command can slide the rhythm along.',
     depth: 'How far the gate closes. 1 is silence on the closed steps; less lets some sound through.',
     smooth: 'Time in ms the gate takes to open and close: short is choppy, long is a soft swell.',

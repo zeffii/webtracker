@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 635 · 2026-11-04
+
+- **Trance gate: faster steps and longer patterns.** `div` now goes down to half and quarter ticks (it snaps to 1/4, 1/2, 1, 2, 3, 4, 6 or 8), so at 8 ticks to the beat the gate can run in 32nds, 64ths and 128ths for rolls and stutters; it was stuck at one tick per step at its fastest. `steps` goes up to 64 (it was 16), and the panel shows as many bars as `steps` says. A pattern drawn when there were 16 steps repeats to fill any longer length, so raising `steps` plays the same rhythm again and you edit from there; old projects sound the same.
+
 ## 634 · 2026-11-04
 
 - **Flanger, chorus and phaser: writing `phase` now slides the sweep instead of jumping it.** A jump moves the delay (or the notches) in one sample and clicks on anything that is sounding. A new `glide` parameter (0 to 500 ms, default 20) sets how long the slide takes; the sweep takes the short way round the cycle and keeps running while it settles. Set `glide` to 0 for the old instant jump, which is fine when the phase is written as a note starts and the effect is quiet. A glide is a brief pitch wobble from the moving delay, so longer values are slower and gentler.

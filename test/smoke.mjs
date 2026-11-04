@@ -2079,6 +2079,14 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     assert.ok(Math.abs(half[ts + 200] - 0.5) < 0.02, 'half depth leaves half the sound through');
     const moved = runGate({ smooth: 0.1, shift: 1 }, { gate: pattern }, { tickSamples: ts, playing: true, songPos: 0 }, 128 * 16);
     assert.ok(moved[ts / 2] === moved[ts / 2] && Math.abs(moved[ts / 2] - pattern[1]) < 0.01 && Math.abs(moved[ts + ts / 2] - pattern[2]) < 0.01, 'shift rotates the pattern');
+    // fractions of a tick make faster steps, and the pattern can be 64 steps long (a short drawn pattern repeats to fill it)
+    const quick = runGate({ smooth: 0.1, div: 0.25 }, { gate: pattern }, { tickSamples: ts, playing: true, songPos: 0 }, 128 * 16);
+    for (let step = 0; step < 6; step++) assert.ok(Math.abs(quick[Math.floor((step + 0.5) * ts / 4)] - pattern[step]) < 0.01, `quarter-tick step ${step}`);
+    const long = Array.from({ length: 64 }, (_, i) => (i === 40 ? 0 : 1));
+    const far = runGate({ smooth: 0.1, steps: 64 }, { gate: long }, { tickSamples: ts, playing: true, songPos: 40 }, 128 * 16);
+    assert.ok(far[ts / 2] < 0.01 && far[ts + ts / 2] > 0.99, `step 41 of a 64-step pattern is closed`);
+    const tiled = runGate({ smooth: 0.1, steps: 32 }, { gate: pattern }, { tickSamples: ts, playing: true, songPos: 16 }, 128 * 24);
+    assert.ok(Math.abs(tiled[ts / 2] - pattern[0]) < 0.01 && Math.abs(tiled[ts * 2 + ts / 2] - pattern[2]) < 0.01, 'a 16-step pattern repeats across 32 steps');
     const idle = runGate({ smooth: 0.1 }, { gate: pattern }, { tickSamples: ts, playing: false }, 128 * 16);
     assert.ok(idle.every(Number.isFinite) && idle.some(v => v < 0.1) && idle.some(v => v > 0.9), 'the gate runs on its own when the song is stopped');
 
