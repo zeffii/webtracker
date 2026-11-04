@@ -74,22 +74,30 @@ export function createPianoRollOverlay({ getSample, getSettings, onChange, onPla
       ctx.fillStyle = row === 0 || row === r.rows ? 'rgba(255, 215, 90, 0.9)' : row % 4 === 0 ? 'rgba(255, 255, 255, 0.28)' : 'rgba(255, 255, 255, 0.11)';
       ctx.fillRect(x, row === 0 || row === r.rows ? 0 : RULER, 1, H);
     }
-    // the overtones of every note (under the notes)
+    // the overtones of every note (under the notes): a dashed line 3 px thick with a dark rim round it, so it reads on a pale spectrogram and on
+    // a bright pink one alike; the harmonic number beside it has the same dark outline
     if (set.overtones) {
-      ctx.setLineDash([3, 3]);
+      ctx.lineJoin = 'round';
       for (const n of r.notes) {
         const a = Math.max(KEYS, v.frameToX(n.from)), b = Math.min(W, v.frameToX(n.to));
         if (b <= a) continue;
         for (let h = 2; h <= 8; h++) {
           const m = n.midi + 12 * Math.log2(h);
           if (m > r.hi) break;
-          const y = Math.round(yOf(r, v, m)) + 0.5;
-          ctx.strokeStyle = `hsla(${hueOf(n.midi)} 80% 70% / ${0.85 - h * 0.08})`;
+          const y = Math.round(yOf(r, v, m)) + 0.5, fade = 0.95 - h * 0.05;
+          ctx.setLineDash([6, 3]);
+          ctx.strokeStyle = `rgba(8, 10, 16, ${fade * 0.85})`; ctx.lineWidth = 5;   // the rim
           ctx.beginPath(); ctx.moveTo(a, y); ctx.lineTo(b, y); ctx.stroke();
-          if (b - a > 18) { ctx.fillStyle = ctx.strokeStyle; ctx.textBaseline = 'bottom'; ctx.textAlign = 'left'; ctx.fillText(`${h}`, a + 2, y - 1); }
+          ctx.strokeStyle = `hsla(${hueOf(n.midi)} 95% 78% / ${fade})`; ctx.lineWidth = 3;
+          ctx.beginPath(); ctx.moveTo(a, y); ctx.lineTo(b, y); ctx.stroke();
+          if (b - a > 18) {
+            ctx.setLineDash([]); ctx.textBaseline = 'bottom'; ctx.textAlign = 'left';
+            ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(8, 10, 16, 0.9)'; ctx.strokeText(`${h}`, a + 2, y - 2);
+            ctx.fillStyle = `hsl(${hueOf(n.midi)} 95% 85%)`; ctx.fillText(`${h}`, a + 2, y - 2);
+          }
         }
       }
-      ctx.setLineDash([]);
+      ctx.setLineDash([]); ctx.lineWidth = 1;
     }
     // the notes: a translucent bar with a bright top edge, the name at its start when there is room
     const shown = drag?.preview ? drag.preview : r.notes;

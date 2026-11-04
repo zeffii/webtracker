@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 633 · 2026-11-04
+
+- **Piano roll: the overtone lines are thicker and stand out on any background.** Each is now a 3 px dashed line with a dark rim round it (it was a 1 px pastel line), brighter and fading less with the harmonic, and the harmonic number beside it has a dark outline. They read on a pale spectrogram and on a bright pink one alike.
+
 ## 632 · 2026-11-04
 
 - **Fix: the Hear list of the piano roll bar stayed out of date.** It listed the song's instruments (and the lane picker its lanes) only when the roll's own settings or the sample on show changed, so an instrument added, removed or renamed afterwards was missing until you switched the roll off and on. Both lists now refill whenever the song's instruments or lanes change.

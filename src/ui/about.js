@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['633', ['Piano roll: the overtone lines are thicker, with a dark rim, so they stand out on bright backgrounds']],
   ['632', ['Fix: the piano roll bar\'s Hear list now follows instruments added, removed or renamed (it needed the roll switched off and on)']],
   ['631', ['Samples: an x at the end of each slice marker row removes that marker']],
   ['630', ['Node Sequencer: section can follow the number of the events (a counter, a modulo rem) instead of the song tick, so a looping count can have parts of its own']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['626', ['Fix: the pattern editor selection box and playhead line no longer drift off the rows when the line height is fractional']],
   ['625', ['The pattern editor selection is a thin box with a faint fill laid over the grid, so selecting no longer rewrites the rows']],
   ['624', ['Frame-timing panel (Ctrl+Alt+F); the pattern editor on big songs is several times faster (no more whole-grid re-layout every frame)']],
-  ['623', ['Node Sequencer: a modulo node that works on the song tick (every n ticks, beats or bars from an offset), with hit, rem and phase outputs']],
                     ];
