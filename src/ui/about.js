@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['629', ['Chord machine: a slot starting with > holds plain notes (>G-4 A-5 C-5) played at exactly those pitches']],
   ['628', ['Flanger, chorus and phaser: a phase parameter a pattern can write to restart the sweep at a chosen point and let it run on']],
   ['627', ['Pattern editor: Ctrl+Alt+Up / Down (nothing selected) add or remove a Note + Vol column pair for the lane under the cursor']],
   ['626', ['Fix: the pattern editor selection box and playhead line no longer drift off the rows when the line height is fractional']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['622', ['Quiet machines sleep: no CPU until a note, parameter change or sidechain wakes them, state kept (Sleep switch per machine, zz in the Stream Manager)']],
   ['621', ['Piano roll over the sample display (Shift+P): mark a virtual pattern, draw notes, hear chords per row, overtone guides, master tuning, write to a "NN transcribe N" pattern']],
   ['620', ['Sidechain node: listening to a meta machine hears the machines it plays, added together; tick the ones to leave out']],
-  ['619', ['Meta machine: the floating parameters window (Ctrl+Alt+P) shows the parameters it plays, as sliders on the machines they belong to']],
                     ];

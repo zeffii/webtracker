@@ -7,19 +7,11 @@
 // The notes come out lowest first. A volume belongs to a place in that order (the lowest note, the next one up, ...), not to a pitch,
 // so one set of volumes fits chords of any size.
 
-import { parseChord, chordNotes } from '../seq/chordname.js';
+import { parseChord, chordNotes, parseNoteName } from '../seq/chordname.js';
 
-const PC = { c: 0, d: 2, e: 4, f: 5, g: 7, a: 9, b: 11 };
 export const MAX_VOICES = 8;
 
-// "C-4", "A2", "Db3", "60" -> a MIDI number, or null. C-4 is 60, the way the Chord machine writes it.
-export function parseNoteName(tok) {
-  if (/^\d{1,3}$/.test(tok)) { const n = Number(tok); return n <= 127 ? n : null; }
-  const m = /^([A-Ga-g])([#b-]?)(-?\d)$/.exec(tok);
-  if (!m) return null;
-  const n = (Number(m[3]) + 1) * 12 + PC[m[1].toLowerCase()] + (m[2] === '#' ? 1 : m[2] === 'b' ? -1 : 0);
-  return n >= 0 && n <= 127 ? n : null;
-}
+export { parseNoteName };   // moved to src/seq/chordname.js, where the Chord machine uses it too
 
 // { notes: [lowest ... highest], inline: [percent or null for each], name, error }. An empty text is no notes and no error.
 export function parseChordText(text, { octave = 4, inversion = 0, max = MAX_VOICES } = {}) {

@@ -14,8 +14,18 @@ const pitchClass = (letter, sign) => (LETTER[letter.toLowerCase()] + (sign === '
 // "C4" for a note number (60 is C4, the usual middle C).
 export const noteName = n => `${NAMES[((n % 12) + 12) % 12]}${Math.floor(n / 12) - 1}`;
 
+// "C-4", "A2", "Db3", "G#5", "60" -> a MIDI number, or null. C-4 is 60 (middle C), the way the pattern editor writes it.
+export function parseNoteName(tok) {
+  if (/^\d{1,3}$/.test(tok)) { const n = Number(tok); return n <= 127 ? n : null; }
+  const m = /^([A-Ga-g])([#b-]?)(-?\d)$/.exec(tok);
+  if (!m) return null;
+  const n = (Number(m[3]) + 1) * 12 + LETTER[m[1].toLowerCase()] + (m[2] === '#' ? 1 : m[2] === 'b' ? -1 : 0);
+  return n >= 0 && n <= 127 ? n : null;
+}
+
 // The syntax shown beside the editor: [what, how to write it]. Kept here so it cannot drift from the parser below.
 export const SYNTAX = [
+  ['Plain notes', 'start with >, then the notes themselves: >G-4 A-5 C-5, >A2 C#3 E3, >57 60 64. They play at exactly those pitches.'],
   ['Root', 'A to G, then # or b: C, F#, Eb, Bb. Lower case works too.'],
   ['Major', 'nothing, or maj, Maj, Major, M, Δ: C, Cmaj, CM'],
   ['Minor', 'm, min, minor, mi, -: Cm, Cmin, C-'],
@@ -40,6 +50,18 @@ export const SYNTAX = [
 export function parseChord(text) {
   let src = flat(String(text ?? '')).trim();
   if (!src) return { error: 'empty' };
+  if (src.startsWith('>')) {   // plain notes, not a chord name: ">G-4 A-5 C-5"
+    const toks = src.slice(1).split(/[\s,]+/).filter(Boolean);
+    if (!toks.length) return { error: 'write notes after the >, like >G-4 A-5 C-5' };
+    const notes = [];
+    for (const tok of toks) {
+      const n = parseNoteName(tok);
+      if (n === null) return { error: `"${tok}" is not a note: write G-4, A#2 or 60` };
+      if (!notes.includes(n)) notes.push(n);
+    }
+    notes.sort((a, b) => a - b);
+    return { root: notes[0] % 12, bass: null, offsets: notes.map(n => n - notes[0]), literal: notes, name: noteName(notes[0]) };
+  }
   const head = /^([A-Ga-g])([#b]?)\s*/.exec(src);
   if (!head) return { error: 'start with a note name, A to G' };
   const root = pitchClass(head[1], head[2]);
@@ -115,6 +137,12 @@ export function parseChord(text) {
 // highest notes).
 export function chordNotes(chord, { octave = 4, inversion = 0, max = 8 } = {}) {
   if (!chord || chord.error) return [];
+  if (chord.literal) {   // plain notes: exactly the pitches typed (no octave); too many go from the top, an inversion lifts the lowest
+    const notes = [...chord.literal];
+    while (notes.length > max && notes.length > 1) notes.pop();
+    for (let i = 0; i < inversion && notes.length > 1; i++) notes.push(notes.shift() + 12);
+    return notes.filter(n => n >= 0 && n <= 127);
+  }
   const base = 12 * (octave + 1) + chord.root;
   let notes = chord.offsets.map(o => base + o);
   while (notes.length > max && notes.length > 1) {

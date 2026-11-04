@@ -9696,6 +9696,17 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   compile(def.graph, { instrument: 'ch', nodeTypes: NODE_TYPES, registry });
   const cols = buildColumns('ch', def, registry);
   assert.ok(cols.some(c => c.kind === 'note') && cols.filter(c => c.kind === 'param').length >= 3, 'the chord instrument has note, Chd and Oct columns');
+  // plain notes: a slot starting with > holds the notes themselves, played at exactly those pitches
+  assert.equal(spell('>G-4 A-5 C-5'), 'G4 C5 A5', 'plain notes come out lowest first, at the pitches typed');
+  assert.equal(spell('>G-4 A-5 C-5', { octave: 1 }), 'G4 C5 A5', 'the octave does not move plain notes');
+  assert.equal(spell('>A2,C#3  E3'), 'A2 C#3 E3', 'spaces and commas both separate, # raises');
+  assert.equal(spell('>57 60 64'), 'A3 C4 E4', 'MIDI numbers work too');
+  assert.equal(spell('>G-4 A-5 C-5', { inversion: 1 }), 'C5 A5 G5', 'an inversion lifts the lowest note');
+  assert.equal(spell('>C-4 E-4 G-4 B-4', { max: 3 }), 'C4 E4 G4', 'too many notes: the highest go');
+  assert.ok(parseChord('>').error && parseChord('>C-4 Q9').error, 'a bare > and a word that is not a note are reported');
+  inst.message({ type: 'chords', points: { '06': '>G-4 A-5 C-5' } });
+  play({ chord: 6 }); assert.deepEqual(ons(), [67, 72, 81], 'a plain-notes slot plays those notes');
+  play({ chord: 6, follow: 1 }, 74); assert.deepEqual(ons(), [81, 86, 95], 'and follow moves them with the note');
   console.log('ok: chord');
 }
 {

@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 629 · 2026-11-04
+
+- **The Chord machine takes plain notes.** A slot that starts with `>` holds the notes themselves, for example `>G-4 A-5 C-5`, `>A2 C#3 E3` or `>57 60 64`. They play at exactly those pitches (the Oct column does not move them); `follow` shifts them with the note played, the inversion lifts the lowest, and `notes` drops the highest when there are too many. A word that is not a note is reported in the slot's row, like a bad chord name. The Node Sequencer's chord node reads the same `>` form. The list of what can be typed has a line for it.
+
 ## 628 · 2026-11-04
 
 - **Flanger, chorus and phaser: a `phase` parameter that sets the sweep and lets it run on.** Write to it from a pattern (expose `phase` as a column on the machine) and the effect's LFO jumps to that point of its cycle, 0 to 1, then carries on at its own rate. Every write counts, even of the same value, so a row of `00` restarts the sweep at the start of each bar. Without a write nothing changes: the sweeps still free-run exactly as before.
