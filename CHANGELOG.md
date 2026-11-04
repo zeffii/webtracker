@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 627 · 2026-11-04
+
+- **Ctrl+Alt+Up / Down in the pattern editor add and remove note columns.** With nothing selected, Up gives the machine of the lane under the cursor one more Note + Vol pair (up to 8) and Down takes the last pair away, but only when it is empty everywhere in the lane, so a key never throws notes away. The machine keeps at least one pair. With rows selected the keys still rotate them, as before.
+
 ## 626 · 2026-11-03
 
 - **Fix: the selection box and the playhead line could sit up to half a row off.** They were placed from whole-pixel row positions, so with a line height that is not a whole number of pixels (a fractional font size or display scaling) the error grew with every row down the grid. The row step is now measured across all the rows.

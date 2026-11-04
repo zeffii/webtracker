@@ -314,6 +314,18 @@ const view = createTrackerView({
   onRow: tick => { if (started) engine.playRow(tick); },
   onMove: (lane, tick) => { seqView.goto(lane, tick); followLane(lane); help.update(project?.lanes?.[lane]); },
   onHelp: (lane, id) => help.show(project.lanes[lane], id),
+  // Ctrl+Alt+Up / Down (nothing selected): one more or one fewer note column (a Note and a Vol) for the machine of the cursor lane
+  onNoteColumns: (lane, dir) => {
+    const def = project.instruments[lane.instrument];
+    if (!def) return `${lane.id} has no machine of its own to give a column.`;
+    const n = def.noteColumns ?? 1, to = n + dir;
+    if (to > 8) return `${lane.instrument} already has 8 note columns.`;
+    if (to < 1) return 'A machine keeps at least one note column.';
+    def.noteColumns = to;
+    reloadInstrument(lane.instrument);
+    songChanged();
+    return `${lane.instrument}: ${to} note column${to === 1 ? '' : 's'} (Note + Vol each).`;
+  },
   onSong: () => songChanged(),
   readParam: slot => engine.registry.values[slot],
   onNote: (instrument, note, on, vel = 1) => { if (!started) return; if (on) engine.noteOn(instrument, note, vel); else engine.noteOff(instrument, note); },

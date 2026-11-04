@@ -40,7 +40,7 @@ export function cellAt({ widths, x, line, top, len }) {
 // Keyboard-driven view of every lane side by side. The cursor sits on one character
 // of one cell. Edits go straight into the shared pages, so they are heard on the next
 // tick while the song plays. Call load() with the prepared lanes before drawing.
-export function createTrackerView({ showMenu = (e, items) => showContextMenu(e, items), showCurve = opts => showCurvePopup(opts), showChord = opts => showChordPalette(opts), random = Math.random, el, statusEl, undoEl = null, transport, onToggle, onBack, onMove, onRow = () => {}, onHelp = () => {}, onNote = () => {}, onSong = () => {}, readParam = () => undefined, follow = () => false }) {
+export function createTrackerView({ showMenu = (e, items) => showContextMenu(e, items), showCurve = opts => showCurvePopup(opts), showChord = opts => showChordPalette(opts), random = Math.random, el, statusEl, undoEl = null, transport, onToggle, onBack, onMove, onRow = () => {}, onHelp = () => {}, onNoteColumns = () => 'Cannot change the columns here.', onNote = () => {}, onSong = () => {}, readParam = () => undefined, follow = () => false }) {
   let lanes = null, len = 0, widths = [], editor = null, song = null;
   // Solo-edit: one placement of one pattern, shown on its own with its rows numbered from 0. Nothing else can be reached.
   // lo..hi is its span of song ticks; hi is the song's length when not in solo-edit and lo is 0.
@@ -327,6 +327,20 @@ export function createTrackerView({ showMenu = (e, items) => showContextMenu(e, 
     }
     const changed = items.length && editor.setCells(r.lane, items, up ? 'delete and pull up' : 'insert and push down');
     message = changed ? (up ? 'Pulled the rows below up.' : 'Pushed the rows below down.') : 'Nothing to move (is there a pattern here?).';
+  };
+
+  // Ctrl+Alt+Up/Down with nothing selected: one more (Up) or one fewer (Down) Note + Vol pair for the machine of the lane the cursor is in.
+  // The last pair only goes when it is empty everywhere in the lane: nothing written is ever thrown away by a key.
+  const noteColumns = dir => {
+    const lane = lanes[cur.lane], notes = lane.columns.flatMap((c, i) => (c.token === 'note' ? [i] : []));
+    if (!notes.length) { message = `${lane.id} has no note columns.`; return; }
+    if (dir < 0) {
+      const last = notes[notes.length - 1], pair = [last, ...(lane.columns[last + 1]?.kind === 'vel' ? [last + 1] : [])];
+      const used = lane.rows.some(r => pair.some(c => !/^\.*$/.test(r[c] ?? '')));
+      if (notes.length < 2) { message = 'A machine keeps at least one note column.'; return; }
+      if (used) { message = 'The last note column has notes in it: clear them first.'; return; }
+    }
+    message = onNoteColumns(lane, dir);
   };
 
   // Ctrl+Alt+Up/Down: the contents of the selected rows rotate by one row, column by column; what falls off one end comes
@@ -733,7 +747,7 @@ export function createTrackerView({ showMenu = (e, items) => showContextMenu(e, 
     }
     if (lanes && e.altKey && e.ctrlKey && !e.metaKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {   // Ctrl+Alt+Up/Down: rotate the selection
       roll = null;
-      rotate(e.key === 'ArrowUp' ? -1 : 1);
+      if (sel) rotate(e.key === 'ArrowUp' ? -1 : 1); else noteColumns(e.key === 'ArrowUp' ? 1 : -1);
       e.preventDefault(); draw(); return;
     }
     if (!lanes || e.altKey) return;

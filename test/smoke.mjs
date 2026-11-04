@@ -7288,6 +7288,15 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   assert.equal(notes()[3], orig[3], 'and does not pull anything up');
   press('z', { ctrlKey: true });
 
+  // nothing selected: Ctrl+Alt+Up asks for one more note column, Down for one fewer (never below one, never with notes in it)
+  { let key2; const asked = [];
+    const view2 = createTrackerView({ el: { addEventListener: (type, f) => { if (type === 'keydown') key2 = f; }, innerHTML: '' }, statusEl: {}, transport: new Int32Array(new SharedArrayBuffer(8)), onToggle() {}, onBack() {}, onNoteColumns: (lane, dir) => { asked.push([lane.id, dir]); return 'ok'; } });
+    view2.load({ lanes, song, editor });
+    key2({ key: 'ArrowUp', ctrlKey: true, altKey: true, preventDefault() {} });
+    assert.deepEqual(asked, [['kick', 1]], 'Up asks for one more column for the cursor lane');
+    key2({ key: 'ArrowDown', ctrlKey: true, altKey: true, preventDefault() {} });
+    assert.equal(asked.length, 1, 'the only note column cannot be removed: the editor does not even ask'); }
+
   // rotate: rows 0..3 up; then a selection across the two patterns rotates each part on its own
   press('Home');
   press('ArrowDown', { shiftKey: true }, 3);

@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['627', ['Pattern editor: Ctrl+Alt+Up / Down (nothing selected) add or remove a Note + Vol column pair for the lane under the cursor']],
   ['626', ['Fix: the pattern editor selection box and playhead line no longer drift off the rows when the line height is fractional']],
   ['625', ['The pattern editor selection is a thin box with a faint fill laid over the grid, so selecting no longer rewrites the rows']],
   ['624', ['Frame-timing panel (Ctrl+Alt+F); the pattern editor on big songs is several times faster (no more whole-grid re-layout every frame)']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['620', ['Sidechain node: listening to a meta machine hears the machines it plays, added together; tick the ones to leave out']],
   ['619', ['Meta machine: the floating parameters window (Ctrl+Alt+P) shows the parameters it plays, as sliders on the machines they belong to']],
   ['618', ['Bounce to sample (Ctrl+Shift+B in the Sequence Editor): a pattern, selection, loop or lane rendered offline, with its tails and a slice marker where the range ends']],
-  ['617', ['Fix: the meta machine Selections list no longer jumps to the top when you click a parameter in a long list']],
                     ];
