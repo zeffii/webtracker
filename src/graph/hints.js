@@ -1015,6 +1015,7 @@ const HINTS = {
     prate: 'How fast the pitch drawing plays. 1 takes 250 ms; 2 takes half that, 0.5 twice as long.',
     body: 'Level of the pitched part.',
     arate: 'How fast the volume drawing plays. 1 takes 700 ms; lower is a longer tail.',
+    harm: 'Harmonics added to the body, strongest at the start of the volume drawing and fading to a clean sine in the tail. This is the thump you can hear on a small speaker, which cannot play the low note itself.',
     drive: 'Soft clipping of the whole hit before the boost.',
     noise: 'How much noise.',
     noiseType: 'White, pink, brown, blue, violet, velvet (sparse spikes), crackle (pops of random size) or stepped (held values; `noiseTone` sets how often it steps).',

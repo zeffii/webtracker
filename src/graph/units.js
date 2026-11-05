@@ -49,7 +49,7 @@ const TYPE_UNIT = {
   ctrl: { time: 'subticks' },
   times: { by: 'x' },
   cardinal: { o1pw: '%', o2pw: '%', o2semi: 'st', o2fine: 'ct', fm: '%', ring: '%', mix: '%', noise: '%', detune: 'ct', width: '%', cutoff: 'Hz', res: '%', dist: '%', fkey: '%', matk: 'ms', mdec: 'ms', mrel: 'ms', msus: '%', e2cut: 'oct', e2pitch: 'st', e2fm: '%', e2pw: '%', atk: 'ms', dec: 'ms', rel: 'ms', sus: '%', vel: '%', l1rate: 'Hz', l2rate: 'Hz', l1amt: '%', l2amt: '%', glide: 'ms', slide: 'ticks', level: '%' },
-  drumsynth2: { startPitch: 'Hz', endPitch: 'Hz', pitchMul: 'x', prate: 'x', arate: 'x', nrate: 'x', drive: '%', noise: '%', noiseTone: 'Hz', noiseHigh: 'Hz', click: '%', clickLen: 'ms', clickTone: 'Hz', clickTail: 'ms', body: '%', boost: 'dB', boostFreq: 'Hz' },
+  drumsynth2: { startPitch: 'Hz', endPitch: 'Hz', pitchMul: 'x', prate: 'x', arate: 'x', nrate: 'x', harm: '%', drive: '%', noise: '%', noiseTone: 'Hz', noiseHigh: 'Hz', click: '%', clickLen: 'ms', clickTone: 'Hz', clickTail: 'ms', body: '%', boost: 'dB', boostFreq: 'Hz' },
   drumsynth: { startPitch: 'Hz', endPitch: 'Hz', pitchMul: 'x', patk: 'ms', pdec: 'ms', prel: 'ms', attack: 'ms', decay: 'ms', release: 'ms', drive: '%', noise: '%', noiseTone: 'Hz', natk: 'ms', ndec: 'ms', nrel: 'ms', click: '%', clickLen: 'ms', clickTone: 'Hz', clickTail: 'ms', body: '%' },
   woodblock: { tone: 'Hz', damping: 'ms', loss: '%', bend: 'st', attack: 'ms', decay: 'ms', release: 'ms', patk: 'ms', pdec: 'ms', prel: 'ms' },
   granular: { size: 'ms', pitchRand: 'ct', spread: '%', attack: 'ms', decay: 'ms', release: 'ms' },

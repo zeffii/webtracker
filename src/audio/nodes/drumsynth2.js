@@ -2,6 +2,8 @@
 //   Body    a sine whose pitch follows the pitch drawing: the top of the drawing is `startPitch` and the bottom `endPitch`, and
 //           it moves between them evenly in octaves, so a straight line is a smooth glide. `pitchMul` scales both; with `keytrack` on the
 //           note moves them too (`root` is the note that plays the pitches as written). The volume drawing shapes the body.
+//           `harm` bends the sine's phase by itself, which adds harmonics (the thump you can hear on a small speaker, where the low note
+//           itself cannot be reproduced). It follows the volume drawing, so the attack is bright and the tail is a clean sine.
 //   Noise   `noise` is how much, `noiseType` the colour (white, pink, brown, blue, violet, velvet, crackle or stepped), `noiseTone`
 //           takes the top off, `noiseHigh` the bottom, and the noise drawing is its volume.
 //   Click   the same short burst at the start of the hit as the drum synth's: `clickMode` 0 makes it (a damped sine at `clickTone`), 1 plays
@@ -16,15 +18,16 @@
 import { SHAPES, envelopeTable, readEnvelope, cleanSpline } from './bezier.js';
 
 const SPEC = [
-  { name: 'startPitch', min: 20, max: 4000, def: 220 },    // Hz at the top of the pitch drawing, at the root note
-  { name: 'endPitch', min: 20, max: 2000, def: 50 },       // Hz at the bottom of it
+  { name: 'startPitch', min: 20, max: 4000, def: 160 },    // Hz at the top of the pitch drawing, at the root note
+  { name: 'endPitch', min: 20, max: 2000, def: 48 },       // Hz at the bottom of it
   { name: 'pitchMul', min: 0.25, max: 4, def: 1 },
   { name: 'keytrack', min: 0, max: 1, def: 1, int: true },
   { name: 'root', min: 0, max: 127, def: 60, int: true },
-  { name: 'prate', min: 0.1, max: 10, def: 1 },            // how fast the pitch drawing plays
+  { name: 'prate', min: 0.1, max: 10, def: 1.5 },            // how fast the pitch drawing plays
   { name: 'body', min: 0, max: 1, def: 0.9 },
-  { name: 'arate', min: 0.1, max: 10, def: 1 },            // the volume drawing
-  { name: 'drive', min: 0, max: 1, def: 0.15 },
+  { name: 'arate', min: 0.1, max: 10, def: 1.6 },            // the volume drawing
+  { name: 'harm', min: 0, max: 1, def: 0.35 },             // harmonics of the body, strongest at the start of the volume drawing
+  { name: 'drive', min: 0, max: 1, def: 0.3 },
   { name: 'noise', min: 0, max: 1, def: 0.15 },
   { name: 'noiseType', min: 0, max: 7, def: 0, int: true },
   { name: 'noiseTone', min: 200, max: 16000, def: 9000 },  // Hz, low-pass on the noise (for stepped, how often it steps)
@@ -36,8 +39,8 @@ const SPEC = [
   { name: 'clickTone', min: 400, max: 12000, def: 3500 },
   { name: 'clickSample', min: 0, max: 255, def: 0, int: true },
   { name: 'clickTail', min: 0, max: 60, def: 4 },
-  { name: 'boost', min: 0, max: 18, def: 0 },              // dB of low shelf at the end
-  { name: 'boostFreq', min: 25, max: 200, def: 60 },       // Hz
+  { name: 'boost', min: 0, max: 18, def: 6 },              // dB of low shelf at the end
+  { name: 'boostFreq', min: 25, max: 200, def: 55 },       // Hz
   { name: 'vel', min: 0, max: 1, def: 0.6 },
   { name: 'level', min: 0, max: 1, def: 0.7 },
 ];
@@ -45,7 +48,8 @@ const P = {};
 SPEC.forEach((s, i) => { P[s.name] = i; });
 export const NOISE_TYPES = ['white', 'pink', 'brown', 'blue', 'violet', 'velvet', 'crackle', 'stepped'];
 export const REFERENCE_MS = { pitch: 250, amp: 700, noise: 400 };
-export const DEFAULT_SHAPES = { pitch: SHAPES.fall, amp: SHAPES.punch, noise: () => [{ x: 0, y: 1, l: null, r: [0.02, -0.55] }, { x: 1, y: 0, l: [-0.4, 0], r: null }] };
+// a fast drop in pitch; the volume held at full for a moment, then a long fall
+export const DEFAULT_SHAPES = { pitch: () => [{ x: 0, y: 1, l: null, r: [0.015, -0.7] }, { x: 1, y: 0, l: [-0.6, 0], r: null }], amp: () => [{ x: 0, y: 1, l: null, r: [0.06, 0] }, { x: 1, y: 0, l: [-0.55, 0], r: null }], noise: () => [{ x: 0, y: 1, l: null, r: [0.02, -0.55] }, { x: 1, y: 0, l: [-0.4, 0], r: null }] };
 const KEYS = ['pitch', 'amp', 'noise'];
 const softLimit = y => { const a = Math.abs(y); return a <= 0.8 ? y : Math.sign(y) * (0.8 + 0.2 * Math.tanh((a - 0.8) / 0.2)); };
 
@@ -93,7 +97,7 @@ const NODE = {
         const g = name => params[slots[P[name]]];
         const ms = sampleRate * 0.001, keyed = g('keytrack') >= 1 ? Math.pow(2, (note - g('root')) / 12) : 1, mul = g('pitchMul') * keyed;
         const lo = g('endPitch'), ratio = Math.max(1, g('startPitch')) / Math.max(1, lo);
-        const bodyLevel = g('body'), noiseAmt = g('noise'), type = Math.round(g('noiseType')), clickAmt = g('click');
+        const harm = g('harm'), bodyLevel = g('body'), noiseAmt = g('noise'), type = Math.round(g('noiseType')), clickAmt = g('click');
         const nf = 1 - Math.exp(-2 * Math.PI * Math.min(g('noiseTone'), sampleRate * 0.45) / sampleRate);
         const hf = 1 - Math.exp(-2 * Math.PI * Math.min(g('noiseHigh'), sampleRate * 0.45) / sampleRate);
         const stepEvery = Math.max(1, Math.round(sampleRate / (2 * Math.max(50, g('noiseTone')))));
@@ -129,7 +133,8 @@ const NODE = {
         for (let i = 0; i < n; i++) {
           const pe = readEnvelope(tp, held * pStep), f = lo * Math.pow(ratio, pe) * mul;
           phase += f / sampleRate; if (phase >= 1) phase -= Math.floor(phase);
-          const body = Math.sin(6.283185307179586 * phase) * bodyLevel * readEnvelope(ta, held * aStep);
+          const ae = readEnvelope(ta, held * aStep), th = 6.283185307179586 * phase;
+          const body = Math.sin(th + harm * 2 * ae * Math.sin(th)) * bodyLevel * ae;
           const w = white();
           let nz;
           if (type === 1) { b0 = 0.99765 * b0 + w * 0.099046; b1 = 0.963 * b1 + w * 0.2965164; b2 = 0.57 * b2 + w * 1.0526913; nz = (b0 + b1 + b2 + w * 0.1848) * 0.3; }

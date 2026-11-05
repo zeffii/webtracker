@@ -4,7 +4,7 @@ import { renderPreview, REFERENCE_MS, DEFAULT_SHAPES, NOISE_TYPES } from '../aud
 // The drum synth 2 panel: three drawings to edit (pitch, volume, noise) and the whole hit as it sounds, drawn from the node's own code.
 const COL = { pitch: 'hsl(200 70% 55%)', amp: 'hsl(35 85% 55%)', noise: 'hsl(145 55% 48%)' };
 const W = 520, H = 86, PL = 48, PR = 12, SR = 44100;
-const PARAMS = ['startPitch', 'endPitch', 'pitchMul', 'keytrack', 'root', 'prate', 'body', 'arate', 'drive', 'noise', 'noiseType', 'noiseTone', 'noiseHigh', 'nrate', 'click', 'clickMode', 'clickLen', 'clickTone', 'clickTail', 'boost', 'boostFreq'];
+const PARAMS = ['startPitch', 'endPitch', 'pitchMul', 'keytrack', 'root', 'prate', 'body', 'arate', 'harm', 'drive', 'noise', 'noiseType', 'noiseTone', 'noiseHigh', 'nrate', 'click', 'clickMode', 'clickLen', 'clickTone', 'clickTail', 'boost', 'boostFreq'];
 
 export function createDrum2View({ doc = document, getParam, getClickSample = () => null, env = {}, onChange }) {
   const el = (tag, props = {}, ...kids) => { const e = doc.createElement(tag); Object.assign(e, props); for (const k of kids) e.appendChild(typeof k === 'string' ? doc.createTextNode(k) : k); return e; };

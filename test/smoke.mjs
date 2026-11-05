@@ -10589,10 +10589,18 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     const old = NODE_TYPES.drumsynth, oslots = Int32Array.from(old.params.map((_, i) => i));
     const oparams = Float32Array.from(old.params.map(p => (p.name === 'body' || p.name === 'noise' ? 0 : p.name === 'click' ? 0.8 : p.def))), oout = new Float32Array(128), on = old.create({ sampleRate: rate });
     on.note({ type: 'noteOn', note: 60, vel: 1 }); on.process([], [[oout, new Float32Array(128)]], 128, oparams, oslots);
-    const nparams = Float32Array.from(def.params.map(p => (p.name === 'body' || p.name === 'noise' ? 0 : p.name === 'click' ? 0.8 : p.def))), nout = new Float32Array(128), nn = def.create({ sampleRate: rate });
+    const nparams = Float32Array.from(def.params.map(p => (p.name === 'body' || p.name === 'noise' || p.name === 'boost' ? 0 : p.name === 'click' ? 0.8 : p.name === 'drive' ? 0.15 : p.def))), nout = new Float32Array(128), nn = def.create({ sampleRate: rate });
     nn.note({ type: 'noteOn', note: 60, vel: 1 }); nn.process([], [[nout, new Float32Array(128)]], 128, nparams, slots);
     let worst = 0; for (let i = 0; i < 128; i++) worst = Math.max(worst, Math.abs(oout[i] - nout[i]));
     assert.ok(worst < 1e-6 && Math.max(...nout.map(Math.abs)) > 0.05, `the click is the same as the drum synth's (${worst})`);
+  }
+  // harm adds harmonics to the body, and they die away with the volume drawing
+  {
+    const bright = x => { let e = 0, t = 0; for (let i = 1; i < x.length; i++) { const d = x[i] - x[i - 1]; e += d * d; t += x[i] * x[i]; } return e / (t || 1e-12); };
+    const q = { noise: 0, click: 0, boost: 0, drive: 0, endPitch: 48, startPitch: 48 };
+    assert.ok(bright(play({ ...q, harm: 0.7 }).subarray(0, 4000)) > bright(play({ ...q, harm: 0 }).subarray(0, 4000)) * 1.5, 'harm brightens the start of the hit');
+    const tailOf = v => play({ ...q, ...v, arate: 1 }).subarray(Math.floor(rate * 0.45), Math.floor(rate * 0.6));
+    assert.ok(bright(tailOf({ harm: 0.7 })) < bright(tailOf({ harm: 0 })) * 3 + 1e-6, 'and the tail is back to a clean sine');
   }
   // the boost lifts the bottom and cannot clip
   const plain = play({ noise: 0, click: 0, endPitch: 45, startPitch: 45, boost: 0, level: 0.15, drive: 0 }), boosted = play({ noise: 0, click: 0, endPitch: 45, startPitch: 45, boost: 12, boostFreq: 80, level: 0.15, drive: 0 });
