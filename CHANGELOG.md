@@ -2,6 +2,11 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 658 · 2026-11-05
+
+- **The mixer never takes the keyboard.** Its buttons (M, S, test, mix) and faders can no longer be tabbed to, and clicking them leaves the focus where it was, so the arrangement keeps its keys and its cursor after you touch the mixer. A question box over the arrangement that has gone from the page can no longer hold the keys either.
+- **Meta machine Selections:** the list on the right is now redrawn after every change even if something that follows the change fails, and says so on its message line instead of staying out of date until you fold and unfold a machine. (I could not make it fail in the demo song, so if it still shows an error line, the text of it tells me where.)
+
 ## 657 · 2026-11-05
 
 - **Kaleidoscope: a spectral effect that arrays a band of the sound across the whole range.** New in Effects > Spectral. Choose a band (`low` to `high` Hz); it is repeated up and down the range in steps of its own width, so a copy of a two-octave band sits two octaves higher or lower than the source.

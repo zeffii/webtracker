@@ -20,7 +20,12 @@ export function createMetaEditor({ root, doc = document, getProject, onChange = 
   const lane = () => project()?.lanes.find(l => l.instrument === metaId);
   const built = id => lane()?.columns.find(c => c.spec === id);   // the column a proxy came out as (none if its machine is gone)
 
-  const changed = message => { onChange(metaId, message); render(message); };
+  // The list is always redrawn, even if something that reacts to the change fails, so what is shown is what the project holds.
+  const changed = message => {
+    try { onChange(metaId, message); }
+    catch (err) { console.error(err); message = `The change was made, but something that follows it failed: ${err.message}`; }
+    finally { render(message); }
+  };
 
   // ---- the left side: what can be played
   const instrumentList = () => {

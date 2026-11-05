@@ -399,7 +399,7 @@ export function createSequenceView({ el, statusEl, undoEl = null, listEl, transp
 
   el.addEventListener('keydown', e => {
     if (!lanes || e.altKey) return;
-    if (dialog) { return; }
+    if (dialog) { if (dialog.box.isConnected) return; dialog = null; }   // (a question whose box has gone from the page must not hold the keys)
     if (curves.key(e)) { e.preventDefault(); e.stopPropagation(); draw(); return; }   // an anchor of a lane curve is selected: E, Shift+E, B, [ ], Left/Right, Delete, Esc
     if (e.ctrlKey || e.metaKey) {
       const key = e.key.toLowerCase(), li0 = cur.lane, tick0 = cur.tick;

@@ -22,6 +22,8 @@ export function createMixer({ el, seq, lanes, widths, chars, instruments, setPar
   function button(text, title, onClick) {
     const b = document.createElement('button');
     b.type = 'button'; b.className = 'mx-btn'; b.textContent = text; b.title = title;
+    b.tabIndex = -1;   // the mixer is for the mouse: the keyboard stays with the arrangement
+    b.addEventListener('mousedown', e => e.preventDefault());   // a click does not take the focus away from the arrangement
     b.addEventListener('click', onClick);
     return b;
   }
@@ -44,6 +46,7 @@ export function createMixer({ el, seq, lanes, widths, chars, instruments, setPar
     };
     const at = e => { const r = track.getBoundingClientRect(); return Math.round(Math.max(0, Math.min(1, (r.bottom - e.clientY) / r.height)) * GAIN_MAX * 100) / 100; };
     track.addEventListener('pointerdown', e => {
+      e.preventDefault();   // (the arrangement keeps the focus)
       track.setPointerCapture(e.pointerId); put(at(e));
       const move = ev => put(at(ev)), up = () => { track.removeEventListener('pointermove', move); track.removeEventListener('pointerup', up); };
       track.addEventListener('pointermove', move); track.addEventListener('pointerup', up);
@@ -108,6 +111,8 @@ export function createMixer({ el, seq, lanes, widths, chars, instruments, setPar
       s.meter.classList.toggle('hot', now > 1);
     }
   }
+
+  el.addEventListener('mousedown', e => e.preventDefault());   // nothing in the mixer takes the focus: the arrangement keeps it
 
   // The engine's levels are only worth sending while the strips are on screen.
   new MutationObserver(sync).observe(seq, { attributes: true, attributeFilter: ['style'] });
