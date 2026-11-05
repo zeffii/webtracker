@@ -347,6 +347,11 @@ export const GLYPHS = {
     ctx.beginPath(); for (let i = 0; i < 3; i++) { ctx.moveTo(x(0.08 + i * 0.28), y(0.15)); ctx.lineTo(x(0.08 + i * 0.28), y(0.85)); ctx.lineTo(x(0.36 + i * 0.28), y(0.15)); } ctx.stroke();
     ctx.beginPath(); ctx.moveTo(x(0.05), y(0.95)); ctx.lineTo(x(0.6), y(0.95)); ctx.quadraticCurveTo(x(0.75), y(0.95), x(0.95), y(0.45)); ctx.stroke();
   },
+  env2: (ctx, cx, cy, w, h) => {   // a drawn curve with the handle on its first anchor
+    const x = f => cx - w / 2 + f * w, y = f => cy + h / 2 - f * h;
+    ctx.beginPath(); ctx.moveTo(x(0.1), y(0.85)); ctx.bezierCurveTo(x(0.45), y(0.85), x(0.5), y(0.15), x(0.9), y(0.15)); ctx.stroke();
+    ctx.beginPath(); ctx.arc(x(0.1), y(0.85), 1.6, 0, 6.3); ctx.moveTo(x(0.1), y(0.85)); ctx.lineTo(x(0.45), y(0.85)); ctx.stroke();
+  },
   drumsynth2: (ctx, cx, cy, w, h) => {   // a drawn curve with its handle, falling, and the spike of the click
     const x = f => cx - w / 2 + f * w, y = f => cy + h / 2 - f * h;
     ctx.beginPath(); ctx.moveTo(x(0.12), y(0.9)); ctx.bezierCurveTo(x(0.3), y(0.15), x(0.55), y(0.2), x(0.92), y(0.2)); ctx.stroke();

@@ -10626,6 +10626,19 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     assert.ok(inst.graph.nodes.find(n => n.type === 'drumsynth2').data.env.amp.length >= 4, 'with its drawn envelopes');
     assert.notEqual(inst.graph, synthKinds.drumsynth2.make().graph, 'each new instrument gets its own copy');
   }
+  {   // Env 2: the same drawing as a control envelope
+    const e2 = NODE_TYPES.env2, es = Int32Array.from(e2.params.map((_, i) => i));
+    const run = (v, notes, blocks = 120, data) => { const node = e2.create({ sampleRate: rate, data }), params = Float32Array.from(e2.params.map(p => v[p.name] ?? p.def)), out = new Float32Array(blocks * 128); for (let b = 0; b < blocks; b++) { if (notes.includes(b)) node.note({ type: 'noteOn', note: 60, vel: 1 }); const o = new Float32Array(128); node.process([], [o], 128, params, es); out.set(o, b * 128); } return out; };
+    const silent = run({}, []); assert.ok(silent.every(v => v === 0), 'silent until a note');
+    const shot = run({ time: 100 }, [1]);
+    assert.ok(shot[128] > 0.9 && shot[128 + 2205] < 0.2 && shot[shot.length - 1] < 0.01 && shot.every(Number.isFinite), 'a note plays the drawing once, then it holds its last level');
+    const lined = run({ time: 100, amount: 2 }, [0], 120, { env: { main: bz.SHAPES.line() } });
+    assert.ok(Math.abs(lined[2205] - 1) < 0.02 && Math.abs(lined[0] - 2) < 0.05, 'a straight line from the first level to the last, times the amount');
+    const looped = run({ time: 20, loop: 1 }, [0], 120, { env: { main: bz.SHAPES.line() } });
+    assert.ok(looped[Math.round(rate * 0.0199)] < 0.1 && looped[Math.round(rate * 0.0205)] > 0.8, 'with loop on it starts again at its end');
+    const live = e2.create({ sampleRate: rate }), lp = Float32Array.from(e2.params.map(p => (p.name === 'time' ? 100 : p.def))); live.message({ type: 'env', slot: 'main', points: bz.SHAPES.flat() }); live.note({ type: 'noteOn', note: 60, vel: 1 });
+    const lo = new Float32Array(128); live.process([], [lo], 128, lp, es); assert.ok(lo.every(v => v === 0), 'a drawing sent to the node takes effect');
+  }
   console.log('ok: drum synth 2');
 }
 

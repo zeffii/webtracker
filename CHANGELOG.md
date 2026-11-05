@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 649 · 2026-11-05
+
+- **New node: Env 2** (Modulators): a control envelope you draw as a Bezier spline, the same drawing as drum synth 2's, for anywhere the ADSR env goes (an oscillator's fm, a gain's cv, a cutoff). `time` is the length in ms from the first anchor to the last, `amount` scales the output, `vel` how much the note's velocity does, and `loop` starts it again at its end, so it can be a wave of your own. A note on plays it once; after its end it holds its last level. The first anchor always shows its own handle, so the start of the curve can be bent without choosing it first (the editor's new `firstHandle` option; the drum synth 2 panel does not use it yet). This is the first version, to be iterated on and then ported to the drum synth 2's envelopes.
+
 ## 648 · 2026-11-05
 
 - **A new Drum synth 2 instrument now starts as your NatKick.** Its three envelopes are already drawn, the settings are yours (pitch 1115 Hz down to 34 Hz, bass boost on at 7.5 dB below 51 Hz, velvet noise, a short low click) and the voices go through the filter after them. The data lives in `src/drumkick2.js`, copied for each new instrument. It was made before `harm` existed, so `harm` is 0 in it and the sound is unchanged. The bare `drumsynth2` node still starts with the plain defaults.

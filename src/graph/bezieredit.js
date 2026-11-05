@@ -6,11 +6,12 @@ import { SHAPES, cleanSpline, walk, segmentOf, autoHandles } from '../audio/node
 //   click an anchor         shows its two handles; drag a handle to bend the curve either side of it
 //   double-click an anchor  makes it a corner (no handles), or smooth again
 //   right-click an anchor   deletes it
+// With `firstHandle` the very first anchor always shows its handle, so the start of the curve can be bent without choosing it first.
 // The buttons start from a shape, put every handle back to smooth, or turn the drawing upside down or back to front.
 const W = 520, H = 150, PL = 48, PR = 12, PT = 18, PB = 20;
 const GRAB = 8;
 
-export function createBezierEditor({ doc = document, title, color, points, fallback = SHAPES.fall, getMs, labels = () => ['100%', '0'], onChange }) {
+export function createBezierEditor({ doc = document, title, color, points, fallback = SHAPES.fall, getMs, labels = () => ['100%', '0'], firstHandle = false, onChange }) {
   const el = (tag, props = {}, ...kids) => { const e = doc.createElement(tag); Object.assign(e, props); for (const k of kids) e.appendChild(typeof k === 'string' ? doc.createTextNode(k) : k); return e; };
   let spline = cleanSpline(points, fallback);
   let selected = null, drag = null;   // drag: { kind: 'anchor' | 'l' | 'r', i }
@@ -25,6 +26,16 @@ export function createBezierEditor({ doc = document, title, color, points, fallb
   const emit = () => onChange(spline.map(p => ({ x: round(p.x), y: round(p.y), l: p.l && p.l.map(round), r: p.r && p.r.map(round) })));
   const round = v => Math.round(v * 10000) / 10000;
 
+  // the handles on show: both of the chosen anchor's (those it has a neighbour for), and the first anchor's own when it keeps one
+  const shownHandles = () => {
+    const list = [];
+    if (selected !== null && spline[selected]) {
+      if (selected > 0) list.push({ i: selected, key: 'l' });
+      if (selected < spline.length - 1) list.push({ i: selected, key: 'r' });
+    }
+    if (firstHandle && !list.some(h => h.i === 0)) list.push({ i: 0, key: 'r' });
+    return list;
+  };
   const draw = () => {
     if (!ctx) return;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -45,15 +56,11 @@ export function createBezierEditor({ doc = document, title, color, points, fallb
     ctx.strokeStyle = color; ctx.lineWidth = 1.6; ctx.beginPath();
     walk(spline).forEach(([x, y], k) => { if (k) ctx.lineTo(X(x), Y(y)); else ctx.moveTo(X(x), Y(y)); });
     ctx.stroke();
-    if (selected !== null && spline[selected]) {   // the handles of the chosen anchor
-      const p = spline[selected], h = handlesOf(selected);
-      ctx.lineWidth = 1; ctx.globalAlpha = 0.55;
-      for (const [key, show] of [['l', selected > 0], ['r', selected < spline.length - 1]]) {
-        if (!show) continue;
-        const q = h[key], hx = X(p.x + q[0]), hy = Y(p.y + q[1]);
-        ctx.beginPath(); ctx.moveTo(X(p.x), Y(p.y)); ctx.lineTo(hx, hy); ctx.stroke();
-        ctx.globalAlpha = 1; ctx.beginPath(); ctx.arc(hx, hy, 3, 0, 2 * Math.PI); ctx.stroke(); ctx.globalAlpha = 0.55;
-      }
+    ctx.lineWidth = 1; ctx.globalAlpha = 0.55;
+    for (const { i, key } of shownHandles()) {   // the handles of the chosen anchor (and of the first one, when it keeps its own)
+      const p = spline[i], q = handlesOf(i)[key], hx = X(p.x + q[0]), hy = Y(p.y + q[1]);
+      ctx.beginPath(); ctx.moveTo(X(p.x), Y(p.y)); ctx.lineTo(hx, hy); ctx.stroke();
+      ctx.globalAlpha = 1; ctx.beginPath(); ctx.arc(hx, hy, 3, 0, 2 * Math.PI); ctx.stroke(); ctx.globalAlpha = 0.55;
     }
     ctx.globalAlpha = 1;
     spline.forEach((p, i) => {
@@ -70,10 +77,7 @@ export function createBezierEditor({ doc = document, title, color, points, fallb
   };
   const near = (px, py, x, y) => Math.hypot(px - X(x), py - Y(y)) <= GRAB;
   const hitHandle = (px, py) => {
-    if (selected === null || !spline[selected]) return null;
-    const p = spline[selected], h = handlesOf(selected);
-    if (selected > 0 && near(px, py, p.x + h.l[0], p.y + h.l[1])) return 'l';
-    if (selected < spline.length - 1 && near(px, py, p.x + h.r[0], p.y + h.r[1])) return 'r';
+    for (const { i, key } of shownHandles()) { const p = spline[i], q = handlesOf(i)[key]; if (near(px, py, p.x + q[0], p.y + q[1])) return { i, key }; }
     return null;
   };
   const hitAnchor = (px, py) => spline.findIndex(p => near(px, py, p.x, p.y));
@@ -81,7 +85,7 @@ export function createBezierEditor({ doc = document, title, color, points, fallb
   canvas.addEventListener('mousedown', e => {
     if (e.button !== 0) return;
     const m = at(e), hh = hitHandle(m.px, m.py);
-    if (hh) { drag = { kind: hh, i: selected }; return; }
+    if (hh) { drag = { kind: hh.key, i: hh.i }; selected = hh.i; return; }
     let i = hitAnchor(m.px, m.py);
     if (i < 0) {   // a new anchor where the click was
       const x = clamp(m.x, 0.004, 0.996), at2 = spline.findIndex(p => p.x > x);

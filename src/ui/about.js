@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['649', ['New node: Env 2, a control envelope you draw as a Bezier spline, with a handle on its first anchor']],
   ['648', ['New Drum synth 2 instruments start as NatKick']],
   ['647', ['Drum synth 2: a harm control for thump on small speakers, and punchier starting settings']],
   ['646', ['New node: drum synth 2 with pitch, volume and noise envelopes you draw as Bezier splines, a rate for each, more noise colours, the same click, and a bass boost']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['642', ['Oscillator: pulse (with width), half sine, rectified sine, steps, and a wave you draw by hand']],
   ['641', ['The page opens with raens; the old song is kept as ?demo=original']],
   ['640', ['New demo: raens (?demo=raens)']],
-  ['639', ['First screen: moving the pointer brings up a shimmer of wireframe (edges and vertices) on the blob under it']],
                     ];

@@ -120,6 +120,12 @@ const HINTS = {
     level: 'Output level.',
     width: 'How much of the cycle the pulse wave (4) is high, from a thin 0.02 to a wide 0.98; 0.5 is a square. Move it for the hollow, nasal sound of pulse width modulation.',
   },
+  env2: {
+    time: 'How long the drawing takes from its first anchor to its last, in ms. After that it holds its last level.',
+    amount: 'Size of the output: the drawing (0 to 1) times this.',
+    loop: 'On: the drawing starts again at its end, so it repeats like a wave of your own.',
+    vel: 'How much the note\'s velocity scales the output.',
+  },
   env: {
     attack: 'Attack in ms: how long the envelope takes to rise to its peak after a note. Every note played on this instrument starts it.',
     decay: 'Decay in ms: how long it takes to fall from the peak to the sustain level (to fall by 60 dB).',
