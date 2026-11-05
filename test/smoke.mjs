@@ -3676,6 +3676,107 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     assert.equal(src, 'float a=LANE[0].x+LANE[3].y+LANE[2].z+LANE[i].w+0.0+HITS;', 'names become LANE look-ups');
   }
 
+  // the canvas picture: a program with setup() and draw(), given the song's numbers, with ticks and notes and sub-tick time
+  {
+    const { createCanvasPicture, lineOf } = await import('../src/ui/canvaspicture.js');
+    const { DEFAULT_CANVAS, CANVAS_TEMPLATES } = await import('../src/ui/canvasdemo.js');
+    const { CANVAS_GUIDE } = await import('../src/ui/canvasguide.js');
+    const p = createArpDemoProject();
+    const registry = new ParamRegistry();
+    for (const [id, def] of Object.entries(p.instruments)) compile(def.graph, { instrument: id, nodeTypes: NODE_TYPES, registry });
+    const lanes = prepareSong(p.song, p.instruments, registry);
+    const transport = new Int32Array(new SharedArrayBuffer(16));
+    const data = createVisData({ lanes: () => lanes, transport, song: () => p.song });
+    const fake = () => {   // a canvas that remembers what it was asked to do
+      const calls = [], props = {};
+      const ctx = new Proxy(props, { get: (o, k) => (k in o ? o[k] : (...a) => { calls.push([k, ...a]); }), set: (o, k, v) => { o[k] = v; return true; } });
+      return { calls, width: 0, height: 0, getContext: () => ctx };
+    };
+    const frames = (pic, from, to, step = 1) => { for (let t = from; t <= to; t += step) { transport[1] = 1; transport[0] = t; transport[2] = 0; const d = data.frame(1000 + t * 16); d.shader = 0; pic.draw(d); } };
+
+    // the song's side: ticks reported once each, with the notes that started on them
+    transport[1] = 1; transport[0] = 0; transport[2] = 0;
+    let out = data.frame(1000);
+    assert.equal(out.ticks.length, 1); assert.equal(out.ticks[0].tick, 0);
+    assert.ok(out.ticks[0].notes.some(n => n.id === 'kick'), 'the kick starts on tick 0 and is named');
+    assert.equal(out.since[0], 0, 'since is 0 at the hit');
+    transport[0] = 3; transport[2] = 32768; out = data.frame(1100);
+    assert.deepEqual(out.ticks.map(t => t.tick), [1, 2, 3], 'ticks that went by between two frames are all reported');
+    assert.ok(Math.abs(out.song - 3.5) < 1e-9 && out.frac === 0.5, 'song has the fraction of the tick');
+    assert.ok(out.since[0] > 0.09 && out.since[0] < 0.11, 'since counts the seconds');
+    transport[0] = 3; out = data.frame(1116);
+    assert.equal(out.ticks.length, 0, 'a frame inside a tick has no tick');
+    assert.ok([0, 1, 2, 3, 4, 5, 6, 7, 8].some(a => out.peek(0, a - 3)?.[0] === 1), 'cell() can look at the pattern'); assert.equal(out.peek(99, 0), null);
+
+    // the starting picture runs and draws
+    {
+      const cv = fake(), errors = [];
+      const pic = createCanvasPicture(cv, { size: 200, onError: t => errors.push(t) });
+      pic.setSources([DEFAULT_CANVAS]);
+      frames(pic, 0, 40);
+      assert.deepEqual(errors, [''], 'it runs without a mistake');
+      assert.ok(cv.calls.some(c => c[0] === 'arc'), 'it draws circles'); assert.ok(cv.calls.some(c => c[0] === 'fillRect'), 'and fades the old frame');
+      assert.equal(cv.width, 200);
+    }
+    // every template runs through some of the song, with a hit, and none of them stop
+    for (const [id, t] of Object.entries(CANVAS_TEMPLATES)) {
+      const cv = fake(), errors = [];
+      const pic = createCanvasPicture(cv, { onError: e => errors.push(e) });
+      pic.setSources([t.source]);
+      frames(pic, 0, 64);
+      assert.deepEqual(errors, [''], `template ${id}: ${errors.join()}`);
+      assert.ok(cv.calls.length > 20, `template ${id} draws`);
+    }
+    // setup() runs once; draw() every frame; onNote hears the notes; ticked() lists the ticks; variables stay between frames
+    {
+      const cv = fake(); const pic = createCanvasPicture(cv);
+      pic.setSources([`let n = 0, kicks = 0, ticks = 0, setups = 0; function setup() { setups++; onNote('kick', () => kicks++); }
+        function draw() { n++; ticks += ticked().length; ctx.report = [n, kicks, ticks, setups, hit('kick'), since('kick'), typeof song, W]; }`]);
+      let rep; const ctxOf = cv.getContext(); frames(pic, 0, 32); rep = ctxOf.report;
+      assert.equal(rep[0], 33, 'draw ran once for each frame'); assert.ok(rep[1] >= 2, `onNote('kick') heard the kicks ${rep[1]}`); assert.equal(rep[2], 33, 'every tick was seen once');
+      assert.equal(rep[3], 1, 'setup ran once'); assert.equal(rep[7], 300);
+      pic.setSources([`let n = 0, kicks = 0, ticks = 0, setups = 0; function setup() { setups++; onNote('kick', () => kicks++); }
+        function draw() { n++; ticks += ticked().length; ctx.report = [n, kicks, ticks, setups, hit('kick'), since('kick'), typeof song, W]; }`]);
+      frames(pic, 0, 3); assert.equal(ctxOf.report[0], 37, 'the same text keeps its memory (33 frames, 4 more)'); 
+      pic.setSources([`function setup() { ctx.setupRan = 1; } function draw() { ctx.report = ['changed']; }`]);
+      frames(pic, 0, 1); assert.equal(ctxOf.report[0], 'changed', 'a changed text starts again'); assert.equal(ctxOf.setupRan, 1);
+      assert.equal(pic.isCanvas(0), true);
+      pic.setSources([null]); assert.equal(pic.isCanvas(0), false);
+      const d = data.frame(5000); d.shader = 0; assert.equal(pic.draw(d), false, 'a shader picture is left to the shader');
+    }
+    // mistakes: a runtime one stops that picture, says which line, and the music side is untouched
+    {
+      const cv = fake(), errors = []; const pic = createCanvasPicture(cv, { onError: e => errors.push(e) });
+      pic.setSources([`let a = 1;\nfunction draw() {\n  a++;\n  nothingHere.x = 1;\n}`]);
+      frames(pic, 0, 5);
+      assert.equal(errors.length, 2, 'the first frame is fine, then it fails once'); assert.equal(errors[0], '');
+      assert.ok(/nothingHere/.test(errors[1]) && /line 4\)/.test(errors[1]), errors[1]);
+      pic.setSources([`function draw( {`]);
+      frames(pic, 0, 2);
+      assert.ok(errors.at(-1).length > 0 && !/line/.test(errors.at(-1)), `a typo that cannot be read is reported: ${errors.at(-1)}`);
+      assert.equal(lineOf(new Error('x')), 0);
+    }
+    assert.ok(CANVAS_GUIDE.includes('ticked()') && CANVAS_GUIDE.includes('onNote') && CANVAS_GUIDE.includes('since(') && CANVAS_GUIDE.includes('cell('), 'the manual names the calls');
+    for (const name of ['hit', 'pitch', 'vel', 'held', 'hits', 'since', 'cell', 'lanes', 'ticked', 'onNote', 'background', 'fade', 'alpha', 'hsl', 'lerp', 'map', 'clamp', 'ease', 'fract', 'noise', 'hash', 'rand', 'C1', 'C2', 'song', 'frac', 'beat', 'dt']) assert.ok(CANVAS_GUIDE.includes(name), `the manual names ${name}`);
+  }
+
+  // canvas pictures are saved with the project (text and kind), next to the shader text that stays when the kind is switched
+  {
+    const p = createArpDemoProject(), registry = new ParamRegistry();
+    for (const [id, def] of Object.entries(p.instruments)) compile(def.graph, { instrument: id, nodeTypes: NODE_TYPES, registry });
+    const lanes = prepareSong(p.song, p.instruments, registry);
+    p.song.shaders = [{ name: 'a', glsl: '', js: 'function draw(){}', canvas: true }, { name: 'b', glsl: 'void main(){}', js: 'x' }];
+    const back = parseProject(serializeProject({ ...p, lanes }));
+    assert.deepEqual(back.song.shaders, [{ name: 'a', glsl: '', js: 'function draw(){}', canvas: true }, { name: 'b', glsl: 'void main(){}', js: 'x' }]);
+    p.song.shaders = [{ name: 'main', glsl: '', canvas: true }];
+    assert.ok(JSON.parse(serializeProject({ ...p, lanes })).song.shaders[0].canvas, 'an empty canvas picture is still a canvas picture');
+    // the editor colours a canvas picture as JavaScript and finds its numbers, quotes and all
+    assert.ok(highlight('const x = 5; // hi', -1, true).includes('<span class="k">const</span>'));
+    assert.ok(highlight('ctx.fillStyle = C1;', -1, true).includes('<span class="w">ctx</span>') && highlight('ctx.fillStyle = C1;', -1, true).includes('<span class="w">C1</span>'));
+    assert.deepEqual(numbers("background('#111'); x = 5; s = `a 7`", true).map(n => n.value), [5], 'a quote or a # does not hide numbers; strings are left alone');
+    assert.ok(!highlight("a('#111')", -1, true).includes('class="p"'), 'no preprocessor lines in JavaScript');
+  }
+
   // mute: m starts it, m again ends it; muted ticks play no notes but a held note is let go
   {
     const registry = new ParamRegistry();

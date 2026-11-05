@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['661', ['Canvas pictures: draw the live picture with JavaScript (setup/draw, ticked, onNote, since), with a guide and templates']],
   ['660', ['The opening song is the longer Plethora']],
   ['659', ['The song the page opens with is now Plethora']],
   ['658', ['The mixer no longer takes the keyboard focus; the meta machine Selections list always redraws after a change']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['654', ['Bongo: a hand-drum synth with a strike slide from muted through open to slap']],
   ['653', ['Hi-hat 2: closed and open hats with drawn volumes, per-hit variation, a flanger and a bit crusher']],
   ['652', ['Random: picks a new value on every trigger, and takes a range (low, high) with a lean and a focus to favour one value']],
-  ['651', ['Env 2: a sustain knot you set on the drawing, a smooth fade for notes that end early, and an optional note length']],
                     ];

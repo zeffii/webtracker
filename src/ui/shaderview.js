@@ -8,24 +8,32 @@ const BUILTINS = new Set(('radians degrees sin cos tan asin acos atan pow exp lo
   'length distance dot cross normalize faceforward reflect refract matrixCompMult lessThan lessThanEqual greaterThan greaterThanEqual equal notEqual any all not texture2D dFdx dFdy fwidth').split(' '));
 const WAX = new Set('hit pitch vel held hits cell R T BEAT HITS NL SKEL C1 C2 LANE PAT WIN BEHIND'.split(' '));
 const SPECIAL = new Set(['gl_FragCoord', 'gl_FragColor', 'gl_PointCoord']);
+// a canvas picture's text is JavaScript: its keywords, and the names Wax hands it (canvaspicture.js) in the Wax colour
+const JS_KEYWORDS = new Set('async await break case catch class const continue default delete do else export extends finally for function if in instanceof let new of return static super switch this throw try typeof var void while with yield true false null undefined'.split(' '));
+const JS_TYPES = new Set('Math Array Object String Number Boolean Date JSON Map Set console Infinity NaN'.split(' '));
+const JS_WAX = new Set(('ctx W H S T dt frame tick frac song beat bar playing C1 C2 setup draw hit pitch vel held hits since cell lanes ticked onNote background fade alpha hsl ' +
+  'lerp map clamp ease easeIn easeOut fract noise hash rand TAU PI').split(' '));
+const JS_MATH = new Set('abs acos asin atan atan2 ceil cos exp floor hypot log max min pow round sign sin sqrt tan'.split(' '));
 
 import { knobCalls } from './visdata.js';
 const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+const TOKEN_JS = /(\/\/[^\n]*|\/\*[\s\S]*?(?:\*\/|$))|("[^"\n]*"?|'[^'\n]*'?|`[^`]*`?)|(?!)()|((?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?)|([A-Za-z_$][\w$]*)|([\s\S])/g;
 const TOKEN = /(\/\/[^\n]*|\/\*[\s\S]*?(?:\*\/|$))|("[^"\n]*"?)|(#[^\n]*)|((?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?)|([A-Za-z_]\w*)|([\s\S])/g;
 
 // The text as HTML, each word in a span whose class says what it is: c comment, s string, p preprocessor line, n number, k keyword,
 // t type, f built-in function, w one of Wax's own names, g gl_ variable. Everything else is left as it is.
-export function highlight(text, mark = -1) {
+export function highlight(text, mark = -1, js = false) {
   let out = '', at = 0;
-  for (const c of knobCalls(text)) { out += colour(text.slice(at, c.start), at, mark); out += `<span class="x">${esc(c.text)}</span>`; at = c.end; }
-  return out + colour(text.slice(at), at, mark);
+  if (!js) for (const c of knobCalls(text)) { out += colour(text.slice(at, c.start), at, mark, js); out += `<span class="x">${esc(c.text)}</span>`; at = c.end; }
+  return out + colour(text.slice(at), at, mark, js);
 }
-function colour(text, offset, mark) {
+function colour(text, offset, mark, js = false) {
   let out = '';
-  for (const m of text.matchAll(TOKEN)) {
+  for (const m of text.matchAll(js ? TOKEN_JS : TOKEN)) {
     const [all, comment, string, pre, num, word] = m;
-    const cls = comment ? 'c' : string ? 's' : pre ? 'p' : num ? `${/^\d+$/.test(num) ? 'i' : 'n'}${m.index + offset === mark ? ' on' : ''}`
-      : word ? (KEYWORDS.has(word) ? 'k' : TYPES.has(word) ? 't' : WAX.has(word) ? 'w' : BUILTINS.has(word) ? 'f' : SPECIAL.has(word) ? 'g' : '') : '';
+    const cls = comment ? 'c' : string ? 's' : pre ? (js ? '' : 'p') : num ? `${/^\d+$/.test(num) ? 'i' : 'n'}${m.index + offset === mark ? ' on' : ''}`
+      : word ? (js ? (JS_KEYWORDS.has(word) ? 'k' : JS_TYPES.has(word) ? 't' : JS_WAX.has(word) ? 'w' : JS_MATH.has(word) ? 'f' : '')
+        : (KEYWORDS.has(word) ? 'k' : TYPES.has(word) ? 't' : WAX.has(word) ? 'w' : BUILTINS.has(word) ? 'f' : SPECIAL.has(word) ? 'g' : '')) : '';
     out += cls ? `<span class="${cls}">${esc(all)}</span>` : esc(all);
   }
   return out;
@@ -34,9 +42,9 @@ function colour(text, offset, mark) {
 // Every plain number in the text, with where it sits: { start, end } the characters a new value replaces (a negative one is written as
 // (-.3), so it can follow a minus sign), { numStart, numEnd } the digits, kind 'int' or 'float', value signed. Numbers in comments,
 // strings and #lines, written with an exponent, or stuck to a letter (0x1F) are left out.
-export function numbers(text) {
-  const out = [], calls = knobCalls(text);
-  for (const m of text.matchAll(TOKEN)) {
+export function numbers(text, js = false) {
+  const out = [], calls = js ? [] : knobCalls(text);
+  for (const m of text.matchAll(js ? TOKEN_JS : TOKEN)) {
     const t = m[4];
     if (!t || calls.some(c => m.index >= c.start && m.index < c.end) || /[eE]/.test(t) || /\w/.test(text[m.index + t.length] ?? '')) continue;
     let start = m.index, end = m.index + t.length, neg = false;
@@ -71,20 +79,24 @@ export function formatValue(kind, v, { decimals = 0, bare = false } = {}) {
 // sliders: parts.clip (the box the popup sits in) and parts.slidersOn (the tick box that switches the number chips and sliders on or off)
 // store: { get(), set(text), texts(), list(), index, select(i), add(), duplicate(), rename(i, name), remove(i) } holds the sources ('' for the built-in
 // picture): the project's shaders, with the Config text as a default for the first; get and set are the one being edited
-export function createShaderView({ parts, config, store, defaultSource, templates, machine = null }) {
+export function createShaderView({ parts, config, store, defaultSource: glslDefault, templates: glslTemplates, machine: glslMachine = null, canvas = null, onSwitch = () => {} }) {
   const { input, paint, gutter, status } = parts;
-  parts.machine = machine;
+  // the picture being edited is a GLSL shader or, when `canvas` ({ defaultSource, templates }) is given and the store says so, a canvas picture
+  const isCanvas = () => !!canvas && store.kind?.() === 'canvas';
+  const base = { get defaultSource() { return isCanvas() ? canvas.defaultSource : glslDefault; }, get templates() { return isCanvas() ? canvas.templates : glslTemplates; }, get machine() { return isCanvas() ? null : glslMachine; } };
+  parts.machine = glslMachine;
   let timer = null, errorLine = 0, shown = '', slider = null, hoverMark = -1;
   const stored = () => store.get();
+  const nums = text => numbers(text, isCanvas());
   const lineCount = () => input.value.split('\n').length;
   const draw = () => {
-    paint.innerHTML = `${highlight(input.value, hoverMark >= 0 ? hoverMark : slider ? slider.numStart : -1)}\n`;
+    paint.innerHTML = `${highlight(input.value, hoverMark >= 0 ? hoverMark : slider ? slider.numStart : -1, isCanvas())}\n`;
     const n = lineCount();
     gutter.innerHTML = Array.from({ length: n }, (_, i) => `<span${i + 1 === errorLine ? ' class="bad"' : ''}>${i + 1}</span>`).join('');
     sync();
   };
   const sync = () => { paint.style.transform = `translate(${-input.scrollLeft}px, ${-input.scrollTop}px)`; gutter.style.transform = `translateY(${-input.scrollTop}px)`; };
-  const apply = () => { timer = null; shown = input.value; store.set(input.value === defaultSource ? '' : input.value); };
+  const apply = () => { timer = null; shown = input.value; store.set(input.value === base.defaultSource ? '' : input.value); };
   const change = () => { if (sliding) return; closeSlider(false); errorLine = 0; draw(); clearTimeout(timer); timer = setTimeout(apply, 350); };
   let sliding = false;
   input.addEventListener('input', change);
@@ -132,7 +144,7 @@ export function createShaderView({ parts, config, store, defaultSource, template
     let at = 0; for (let i = 0; i < row; i++) at += lines[i].length + 1;
     if (col > lines[row].length) return null;
     const offset = at + Math.floor(col);
-    return { n: numbers(input.value).find(n => offset >= n.start && offset < n.end) ?? null, caret: at + Math.min(lines[row].length, Math.round(col)), row, col: Math.floor(col), lh, cw, px, py };
+    return { n: nums(input.value).find(n => offset >= n.start && offset < n.end) ?? null, caret: at + Math.min(lines[row].length, Math.round(col)), row, col: Math.floor(col), lh, cw, px, py };
   };
   let frame = 0;
   const write = v => {   // a new value into the text, at the number the slider is on
@@ -195,7 +207,7 @@ export function createShaderView({ parts, config, store, defaultSource, template
   pop.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Escape') { closeSlider(true); input.focus({ preventScroll: true }); } });
   // the slider shows while the mouse is over a number or the caret is in one, and goes a moment after both have left
   let hoverTimer = 0, overPop = false, overNumber = false;
-  const caretNumber = () => (input.selectionStart === input.selectionEnd && document.activeElement === input ? numbers(input.value).find(n => input.selectionStart >= n.numStart && input.selectionStart <= n.numEnd) : null);
+  const caretNumber = () => (input.selectionStart === input.selectionEnd && document.activeElement === input ? nums(input.value).find(n => input.selectionStart >= n.numStart && input.selectionStart <= n.numEnd) : null);
   const settle = () => {   // close it if neither the mouse nor the caret is on it
     clearTimeout(hoverTimer);
     hoverTimer = setTimeout(() => { if (slider && !overPop && !overNumber && !drag && !caretNumber() && document.activeElement !== range) closeSlider(true); }, 280);
@@ -252,7 +264,7 @@ export function createShaderView({ parts, config, store, defaultSource, template
   let activeKnob = '';
   const setActive = key => { activeKnob = key; for (const row of knobsEl.children) row.classList.toggle('active', row.dataset.key === key); };
   const track = (el, key) => { el.dataset.key = key; if (key === activeKnob) el.classList.add('active'); for (const type of ['pointerdown', 'input', 'focusin']) el.addEventListener(type, () => { if (activeKnob !== key) setActive(key); }); };
-  const nth = i => numbers(input.value)[i];
+  const nth = i => nums(input.value)[i];
   let liveTimer = 0;
   const plain = v => { const t = String(Number(v.toFixed(6))); return t.includes('.') ? t : `${t}.`; };
   // Put text over a range of the code as one step for undo, then rebuild the lists.
@@ -275,8 +287,8 @@ export function createShaderView({ parts, config, store, defaultSource, template
     knobsEl.hidden = !parts.knobsOn.checked || !enabled();
     if (knobsEl.hidden) return;
     knobsEl.textContent = ''; rows.length = 0;
-    const text = input.value, nums = numbers(text).slice(0, 150), calls = knobCalls(text), machine = parts.machine;
-    const list = [...nums.map((n, i) => ({ n, i, at: n.start })), ...calls.map(c => ({ c, at: c.start }))].sort((x, y) => x.at - y.at);
+    const text = input.value, found = numbers(text, isCanvas()).slice(0, 150), calls = isCanvas() ? [] : knobCalls(text), machine = base.machine;
+    const list = [...found.map((n, i) => ({ n, i, at: n.start })), ...calls.map(c => ({ c, at: c.start }))].sort((x, y) => x.at - y.at);
     const lineOf = at => { const ls = text.lastIndexOf('\n', at - 1) + 1, le = text.indexOf('\n', at); return [ls, text.slice(ls, le < 0 ? text.length : le)]; };
     const live = [];
     if (!list.length) knobsEl.append(Object.assign(document.createElement('div'), { className: 'empty', textContent: 'No numbers in the shader.' }));
@@ -381,34 +393,45 @@ export function createShaderView({ parts, config, store, defaultSource, template
 
   // what the settings hold, shown when they change from outside (a template, an imported settings file)
   const load = () => {
-    const v = stored() || defaultSource;
+    const v = stored() || base.defaultSource;
     if (v === shown && input.value === v) return;
     shown = input.value = v; errorLine = 0; draw(); queueKnobs();
   };
-  parts.templates.append(Object.assign(document.createElement('option'), { value: '', textContent: 'Start from a template…' }),
-    ...Object.entries(templates).map(([id, t]) => Object.assign(document.createElement('option'), { value: id, textContent: t.label })),
-    Object.assign(document.createElement('option'), { value: 'builtin', textContent: 'Built-in metaballs' }));
+  const fillTemplates = () => {   // the templates of the kind being edited
+    parts.templates.textContent = '';
+    parts.templates.append(Object.assign(document.createElement('option'), { value: '', textContent: 'Start from a template…' }),
+      ...Object.entries(base.templates).map(([id, t]) => Object.assign(document.createElement('option'), { value: id, textContent: t.label })),
+      Object.assign(document.createElement('option'), { value: 'builtin', textContent: isCanvas() ? 'The starting canvas picture' : 'Built-in metaballs' }));
+    parts.reset.textContent = isCanvas() ? 'Start' : 'Built-in';
+    parts.reset.title = isCanvas() ? 'Go back to the starting canvas picture' : 'Go back to the built-in metaballs';
+    if (parts.kind) parts.kind.value = isCanvas() ? 'canvas' : 'glsl';
+  };
   parts.templates.addEventListener('change', () => {
     const id = parts.templates.value; parts.templates.value = '';
     if (!id) return;
     clearTimeout(timer); timer = null;
-    store.set(id === 'builtin' ? defaultSource : templates[id].source);   // a copy of the built-in is stored, so it cannot turn into whatever the Config default says
+    store.set(id === 'builtin' ? base.defaultSource : base.templates[id].source);   // a copy of the built-in is stored, so it cannot turn into whatever the Config default says
     load();
   });
-  parts.reset.addEventListener('click', () => { clearTimeout(timer); timer = null; store.set(defaultSource); load(); });
+  parts.reset.addEventListener('click', () => { clearTimeout(timer); timer = null; store.set(base.defaultSource); load(); });
   // the shaders of the project: pick the one to edit (the picture shows it while this screen is open; a pattern's Shd column picks it while playing)
   const pick = parts.pick;
   const fillPick = () => {
     if (!pick) return;
     const names = store.list();
     pick.textContent = '';
-    names.forEach((s, i) => pick.append(Object.assign(document.createElement('option'), { value: i, textContent: `${i.toString(16).toUpperCase()}  ${s.name}` })));
+    names.forEach((s, i) => pick.append(Object.assign(document.createElement('option'), { value: i, textContent: `${i.toString(16).toUpperCase()}  ${s.name}${s.canvas ? '  (canvas)' : ''}` })));
     pick.value = store.index;
     parts.del && (parts.del.disabled = names.length < 2);
     parts.add && (parts.add.disabled = names.length >= 16);
   };
   const flush = () => { if (timer) { clearTimeout(timer); apply(); } };
-  const switched = () => { fillPick(); shown = ''; load(); rebuildKnobs(); };
+  const switched = () => { fillPick(); fillTemplates(); shown = ''; load(); rebuildKnobs(); onSwitch(); };
+  parts.kind?.addEventListener('change', () => {
+    flush();
+    try { store.setKind(parts.kind.value); switched(); status.textContent = isCanvas() ? 'This picture is now a canvas picture (its shader text is kept, for when you switch back).' : 'This picture is now a shader again.'; }
+    catch (err) { status.textContent = err.message; parts.kind.value = isCanvas() ? 'canvas' : 'glsl'; }
+  });
   pick?.addEventListener('change', () => { flush(); store.select(Number(pick.value)); switched(); });
   parts.add?.addEventListener('click', () => { flush(); try { store.add(); switched(); status.textContent = `Shader ${store.index.toString(16).toUpperCase()} is new: it starts as a copy of the one before. A Shd cell with that digit in the shader lane switches to it.`; } catch (err) { status.textContent = err.message; } });
   parts.dup?.addEventListener('click', () => { flush(); try { store.duplicate(); switched(); } catch (err) { status.textContent = err.message; } });
@@ -421,12 +444,13 @@ export function createShaderView({ parts, config, store, defaultSource, template
     clearTimeout(timer); timer = null;
     try { store.remove(store.index); switched(); } catch (err) { status.textContent = err.message; }
   });
-  fillPick(); load(); rebuildKnobs();
+  fillPick(); fillTemplates(); load(); rebuildKnobs();
   return {
-    load() { fillPick(); load(); rebuildKnobs(); },
+    load() { fillPick(); fillTemplates(); load(); rebuildKnobs(); onSwitch(); },
+    isCanvas,
     // the picture's compile error, or '' when it is fine; the failing line is marked in the gutter
     error(text) {
-      status.textContent = text ? `${text}${text.includes('built-in') ? '' : ' (the built-in picture keeps running)'}` : 'The picture is running this shader.';
+      status.textContent = text ? `${text}${isCanvas() ? ' (this picture is stopped until the text changes)' : text.includes('built-in') ? '' : ' (the built-in picture keeps running)'}` : isCanvas() ? 'The canvas picture is running.' : 'The picture is running this shader.';
       status.classList.toggle('bad', !!text);
       errorLine = Number(/line (\d+)/.exec(text ?? '')?.[1] ?? 0);
       draw();

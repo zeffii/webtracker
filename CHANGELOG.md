@@ -2,6 +2,12 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 661 · 2026-11-05
+
+- **Canvas pictures.** The live picture can now be drawn with JavaScript on a 2D canvas, Processing style: a `setup()` that runs once and a `draw()` every frame, with variables that stay between frames. In the Shader screen the new **Kind** box switches a picture between Shader and Canvas (each keeps its own text); canvas pictures sit in the same list, are picked by the same Shd column and are saved in the .wax (`js` and `canvas` next to `glsl`).
+- What a picture is given: `song` (position in ticks with the fraction), `tick`, `frac`, `beat`, `bar`, `T`, `dt`; `ticked()` (the ticks since the last frame, each with the notes that started on it, none lost on a slow frame); `onNote(lane, fn)`; `hit`, `since`, `pitch`, `vel`, `held`, `hits`, `cell(lane, ahead)` (look into the pattern before a hit comes), `lanes()`; `background`, `fade`, `alpha`, `hsl`, `lerp`, `map`, `ease`, `noise`, `hash` and the Math functions without `Math.`.
+- The editor colours JavaScript, keeps its number sliders, and a mistake shows with its line under the picture and stops only that picture. A starting picture (dots that glide between notes) and three templates (Bounce, Type, Ahead) come with it, and a **Canvas guide** under the editor lists every name.
+
 ## 660 · 2026-11-05
 
 - **Plethora, the longer version, is the opening song.** Replaces the earlier Plethora as the demo: it adds the oberheim chord patterns with the filter-cutoff curve, the drum synth 2 kick, the comb percussion and the hat808 with its meta-machine phaser column, laid out to loop.

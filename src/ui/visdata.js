@@ -76,10 +76,14 @@ export function peek(lane, tick) {
 // transport: the Int32Array the sequencer fills ([tick, playing, fraction of the tick in 1/65536]); song: { ticksPerBeat }.
 export function createVisData({ lanes, transport, song, decayMs = () => 220, knob = () => undefined }) {
   let states = [], key = '', lastTick = -1, last = 0, time = 0;
-  const out = { knob, T: 0, BEAT: 0, HITS: 0, NL: 1, lane: new Float32Array(MAX_LANES * 4), names: [], pat: new Uint8Array(WIN * MAX_LANES * 4) };
-  let patTick = -2, patKey = '';
+  const out = { knob, T: 0, BEAT: 0, HITS: 0, NL: 1, lane: new Float32Array(MAX_LANES * 4), names: [], pat: new Uint8Array(WIN * MAX_LANES * 4),
+    // for a canvas picture (canvaspicture.js): seconds since each lane's last hit, the ticks the playhead passed this frame (each with the
+    // notes that started on it), the time between frames, whether the song plays, and a look at any lane's row `ahead` ticks from the playhead
+    since: new Float32Array(MAX_LANES).fill(1e3), ticks: [], dt: 0, playing: false, tick: 0, frac: 0, song: 0,
+    peek: (laneNumber, ahead = 0) => { const lane = shown[laneNumber]; return lane ? peek(lane, out.tick + Math.round(ahead)) : null; } };
+  let patTick = -2, patKey = '', shown = [];
   const sync = () => {
-    const list = visibleLanes(lanes()), k = list.map(l => `${l.id}\u0000${l.instrument}`).join('\u0001');
+    const list = shown = visibleLanes(lanes()), k = list.map(l => `${l.id}\u0000${l.instrument}`).join('\u0001');
     if (k !== key) { key = k; states = list.map(() => ({ hit: 0, pitch: 0.5, vel: 0, held: 0 })); out.names = list.map(l => [l.id, l.instrument]); lastTick = -1; }
     return list;
   };
@@ -92,10 +96,20 @@ export function createVisData({ lanes, transport, song, decayMs = () => 220, kno
       const tick = Atomics.load(transport, 0), playing = Atomics.load(transport, 1) === 1, frac = playing ? Atomics.load(transport, 2) / 65536 : 0;
       const fade = Math.exp(-dt / Math.max(0.02, decayMs() / 1000));
       for (const s of states) s.hit *= fade;
+      out.ticks = []; out.dt = dt; out.playing = playing; out.tick = tick; out.frac = frac;
+      for (let i = 0; i < MAX_LANES; i++) out.since[i] = Math.min(1e3, out.since[i] + dt);
       if (playing) {
         // every tick the playhead passed since the last frame (a jump, or the song looping, only reads the tick it is on)
         const from = lastTick >= 0 && tick > lastTick && tick - lastTick <= 24 ? lastTick + 1 : tick;
-        if (tick !== lastTick) for (let t = from; t <= tick; t++) list.forEach((lane, i) => readTick(lane, states[i], t));
+        if (tick !== lastTick) for (let t = from; t <= tick; t++) {
+          const notes = [];
+          list.forEach((lane, i) => {
+            if (!readTick(lane, states[i], t)) return;
+            out.since[i] = 0;
+            notes.push({ lane: i, id: lane.id, inst: lane.instrument, note: Math.round(states[i].pitch * 127), vel: states[i].vel, tick: t });
+          });
+          out.ticks.push({ tick: t, notes });
+        }
         lastTick = tick;
       } else { lastTick = -1; for (const s of states) s.held = 0; }
       let sum = 0;
@@ -116,6 +130,7 @@ export function createVisData({ lanes, transport, song, decayMs = () => 220, kno
       out.NL = Math.max(1, states.length);
       out.T = time;
       out.BEAT = ((tick + frac) / Math.max(1, song()?.ticksPerBeat ?? 4));
+      out.song = tick + frac; out.ticksPerBeat = Math.max(1, song()?.ticksPerBeat ?? 4); out.beatsPerBar = Math.max(1, song()?.beatsPerBar ?? 4);
       return out;
     },
   };

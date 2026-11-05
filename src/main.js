@@ -21,6 +21,9 @@ import { createVisData } from './ui/visdata.js';
 import { createVisual, createLabels, DEFAULT_GLSL } from './ui/visual.js';
 import { TEMPLATES } from './ui/vistemplates.js';
 import { GUIDE } from './ui/shaderguide.js';
+import { CANVAS_GUIDE } from './ui/canvasguide.js';
+import { createCanvasPicture } from './ui/canvaspicture.js';
+import { DEFAULT_CANVAS, CANVAS_TEMPLATES } from './ui/canvasdemo.js';
 import { paletteColours } from './ui/palettes.js';
 import { createSampleBrowser } from './ui/samplebrowser.js';
 import { createShaderView } from './ui/shaderview.js';
@@ -1958,61 +1961,87 @@ const shaderMachine = {
 // The picture's shaders live in the project (song.shaders, up to 16; the shader lane's Shd column picks one, 0 to F); a project with none uses the
 // text in Config. `index` is the one being edited, which the picture shows while the Shader screen is open.
 const shaderList = () => project?.song.shaders ?? [];
-const shaderText = i => shaderList()[i]?.glsl || (i === 0 ? config.get('visualGlsl') : '');
+const isCanvasPicture = i => !!shaderList()[i]?.canvas;
+// the text being edited for picture i: its JavaScript when it is a canvas picture, its GLSL otherwise ('' is the built-in / the starting canvas picture)
+const shaderText = i => (isCanvasPicture(i) ? shaderList()[i].js ?? '' : shaderList()[i]?.glsl || (i === 0 ? config.get('visualGlsl') : ''));
+const canvasText = i => (isCanvasPicture(i) ? shaderText(i).trim() ? shaderText(i) : DEFAULT_CANVAS : null);
 const shaderCount = () => Math.max(1, shaderList().length);
-const pushShaders = () => visual?.setSources(Array.from({ length: shaderCount() }, (_, i) => shaderText(i)));
+const pushShaders = () => {
+  visual?.setSources(Array.from({ length: shaderCount() }, (_, i) => (isCanvasPicture(i) ? '' : shaderText(i))));
+  drawing?.setSources(Array.from({ length: shaderCount() }, (_, i) => canvasText(i)));
+};
 const shaderStore = {
   index: 0,
   get: () => shaderText(shaderStore.index),
   set(text) {
     if (!project) return;
     const list = project.song.shaders ??= [{ name: 'main', glsl: '' }];
-    (list[this.index] ??= { name: String(this.index), glsl: '' }).glsl = text;
-    if (list.length === 1 && !list[0].glsl) delete project.song.shaders;
+    const entry = list[this.index] ??= { name: String(this.index), glsl: '' };
+    if (entry.canvas) entry.js = text; else entry.glsl = text;
+    if (list.length === 1 && !list[0].glsl && !list[0].js && !list[0].canvas) delete project.song.shaders;
     pushShaders(); scheduleCheck();
   },
   texts: () => Array.from({ length: shaderCount() }, (_, i) => shaderText(i)),
   list: () => Array.from({ length: shaderCount() }, (_, i) => ({ name: shaderList()[i]?.name ?? 'main' })),
   select(i) { this.index = Math.max(0, Math.min(shaderCount() - 1, i)); },
-  insert(at, glsl, name) {
+  kind: () => (isCanvasPicture(shaderStore.index) ? 'canvas' : 'glsl'),
+  // a picture is a shader or a canvas picture; each keeps its own text, so switching back and forth loses nothing
+  setKind(kind) {
+    if (!project) throw new Error('Open a project first.');
+    const list = project.song.shaders ??= [{ name: 'main', glsl: shaderText(0) }];
+    const entry = list[this.index] ??= { name: String(this.index), glsl: '' };
+    if (kind === 'canvas') { entry.canvas = true; entry.js ??= ''; } else delete entry.canvas;
+    if (!entry.glsl && !entry.canvas && list.length === 1 && !entry.js) delete project.song.shaders;
+    pushShaders(); scheduleCheck();
+  },
+  insert(at, glsl, name, extra = {}) {
     if (!project) throw new Error('Open a project first.');
     if (shaderCount() >= 16) throw new Error('A song can have 16 shaders (0 to F).');
     const list = project.song.shaders ??= [{ name: 'main', glsl: shaderText(0) }];
-    list.splice(at, 0, { name, glsl });
+    list.splice(at, 0, { name, glsl, ...extra });
     shaderMachine.ensure();
     this.index = at; pushShaders(); scheduleCheck();
   },
-  add() { this.insert(shaderCount(), shaderText(this.index), `shader ${shaderCount().toString(16).toUpperCase()}`); },
-  duplicate() { this.insert(this.index + 1, shaderText(this.index), `${this.list()[this.index].name} copy`.slice(0, 24)); },
+  // a copy keeps the kind: the other kind's text comes along too
+  extra: i => { const e = shaderList()[i]; return e?.canvas ? { canvas: true, js: e.js ?? '' } : e?.js ? { js: e.js } : {}; },
+  add() { this.insert(shaderCount(), isCanvasPicture(this.index) ? (shaderList()[this.index].glsl ?? '') : shaderText(this.index), `shader ${shaderCount().toString(16).toUpperCase()}`, this.extra(this.index)); },
+  duplicate() { this.insert(this.index + 1, isCanvasPicture(this.index) ? (shaderList()[this.index].glsl ?? '') : shaderText(this.index), `${this.list()[this.index].name} copy`.slice(0, 24), this.extra(this.index)); },
   rename(i, name) { if (project?.song.shaders?.[i]) { project.song.shaders[i].name = name; scheduleCheck(); } else if (project) { project.song.shaders = [{ name, glsl: shaderText(0) }]; scheduleCheck(); } },
   remove(i) {
     if (shaderCount() < 2) throw new Error('A song keeps at least one shader. Use Built-in to clear it.');
     project.song.shaders.splice(i, 1);
-    if (project.song.shaders.length === 1 && !project.song.shaders[0].glsl) delete project.song.shaders;
+    if (project.song.shaders.length === 1 && !project.song.shaders[0].glsl && !project.song.shaders[0].js && !project.song.shaders[0].canvas) delete project.song.shaders;
     this.index = Math.min(this.index, shaderCount() - 1); pushShaders(); scheduleCheck();
   },
 };
 const visdata = createVisData({ lanes: () => project?.lanes ?? [], transport: engine.transport, song: () => project?.song, decayMs: () => config.get('visualDecay'), knob: name => shaderMachine.get(name) });
-let visual = null, labels = null, vizOn = false;
+let visual = null, drawing = null, labels = null, vizOn = false, drawingOn = false;
 shaderView = createShaderView({
-  parts: { input: $('shader-input'), paint: $('shader-paint'), gutter: $('shader-gutter'), status: $('shader-status'), templates: $('shader-templates'), reset: $('shader-reset'), clip: $('shader-clip'), slidersOn: $('shader-sliders'), pick: $('shader-pick'), add: $('shader-add'), dup: $('shader-dup'), rename: $('shader-rename'), del: $('shader-del'), knobs: $('shader-knobs'), knobsOn: $('shader-knobs-on') },
+  parts: { kind: $('shader-kind'), input: $('shader-input'), paint: $('shader-paint'), gutter: $('shader-gutter'), status: $('shader-status'), templates: $('shader-templates'), reset: $('shader-reset'), clip: $('shader-clip'), slidersOn: $('shader-sliders'), pick: $('shader-pick'), add: $('shader-add'), dup: $('shader-dup'), rename: $('shader-rename'), del: $('shader-del'), knobs: $('shader-knobs'), knobsOn: $('shader-knobs-on') },
   config, store: shaderStore, defaultSource: DEFAULT_GLSL, templates: TEMPLATES, machine: shaderMachine,
+  canvas: { defaultSource: DEFAULT_CANVAS, templates: CANVAS_TEMPLATES },
+  onSwitch: () => renderGuide(),
 });
 $('shader-pop').addEventListener('click', () => popOut());
-{   // the guide under the editor: built the first time it is opened; each whole example has a button that puts it in the editor (Ctrl+Z undoes)
-  const box = $('shader-guide'), body = $('shader-guide-body');
-  box.addEventListener('toggle', () => {
-    if (!box.open || body.childElementCount) return;
-    body.innerHTML = renderMarkdown(GUIDE);
-    for (const pre of body.querySelectorAll('pre')) {
-      const text = pre.textContent.trim();
-      if (!/void\s+main\s*\(/.test(text)) continue;
-      const button = Object.assign(document.createElement('button'), { type: 'button', className: 'try', textContent: 'Try it in the editor', title: 'Replaces the shader in the editor with this one; Ctrl+Z in the editor brings yours back' });
-      button.addEventListener('click', () => shaderView.tryText(`${text}\n`));
-      pre.after(button);
-    }
-  });
-}
+// the guide under the editor: the shader guide, or the canvas guide while a canvas picture is being edited; built the first time it is opened.
+// Each whole shader example has a button that puts it in the editor (Ctrl+Z undoes).
+const renderGuide = () => {
+  const box = $('shader-guide'), body = $('shader-guide-body'), canvas = shaderView?.isCanvas();
+  box.querySelector('summary').textContent = canvas ? 'Canvas guide: how it works, time and ticks, the song, drawing helpers' : 'Shader guide: how it works, writing one, built-in functions, further reading';
+  if (!box.open) { body.textContent = ''; body.dataset.kind = ''; return; }
+  const kind = canvas ? 'canvas' : 'glsl';
+  if (body.dataset.kind === kind) return;
+  body.dataset.kind = kind;
+  body.innerHTML = renderMarkdown(canvas ? CANVAS_GUIDE : GUIDE);
+  for (const pre of body.querySelectorAll('pre')) {
+    const text = pre.textContent.trim();
+    if (canvas || !/void\s+main\s*\(/.test(text)) continue;
+    const button = Object.assign(document.createElement('button'), { type: 'button', className: 'try', textContent: 'Try it in the editor', title: 'Replaces the shader in the editor with this one; Ctrl+Z in the editor brings yours back' });
+    button.addEventListener('click', () => shaderView.tryText(`${text}\n`));
+    pre.after(button);
+  }
+};
+$('shader-guide').addEventListener('toggle', renderGuide);
 dspView = createDspView({
   parts: { inst: $('dsp-inst'), chain: $('dsp-chain'), gut: $('dsp-gut'), src: $('dsp-src'), prm: $('dsp-prm'), ports: $('dsp-ports'), kern: $('dsp-kern'), foot: $('dsp-foot'), foldAll: $('dsp-fold'), unfoldAll: $('dsp-unfold'), diag: $('dsp-diag'), circ: $('dsp-circ'), open: $('dsp-open'), code: $('dsp-code') },
   getProject: () => project, nodeTypes: NODE_TYPES,
@@ -2272,12 +2301,24 @@ const showViz = on => {
   if (on && !visual) {
     visual = createVisual($('viz-canvas'), { colours: paletteColours(config.get), onRestore: () => { visual = null; showViz(vizOn); }, onError: text => { vizErr.hidden = !text; vizErr.textContent = text; shaderView?.error(text); } });
     if (!visual) { vizOn = false; $('status').textContent = 'The live picture needs WebGL, which this browser does not have.'; }
-    else { visual.resize(Number(config.get('visualSize'))); pushShaders(); labels = createLabels($('viz-text'), Number(config.get('visualSize'))); }
+    else {
+      visual.resize(Number(config.get('visualSize')));
+      const report = text => { vizErr.hidden = !text; vizErr.textContent = text; shaderView?.error(text); };
+      drawing = createCanvasPicture($('viz-draw'), { size: Number(config.get('visualSize')), colours: paletteColours(config.get), onError: report });
+      pushShaders(); labels = createLabels($('viz-text'), Number(config.get('visualSize')));
+    }
   }
   if (!vizOn && pip) pip.close();
   vizBox.hidden = !vizOn; $('viz-btn').setAttribute('aria-pressed', String(vizOn)); placeViz();
 };
-const drawViz = now => { const d = visdata.frame(now ?? performance.now()); d.skeleton = config.get('visualSkeleton'); if (tabs.active === 'shader') d.shader = shaderStore.index; visual.draw(d); labels?.update(d.names, d.skeleton); };
+const drawViz = now => {
+  const d = visdata.frame(now ?? performance.now());
+  d.skeleton = config.get('visualSkeleton'); if (tabs.active === 'shader') d.shader = shaderStore.index;
+  const painted = drawing?.draw(d) ?? false;   // true when the picture on show is a canvas picture; the shader then rests
+  if (painted !== drawingOn) { drawingOn = painted; $('viz-draw').hidden = !painted; }
+  if (!painted) visual.draw(d);
+  labels?.update(d.names, painted ? 0 : d.skeleton);
+};
 // The picture in a window of its own: Document Picture-in-Picture (Chrome, Edge, Brave), an always-on-top window that can go to any
 // screen. The picture's box moves into it and is drawn from that window's own frame loop, which keeps running when this window is
 // covered by other programs. Closing the window, or the button again, brings the box back.
@@ -2285,6 +2326,7 @@ let pip = null;
 const popStyle = `html,body{margin:0;height:100%;background:#111;overflow:hidden}
 #viz{position:fixed;inset:0;width:auto;height:auto;border-radius:0;box-shadow:none;background:#111}
 #viz canvas{position:absolute;left:50%;top:50%;width:100vmin;height:100vmin;transform:translate(-50%,-50%);display:block}
+#viz canvas[hidden]{display:none}
 #viz-text{pointer-events:none}
 #viz-pop{position:absolute;right:6px;top:6px;width:26px;height:26px;padding:0;opacity:0;transition:opacity .15s;background:rgba(0,0,0,.55);color:#cfe3e7;border:0;border-radius:4px;cursor:pointer}
 #viz:hover #viz-pop{opacity:1}
@@ -2361,7 +2403,7 @@ document.addEventListener('keydown', e => {
   if (/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName ?? '')) return;
   e.preventDefault(); e.stopPropagation(); openCmd();
 }, true);
-config.onChange((k, v) => { if (k === 'visualOn') showViz(v); else if (k === 'visualPalette' || k === 'visualColour1' || k === 'visualColour2') visual?.setColours(paletteColours(config.get)); else if (k === 'visualGlsl') { pushShaders(); shaderView?.load(); } else if (k === 'visualSize') { visual?.resize(Number(v)); labels?.resize(Number(v)); } else if (k === 'meterOn') { showMeters(v); placeViz(); } else if (k.startsWith('meter')) { meters.rebuild(); placeMeters(); } });
+config.onChange((k, v) => { if (k === 'visualOn') showViz(v); else if (k === 'visualPalette' || k === 'visualColour1' || k === 'visualColour2') { visual?.setColours(paletteColours(config.get)); drawing?.setColours(paletteColours(config.get)); } else if (k === 'visualGlsl') { pushShaders(); shaderView?.load(); } else if (k === 'visualSize') { visual?.resize(Number(v)); drawing?.resize(Number(v)); labels?.resize(Number(v)); } else if (k === 'meterOn') { showMeters(v); placeViz(); } else if (k.startsWith('meter')) { meters.rebuild(); placeMeters(); } });
 $('meters-btn').addEventListener('click', toggleMeters);
 addEventListener('resize', placeMeters);
 showMeters(config.get('meterOn'));
