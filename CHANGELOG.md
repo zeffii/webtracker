@@ -2,6 +2,13 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 645 · 2026-11-05
+
+- **West coast: softer, and it moves.** The first version was harsh and static.
+  - **Softer:** the voice's saw and square are band-limited now (polyBLEP), `quality` has a third setting, ultra (4x oversampling), the default `bright` is 0.6 and `res` 0.05, and the pluck gate's vactrol has a slow part as well as a fast one, so the tail is long and uneven and the top end falls away first.
+  - **Moves:** `westcoast` has a `drift` parameter (default 0.5): the fold, fm and pitch wander slowly, and each note differs a little from the last. New **random** node (Sources): free running (a new value `rate` times a second, slid to by `smooth`) or a new value on each note, bipolar or from 0.
+  - The west coast demo uses both: a slow random wander on the folder and a random index per note in the hand-patched lane, drift and ultra quality in the voice lane, and softer settings in both.
+
 ## 644 · 2026-11-05
 
 - **New demo: west coast (`?demo=westcoast`).** Two lanes playing the same jazzy ii V I VI (Dm9, G13, Cmaj9, A7b13, twice round), comping against each other, each with a subtle plate. `modular` is the parts patched by hand: a modulation osc into the principal osc's `pm` input (its size from an envelope), a wavefolder opened by a second envelope, a pluck gate, voices, plate. `emulator` is the same idea in one `westcoast` node, with its own two envelopes. The song's info text says what to try.

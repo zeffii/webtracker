@@ -201,6 +201,7 @@ export const GLYPHS = {
     });
     ctx.stroke();
   },
+  random: (ctx, cx, cy, w, h) => line(ctx, [[-0.4, 0.3], [-0.4, -0.2], [-0.15, -0.2], [-0.15, 0.4], [0.1, 0.4], [0.1, -0.1], [0.4, -0.1]].map(([x, y]) => [cx + x * w, cy + y * h])),
   wavefolder: (ctx, cx, cy, w, h) => curve(ctx, cx, cy, w * 0.8, h, t => Math.sin((t * 2 - 1) * 4.2)),
   pluckgate: (ctx, cx, cy, w, h) => curve(ctx, cx, cy, w * 0.8, h * 0.8, t => 1 - 2 * Math.pow(1 - Math.pow(t, 0.35), 1)),
   westcoast: (ctx, cx, cy, w, h) => curve(ctx, cx, cy, w * 0.8, h, t => Math.sin((Math.sin(t * 6.28) * 1.2 + t * 6.28 * 2) * 1) * (1 - t * 0.7)),

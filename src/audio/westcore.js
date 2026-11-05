@@ -28,7 +28,8 @@ const SUB_BLOCK = 8, FMIN = 25;
 export class PluckGate {
   constructor(sampleRate) {
     this.sr = sampleRate;
-    this.level = 0;                  // the vactrol, 0..1
+    this.level = 0;                  // the vactrol, 0..1 (the fast part and the slow part together)
+    this.fast = 0; this.slow = 0;
     this.s1 = 0; this.s2 = 0;        // the filter's state
     this.a1 = 0; this.a2 = 0; this.a3 = 0; this.k = 2;
     this.fmax = 8000; this.mode = 0; this.openCoef = 0.1; this.closeCoef = 0.001; this.count = 0;
@@ -41,12 +42,15 @@ export class PluckGate {
     this.fmax = Math.min(this.sr * 0.45, 200 * Math.pow(2, bright * 7) * Math.pow(2, semis / 12));
     this.openCoef = 1 - Math.exp(-1 / (this.sr * Math.max(0.05, openMs) * 0.001));
     this.closeCoef = 1 - Math.exp(-1 / (this.sr * Math.max(1, closeMs) * 0.001));
+    this.slowCoef = 1 - Math.exp(-1 / (this.sr * Math.max(1, closeMs) * 0.004));   // the photocell's slow part lets go four times slower
   }
   get idle() { return this.level < 1e-5; }
-  reset() { this.level = 0; this.s1 = 0; this.s2 = 0; }
+  reset() { this.level = 0; this.fast = 0; this.slow = 0; this.s1 = 0; this.s2 = 0; }
   // one sample of sound in; `strike` 0..1 is how hard the lamp is lit
   run(x, strike) {
-    const lvl = this.level += (strike - this.level) * (strike > this.level ? this.openCoef : this.closeCoef);
+    this.fast += (strike - this.fast) * (strike > this.fast ? this.openCoef : this.closeCoef);
+    this.slow += (strike - this.slow) * (strike > this.slow ? this.openCoef : this.slowCoef);
+    const lvl = this.level = this.fast * 0.75 + this.slow * 0.25;
     if (this.mode === 1) return x * Math.pow(lvl, 1.4);
     if ((this.count++ & (SUB_BLOCK - 1)) === 0) {
       const fc = FMIN * Math.pow(this.fmax / FMIN, Math.min(1, Math.pow(lvl, 0.7)));

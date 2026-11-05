@@ -11,7 +11,7 @@
    "start": 0,
    "end": 128
   },
-  "info": "West coast, twice.\n\nmodular   the parts patched by hand: a modulation osc into the principal osc's pm input (its size from an envelope), then a wavefolder (opened by a second envelope), a pluck gate, voices, a plate. Click the nodes and move them about.\nemulator  the same idea in one node, `westcoast`, with its own two envelopes. Different ratio and saw as the principal, so the two lanes do not match.\n\nii V I VI in C (Dm9, G13, Cmaj9, A7b13), twice round. Try: the pluck gate's close (ring-out), the folder's fold, the index envelope's amount, then wave 8 on the principal oscillator and draw your own."
+  "info": "West coast, twice.\n\nmodular   the parts patched by hand: a modulation osc into the principal osc's pm input (its size from an envelope plus a random value each note), then a wavefolder (opened by a second envelope and a slow random wander), a pluck gate, voices, a plate. Click the nodes and move them about.\nemulator  the same idea in one node, `westcoast`, with its own two envelopes and a `drift` that keeps the fold, fm and pitch wandering. Different ratio and a saw as the principal, so the two lanes do not match.\n\nii V I VI in C (Dm9, G13, Cmaj9, A7b13), twice round. Try: the pluck gate's close (ring-out), the folder's fold, the index envelope's amount, then wave 8 on the principal oscillator and draw your own."
  },
  "instruments": {
   "modular": {
@@ -67,7 +67,7 @@
       "x": 520,
       "y": 90,
       "params": {
-       "fold": 0.25,
+       "fold": 0.18,
        "symmetry": 0.1,
        "oversample": 1
       }
@@ -93,8 +93,8 @@
       "y": 90,
       "params": {
        "mode": 0,
-       "bright": 0.85,
-       "res": 0.12,
+       "bright": 0.7,
+       "res": 0.08,
        "track": 0.5,
        "open": 2,
        "close": 520,
@@ -103,6 +103,31 @@
        "sus": 0.0,
        "rel": 350,
        "vel": 0.5
+      }
+     },
+     {
+      "id": "wander",
+      "type": "random",
+      "x": 520,
+      "y": 260,
+      "params": {
+       "mode": 0,
+       "rate": 0.45,
+       "smooth": 0.8,
+       "amount": 0.16,
+       "bipolar": 1
+      }
+     },
+     {
+      "id": "eachNote",
+      "type": "random",
+      "x": 200,
+      "y": 330,
+      "params": {
+       "mode": 1,
+       "smooth": 0.1,
+       "amount": 0.4,
+       "bipolar": 0
       }
      },
      {
@@ -152,6 +177,14 @@
      [
       "foldEnv.out",
       "folder.fold"
+     ],
+     [
+      "wander.out",
+      "folder.fold"
+     ],
+     [
+      "eachNote.out",
+      "index.mod"
      ],
      [
       "folder.out",
@@ -226,14 +259,16 @@
       "params": {
        "wave": 1,
        "ratio": 1.5,
-       "fm": 0.3,
-       "fmenv": 0.35,
-       "fold": 0.3,
-       "foldenv": 0.45,
+       "fm": 0.25,
+       "fmenv": 0.3,
+       "fold": 0.22,
+       "foldenv": 0.4,
        "tdec": 500,
        "dec": 800,
        "lpgdec": 420,
-       "bright": 0.8,
+       "bright": 0.7,
+       "drift": 0.6,
+       "quality": 2,
        "level": 0.5
       }
      },

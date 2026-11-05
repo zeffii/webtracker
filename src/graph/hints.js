@@ -449,6 +449,13 @@ const HINTS = {
     damp: 'Lowpass in the feedback path: higher makes each repeat darker.',
     mix: 'Amount of the echoes added to the dry sound.',
   },
+  random: {
+    mode: 'Free running (a new value `rate` times a second) or a new value on each note.',
+    rate: 'How often a new value is picked in free running mode, in Hz.',
+    smooth: 'How far it slides to each new value: 0 jumps (sample and hold), 1 takes the whole time.',
+    amount: 'Size of the values.',
+    bipolar: '1: values between minus and plus amount. 0: between 0 and amount.',
+  },
   wavefolder: {
     fold: 'How hard the wave is pushed into the folder. Each overshoot turns the wave round, so more fold means more harmonics.',
     symmetry: 'Moves the wave off centre before folding: uneven folds, which add even harmonics.',
@@ -494,7 +501,8 @@ const HINTS = {
     glide: 'Slide time between notes, ms.',
     vel: 'How much the note\'s velocity sets the strike.',
     level: 'Output level.',
-    quality: 'High runs the oscillator and folder at twice the rate.',
+    quality: 'High runs the oscillator and folder at twice the rate, ultra at four times (the least aliasing).',
+    drift: 'How much the fold, fm and pitch wander, and how much each note differs from the last.',
   },
   waveshaper: {
     drive: 'Scales the signal before it meets the curve you drew: more drive uses more of the curve\'s ends.',

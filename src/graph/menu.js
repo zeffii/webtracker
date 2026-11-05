@@ -9,7 +9,7 @@ const GROUPS = {
   Sources: [
     ['Synths', ['subsynth', 'fourpole', 'oberheim', 'piano', 'addsynth', 'fmsynth', 'dvii', 'wavetable', 'granular', 'woodblock', 'jawharp', 'snarl', 'clang', 'membrane', 'drumsynth', 'cardinal', 'specsynth', 'string', 'hat808', 'clap', 'combperc', 'squelch', 'duette', 'modchan', 'westcoast']],
     ['Basic', ['osc', 'noise', 'sampler']],
-    ['Modulators', ['env', 'lfo']],
+    ['Modulators', ['env', 'lfo', 'random']],
     ['Routing', ['sidechain', 'listen']],
   ],
   Effects: [

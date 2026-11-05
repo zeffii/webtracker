@@ -10493,7 +10493,7 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   }
   // pluck gate: a struck noise burst is bright at first and darker later, and it dies out
   {
-    const def = NODE_TYPES.pluckgate, slots = slotsOf(def), n = 24064, params = paramsOf(def, { dec: 100, close: 400 });
+    const def = NODE_TYPES.pluckgate, slots = slotsOf(def), n = 24064, params = paramsOf(def, { dec: 100, close: 80 });
     let seed = 3; const noise = Float32Array.from({ length: n }, () => ((seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296 - 0.5));
     const node = def.create({ sampleRate: rate, connected: [true, false] }); node.note({ type: 'noteOn', note: 60, vel: 1 });
     const out = new Float32Array(n);
@@ -10521,6 +10521,23 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     for (let at = 0; at < 48000; at += B) { last = [new Float32Array(B), new Float32Array(B)]; node.process([null, null], [last], B, params, slots); }
     assert.ok(last[0].every(v => v === 0), 'silent once it has died away');
     assert.ok(Array.isArray(def.adsr) && def.adsr.length === 2, 'both envelopes are drawn');
+    for (const quality of [0, 1, 2]) assert.ok(run({ quality, wave: 2, drift: 1 }).every(Number.isFinite), `quality ${quality} runs`);
+    const drifty = run({ drift: 1, fold: 0.3, dec: 4000, sus: 1 }), steady = run({ drift: 0, fold: 0.3, dec: 4000, sus: 1 });
+    assert.ok(drifty.some((v, i) => Math.abs(v - steady[i]) > 0.01), 'drift changes the sound');
+    // a saw with the steps smoothed aliases less than the bare one would: nothing above the top harmonic that fits
+    const hi = run({ wave: 2, fold: 0, fm: 0, fmenv: 0, foldenv: 0, drift: 0, tune: 24, bright: 1, dec: 4000, sus: 1, quality: 0 });
+    assert.ok(Math.max(...hi) < 1.6 && hi.every(Number.isFinite), 'the band-limited saw stays tame');
+  }
+  // the random node: free running changes over time, per note holds between notes, the same every render
+  {
+    const def = NODE_TYPES.random, slots = slotsOf(def), run = (v, notes = []) => { const node = def.create({ sampleRate: rate }), params = paramsOf(def, v), out = new Float32Array(B * 200); for (let b = 0; b < 200; b++) { if (notes.includes(b)) node.note({ type: 'noteOn', note: 60, vel: 1 }); const o = new Float32Array(B); node.process([], [o], B, params, slots); out.set(o, b * B); } return out; };
+    const free = run({ mode: 0, rate: 20, smooth: 0 });
+    assert.ok(new Set(free.map(v => v.toFixed(4))).size > 4 && free.every(v => Math.abs(v) <= 1.0001), 'free running picks new values within the amount');
+    const held = run({ mode: 1, smooth: 0 }, [10, 100]);
+    assert.equal(new Set(held.subarray(B * 12, B * 90).map(v => v.toFixed(5))).size, 1, 'per note it holds between notes');
+    assert.notEqual(held[B * 50].toFixed(4), held[B * 150].toFixed(4), 'a new note picks a new value');
+    const uni = run({ mode: 0, rate: 20, smooth: 0, bipolar: 0 });
+    assert.ok(Math.min(...uni) >= -1e-6 && Math.max(...uni) <= 1.0001, 'unipolar stays between 0 and the amount');
   }
   console.log('ok: west-coast blocks');
 }
