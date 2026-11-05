@@ -212,7 +212,7 @@ export class GraphRuntime {
 
   // Message for one node (every copy of it), for example the sample data for a sampler.
   message(instrument, nodeId, msg) {
-    if (msg.type === 'sample' || msg.type === 'curve' || msg.type === 'spectrum' || msg.type === 'waves' || msg.type === 'wave' || msg.type === 'table' || msg.type === 'pair' || msg.type === 'taps' || msg.type === 'bank' || msg.type === 'gate' || msg.type === 'chords' || msg.type === 'code') this.samples.set(`${instrument}\u0000${nodeId}\u0000${msg.type}${msg.slot ?? ''}`, msg);   // replayed if the instrument is rebuilt
+    if (msg.type === 'sample' || msg.type === 'curve' || msg.type === 'spectrum' || msg.type === 'waves' || msg.type === 'wave' || msg.type === 'env' || msg.type === 'table' || msg.type === 'pair' || msg.type === 'taps' || msg.type === 'bank' || msg.type === 'gate' || msg.type === 'chords' || msg.type === 'code') this.samples.set(`${instrument}\u0000${nodeId}\u0000${msg.type}${msg.slot ?? ''}`, msg);   // replayed if the instrument is rebuilt
     const inst = this.instruments.get(instrument);
     if (inst?.sleep) inst.sleep.woken = true;
     for (const node of inst?.byId.get(nodeId) ?? []) node.instance.message?.(msg);

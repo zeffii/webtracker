@@ -2,6 +2,17 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 646 · 2026-11-05
+
+- **New node: drum synth 2** (Sources, Synths), and a new instrument kind of the same name under Drums. The drum synth is untouched. In this one nothing is an ADSR: the pitch, the volume and the noise each follow a one-shot envelope that you **draw as a Bezier spline** in three big panels under the parameters, with the hit as it sounds drawn underneath.
+  - **Drawing:** click on empty space to add an anchor, drag to move it, click an anchor to show its two handles and drag those to bend the curve, double-click an anchor for a corner (or smooth again), right-click to delete. Buttons start from a shape (fall, line, punch, hump, hold, flat), put every handle back to smooth, flip it upside down or play it back to front. Handles are held inside their segment, so a drawing is always a function of time. The drawings are saved with the instrument and in node presets, and a new drawing takes effect while a hit plays.
+  - **Rate for each drawing** (`prate`, `arate`, `nrate`): how fast it plays. 1 is the reference time (pitch 250 ms, volume 700 ms, noise 400 ms), 0.5 takes twice as long, 2 half. After its end a drawing holds its last level.
+  - **Pitch:** the top of the pitch drawing is `startPitch` and the bottom `endPitch`, and it moves between them evenly in octaves.
+  - **Noise:** eight colours (white, pink, brown, blue, violet, and new velvet, crackle and stepped), a low-pass `noiseTone` and a new high-pass `noiseHigh`.
+  - **Click:** the same mechanism as the drum synth, sample click included; the test checks the first samples are identical.
+  - **Bass boost end stage:** `boost` (dB) and `boostFreq` (Hz): a low shelf after everything, then a soft limiter so it cannot clip.
+  - A note off fades the hit out in 40 ms, which only matters for a volume drawing that does not end at 0.
+
 ## 645 · 2026-11-05
 
 - **West coast: softer, and it moves.** The first version was harsh and static.

@@ -10542,4 +10542,74 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   console.log('ok: west-coast blocks');
 }
 
+// Drum synth 2: Bezier envelopes you draw, a rate for each, more noise colours, v1's click, and a bass boost at the end.
+{
+  const bz = await import('../src/audio/nodes/bezier.js');
+  const def = NODE_TYPES.drumsynth2, slots = Int32Array.from(def.params.map((_, i) => i)), rate = 44100;
+  // the spline model
+  assert.equal(bz.cleanSpline('nonsense').length, 2, 'a stored drawing that makes no sense becomes the default');
+  const line = bz.envelopeTable(bz.SHAPES.line());
+  assert.ok(Math.abs(line[0] - 1) < 1e-6 && Math.abs(line[bz.ENV_POINTS]) < 1e-6 && Math.abs(line[128] - 0.5) < 0.01, 'a line with corner ends runs straight from the first level to the last');
+  const wild = [{ x: 0, y: 0, l: null, r: [5, 9] }, { x: 0.5, y: 1, l: [-9, -9], r: [9, 9] }, { x: 1, y: 0, l: [-9, 0], r: null }], tw = bz.envelopeTable(wild);
+  assert.ok(tw.every(v => v >= 0 && v <= 1) && bz.walk(wild).every(([x], i, a) => i === 0 || x >= a[i - 1][0]), 'handles pulled far out stay inside their segment: the curve never doubles back, and stays between 0 and 1');
+  const fall = bz.envelopeTable(bz.SHAPES.fall());
+  assert.ok(fall[0] > 0.99 && fall[bz.ENV_POINTS] < 0.01 && fall[20] < 0.8 * fall[0] && fall.every((v, i) => i === 0 || v <= fall[i - 1] + 1e-6), 'the fall shape starts high, ends at zero and never rises');
+  assert.ok(bz.readEnvelope(fall, 2) === fall[bz.ENV_POINTS], 'past its end a drawing holds its last value');
+  const play = (values = {}, { env, notes = [], ms = 600, off = null } = {}) => {
+    const params = Float32Array.from(def.params.map(p => values[p.name] ?? p.def)), node = def.create({ sampleRate: rate, data: { env } });
+    const total = Math.ceil(rate * ms / 1000 / 128) * 128, out = new Float32Array(total);
+    node.note({ type: 'noteOn', note: 60, vel: 1 });
+    for (let at = 0; at < total; at += 128) {
+      if (off !== null && at === off) node.note({ type: 'noteOff', note: 60 });
+      const L = new Float32Array(128), R = new Float32Array(128); node.process([], [[L, R]], 128, params, slots); out.set(L, at);
+    }
+    return out;
+  };
+  const energy = (x, a, b) => { let e = 0; for (let i = Math.floor(a * rate); i < Math.min(x.length, Math.floor(b * rate)); i++) e += x[i] * x[i]; return e; };
+  const lastLoud = (x, thr = 0.02) => { for (let i = x.length - 1; i >= 0; i--) if (Math.abs(x[i]) > thr) return i / rate; return 0; };
+  const base = play({ noise: 0, click: 0 });
+  assert.ok(base.every(Number.isFinite) && Math.max(...base.map(Math.abs)) > 0.1, 'a hit makes sound');
+  // rate: the volume drawing at twice the rate is over in about half the time
+  const slow = lastLoud(play({ noise: 0, click: 0, arate: 1 }, { ms: 1500 })), quick = lastLoud(play({ noise: 0, click: 0, arate: 2 }, { ms: 1500 }));
+  assert.ok(quick < slow * 0.65 && quick > slow * 0.3, `twice the rate is about half as long (${quick.toFixed(3)} against ${slow.toFixed(3)} s)`);
+  // the pitch drawing: flat at the top plays startPitch, flat at the bottom plays endPitch
+  const crossings = x => { let c = 0; for (let i = 1; i < x.length; i++) if (x[i - 1] < 0 && x[i] >= 0) c++; return c; };
+  const high = crossings(play({ noise: 0, click: 0, startPitch: 400, endPitch: 100, drive: 0 }, { env: { pitch: [{ x: 0, y: 1, l: null, r: [0, 0] }, { x: 1, y: 1, l: [0, 0], r: null }] }, ms: 250 }).subarray(0, rate / 5));
+  const low = crossings(play({ noise: 0, click: 0, startPitch: 400, endPitch: 100, drive: 0 }, { env: { pitch: [{ x: 0, y: 0, l: null, r: [0, 0] }, { x: 1, y: 0, l: [0, 0], r: null }] }, ms: 250 }).subarray(0, rate / 5));
+  assert.ok(Math.abs(high / 0.2 - 400) < 30 && Math.abs(low / 0.2 - 100) < 30, `the drawing sets the pitch (${high / 0.2} and ${low / 0.2} Hz)`);
+  // noise colours, each a different sound, none broken
+  const kinds = NOISE_TYPES_FOR_TEST();
+  function NOISE_TYPES_FOR_TEST() { return [0, 1, 2, 3, 4, 5, 6, 7]; }
+  const noises = kinds.map(t => play({ body: 0, click: 0, noise: 1, noiseType: t, noiseTone: 9000 }, { ms: 300 }));
+  assert.ok(noises.every(x => x.every(Number.isFinite) && energy(x, 0, 0.3) > 1e-4), 'every noise colour makes sound');
+  assert.equal(new Set(noises.map(x => energy(x, 0, 0.3).toFixed(3))).size, 8, 'and they are all different');
+  assert.ok(energy(play({ body: 0, click: 0, noise: 1, noiseType: 0, noiseHigh: 3000 }, { ms: 300 }), 0, 0.3) < energy(noises[0], 0, 0.3) * 0.7, 'the high-pass takes the bottom off the noise');
+  // the click is the drum synth's: with the same amount, length and tone it makes the same first few milliseconds
+  {
+    const old = NODE_TYPES.drumsynth, oslots = Int32Array.from(old.params.map((_, i) => i));
+    const oparams = Float32Array.from(old.params.map(p => (p.name === 'body' || p.name === 'noise' ? 0 : p.name === 'click' ? 0.8 : p.def))), oout = new Float32Array(128), on = old.create({ sampleRate: rate });
+    on.note({ type: 'noteOn', note: 60, vel: 1 }); on.process([], [[oout, new Float32Array(128)]], 128, oparams, oslots);
+    const nparams = Float32Array.from(def.params.map(p => (p.name === 'body' || p.name === 'noise' ? 0 : p.name === 'click' ? 0.8 : p.def))), nout = new Float32Array(128), nn = def.create({ sampleRate: rate });
+    nn.note({ type: 'noteOn', note: 60, vel: 1 }); nn.process([], [[nout, new Float32Array(128)]], 128, nparams, slots);
+    let worst = 0; for (let i = 0; i < 128; i++) worst = Math.max(worst, Math.abs(oout[i] - nout[i]));
+    assert.ok(worst < 1e-6 && Math.max(...nout.map(Math.abs)) > 0.05, `the click is the same as the drum synth's (${worst})`);
+  }
+  // the boost lifts the bottom and cannot clip
+  const plain = play({ noise: 0, click: 0, endPitch: 45, startPitch: 45, boost: 0, level: 0.15, drive: 0 }), boosted = play({ noise: 0, click: 0, endPitch: 45, startPitch: 45, boost: 12, boostFreq: 80, level: 0.15, drive: 0 });
+  assert.ok(energy(boosted, 0.05, 0.4) > energy(plain, 0.05, 0.4) * 3 && boosted.every(v => Math.abs(v) < 1), 'the boost makes the low end louder and stays under full scale');
+  // a drawing sent while it plays takes effect; the hit ends by itself and goes silent
+  const flat = play({ noise: 0, click: 0 }, { env: { amp: bz.SHAPES.flat() } });
+  assert.ok(Math.max(...flat.map(Math.abs)) < 1e-6, 'a volume drawing at zero is silence');
+  {
+    const node = def.create({ sampleRate: rate }), params = Float32Array.from(def.params.map(p => (p.name === 'noise' || p.name === 'click' ? 0 : p.def))); node.message({ type: 'env', slot: 'amp', points: bz.SHAPES.flat() });
+    node.note({ type: 'noteOn', note: 60, vel: 1 }); const L = new Float32Array(128); let peak = 0;
+    for (let i = 0; i < 40; i++) { node.process([], [[L, new Float32Array(128)]], 128, params, slots); if (i > 20) peak = Math.max(peak, ...L.map(Math.abs)); }
+    assert.ok(peak < 0.05, 'a new drawing sent to the node takes effect');
+    const late = play({ noise: 0.3 }, { ms: 3000 }); assert.ok(late.subarray(rate * 2).every(v => v === 0), 'the hit ends by itself and the node falls silent');
+  }
+  const held = play({ noise: 0, click: 0 }, { env: { amp: bz.SHAPES.hold() }, ms: 1200, off: 128 * 40 });
+  assert.ok(lastLoud(held, 0.01) < 0.5, 'a note off fades out a drawing that would otherwise hold');
+  console.log('ok: drum synth 2');
+}
+
 console.log('smoke test passed');

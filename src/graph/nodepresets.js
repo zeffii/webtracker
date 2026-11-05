@@ -2,7 +2,7 @@
 // factory presets (`presets` in its module); the ones you save for a type are kept in this browser, for every project.
 const KEY = 'webtracker.nodepresets';
 // The drawn shapes a preset can carry, and how the running node is told about each.
-export const DATA_KEYS = ['spectrum', 'waves', 'wave', 'curve'];
+export const DATA_KEYS = ['spectrum', 'waves', 'wave', 'env', 'curve'];
 
 const readAll = () => { try { return JSON.parse(localStorage.getItem(KEY)) ?? {}; } catch { return {}; } };
 const writeAll = all => { try { localStorage.setItem(KEY, JSON.stringify(all)); return true; } catch { return false; } };

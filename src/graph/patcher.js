@@ -19,6 +19,7 @@ import { createParamView } from './paramview.js';
 import { createSpecPanView } from './specpaneditor.js';
 import { createCanyonView } from './canyonview.js';
 import { createDrumView } from './drumview.js';
+import { createDrum2View } from './drum2view.js';
 import { createMembraneView } from './membraneview.js';
 import { createGranularView } from './granularview.js';
 import { createCardinalView } from './cardinalview.js';
@@ -175,6 +176,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
   let membraneView = null;   // the head, the mode that is picked and the modes that ring, of a Membrane machine
   let granularView = null;   // the sample, the grains and the cloud of a granular synth
   let cardinalView = null;   // the oscillators, filter, envelopes and LFOs of a Cardinal synth
+  let drum2View = null;     // the three drawn envelopes of drum synth 2 and the hit they make
   let drumView = null;      // the envelopes, the click and the composed root note of a drum synth, redrawn when its parameters move
   let canyonView = null;    // the echoes of a Prisma Canyon against the song's ticks, redrawn when its parameters move
   let specView = null;      // the pan-against-frequency view of a spectral panner, redrawn when its parameters move
@@ -333,6 +335,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
         if (type.editor === 'specpan') specView?.refresh();
         if (type.editor === 'canyon') canyonView?.refresh();
         if (type.editor === 'drumsynth') drumView?.refresh();
+        if (type.editor === 'drumsynth2') drum2View?.refresh();
         if (type.editor === 'cardinal') cardinalView?.refresh();
         if (type.editor === 'membrane') membraneView?.refresh();
         if (type.editor === 'granular') granularView?.refresh();
@@ -657,6 +660,19 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
         getSample: () => { const cur = def().samples?.[node.id], list = Array.isArray(cur) ? cur : cur === undefined ? [] : [cur]; const id = list[Math.round(param('sample'))]; return id === undefined ? null : getSample(id); },
       });
       items.splice(1, 0, granularView.el);
+    }
+    drum2View = null;
+    if (type.editor === 'drumsynth2') {   // three drawn envelopes, kept on the node and sent live, and the composed hit
+      const param = name => readLive(instId, node.id, name) ?? node.params?.[name] ?? type.params.find(p => p.name === name)?.def ?? 0;
+      drum2View = createDrum2View({
+        doc, getParam: param, env: node.data?.env ?? {},
+        getClickSample: () => { const cur = def().samples?.[node.id], list = Array.isArray(cur) ? cur : cur === undefined ? [] : [cur]; const id = list[Math.round(param('clickSample'))]; return id === undefined ? null : getSample(id); },
+        onChange: (slot, points) => {
+          node.data = { ...node.data, env: { ...node.data?.env, [slot]: points } };
+          onData(instId, node.id, { type: 'env', slot, points });
+        },
+      });
+      items.splice(1, 0, drum2View.el);
     }
     drumView = null;
     if (type.editor === 'drumsynth') {   // the envelopes, the click and the composed note, drawn from the parameters and the click sample
@@ -1349,7 +1365,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
     const sig = parts.join(',');
     if (sig === liveSig) return;
     liveSig = sig;
-    paramView?.refresh(); exposedView?.refresh(); floatView?.refresh(); tapEditor?.refresh(); gateEditor?.refresh(); specView?.refresh(); canyonView?.refresh(); drumView?.refresh(); cardinalView?.refresh(); membraneView?.refresh(); granularView?.refresh(); intView?.refresh(); chordView?.refresh(); rangeView?.refresh(); dxView?.refresh();
+    paramView?.refresh(); exposedView?.refresh(); floatView?.refresh(); tapEditor?.refresh(); gateEditor?.refresh(); specView?.refresh(); canyonView?.refresh(); drumView?.refresh(); drum2View?.refresh(); cardinalView?.refresh(); membraneView?.refresh(); granularView?.refresh(); intView?.refresh(); chordView?.refresh(); rangeView?.refresh(); dxView?.refresh();
   }
 
   // A graph is moved clear of the exposed-parameters dock once when its instrument is first shown after a load (the file
