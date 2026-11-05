@@ -47,6 +47,7 @@ import { sampleToWav } from './project/samplewav.js';
 import { showContextMenu } from './ui/ctxmenu.js';
 import { buildInstrument, fitTail } from './project/ptr.js';
 import { ABOUT, CHANGELOG } from './ui/about.js';
+import { SONGS } from './ui/songs.js';
 import { renderMarkdown } from './ui/markdown.js';
 import { TUTORIAL } from './script/tutorial.js';
 import { mountWidgets } from './script/euclidhelp.js';
@@ -1220,6 +1221,26 @@ showTheme(config.get('theme'));
   const body = $('about-body'), el = (tag, text, cls) => Object.assign(document.createElement(tag), { textContent: text, className: cls ?? '' });
   body.append(el('h2', document.title));
   ABOUT.forEach((text, i) => body.append(el('p', text, i === ABOUT.length - 1 ? 'last' : '')));
+  body.append(el('h3', 'Songs to explore'));
+  body.append(el('p', 'Open one to look inside it. It replaces the project you have open, so save first if you want to keep that.', 'songs-note'));
+  const songList = el('div', '', 'songs');
+  for (const song of SONGS) {
+    const row = el('button', '', 'song');
+    row.type = 'button';
+    row.append(el('span', song.name, 'song-name'), el('span', song.line, 'song-line'));
+    row.addEventListener('click', async () => {
+      if (dirty && !confirm(`Open "${song.name}"? Your current project has changes that are not saved.`)) return;
+      try {
+        const reply = await fetch(new URL(`./project/${song.file}`, import.meta.url));
+        if (!reply.ok) throw new Error(`${song.file}: ${reply.status}`);
+        openProject(parseProject(await reply.text()));
+        $('about').close();
+        projStatus(`Opened "${song.name}".`);
+      } catch (err) { console.warn(err); projStatus(`Could not open "${song.name}": ${err.message}`); }
+    });
+    songList.append(row);
+  }
+  body.append(songList);
   body.append(el('h3', 'Changelog'));
   for (const [build, lines] of CHANGELOG) {
     body.append(el('h4', build));

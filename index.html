@@ -121,6 +121,12 @@
     #about::backdrop { background: rgb(0 0 0 / .45); }
     #about h2 { margin: 0 0 .5rem; font-size: 1.1rem; } #about h3 { margin: 1rem 0 .25rem; font-size: .95rem; } #about h4 { margin: .6rem 0 .1rem; font-size: .85rem; opacity: .8; }
     #about p { margin: .5rem 0; } #about ul { margin: 0 0 .5rem; padding-left: 1.2rem; } #about .last { font-style: italic; }
+    #about .songs { display: grid; gap: 1px; }
+    #about .song { display: grid; grid-template-columns: 11rem 1fr; gap: .75rem; text-align: left; font: inherit; color: inherit; background: none; border: 0; border-bottom: 1px solid color-mix(in srgb, currentColor 15%, transparent); padding: .3rem .25rem; cursor: pointer; }
+    #about .song:hover, #about .song:focus-visible { background: color-mix(in srgb, currentColor 8%, transparent); outline: none; }
+    #about .song-name { font-weight: 600; } #about .song-line { opacity: .75; }
+    #about .songs-note { opacity: .7; font-size: .9em; }
+    @media (max-width: 40rem) { #about .song { grid-template-columns: 1fr; gap: 0; } }
     #about form { margin-top: .75rem; text-align: right; }
     #about form.about-x { position: sticky; top: 0; height: 0; margin: 0; z-index: 1; }   /* a close button at the top right that stays there while the text scrolls */
     #about .about-x button { position: absolute; right: -.5rem; top: -.5rem; font-size: 1.1rem; line-height: 1; padding: 0 .45rem; }

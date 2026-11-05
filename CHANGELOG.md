@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 656 · 2026-11-05
+
+- **Songs to explore, in the About box.** A permanent list of thirteen songs, none of which uses a sample, so each one opens complete. Click one to open it; if the project you have open has unsaved changes you are asked first. The list lives in `src/ui/songs.js`: to add a song, put its `.wax` in `src/project/demos/` and add a line there. A test checks that each listed file exists, opens and uses no samples.
+
 ## 655 · 2026-11-05
 
 - **A new opening song.** The song the page opens with is now your "raens" (seven instruments, including the new Hi-hat 2 and Pogue in the chain), replacing the earlier version of it.

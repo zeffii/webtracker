@@ -10466,6 +10466,20 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   console.log('ok: oscillator waves');
 }
 
+// The About box's songs: each file exists, opens, uses no samples, and has a line of its own
+{
+  const { SONGS } = await import('../src/ui/songs.js'), { readFileSync } = await import('node:fs');
+  assert.ok(SONGS.length >= 10, 'there is a set of songs to explore');
+  const seen = new Set();
+  for (const song of SONGS) {
+    const opened = parseProject(readFileSync(new URL(`../src/project/${song.file}`, import.meta.url), 'utf8'));
+    assert.ok(!seen.has(song.file) && song.name && song.line.length > 10, `${song.file}: listed once, with a name and a line`);
+    seen.add(song.file);
+    assert.ok(Object.values(opened.samples ?? {}).filter(x => !x.pool).length === 0 && Object.keys(opened.instruments).length > 0, `${song.file}: no samples, has instruments`);
+  }
+  console.log('ok: about songs');
+}
+
 // The west-coast blocks: phase modulation on the oscillator, the wave folder, the pluck gate, and the voice built from them.
 {
   const rate = 48000, B = 128;

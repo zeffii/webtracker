@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['656', ['The About box lists songs to explore: thirteen songs without samples, one click to open']],
   ['655', ['The song the page opens with is now the latest version of raens']],
   ['654', ['Bongo: a hand-drum synth with a strike slide from muted through open to slap']],
   ['653', ['Hi-hat 2: closed and open hats with drawn volumes, per-hit variation, a flanger and a bit crusher']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['649', ['New node: Env 2, a control envelope you draw as a Bezier spline, with a handle on its first anchor']],
   ['648', ['New Drum synth 2 instruments start as NatKick']],
   ['647', ['Drum synth 2: a harm control for thump on small speakers, and punchier starting settings']],
-  ['646', ['New node: drum synth 2 with pitch, volume and noise envelopes you draw as Bezier splines, a rate for each, more noise colours, the same click, and a bass boost']],
                     ];
