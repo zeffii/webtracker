@@ -2,6 +2,14 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 643 · 2026-11-05
+
+- **West-coast synthesis, as parts and as one voice.** Three new nodes, and a new input on the oscillator, so you can build a complex-oscillator voice yourself or use the finished one.
+  - **osc `pm` input:** bends the oscillator's phase, in radians. A second oscillator times an index into `pm` is phase modulation: the pitch stays put and the tone goes from soft to metallic.
+  - **wavefolder** (Effects, Distortion): the louder the wave is pushed in, the more times it turns round at the edge, so a sine grows harmonics. `fold`, `symmetry` (uneven folds add the even harmonics), `drive`, `mix`, `oversample` (1x, 2x, 4x, with the latency declared), and a `fold` control input for envelopes and LFOs.
+  - **pluckgate** (Effects, Distortion): loudness and brightness under one control. A vactrol (quick to open, slow to let go) opens the gain and a low-pass filter together, so a sound dies top end first. `mode` picks both, gain only or filter only. It strikes on each note with its own envelope, or follows a `cv` input (0 to 1) from any envelope or LFO.
+  - **westcoast** (Synths): the whole voice in one node, built from the same code: a principal oscillator (sine, triangle, saw, square, or the wave you draw), a modulation oscillator with ratio, fine tuning, `fm` and `sync`, the folder, the pluck gate, a strike envelope and a timbre envelope that moves `fold` and `fm` over the note, glide, `pitch` and `fold` inputs, and a `quality` switch (high runs the oscillator and folder at twice the rate). Monophonic; put a voices node after it for chords.
+
 ## 642 · 2026-11-05
 
 - **Oscillator: five more waves and one you draw.** `wave` now goes to 8: 4 pulse (with a new `width` parameter, 0.02 to 0.98, for pulse width modulation), 5 half sine, 6 rectified sine, 7 steps (a saw in eight steps) and 8 drawn. The drawn wave is a single cycle you draw by dragging across the panel under the oscillator's parameters: a thin line with dots, straight on the page, a little pull to the centre line and the peaks, and buttons to start from a sine, triangle, saw, square or organ, or to smooth, flip, reverse, mirror or randomise it. It is dimmed until `wave` is 8, and a new drawing takes effect while a note plays. It is stored with the instrument and in node presets. The saw, square, pulse, steps and the other shapes with corners are not band-limited and alias at high pitch, as the saw and square always did. How the drawing is made may change later; it is all in `src/graph/oscwave.js`.

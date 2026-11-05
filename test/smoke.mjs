@@ -10458,4 +10458,63 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   console.log('ok: oscillator waves');
 }
 
+// The west-coast blocks: phase modulation on the oscillator, the wave folder, the pluck gate, and the voice built from them.
+{
+  const rate = 48000, B = 128;
+  const slotsOf = def => Int32Array.from(def.params.map((_, i) => i));
+  const paramsOf = (def, v = {}) => Float32Array.from(def.params.map(p => v[p.name] ?? p.def));
+  const sine = (f, n, a = 0.8) => Float32Array.from({ length: n }, (_, i) => a * Math.sin(2 * Math.PI * f * i / rate));
+  const harmonics = (x, f) => { const n = 4096, out = []; for (let h = 1; h <= 12; h++) { let re = 0, im = 0; for (let i = 0; i < n; i++) { const w = 0.5 - 0.5 * Math.cos(2 * Math.PI * i / n), t = 2 * Math.PI * f * h * (i + 4096) / rate; re += x[4096 + i] * w * Math.cos(t); im += x[4096 + i] * w * Math.sin(t); } out.push(Math.hypot(re, im)); } return out; };
+  const tail = h => h.slice(2).reduce((a, v) => a + v * v, 0) / (h.reduce((a, v) => a + v * v, 0) || 1);
+
+  // oscillator pm input: a constant 2 radians shifts the phase; zero changes nothing
+  {
+    const def = NODE_TYPES.osc, slots = slotsOf(def), params = paramsOf(def, { wave: 0 });
+    const run = pm => { const node = def.create({ sampleRate: rate, connected: [false, false, true], data: {} }); node.note({ type: 'noteOn', note: 69, vel: 1 }); const o = new Float32Array(B); node.process([new Float32Array(B), new Float32Array(B), pm], [o], B, params, slots); return o; };
+    const a = run(new Float32Array(B)), b = run(new Float32Array(B).fill(Math.PI / 2));
+    assert.ok(Math.abs(a[5] - Math.sin(2 * Math.PI * 440 * 5 / rate)) < 1e-4 && Math.abs(b[5] - Math.sin(2 * Math.PI * 440 * 5 / rate + Math.PI / 2)) < 1e-3, 'the oscillator\'s pm input bends the phase in radians');
+  }
+  // wave folder: a sine gains harmonics as fold goes up; fold 0 with a quiet input stays a sine; the fold input adds to the amount
+  {
+    const def = NODE_TYPES.wavefolder, slots = slotsOf(def), n = 8192 + B;
+    const run = (v, mod) => { const node = def.create({ sampleRate: rate, connected: [true, !!mod] }); const x = sine(220, n); const out = [new Float32Array(n), new Float32Array(n)]; const params = paramsOf(def, v); for (let at = 0; at < n; at += B) node.process([[x.subarray(at, at + B), x.subarray(at, at + B)], mod ? mod.subarray(at, at + B) : null], [[out[0].subarray(at, at + B), out[1].subarray(at, at + B)]], B, params, slots); return out[0]; };
+    const soft = harmonics(run({ fold: 0, drive: 1 }), 220), hard = harmonics(run({ fold: 0.8 }), 220), viaCv = harmonics(run({ fold: 0 }, new Float32Array(n).fill(0.8)), 220);
+    assert.ok(hard.every(Number.isFinite) && tail(hard) > 0.1 && tail(soft) < 0.05, `folding adds harmonics (${tail(soft).toFixed(3)} -> ${tail(hard).toFixed(3)})`);
+    assert.ok(Math.abs(tail(viaCv) - tail(hard)) < 0.03, 'the fold input adds to the amount');
+    assert.equal(def.latency({ oversample: 1 }) > 0, true, 'oversampling declares its latency');
+  }
+  // pluck gate: a struck noise burst is bright at first and darker later, and it dies out
+  {
+    const def = NODE_TYPES.pluckgate, slots = slotsOf(def), n = 24064, params = paramsOf(def, { dec: 100, close: 400 });
+    let seed = 3; const noise = Float32Array.from({ length: n }, () => ((seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296 - 0.5));
+    const node = def.create({ sampleRate: rate, connected: [true, false] }); node.note({ type: 'noteOn', note: 60, vel: 1 });
+    const out = new Float32Array(n);
+    for (let at = 0; at < n; at += B) { const o = [new Float32Array(B), new Float32Array(B)]; node.process([[noise.subarray(at, at + B), noise.subarray(at, at + B)], null], [o], B, params, slots); out.set(o[0], at); }
+    const hf = (a, b) => { let e = 0, t = 0; for (let i = a + 1; i < b; i++) { const d = out[i] - out[i - 1]; e += d * d; t += out[i] * out[i]; } return e / (t || 1e-12); };
+    assert.ok(out.every(Number.isFinite) && hf(100, 1500) > hf(6000, 9000) * 1.5, 'the gate\'s top end dies first');
+    const peak = (a, b) => out.subarray(a, b).reduce((m, v) => Math.max(m, Math.abs(v)), 0);
+    assert.ok(peak(100, 3000) > 0.05 && peak(20000, 24000) < peak(100, 3000) * 0.1, 'the struck sound dies out');
+    const cvNode = NODE_TYPES.pluckgate.create({ sampleRate: rate, connected: [true, true] }), shut = [new Float32Array(B), new Float32Array(B)];
+    cvNode.process([[noise.subarray(0, B), noise.subarray(0, B)], new Float32Array(B)], [shut], B, params, slots);
+    assert.ok(shut[0].every(v => Math.abs(v) < 1e-6), 'with a cv input at zero the gate is shut');
+  }
+  // the voice: sound while the note is held, a different spectrum with fold, silence once it has died away
+  {
+    const def = NODE_TYPES.westcoast, slots = slotsOf(def), n = 16384;
+    const run = (v, data) => { const node = def.create({ sampleRate: rate, connected: [false, false], data }); node.note({ type: 'noteOn', note: 57, vel: 1 }); const params = paramsOf(def, { bright: 1, ...v }), out = new Float32Array(n); for (let at = 0; at < n; at += B) { const o = [new Float32Array(B), new Float32Array(B)]; node.process([null, null], [o], B, params, slots); out.set(o[0], at); } return out; };
+    const plain = run({ fold: 0, foldenv: 0, fm: 0, fmenv: 0, dec: 4000, sus: 1 }), folded = run({ fold: 0.8, foldenv: 0, fm: 0, fmenv: 0, dec: 4000, sus: 1 });
+    assert.ok(plain.every(Number.isFinite) && folded.every(Number.isFinite), 'finite');
+    assert.ok(tail(harmonics(folded, 220)) > tail(harmonics(plain, 220)) + 0.1, 'fold brightens the voice');
+    const bent = run({ fold: 0, foldenv: 0, fm: 0.8, fmenv: 0, ratio: 2.5, dec: 4000, sus: 1 });
+    assert.ok(bent.every(Number.isFinite) && tail(harmonics(bent, 220)) > tail(harmonics(plain, 220)) + 0.05, 'fm adds sidebands');
+    for (const wave of [0, 1, 2, 3, 4]) assert.ok(run({ wave, quality: wave % 2 }, { wave: Array.from({ length: 128 }, (_, i) => Math.sin(i / 20)) }).every(Number.isFinite), `wave ${wave} runs`);
+    const node = def.create({ sampleRate: rate, connected: [false, false] }); node.note({ type: 'noteOn', note: 60, vel: 1 }); node.note({ type: 'noteOff' });
+    const params = paramsOf(def, { atk: 1, dec: 50, rel: 50, lpgdec: 50 }); let last;
+    for (let at = 0; at < 48000; at += B) { last = [new Float32Array(B), new Float32Array(B)]; node.process([null, null], [last], B, params, slots); }
+    assert.ok(last[0].every(v => v === 0), 'silent once it has died away');
+    assert.ok(Array.isArray(def.adsr) && def.adsr.length === 2, 'both envelopes are drawn');
+  }
+  console.log('ok: west-coast blocks');
+}
+
 console.log('smoke test passed');

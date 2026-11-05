@@ -13,13 +13,13 @@ const TWO_PI = 2 * Math.PI, LN2 = Math.LN2;
 
 export default {
   type: 'osc',
-  inputs: ['fm', 'sync'],   // fm is in octaves, per sample
+  inputs: ['fm', 'sync', 'pm'],   // fm is in octaves, per sample; pm bends the phase, in radians (a modulation oscillator times its index)
   outputs: ['out'],
   category: 'Sources',
   generator: true,   // makes sound from notes, so the instrument screen can play it from the keyboard
   shape: 'rounded',
   glyph: 'osc',
-  kinds: { fm: 'control', sync: 'control' },   // ports are audio unless listed
+  kinds: { fm: 'control', sync: 'control', pm: 'control' },   // ports are audio unless listed
   editor: 'oscwave',   // the patcher panel offers the drawing of the `drawn` wave
   params: [
     { name: 'freq', min: 1, max: 20000, def: 440 },   // Hz, used when track is 0
@@ -33,7 +33,7 @@ export default {
   ],
   create({ sampleRate, connected, data }) {
     let table = normalizeWave(data?.wave);
-    const fmOn = connected[0], syncOn = connected[1];
+    const fmOn = connected[0], syncOn = connected[1], pmOn = connected[2];
     let phase = 0, note = 60, started = false, pendingReset = false, prevSync = 0;
     return {
       message(msg) { if (msg.type === 'wave') table = normalizeWave(msg.points); },
@@ -44,7 +44,7 @@ export default {
       process(inputs, outputs, n, params, slots) {
         const out = outputs[0];
         if (!started) { out.fill(0, 0, n); return; }
-        const fm = inputs[0], sync = inputs[1];
+        const fm = inputs[0], sync = inputs[1], pm = inputs[2];
         const tune = params[slots[TUNE]], restart = params[slots[PHASE]];
         const base = (params[slots[TRACK]] >= 0.5
           ? 440 * Math.pow(2, (note + tune - 69) / 12)
@@ -58,16 +58,17 @@ export default {
             if (s > 0.5 && prevSync <= 0.5) phase = restart;
             prevSync = s;
           }
-          let v;
-          if (wave === 0) v = Math.sin(TWO_PI * phase);
-          else if (wave === 1) v = 2 * phase - 1;
-          else if (wave === 2) v = phase < 0.5 ? 1 : -1;
-          else if (wave === 3) v = phase < 0.25 ? 4 * phase : phase < 0.75 ? 2 - 4 * phase : 4 * phase - 4;
-          else if (wave === 4) v = phase < width ? 1 : -1;
-          else if (wave === 5) v = (phase < 0.5 ? Math.sin(TWO_PI * phase) : 0) * 2 - 2 * HALF_SINE_MEAN;
-          else if (wave === 6) v = Math.abs(Math.sin(TWO_PI * phase)) * 2 - 1;
-          else if (wave === 7) v = Math.floor(phase * 8) / 3.5 - 1;
-          else { const x = phase * WAVE_POINTS, j = x | 0, f = x - j; v = table[j] + (table[(j + 1) & (WAVE_POINTS - 1)] - table[j]) * f; }
+          let v, ph = phase;
+          if (pmOn) { ph += pm[i] / TWO_PI; ph -= Math.floor(ph); }
+          if (wave === 0) v = Math.sin(TWO_PI * ph);
+          else if (wave === 1) v = 2 * ph - 1;
+          else if (wave === 2) v = ph < 0.5 ? 1 : -1;
+          else if (wave === 3) v = ph < 0.25 ? 4 * ph : ph < 0.75 ? 2 - 4 * ph : 4 * ph - 4;
+          else if (wave === 4) v = ph < width ? 1 : -1;
+          else if (wave === 5) v = (ph < 0.5 ? Math.sin(TWO_PI * ph) : 0) * 2 - 2 * HALF_SINE_MEAN;
+          else if (wave === 6) v = Math.abs(Math.sin(TWO_PI * ph)) * 2 - 1;
+          else if (wave === 7) v = Math.floor(ph * 8) / 3.5 - 1;
+          else { const x = ph * WAVE_POINTS, j = x | 0, f = x - j; v = table[j] + (table[(j + 1) & (WAVE_POINTS - 1)] - table[j]) * f; }
           out[i] = v * level;
           phase += fmOn ? base * Math.exp(fm[i] * LN2) : base;
           if (phase >= 1) phase -= Math.floor(phase);

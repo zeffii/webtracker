@@ -201,6 +201,9 @@ export const GLYPHS = {
     });
     ctx.stroke();
   },
+  wavefolder: (ctx, cx, cy, w, h) => curve(ctx, cx, cy, w * 0.8, h, t => Math.sin((t * 2 - 1) * 4.2)),
+  pluckgate: (ctx, cx, cy, w, h) => curve(ctx, cx, cy, w * 0.8, h * 0.8, t => 1 - 2 * Math.pow(1 - Math.pow(t, 0.35), 1)),
+  westcoast: (ctx, cx, cy, w, h) => curve(ctx, cx, cy, w * 0.8, h, t => Math.sin((Math.sin(t * 6.28) * 1.2 + t * 6.28 * 2) * 1) * (1 - t * 0.7)),
   waveshaper: (ctx, cx, cy, w, h) => curve(ctx, cx, cy, w * 0.8, h, t => Math.tanh((t * 2 - 1) * 2.5)),
   exciter: (ctx, cx, cy, w, h) => {   // a high-pass slope with a few harmonics above it
     const x = f => cx - w / 2 + f * w, y = f => cy + h / 2 - f * h;
