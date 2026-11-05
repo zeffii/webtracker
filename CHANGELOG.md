@@ -2,6 +2,15 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 651 · 2026-11-05
+
+- **Env 2: a sustain knot and an optional note length.**
+  - **Sustain knot:** choose an anchor and press K (or the sustain button) to make it the knot, shown with a pink ring, a dashed line and the part after it tinted as the release. The envelope plays up to the knot and waits there while the note is held; when the note ends it plays on from the knot to the last anchor. With no knot it is one shot, as before. `time` is the length of the whole drawing, and the wait at the knot takes no extra time.
+  - **A note that ends before the knot** fades out in a straight line from the level it has got to, to the last anchor's level, over the length of the release but no less than 10 ms and no more than 60 ms, so a short note ends quickly and never jumps.
+  - **`length`** (ticks): optional, 0 leaves it out and the note off ends the note. Write a number in its pattern lane (expose it as a command) and each note ends that many ticks after it begins, as if the note off had come then.
+  - **Retrigger:** a note on while the envelope is still sounding slides from where it was to the first level in 2 ms; from silence it starts at once.
+  - The knot is stored as a flag on the anchor, so inserting and deleting points never moves it. This is the first node to get it; drum synth 2 and the other synths follow.
+
 ## 650 · 2026-11-05
 
 - **The envelope drawing now edits like the glyph editor.** Square anchors, round handles on thin arms, the chosen anchor in pink, a ring on the first anchor, the area under the curve lightly filled, and a grid. Drum synth 2 and Env 2 both use it.

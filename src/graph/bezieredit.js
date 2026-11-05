@@ -9,6 +9,7 @@ import { SHAPES, cleanSpline, walk, autoHandles, splitSegment, nearestOnSpline }
 //   drag a handle             bend the curve (Alt: break the point's handles apart)
 //   S  E  F  X                the chosen anchor smooth, equal (handles mirrored), free or sharp (a corner)
 //   B  or  right-click curve  a segment line or curve              right-click an anchor, or Delete   remove it
+//   K                         the chosen anchor the sustain knot (with `knot`): the envelope waits there while the note is held
 //   arrows                    nudge (Shift for 10)                 Ctrl+Shift-drag   only along time or only along level
 //   Ctrl+Z, Ctrl+Shift+Z      undo and redo
 // With `firstHandle` the first anchor always shows its handle, so the start of the curve can be bent without choosing it first.
@@ -16,7 +17,7 @@ const W = 520, H = 150, PL = 48, PR = 12, PT = 18, PB = 20;
 const GRAB = 8, PINK = 'hsl(335 80% 62%)', ARM = 'hsl(195 75% 58%)', HISTORY = 100;
 const SNAPS = [0, 8, 16, 32];   // off, or the number of steps across the drawing
 
-export function createBezierEditor({ doc = document, title, color, points, fallback = SHAPES.fall, getMs, labels = () => ['100%', '0'], firstHandle = false, onChange }) {
+export function createBezierEditor({ doc = document, title, color, points, fallback = SHAPES.fall, getMs, labels = () => ['100%', '0'], firstHandle = false, knot = false, onChange }) {
   const el = (tag, props = {}, ...kids) => { const e = doc.createElement(tag); Object.assign(e, props); for (const k of kids) e.appendChild(typeof k === 'string' ? doc.createTextNode(k) : k); return e; };
   let spline = cleanSpline(points, fallback);
   let selected = null, drag = null, hover = null, snapAt = 0;   // hover: { kind: 'anchor' | 'l' | 'r' | 'curve', i }
@@ -31,7 +32,7 @@ export function createBezierEditor({ doc = document, title, color, points, fallb
   const X = x => PL + x * pw, Y = y => PT + (1 - y) * ph;
   const handlesOf = i => { const a = autoHandles(spline, i), p = spline[i]; return { l: p.l ?? a.l, r: p.r ?? a.r }; };
   const kindOf = p => p.t ?? 'smooth';
-  const emit = () => onChange(spline.map(p => ({ x: round(p.x), y: round(p.y), l: p.l && p.l.map(round), r: p.r && p.r.map(round), ...(p.t ? { t: p.t } : {}) })));
+  const emit = () => onChange(spline.map(p => ({ x: round(p.x), y: round(p.y), l: p.l && p.l.map(round), r: p.r && p.r.map(round), ...(p.t ? { t: p.t } : {}), ...(p.s ? { s: true } : {}) })));
   const snapshot = () => JSON.stringify(spline);
   const remember = () => { undo.push(snapshot()); if (undo.length > HISTORY) undo.shift(); redo = []; };
   const restore = text => { spline = JSON.parse(text); selected = selected !== null && selected < spline.length ? selected : null; emit(); draw(); };
@@ -85,12 +86,20 @@ export function createBezierEditor({ doc = document, title, color, points, fallb
       ctx.strokeStyle = ARM; ctx.globalAlpha = 0.85; ctx.beginPath(); ctx.moveTo(X(p.x), Y(p.y)); ctx.lineTo(hx, hy); ctx.stroke();
       ctx.globalAlpha = 1; ctx.beginPath(); ctx.arc(hx, hy, on ? 4.5 : 3.5, 0, 2 * Math.PI); ctx.fillStyle = on ? ARM : 'rgba(0,0,0,0)'; ctx.fill(); ctx.stroke();
     }
+    const knotAt = spline.findIndex(p => p.s);
+    if (knotAt >= 0) {   // the sustain knot: a dashed line, the part after it (the release) a little darker, and a label
+      const kx = X(spline[knotAt].x);
+      ctx.globalAlpha = 0.07; ctx.fillStyle = PINK; ctx.fillRect(kx, PT, X(1) - kx, ph);
+      ctx.globalAlpha = 0.7; ctx.strokeStyle = PINK; ctx.setLineDash([3, 3]); ctx.beginPath(); ctx.moveTo(kx, Y(1)); ctx.lineTo(kx, Y(0)); ctx.stroke(); ctx.setLineDash([]);
+      ctx.fillStyle = PINK; ctx.fillText('sustain', kx + 4, Y(0) - 13); ctx.textAlign = 'right'; ctx.fillText('release', W - PR - 2, Y(0) - 13); ctx.textAlign = 'left';
+    }
     // the anchors: squares, pink when chosen, a ring on the first
     spline.forEach((p, i) => {
       const x = X(p.x), y = Y(p.y), r = i === selected || (hover?.kind === 'anchor' && hover.i === i) ? 4.5 : 3.5;
       if (i === 0) { ctx.strokeStyle = ink; ctx.globalAlpha = 0.8; ctx.beginPath(); ctx.arc(x, y, 8, 0, 2 * Math.PI); ctx.stroke(); }
       ctx.globalAlpha = 1; ctx.strokeStyle = i === selected ? PINK : ink; ctx.fillStyle = i === selected ? PINK : 'rgba(0,0,0,0)';
       ctx.lineWidth = 1.4; ctx.beginPath(); ctx.rect(x - r, y - r, 2 * r, 2 * r); ctx.fill(); ctx.stroke();
+      if (p.s) { ctx.globalAlpha = 1; ctx.strokeStyle = PINK; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.arc(x, y, 8, 0, 2 * Math.PI); ctx.stroke(); }   // the knot wears a pink ring
       if (kindOf(p) === 'equal') { ctx.fillStyle = 'hsl(30 90% 55%)'; ctx.beginPath(); ctx.arc(x, y, 1.3, 0, 2 * Math.PI); ctx.fill(); }   // an equal pair is marked with a dot in the anchor
     });
     ctx.globalAlpha = 0.5; ctx.fillStyle = ink;
@@ -149,6 +158,7 @@ export function createBezierEditor({ doc = document, title, color, points, fallb
     spline.splice(n.i + 1, 0, point);
     return n.i + 1;
   };
+  const setKnot = i => { const was = spline[i]?.s; for (const p of spline) delete p.s; if (!was && i < spline.length - 1) spline[i].s = true; };   // one knot, never on the last anchor; again to take it off
   const removeAnchor = i => { if (i > 0 && i < spline.length - 1) { spline.splice(i, 1); selected = null; return true; } return false; };
   const toggleLine = i => {   // a segment between two anchors: a straight line (no handles) or a curve with handles at a third and two thirds
     const p = spline[i], q = spline[i + 1]; if (!q) return;
@@ -229,6 +239,7 @@ export function createBezierEditor({ doc = document, title, color, points, fallb
       const kind = { s: 'smooth', e: 'equal', f: 'free', x: 'sharp' }[k];
       if (kind) { e.preventDefault(); act(() => setKind(selected, kind)); return; }
     }
+    if (knot && k === 'k' && selected !== null && spline[selected]) { e.preventDefault(); act(() => setKnot(selected)); return; }
     if (k === 'i' && mouse) { const c = hitCurve(mouse); if (c) { e.preventDefault(); act(() => { selected = insertOn(c); }); } return; }
     if (k === 'b' && mouse) { const c = hitCurve(mouse); if (c) { e.preventDefault(); act(() => toggleLine(c.i)); } }
   });
@@ -243,9 +254,10 @@ export function createBezierEditor({ doc = document, title, color, points, fallb
     kindButton('sharp', 'sharp', 'The chosen anchor a corner (X)'), kindButton('smooth', 'smooth', 'Its handles stay in line (S)'), kindButton('equal', 'equal', 'In line and the same length, mirrored as you drag (E)'), kindButton('free', 'free', 'Each handle on its own (F, or Alt-drag a handle)'),
     action('auto', 'Put every handle back to smooth, worked out by itself', () => act(() => { spline = spline.map(p => ({ x: p.x, y: p.y, l: null, r: null })); })),
     action('flip', 'Turn the drawing upside down', () => act(() => { spline = spline.map(p => ({ ...p, y: 1 - p.y, l: p.l && [p.l[0], -p.l[1]], r: p.r && [p.r[0], -p.r[1]] })); })),
-    action('reverse', 'Play the drawing back to front', () => act(() => { spline = spline.map(p => ({ ...p, x: 1 - p.x, l: p.r && [-p.r[0], p.r[1]], r: p.l && [-p.l[0], p.l[1]] })).reverse(); selected = null; })),
+    action('reverse', 'Play the drawing back to front', () => act(() => { spline = spline.map(p => ({ ...p, s: undefined, x: 1 - p.x, l: p.r && [-p.r[0], p.r[1]], r: p.l && [-p.l[0], p.l[1]] })).reverse(); selected = null; })),
     action('undo', 'Undo (Ctrl+Z)', () => { if (undo.length) { redo.push(snapshot()); restore(undo.pop()); } }),
     action('redo', 'Redo (Ctrl+Shift+Z)', () => { if (redo.length) { undo.push(snapshot()); restore(redo.pop()); } }),
+    ...(knot ? [action('sustain', 'Make the chosen anchor the sustain knot, or take it off (K): the envelope waits there while the note is held', () => { if (selected !== null) act(() => setKnot(selected)); })] : []),
     snapButton);
   const tip = el('div', { className: 'bezier-tip', textContent: 'click adds · double-click a curve inserts · double-click an anchor sharp/smooth · right-click deletes an anchor or flips a segment line/curve · S E F X types · B line/curve · I insert · arrows nudge' });
   draw();

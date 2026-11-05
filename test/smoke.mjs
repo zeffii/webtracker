@@ -10636,6 +10636,22 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     assert.ok(Math.abs(lined[2205] - 1) < 0.02 && Math.abs(lined[0] - 2) < 0.05, 'a straight line from the first level to the last, times the amount');
     const looped = run({ time: 20, loop: 1 }, [0], 120, { env: { main: bz.SHAPES.line() } });
     assert.ok(looped[Math.round(rate * 0.0199)] < 0.1 && looped[Math.round(rate * 0.0205)] > 0.8, 'with loop on it starts again at its end');
+    {   // the sustain knot, the fade of a note that ends early, and the optional length
+      const hump = [{ x: 0, y: 0, l: null, r: [0.05, 0.3] }, { x: 0.2, y: 1, l: [-0.05, 0], r: [0.05, 0], s: true }, { x: 1, y: 0, l: [-0.3, 0], r: null }];
+      assert.equal(bz.sustainKnot(hump).x, 0.2, 'the drawing knows its sustain knot');
+      assert.equal(bz.sustainKnot([{ x: 0, y: 0 }, { x: 0.5, y: 1, s: true }, { x: 1, y: 0, s: true }]).x, 0.5, 'one knot only');
+      assert.equal(bz.sustainKnot([{ x: 0, y: 0 }, { x: 1, y: 1, s: true }]), null, 'and never on the last anchor');
+      const withNote = (v, off, blocks = 400, extra = (b, node) => {}) => { const node = e2.create({ sampleRate: rate, data: { env: { main: hump } } }), params = Float32Array.from(e2.params.map(p => v[p.name] ?? p.def)), out = new Float32Array(blocks * 128); for (let b = 0; b < blocks; b++) { if (b === 1) node.note({ type: 'noteOn', note: 60, vel: 1 }); if (b === off) node.note({ type: 'noteOff', note: 60 }); const o = new Float32Array(128); node.process([], [o], 128, params, es); out.set(o, b * 128); } return out; };
+      const long = withNote({ time: 200 }, 300), at = ms => Math.round(rate * ms / 1000) + 128;
+      assert.ok(Math.abs(long[at(100)] - 1) < 0.02 && Math.abs(long[at(600)] - 1) < 0.02, 'it plays up to the knot and waits there while the note is held');
+      assert.ok(long[long.length - 1] < 0.01 && long[300 * 128 + 400] < 0.99, 'a note off plays on from the knot to the end');
+      const early = withNote({ time: 400 }, 4);   // the note ends at about 8 ms, long before the knot at 80 ms
+      let jump = 0; for (let i = 130; i < early.length; i++) jump = Math.max(jump, Math.abs(early[i] - early[i - 1]));
+      assert.ok(jump < 0.05 && Math.max(...early) < 0.3 && early[early.length - 1] < 0.01, `a note that ends early fades out smoothly and never reaches the knot (largest step ${jump.toFixed(3)})`);
+      const timed = withNote({ time: 200, length: 4 }, 1e9), tick = rate * 0.125;
+      assert.ok(Math.abs(timed[Math.round(tick * 3.5)] - 1) < 0.02 && timed[Math.round(tick * 6) + 200] < 0.9 && timed[timed.length - 1] < 0.01, 'a length of 4 ticks ends the note by itself');
+      assert.ok(Math.abs(withNote({ time: 200, length: 0 }, 1e9, 1000)[at(2000)] - 1) < 0.02, 'a length of 0 leaves it out: the note stays held until a note off');
+    }
     const live = e2.create({ sampleRate: rate }), lp = Float32Array.from(e2.params.map(p => (p.name === 'time' ? 100 : p.def))); live.message({ type: 'env', slot: 'main', points: bz.SHAPES.flat() }); live.note({ type: 'noteOn', note: 60, vel: 1 });
     const lo = new Float32Array(128); live.process([], [lo], 128, lp, es); assert.ok(lo.every(v => v === 0), 'a drawing sent to the node takes effect');
   }

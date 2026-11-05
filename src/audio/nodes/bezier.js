@@ -3,6 +3,8 @@
 // The spline is a list of anchors { x, y, l, r }: x is the time across the drawing (0 to 1), y the level (0 to 1), and
 // `t` is the kind of point, which only the editor reads: 'smooth' (the default: the two handles stay in line), 'equal' (in line and the
 // same length), 'free' (each handle on its own) or 'sharp' (a corner, no handles).
+// `s: true` marks the sustain knot (at most one, and never the last anchor): an envelope that has one waits there while its note is held,
+// and plays on from it to the end when the note ends. It is the same drawing as an ADSR, with the release drawn after the knot.
 // `l` and `r` are the handles that shape the curve going into and out of the anchor, as [dx, dy] from the anchor. A
 // handle that is null is worked out to make the curve smooth through the anchor; [0, 0] makes a corner. Handles are held
 // inside their segment on the time axis, so the curve never doubles back on itself and is always a function of time.
@@ -31,13 +33,21 @@ const handle = h => (Array.isArray(h) && finite(h[0]) && finite(h[1]) ? [h[0], h
 // Whatever was stored becomes a clean spline: sorted, from x = 0 to x = 1, levels 0 to 1, at least two anchors.
 export function cleanSpline(points, fallback = SHAPES.fall) {
   if (!Array.isArray(points)) return fallback();
-  const a = points.filter(p => p && finite(p.x) && finite(p.y)).map(p => ({ x: clamp(p.x, 0, 1), y: clamp(p.y, 0, 1), l: handle(p.l), r: handle(p.r), ...(POINT_TYPES.includes(p.t) && p.t !== 'smooth' ? { t: p.t } : {}) }));
+  const a = points.filter(p => p && finite(p.x) && finite(p.y)).map(p => ({ x: clamp(p.x, 0, 1), y: clamp(p.y, 0, 1), l: handle(p.l), r: handle(p.r), ...(POINT_TYPES.includes(p.t) && p.t !== 'smooth' ? { t: p.t } : {}), ...(p.s === true ? { s: true } : {}) }));
   if (a.length < 2) return fallback();
   a.sort((p, q) => p.x - q.x);
   a[0].x = 0; a[a.length - 1].x = 1;
   for (let i = 1; i < a.length; i++) if (a[i].x - a[i - 1].x < 0.002) a[i].x = Math.min(1, a[i - 1].x + 0.002);   // anchors never sit on top of each other
   a[a.length - 1].x = 1;
+  delete a[a.length - 1].s;
+  let seen = false; for (const p of a) { if (p.s && seen) delete p.s; else if (p.s) seen = true; }   // one knot only
   return a;
+}
+
+// Where the sustain knot is: { i, x, y }, or null when the drawing has none.
+export function sustainKnot(points) {
+  const a = cleanSpline(points), i = a.findIndex(p => p.s);
+  return i < 0 ? null : { i, x: a[i].x, y: a[i].y };
 }
 
 // The handles an anchor has when it has none of its own: along the line between its neighbours, a third of the way to each.

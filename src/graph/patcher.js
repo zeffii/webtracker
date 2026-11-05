@@ -669,7 +669,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
     if (type.editor === 'env2') {   // one drawn envelope, kept on the node and sent live
       const param = name => readLive(instId, node.id, name) ?? node.params?.[name] ?? type.params.find(p => p.name === name)?.def ?? 0;
       env2Editor = createBezierEditor({
-        doc, title: 'ENVELOPE', color: 'hsl(35 85% 55%)', points: node.data?.env?.main, fallback: DEFAULT_ENV2, firstHandle: true,
+        doc, title: 'ENVELOPE', color: 'hsl(35 85% 55%)', points: node.data?.env?.main, fallback: DEFAULT_ENV2, firstHandle: true, knot: true,
         getMs: () => param('time'), labels: () => [`${Math.round(param('amount') * 100) / 100}`, '0'],
         onChange: points => {
           node.data = { ...node.data, env: { ...node.data?.env, main: points } };
