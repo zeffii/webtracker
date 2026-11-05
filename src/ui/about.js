@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['648', ['New Drum synth 2 instruments start as NatKick']],
   ['647', ['Drum synth 2: a harm control for thump on small speakers, and punchier starting settings']],
   ['646', ['New node: drum synth 2 with pitch, volume and noise envelopes you draw as Bezier splines, a rate for each, more noise colours, the same click, and a bass boost']],
   ['645', ['West coast softer and alive: band-limited saw and square, a longer vactrol tail, drift on the voice, and a new random node']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['641', ['The page opens with raens; the old song is kept as ?demo=original']],
   ['640', ['New demo: raens (?demo=raens)']],
   ['639', ['First screen: moving the pointer brings up a shimmer of wireframe (edges and vertices) on the blob under it']],
-  ['638', ['Samples: Islands → new sample runs the island pass on a sample or its selection and writes the result to a new slot']],
                     ];

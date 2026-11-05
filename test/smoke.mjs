@@ -10617,6 +10617,15 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   }
   const held = play({ noise: 0, click: 0 }, { env: { amp: bz.SHAPES.hold() }, ms: 1200, off: 128 * 40 });
   assert.ok(lastLoud(held, 0.01) < 0.5, 'a note off fades out a drawing that would otherwise hold');
+  {   // the instrument a new Drum synth 2 starts as: compiles, plays a kick with weight, keeps its drawings
+    const inst = synthKinds.drumsynth2.make(), reg = new ParamRegistry(), rt = new GraphRuntime({ sampleRate: sr, params: reg.values });
+    rt.load(compile(inst.graph, { instrument: 'k', nodeTypes: NODE_TYPES, registry: reg }));
+    rt.note('k', { type: 'noteOn', note: 36, vel: 1 });
+    const kick = render(rt, 0.5).left;
+    assert.ok(kick.every(Number.isFinite) && Math.max(...kick.map(Math.abs)) > 0.05, 'the starting kick makes sound');
+    assert.ok(inst.graph.nodes.find(n => n.type === 'drumsynth2').data.env.amp.length >= 4, 'with its drawn envelopes');
+    assert.notEqual(inst.graph, synthKinds.drumsynth2.make().graph, 'each new instrument gets its own copy');
+  }
   console.log('ok: drum synth 2');
 }
 

@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 648 · 2026-11-05
+
+- **A new Drum synth 2 instrument now starts as your NatKick.** Its three envelopes are already drawn, the settings are yours (pitch 1115 Hz down to 34 Hz, bass boost on at 7.5 dB below 51 Hz, velvet noise, a short low click) and the voices go through the filter after them. The data lives in `src/drumkick2.js`, copied for each new instrument. It was made before `harm` existed, so `harm` is 0 in it and the sound is unchanged. The bare `drumsynth2` node still starts with the plain defaults.
+
 ## 647 · 2026-11-05
 
 - **Drum synth 2: more thump.** Measured, the first version was already almost all sub (92% of the first 200 ms under 90 Hz), but a clean sine has nothing above that to hear on a small speaker, and it was not loud in the first 100 ms. New `harm` control: the body bends its own phase, which adds harmonics, strongest at the start of the volume drawing and fading to a clean sine in the tail (100 to 400 Hz is up about 1.7x at the default 0.35). Better starting settings: pitch from 160 Hz to 48 Hz with a faster drop (`prate` 1.5), the volume held at full for a moment then a long fall (`arate` 1.6, about 440 ms), `drive` 0.3, and the bass boost on at 6 dB below 55 Hz. The peak is near full scale and the first 100 ms about 25% louder. The default drawings are plain curves, not presets; draw your own as before.

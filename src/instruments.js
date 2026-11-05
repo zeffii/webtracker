@@ -1,4 +1,5 @@
 import { samplerPreset } from './presets.js';
+import { kick2 } from './drumkick2.js';
 import { TEMPLATES } from './genexpr/templates.js';
 
 // The sampler's pattern format is fixed by these lists. Each exposed entry becomes
@@ -694,31 +695,7 @@ export const synthKinds = {
   },
   drumsynth2: {
     label: 'Drum synth 2 (drawn envelopes, noise, click, bass boost)',
-    make: () => ({
-      graph: { nodes: [{ id: 'drum', type: 'drumsynth2' }, { id: 'poly', type: 'voices' }, { id: 'out', type: 'out', params: { gain: 0.6 } }], connections: [['drum.out', 'poly.in'], ['poly.out', 'out.in']], voices: 2 },
-      noteColumns: 1,
-      exposed: [
-        { node: 'drum', param: 'startPitch', label: 'Sta', scale: 'log' },
-        { node: 'drum', param: 'endPitch', label: 'End', scale: 'log' },
-        { node: 'drum', param: 'arate', label: 'Len', scale: 'log' },
-        { node: 'drum', param: 'noise', label: 'Nse' },
-        { node: 'drum', param: 'boost', label: 'Bst' },
-      ],
-      commands: [
-        { id: 0x01, node: 'drum', param: 'startPitch', scale: 'log' },
-        { id: 0x02, node: 'drum', param: 'endPitch', scale: 'log' },
-        { id: 0x03, node: 'drum', param: 'prate', scale: 'log' },
-        { id: 0x04, node: 'drum', param: 'arate', scale: 'log' },
-        { id: 0x05, node: 'drum', param: 'noise' },
-        { id: 0x06, node: 'drum', param: 'nrate', scale: 'log' },
-        { id: 0x07, node: 'drum', param: 'click' },
-        { id: 0x08, node: 'drum', param: 'clickLen', scale: 'log' },
-        { id: 0x09, node: 'drum', param: 'pitchMul', scale: 'log' },
-        { id: 0x0A, node: 'drum', param: 'drive' },
-        { id: 0x0B, node: 'drum', param: 'boost' },
-        { id: 0x0C, node: 'drum', param: 'boostFreq', scale: 'log' },
-      ],
-    }),
+    make: () => structuredClone(kick2),
   },
   cardinal: {
     label: 'Cardinal (virtual analogue lead)',
