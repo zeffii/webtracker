@@ -4816,6 +4816,14 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     const demo = parseProject(readFileSync(new URL(`../src/project/demos/${name}.wax`, import.meta.url), 'utf8'));
     assert.ok(demo.song.length > 0 && demo.song.lanes.length > 1, `the ${name} demo loads`);
   }
+  {   // the west-coast demo: one lane patched from the parts, one with the voice node, both compile and have chords to play
+    const wc = parseProject(readFileSync(new URL('../src/project/demos/westcoast.wax', import.meta.url), 'utf8'));
+    const reg = new ParamRegistry();
+    for (const [id, def] of Object.entries(wc.instruments)) compile(def.graph, { instrument: id, nodeTypes: NODE_TYPES, registry: reg });
+    const types = id => wc.instruments[id].graph.nodes.map(n => n.type);
+    assert.ok(['osc', 'times', 'wavefolder', 'pluckgate', 'plate'].every(t => types('modular').includes(t)) && types('emulator').includes('westcoast'), 'the demo has the parts and the voice');
+    assert.ok(wc.song.lanes.length >= 2 && wc.song.lanes.every(l => l.placements.length >= 8), 'both lanes play');
+  }
   const opening = parseProject(readFileSync(new URL('../src/project/demo.wax', import.meta.url), 'utf8'));   // the song the page opens with
   assert.ok(opening.song.length > 0 && opening.song.lanes.length > 1 && Object.keys(opening.instruments).length > 1, 'the song the page opens with loads');
   const loaded = parseProject(readFileSync(new URL('../src/project/demos/original.wax', import.meta.url), 'utf8'));   // the first demo song, still tested for what it holds

@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 644 · 2026-11-05
+
+- **New demo: west coast (`?demo=westcoast`).** Two lanes playing the same jazzy ii V I VI (Dm9, G13, Cmaj9, A7b13, twice round), comping against each other, each with a subtle plate. `modular` is the parts patched by hand: a modulation osc into the principal osc's `pm` input (its size from an envelope), a wavefolder opened by a second envelope, a pluck gate, voices, plate. `emulator` is the same idea in one `westcoast` node, with its own two envelopes. The song's info text says what to try.
+
 ## 643 · 2026-11-05
 
 - **West-coast synthesis, as parts and as one voice.** Three new nodes, and a new input on the oscillator, so you can build a complex-oscillator voice yourself or use the finished one.

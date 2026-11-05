@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['644', ['New demo: west coast (?demo=westcoast), a hand-patched voice and the westcoast node playing jazz chords']],
   ['643', ['West-coast synthesis: a wavefolder, a pluck gate (vactrol), phase modulation on the oscillator, and a complete voice built from them']],
   ['642', ['Oscillator: pulse (with width), half sine, rectified sine, steps, and a wave you draw by hand']],
   ['641', ['The page opens with raens; the old song is kept as ?demo=original']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['637', ['New node: islands (spectral): keeps the peak of every note and turns down the smear and hiss between them']],
   ['636', ['Piano roll: contrast and islands sliders sharpen the spectrogram, with a bright ridge on each note\'s peak']],
   ['635', ['Trance gate: steps run down to quarter-ticks and patterns up to 64 steps long']],
-  ['634', ['Flanger, chorus, phaser: writing phase slides the sweep (new glide parameter, default 20 ms) instead of clicking']],
                     ];
