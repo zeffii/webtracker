@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['650', ['Envelope drawing edits like the glyph editor: point types, insert on a curve, line/curve, snap, undo']],
   ['649', ['New node: Env 2, a control envelope you draw as a Bezier spline, with a handle on its first anchor']],
   ['648', ['New Drum synth 2 instruments start as NatKick']],
   ['647', ['Drum synth 2: a harm control for thump on small speakers, and punchier starting settings']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['643', ['West-coast synthesis: a wavefolder, a pluck gate (vactrol), phase modulation on the oscillator, and a complete voice built from them']],
   ['642', ['Oscillator: pulse (with width), half sine, rectified sine, steps, and a wave you draw by hand']],
   ['641', ['The page opens with raens; the old song is kept as ?demo=original']],
-  ['640', ['New demo: raens (?demo=raens)']],
                     ];

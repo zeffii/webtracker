@@ -1,6 +1,8 @@
 // A one-shot envelope drawn as a Bezier spline, shared by the node that plays it and the panel that draws it.
 //
 // The spline is a list of anchors { x, y, l, r }: x is the time across the drawing (0 to 1), y the level (0 to 1), and
+// `t` is the kind of point, which only the editor reads: 'smooth' (the default: the two handles stay in line), 'equal' (in line and the
+// same length), 'free' (each handle on its own) or 'sharp' (a corner, no handles).
 // `l` and `r` are the handles that shape the curve going into and out of the anchor, as [dx, dy] from the anchor. A
 // handle that is null is worked out to make the curve smooth through the anchor; [0, 0] makes a corner. Handles are held
 // inside their segment on the time axis, so the curve never doubles back on itself and is always a function of time.
@@ -23,12 +25,13 @@ export const SHAPES = {
 
 const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 const finite = v => typeof v === 'number' && Number.isFinite(v);
+export const POINT_TYPES = ['smooth', 'equal', 'free', 'sharp'];
 const handle = h => (Array.isArray(h) && finite(h[0]) && finite(h[1]) ? [h[0], h[1]] : null);
 
 // Whatever was stored becomes a clean spline: sorted, from x = 0 to x = 1, levels 0 to 1, at least two anchors.
 export function cleanSpline(points, fallback = SHAPES.fall) {
   if (!Array.isArray(points)) return fallback();
-  const a = points.filter(p => p && finite(p.x) && finite(p.y)).map(p => ({ x: clamp(p.x, 0, 1), y: clamp(p.y, 0, 1), l: handle(p.l), r: handle(p.r) }));
+  const a = points.filter(p => p && finite(p.x) && finite(p.y)).map(p => ({ x: clamp(p.x, 0, 1), y: clamp(p.y, 0, 1), l: handle(p.l), r: handle(p.r), ...(POINT_TYPES.includes(p.t) && p.t !== 'smooth' ? { t: p.t } : {}) }));
   if (a.length < 2) return fallback();
   a.sort((p, q) => p.x - q.x);
   a[0].x = 0; a[a.length - 1].x = 1;
@@ -90,4 +93,29 @@ export function envelopeTable(points) {
 export function readEnvelope(table, pos) {
   const x = clamp(pos, 0, 1) * ENV_POINTS, k = Math.min(ENV_POINTS - 1, x | 0), f = x - k;
   return table[k] + (table[k + 1] - table[k]) * f;
+}
+
+// Splits the segment from anchor i to i + 1 at t (0 to 1) without changing its shape (de Casteljau): returns the new anchor and
+// the handles the neighbours need afterwards. The editor uses it to put a point on a curve.
+export function splitSegment(a, i, t) {
+  const [p0, p1, p2, p3] = segmentOf(a, i), mix = (u, v) => [u[0] + (v[0] - u[0]) * t, u[1] + (v[1] - u[1]) * t];
+  const a1 = mix(p0, p1), b1 = mix(p1, p2), c1 = mix(p2, p3), a2 = mix(a1, b1), b2 = mix(b1, c1), at = mix(a2, b2);
+  const rel = (q, from) => [q[0] - from[0], q[1] - from[1]];
+  return { point: { x: at[0], y: at[1], l: rel(a2, at), r: rel(b2, at) }, left: rel(a1, p0), right: rel(c1, p3) };
+}
+
+// The point of the walked spline nearest to (x, y) in the drawing's own units, as { i: segment, t, x, y, d } (d: how far).
+// `scale` weighs time against level so that distances match the screen.
+export function nearestOnSpline(points, x, y, scale = [1, 1]) {
+  const a = cleanSpline(points);
+  let best = null;
+  for (let i = 0; i + 1 < a.length; i++) {
+    const [p0, p1, p2, p3] = segmentOf(a, i);
+    for (let s = 0; s <= STEPS * 2; s++) {
+      const t = s / (STEPS * 2), px = bez(p0[0], p1[0], p2[0], p3[0], t), py = bez(p0[1], p1[1], p2[1], p3[1], t);
+      const d = Math.hypot((px - x) * scale[0], (py - y) * scale[1]);
+      if (!best || d < best.d) best = { i, t, x: px, y: py, d };
+    }
+  }
+  return best;
 }

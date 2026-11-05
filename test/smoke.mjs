@@ -10639,6 +10639,16 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     const live = e2.create({ sampleRate: rate }), lp = Float32Array.from(e2.params.map(p => (p.name === 'time' ? 100 : p.def))); live.message({ type: 'env', slot: 'main', points: bz.SHAPES.flat() }); live.note({ type: 'noteOn', note: 60, vel: 1 });
     const lo = new Float32Array(128); live.process([], [lo], 128, lp, es); assert.ok(lo.every(v => v === 0), 'a drawing sent to the node takes effect');
   }
+  {   // the drawing model the editor relies on: point types survive cleaning, a split keeps the shape, the nearest point is found
+    assert.equal(bz.cleanSpline([{ x: 0, y: 1, t: 'equal' }, { x: 1, y: 0, t: 'nonsense' }])[0].t, 'equal', 'a point type is kept');
+    assert.equal(bz.cleanSpline([{ x: 0, y: 1 }, { x: 1, y: 0, t: 'nonsense' }])[1].t, undefined, 'and an unknown one is dropped');
+    const before = bz.envelopeTable(bz.SHAPES.punch()), pts = bz.SHAPES.punch(), { point, left, right } = bz.splitSegment(pts, 1, 0.4);
+    pts[1].r = left; pts[2].l = right; pts.splice(2, 0, point);
+    const after = bz.envelopeTable(pts); let worst = 0; for (let i = 0; i < before.length; i++) worst = Math.max(worst, Math.abs(before[i] - after[i]));
+    assert.ok(worst < 0.02, `a point put on a curve leaves its shape as it was (${worst.toFixed(4)})`);
+    const hit = bz.nearestOnSpline(bz.SHAPES.line(), 0.5, 0.5);
+    assert.ok(hit.d < 0.01 && hit.i === 0 && Math.abs(hit.t - 0.5) < 0.05, 'the nearest point of a line is found');
+  }
   console.log('ok: drum synth 2');
 }
 

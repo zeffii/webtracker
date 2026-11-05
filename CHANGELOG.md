@@ -2,6 +2,15 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 650 · 2026-11-05
+
+- **The envelope drawing now edits like the glyph editor.** Square anchors, round handles on thin arms, the chosen anchor in pink, a ring on the first anchor, the area under the curve lightly filled, and a grid. Drum synth 2 and Env 2 both use it.
+  - **Point types:** sharp (a corner, key X), smooth (handles stay in line, S), equal (in line and the same length, mirrored as you drag, E; marked with a dot) and free (each handle on its own, F, or Alt-drag a handle). Double-click an anchor to toggle sharp and smooth. Buttons for each.
+  - **On the curve:** double-click a curve (or press I over it) to put an anchor on it without changing its shape. B, or right-click a segment, turns it into a straight line or back into a curve. Right-click an anchor, or Delete, removes it.
+  - **Moving:** arrow keys nudge (Shift for 10); Ctrl+Shift-drag keeps to time or to level; a snap button (off, 1/8, 1/16, 1/32) puts anchors and handle ends on a grid.
+  - **Undo and redo:** Ctrl+Z and Ctrl+Shift+Z (and buttons), up to 100 steps.
+  - Drawings saved earlier open as they were; a point type is stored only when it is not the default.
+
 ## 649 · 2026-11-05
 
 - **New node: Env 2** (Modulators): a control envelope you draw as a Bezier spline, the same drawing as drum synth 2's, for anywhere the ADSR env goes (an oscillator's fm, a gain's cv, a cutoff). `time` is the length in ms from the first anchor to the last, `amount` scales the output, `vel` how much the note's velocity does, and `loop` starts it again at its end, so it can be a wave of your own. A note on plays it once; after its end it holds its last level. The first anchor always shows its own handle, so the start of the curve can be bent without choosing it first (the editor's new `firstHandle` option; the drum synth 2 panel does not use it yet). This is the first version, to be iterated on and then ported to the drum synth 2's envelopes.
