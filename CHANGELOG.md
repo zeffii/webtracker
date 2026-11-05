@@ -2,6 +2,13 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 654 · 2026-11-05
+
+- **Bongo: a hand-drum synth.** New in Synths and in the instrument list as "Bongo" (four voices, so rolls ring over each other). A short bank of drum-skin modes with a rim ring, the shell's knock and the noise of the hand.
+  - **`strike`** slides from a muted hit (0, fingers left on the skin) through an open tone (0.5) to a slap (1: bright, short, with a crack), so the stroke itself can be a pattern command.
+  - **`ring`**, **`skin`** (duller, wetter head), **`snap`** (the pitch jump of a hard hit), **`crack`**, **`shell`**, **`rim`**, **`human`** (every hit a little different) and **`vel`**.
+  - The note is the pitch of the main tone: about D5 for a high bongo and A4 for a low one. Commands 01 to 0B (hex) reach every parameter.
+
 ## 653 · 2026-11-05
 
 - **Hi-hat 2: a hat that sounds played, with a flanger and a bit crusher.** New in Synths and in the instrument list as "Hi-hat 2". Like the 808 hi-hat it has closed (note 0, the Cl column) and open (note 1, the Op column) hits in one voice, with a closed hit cutting the open one.

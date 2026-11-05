@@ -236,7 +236,7 @@ export const MACHINE_TREE = [
     { name: 'physical', items: [['piano', 'Piano'], ['string', 'Plucked string'], ['jawharp', 'Jaw harp']] },
   ] },
   { name: 'drums', groups: [
-    { name: 'machines', items: [['kick', 'Kick'], ['drumsynth', 'Drum synth'], ['drumsynth2', 'Drum synth 2'], ['hat808', '808 hi-hat'], ['hat2', 'Hi-hat 2'], ['clap', 'Clap'], ['combperc', 'Comb perc'], ['combtom', 'Comb tom']] },
+    { name: 'machines', items: [['kick', 'Kick'], ['drumsynth', 'Drum synth'], ['drumsynth2', 'Drum synth 2'], ['hat808', '808 hi-hat'], ['hat2', 'Hi-hat 2'], ['bongo', 'Bongo'], ['clap', 'Clap'], ['combperc', 'Comb perc'], ['combtom', 'Comb tom']] },
     { name: 'struck', items: [['woodblock', 'Woodblock'], ['clang', 'Clang'], ['membrane', 'Membrane']] },
   ] },
   { name: 'tools', items: [['chords', 'Chords'], ['meta', 'Meta machine'], ['code', 'Code'], ['osc', 'OSC out'], ['empty', 'Empty']] },
@@ -553,6 +553,21 @@ export const synthKinds = {
         { id: 0x08, node: 'hat', param: 'olvl' },
         { id: 0x09, node: 'hat', param: 'choke' },
       ],
+    }),
+  },
+  bongo: {
+    label: 'Bongo (hand drum)',
+    make: () => ({
+      graph: { nodes: [{ id: 'synth', type: 'bongo' }, { id: 'poly', type: 'voices' }, { id: 'out', type: 'out', params: { gain: 0.5 } }], connections: [['synth.out', 'poly.in'], ['poly.out', 'out.in']], voices: 4 },
+      noteColumns: 2,
+      exposed: [
+        { node: 'synth', param: 'strike', label: 'Str' },
+        { node: 'synth', param: 'ring', label: 'Rng', scale: 'log' },
+        { node: 'synth', param: 'skin', label: 'Skn' },
+        { node: 'synth', param: 'crack', label: 'Crk' },
+      ],
+      commands: ['strike', 'ring', 'skin', 'snap', 'crack', 'shell', 'rim', 'human', 'tune', 'vel', 'level']
+        .map((param, k) => ({ id: k + 1, node: 'synth', param, ...(param === 'ring' ? { scale: 'log' } : {}) })),
     }),
   },
   hat2: {

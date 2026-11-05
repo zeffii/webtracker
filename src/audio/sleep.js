@@ -23,7 +23,7 @@ const MARGIN_S = 0.5;            // added to the longest delay time found
 const NEVER = new Set(['cardinal', 'genexpr', 'glsl', 'tempo', 'nsgroups', 'oscout', 'modchan']);
 export const FREE = new Set(['lfo', 'ctrl']);   // modulators that run with no note: they keep running while the machine sleeps (they cost next to nothing), so a sweep or a synced LFO is where it should be when it wakes
 const GATED = new Set(['env', 'env2', 'notetrig', 'sampler', 'drumsynth', 'drumsynth2', 'clap', 'membrane', 'clang', 'subsynth', 'westcoast', 'pluckgate', 'fourpole', 'oberheim', 'piano', 'fmsynth', 'dvii',
-  'wavetable', 'granular', 'woodblock', 'jawharp', 'snarl', 'string', 'hat808', 'hat2', 'combperc', 'squelch', 'duette']);   // sound only while a note does
+  'wavetable', 'granular', 'woodblock', 'jawharp', 'snarl', 'string', 'hat808', 'hat2', 'bongo', 'combperc', 'squelch', 'duette']);   // sound only while a note does
 const TIME_PARAM = /^(time|length|delay|predelay|maxdelay|mindelay)$/;   // in ms, on the effect node types that have them
 
 // What the runtime keeps per machine for sleeping, made when the machine is loaded. Returns null for a machine that never sleeps.

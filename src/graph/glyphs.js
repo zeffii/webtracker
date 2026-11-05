@@ -373,6 +373,14 @@ export const GLYPHS = {
     line(ctx, burst(0.02, 0.2, 0.7));
     line(ctx, burst(0.32, 0.64, 0.9));
   },
+  bongo: (ctx, cx, cy, w, h) => {   // two small drum heads side by side, seen from the front
+    const ell = (x0, y0, rx, ry) => { const pts = []; for (let i = 0; i <= 20; i++) { const a = i / 20 * Math.PI * 2; pts.push([x0 + Math.cos(a) * rx, y0 + Math.sin(a) * ry]); } return pts; };
+    line(ctx, ell(cx - w * 0.24, cy - h * 0.1, w * 0.2, h * 0.14));
+    line(ctx, ell(cx + w * 0.24, cy - h * 0.1, w * 0.26, h * 0.17));
+    line(ctx, [[cx - w * 0.44, cy - h * 0.1], [cx - w * 0.38, cy + h * 0.4]]);
+    line(ctx, [[cx - w * 0.04, cy - h * 0.1], [cx + w * 0.02, cy + h * 0.4]]);
+    line(ctx, [[cx + w * 0.5, cy - h * 0.1], [cx + w * 0.42, cy + h * 0.4]]);
+  },
   hat2: (ctx, cx, cy, w, h) => {   // a burst of noise falling under a drawn curve
     const x = f => cx - w / 2 + f * w, y = f => cy + h / 2 - f * h;
     const pts = []; for (let i = 0; i <= 16; i++) { const t = i / 16; pts.push([x(0.04 + t * 0.92), y(0.5 + (i % 2 ? 1 : -1) * 0.8 * Math.exp(-t * 4) * 0.5)]); }

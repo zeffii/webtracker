@@ -45,6 +45,7 @@ const TYPE_UNIT = {
   squelch: { tune: 'st', cutoff: 'Hz', decay: 'ms', slide: 'ms', rel: 'ms' },
   combperc: { decay: 'ms', click: 'ms', tune: 'st', sweep: 'oct', sdec: 'ms' },
   hat808: { tune: 'st', tone: 'Hz', cdec: 'ms', odec: 'ms' },
+  bongo: { ring: 'ms', crack: '%', shell: '%', rim: '%', snap: '%', skin: '%', human: '%', vel: '%', tune: 'st' },
   hat2: { tune: 'st', body: 'Hz', tone: 'Hz', crate: 'x', orate: 'x', human: '%', spread: '%', noise: '%', frate: 'Hz', fdepth: '%', flange: '%', crush: '%', bits: 'bit', down: 'x' },
   sampler: { release: 'ms', nnaFade: 'ms', retrig: 'ticks', root: '' },
   ctrl: { time: 'subticks' },

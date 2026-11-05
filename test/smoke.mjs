@@ -10529,6 +10529,24 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     const levels = new Set(cr.slice(0, 4000).map(v => Math.round(v * 4))); 
     assert.ok(levels.size <= 10, 'a 3-bit crush leaves only a handful of levels');
   }
+  // bongo: rings and dies; muted is shorter than open; a slap is brighter than an open tone; the note sets the pitch
+  {
+    const def = NODE_TYPES.bongo, slots = slotsOf(def), N = rate;
+    const hit = (v = {}, note = 74) => {
+      const node = def.create({ sampleRate: rate }), params = paramsOf(def, { human: 0, ...v }), l = new Float32Array(N), r = new Float32Array(N);
+      node.note({ type: 'noteOn', note, vel: 1 });
+      for (let at = 0; at < N; at += B) node.process([], [[l.subarray(at, at + B), r.subarray(at, at + B)]], B, params, slots);
+      return l;
+    };
+    const energy = (x, a, b) => { let e = 0; for (let i = a; i < b; i++) e += x[i] * x[i]; return e; };
+    const diff = x => { let e = 0; for (let i = 1; i < x.length; i++) e += (x[i] - x[i - 1]) ** 2; return e; };
+    const open = hit({ strike: 0.5 }), muted = hit({ strike: 0 }), slap = hit({ strike: 1 });
+    assert.ok([open, muted, slap].every(x => x.every(Number.isFinite)) && energy(open, 0, 4000) > 1e-3, 'the bongo sounds');
+    assert.ok(energy(muted, 9600, 24000) < energy(open, 9600, 24000) * 0.2, 'a muted hit dies sooner than an open tone');
+    assert.ok(diff(slap.subarray(0, 2400)) / energy(slap, 0, 2400) > diff(open.subarray(0, 2400)) / energy(open, 0, 2400) * 1.2, 'a slap is brighter than an open tone');
+    const zeroCrossings = (x, a, b) => { let c = 0; for (let i = a + 1; i < b; i++) if ((x[i] > 0) !== (x[i - 1] > 0)) c++; return c; };
+    assert.ok(zeroCrossings(hit({ strike: 0.5, shell: 0, snap: 0, crack: 0, rim: 0 }, 86), 2400, 4800) > zeroCrossings(hit({ strike: 0.5, shell: 0, snap: 0, crack: 0, rim: 0 }, 74), 2400, 4800) * 1.3, 'an octave-higher note rings higher');
+  }
   // wave folder: a sine gains harmonics as fold goes up; fold 0 with a quiet input stays a sine; the fold input adds to the amount
   {
     const def = NODE_TYPES.wavefolder, slots = slotsOf(def), n = 8192 + B;
