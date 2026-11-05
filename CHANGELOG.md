@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 655 · 2026-11-05
+
+- **A new opening song.** The song the page opens with is now your "raens" (seven instruments, including the new Hi-hat 2 and Pogue in the chain), replacing the earlier version of it.
+
 ## 654 · 2026-11-05
 
 - **Bongo: a hand-drum synth.** New in Synths and in the instrument list as "Bongo" (four voices, so rolls ring over each other). A short bank of drum-skin modes with a rim ring, the shell's knock and the noise of the hand.

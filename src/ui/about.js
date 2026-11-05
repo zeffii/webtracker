@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['655', ['The song the page opens with is now the latest version of raens']],
   ['654', ['Bongo: a hand-drum synth with a strike slide from muted through open to slap']],
   ['653', ['Hi-hat 2: closed and open hats with drawn volumes, per-hit variation, a flanger and a bit crusher']],
   ['652', ['Random: picks a new value on every trigger, and takes a range (low, high) with a lean and a focus to favour one value']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['648', ['New Drum synth 2 instruments start as NatKick']],
   ['647', ['Drum synth 2: a harm control for thump on small speakers, and punchier starting settings']],
   ['646', ['New node: drum synth 2 with pitch, volume and noise envelopes you draw as Bezier splines, a rate for each, more noise colours, the same click, and a bass boost']],
-  ['645', ['West coast softer and alive: band-limited saw and square, a longer vactrol tail, drift on the voice, and a new random node']],
                     ];
