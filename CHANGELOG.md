@@ -2,6 +2,15 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 653 · 2026-11-05
+
+- **Hi-hat 2: a hat that sounds played, with a flanger and a bit crusher.** New in Synths and in the instrument list as "Hi-hat 2". Like the 808 hi-hat it has closed (note 0, the Cl column) and open (note 1, the Op column) hits in one voice, with a closed hit cutting the open one.
+  - **Sound:** six metal tones that `spread` pulls off their exact ratios, mixed with white noise by `noise`, through a band-pass at `body` and a high-pass at `tone`.
+  - **`human`:** every hit is a little different (level, brightness, pitch of the metal, where its waves start), so repeated hats do not machine-gun.
+  - **Drawn volume:** the panel has a Bezier drawing for the closed hat and one for the open hat, edited like the other envelopes. `crate` and `orate` set how fast each plays (closed 140 ms, open 700 ms at 1).
+  - **Flanger, then crusher:** `flange` (with `frate`, `fdepth`, `ffeed`) and `crush` (with `bits` and `down`). Both are off at 0, so the plain hat is clean.
+  - All parameters are available as pattern commands 01 to 13 (hex). The sustain knot and note length of build 651 are not in this node yet.
+
 ## 652 · 2026-11-05
 
 - **Random: a new value on every trigger, and a range with a lean.**

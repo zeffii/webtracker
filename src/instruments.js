@@ -236,7 +236,7 @@ export const MACHINE_TREE = [
     { name: 'physical', items: [['piano', 'Piano'], ['string', 'Plucked string'], ['jawharp', 'Jaw harp']] },
   ] },
   { name: 'drums', groups: [
-    { name: 'machines', items: [['kick', 'Kick'], ['drumsynth', 'Drum synth'], ['drumsynth2', 'Drum synth 2'], ['hat808', '808 hi-hat'], ['clap', 'Clap'], ['combperc', 'Comb perc'], ['combtom', 'Comb tom']] },
+    { name: 'machines', items: [['kick', 'Kick'], ['drumsynth', 'Drum synth'], ['drumsynth2', 'Drum synth 2'], ['hat808', '808 hi-hat'], ['hat2', 'Hi-hat 2'], ['clap', 'Clap'], ['combperc', 'Comb perc'], ['combtom', 'Comb tom']] },
     { name: 'struck', items: [['woodblock', 'Woodblock'], ['clang', 'Clang'], ['membrane', 'Membrane']] },
   ] },
   { name: 'tools', items: [['chords', 'Chords'], ['meta', 'Meta machine'], ['code', 'Code'], ['osc', 'OSC out'], ['empty', 'Empty']] },
@@ -553,6 +553,22 @@ export const synthKinds = {
         { id: 0x08, node: 'hat', param: 'olvl' },
         { id: 0x09, node: 'hat', param: 'choke' },
       ],
+    }),
+  },
+  hat2: {
+    label: 'Hi-hat 2 (closed + open, flanger and crusher)',
+    make: () => ({
+      graph: { nodes: [{ id: 'hat', type: 'hat2' }, { id: 'out', type: 'out', params: { gain: 0.4 } }], connections: [['hat.out', 'out.in']] },
+      noteColumns: 0,   // no notes: the Cl and Op columns trigger the closed and open hat
+      triggers: [{ label: 'Cl', note: 0 }, { label: 'Op', note: 1 }],
+      exposed: [
+        { node: 'hat', param: 'tone', label: 'Ton' },
+        { node: 'hat', param: 'noise', label: 'Noi' },
+        { node: 'hat', param: 'flange', label: 'Fla' },
+        { node: 'hat', param: 'crush', label: 'Cru' },
+      ],
+      commands: ['tune', 'spread', 'noise', 'body', 'tone', 'human', 'level', 'crate', 'orate', 'clvl', 'olvl', 'choke', 'flange', 'frate', 'fdepth', 'ffeed', 'crush', 'bits', 'down']
+        .map((param, k) => ({ id: k + 1, node: 'hat', param, ...(param === 'crate' || param === 'orate' ? { scale: 'log' } : {}) })),
     }),
   },
   modchan: {

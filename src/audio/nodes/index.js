@@ -65,6 +65,7 @@ import glsl from './glsl.js';
 import nsgroups from './nsgroups.js';
 import string from './string.js';
 import hat808 from './hat808.js';
+import hat2 from './hat2.js';
 import combperc from './combperc.js';
 import noise from './noise.js';
 import squelch from './squelch.js';
@@ -107,7 +108,7 @@ import amp from './amp.js';
 import chord from './chord.js';
 
 // Node type registry. Adding a node type means adding a module and listing it here.
-const TYPES = { clang, membrane, amp, cardinal, range, add, times, int, float, drumsynth, nsgroups, oscout, comb, clap, urugraVerb, convolver, sampler, osc, noise, env, lfo, gain, mix, pan, filter, filterpro, ladder, sweep, genexpr, vocoder, tap, delay, chorus, pogue, phaser, flanger, distortion, multitap, shiva, blur, saturator, mbsat, hpss, bodyblur, specdyn, islands, mosh, xsynth, gater, freqshift, specpan, waveshaper, wavefolder, pluckgate, westcoast, random, drumsynth2, env2, dcblock, exciter, transient, split, route, compressor, gate, envfx, eq, crusher, tape, mbcomp, prismacanyon: canyon, ctrl, notetrig, arp, chord, follower, sidechain, listen, hall, plate, shimmer, subsynth, fourpole, oberheim, piano, addsynth, fmsynth, dvii, wavetable, granular, woodblock, jawharp, snarl, specsynth, string, hat808, combperc, squelch, duette, modchan, voices, tempo, glsl, out, sum, sumst, fold, compdelay };
+const TYPES = { clang, membrane, amp, cardinal, range, add, times, int, float, drumsynth, nsgroups, oscout, comb, clap, urugraVerb, convolver, sampler, osc, noise, env, lfo, gain, mix, pan, filter, filterpro, ladder, sweep, genexpr, vocoder, tap, delay, chorus, pogue, phaser, flanger, distortion, multitap, shiva, blur, saturator, mbsat, hpss, bodyblur, specdyn, islands, mosh, xsynth, gater, freqshift, specpan, waveshaper, wavefolder, pluckgate, westcoast, random, drumsynth2, env2, dcblock, exciter, transient, split, route, compressor, gate, envfx, eq, crusher, tape, mbcomp, prismacanyon: canyon, ctrl, notetrig, arp, chord, follower, sidechain, listen, hall, plate, shimmer, subsynth, fourpole, oberheim, piano, addsynth, fmsynth, dvii, wavetable, granular, woodblock, jawharp, snarl, specsynth, string, hat808, hat2, combperc, squelch, duette, modchan, voices, tempo, glsl, out, sum, sumst, fold, compdelay };
 
 // Every effect gets a hard bypass switch as its last parameter (the runtime passes the input straight through while it is on).
 export const NODE_TYPES = TYPES;

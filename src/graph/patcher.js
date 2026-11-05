@@ -20,6 +20,7 @@ import { createSpecPanView } from './specpaneditor.js';
 import { createCanyonView } from './canyonview.js';
 import { createDrumView } from './drumview.js';
 import { createDrum2View } from './drum2view.js';
+import { createHat2View } from './hat2view.js';
 import { createBezierEditor } from './bezieredit.js';
 import { DEFAULT_ENV2 } from '../audio/nodes/env2.js';
 import { createMembraneView } from './membraneview.js';
@@ -179,6 +180,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
   let granularView = null;   // the sample, the grains and the cloud of a granular synth
   let cardinalView = null;   // the oscillators, filter, envelopes and LFOs of a Cardinal synth
   let env2Editor = null;    // the drawn envelope of an Env 2 node
+  let hat2View = null;      // the two drawn volumes of Hi-hat 2
   let drum2View = null;     // the three drawn envelopes of drum synth 2 and the hit they make
   let drumView = null;      // the envelopes, the click and the composed root note of a drum synth, redrawn when its parameters move
   let canyonView = null;    // the echoes of a Prisma Canyon against the song's ticks, redrawn when its parameters move
@@ -340,6 +342,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
         if (type.editor === 'drumsynth') drumView?.refresh();
         if (type.editor === 'drumsynth2') drum2View?.refresh();
         if (type.editor === 'env2') env2Editor?.refresh();
+        if (type.editor === 'hat2') hat2View?.refresh();
         if (type.editor === 'cardinal') cardinalView?.refresh();
         if (type.editor === 'membrane') membraneView?.refresh();
         if (type.editor === 'granular') granularView?.refresh();
@@ -690,6 +693,18 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
         },
       });
       items.splice(1, 0, drum2View.el);
+    }
+    hat2View = null;
+    if (type.editor === 'hat2') {   // the volume drawings of the closed and the open hat, kept on the node and sent live
+      const param = name => readLive(instId, node.id, name) ?? node.params?.[name] ?? type.params.find(p => p.name === name)?.def ?? 0;
+      hat2View = createHat2View({
+        doc, getParam: param, env: node.data?.env ?? {},
+        onChange: (slot, points) => {
+          node.data = { ...node.data, env: { ...node.data?.env, [slot]: points } };
+          onData(instId, node.id, { type: 'env', slot, points });
+        },
+      });
+      items.splice(1, 0, hat2View.el);
     }
     drumView = null;
     if (type.editor === 'drumsynth') {   // the envelopes, the click and the composed note, drawn from the parameters and the click sample
@@ -1382,7 +1397,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
     const sig = parts.join(',');
     if (sig === liveSig) return;
     liveSig = sig;
-    paramView?.refresh(); exposedView?.refresh(); floatView?.refresh(); tapEditor?.refresh(); gateEditor?.refresh(); specView?.refresh(); canyonView?.refresh(); drumView?.refresh(); drum2View?.refresh(); env2Editor?.refresh(); cardinalView?.refresh(); membraneView?.refresh(); granularView?.refresh(); intView?.refresh(); chordView?.refresh(); rangeView?.refresh(); dxView?.refresh();
+    paramView?.refresh(); exposedView?.refresh(); floatView?.refresh(); tapEditor?.refresh(); gateEditor?.refresh(); specView?.refresh(); canyonView?.refresh(); drumView?.refresh(); drum2View?.refresh(); hat2View?.refresh(); env2Editor?.refresh(); cardinalView?.refresh(); membraneView?.refresh(); granularView?.refresh(); intView?.refresh(); chordView?.refresh(); rangeView?.refresh(); dxView?.refresh();
   }
 
   // A graph is moved clear of the exposed-parameters dock once when its instrument is first shown after a load (the file

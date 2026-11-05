@@ -10503,6 +10503,32 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     assert.ok([...even, ...tight].every(v => v >= 0.2 - 1e-6 && v <= 0.9 + 1e-6), 'picks stay inside low..high');
     assert.ok(near(tight) > near(even) * 1.8 && Math.min(...tight) < 0.4 && Math.max(...tight) > 0.8, `focus crowds picks near lean (${near(even).toFixed(2)} -> ${near(tight).toFixed(2)}) and still reaches the ends`);
   }
+  // hi-hat 2: closed and open hits fall, a closed hit chokes the open one, hits differ with `human`, flanger and crusher change the sound
+  {
+    const def = NODE_TYPES.hat2, slots = slotsOf(def), N = rate;
+    const hit = (v = {}, notes = [[0, 0]]) => {
+      const node = def.create({ sampleRate: rate, data: {} }), params = paramsOf(def, v), l = new Float32Array(N), r = new Float32Array(N);
+      for (let at = 0; at < N; at += B) {
+        for (const [when, note] of notes) if (when >= at && when < at + B) node.note({ type: 'noteOn', note, vel: 1 });
+        node.process([], [[l.subarray(at, at + B), r.subarray(at, at + B)]], B, params, slots);
+      }
+      return [l, r];
+    };
+    const peak = (x, a, b) => { let p = 0; for (let i = a; i < b; i++) p = Math.max(p, Math.abs(x[i])); return p; };
+    const [cl] = hit({ human: 0 }), [op] = hit({ human: 0 }, [[0, 1]]);
+    assert.ok(cl.every(Number.isFinite) && peak(cl, 0, 2000) > 0.02, 'the closed hat sounds');
+    assert.ok(peak(cl, 12000, 24000) < 1e-3 && peak(op, 12000, 24000) > 0.01, 'closed is over in about a quarter of a second; open rings on');
+    const [choked] = hit({ human: 0 }, [[0, 1], [9600, 0]]);
+    assert.ok(peak(choked, 18000, 24000) < 1e-3 && peak(op, 18000, 24000) > 0.003, 'a closed hit cuts the open hat');
+    const [h1] = hit({ human: 1 }, [[0, 0], [4800, 0]]);
+    let diff = 0; for (let i = 0; i < 600; i++) diff += Math.abs(h1[i + 100] - h1[i + 4900]);
+    assert.ok(diff > 0.05, 'with human up, two hits of the same note are not the same');
+    const [plain] = hit({ human: 0 }), [fl] = hit({ human: 0, flange: 0.8 }), [cr] = hit({ human: 0, crush: 1, bits: 3, down: 8 });
+    let dFl = 0, dCr = 0; for (let i = 0; i < 4000; i++) { dFl += Math.abs(fl[i] - plain[i]); dCr += Math.abs(cr[i] - plain[i]); }
+    assert.ok(fl.every(Number.isFinite) && cr.every(Number.isFinite) && dFl > 0.1 && dCr > 0.1, 'flanger and crusher change the sound and stay finite');
+    const levels = new Set(cr.slice(0, 4000).map(v => Math.round(v * 4))); 
+    assert.ok(levels.size <= 10, 'a 3-bit crush leaves only a handful of levels');
+  }
   // wave folder: a sine gains harmonics as fold goes up; fold 0 with a quiet input stays a sine; the fold input adds to the amount
   {
     const def = NODE_TYPES.wavefolder, slots = slotsOf(def), n = 8192 + B;

@@ -373,6 +373,12 @@ export const GLYPHS = {
     line(ctx, burst(0.02, 0.2, 0.7));
     line(ctx, burst(0.32, 0.64, 0.9));
   },
+  hat2: (ctx, cx, cy, w, h) => {   // a burst of noise falling under a drawn curve
+    const x = f => cx - w / 2 + f * w, y = f => cy + h / 2 - f * h;
+    const pts = []; for (let i = 0; i <= 16; i++) { const t = i / 16; pts.push([x(0.04 + t * 0.92), y(0.5 + (i % 2 ? 1 : -1) * 0.8 * Math.exp(-t * 4) * 0.5)]); }
+    line(ctx, pts);
+    line(ctx, [[x(0.04), y(0.95)], [x(0.3), y(0.5)], [x(0.96), y(0.08)]]);
+  },
   mbcomp: (ctx, cx, cy, w, h) => {   // four bars, each squashed to a different height
     const x = f => cx - w / 2 + f * w, y = f => cy + h / 2 - f * h;
     [0.8, 0.55, 0.7, 0.4].forEach((top, k) => {
