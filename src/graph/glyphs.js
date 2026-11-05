@@ -136,6 +136,13 @@ export const GLYPHS = {
     ctx.moveTo(cx, cy - h * 0.4); ctx.lineTo(cx, cy + h * 0.4);
     ctx.stroke();
   },
+  kaleidoscope: (ctx, cx, cy, w, h) => {   // a peak, then its mirror image, then the peak again
+    const x = f => cx - w / 2 + f * w, y = f => cy + h / 2 - f * h;
+    line(ctx, [[x(0.04), y(0.1)], [x(0.2), y(0.85)], [x(0.34), y(0.1)]]);
+    line(ctx, [[x(0.34), y(0.1)], [x(0.5), y(0.85)], [x(0.66), y(0.1)]]);
+    line(ctx, [[x(0.66), y(0.1)], [x(0.8), y(0.85)], [x(0.96), y(0.1)]]);
+    line(ctx, [[x(0.34), y(0.02)], [x(0.34), y(0.95)]]); line(ctx, [[x(0.66), y(0.02)], [x(0.66), y(0.95)]]);
+  },
   freqshift: (ctx, cx, cy, w, h) => {   // a row of harmonics, all moved along by the same step
     for (const [dy, dx] of [[-0.25, 0], [0.2, 0.18]]) {
       ctx.beginPath();

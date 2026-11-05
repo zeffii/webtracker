@@ -121,6 +121,12 @@
     #about::backdrop { background: rgb(0 0 0 / .45); }
     #about h2 { margin: 0 0 .5rem; font-size: 1.1rem; } #about h3 { margin: 1rem 0 .25rem; font-size: .95rem; } #about h4 { margin: .6rem 0 .1rem; font-size: .85rem; opacity: .8; }
     #about p { margin: .5rem 0; } #about ul { margin: 0 0 .5rem; padding-left: 1.2rem; } #about .last { font-style: italic; }
+    .kaleidoscope { margin: .25rem 0 .5rem; }
+    .kaleidoscope .kal-pad { display: block; max-width: 100%; border: 0; }
+    .kaleidoscope .kal-row { display: flex; gap: .4rem; align-items: center; flex-wrap: wrap; margin-top: .4rem; font: 11px ui-monospace, Consolas, monospace; }
+    .kaleidoscope .kal-btn { font: inherit; background: none; color: inherit; opacity: .7; border: 1px solid color-mix(in srgb, currentColor 30%, transparent); border-radius: 3px; padding: .1rem .55rem; cursor: pointer; }
+    .kaleidoscope .kal-btn.on { color: hsl(335 80% 62%); border-color: hsl(335 80% 62%); opacity: 1; }
+    .kaleidoscope .kal-info { margin-left: .8rem; opacity: .7; }
     #about .songs { display: grid; gap: 1px; }
     #about .song { display: grid; grid-template-columns: 11rem 1fr; gap: .75rem; text-align: left; font: inherit; color: inherit; background: none; border: 0; border-bottom: 1px solid color-mix(in srgb, currentColor 15%, transparent); padding: .3rem .25rem; cursor: pointer; }
     #about .song:hover, #about .song:focus-visible { background: color-mix(in srgb, currentColor 8%, transparent); outline: none; }

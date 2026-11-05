@@ -2,6 +2,14 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 657 · 2026-11-05
+
+- **Kaleidoscope: a spectral effect that arrays a band of the sound across the whole range.** New in Effects > Spectral. Choose a band (`low` to `high` Hz); it is repeated up and down the range in steps of its own width, so a copy of a two-octave band sits two octaves higher or lower than the source.
+  - **Panel:** the spectrum it hears, live, with the band lit in pink and its two ends to drag (drag inside the strip to move the whole band), and below it the spectrum it makes, with the seams of the copies marked and the mirrored copies tinted. Frequency runs along the bottom in octaves. `mirror` and `repeat` are buttons under it.
+  - **Mirror** reads every second copy backwards, so the seams join without a step and intervals turn upside down inside the copy. **Repeat** plays every copy the same way.
+  - **`rotate`** slides the pattern along the range in band widths, so a slow sweep turns the kaleidoscope. **`copies`**: 0 fills the range, a number keeps the source and that many copies either side. **`edge`** fades the copies at seams that do not match. **`level`**, **`mix`** and **`size`** (frame length) as in the other spectral effects.
+  - **How it works:** it finds the tones in the band, measures each one's true frequency from how its phase moves from frame to frame, and writes each into every copy as a clean sinusoid with its phase carried on, so moved tones do not smear. It costs about 7% of one core on dense noise, much less on tonal sound. Latency is one frame.
+
 ## 656 · 2026-11-05
 
 - **Songs to explore, in the About box.** A permanent list of thirteen songs, none of which uses a sample, so each one opens complete. Click one to open it; if the project you have open has unsaved changes you are asked first. The list lives in `src/ui/songs.js`: to add a song, put its `.wax` in `src/project/demos/` and add a line there. A test checks that each listed file exists, opens and uses no samples.

@@ -10561,6 +10561,39 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     const zeroCrossings = (x, a, b) => { let c = 0; for (let i = a + 1; i < b; i++) if ((x[i] > 0) !== (x[i - 1] > 0)) c++; return c; };
     assert.ok(zeroCrossings(hit({ strike: 0.5, shell: 0, snap: 0, crack: 0, rim: 0 }, 86), 2400, 4800) > zeroCrossings(hit({ strike: 0.5, shell: 0, snap: 0, crack: 0, rim: 0 }, 74), 2400, 4800) * 1.3, 'an octave-higher note rings higher');
   }
+  // kaleidoscope: a band arrayed across the range, mirrored or repeated, limited to a number of copies, and reported for the panel
+  {
+    const def = NODE_TYPES.kaleidoscope, slots = slotsOf(def), N = 24576 + 8192;
+    const sineAt = f => Float32Array.from({ length: N }, (_, i) => 0.5 * Math.sin(2 * Math.PI * f * i / rate));
+    const run = (f, v = {}, emit = null, watch = false) => {
+      const node = def.create({ sampleRate: rate, emit }), params = paramsOf(def, { mix: 1, edge: 0, ...v }), x = sineAt(f), out = new Float32Array(N);
+      if (watch) node.message({ type: 'watch' });
+      for (let at = 0; at < N; at += B) node.process([[x.subarray(at, at + B), x.subarray(at, at + B)]], [[out.subarray(at, at + B), new Float32Array(B)]], B, params, slots);
+      return out;
+    };
+    const level = (x, f) => { let re = 0, im = 0; for (let i = N - 8192; i < N; i++) { const w = 0.5 - 0.5 * Math.cos(2 * Math.PI * (i - (N - 8192)) / 8192), t = 2 * Math.PI * f * i / rate; re += x[i] * w * Math.cos(t); im += x[i] * w * Math.sin(t); } return Math.hypot(re, im) / 8192; };
+    const strongAt = (x, f, others) => level(x, f) > 3 * Math.max(...others.map(o => level(x, o)), 1e-9);
+    const low = 440, high = 1760;   // two octaves wide
+    const rep = run(700, { low, high, mode: 1, size: 1 });
+    assert.ok(rep.every(Number.isFinite) && level(rep, 700) > 0.01, 'the source band stays where it is');
+    assert.ok(strongAt(rep, 175, [100, 250]) && strongAt(rep, 2800, [2000, 3600]), 'repeat: copies sit two octaves under and over the source');
+    const mir = run(700, { low, high, mode: 0, size: 1 });
+    assert.ok(strongAt(mir, 276, [175, 350]) && strongAt(mir, 4430, [2800, 5600]), 'mirror: the copies are flipped (an interval turns upside down)');
+    assert.ok(level(mir, 175) < level(mir, 276) / 3, 'mirror: nothing where repeat put its copy');
+    const one = run(700, { low, high, mode: 0, copies: 1, size: 1 }), all = run(700, { low, high, mode: 0, copies: 0, size: 1 });
+    assert.ok(level(all, 11200) > 0.003 && level(one, 11200) < level(all, 11200) / 4 && level(one, 4430) > 0.003, 'copies limits how many tiles are made');
+    const dry = run(700, { low, high, mix: 0, size: 1 });
+    assert.ok(Math.abs(level(dry, 700) - level(sineAt(700), 700)) / level(sineAt(700), 700) < 0.05 && level(dry, 276) < 1e-3, 'mix 0 is the dry sound');
+    const moved = run(700, { low, high, mode: 1, rotate: 0.5, size: 1 });
+    assert.ok(level(moved, 700) < level(rep, 700) / 3, 'rotate slides the pattern, so the source is no longer where it was');
+    // the report for the panel
+    const reports = [], again = run(700, { low, high, size: 1 }, (msg, transfer) => reports.push(msg), true);
+    assert.ok(reports.length > 5 && reports.every(r => r.type === 'kal' && r.input.length === 200 && r.output.length === 200), 'a watched node reports spectra for the panel');
+    const peakAt = a => a.indexOf(Math.max(...a)), lastR = reports.at(-1), place = f => Math.round((Math.log2(f) - Math.log2(27.5)) / (Math.log2(14080) - Math.log2(27.5)) * 200);
+    assert.ok(Math.abs(peakAt(lastR.input) - place(700)) <= 2 && Math.max(...lastR.output) > 0.3, 'the input report has its peak at the right place');
+    const quiet = []; run(700, { low, high, size: 1 }, m => quiet.push(m), false);
+    assert.equal(quiet.length, 0, 'an unwatched node reports nothing');
+  }
   // wave folder: a sine gains harmonics as fold goes up; fold 0 with a quiet input stays a sine; the fold input adds to the amount
   {
     const def = NODE_TYPES.wavefolder, slots = slotsOf(def), n = 8192 + B;

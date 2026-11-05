@@ -397,6 +397,17 @@ const HINTS = {
     lowDrive: 'Drive of the low band, in dB.', lowmidDrive: 'Drive of the low mid band, in dB.', highmidDrive: 'Drive of the high mid band, in dB.', highDrive: 'Drive of the high band, in dB.',
     lowGain: 'Level of the low band after the curve, in dB.', lowmidGain: 'Level of the low mid band after the curve, in dB.', highmidGain: 'Level of the high mid band after the curve, in dB.', highGain: 'Level of the high band after the curve, in dB.',
   },
+  kaleidoscope: {
+    low: 'The bottom of the band that is arrayed, in Hz. Drag the left end of the pink strip on the panel.',
+    high: 'The top of the band, in Hz. Drag the right end of the strip, or drag the strip to move the whole band.',
+    mode: 'Mirror reads every second copy backwards, so the seams join and the intervals turn upside down inside it. Repeat plays every copy the same way.',
+    rotate: 'Slides the pattern along the range, in band widths. A slow sweep turns the kaleidoscope.',
+    copies: '0 fills the whole range with copies. A number keeps the source and that many copies either side.',
+    edge: 'How far in semitones the copies fade at their seams where the ends do not match (repeat mode, and the last copy).',
+    level: 'Level of the arrayed sound, in dB.',
+    mix: 'Dry sound against the arrayed sound.',
+    size: 'Frame length: 1024, 2048 or 4096 samples. Longer is cleaner in the low range and arrives later.',
+  },
   hpss: {
     length: 'How long, in ms, a held tone has to last to count as harmonic. Longer keeps only steady notes in harm.',
     width: 'How wide, in Hz, a hit has to be across the spectrum to count as percussive. Wider keeps only broad noisy hits in perc.',

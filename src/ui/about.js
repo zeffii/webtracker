@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['657', ['Kaleidoscope: arrays a band of the spectrum across the range, mirrored or repeated, with a live spectrum panel']],
   ['656', ['The About box lists songs to explore: thirteen songs without samples, one click to open']],
   ['655', ['The song the page opens with is now the latest version of raens']],
   ['654', ['Bongo: a hand-drum synth with a strike slide from muted through open to slap']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['650', ['Envelope drawing edits like the glyph editor: point types, insert on a curve, line/curve, snap, undo']],
   ['649', ['New node: Env 2, a control envelope you draw as a Bezier spline, with a handle on its first anchor']],
   ['648', ['New Drum synth 2 instruments start as NatKick']],
-  ['647', ['Drum synth 2: a harm control for thump on small speakers, and punchier starting settings']],
                     ];

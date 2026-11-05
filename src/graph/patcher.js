@@ -21,6 +21,7 @@ import { createCanyonView } from './canyonview.js';
 import { createDrumView } from './drumview.js';
 import { createDrum2View } from './drum2view.js';
 import { createHat2View } from './hat2view.js';
+import { createKaleidoscopeView } from './kaleidoscopeview.js';
 import { createBezierEditor } from './bezieredit.js';
 import { DEFAULT_ENV2 } from '../audio/nodes/env2.js';
 import { createMembraneView } from './membraneview.js';
@@ -180,6 +181,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
   let granularView = null;   // the sample, the grains and the cloud of a granular synth
   let cardinalView = null;   // the oscillators, filter, envelopes and LFOs of a Cardinal synth
   let env2Editor = null;    // the drawn envelope of an Env 2 node
+  let kalView = null;       // the spectrum in, the spectrum out and the band of a kaleidoscope
   let hat2View = null;      // the two drawn volumes of Hi-hat 2
   let drum2View = null;     // the three drawn envelopes of drum synth 2 and the hit they make
   let drumView = null;      // the envelopes, the click and the composed root note of a drum synth, redrawn when its parameters move
@@ -343,6 +345,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
         if (type.editor === 'drumsynth2') drum2View?.refresh();
         if (type.editor === 'env2') env2Editor?.refresh();
         if (type.editor === 'hat2') hat2View?.refresh();
+        if (type.editor === 'kaleidoscope') kalView?.refresh();
         if (type.editor === 'cardinal') cardinalView?.refresh();
         if (type.editor === 'membrane') membraneView?.refresh();
         if (type.editor === 'granular') granularView?.refresh();
@@ -693,6 +696,17 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
         },
       });
       items.splice(1, 0, drum2View.el);
+    }
+    kalView = null;
+    if (type.editor === 'kaleidoscope') {   // the live spectrum with the band to drag, and the arrayed result
+      const param = name => readLive(instId, node.id, name) ?? node.params?.[name] ?? type.params.find(p => p.name === name)?.def ?? 0;
+      kalView = createKaleidoscopeView({
+        doc, getParam: param,
+        setParam: (name, value) => { setParam(desc(), node.id, name, value); onParam(instId, node.id, name, value); paramView?.refresh(); },
+        watch: () => onData(instId, node.id, { type: 'watch' }),
+      });
+      kalView.nodeId = node.id;
+      items.splice(1, 0, kalView.el);
     }
     hat2View = null;
     if (type.editor === 'hat2') {   // the volume drawings of the closed and the open hat, kept on the node and sent live
@@ -1397,7 +1411,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
     const sig = parts.join(',');
     if (sig === liveSig) return;
     liveSig = sig;
-    paramView?.refresh(); exposedView?.refresh(); floatView?.refresh(); tapEditor?.refresh(); gateEditor?.refresh(); specView?.refresh(); canyonView?.refresh(); drumView?.refresh(); drum2View?.refresh(); hat2View?.refresh(); env2Editor?.refresh(); cardinalView?.refresh(); membraneView?.refresh(); granularView?.refresh(); intView?.refresh(); chordView?.refresh(); rangeView?.refresh(); dxView?.refresh();
+    paramView?.refresh(); exposedView?.refresh(); floatView?.refresh(); tapEditor?.refresh(); gateEditor?.refresh(); specView?.refresh(); canyonView?.refresh(); drumView?.refresh(); drum2View?.refresh(); hat2View?.refresh(); kalView?.refresh(); env2Editor?.refresh(); cardinalView?.refresh(); membraneView?.refresh(); granularView?.refresh(); intView?.refresh(); chordView?.refresh(); rangeView?.refresh(); dxView?.refresh();
   }
 
   // A graph is moved clear of the exposed-parameters dock once when its instrument is first shown after a load (the file
@@ -1652,6 +1666,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
       if (c.grains.length > 40) c.grains.splice(0, c.grains.length - 40);
       dirty = true;
     },
+    feedKal(id, node, msg) { if (id === instId && kalView?.nodeId === node) kalView.feed(msg); },
     feedScope(id, node, l, r, sr) { if (id === instId) { scopeData.set(node, { l, r, sr }); dirty = true; } },
     undo: () => stepHistory('undo', 'redo', 'undone'),
     redo: () => stepHistory('redo', 'undo', 'redone'),
