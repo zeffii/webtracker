@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 642 · 2026-11-05
+
+- **Oscillator: five more waves and one you draw.** `wave` now goes to 8: 4 pulse (with a new `width` parameter, 0.02 to 0.98, for pulse width modulation), 5 half sine, 6 rectified sine, 7 steps (a saw in eight steps) and 8 drawn. The drawn wave is a single cycle you draw by dragging across the panel under the oscillator's parameters: a thin line with dots, straight on the page, a little pull to the centre line and the peaks, and buttons to start from a sine, triangle, saw, square or organ, or to smooth, flip, reverse, mirror or randomise it. It is dimmed until `wave` is 8, and a new drawing takes effect while a note plays. It is stored with the instrument and in node presets. The saw, square, pulse, steps and the other shapes with corners are not band-limited and alias at high pitch, as the saw and square always did. How the drawing is made may change later; it is all in `src/graph/oscwave.js`.
+
 ## 641 · 2026-11-04
 
 - **The page now opens with raens.** It replaces the old demo song as the one you get without `?demo=`. The old song is kept as a demo, `?demo=original`, and the tests that check what it holds (the depth charge, the arp, the Shepard tone) run on it from there.

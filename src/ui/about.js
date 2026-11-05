@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['642', ['Oscillator: pulse (with width), half sine, rectified sine, steps, and a wave you draw by hand']],
   ['641', ['The page opens with raens; the old song is kept as ?demo=original']],
   ['640', ['New demo: raens (?demo=raens)']],
   ['639', ['First screen: moving the pointer brings up a shimmer of wireframe (edges and vertices) on the blob under it']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['635', ['Trance gate: steps run down to quarter-ticks and patterns up to 64 steps long']],
   ['634', ['Flanger, chorus, phaser: writing phase slides the sweep (new glide parameter, default 20 ms) instead of clicking']],
   ['633', ['Piano roll: the overtone lines are thicker, with a dark rim, so they stand out on bright backgrounds']],
-  ['632', ['Fix: the piano roll bar\'s Hear list now follows instruments added, removed or renamed (it needed the roll switched off and on)']],
                     ];

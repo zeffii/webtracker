@@ -113,11 +113,12 @@ const HINTS = {
   osc: {
     freq: 'Pitch in Hz, used only when `track` is 0. With track on, the note sets the pitch.',
     tune: 'Transposes the pitch, in semitones.',
-    wave: 'Waveform: 0 sine, 1 saw, 2 square, 3 triangle. The saw and square are not band-limited and alias at high pitch.',
+    wave: 'Waveform: 0 sine, 1 saw, 2 square, 3 triangle, 4 pulse (its width is `width`), 5 half sine, 6 rectified sine, 7 steps (a saw in eight steps), 8 drawn (the single cycle you draw in the panel). Everything but the sine and triangle has corners and is not band-limited, so it aliases at high pitch.',
     track: '1: the pitch follows the note played. 0: a fixed pitch from `freq`.',
     reset: '1: every note restarts the wave at `phase`, so each hit sounds the same (what a bass drum wants). 0: the oscillator free-runs.',
     phase: 'Where a restart begins in the cycle, from 0 to 1.',
     level: 'Output level.',
+    width: 'How much of the cycle the pulse wave (4) is high, from a thin 0.02 to a wide 0.98; 0.5 is a square. Move it for the hollow, nasal sound of pulse width modulation.',
   },
   env: {
     attack: 'Attack in ms: how long the envelope takes to rise to its peak after a note. Every note played on this instrument starts it.',

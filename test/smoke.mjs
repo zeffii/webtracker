@@ -970,8 +970,8 @@ const hit = 'C-2 .. .. ..';
   assert.equal(registry.get('kick.osc.wave'), 3);
   assert.equal(registry.get('kick.osc.reset'), 0);
   assert.ok(Math.abs(registry.get('kick.ampEnv.sustain') - 8 / 15) < 1e-6, 'a float parameter maps the digit across its range');
-  render(seq, 0.13);                                                  // tick 1: digit F is past the top of wave (3), so it clamps
-  assert.equal(registry.get('kick.osc.wave'), 3);
+  render(seq, 0.13);                                                  // tick 1: digit F is past the top of wave (8), so it clamps
+  assert.equal(registry.get('kick.osc.wave'), 8);
   assert.equal(registry.get('kick.osc.reset'), 1);
   assert.equal(registry.get('kick.ampEnv.sustain'), 1);
   render(seq, 0.13);                                                  // tick 2
@@ -1028,7 +1028,7 @@ const hit = 'C-2 .. .. ..';
   render(seq, 0.13);
   assert.equal(registry.get('kick.osc.wave'), 3, '070003 is wave 3');
   render(seq, 0.13);
-  assert.equal(registry.get('kick.osc.wave'), 3, 'a number past the top clamps');
+  assert.equal(registry.get('kick.osc.wave'), 8, 'a number past the top clamps');
   render(seq, 0.13);
   const expected = Math.pow(5000, 0x8000 / 65535);          // a continuous target still runs across its range
   assert.ok(Math.abs(registry.get('kick.ampEnv.decay') / expected - 1) < 1e-3, 'a continuous command is proportional');
@@ -10428,6 +10428,34 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   const [lo, hi] = renderIslands([x, x.map(v => v * 0.5)], { size: 2048 });
   assert.ok(lo.length === len && hi.length === len && lo.every(Number.isFinite), 'stereo works and keeps the length');
   console.log('ok: island resampler');
+}
+
+// The oscillator's extra waves: pulse width, half sine, rectified sine, a staircase, and a wave drawn by hand.
+{
+  const def = NODE_TYPES.osc, slots = Int32Array.from(def.params.map((_, i) => i)), rate = 48000, f = 480, per = rate / f;   // 100 samples a cycle
+  const play = (values, data, count = 2000) => {
+    const params = Float32Array.from(def.params.map(p => values[p.name] ?? p.def)), node = def.create({ sampleRate: rate, connected: [false, false], data });
+    node.note({ type: 'noteOn', note: 69 + 12 * Math.log2(f / 440), vel: 1 });
+    const out = new Float32Array(count);
+    for (let at = 0; at < count; at += 100) { const o = new Float32Array(100); node.process([new Float32Array(100), new Float32Array(100)], [o], 100, params, slots); out.set(o, at); }
+    return out;
+  };
+  const mean = x => x.reduce((a, v) => a + v, 0) / x.length;
+  const pulse = play({ wave: 4, width: 0.25 });
+  assert.ok(Math.abs(pulse.filter(v => v > 0).length / pulse.length - 0.25) < 0.02, 'a pulse of width 0.25 is high a quarter of the time');
+  assert.ok(Math.abs(play({ wave: 4, width: 0.5 }).filter(v => v > 0).length / 2000 - 0.5) < 0.02, 'width 0.5 is a square');
+  const half = play({ wave: 5 });
+  assert.ok(Math.abs(mean(half)) < 0.02 && Math.min(...half) > -0.7 && Math.max(...half) > 1.3, 'the half sine sits on zero, flat below and high above');
+  const rect = play({ wave: 6 });
+  assert.ok(Math.min(...rect) >= -1.0001 && Math.max(...rect) <= 1.0001 && rect.every(Number.isFinite) && Math.abs(mean(rect) - (4 / Math.PI - 1)) < 0.02, 'the rectified sine fills -1 to 1 with all its humps the same way up');
+  assert.equal(new Set(play({ wave: 7 }).map(v => v.toFixed(3))).size, 8, 'the staircase has eight steps');
+  const drawn = Array.from({ length: 128 }, (_, i) => (i < 32 ? 0.8 : i < 96 ? -0.3 : 0.1)), heard = play({ wave: 8 }, { wave: drawn }, 200);
+  assert.ok(Math.abs(heard[10] - 0.8) < 0.05 && Math.abs(heard[50] + 0.3) < 0.05 && Math.abs(heard[90] - 0.1) < 0.05, 'a drawn wave is played back as drawn');
+  const live = def.create({ sampleRate: rate, connected: [false, false] }); live.message({ type: 'wave', points: drawn });
+  live.note({ type: 'noteOn', note: 69 + 12 * Math.log2(f / 440), vel: 1 });
+  const o = new Float32Array(100); live.process([new Float32Array(100), new Float32Array(100)], [o], 100, Float32Array.from(def.params.map(p => (p.name === 'wave' ? 8 : p.def))), slots);
+  assert.ok(Math.abs(o[10] - 0.8) < 0.05, 'a new drawing sent while it plays takes effect');
+  console.log('ok: oscillator waves');
 }
 
 console.log('smoke test passed');

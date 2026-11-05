@@ -33,6 +33,7 @@ import { createChordView } from './chordview.js';
 import { samplerCommands } from '../instruments.js';
 import { createSpectrumEditor } from './spectrumeditor.js';
 import { createWaveEditor } from './waveeditor.js';
+import { createOscWaveEditor } from './oscwave.js';
 import { createWavetableEditor } from './wavetableeditor.js';
 import { createGenexprEditor } from './genexpreditor.js';
 
@@ -165,6 +166,7 @@ const toPos = (spec, v) => (isLog(spec) ? Math.log(v / spec.min) / Math.log(spec
 const fmt = v => String(Number(v.toPrecision(4)));
 
 export function createPatcher({ getTiming = () => null, onHelp = () => {}, canvas, panel, toolsEl = null, paramPanel = null, exposedDock = null, floatDock = null, onScope = () => {}, onEscape = () => {}, statusEl, doc = document, nodeTypes, onStructure, onParam, onData = () => {}, onContext = () => {}, onNote = () => {}, getSampleIds = () => [], getSample = () => null, getGrainSource = () => null, readLive = () => undefined }) {
+  let oscWave = null;       // the drawn wave of an oscillator, dimmed unless its wave is 'drawn'
   let gateEditor = null;    // the step pattern of a trance gate, redrawn when its length moves
   let dxView = null;        // the bank loader and algorithm view of a DVIIloader
   let intView = null;
@@ -327,6 +329,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
         if (spec.name === 'position' || spec.name === 'mix' || spec.name === 'source') tableEditor?.refresh();
         if (type.editor === 'taps') tapEditor?.refresh();
         if (type.editor === 'gate') gateEditor?.refresh();
+        if (type.editor === 'oscwave' && spec.name === 'wave') oscWave?.refresh();
         if (type.editor === 'specpan') specView?.refresh();
         if (type.editor === 'canyon') canyonView?.refresh();
         if (type.editor === 'drumsynth') drumView?.refresh();
@@ -583,6 +586,18 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
         },
       });
       items.splice(1, 0, editor.el);
+    }
+    oscWave = null;
+    if (type.editor === 'oscwave') {   // one drawable single-cycle wave, kept on the node and sent live
+      oscWave = createOscWaveEditor({
+        doc, points: node.data?.wave,
+        getWave: () => Math.round(readLive(instId, node.id, 'wave') ?? node.params?.wave ?? 0),
+        onChange: points => {
+          node.data = { ...node.data, wave: points };
+          onData(instId, node.id, { type: 'wave', points });
+        },
+      });
+      items.splice(1, 0, oscWave.el);
     }
     gateEditor = null;
     if (type.editor === 'gate') {   // the step levels, kept on the node and sent live

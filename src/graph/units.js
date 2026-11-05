@@ -83,7 +83,7 @@ for (const k of [1, 2, 3, 4]) {
 for (let k = 1; k <= 5; k++) TYPE_UNIT.eq = { ...TYPE_UNIT.eq, [`f${k}`]: 'Hz', [`g${k}`]: 'dB', lowcut: 'Hz', highcut: 'Hz' };
 
 const ONOFF = ['off', 'on'];
-const WAVES = { osc: ['sine', 'saw', 'square', 'triangle'] };
+const WAVES = { osc: ['sine', 'saw', 'square', 'triangle', 'pulse', 'half sine', 'rect sine', 'steps', 'drawn'] };
 const NAMES = {
   osc: { wave: WAVES.osc, track: ONOFF, reset: ONOFF },
   noise: { restart: ONOFF, free: ONOFF, tilt: 'dB/oct' },
