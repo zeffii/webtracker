@@ -5,11 +5,7 @@
   "name": "Plethora",
   "bpm": 142,
   "ticksPerBeat": 8,
-  "length": 1552,
-  "loop": {
-   "start": 768,
-   "end": 1024
-  }
+  "length": 1552
  },
  "instruments": {
   "master": {

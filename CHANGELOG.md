@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 660 · 2026-11-05
+
+- **Plethora, the longer version, is the opening song.** Replaces the earlier Plethora as the demo: it adds the oberheim chord patterns with the filter-cutoff curve, the drum synth 2 kick, the comb percussion and the hat808 with its meta-machine phaser column, laid out to loop.
+
 ## 659 · 2026-11-05
 
 - **A new opening song: Plethora.** The song the page opens with is now your "Plethora" (it uses Hi-hat 2, the Kaleidoscope on the comb percussion, a drawn-envelope drum synth 2 and a meta machine on the hat's phaser). The About list names it as the first song.
