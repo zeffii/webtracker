@@ -10482,6 +10482,27 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     const a = run(new Float32Array(B)), b = run(new Float32Array(B).fill(Math.PI / 2));
     assert.ok(Math.abs(a[5] - Math.sin(2 * Math.PI * 440 * 5 / rate)) < 1e-4 && Math.abs(b[5] - Math.sin(2 * Math.PI * 440 * 5 / rate + Math.PI / 2)) < 1e-3, 'the oscillator\'s pm input bends the phase in radians');
   }
+  // random, mode 2: a new value on each trigger rise, held between triggers, always inside 0..1 when unipolar
+  {
+    const def = NODE_TYPES.random, slots = slotsOf(def), params = paramsOf(def, { mode: 2, smooth: 0, bipolar: 0 });
+    const node = def.create({ sampleRate: rate, connected: [true] });
+    const trig = new Float32Array(B * 6); for (const k of [1, 3, 5]) trig.fill(1, k * B + 10, k * B + 60);
+    const out = new Float32Array(B * 6);
+    for (let at = 0; at < out.length; at += B) node.process([trig.subarray(at, at + B)], [out.subarray(at, at + B)], B, params, slots);
+    const at = k => out[k * B + 100], held = [at(0), at(1), at(2), at(3), at(4), at(5)];
+    assert.ok(held.every(v => v >= 0 && v <= 1), 'unipolar values stay in 0..1');
+    assert.ok(out[B * 2 + 100] === out[B * 2 + 120] && held[1] === held[2], 'the value is held between triggers');
+    assert.ok(held[1] !== held[3] && held[3] !== held[5] && held[1] !== held[5], 'every trigger picks a different value');
+  }
+  // random range and lean: picks stay inside low..high and crowd towards lean as focus rises
+  {
+    const def = NODE_TYPES.random, slots = slotsOf(def);
+    const picks = v => { const node = def.create({ sampleRate: rate, connected: [false] }); const params = paramsOf(def, { mode: 0, rate: 40, smooth: 0, bipolar: 0, low: 0.2, high: 0.9, lean: 0.7, ...v }); const o = new Float32Array(rate * 20); for (let at = 0; at < o.length; at += B) node.process([null], [o.subarray(at, at + B)], B, params, slots); return Array.from({ length: 800 }, (_, k) => o[k * 1200 + 600]); };
+    const even = picks({ focus: 0 }), tight = picks({ focus: 0.8 });
+    const near = a => a.filter(v => Math.abs(v - 0.7) < 0.08).length / a.length;
+    assert.ok([...even, ...tight].every(v => v >= 0.2 - 1e-6 && v <= 0.9 + 1e-6), 'picks stay inside low..high');
+    assert.ok(near(tight) > near(even) * 1.8 && Math.min(...tight) < 0.4 && Math.max(...tight) > 0.8, `focus crowds picks near lean (${near(even).toFixed(2)} -> ${near(tight).toFixed(2)}) and still reaches the ends`);
+  }
   // wave folder: a sine gains harmonics as fold goes up; fold 0 with a quiet input stays a sine; the fold input adds to the amount
   {
     const def = NODE_TYPES.wavefolder, slots = slotsOf(def), n = 8192 + B;

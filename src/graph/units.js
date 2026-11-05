@@ -100,7 +100,7 @@ const NAMES = {
   amp: { voicing: AMP_VOICINGS, cab: AMP_CABS, oversample: ['1x', '2x', '4x'] },
   distortion: { mode: ['soft', 'hard', 'tube', 'fuzz'], oversample: ['1x', '2x', '4x'] },
   waveshaper: { oversample: ['1x', '2x', '4x'] },
-  random: { mode: ['free', 'per note'], rate: 'Hz', bipolar: ['0 to 1', '-1 to 1'] },
+  random: { mode: ['free', 'per note', 'on trigger'], rate: 'Hz', bipolar: ['0 to 1', '-1 to 1'] },
   wavefolder: { oversample: ['1x', '2x', '4x'] },
   pluckgate: { mode: ['gain+filter', 'gain', 'filter'], open: 'ms', close: 'ms', atk: 'ms', dec: 'ms', rel: 'ms' },
   westcoast: { wave: ['sine', 'triangle', 'saw', 'square', 'drawn'], modwave: ['sine', 'triangle'], sync: ['off', 'on'], mode: ['gain+filter', 'gain', 'filter'], quality: ['standard', 'high', 'ultra'], modtune: 'ct', tatk: 'ms', tdec: 'ms', trel: 'ms', lpgatk: 'ms', lpgdec: 'ms', atk: 'ms', dec: 'ms', rel: 'ms', glide: 'ms' },

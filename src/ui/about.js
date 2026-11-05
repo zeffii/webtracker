@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['652', ['Random: picks a new value on every trigger, and takes a range (low, high) with a lean and a focus to favour one value']],
   ['651', ['Env 2: a sustain knot you set on the drawing, a smooth fade for notes that end early, and an optional note length']],
   ['650', ['Envelope drawing edits like the glyph editor: point types, insert on a curve, line/curve, snap, undo']],
   ['649', ['New node: Env 2, a control envelope you draw as a Bezier spline, with a handle on its first anchor']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['645', ['West coast softer and alive: band-limited saw and square, a longer vactrol tail, drift on the voice, and a new random node']],
   ['644', ['New demo: west coast (?demo=westcoast), a hand-patched voice and the westcoast node playing jazz chords']],
   ['643', ['West-coast synthesis: a wavefolder, a pluck gate (vactrol), phase modulation on the oscillator, and a complete voice built from them']],
-  ['642', ['Oscillator: pulse (with width), half sine, rectified sine, steps, and a wave you draw by hand']],
                     ];

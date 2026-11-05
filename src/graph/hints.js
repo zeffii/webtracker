@@ -456,11 +456,16 @@ const HINTS = {
     mix: 'Amount of the echoes added to the dry sound.',
   },
   random: {
-    mode: 'Free running (a new value `rate` times a second) or a new value on each note.',
+    trig: 'Mode 2 picks a new value whenever this rises through 0.5 or changes between two values above 0. Wire a gate, envelope, lfo or notetrig into it.',
+    mode: 'Free running (a new value `rate` times a second), a new value on each note, or a new value each time the trig input fires.',
     rate: 'How often a new value is picked in free running mode, in Hz.',
     smooth: 'How far it slides to each new value: 0 jumps (sample and hold), 1 takes the whole time.',
     amount: 'Size of the values.',
     bipolar: '1: values between minus and plus amount. 0: between 0 and amount.',
+    low: 'Bottom of the range the picks fall in, before bipolar and amount. Set bipolar to 0 to read it as the output itself.',
+    high: 'Top of the range the picks fall in.',
+    lean: 'The value inside the range that picks favour.',
+    focus: 'How strongly picks crowd around lean: 0 is even across the range, 1 mostly near lean with the odd one reaching the ends.',
   },
   wavefolder: {
     fold: 'How hard the wave is pushed into the folder. Each overshoot turns the wave round, so more fold means more harmonics.',

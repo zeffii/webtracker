@@ -2,6 +2,13 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 652 · 2026-11-05
+
+- **Random: a new value on every trigger, and a range with a lean.**
+  - **`trig` input and mode 2 (on trigger):** a new value is picked each time the input rises through 0.5, or changes between two values above 0, so a gate, an envelope, an lfo or notetrig's `trig` can drive it. The value is held until the next trigger.
+  - **`low`, `high`, `lean`, `focus`:** the picks fall between `low` and `high` and favour the value `lean`; `focus` is how strongly (0 even, 1 mostly near `lean`, with the ends still reached now and then). "Between 0.2 and 0.9, mostly near 0.7" is low 0.2, high 0.9, lean 0.7, focus about 0.6, with bipolar at 0.
+  - The defaults (0 to 1, lean 0.5, focus 0) give the same values as before.
+
 ## 651 · 2026-11-05
 
 - **Env 2: a sustain knot and an optional note length.**
