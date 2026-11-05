@@ -1,7 +1,7 @@
 // The songs listed in the About box: a permanent set to explore. None of them uses a sample, so each one opens complete.
 // `file` is relative to src/project/. To add a song, put its .wax in src/project/demos/ and add a line here.
 export const SONGS = [
-  { file: 'demo.wax', name: 'raens', line: 'The song the page opens with. Two hats, a kick, a comb percussion and a Cardinal.' },
+  { file: 'demo.wax', name: 'plethora', line: 'The song the page opens with. A filter-swept synth, a drawn kick, a comb percussion and a hat with a meta machine on its phaser.' },
   { file: 'demos/acid.wax', name: 'acid rain', line: 'An acid line over kick, hat and clap, with metal and grid percussion.' },
   { file: 'demos/concrete.wax', name: 'concrete', line: 'Kick, hat, clap, tom and metal hits, all made of nodes.' },
   { file: 'demos/chords.wax', name: 'chords', line: 'Slow chords over a kick, snare, hat and bass.' },

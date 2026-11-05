@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['659', ['The song the page opens with is now Plethora']],
   ['658', ['The mixer no longer takes the keyboard focus; the meta machine Selections list always redraws after a change']],
   ['657', ['Kaleidoscope: arrays a band of the spectrum across the range, mirrored or repeated, with a live spectrum panel']],
   ['656', ['The About box lists songs to explore: thirteen songs without samples, one click to open']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['652', ['Random: picks a new value on every trigger, and takes a range (low, high) with a lean and a focus to favour one value']],
   ['651', ['Env 2: a sustain knot you set on the drawing, a smooth fade for notes that end early, and an optional note length']],
   ['650', ['Envelope drawing edits like the glyph editor: point types, insert on a curve, line/curve, snap, undo']],
-  ['649', ['New node: Env 2, a control envelope you draw as a Bezier spline, with a handle on its first anchor']],
                     ];

@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 659 · 2026-11-05
+
+- **A new opening song: Plethora.** The song the page opens with is now your "Plethora" (it uses Hi-hat 2, the Kaleidoscope on the comb percussion, a drawn-envelope drum synth 2 and a meta machine on the hat's phaser). The About list names it as the first song.
+
 ## 658 · 2026-11-05
 
 - **The mixer never takes the keyboard.** Its buttons (M, S, test, mix) and faders can no longer be tabbed to, and clicking them leaves the focus where it was, so the arrangement keeps its keys and its cursor after you touch the mixer. A question box over the arrangement that has gone from the page can no longer hold the keys either.
