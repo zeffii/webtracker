@@ -27,7 +27,7 @@ export function createSequenceView({ el, statusEl, undoEl = null, listEl, transp
   let lanes = null, len = 0, editor = null, song = null;
   const cur = { lane: 0, tick: 0 };
   let typed = '', message = '';
-  let paused = false, lastAuto = null;   // following the song, and the row it last put the cursor on
+  let paused = false, lastAuto = null, parkUntil = 0;   // following the song, and the row it last put the cursor on
   let sel = null;          // { lane, tick }: the corner opposite the cursor, while a block of lanes and rows is selected
   let clipboard = null;    // { w, h, items } from the last copy
   let dragging = null;     // the cell where a mouse drag began
@@ -644,7 +644,7 @@ export function createSequenceView({ el, statusEl, undoEl = null, listEl, transp
     if (!lanes) return;
     const playing = Atomics.load(transport, 1) === 1, playTick = Atomics.load(transport, 0);
     // Following the song: the cursor goes with the playing row, which stays in the middle of the view while the rows scroll.
-    if (!(follow() && playing)) { paused = false; lastAuto = null; }
+    if (!(follow() && playing)) { if (performance.now() > parkUntil) { paused = false; lastAuto = null; } }   // (a song that is just starting again keeps a parked cursor)
     else if (!paused && lastAuto !== null && cur.tick !== lastAuto && config.get('followRoam')) { paused = true; message = 'Follow paused while you move around: F9 follows again.'; }
     const following = follow() && playing && !paused, nowRow = following ? Math.floor(Math.min(len - 1, playTick) / CELL) : -1;
     if (following) { cur.tick = nowRow * CELL; lastAuto = cur.tick; sel = null; typed = ''; }
@@ -754,5 +754,5 @@ export function createSequenceView({ el, statusEl, undoEl = null, listEl, transp
   const commands = {
     clone: () => { act('clone', editor.clone(cur.lane, editTick()), 'Cloned: this placement now has its own copy.'); draw(); return message; },
   };
-  return { commands, draw, load, goto, setRows, widths: () => (lanes ?? []).map(colw), colChars: COLW, resume() { const was = paused; paused = false; lastAuto = null; return was; }, say: m => { message = m; }, get rows() { return rowCount; }, get lane() { return cur.lane; }, get tick() { return cur.tick; } };
+  return { commands, draw, load, goto, setRows, widths: () => (lanes ?? []).map(colw), colChars: COLW, resume() { const was = paused; paused = false; lastAuto = null; return was; }, parked: () => paused, park() { paused = true; lastAuto = null; parkUntil = performance.now() + 2000; }, say: m => { message = m; }, get rows() { return rowCount; }, get lane() { return cur.lane; }, get tick() { return cur.tick; } };
 }

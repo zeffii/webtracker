@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 663 · 2026-11-06
+
+- **Adding an instrument beside a lane (Shift+I in the arrangement) no longer stops the song or sends the cursor back.** Putting the new lane next to the cursor's lane reloaded the whole project, which stopped the sound and put the cursor on row 0 (and a playing song then pulled it to the playing row). Now a playing song carries on, and the cursor stays on its row, on the new lane; if follow was paused because you had moved the cursor, it stays paused. The same goes for "Insert lane" beside a lane.
+
 ## 662 · 2026-11-06
 
 - **Code boxes can be widened.** The shader / canvas editor and the script editor have a handle on their right edge: drag it sideways to make the box wider or narrower (it stops at the room there is, and keeps the Knobs panel in view), double-click it to go back to the usual width. The width is remembered for each box.

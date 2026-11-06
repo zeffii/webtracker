@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['663', ['Adding an instrument or lane beside the cursor lane keeps the song playing and the cursor where it was']],
   ['662', ['Code boxes: a drag handle to widen them, and a colour theme of their own (Config, Look)']],
   ['661', ['Canvas pictures: draw the live picture with JavaScript (setup/draw, ticked, onNote, since), with a guide and templates']],
   ['660', ['The opening song is the longer Plethora']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['656', ['The About box lists songs to explore: thirteen songs without samples, one click to open']],
   ['655', ['The song the page opens with is now the latest version of raens']],
   ['654', ['Bongo: a hand-drum synth with a strike slide from muted through open to slap']],
-  ['653', ['Hi-hat 2: closed and open hats with drawn volumes, per-hit variation, a flanger and a bit crusher']],
                     ];

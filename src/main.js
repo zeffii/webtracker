@@ -1668,7 +1668,11 @@ function placeLane(id, besideId, side) {
   if (at < 0 || from < 0) return;
   const target = Math.max(1, at + (side === 'right' ? 1 : 0));
   if (target === from) return;
-  reshape(() => { ops.moveLane(project, id, target - from); return { lane: id }; });
+  // a new lane changes no sound, so a song that is playing carries on, and the cursor stays on its row (now on the new lane)
+  const tick = seqView.tick, parked = seqView.parked();   // parked: the cursor was set aside from the playing row (follow paused)
+  reshape(() => { ops.moveLane(project, id, target - from); return { lane: id }; }, { keepPlaying: true });
+  const now = project.lanes.findIndex(l => l.id === id);
+  if (now >= 0) { seqView.goto(now, tick); view.goto(now, 0); followLane(now); if (parked) seqView.park(); }
 }
 
 function addLaneFor(instrumentId) {
