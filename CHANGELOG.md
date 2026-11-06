@@ -2,6 +2,11 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 665 · 2026-11-06
+
+- **Kaleidoscope, overtone mode: set how many overtones.** Two settings of their own, `overtones` (0 to 32, how many copies above the source: x2, x3, x4 ...) and `under` (0 to 16, how many below: x1/2, x1/3 ...), and the panel has a minus and a plus beside the overtone button for the number above. `copies` stays for mirror and repeat. (A project that already had the overtone mode on starts with 8 overtones and 2 undertones.)
+- **The picture has a close button.** A cross appears in the corner of the live picture (shader or canvas) when the mouse is over it, in its floating window too, and closes the picture; the pop-out button moved one place left to make room.
+
 ## 664 · 2026-11-06
 
 - **Kaleidoscope: an Overtone mode.** Besides mirror and repeat (copies a band width apart), a third mode copies every tone in the band to its overtones: x2, x3, x4 ... of its own frequency, and the undertones x1/2, x1/3 ... below, so the copies bunch together going up the way the partials of a note do. `copies` sets how many overtones (and undertones) are made, 0 all that fit. Two new settings belong to it: `stretch` pulls the multiples off the whole numbers, upward (a stiff string, then a bell), and `decay` sets how fast the higher copies get quieter (0.5 is 1/n, the plain overtone series). The panel has an overtone button, marks where each copy puts the band (stronger tint for the louder ones) and names x1/2, source, x2, x3 ... Old projects are unchanged.

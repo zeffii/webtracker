@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['665', ['Kaleidoscope overtone mode: set the number of overtones and undertones; a close button on the picture (and its floating window)']],
   ['664', ['Kaleidoscope: an Overtone mode (copies at x2, x3, x4 ... of each tone) with stretch and decay']],
   ['663', ['Adding an instrument or lane beside the cursor lane keeps the song playing and the cursor where it was']],
   ['662', ['Code boxes: a drag handle to widen them, and a colour theme of their own (Config, Look)']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['658', ['The mixer no longer takes the keyboard focus; the meta machine Selections list always redraws after a change']],
   ['657', ['Kaleidoscope: arrays a band of the spectrum across the range, mirrored or repeated, with a live spectrum panel']],
   ['656', ['The About box lists songs to explore: thirteen songs without samples, one click to open']],
-  ['655', ['The song the page opens with is now the latest version of raens']],
                     ];

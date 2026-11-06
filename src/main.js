@@ -2339,8 +2339,9 @@ const popStyle = `html,body{margin:0;height:100%;background:#111;overflow:hidden
 #viz canvas{position:absolute;left:50%;top:50%;width:100vmin;height:100vmin;transform:translate(-50%,-50%);display:block}
 #viz canvas[hidden]{display:none}
 #viz-text{pointer-events:none}
-#viz-pop{position:absolute;right:6px;top:6px;width:26px;height:26px;padding:0;opacity:0;transition:opacity .15s;background:rgba(0,0,0,.55);color:#cfe3e7;border:0;border-radius:4px;cursor:pointer}
-#viz:hover #viz-pop{opacity:1}
+#viz-pop,#viz-close{position:absolute;right:36px;top:6px;width:26px;height:26px;padding:0;opacity:0;transition:opacity .15s;background:rgba(0,0,0,.55);color:#cfe3e7;border:0;border-radius:4px;cursor:pointer;z-index:2}
+#viz-close{right:6px}
+#viz:hover #viz-pop,#viz:hover #viz-close{opacity:1}
 #viz-err{position:absolute;left:0;right:0;bottom:0;padding:3px 8px;font:11px ui-monospace,Consolas,monospace;color:#ffd9d4;background:rgba(120,20,10,.85)}
 #viz-err[hidden]{display:none}`;
 const popOut = async () => {
@@ -2362,6 +2363,7 @@ const popOut = async () => {
   } catch (e) { $('status').textContent = `Could not open the floating window: ${e.message}`; }
 };
 $('viz-pop').addEventListener('click', popOut);
+$('viz-close').addEventListener('click', () => config.set('visualOn', false));   // closes the picture, in its floating window too
 const toggleViz = () => config.set('visualOn', !vizOn);
 $('viz-btn').addEventListener('click', toggleViz);
 addEventListener('resize', placeViz);

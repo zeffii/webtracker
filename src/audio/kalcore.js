@@ -9,7 +9,7 @@
 //   overtone  (mode 2) no tiles: copy k puts every tone at a whole-number multiple of its frequency, the way the overtones of a note sit
 //             (x1 the source, x2, x3, x4 ... and for k below 0 the undertones x1/2, x1/3 ...), so the copies bunch together going up
 //             instead of standing a band width apart. `stretch` pulls the multiples off the whole numbers, upward, as in a stiff string
-//             or a bell (n becomes n * sqrt(1 + B n^2)); `decay` is how fast the copies get quieter, copy n by n^-(2 decay).
+//             or a bell (n becomes n * sqrt(1 + B n^2)); `overtones` and `under` say how many of each are made; `decay` is how fast the copies get quieter, copy n by n^-(2 decay).
 //   A tone moved to another place has to keep its phase in step, so the effect works on the tones themselves (see Kaleidoscoper below).
 
 export const F_MIN = 27.5, F_MAX = 14080;   // the range the panel draws
@@ -85,7 +85,7 @@ export function lobe(d) {
   return Math.sin(Math.PI * x) / (2 * Math.PI * x * den);
 }
 
-const TWO_PI = 2 * Math.PI, TILES = 30;   // tiles either side of the source that are looked at
+const TWO_PI = 2 * Math.PI, TILES = 34;   // tiles either side of the source that are looked at
 
 // The kaleidoscope's frame step. It reads one frame's spectrum, finds the tones in the band (the peaks), measures each one's true
 // frequency from how its phase moved since the last frame, and writes every tone into every tile as a clean sinusoid, its phase carried
@@ -104,7 +104,7 @@ export class Kaleidoscoper {
   }
 
   // re, im: the frame's spectrum. Writes the arrayed sound's spectrum into reW and imW (bins 0 to n/2).
-  run(re, im, reW, imW, { low, high, mode, rotate, copies, edge, level, stretch = 0, decay = 0.5 }) {
+  run(re, im, reW, imW, { low, high, mode, rotate, copies, edge, level, stretch = 0, decay = 0.5, overtones = 8, under = 2 }) {
     const { n, half, hop, sr, mag, ph, prev } = this, band = bandOf(low, high), perBin = sr / n;
     const step = TWO_PI * hop / n;
     reW.fill(0, 0, half + 1); imW.fill(0, 0, half + 1);
@@ -127,7 +127,7 @@ export class Kaleidoscoper {
       const oSrc = Math.log2(f), half_a = mag[p] / (n * lobe(d)), phi = ph[p] + Math.PI * d;   // half the amplitude, and the phase at the start of the frame
       // tiles: those that can land in range; the overtones: as many as fit between 20 Hz and the top for this tone
       let from = Math.max(kLow, copies > 0 ? -copies : -TILES), to = Math.min(kHigh, copies > 0 ? copies : TILES);
-      if (mode === 2) { from = Math.max(copies > 0 ? -copies : -TILES, -Math.floor(f / 20)); to = Math.min(copies > 0 ? copies : TILES, Math.floor(sr * 0.48 / f)); }
+      if (mode === 2) { from = -Math.min(under, Math.floor(f / 20), TILES); to = Math.min(overtones, TILES, Math.floor(sr * 0.48 / f)); }
       for (let k = from; k <= to; k++) {
         const t = tileOf(oSrc, k, band, settings, this.spot);
         const fOut = Math.pow(2, t.out);

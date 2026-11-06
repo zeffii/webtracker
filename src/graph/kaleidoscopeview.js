@@ -24,7 +24,10 @@ export function createKaleidoscopeView({ doc = document, getParam, setParam, wat
   const button = (label, mode) => { const b = doc.createElement('button'); b.type = 'button'; b.textContent = label; b.className = 'kal-btn'; b.addEventListener('click', () => { setParam('mode', mode); draw(); }); return b; };
   const mirrorBtn = button('mirror', 0), repeatBtn = button('repeat', 1), overtoneBtn = button('overtone', 2);
   const info = doc.createElement('span'); info.className = 'kal-info';
-  row.append(mirrorBtn, repeatBtn, overtoneBtn, info);
+  const step = (label, name, by, title) => { const b = doc.createElement('button'); b.type = 'button'; b.textContent = label; b.title = title; b.className = 'kal-btn kal-step'; b.addEventListener('click', () => { setParam(name, Math.max(0, getParam(name) + by)); draw(); }); return b; };
+  const stepper = doc.createElement('span'); stepper.className = 'kal-steps';
+  stepper.append(step('\u2212', 'overtones', -1, 'One overtone fewer'), step('+', 'overtones', 1, 'One overtone more'));
+  row.append(mirrorBtn, repeatBtn, overtoneBtn, stepper, info);
   el.append(canvas, row);
 
   const lo = Math.log2(F_MIN), hi = Math.log2(F_MAX), pw = W - PL - PR;
@@ -83,8 +86,8 @@ export function createKaleidoscopeView({ doc = document, getParam, setParam, wat
 
     // output, with the tiles (or, for overtones, the band where each copy puts it, drawn the lighter the quieter it is)
     if (mode === 2) {
-      const stretch = getParam('stretch'), decay = getParam('decay'), per = copies > 0 ? copies : 40;
-      for (let k = -Math.min(per, 6); k <= per; k++) {
+      const stretch = getParam('stretch'), decay = getParam('decay'), up = Math.round(getParam('overtones')), down = Math.round(getParam('under'));
+      for (let k = -down; k <= up; k++) {
         const shift = Math.log2(overtoneRatio(k, stretch)), a = band.b0 + shift, bEnd = a + band.width, g = overtoneGain(k, decay);
         if (bEnd < lo || a > hi) continue;
         const xa = Math.max(PL, X(a)), xb = Math.min(W - PR, X(bEnd));
@@ -111,8 +114,8 @@ export function createKaleidoscopeView({ doc = document, getParam, setParam, wat
     panel(yOut, shown.output, BLUE, ink);
     axis(yOut + PANEL, ink);
 
-    mirrorBtn.classList.toggle('on', mode === 0); repeatBtn.classList.toggle('on', mode === 1); overtoneBtn.classList.toggle('on', mode === 2);
-    info.textContent = `band ${hz(band.lo)} – ${hz(band.hi)} (${(Math.round(band.width * 100) / 100)} oct)   ${mode === 2 ? `overtones: ${copies === 0 ? 'all that fit' : `${copies} up, ${copies} down`}` : `copies: ${copies === 0 ? 'fill' : copies}`}`;
+    stepper.hidden = mode !== 2; mirrorBtn.classList.toggle('on', mode === 0); repeatBtn.classList.toggle('on', mode === 1); overtoneBtn.classList.toggle('on', mode === 2);
+    info.textContent = `band ${hz(band.lo)} – ${hz(band.hi)} (${(Math.round(band.width * 100) / 100)} oct)   ${mode === 2 ? `overtones: ${Math.round(getParam('overtones'))} up, ${Math.round(getParam('under'))} down` : `copies: ${copies === 0 ? 'fill' : copies}`}`;
   }
 
   // dragging: an end of the band, or the band as a whole (its width stays)

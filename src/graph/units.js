@@ -68,7 +68,7 @@ const TYPE_UNIT = {
   saturator: { drive: 'dB', bias: '', bass: 'Hz', tone: 'Hz', mix: '%', out: 'dB' },
   mbsat: { f1: 'Hz', f2: 'Hz', f3: 'Hz', bias: '', mix: '%', out: 'dB', lowDrive: 'dB', lowmidDrive: 'dB', highmidDrive: 'dB', highDrive: 'dB', lowGain: 'dB', lowmidGain: 'dB', highmidGain: 'dB', highGain: 'dB' },
   hpss: { length: 'ms', width: 'Hz', sharp: '' },
-  kaleidoscope: { low: 'Hz', high: 'Hz', rotate: '', edge: 'st', level: 'dB', mix: '%', stretch: '%', decay: '%' },
+  kaleidoscope: { low: 'Hz', high: 'Hz', rotate: '', edge: 'st', level: 'dB', mix: '%', stretch: '%', decay: '%', overtones: '', under: '' },
   bodyblur: { smooth: '', time: 'ms', round: '', split: '', mix: '%' },
   islands: { depth: 'dB', contrast: '%', islands: '%', smooth: '', mix: '%' },
   specdyn: { threshold: 'dB', ratio: ':1', tilt: 'dB/oct', attack: 'ms', release: 'ms', makeup: 'dB', smooth: '', mix: '%' },

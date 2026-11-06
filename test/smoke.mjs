@@ -10714,8 +10714,10 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
       assert.ok(level(flat, 2800) > level(flat, 1400) * 0.6, 'decay 0: the higher copies are as loud as the lower ones');
       const bell = run(700, { low, high, mode: 2, size: 1, stretch: 1, decay: 0 });
       assert.ok(level(bell, 2275) > 3 * level(bell, 2100) && level(bell, 2100) < level(flat, 2100) / 3, 'stretch moves the x3 copy up, off the whole number');
-      const two = run(700, { low, high, mode: 2, size: 1, copies: 1 });
-      assert.ok(level(two, 1400) > 0.003 && level(two, 2100) < level(two, 1400) / 4, 'copies limits the overtones');
+      const two = run(700, { low, high, mode: 2, size: 1, overtones: 1, under: 0 });
+      assert.ok(level(two, 1400) > 0.003 && level(two, 2100) < level(two, 1400) / 4 && level(two, 350) < level(two, 1400) / 4, 'overtones and under say how many copies are made');
+      const many = run(700, { low, high, mode: 2, size: 1, overtones: 12, under: 0, decay: 0 });
+      assert.ok(level(many, 700 * 13) > 0.003 && level(many, 700 * 14) < level(many, 700 * 13) / 4, 'the number of overtones can be set well past a few (12 overtones: the last is x13)');
     }
     // the report for the panel
     const reports = [], again = run(700, { low, high, size: 1 }, (msg, transfer) => reports.push(msg), true);

@@ -7,6 +7,7 @@
 //   rotate  slides the pattern along the range, in band widths (a slow sweep turns the kaleidoscope)
 //   copies  0 fills the whole range; N keeps the source tile and N copies either side
 //   stretch (overtone) pulls the multiples off the whole numbers, upward, like a stiff string or a bell
+//   overtones, under   (overtone) how many copies above the source (x2, x3 ...) and below it (x1/2, x1/3 ...); `copies` is for the other two modes
 //   decay   (overtone) how fast the higher copies get quieter: 0 all as loud as the source, 0.5 as 1/n, 1 as 1/n squared
 //   edge    how far in semitones the tiles fade at their seams where the ends do not match (repeat mode, and the last copy)
 //   level   the level of the arrayed sound
@@ -18,7 +19,7 @@
 import { Analyser, Resynth, sizeOf, mirror, peakOf, MAX_SIZE } from './stft.js';
 import { Kaleidoscoper, pictureOf } from '../kalcore.js';
 
-const LOW = 0, HIGH = 1, MODE = 2, ROTATE = 3, COPIES = 4, EDGE = 5, LEVEL = 6, MIX = 7, SIZE = 8, STRETCH = 9, DECAY = 10;
+const LOW = 0, HIGH = 1, MODE = 2, ROTATE = 3, COPIES = 4, EDGE = 5, LEVEL = 6, MIX = 7, SIZE = 8, STRETCH = 9, DECAY = 10, OVERTONES = 11, UNDER = 12;
 const POINTS = 200;       // values in the picture
 const REPORT_EVERY = 4;   // frames between two pictures
 const WATCH_SECONDS = 3;  // the panel asks again every second; without it the node stops reporting
@@ -45,6 +46,8 @@ export default {
     { name: 'size', min: 0, max: 2, def: 1, int: true },   // 1024, 2048, 4096 samples
     { name: 'stretch', min: 0, max: 1, def: 0 },         // overtone mode: how far the multiples are pulled off the whole numbers
     { name: 'decay', min: 0, max: 1, def: 0.5 },         // overtone mode: how fast the higher copies get quieter
+    { name: 'overtones', min: 0, max: 32, def: 8, int: true },   // overtone mode: how many copies above the source (x2, x3 ...)
+    { name: 'under', min: 0, max: 16, def: 2, int: true },       // overtone mode: how many copies below it (x1/2, x1/3 ...)
   ],
   create({ sampleRate, emit }) {
     const re = new Float64Array(MAX_SIZE), im = new Float64Array(MAX_SIZE);
@@ -65,7 +68,7 @@ export default {
       process(inputs, outputs, count, params, slots) {
         const want = sizeOf(params[slots[SIZE]]);
         if (want !== n) start(want);
-        const settings = { low: params[slots[LOW]], high: params[slots[HIGH]], mode: Math.round(params[slots[MODE]]), rotate: params[slots[ROTATE]], copies: Math.round(params[slots[COPIES]]), edge: params[slots[EDGE]], level: Math.pow(10, params[slots[LEVEL]] / 20), stretch: params[slots[STRETCH]], decay: params[slots[DECAY]] };
+        const settings = { low: params[slots[LOW]], high: params[slots[HIGH]], mode: Math.round(params[slots[MODE]]), rotate: params[slots[ROTATE]], copies: Math.round(params[slots[COPIES]]), edge: params[slots[EDGE]], level: Math.pow(10, params[slots[LEVEL]] / 20), stretch: params[slots[STRETCH]], decay: params[slots[DECAY]], overtones: Math.round(params[slots[OVERTONES]]), under: Math.round(params[slots[UNDER]]) };
         const mix = params[slots[MIX]], half = n >> 1;
         const reporting = watchLeft > 0 && emit;
         if (watchLeft > 0) watchLeft -= count;
