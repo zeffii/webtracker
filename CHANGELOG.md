@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 671 · 2026-11-06
+
+- **Shift+L in the sequence editor loops the pattern under the cursor.** The loop is set from the pattern's start to its end; Shift+L again on the same pattern takes the loop away. (L and Ctrl+L still switch the loop on and off.)
+
 ## 670 · 2026-11-06
 
 - **The opening song is the newest Plethora**: the arrangement grew, with the woodblock and the hat and meta machine parts, a kaleidoscope on the comb percussion and the woodblock, and the picture drawn as a canvas.

@@ -6376,11 +6376,12 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
 
 // 118. The loop: points, clamping, and the sequencer playing it.
 {
-  const { loopRange, inLoop, setLoopPoint, clampLoop } = await import('../src/seq/loop.js');
+  const { loopRange, inLoop, setLoopPoint, clampLoop, loopAround } = await import('../src/seq/loop.js');
   const song = { length: 128 };
   assert.deepEqual(loopRange(song), { start: 0, end: 128 });
   setLoopPoint(song, 'start', 32); assert.deepEqual(song.loop, { start: 32, end: 128 });
   setLoopPoint(song, 'end', 64); assert.deepEqual(song.loop, { start: 32, end: 64 });
+  { const sg = { length: 128 }; loopAround(sg, { start: 64, length: 32 }); assert.deepEqual(sg.loop, { start: 64, end: 96 }, 'Shift+L: a loop round the pattern'); loopAround(sg, { start: 64, length: 32 }); assert.equal(sg.loop, undefined, 'again on the same pattern removes it'); assert.ok(/No pattern/.test(loopAround(sg, null))); loopAround(sg, { start: 100, length: 64 }); assert.deepEqual(sg.loop, { start: 100, end: 128 }, 'kept inside the song'); }
   assert.ok(inLoop(song, 32) && inLoop(song, 63) && !inLoop(song, 64) && !inLoop(song, 31));
   setLoopPoint(song, 'start', 96); assert.deepEqual(song.loop, { start: 96, end: 128 }, 'a start past the end moves the end out to the song end');
   setLoopPoint(song, 'end', 48); assert.deepEqual(song.loop, { start: 0, end: 48 }, 'an end before the start moves the start back to 0');

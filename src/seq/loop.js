@@ -46,3 +46,13 @@ export function clampLoop(song) {
   else if (start === 0 && end === song.length) delete song.loop;
   else song.loop = { ...song.loop, start, end };
 }
+
+// Shift+L: the loop set round one placed pattern (pl: { start, length }). Again on the same pattern takes the loop away.
+export function loopAround(song, pl) {
+  if (!pl) return 'No pattern under the cursor to loop.';
+  const start = Math.max(0, pl.start), end = Math.min(song.length, pl.start + pl.length);
+  if (song.loop && !song.loop.off && song.loop.start === start && song.loop.end === end) { delete song.loop; return 'Loop removed.'; }
+  if (start === 0 && end === song.length) { delete song.loop; return 'That pattern is the whole song: no loop needed.'; }
+  song.loop = { start, end };
+  return `Loop set round the pattern (${start} to ${end}).`;
+}

@@ -5,7 +5,7 @@ import * as config from '../ui/config.js';
 import { dimLevel, dimFilter } from '../ui/dim.js';
 import { createPlayline, createLoopLines } from '../ui/playline.js';
 import { placementAt, puidByIndex, startsAt } from './edit.js';
-import { loopRange, setLoopPoint, toggleLoop } from './loop.js';
+import { loopAround, loopRange, setLoopPoint, toggleLoop } from './loop.js';
 import { showContextMenu } from '../ui/ctxmenu.js';
 import { showMachineTree, buildMachineTree } from '../ui/machinetree.js';
 import { createMinimap } from './minimap.js';
@@ -503,7 +503,10 @@ export function createSequenceView({ el, statusEl, undoEl = null, listEl, transp
         break;
       case 'h': config.set('seqNames', !config.get('seqNames')); message = config.get('seqNames') ? 'Pattern names shown.' : 'Pattern names hidden.'; break;   // H: pattern names in the cells on or off
       case 'v': config.set('minimapOn', !config.get('minimapOn')); message = config.get('minimapOn') ? 'Pattern minimaps on.' : 'Pattern minimaps off.'; break;   // V: the pattern minimaps in the cells on or off
-      case 'l': message = toggleLoop(song); onSong(); break;   // L: the loop on or off (Ctrl+L too, where the browser lets it through)
+      case 'l':   // L: the loop on or off (Ctrl+L too, where the browser lets it through); Shift+L: a loop round the pattern under the cursor
+        message = e.shiftKey ? loopAround(song, (pl => pl && { start: pl.start, length: Math.min(pl.length, lane().patterns[pl.puid].length) })(placementAt(lane(), rowStart(cur.tick)))) : toggleLoop(song);
+        onSong();
+        break;
       case 'i': {
         if (e.shiftKey) { const r = el.getBoundingClientRect(); newInstrumentTree({ x: r.left + 40, y: r.top + 40 }); break; }   // Shift+I: the machine tree, for a new instrument and its lane
         act('insert a pattern', editor.insertPattern(li, t, { overlay: true }), 'Pattern inserted.');
