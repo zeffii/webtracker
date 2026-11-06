@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 675 · 2026-11-06
+
+- **The opening song is the newest Plethora** (14): the Sympathetic strings now follow the notes in the Oberheim lane, with a longer arrangement and new curves. (Song data only, no code change.)
+
 ## 674 · 2026-11-06
 
 - **Fix: Sympathetic strings has a DC blocker.** A string with a low-pass in its loop passes DC with a gain of 1 / (1 - loop gain), which is large for a long ring time, so an offset in the input (or a step) piled up in the strings and sat on the output as a large offset. Each string now has a 2 Hz high pass in its loop, so it has no DC gain; the line is made a touch longer to cancel the pitch shift the blocker would cause, so the strings stay in tune. The dry sound is untouched.
