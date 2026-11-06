@@ -27,6 +27,7 @@ import { DEFAULT_CANVAS, CANVAS_TEMPLATES } from './ui/canvasdemo.js';
 import { paletteColours } from './ui/palettes.js';
 import { createSampleBrowser } from './ui/samplebrowser.js';
 import { createShaderView } from './ui/shaderview.js';
+import { attachWidthGrip } from './ui/widthgrip.js';
 import { mountConfig } from './ui/quickconfig.js';
 import { createDspView } from './ui/dspview.js';
 import * as ops from './project/ops.js';
@@ -1207,6 +1208,10 @@ $('theme').addEventListener('change', () => { config.set('theme', $('theme').val
 $('theme').addEventListener('keydown', e => e.stopPropagation());
 config.onChange((k, v) => { if (k === 'theme') showTheme(v); });
 showTheme(config.get('theme'));
+// the code boxes' own theme: an attribute on the page that themes.css reads ("same" has none)
+const showCodeTheme = v => { if (!v || v === 'same') delete document.documentElement.dataset.codeTheme; else document.documentElement.dataset.codeTheme = v; };
+config.onChange((k, v) => { if (k === 'codeTheme') showCodeTheme(v); });
+showCodeTheme(config.get('codeTheme'));
 
 // ---- the script tutorial: markdown, and a click on an example puts it in the try-a-line box ----
 {
@@ -2023,6 +2028,8 @@ shaderView = createShaderView({
   onSwitch: () => renderGuide(),
 });
 $('shader-pop').addEventListener('click', () => popOut());
+attachWidthGrip($('shader-box'), { name: 'shader', row: $('shader-main'), reserve: () => ($('shader-knobs').hidden ? 0 : $('shader-knobs').offsetWidth + 10) });
+attachWidthGrip($('script-box'), { name: 'script' });
 // the guide under the editor: the shader guide, or the canvas guide while a canvas picture is being edited; built the first time it is opened.
 // Each whole shader example has a button that puts it in the editor (Ctrl+Z undoes).
 const renderGuide = () => {

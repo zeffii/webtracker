@@ -56,7 +56,7 @@ export function createGenexprEditor({ doc = document, code, onChange = () => {},
     before = text; backOption.hidden = false;
     api.setText(TEMPLATES[Number(v)].code);
   });
-  const root = el('div', { className: 'ge' }, picker, el('div', { className: 'ge-code' }, gutter, wrap), status, list, knobs);
+  const root = el('div', { className: 'ge' }, picker, el('div', { className: 'ge-code code' }, gutter, wrap), status, list, knobs);
 
   let prev = compile(text).params, timer = 0, last = null, info = classify(text);
   // At the caret: the bracket that pairs with the one beside it, and the other places the word under it is used.

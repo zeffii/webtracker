@@ -2,6 +2,11 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 662 · 2026-11-06
+
+- **Code boxes can be widened.** The shader / canvas editor and the script editor have a handle on their right edge: drag it sideways to make the box wider or narrower (it stops at the room there is, and keeps the Knobs panel in view), double-click it to go back to the usual width. The width is remembered for each box.
+- **A theme of its own for code boxes.** Config, Look, "Code box theme": the editors (script, shader / canvas, node source, the genexpr editor) and the code in the guides can use any of the colour themes apart from the one the rest of the program uses, for example a dark editor on the bright theme. "Same as the colour theme" is the default and changes nothing.
+
 ## 661 · 2026-11-05
 
 - **Canvas pictures.** The live picture can now be drawn with JavaScript on a 2D canvas, Processing style: a `setup()` that runs once and a `draw()` every frame, with variables that stay between frames. In the Shader screen the new **Kind** box switches a picture between Shader and Canvas (each keeps its own text); canvas pictures sit in the same list, are picked by the same Shd column and are saved in the .wax (`js` and `canvas` next to `glsl`).

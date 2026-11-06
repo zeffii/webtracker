@@ -32,6 +32,7 @@ const MOVED = { splashStyle: 'Look', wireStraight: 'Graph', graphPullOut: 'Graph
 
 // type: bool | int | choice | colour (a #rrggbb string) | rules. `legacy` is the older single-purpose localStorage key, read once to carry settings over.
 export const SCHEMA = [
+  { group: 'Look', key: 'codeTheme', label: 'Code box theme', hint: 'the editors for scripts, shaders, canvas pictures, node source and the code in the guides can have a look of their own, apart from the colour theme', type: 'choice', options: ['same', ...THEMES], labels: { same: 'same as the colour theme' }, def: 'same' },
   { group: 'Look', key: 'theme', label: 'Colour theme', type: 'choice', options: THEMES, def: 'system', legacy: ['webtracker.theme', v => v] },
   { key: 'splash', label: 'First screen', hint: 'only a "click to initialize" button at first, then the tracker (off: the tracker with its Start button)', type: 'bool', def: true },
   { key: 'codeViews', label: 'Show the Script, Shader and DSP views', hint: 'their buttons in the left rail, with the Script dock toggle (the flask button in the status bar switches this too; the shortcuts Ctrl+Alt+S, G, I and D work either way)', type: 'bool', def: false },

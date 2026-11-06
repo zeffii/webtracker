@@ -12,46 +12,70 @@
   --accent: hsl(210 70% 55%); --cc: light-dark(#2a5db0, #7fb0ff);
   --btn: var(--field); --line: currentColor; --glow: transparent; --radius: 0;
 }
-html[data-theme="dark"] {
+html[data-theme="dark"],
+html[data-code-theme="dark"] :is(.code, .md pre) {
   color-scheme: dark;
   --bg: #1a1b1f; --fg: #d8dae0; --panel: #222328; --hi: #3b6ea8; --hi-fg: #ffffff; --field: #141518;
   --accent: hsl(210 75% 62%); --cc: #7fb0ff; --line: #4a4c55;
 }
-html[data-theme="black"] {   /* the near-black system dark look: flat grey buttons, blue selection */
+html[data-theme="black"],
+html[data-code-theme="black"] :is(.code, .md pre) {   /* the near-black system dark look: flat grey buttons, blue selection */
   color-scheme: dark;
   --bg: #111111; --fg: #e6e6e6; --panel: #131313; --hi: #1a63d6; --hi-fg: #ffffff; --field: #1c1c1c; --btn: #3a3a3a;
   --accent: hsl(210 75% 62%); --cc: #7fb0ff; --line: #3a3a3a; --radius: 2px;
 }
-html[data-theme="bright"] {
+html[data-theme="bright"],
+html[data-code-theme="bright"] :is(.code, .md pre) {
   color-scheme: light;
   --bg: #f6f7fa; --fg: #1d1f27; --panel: #d9dae0; --hi: #2f6fd0; --hi-fg: #ffffff; --field: #ffffff;
   --accent: hsl(210 70% 50%); --cc: #2a5db0; --line: #9a9ca8;
 }
-html[data-theme="neon"] {   /* cyan and magenta on near black */
+html[data-theme="neon"],
+html[data-code-theme="neon"] :is(.code, .md pre) {   /* cyan and magenta on near black */
   color-scheme: dark;
   --bg: #0a0b14; --fg: #cfe9f5; --panel: #0f1020; --hi: #00e5ff; --hi-fg: #00131a; --field: #070810;
   --accent: #ff2bd6; --cc: #ff5ce1; --line: #2c3a66; --glow: #00e5ff88; --radius: 3px;
 }
-html[data-theme="amber"] {   /* an amber phosphor terminal */
+html[data-theme="amber"],
+html[data-code-theme="amber"] :is(.code, .md pre) {   /* an amber phosphor terminal */
   color-scheme: dark;
   --bg: #120c02; --fg: #ffb631; --panel: #1a1103; --hi: #ffb631; --hi-fg: #1a1103; --field: #0d0801;
   --accent: #ffd37a; --cc: #ff8a1f; --line: #5c4010; --glow: #ffb63166; --radius: 0;
 }
-html[data-theme="phosphor"] {   /* green on black */
+html[data-theme="phosphor"],
+html[data-code-theme="phosphor"] :is(.code, .md pre) {   /* green on black */
   color-scheme: dark;
   --bg: #020d06; --fg: #5dff8f; --panel: #04150a; --hi: #39ff7a; --hi-fg: #021407; --field: #010a04;
   --accent: #b6ffcb; --cc: #3ad1a8; --line: #14502a; --glow: #39ff7a66; --radius: 0;
 }
-html[data-theme="ice"] {   /* a cool, light, clinical look */
+html[data-theme="ice"],
+html[data-code-theme="ice"] :is(.code, .md pre) {   /* a cool, light, clinical look */
   color-scheme: light;
   --bg: #eef6fb; --fg: #0e2230; --panel: #dbe9f2; --hi: #0aa6d8; --hi-fg: #ffffff; --field: #ffffff;
   --accent: #0a7fb0; --cc: #0b6aa0; --line: #8fb2c6; --glow: #0aa6d855; --radius: 6px;
 }
-html[data-theme="synthwave"] {   /* purple dusk, hot pink and a little gold */
+html[data-theme="synthwave"],
+html[data-code-theme="synthwave"] :is(.code, .md pre) {   /* purple dusk, hot pink and a little gold */
   color-scheme: dark;
   --bg: #1b0f33; --fg: #f1dcff; --panel: #24144a; --hi: #ff4fa3; --hi-fg: #1b0f33; --field: #140a26;
   --accent: #ffd23f; --cc: #5ee7ff; --line: #5a3a96; --glow: #ff4fa388; --radius: 4px;
 }
+
+/* Code boxes can have a theme of their own (Config, Look, Code box theme): the same blocks as above, applied inside the boxes only. "same"
+   writes no data-code-theme and the boxes follow the colour theme. "system" is the browser's own light or dark, as in the first block. */
+html[data-code-theme="system"] :is(.code, .md pre) {
+  color-scheme: light dark;
+  --bg: Canvas; --fg: CanvasText; --hi: Highlight; --hi-fg: HighlightText; --field: Field;
+  --panel: light-dark(#d9dae0, Canvas);
+  --accent: hsl(210 70% 55%); --cc: light-dark(#2a5db0, #7fb0ff);
+  --btn: var(--field); --line: currentColor; --glow: transparent; --radius: 0;
+}
+html[data-code-theme] :is(.code, .md pre) { background: var(--panel); color: var(--fg); }
+.width-grip { position: absolute; top: 0; right: 0; bottom: 0; width: 9px; z-index: 3; cursor: ew-resize; touch-action: none; }
+.width-grip::after { content: ""; position: absolute; top: 0; bottom: 0; right: 0; width: 2px; background: color-mix(in srgb, var(--fg) 25%, transparent); }
+.width-grip::before { content: ""; position: absolute; top: calc(50% - 14px); right: 3px; width: 3px; height: 28px; border-radius: 2px; background: color-mix(in srgb, var(--fg) 30%, transparent); }
+.width-grip:hover::after, .width-grip.on::after { background: var(--accent); }
+.width-grip:hover::before, .width-grip.on::before { background: var(--accent); }
 
 /* Pattern colours follow the theme. The hue of a pattern says which pattern it is; these say how bright, how saturated and how strong
    its tint is, and how far the hues are pulled toward the theme's own hue (spread 1 keeps them all; less keeps them in one family). */

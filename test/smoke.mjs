@@ -3760,6 +3760,18 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     for (const name of ['hit', 'pitch', 'vel', 'held', 'hits', 'since', 'cell', 'lanes', 'ticked', 'onNote', 'background', 'fade', 'alpha', 'hsl', 'lerp', 'map', 'clamp', 'ease', 'fract', 'noise', 'hash', 'rand', 'C1', 'C2', 'song', 'frac', 'beat', 'dt']) assert.ok(CANVAS_GUIDE.includes(name), `the manual names ${name}`);
   }
 
+  // the code boxes can have a theme of their own: a setting, a block for every colour theme in themes.css, and the boxes marked as code
+  {
+    const { THEMES, SETTINGS } = await import('../src/ui/config.js').then(m => ({ THEMES: m.THEMES, SETTINGS: m.SETTINGS ?? m.SCHEMA ?? [] }));
+    const css = (await import('node:fs')).readFileSync(new URL('../themes.css', import.meta.url), 'utf8');
+    for (const t of THEMES) assert.ok(css.includes(`html[data-code-theme="${t}"] :is(.code, .md pre)`), `themes.css has a code box block for ${t}`);
+    const html = (await import('node:fs')).readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+    for (const id of ['script-box', 'shader-box']) assert.ok(new RegExp(`id="${id}" class="code"`).test(html), `${id} is a code box`);
+    assert.ok(/id="dsp-code" class="[^"]*\bcode\b/.test(html), 'the node source is a code box');
+    const setting = SETTINGS.find?.(x => x.key === 'codeTheme');
+    if (setting) assert.equal(setting.def, 'same', 'code boxes follow the colour theme until told otherwise');
+  }
+
   // canvas pictures are saved with the project (text and kind), next to the shader text that stays when the kind is switched
   {
     const p = createArpDemoProject(), registry = new ParamRegistry();
