@@ -11047,4 +11047,17 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   console.log('ok: room, head, haas, ring, sympathy');
 }
 
+{   // the song overview: the maths of the strip at the right of the sequence editor
+  const { yOf, tickAt, boxOf, firstRowFor, MARGIN } = await import('../src/seq/overview.js');
+  assert.equal(yOf(0, 1552, 600), MARGIN); assert.equal(yOf(1552, 1552, 600), 600 - MARGIN);
+  assert.ok(Math.abs(tickAt(yOf(700, 1552, 600), 1552, 600) - 700) < 1e-6, 'tickAt undoes yOf');
+  assert.equal(tickAt(-50, 1552, 600), 0); assert.equal(tickAt(5000, 1552, 600), 1552);
+  const [b0, b1] = boxOf(16, 40, 32, 1552, 600);
+  assert.ok(b1 > b0 && Math.abs(yOf(512, 1552, 600) - b0) < 1e-9 && Math.abs(yOf(1280, 1552, 600) - b1) < 1e-9, 'the box spans the rows on show');
+  assert.equal(firstRowFor(800, 32, 24, 49), 13, 'the clicked tick goes to the middle of the rows');
+  assert.equal(firstRowFor(0, 32, 24, 49), 0); assert.equal(firstRowFor(1552, 32, 24, 49), 25, 'and the view stops at the end of the song');
+  assert.equal(yOf(100, 1552, 600) < yOf(200, 1552, 600), true, 'the scale never depends on the zoom: only on the song and the height');
+  console.log('ok: song overview');
+}
+
 console.log('smoke test passed');

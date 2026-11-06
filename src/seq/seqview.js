@@ -9,6 +9,7 @@ import { loopAround, loopRange, setLoopPoint, toggleLoop } from './loop.js';
 import { showContextMenu } from '../ui/ctxmenu.js';
 import { showMachineTree, buildMachineTree } from '../ui/machinetree.js';
 import { createMinimap } from './minimap.js';
+import { createOverview, firstRowFor } from './overview.js';
 import { createCurveView, headMark, shownCurve } from './curveview.js';
 import { newCurve, normalise, addSection, removeSection } from './automation.js';
 
@@ -568,6 +569,11 @@ export function createSequenceView({ el, statusEl, undoEl = null, listEl, transp
   };
 
   const playline = createPlayline(el), looplines = createLoopLines(el), minimap = createMinimap(el);
+  const overview = createOverview({
+    host: el.parentNode, grid: el, colourOf,
+    canJump: () => !!lanes && !(follow() && !paused && Atomics.load(transport, 1) === 1),
+    onJump: tick => { top = firstRowFor(tick, CELL, rowCount, Math.ceil(len / CELL)); scrolledFor = `${cur.lane},${cur.tick}`; draw(); },   // scrolls like the wheel: the cursor stays where it is
+  });
   // Holding Shift shows the name of the pattern under the mouse (or under the caret, with the mouse away from the view) on a dark
   // label at the top of that pattern; letting go hides it. (Shift alone does nothing else in this view; the cells show only their
   // numbers unless pattern names are on.) One element, moved about, so hovering never redraws the view.
@@ -727,6 +733,7 @@ export function createSequenceView({ el, statusEl, undoEl = null, listEl, transp
     curves.paint();
 
     updateTag();
+    overview.paint(config.get('seqOverview') ? { lanes, len, first: top, last: Math.min(rows, top + rowCount), cell: CELL, loop: song?.loop ?? null, cursor: cur, playTick: playing ? playTick : null, rowCount, rows } : { lanes: [], len, first: 0, last: 0, cell: CELL, cursor: cur, playTick: null, rowCount, rows });
     if (config.get('minimapOn')) minimap.paint({ lanes, first: top, last: Math.min(rows, top + rowCount), CELL, html, opts: { lengths: config.get('minimapLengths'), caps: config.get('minimapCaps'), params: config.get('minimapParams') } });
     else minimap.hide();
 

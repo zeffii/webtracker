@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 672 · 2026-11-06
+
+- **Song overview in the sequence editor.** A strip at the right edge shows the whole song at once, scaled to fit the height of the editor, so it always shows all of the structure and its scale never follows the row zoom. Each lane is a thin column of its patterns in their own colours (a silenced lane faint), the loop is a band, the part of the song the editor shows is a box, and the cursor row and the playhead are lines across. Click to jump there (the box centres on the click), or drag the box to scroll; the cursor stays where it was, as with the wheel. It does not scroll while the editor is following a playing song. It appears when the song is longer than the rows on show; Config, Arrangement, Song overview switches it off.
+
 ## 671 · 2026-11-06
 
 - **Shift+L in the sequence editor loops the pattern under the cursor.** The loop is set from the pattern's start to its end; Shift+L again on the same pattern takes the loop away. (L and Ctrl+L still switch the loop on and off.)
