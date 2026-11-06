@@ -685,7 +685,7 @@ export function createSequenceView({ el, statusEl, undoEl = null, listEl, transp
           return `<i class="L${cls ? ` ${cls}` : ''}${edges}" style="${css}"></i>`;
         }).join('');
         const w = colw(l);
-        let text = muted && !pl ? '·'.repeat(w) : ' '.repeat(w);
+        let text = ' '.repeat(w);   // a muted row is shown by the hatch (css .muted), not by drawn dots
         if (pl) {
           const pat = l.patterns[pl.puid];
           text = (pl.start >= t ? (config.get('seqNames') ? `${hex2(pat.index)} ${pat.name}` : hex2(pat.index)) : '').slice(0, w).padEnd(w);

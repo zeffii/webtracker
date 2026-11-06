@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 667 · 2026-11-06
+
+- **Muted rows are hatched.** A row (or whole lane, Alt+M) that is muted is shown with a faint diagonal hatch across the cell instead of a row of dots: one CSS background instead of a text of glyphs to draw, and it reads as a continuous band.
+
 ## 666 · 2026-11-06
 
 Five new effects (a "Space" group in the Effects menu), all cheap and each with its own panel. What the panel draws is the same calculation the node plays.
