@@ -11007,6 +11007,42 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
       assert.ok(rms(heard.left) > 0 && Array.from(heard.left).every(Number.isFinite) && rms(later.left, 24000, 90000) > 1e-4, 'follow notes through the runtime: the note makes a string that rings on');
     }
   }
+  {   // note pan: each note is placed among the others; rotation turns them in real time
+    const def = NODE_TYPES.notepan, slots = slotsOf(def), shared = {};
+    const make = () => def.create({ sampleRate: rate, shared });
+    const run = (node, v, frames = 4800) => {
+      const params = paramsOf(def, { glide: 1, ...v }), L = new Float32Array(frames), R = new Float32Array(frames), x = new Float32Array(frames).fill(0.5), z = new Float32Array(B);
+      for (let at = 0; at < frames; at += B) node.process([[x.subarray(at, at + B), x.subarray(at, at + B)]], [[L.subarray(at, at + B), R.subarray(at, at + B)]], B, params, slots);
+      return [L, R];
+    };
+    const side = ([L, R]) => { const l = rms(L, 2400), r = rms(R, 2400); return (r - l) / (r + l); };   // -1 left .. 1 right
+    const a = make(); a.note({ type: 'noteOn', note: 36 }); assert.ok(side(run(a, { style: 0, range: 1 })) < -0.3, 'keyboard: a low note is on the left');
+    const b = make(); b.note({ type: 'noteOn', note: 84 }); assert.ok(side(run(b, { style: 0, range: 1 })) > 0.3, 'and a high note on the right');
+    const c = make(); c.note({ type: 'noteOn', note: 60 }); assert.ok(Math.abs(side(run(c, { style: 0, range: 1 }))) < 0.05, 'middle C is in the middle');
+    const none = make(); none.note({ type: 'noteOn', note: 84 }); assert.ok(Math.abs(side(run(none, { style: 0, range: 0 }))) < 0.05, 'range 0 puts everything in the centre');
+    // alternate: the next note goes to the other side (a shared counter across copies)
+    const s1 = {}, mk = () => def.create({ sampleRate: rate, shared: s1 }), p1 = mk(), p2 = mk();
+    p1.note({ type: 'noteOn', note: 60 }); p2.note({ type: 'noteOn', note: 60 });
+    assert.ok(side(run(p1, { style: 2, range: 1 })) < -0.3 && side(run(p2, { style: 2, range: 1 })) > 0.3, 'alternate: two voices go to opposite sides');
+    // fan: held notes spread in the order played
+    const s2 = {}, mk2 = () => def.create({ sampleRate: rate, shared: s2 }), f = [mk2(), mk2(), mk2()];
+    [50, 62, 74].forEach((n, i) => f[i].note({ type: 'noteOn', note: n }));
+    const fs = f.map(v => side(run(v, { style: 1, range: 1 })));
+    assert.ok(fs[0] < -0.3 && Math.abs(fs[1]) < 0.1 && fs[2] > 0.3, `fan: first played left, last right (${fs.map(v => v.toFixed(2))})`);
+    // rotation: with a rate the place moves; still, it does not. Orbit goes behind, and is quieter there.
+    const d = make(); d.note({ type: 'noteOn', note: 60 });
+    const swing = run(d, { rate: 2, amp: 1, shape: 0 }, 24000), early = side([swing[0].subarray(0, 4800), swing[1].subarray(0, 4800)]), moved = []; for (let k = 0; k < 8; k++) moved.push(side([swing[0].subarray(k * 3000, k * 3000 + 3000), swing[1].subarray(k * 3000, k * 3000 + 3000)]));
+    assert.ok(Math.max(...moved) - Math.min(...moved) > 0.6 && swing[0].every(Number.isFinite), 'rate sets the notes swinging left and right');
+    const o = make(); o.note({ type: 'noteOn', note: 60 });
+    const orb = run(o, { rate: 1, shape: 2, behind: 1 }, 48000);
+    const lvl = k => rms(orb[0], k * 6000, k * 6000 + 6000) + rms(orb[1], k * 6000, k * 6000 + 6000);
+    const lv = Array.from({ length: 8 }, (_, k) => lvl(k));
+    assert.ok(Math.max(...lv) > 1.3 * Math.min(...lv), 'orbit: the sound is quieter while it is behind the listener');
+    // two voices turn together: they join the turn where the others are
+    const s3 = {}, v1 = def.create({ sampleRate: rate, shared: s3 }), v2 = def.create({ sampleRate: rate, shared: s3 });
+    v1.note({ type: 'noteOn', note: 60 }); run(v1, { rate: 1, shape: 2 }, 9600); v2.note({ type: 'noteOn', note: 60 });
+    assert.ok(Math.abs(s3.phase - 0.2) < 0.01, `the shared turn is where the sounding copy is (${s3.phase})`);
+  }
   console.log('ok: room, head, haas, ring, sympathy');
 }
 

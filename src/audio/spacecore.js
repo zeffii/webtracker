@@ -121,3 +121,39 @@ export function wantedStrings(bag, partials, count) {
   }
   return out.slice(0, Math.max(1, Math.round(count)));
 }
+
+// ---- note pan ----
+
+export const PAN_STYLES = ['keyboard', 'fan', 'alternate', 'random', 'cluster', 'mirror'];
+export const PAN_SHAPES = ['swing', 'triangle', 'orbit'];
+const fract = v => v - Math.floor(v);
+const hashNote = n => fract(Math.sin(n * 127.1 + 311.7) * 43758.5453);
+
+// Where a note sits before any rotation: -1 (hard left) to 1 (hard right).
+//   note  its pitch (MIDI), seq  its place in the order the notes were played (0, 1, 2 ...),
+//   held  the notes held now, in the order they were played (including this one while it is held)
+export function panPlace(style, note, seq, held) {
+  const clampX = v => Math.max(-1, Math.min(1, v));
+  const at = held.indexOf(note);
+  switch (PAN_STYLES[Math.max(0, Math.min(PAN_STYLES.length - 1, Math.round(style)))]) {
+    case 'fan': return held.length < 2 || at < 0 ? 0 : -1 + 2 * at / (held.length - 1);
+    case 'alternate': return seq % 2 === 0 ? -1 : 1;
+    case 'random': return hashNote(note) * 2 - 1;
+    case 'cluster': return held.length ? clampX((note - held.reduce((a, b) => a + b, 0) / held.length) / 12) : 0;
+    case 'mirror': return (seq % 2 ? 1 : -1) * Math.max(0.15, Math.min(1, Math.abs(note - 60) / 30));
+    default: return clampX((note - 60) / 30);
+  }
+}
+
+// The swing or turn added to a place: phase is in cycles (unwrapped), amp 0 to 1 (the swing reaches amp x 180 degrees either way). Radians.
+export function panRotation(shape, phase, amp) {
+  const f = fract(phase);
+  switch (Math.round(shape)) {
+    case 1: return amp * Math.PI * (f < 0.5 ? 4 * f - 1 : 3 - 4 * f);
+    case 2: return 2 * Math.PI * f;
+    default: return amp * Math.PI * Math.sin(2 * Math.PI * phase);
+  }
+}
+
+// How a position round the head (radians, 0 in front, +90 degrees on the right) sounds: pan -1..1, behind 0..1 (1 straight behind).
+export const orbitOf = angle => ({ pan: Math.sin(angle), behind: Math.max(0, -Math.cos(angle)) });

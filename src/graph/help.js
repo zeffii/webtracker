@@ -31,6 +31,54 @@ export const PAGES = {
       ['Reason Studios list', 'https://www.reasonstudios.com/blog/free-reverb-resources-where-to-find-impulse-responses', 'a longer list, including guitar cabinets and classic reverb units'],
     ],
   },
+  notepan: {
+    summary: 'Gives every note its own place in the stereo field, chosen from the notes being played, and can swing or circle them round the listener. The place round the head has a front and a back, so a note that goes behind you gets quieter and duller.',
+    best: [
+      'Put it inside the voices (before the voices node): each sounding note is then its own copy and is placed on its own. After the voices it would pan the mixed sound as one.',
+      'keyboard puts low notes left and high notes right, like a piano heard from the audience. fan spreads the notes you are holding evenly, in the order you played them, so a chord opens out. alternate throws notes left, right, left: good for arpeggios and fast lines.',
+      'cluster places a note by how far it is from the average of what is held, so a chord is a bunch around the centre and a note far from it stands out to one side. mirror sets the notes in pairs either side of the centre.',
+      'range is how much of the field is used: a little for a natural width, all of it for an obvious spread. centre moves the whole field.',
+      'rate is real time in Hz (not tied to the tempo): 0.1 to 0.5 is a slow drift, 2 to 4 is a fast flutter. A negative rate turns the other way. swing goes back and forth by amp, triangle the same with straight sweeps, orbit goes all the way round and passes behind you.',
+      'spread starts each note\'s turn a little after the last. With a held chord, the notes open and close like a fan instead of moving as a block.',
+      'Drag across the circle on the panel to move the centre; the dots show where each sounding note is right now.',
+    ],
+    limits: [
+      'A turn needs a stereo output: on one speaker, or in mono, the movement is only a change in level.',
+      'Pitch only decides the place in keyboard style (and mirror, cluster and random use it too); with alternate and fan it is the order of playing that counts.',
+      'It places each note, not each frequency: a single note with many overtones moves as one.',
+      'The back of the circle is a gentle level dip and low-pass, not a full binaural effect. For that use Head pan.',
+    ],
+  },
+  reflect: {
+    summary: 'The first echoes of a room you set, made from the room\'s box: width, depth, height and how much the walls take. A plan shows the sound and you; drag them about and the echoes follow.',
+    best: [
+      'Put it before a reverb. The early echoes give the sense of a space and the reverb gives the tail, and the pair costs far less than a big reverb alone.',
+      'Small rooms (4 to 8 m) give a close, boxy sound; 20 to 40 m gives clear separate echoes. Move the sound close to a wall to hear it come back from that side.',
+      'absorb is how padded the walls are. damp takes the top off the echoes, as walls do.',
+      'mix 0.3 to 0.6 gives presence; 1 and more makes a hall of mirrors.',
+    ],
+    limits: ['It makes the first three bounces only, up to 32 echoes, with no tail.', 'Mono in (the sides are added), stereo out.'],
+  },
+  headpan: {
+    summary: 'Places a sound anywhere round the head: the far ear hears it a fraction of a millisecond later, quieter and duller, and a sound from behind loses its top. Mono in, a pair of ears out.',
+    best: ['Best on headphones.', 'Drag the dot round the head: round sets the angle, in and out the distance. At 90 degrees the time difference is about 0.66 ms.', 'Sweep angle from a pattern for a sound that moves round the listener.'],
+    limits: ['On loudspeakers the effect is much weaker.', 'It models a head, not an ear shape, so up and down are not changed.'],
+  },
+  haas: {
+    summary: 'One side is played a few milliseconds late, which the ear takes as one wider sound, coming from the early side.',
+    best: ['6 to 25 ms is the useful range. Past 35 ms it is heard as an echo.', 'Damp the late side a little: a duller copy sounds more natural.', 'The panel shows the comb of notches the two sides make in mono; keep time short or mix low for material that will be played in mono.'],
+    limits: ['The sound seems to come from the early side, so it is a widener that leans.', 'It is not mono-safe at full mix.'],
+  },
+  ringmod: {
+    summary: 'A ring modulator whose carrier can follow the pitch of the sound, so the sidebands stay tuned to the note: a melody stays a melody while the sound turns metallic or bell-like.',
+    best: ['Track on, ratio 1 doubles the overtones; 0.5 and 2 give octaves; 1.5 a fifth. Add a few Hz of offset for a bell.', 'Track off is the classic ring modulator with a fixed carrier: low carriers (20 to 100 Hz) give a growl, high ones a metallic shimmer.', 'depth under 1 blends the carrier in as a tremolo.'],
+    limits: ['The pitch is found by counting zero crossings: good for a single voice, poor on chords and noise (it falls back to freq).', 'The carrier slides to a new pitch over a few milliseconds.'],
+  },
+  sympathy: {
+    summary: 'A set of tuned strings that ring when the sound has a partial of their pitch, like the undamped strings of a piano or a sitar. Choose a chord, or let the strings follow the notes being played.',
+    best: ['Chord mode: pick a root and chord, then play things in that key; the strings answer.', 'follow notes: the strings are tuned to what the instrument plays (the note, its octave, its twelfth ...), so it works with any melody. Put it after the voices.', 'ringtime 2 to 4 s is a piano; 8 s is a drone. damp makes the ring warmer. A little detune makes it shimmer.', 'mix 0.3 to 0.6 and it is a halo; higher and the strings become the sound.'],
+    limits: ['It adds sound only where the input has a partial near a string; a pure tone far from any string does nothing.', 'At most 12 strings.'],
+  },
   noise: {
     summary: 'Noise in every colour, from deep brown through pink and white to thin violet, set with tilt (the slope of the spectrum in dB per octave).',
     best: [

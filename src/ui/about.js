@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['669', ['Note pan: every note placed in the stereo field by style (keyboard, fan, alternate ...), with real-time swing or orbit round the listener and an orbit panel; help pages for the new space effects']],
   ['668', ['Sympathetic strings: follow notes, tuned to what the instrument plays (note, octave, twelfth ...)']],
   ['667', ['Muted rows are drawn as a faint diagonal hatch instead of dots']],
   ['666', ['Five cheap room and head effects with panels: Reflections, Head pan, Haas widener, Ring mod (tracked carrier) and Sympathetic strings; the code-box status bar matches the box width']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['662', ['Code boxes: a drag handle to widen them, and a colour theme of their own (Config, Look)']],
   ['661', ['Canvas pictures: draw the live picture with JavaScript (setup/draw, ticked, onNote, since), with a guide and templates']],
   ['660', ['The opening song is the longer Plethora']],
-  ['659', ['The song the page opens with is now Plethora']],
                     ];

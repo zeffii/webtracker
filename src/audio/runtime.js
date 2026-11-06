@@ -84,6 +84,7 @@ export class GraphRuntime {
   // note()), copies that are not sounding are not run, and parameters are shared by all.
   load(compiled) {
     this.graphs.set(compiled.instrument, compiled);
+    const shared = new Map();   // one plain object for each node, shared by all its voice copies: how a node that runs once per voice can know what the other voices are doing
     this.order = null;
     this.followMap = null;
     this.maxDelay = null;
@@ -91,7 +92,7 @@ export class GraphRuntime {
     const fresh = () => Array.from({ length: compiled.bufferCount }, () => new Float32Array(this.maxBlock));
     const resolver = buffers => ref => (Array.isArray(ref) ? ref.map(b => buffers[b]) : buffers[ref]);   // stereo ports are [left, right]
     const make = (n, resolve) => {
-      const create = () => NODE_TYPES[n.type].create({ sampleRate: this.sampleRate, maxBlock: this.maxBlock, connected: n.connected, wasm: this.wasm, data: n.data, init: n.init, target: n.target, stereo: n.stereo === true, clock: this.clock, notes: msg => this.deliver(compiled.instrument, msg), source: n.source, tap: (id, parts) => this.tap(id, parts), parts: n.parts, emit: (msg, transfer) => this.onEmit?.(compiled.instrument, n.id, msg, transfer) });
+      const create = () => NODE_TYPES[n.type].create({ sampleRate: this.sampleRate, maxBlock: this.maxBlock, connected: n.connected, wasm: this.wasm, data: n.data, init: n.init, target: n.target, stereo: n.stereo === true, clock: this.clock, shared: (shared.has(n.id) ? shared : shared.set(n.id, {})).get(n.id), notes: msg => this.deliver(compiled.instrument, msg), source: n.source, tap: (id, parts) => this.tap(id, parts), parts: n.parts, emit: (msg, transfer) => this.onEmit?.(compiled.instrument, n.id, msg, transfer) });
       const node = { id: n.id, instance: create(), slots: Int32Array.from(n.slots), inputs: n.inputs.map(resolve), outputs: n.outputs.map(resolve) };
       if (n.dual) {   // a mono node on a stereo signal: one copy per channel over the same parameters
         const left = node.instance, right = create();

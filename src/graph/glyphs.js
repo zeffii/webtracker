@@ -86,6 +86,11 @@ export const GLYPHS = {
   ringmod: (ctx, cx, cy, w, h) => {   // a wave, multiplied by a faster one
     curve(ctx, cx, cy, w, h * 0.8, t => Math.sin(t * Math.PI * 2) * Math.sin(t * Math.PI * 14), 48);
   },
+  notepan: (ctx, cx, cy, w, h) => {   // a circle seen from above with notes round it
+    const r = Math.min(w, h) * 0.38;
+    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.stroke();
+    for (const a of [-0.9, 0.35, 1.7]) { ctx.beginPath(); ctx.arc(cx + Math.sin(a) * r, cy - Math.cos(a) * r, 2.2, 0, Math.PI * 2); ctx.fill(); }
+  },
   sympathy: (ctx, cx, cy, w, h) => {   // three strings, the middle one swinging in answer
     for (let i = 0; i < 3; i++) { const x = cx + (i - 1) * w * 0.3; ctx.beginPath(); ctx.moveTo(x, cy - h * 0.42); ctx.lineTo(x, cy + h * 0.42); ctx.stroke(); }
     ctx.beginPath(); ctx.moveTo(cx, cy - h * 0.42); ctx.quadraticCurveTo(cx + w * 0.16, cy, cx, cy + h * 0.42); ctx.stroke();

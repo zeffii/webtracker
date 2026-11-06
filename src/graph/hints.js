@@ -242,6 +242,17 @@ const HINTS = {
     wave: 'Shape of the carrier: sine, triangle, square or saw. Sharper waves add more sidebands.',
     depth: 'How much the carrier multiplies the sound. 1 is a full ring modulator, less is a tremolo-like blend.', mix: 'Dry/wet balance.',
   },
+  notepan: {
+    style: 'Where each note is put before any rotation. keyboard: by pitch, low left and high right. fan: the held notes spread evenly, in the order played. alternate: left, right, left ... random: a fixed place for each pitch. cluster: by how far the note is from the average of the notes held. mirror: notes in pairs either side of the centre.',
+    range: 'How much of the stereo field is used. 0 puts every note in the centre, 1 reaches hard left and right.',
+    centre: 'Moves the whole field to the left (negative) or right (positive).',
+    glide: 'How long a note takes to slide to a new place when the notes held change, in ms (the fan and cluster styles move as notes come and go).',
+    rate: 'How fast the notes turn round you, in cycles per second (real time, not tied to the tempo). Negative turns the other way. 0 holds still.',
+    amp: 'How far the swing goes: 1 is half a turn either way. Not used by the orbit shape.',
+    shape: 'swing goes back and forth smoothly, triangle goes back and forth in straight sweeps, orbit goes all the way round, passing behind you.',
+    spread: 'Starts each note\'s turn a little later than the last. 0 and all notes turn together; more and a chord opens and closes like a fan.',
+    behind: 'How much a note that has gone round behind you gets quieter and duller. 0 leaves it as it was.',
+  },
   sympathy: {
     root: 'The lowest string, as a MIDI note (48 is C3). Use the - and + on the panel to read it as a note.',
     chord: 'Which notes are strung above the root: open (root and fifth), major, minor, maj7, min7, sus4, dim or whole tone. The strings climb through the octaves.',

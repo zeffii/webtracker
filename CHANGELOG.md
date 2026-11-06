@@ -2,6 +2,12 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 669 · 2026-11-06
+
+- **Note pan: a new node** (Effects, Space). Every note gets its own place in the stereo field, chosen from the notes being played, and can swing or circle round the listener. Six styles: keyboard (pitch, low left), fan (the held notes spread in the order played), alternate, random, cluster (by distance from the average of what is held) and mirror. Rotation is in real time: `rate` in Hz (negative reverses), `amp`, a shape (swing, triangle or orbit all the way round), and `spread`, which starts each note's turn a little later so a held chord opens and closes like a fan. The place is an angle round the head, so a note that passes behind gets quieter and duller (`behind`). The panel is the orbit: the listener seen from above with the sounding notes as dots, the field (orange) and the reach of the rotation (pink); drag across it to move the centre. It goes inside the voices.
+- Machine voices: a node that runs once per voice now gets a `shared` object, the same for all its voice copies, so it can know what the other voices are doing (Note pan uses it for what is held and what came before).
+- **Help pages** (F1) for Note pan and for the five effects of 666 and 668: Reflections, Head pan, Haas widener, Ring mod and Sympathetic strings.
+
 ## 668 · 2026-11-06
 
 - **Sympathetic strings: follow notes.** A new `follow` switch (and a button on the panel) tunes the strings to the notes the instrument is playing instead of a chord: for each recent note the nearest piano strings to its first `partials` harmonics (the note, its octave, its twelfth, two octaves ...), newest notes and lowest harmonics first, up to `strings`. A string that is already ringing and still wanted is left alone; released notes stay strung until newer ones crowd them out, like the undamped strings of a piano. The node sits after the voices (outside them) and hears every note once, so a big node like the piano needs no change. The panel shows the strings that are tuned right now, glowing as they ring.
