@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['673', ['Fix: with the piano roll on, the sample display starts to the right of the key strip, so the start of the sample is no longer covered']],
   ['672', ['Song overview: a strip at the right of the sequence editor showing the whole song scaled to fit (click to jump, drag the box to scroll)']],
   ['671', ['Shift+L in the sequence editor sets the loop round the pattern under the cursor']],
   ['670', ['The opening song is the newest Plethora']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['666', ['Five cheap room and head effects with panels: Reflections, Head pan, Haas widener, Ring mod (tracked carrier) and Sympathetic strings; the code-box status bar matches the box width']],
   ['665', ['Kaleidoscope overtone mode: set the number of overtones and undertones; a close button on the picture (and its floating window)']],
   ['664', ['Kaleidoscope: an Overtone mode (copies at x2, x3, x4 ... of each tone) with stretch and decay']],
-  ['663', ['Adding an instrument or lane beside the cursor lane keeps the song playing and the cursor where it was']],
                     ];

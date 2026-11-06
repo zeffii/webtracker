@@ -54,8 +54,9 @@ export function createWaveformView({ canvas, statusEl, getProject, onLoop, onSel
   let va = 0, vb = 0;
   const MIN_SPAN = 16;
   const range = () => { const n = sample() ? frames() : 0; const b = vb > 0 ? Math.min(vb, n) : n, a = Math.min(va, Math.max(0, b - 1)); return [a, Math.max(b, a + 1)]; };
-  const frameToX = f => { const [a, b] = range(); return ((f - a) / (b - a)) * W; };
-  const xToFrame = x => { const [a, b] = range(); return Math.round(a + Math.min(Math.max(x / W, 0), 1) * (b - a)); };
+  const gutter = () => overlay?.gutter?.() ?? 0;   // the piano roll's key strip stands at the left edge: the sample starts to its right
+  const frameToX = f => { const [a, b] = range(), g = gutter(); return g + ((f - a) / (b - a)) * (W - g); };
+  const xToFrame = x => { const [a, b] = range(), g = gutter(); return Math.round(a + Math.min(Math.max((x - g) / Math.max(1, W - g), 0), 1) * (b - a)); };
   const setView = (a, b) => {
     const n = frames();
     const span = Math.min(n, Math.max(MIN_SPAN, Math.round(b - a)));
@@ -118,7 +119,7 @@ export function createWaveformView({ canvas, statusEl, getProject, onLoop, onSel
   globalThis.addEventListener?.('mousemove', e => {
     if (!pan) return;
     if (!(e.buttons & 4)) { pan = null; return; }
-    const d = -((e.clientX - pan.x) / Math.max(1, W)) * (pan.b - pan.a);
+    const d = -((e.clientX - pan.x) / Math.max(1, W - gutter())) * (pan.b - pan.a);
     setView(pan.a + d, pan.b + d);
   });
   globalThis.addEventListener?.('mouseup', e => { if (e.button === 1) pan = null; });
@@ -225,7 +226,7 @@ export function createWaveformView({ canvas, statusEl, getProject, onLoop, onSel
     const sp = prevFor('sus');
     const pick = drag?.kind === 'select' && drag.preview ? { from: drag.preview.start, to: drag.preview.end } : config.get('waveHideSel') ? { from: 0, to: 0 } : selection;   // hidden: drawn as no selection (it still stands)
     const [va0, vb0] = s ? range() : [0, 0];
-    const key = s ? `${va0}-${vb0}:${id}:${mode}:${s.data.length}:${start}:${end}:${LOOPS.slice(1).map(l => `${s[l.start]}.${s[l.end]}.${s[l.on]}`).join()}:${sp ? `${sp.start}-${sp.end}` : ''}:${hidden(0)}${hidden(1)}:${s.loopOn}:${s.loopXfade}:${s.susXfade}:${pick.from}-${pick.to}:${slicesOf(s).join(',')}:${active}:${ghost ? `${ghost.frames.join(',')}/${ghost.replaced?.from}-${ghost.replaced?.to}` : ''}:${W}:${H}:${settled}:${overlay?.key() ?? ''}:${typeof getComputedStyle === 'function' ? getComputedStyle(canvas).color : ''}` : 'none';
+    const key = s ? `${va0}-${vb0}:${id}:${mode}:${s.data.length}:${start}:${end}:${LOOPS.slice(1).map(l => `${s[l.start]}.${s[l.end]}.${s[l.on]}`).join()}:${sp ? `${sp.start}-${sp.end}` : ''}:${hidden(0)}${hidden(1)}:${s.loopOn}:${s.loopXfade}:${s.susXfade}:${pick.from}-${pick.to}:${slicesOf(s).join(',')}:${active}:${ghost ? `${ghost.frames.join(',')}/${ghost.replaced?.from}-${ghost.replaced?.to}` : ''}:${W}:${gutter()}:${H}:${settled}:${overlay?.key() ?? ''}:${typeof getComputedStyle === 'function' ? getComputedStyle(canvas).color : ''}` : 'none';
     if (key === lastKey) return;
     lastKey = key;
     ctx.clearRect(0, 0, W, H);
@@ -233,7 +234,7 @@ export function createWaveformView({ canvas, statusEl, getProject, onLoop, onSel
     const ink = typeof getComputedStyle === 'function' ? getComputedStyle(canvas).color : '#888';
     if (mode === 'spec') {
       const sl = x => (x && (va0 > 0 || vb0 < s.data.length) ? x.subarray(va0, vb0) : x);
-      const pw = canvas.width, ph = canvas.height;
+      const g0 = gutter(), gx = Math.round(g0 * dpr), pw = canvas.width - gx, ph = canvas.height;
       const axis = overlay?.pitch() ?? null, sig = axis?.sig ?? '';
       const fresh = cache?.data === s.data && cache.spec?.pw === pw && cache.spec?.ph === ph && cache.spec?.a === va0 && cache.spec?.b === vb0 && cache.spec?.sig === sig;
       if (axis) {   // the piano roll's pitch axis: worked out on at most 1200 columns (a long FFT each) and stretched to the display
@@ -248,9 +249,9 @@ export function createWaveformView({ canvas, statusEl, getProject, onLoop, onSel
           if (img?.getContext) { img.width = cols; img.height = ph; img.getContext('2d').putImageData(image, 0, 0); }
           cache = { ...(cache?.data === s.data ? cache : { data: s.data }), spec: { pw, ph, a: va0, b: vb0, sig, cells, fx, img: img?.getContext ? img : null } };
         }
-        if (cache.spec.img) ctx.drawImage(cache.spec.img, 0, 0, W, H);
+        if (cache.spec.img) ctx.drawImage(cache.spec.img, g0, 0, W - g0, H);
       } else if (!fresh && cache?.data === s.data && cache.spec?.img && !settled && cache.spec.a === va0 && cache.spec.b === vb0 && !cache.spec.sig) {   // the size is still changing: show the last picture, stretched
-        ctx.drawImage(cache.spec.img, 0, 0, W, H);
+        ctx.drawImage(cache.spec.img, g0, 0, W - g0, H);
       } else {
         if (!fresh) cache = { ...(cache?.data === s.data ? cache : { data: s.data }), spec: { pw, ph, a: va0, b: vb0, sig: '', cells: computeSpectrogram(sl(s.data), sl(s.right), pw, ph) } };
         const image = ctx.createImageData(pw, ph);
@@ -262,20 +263,21 @@ export function createWaveformView({ canvas, statusEl, getProject, onLoop, onSel
         }
         ctx.save();
         ctx.setTransform(1, 0, 0, 1, 0, 0);
-        ctx.putImageData(image, 0, 0);
+        ctx.putImageData(image, gx, 0);
         ctx.restore();
       }
     } else {
-      if (!cache || cache.data !== s.data || !cache.peaks || cache.w !== W || cache.a !== va0 || cache.b !== vb0) cache = { data: s.data, w: W, a: va0, b: vb0, peaks: computePeaks(s.data, W, va0, vb0), rightPeaks: s.right ? computePeaks(s.right, W, va0, vb0) : null };
+      if (!cache || cache.data !== s.data || !cache.peaks || cache.w !== W - gutter() || cache.a !== va0 || cache.b !== vb0) cache = { data: s.data, w: W - gutter(), a: va0, b: vb0, peaks: computePeaks(s.data, W - gutter(), va0, vb0), rightPeaks: s.right ? computePeaks(s.right, W - gutter(), va0, vb0) : null };
       // a stereo sample is drawn as two lanes, left above right
       const lanes = cache.rightPeaks ? [[cache.peaks, H / 4], [cache.rightPeaks, 3 * H / 4]] : [[cache.peaks, H / 2]];
       const amp = lanes.length === 2 ? H / 4 - 4 : H / 2 - 4;
+      const g0 = gutter();
       ctx.fillStyle = ink;
       for (const [peaks, mid] of lanes) {
-        ctx.fillRect(0, mid, W, 1);
-        for (let x = 0; x < W; x++) {
+        ctx.fillRect(g0, mid, W - g0, 1);
+        for (let x = 0; x < W - g0; x++) {
           const lo = peaks[2 * x], hi = peaks[2 * x + 1];
-          ctx.fillRect(x, mid - hi * amp, 1, Math.max(1, (hi - lo) * amp));
+          ctx.fillRect(g0 + x, mid - hi * amp, 1, Math.max(1, (hi - lo) * amp));
         }
       }
     }
@@ -363,7 +365,7 @@ export function createWaveformView({ canvas, statusEl, getProject, onLoop, onSel
     const s = sample();
     const [a, b] = s ? range() : [0, 1];
     if (frame === null || frame === undefined || !s || frame < a || frame >= b) { if (head.parentNode) head.remove(); return; }
-    head.style.left = `${canvas.offsetLeft + canvas.clientLeft + ((frame - a) / (b - a)) * canvas.clientWidth}px`;
+    head.style.left = `${canvas.offsetLeft + canvas.clientLeft + (gutter() + ((frame - a) / (b - a)) * (canvas.clientWidth - gutter()))}px`;
     head.style.top = `${canvas.offsetTop + canvas.clientTop}px`;
     head.style.height = `${canvas.clientHeight}px`;
     if (head.parentNode !== canvas.parentNode) canvas.parentNode.appendChild(head);

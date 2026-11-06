@@ -10356,7 +10356,8 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   wv.setOverlay(ov); wv.show('s');
   smp.roll = { ...roll.defaultRoll(16000), lo: 48, hi: 72 };   // 24 semitones over 120 px: 5 px a semitone; 16 rows over 1000 px
   const yOf = midi => (72 - midi) / 24 * 120;
-  const fire = (type, x, y, extra = {}) => canvas.listeners[type]?.({ offsetX: x, offsetY: y, button: 0, ...extra });
+  // the sample starts right of the 31 px key strip, so a position written as on the old full-width display (1000 px for the sample) is mapped; `raw` is a pixel as it is
+  const fire = (type, x, y, { raw, ...extra } = {}) => canvas.listeners[type]?.({ offsetX: raw ? x : 31 + x * 0.969, offsetY: y, button: 0, ...extra });
   wv.draw();
   fire('mousedown', 130, yOf(60)); fire('mousemove', 250, yOf(60)); fire('mouseup', 250, yOf(60));   // drag on the body: a C-4 from row 2 to row 4 (snapped)
   assert.deepEqual(smp.roll.notes, [{ from: 2000, to: 4000, midi: 60 }]);
@@ -10370,8 +10371,8 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   fire('mousedown', 70, yOf(67)); fire('mouseup', 70, yOf(67));   // a click on empty space: a note one row long, in the row clicked
   assert.deepEqual(smp.roll.notes.map(n => [n.from, n.to, n.midi]), [[1000, 2000, 67], [3000, 6000, 64]]);
   fire('mousedown', 340, 5); assert.deepEqual(heard.at(-1), ['on', 64], 'the ruler plays the chord of row 5'); fire('mouseup', 340, 5);
-  fire('mousedown', 10, yOf(55)); assert.deepEqual(heard.at(-1), ['on', 55], 'the key strip plays its pitch'); fire('mouseup', 10, yOf(55));
-  canvas.listeners.contextmenu?.({ offsetX: 70, offsetY: yOf(67), preventDefault() {} });   // right click removes a note
+  fire('mousedown', 10, yOf(55), { raw: true }); assert.deepEqual(heard.at(-1), ['on', 55], 'the key strip plays its pitch'); fire('mouseup', 10, yOf(55), { raw: true });
+  canvas.listeners.contextmenu?.({ offsetX: 31 + 70 * 0.969, offsetY: yOf(67), preventDefault() {} });   // right click removes a note
   assert.deepEqual(smp.roll.notes.map(n => n.midi), [64]);
   assert.ok(ov.undo(false)); assert.equal(smp.roll.notes.length, 2, 'Ctrl+Z brings it back');
   assert.ok(ov.undo(true)); assert.equal(smp.roll.notes.length, 1);

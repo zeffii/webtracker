@@ -304,5 +304,8 @@ export function createPianoRollOverlay({ getSample, getSettings, onChange, onPla
   const leave = () => { if (!drag) hover = null; };
   const forget = () => { history = []; future = []; drag = null; hover = null; };
 
-  return { active, draw, down, move, up, menu, wheel, cursor, key, pitch, leave, undo, forget, commit, get dragging() { return !!drag; } };
+  // the width of the key strip while the roll is on: the display starts to its right (waveform.js)
+  const gutter = () => (active() ? KEYS + 1 : 0);
+
+  return { active, gutter, draw, down, move, up, menu, wheel, cursor, key, pitch, leave, undo, forget, commit, get dragging() { return !!drag; } };
 }
