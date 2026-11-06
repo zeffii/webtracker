@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 670 · 2026-11-06
+
+- **The opening song is the newest Plethora**: the arrangement grew, with the woodblock and the hat and meta machine parts, a kaleidoscope on the comb percussion and the woodblock, and the picture drawn as a canvas.
+
 ## 669 · 2026-11-06
 
 - **Note pan: a new node** (Effects, Space). Every note gets its own place in the stereo field, chosen from the notes being played, and can swing or circle round the listener. Six styles: keyboard (pitch, low left), fan (the held notes spread in the order played), alternate, random, cluster (by distance from the average of what is held) and mirror. Rotation is in real time: `rate` in Hz (negative reverses), `amp`, a shape (swing, triangle or orbit all the way round), and `spread`, which starts each note's turn a little later so a held chord opens and closes like a fan. The place is an angle round the head, so a note that passes behind gets quieter and duller (`behind`). The panel is the orbit: the listener seen from above with the sounding notes as dots, the field (orange) and the reach of the rotation (pink); drag across it to move the centre. It goes inside the voices.
