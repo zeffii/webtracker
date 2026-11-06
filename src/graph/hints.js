@@ -400,9 +400,11 @@ const HINTS = {
   kaleidoscope: {
     low: 'The bottom of the band that is arrayed, in Hz. Drag the left end of the pink strip on the panel.',
     high: 'The top of the band, in Hz. Drag the right end of the strip, or drag the strip to move the whole band.',
-    mode: 'Mirror reads every second copy backwards, so the seams join and the intervals turn upside down inside it. Repeat plays every copy the same way.',
+    mode: 'Mirror reads every second copy backwards, so the seams join and the intervals turn upside down inside it. Repeat plays every copy the same way. Overtone makes no tiles: every tone in the band is copied to its overtones (x2, x3, x4 ... of its own frequency) and undertones (x1/2, x1/3 ...), so the copies bunch together going up like the partials of a note.',
     rotate: 'Slides the pattern along the range, in band widths. A slow sweep turns the kaleidoscope.',
-    copies: '0 fills the whole range with copies. A number keeps the source and that many copies either side.',
+    copies: '0 fills the whole range with copies. A number keeps the source and that many copies either side (in overtone mode: that many overtones, and as many undertones).',
+    stretch: 'Overtone mode: pulls the multiples off the whole numbers, upward, like a stiff string or a bell. 0 is an exact overtone series; high is a clanging, inharmonic one.',
+    decay: 'Overtone mode: how fast the higher copies get quieter. 0 keeps them all as loud as the source, 0.5 is 1/n like a plain overtone series, 1 fades faster.',
     edge: 'How far in semitones the copies fade at their seams where the ends do not match (repeat mode, and the last copy).',
     level: 'Level of the arrayed sound, in dB.',
     mix: 'Dry sound against the arrayed sound.',

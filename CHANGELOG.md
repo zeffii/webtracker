@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 664 · 2026-11-06
+
+- **Kaleidoscope: an Overtone mode.** Besides mirror and repeat (copies a band width apart), a third mode copies every tone in the band to its overtones: x2, x3, x4 ... of its own frequency, and the undertones x1/2, x1/3 ... below, so the copies bunch together going up the way the partials of a note do. `copies` sets how many overtones (and undertones) are made, 0 all that fit. Two new settings belong to it: `stretch` pulls the multiples off the whole numbers, upward (a stiff string, then a bell), and `decay` sets how fast the higher copies get quieter (0.5 is 1/n, the plain overtone series). The panel has an overtone button, marks where each copy puts the band (stronger tint for the louder ones) and names x1/2, source, x2, x3 ... Old projects are unchanged.
+
 ## 663 · 2026-11-06
 
 - **Adding an instrument beside a lane (Shift+I in the arrangement) no longer stops the song or sends the cursor back.** Putting the new lane next to the cursor's lane reloaded the whole project, which stopped the sound and put the cursor on row 0 (and a playing song then pulled it to the playing row). Now a playing song carries on, and the cursor stays on its row, on the new lane; if follow was paused because you had moved the cursor, it stays paused. The same goes for "Insert lane" beside a lane.

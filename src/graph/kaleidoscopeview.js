@@ -1,4 +1,4 @@
-import { F_MIN, F_MAX, LOW_MIN, HIGH_MAX, bandOf, sourceOf } from '../audio/kalcore.js';
+import { F_MIN, F_MAX, LOW_MIN, HIGH_MAX, bandOf, overtoneRatio, overtoneGain } from '../audio/kalcore.js';
 
 // The kaleidoscope panel: the spectrum the node hears with the band lit and its two ends to drag, and below it the spectrum it makes,
 // with the seams of the copies marked and the mirrored ones tinted. Frequency runs along the bottom, in octaves. The spectra are live:
@@ -22,9 +22,9 @@ export function createKaleidoscopeView({ doc = document, getParam, setParam, wat
   const row = doc.createElement('div');
   row.className = 'kal-row';
   const button = (label, mode) => { const b = doc.createElement('button'); b.type = 'button'; b.textContent = label; b.className = 'kal-btn'; b.addEventListener('click', () => { setParam('mode', mode); draw(); }); return b; };
-  const mirrorBtn = button('mirror', 0), repeatBtn = button('repeat', 1);
+  const mirrorBtn = button('mirror', 0), repeatBtn = button('repeat', 1), overtoneBtn = button('overtone', 2);
   const info = doc.createElement('span'); info.className = 'kal-info';
-  row.append(mirrorBtn, repeatBtn, info);
+  row.append(mirrorBtn, repeatBtn, overtoneBtn, info);
   el.append(canvas, row);
 
   const lo = Math.log2(F_MIN), hi = Math.log2(F_MAX), pw = W - PL - PR;
@@ -69,6 +69,7 @@ export function createKaleidoscopeView({ doc = document, getParam, setParam, wat
     ctx.fillStyle = ink; ctx.globalAlpha = 0.65;
     ctx.fillText('INPUT', PL, yIn - 14); ctx.fillText('OUTPUT  (the band arrayed, every second copy mirrored)', PL, yOut - 14);
     if (mode === 1) { ctx.clearRect(PL, yOut - 14, 400, 12); ctx.fillText('OUTPUT  (the band repeated)', PL, yOut - 14); }
+    if (mode === 2) { ctx.clearRect(PL, yOut - 14, 400, 12); ctx.fillText('OUTPUT  (the band copied to its overtones and undertones)', PL, yOut - 14); }
     ctx.globalAlpha = 1;
 
     // input, with the band lit and its two ends
@@ -80,9 +81,22 @@ export function createKaleidoscopeView({ doc = document, getParam, setParam, wat
     axis(yIn + PANEL, ink);
     if (!shown.live) { ctx.fillStyle = ink; ctx.globalAlpha = 0.45; ctx.textAlign = 'center'; ctx.fillText('play something through it to see the spectrum', PL + pw / 2, yIn + PANEL / 2 - 5); ctx.textAlign = 'left'; ctx.globalAlpha = 1; }
 
-    // output, with the tiles
+    // output, with the tiles (or, for overtones, the band where each copy puts it, drawn the lighter the quieter it is)
+    if (mode === 2) {
+      const stretch = getParam('stretch'), decay = getParam('decay'), per = copies > 0 ? copies : 40;
+      for (let k = -Math.min(per, 6); k <= per; k++) {
+        const shift = Math.log2(overtoneRatio(k, stretch)), a = band.b0 + shift, bEnd = a + band.width, g = overtoneGain(k, decay);
+        if (bEnd < lo || a > hi) continue;
+        const xa = Math.max(PL, X(a)), xb = Math.min(W - PR, X(bEnd));
+        if (xb <= xa) continue;
+        ctx.fillStyle = PINK; ctx.globalAlpha = 0.1 * g; ctx.fillRect(xa, yOut, xb - xa, PANEL); ctx.globalAlpha = 1;   // the louder the copy, the stronger the tint
+        if (a > lo) { ctx.strokeStyle = PINK; ctx.globalAlpha = 0.2 + 0.5 * g; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(Math.round(xa) + 0.5, yOut); ctx.lineTo(Math.round(xa) + 0.5, yOut + PANEL); ctx.stroke(); ctx.globalAlpha = 1; }
+        const name = k === 0 ? 'source' : k === -1 ? 'x1/2' : k > 0 && k < 7 ? `x${k + 1}` : '';
+        if (name && a > lo) { ctx.fillStyle = PINK; ctx.fillText(name, xa + 3, yOut + 3); }
+      }
+    }
     const first = Math.floor((lo - band.b0 - rotate * band.width) / band.width), last = Math.ceil((hi - band.b0 - rotate * band.width) / band.width);
-    for (let k = first; k <= last; k++) {
+    for (let k = mode === 2 ? 1 : first; k <= (mode === 2 ? 0 : last); k++) {
       const a = band.b0 + rotate * band.width + k * band.width, b = a + band.width;
       if (copies > 0 && Math.abs(k) > copies) continue;
       const xa = Math.max(PL, X(a)), xb = Math.min(W - PR, X(b));
@@ -97,8 +111,8 @@ export function createKaleidoscopeView({ doc = document, getParam, setParam, wat
     panel(yOut, shown.output, BLUE, ink);
     axis(yOut + PANEL, ink);
 
-    mirrorBtn.classList.toggle('on', mode === 0); repeatBtn.classList.toggle('on', mode === 1);
-    info.textContent = `band ${hz(band.lo)} – ${hz(band.hi)} (${(Math.round(band.width * 100) / 100)} oct)   copies: ${copies === 0 ? 'fill' : copies}`;
+    mirrorBtn.classList.toggle('on', mode === 0); repeatBtn.classList.toggle('on', mode === 1); overtoneBtn.classList.toggle('on', mode === 2);
+    info.textContent = `band ${hz(band.lo)} – ${hz(band.hi)} (${(Math.round(band.width * 100) / 100)} oct)   ${mode === 2 ? `overtones: ${copies === 0 ? 'all that fit' : `${copies} up, ${copies} down`}` : `copies: ${copies === 0 ? 'fill' : copies}`}`;
   }
 
   // dragging: an end of the band, or the band as a whole (its width stays)

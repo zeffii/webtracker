@@ -1,9 +1,13 @@
 // Kaleidoscope: a spectral effect that arrays a band of the sound across the whole range, like the facets of a kaleidoscope. You choose a
 // band (from `low` to `high` Hz, drawn as a lit strip on the panel's spectrum). The band is repeated up and down the range in steps of its
 // own width, so a copy of a two-octave band sits two octaves higher or lower than the source. With `mode` mirror every second copy is read
-// backwards (intervals turn upside down inside it, and the seams join without a step); with repeat they all run the same way.
+// backwards (intervals turn upside down inside it, and the seams join without a step); with repeat they all run the same way. With the
+// third mode, overtone, there are no tiles: the band is copied to the overtone series instead (x2, x3, x4 ... of each tone's own frequency,
+// and the undertones x1/2, x1/3 ... below), so the copies bunch together going up, the way the partials of a note do.
 //   rotate  slides the pattern along the range, in band widths (a slow sweep turns the kaleidoscope)
 //   copies  0 fills the whole range; N keeps the source tile and N copies either side
+//   stretch (overtone) pulls the multiples off the whole numbers, upward, like a stiff string or a bell
+//   decay   (overtone) how fast the higher copies get quieter: 0 all as loud as the source, 0.5 as 1/n, 1 as 1/n squared
 //   edge    how far in semitones the tiles fade at their seams where the ends do not match (repeat mode, and the last copy)
 //   level   the level of the arrayed sound
 //   mix     dry against arrayed
@@ -14,7 +18,7 @@
 import { Analyser, Resynth, sizeOf, mirror, peakOf, MAX_SIZE } from './stft.js';
 import { Kaleidoscoper, pictureOf } from '../kalcore.js';
 
-const LOW = 0, HIGH = 1, MODE = 2, ROTATE = 3, COPIES = 4, EDGE = 5, LEVEL = 6, MIX = 7, SIZE = 8;
+const LOW = 0, HIGH = 1, MODE = 2, ROTATE = 3, COPIES = 4, EDGE = 5, LEVEL = 6, MIX = 7, SIZE = 8, STRETCH = 9, DECAY = 10;
 const POINTS = 200;       // values in the picture
 const REPORT_EVERY = 4;   // frames between two pictures
 const WATCH_SECONDS = 3;  // the panel asks again every second; without it the node stops reporting
@@ -32,13 +36,15 @@ export default {
   params: [
     { name: 'low', min: 40, max: 8000, def: 440 },       // Hz: the bottom of the band
     { name: 'high', min: 60, max: 16000, def: 1760 },    // Hz: the top of the band
-    { name: 'mode', min: 0, max: 1, def: 0, int: true },   // 0 mirror, 1 repeat
+    { name: 'mode', min: 0, max: 2, def: 0, int: true },   // 0 mirror, 1 repeat, 2 overtone
     { name: 'rotate', min: -1, max: 1, def: 0 },         // band widths
     { name: 'copies', min: 0, max: 8, def: 0, int: true },   // 0: fill the range
     { name: 'edge', min: 0, max: 6, def: 0.5 },          // semitones
     { name: 'level', min: -24, max: 12, def: -6 },        // dB
     { name: 'mix', min: 0, max: 1, def: 0.7 },
     { name: 'size', min: 0, max: 2, def: 1, int: true },   // 1024, 2048, 4096 samples
+    { name: 'stretch', min: 0, max: 1, def: 0 },         // overtone mode: how far the multiples are pulled off the whole numbers
+    { name: 'decay', min: 0, max: 1, def: 0.5 },         // overtone mode: how fast the higher copies get quieter
   ],
   create({ sampleRate, emit }) {
     const re = new Float64Array(MAX_SIZE), im = new Float64Array(MAX_SIZE);
@@ -59,7 +65,7 @@ export default {
       process(inputs, outputs, count, params, slots) {
         const want = sizeOf(params[slots[SIZE]]);
         if (want !== n) start(want);
-        const settings = { low: params[slots[LOW]], high: params[slots[HIGH]], mode: Math.round(params[slots[MODE]]), rotate: params[slots[ROTATE]], copies: Math.round(params[slots[COPIES]]), edge: params[slots[EDGE]], level: Math.pow(10, params[slots[LEVEL]] / 20) };
+        const settings = { low: params[slots[LOW]], high: params[slots[HIGH]], mode: Math.round(params[slots[MODE]]), rotate: params[slots[ROTATE]], copies: Math.round(params[slots[COPIES]]), edge: params[slots[EDGE]], level: Math.pow(10, params[slots[LEVEL]] / 20), stretch: params[slots[STRETCH]], decay: params[slots[DECAY]] };
         const mix = params[slots[MIX]], half = n >> 1;
         const reporting = watchLeft > 0 && emit;
         if (watchLeft > 0) watchLeft -= count;

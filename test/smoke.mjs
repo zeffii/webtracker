@@ -10699,6 +10699,24 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     assert.ok(Math.abs(level(dry, 700) - level(sineAt(700), 700)) / level(sineAt(700), 700) < 0.05 && level(dry, 276) < 1e-3, 'mix 0 is the dry sound');
     const moved = run(700, { low, high, mode: 1, rotate: 0.5, size: 1 });
     assert.ok(level(moved, 700) < level(rep, 700) / 3, 'rotate slides the pattern, so the source is no longer where it was');
+    // overtone mode: no tiles; each tone is copied to x2, x3, x4 ... of its own frequency (and x1/2, x1/3 ... below), quieter going up
+    {
+      const { overtoneRatio, overtoneGain } = await import('../src/audio/kalcore.js');
+      assert.equal(overtoneRatio(0), 1); assert.equal(overtoneRatio(1), 2); assert.equal(overtoneRatio(3), 4); assert.equal(overtoneRatio(-1), 0.5); assert.ok(Math.abs(overtoneRatio(-2) - 1 / 3) < 1e-9);
+      assert.ok(overtoneRatio(3, 1) > 4 * 1.03 && overtoneRatio(1, 0.5) > 2, 'stretch pulls the multiples up');
+      assert.equal(overtoneGain(0), 1); assert.ok(Math.abs(overtoneGain(1, 0.5) - 0.5) < 1e-9 && overtoneGain(3, 0) === 1);
+      const ov = run(700, { low, high, mode: 2, size: 1, decay: 0.5 });
+      assert.ok(ov.every(Number.isFinite) && level(ov, 700) > 0.01, 'overtone: the source stays');
+      assert.ok(strongAt(ov, 1400, [1000, 1750]) && strongAt(ov, 2100, [1750, 2450]) && strongAt(ov, 2800, [2450, 3300]), 'overtone: copies at x2, x3 and x4 of the tone');
+      assert.ok(level(ov, 1400) > level(ov, 2100) && level(ov, 2100) > level(ov, 2800), 'overtone: each copy is quieter than the one before');
+      assert.ok(strongAt(ov, 350, [250, 450]) && level(ov, 2800) > 0.003, 'overtone: the undertone x1/2');
+      const flat = run(700, { low, high, mode: 2, size: 1, decay: 0 });
+      assert.ok(level(flat, 2800) > level(flat, 1400) * 0.6, 'decay 0: the higher copies are as loud as the lower ones');
+      const bell = run(700, { low, high, mode: 2, size: 1, stretch: 1, decay: 0 });
+      assert.ok(level(bell, 2275) > 3 * level(bell, 2100) && level(bell, 2100) < level(flat, 2100) / 3, 'stretch moves the x3 copy up, off the whole number');
+      const two = run(700, { low, high, mode: 2, size: 1, copies: 1 });
+      assert.ok(level(two, 1400) > 0.003 && level(two, 2100) < level(two, 1400) / 4, 'copies limits the overtones');
+    }
     // the report for the panel
     const reports = [], again = run(700, { low, high, size: 1 }, (msg, transfer) => reports.push(msg), true);
     assert.ok(reports.length > 5 && reports.every(r => r.type === 'kal' && r.input.length === 200 && r.output.length === 200), 'a watched node reports spectra for the panel');

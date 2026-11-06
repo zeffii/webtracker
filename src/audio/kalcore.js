@@ -6,6 +6,10 @@
 //   mirror    every second tile is read backwards, so each seam joins two matching ends and the spectrum is continuous.
 //   copies    0 fills the whole range; N keeps only the N tiles either side of tile 0.
 //   edge      in repeat mode (where the ends do not match) and at the last copy, the tile fades in and out over this many semitones.
+//   overtone  (mode 2) no tiles: copy k puts every tone at a whole-number multiple of its frequency, the way the overtones of a note sit
+//             (x1 the source, x2, x3, x4 ... and for k below 0 the undertones x1/2, x1/3 ...), so the copies bunch together going up
+//             instead of standing a band width apart. `stretch` pulls the multiples off the whole numbers, upward, as in a stiff string
+//             or a bell (n becomes n * sqrt(1 + B n^2)); `decay` is how fast the copies get quieter, copy n by n^-(2 decay).
 //   A tone moved to another place has to keep its phase in step, so the effect works on the tones themselves (see Kaleidoscoper below).
 
 export const F_MIN = 27.5, F_MAX = 14080;   // the range the panel draws
@@ -17,6 +21,15 @@ export function bandOf(low, high) {
   const hi = Math.min(HIGH_MAX, Math.max(high, lo * 1.26));
   return { lo, hi, b0: Math.log2(lo), width: Math.log2(hi / lo) };
 }
+
+// The multiple of the frequency that copy k of the overtone mode lands on: k = 0 is the source (x1), k = 1 is x2, k = 2 is x3 ... and
+// k = -1 is x1/2, k = -2 is x1/3 ... `stretch` (0 to 1) moves the multiples off the whole numbers.
+export function overtoneRatio(k, stretch = 0) {
+  const n = Math.abs(k) + 1, b = stretch * stretch * 0.02, r = n * Math.sqrt(1 + b * n * n);
+  return k < 0 ? 1 / r : r;
+}
+// How loud copy k of the overtone mode is, 1 for the source: n^-(2 decay), n = |k| + 1 (decay 0.5 is the 1/n of a plain overtone series).
+export const overtoneGain = (k, decay = 0.5) => Math.pow(Math.abs(k) + 1, -2 * decay);
 
 // Where does the sound at octave position `o` of the output come from? { tile, from: octave of the source, edge: octaves to the nearest
 // seam of the tile, outer: true when the nearest seam is the end of the last copy }
@@ -35,7 +48,14 @@ export function sourceOf(o, { b0, width }, { rotate = 0, mode = 0, copies = 0 } 
 // Where a tone at octave position `oSrc` of the band lands in tile `k`, and how loud it is there (the fade at the seams, 0 to 1).
 //   repeat  the tile holds the band moved by whole widths: the tone keeps its place inside the band.
 //   mirror  every second tile is the band read backwards: the tone sits as far from the tile's far end as it was from the band's start.
-export function tileOf(oSrc, k, band, { rotate = 0, mode = 0, copies = 0, edge = 0 }, into = {}) {
+export function tileOf(oSrc, k, band, { rotate = 0, mode = 0, copies = 0, edge = 0, stretch = 0, decay = 0.5 }, into = {}) {
+  if (mode === 2) {   // overtones: the tone's own frequency times a multiple; a short fade at the band's ends so a tone does not click in and out
+    const inBand = oSrc - band.b0, fade = edge / 12;
+    let gain = overtoneGain(k, decay);
+    if (fade > 0) { const t = Math.min(1, Math.min(inBand, band.width - inBand) / fade); gain *= t * t * (3 - 2 * t); }
+    into.out = oSrc + Math.log2(overtoneRatio(k, stretch)); into.gain = gain;
+    return into;
+  }
   const { b0, width } = band, start = b0 + rotate * width + k * width, flipped = mode === 0 && (((k % 2) + 2) % 2) === 1;
   const inBand = oSrc - b0;
   const out = flipped ? start + width - inBand : start + inBand;
@@ -84,7 +104,7 @@ export class Kaleidoscoper {
   }
 
   // re, im: the frame's spectrum. Writes the arrayed sound's spectrum into reW and imW (bins 0 to n/2).
-  run(re, im, reW, imW, { low, high, mode, rotate, copies, edge, level }) {
+  run(re, im, reW, imW, { low, high, mode, rotate, copies, edge, level, stretch = 0, decay = 0.5 }) {
     const { n, half, hop, sr, mag, ph, prev } = this, band = bandOf(low, high), perBin = sr / n;
     const step = TWO_PI * hop / n;
     reW.fill(0, 0, half + 1); imW.fill(0, 0, half + 1);
@@ -94,7 +114,7 @@ export class Kaleidoscoper {
     const floor = Math.max(1e-7 * n, top * 1e-4);
     this.frame++;
     // only the tiles that can land between 20 Hz and the top of the range are looked at
-    const oLow = Math.log2(20), oHigh = Math.log2(sr * 0.48), settings = { rotate, mode, copies, edge };
+    const oLow = Math.log2(20), oHigh = Math.log2(sr * 0.48), settings = { rotate, mode, copies, edge, stretch, decay };
     const kLow = Math.max(-TILES, Math.floor((oLow - band.b0 - rotate * band.width) / band.width)), kHigh = Math.min(TILES, Math.floor((oHigh - band.b0 - rotate * band.width) / band.width) + 1);
     for (let p = 1; p < half; p++) {
       if (mag[p] < floor || mag[p] <= mag[p - 1] || mag[p] < mag[p + 1]) continue;
@@ -105,7 +125,10 @@ export class Kaleidoscoper {
       const f = q * perBin;
       if (f < band.lo || f > band.hi) continue;
       const oSrc = Math.log2(f), half_a = mag[p] / (n * lobe(d)), phi = ph[p] + Math.PI * d;   // half the amplitude, and the phase at the start of the frame
-      for (let k = Math.max(kLow, copies > 0 ? -copies : -TILES); k <= Math.min(kHigh, copies > 0 ? copies : TILES); k++) {
+      // tiles: those that can land in range; the overtones: as many as fit between 20 Hz and the top for this tone
+      let from = Math.max(kLow, copies > 0 ? -copies : -TILES), to = Math.min(kHigh, copies > 0 ? copies : TILES);
+      if (mode === 2) { from = Math.max(copies > 0 ? -copies : -TILES, -Math.floor(f / 20)); to = Math.min(copies > 0 ? copies : TILES, Math.floor(sr * 0.48 / f)); }
+      for (let k = from; k <= to; k++) {
         const t = tileOf(oSrc, k, band, settings, this.spot);
         const fOut = Math.pow(2, t.out);
         if (fOut < 20 || fOut > sr * 0.48 || t.gain <= 0) continue;
