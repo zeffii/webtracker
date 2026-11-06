@@ -110,3 +110,14 @@ export function stringsOf(root, chord, count) {
   for (let i = 0; out.length < Math.max(1, Math.round(count)); i++) out.push(Math.round(root) + 12 * Math.floor(i / steps.length) + steps[i % steps.length]);
   return out;
 }
+
+// Follow notes: the strings for a bag of notes (MIDI numbers, newest first). Each note gets the nearest piano string to each of its first
+// `partials` harmonics (1 the note, 2 the octave, 3 the twelfth ...), lowest harmonics and newest notes first, no pitch twice, at most `count`.
+export function wantedStrings(bag, partials, count) {
+  const out = [];
+  for (let h = 1; h <= Math.max(1, Math.round(partials)); h++) for (const m of bag) {
+    const p = Math.round(m + 12 * Math.log2(h));
+    if (p >= 24 && p <= 120 && !out.includes(p)) out.push(p);
+  }
+  return out.slice(0, Math.max(1, Math.round(count)));
+}

@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['668', ['Sympathetic strings: follow notes, tuned to what the instrument plays (note, octave, twelfth ...)']],
   ['667', ['Muted rows are drawn as a faint diagonal hatch instead of dots']],
   ['666', ['Five cheap room and head effects with panels: Reflections, Head pan, Haas widener, Ring mod (tracked carrier) and Sympathetic strings; the code-box status bar matches the box width']],
   ['665', ['Kaleidoscope overtone mode: set the number of overtones and undertones; a close button on the picture (and its floating window)']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['661', ['Canvas pictures: draw the live picture with JavaScript (setup/draw, ticked, onNote, since), with a guide and templates']],
   ['660', ['The opening song is the longer Plethora']],
   ['659', ['The song the page opens with is now Plethora']],
-  ['658', ['The mixer no longer takes the keyboard focus; the meta machine Selections list always redraws after a change']],
                     ];

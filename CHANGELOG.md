@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 668 · 2026-11-06
+
+- **Sympathetic strings: follow notes.** A new `follow` switch (and a button on the panel) tunes the strings to the notes the instrument is playing instead of a chord: for each recent note the nearest piano strings to its first `partials` harmonics (the note, its octave, its twelfth, two octaves ...), newest notes and lowest harmonics first, up to `strings`. A string that is already ringing and still wanted is left alone; released notes stay strung until newer ones crowd them out, like the undamped strings of a piano. The node sits after the voices (outside them) and hears every note once, so a big node like the piano needs no change. The panel shows the strings that are tuned right now, glowing as they ring.
+
 ## 667 · 2026-11-06
 
 - **Muted rows are hatched.** A row (or whole lane, Alt+M) that is muted is shown with a faint diagonal hatch across the cell instead of a row of dots: one CSS background instead of a text of glyphs to draw, and it reads as a continuous band.

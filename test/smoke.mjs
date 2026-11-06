@@ -10981,6 +10981,32 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   assert.ok(tail(c3) > 5 * tail(c3 * 1.19), 'a tone on a string pitch rings on, an unrelated one dies at once');
   const [sl] = run('sympathy', { strings: 12, chord: 7 }, sine(220, 48000), 48000);
   assert.ok(sl.every(Number.isFinite) && rms(sl) < 2, 'the strings stay finite and bounded');
+  {   // follow notes: the strings go to the notes played, with their octaves and twelfths, and ring on after the note is released
+    assert.deepEqual(sp.wantedStrings([48], 3, 8), [48, 60, 67], 'a note, its octave and its twelfth');
+    assert.deepEqual(sp.wantedStrings([52, 48], 2, 3), [52, 48, 64], 'newest first, lowest harmonic first, at most `strings`');
+    const def = NODE_TYPES.sympathy, slots = slotsOf(def), reports = [];
+    const node = def.create({ sampleRate: rate, emit: m => reports.push(m) }), params = paramsOf(def, { follow: 1, partials: 3, detune: 0, mix: 1, ringtime: 3000 });
+    node.message({ type: 'watch' });
+    const N = 48000, x = Float32Array.from({ length: N }, (_, i) => i < 12000 ? 0.5 * Math.sin(2 * Math.PI * sp.midiHz(55) * i / rate) : 0), out = new Float32Array(N), z = new Float32Array(B);
+    for (let at = 0; at < N; at += B) {
+      if (at === 0) node.note({ type: 'noteOn', note: 55, vel: 1 });
+      node.process([[x.subarray(at, at + B), x.subarray(at, at + B)]], [[out.subarray(at, at + B), z.slice()]], B, params, slots);
+    }
+    assert.deepEqual([...reports.at(-1).notes].sort((a, b) => a - b), [55, 67, 74], 'the node reports the strings it tuned: G3, G4 and D5');
+    assert.ok(rms(out, 24000, 48000) > 0.003, 'a played note makes its own string ring on after the note stops');
+    const quiet = def.create({ sampleRate: rate }), qout = new Float32Array(N);
+    for (let at = 0; at < N; at += B) quiet.process([[x.subarray(at, at + B), x.subarray(at, at + B)]], [[qout.subarray(at, at + B), z.slice()]], B, params, slots);
+    assert.ok(rms(qout, 24000, 48000) < 1e-6 , 'with no note played there are no strings');
+    {   // through the runtime: the node sits outside the voices and still hears the notes the instrument is played
+      const registry = new ParamRegistry(), rt = new GraphRuntime({ sampleRate: sr, params: registry.values });
+      const desc = { nodes: [{ id: 'sampler', type: 'sampler' }, { id: 'sym', type: 'sympathy', params: { follow: 1, partials: 1, mix: 1, strings: 4 } }, { id: 'out', type: 'out' }], connections: [['sampler.out', 'sym.in'], ['sym.out', 'out.in']] };
+      rt.load(compile(desc, { instrument: 'lead', nodeTypes: NODE_TYPES, registry }));
+      rt.message('lead', 'sampler', { type: 'sample', data: makePluck(sr), rate: sr });
+      rt.note('lead', { type: 'noteOn', note: 60, vel: 1 });
+      const heard = render(rt, 0.3), later = render(rt, 2);
+      assert.ok(rms(heard.left) > 0 && Array.from(heard.left).every(Number.isFinite) && rms(later.left, 24000, 90000) > 1e-4, 'follow notes through the runtime: the note makes a string that rings on');
+    }
+  }
   console.log('ok: room, head, haas, ring, sympathy');
 }
 

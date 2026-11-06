@@ -250,6 +250,8 @@ const HINTS = {
     damp: 'Low-pass inside each string in Hz: lower gives a warmer ring that loses its top as it fades.',
     detune: 'How far the strings are off true pitch in cents. A little makes them shimmer, a lot makes them out of tune.',
     width: 'Spread of the strings across the stereo field.', mix: 'Level of the strings against the dry sound.',
+    follow: 'On: the strings are tuned to the notes the instrument plays, not to the chord. Each note gets the nearest piano strings to its octave, twelfth and so on, so what rings answers what is played. Root and chord are not used then.',
+    partials: 'Follow notes: how many harmonics of each note get a string: 1 only the note itself, 2 adds the octave, 3 the twelfth, 4 two octaves ... Newest notes and lowest harmonics are strung first, up to the number of strings.',
   },
   chorus: {
     rate: 'Speed of the wobble in Hz.',

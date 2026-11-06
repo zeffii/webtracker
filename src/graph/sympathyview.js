@@ -3,7 +3,8 @@ import { ORANGE, BLUE, makeCanvas, drag, heartbeat, button, clamp } from './spac
 
 // The sympathetic strings panel: the strings as vertical lines laid out by pitch (log frequency), each one glowing with how much it rings
 // right now (live while the panel is open), with its note name. Chord buttons pick the notes; - and + move the root by a semitone, an
-// octave with the second pair; dragging along the plot moves the root too.
+// octave with the second pair; dragging along the plot moves the root too. 'follow notes' hands the choice to the notes being played: the
+// strings drawn are then the ones the node reports.
 const W = 560, H = 190, PL = 16, PR = 16;
 
 export function createSympathyView({ doc = document, getParam, setParam, watch = () => {} }) {
@@ -12,16 +13,17 @@ export function createSympathyView({ doc = document, getParam, setParam, watch =
   const row = doc.createElement('div'); row.className = 'sp-row';
   const chordBtns = CHORDS.map((c, i) => button(doc, c.name, `Strings tuned to a ${c.name} chord`, () => { setParam('chord', i); draw(); }));
   const shift = (label, by, title) => button(doc, label, title, () => { setParam('root', clamp(getParam('root') + by, 24, 84)); draw(); });
+  const followBtn = button(doc, 'follow notes', 'Tune the strings to the notes being played (and their octaves and twelfths) instead of a chord', () => { setParam('follow', getParam('follow') >= 0.5 ? 0 : 1); draw(); });
   const info = doc.createElement('span'); info.className = 'sp-info';
-  row.append(...chordBtns, shift('−', -1, 'Root a semitone lower'), shift('+', 1, 'Root a semitone higher'), shift('−8', -12, 'Root an octave lower'), shift('+8', 12, 'Root an octave higher'), info);
+  row.append(followBtn, ...chordBtns, shift('−', -1, 'Root a semitone lower'), shift('+', 1, 'Root a semitone higher'), shift('−8', -12, 'Root an octave lower'), shift('+8', 12, 'Root an octave higher'), info);
   el.append(canvas, row);
-  let energy = [];
+  let energy = [], liveNotes = [];
   const lo = Math.log2(30), hi = Math.log2(4000);
   const X = hz => PL + (Math.log2(clamp(hz, 30, 4000)) - lo) / (hi - lo) * (W - PL - PR);
 
   function draw() {
     if (!ctx) return;
-    const c = ink(), notes = stringsOf(getParam('root'), getParam('chord'), getParam('strings'));
+    const c = ink(), follow = getParam('follow') >= 0.5, notes = follow ? liveNotes : stringsOf(getParam('root'), getParam('chord'), getParam('strings'));
     ctx.clearRect(0, 0, W, H);
     ctx.font = '10px ui-monospace, Consolas, monospace'; ctx.textBaseline = 'top';
     ctx.lineWidth = 1; ctx.strokeStyle = c;
@@ -35,15 +37,16 @@ export function createSympathyView({ doc = document, getParam, setParam, watch =
       ctx.globalAlpha = 1; ctx.fillStyle = i === 0 ? ORANGE : c; ctx.fillText(noteName(m), x - 8, top - 14);
     });
     ctx.globalAlpha = 1;
-    chordBtns.forEach((b, i) => b.classList.toggle('on', Math.round(getParam('chord')) === i));
-    info.textContent = `root ${noteName(getParam('root'))}   ${notes.length} strings   rings ${(getParam('ringtime') / 1000).toFixed(1)} s`;
+    followBtn.classList.toggle('on', follow);
+    chordBtns.forEach((b, i) => { b.classList.toggle('on', !follow && Math.round(getParam('chord')) === i); b.style.opacity = follow ? 0.3 : ''; });
+    info.textContent = follow ? `${notes.length} strings, on the notes played   rings ${(getParam('ringtime') / 1000).toFixed(1)} s${notes.length ? '' : '   (play a note)'}` : `root ${noteName(getParam('root'))}   ${notes.length} strings   rings ${(getParam('ringtime') / 1000).toFixed(1)} s`;
   }
 
   drag(canvas, W, H, {
-    start: (x, y) => y < H - 22,
+    start: (x, y) => y < H - 22 && getParam('follow') < 0.5,
     move(x) { const hz = Math.pow(2, lo + (x - PL) / (W - PL - PR) * (hi - lo)); setParam('root', clamp(Math.round(69 + 12 * Math.log2(hz / 440)), 24, 84)); draw(); },
   });
-  const feed = msg => { energy = msg.energy; draw(); };
+  const feed = msg => { energy = msg.energy; liveNotes = msg.notes ?? []; draw(); };
   heartbeat(doc, el, watch);
   draw();
   return { el, refresh: draw, draw, feed };
