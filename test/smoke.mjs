@@ -10409,9 +10409,10 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   // which machines may sleep, and for how long they must be silent first
   const fake = (types, extra = {}) => ({ nodes: types.map((type, i) => ({ id: `n${i}`, type, slots: [] })), ...extra });
   assert.ok(sleepState(fake(['osc', 'delay', 'out']), NODE_TYPES));
-  for (const t of ['lfo', 'ctrl', 'cardinal', 'genexpr']) assert.equal(sleepState(fake(['osc', t, 'out']), NODE_TYPES), null, `${t} may make a quiet machine sound: never sleeps`);
+  for (const t of ['lfo', 'ctrl', 'genexpr']) assert.equal(sleepState(fake(['osc', t, 'out']), NODE_TYPES), null, `${t} may make a quiet machine sound: never sleeps`);
   assert.ok(sleepState(fake(['noise', 'lfo', 'filter', 'env', 'gain', 'out']), NODE_TYPES), 'an LFO on an enveloped sound: may sleep');
-  assert.equal(sleepState(fake(['noise', 'lfo', 'filter', 'env', 'gain', 'cardinal', 'out']), NODE_TYPES), null);
+  assert.equal(sleepState(fake(['noise', 'lfo', 'filter', 'env', 'gain', 'genexpr', 'out']), NODE_TYPES), null);
+  assert.ok(sleepState(fake(['cardinal', 'voices', 'out']), NODE_TYPES), 'cardinal sounds only while a note does: a quiet one sleeps');
   for (const t of ['arp', 'chord', 'gater']) assert.ok(sleepState(fake(['subsynth', t, 'out']), NODE_TYPES), `${t} only works on notes or sound coming in: may sleep`);
   assert.equal(sleepState(fake(['osc', 'out'], { sleep: false }), NODE_TYPES), null, 'sleep: never');
   {

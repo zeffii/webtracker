@@ -11,8 +11,8 @@
 // It wakes, at the start of a block, on: a note or a node message for it (runtime.js note / message), a change to any of its
 // parameters or a pattern writing one of them (even the same value), or the machine its sidechain listens to sounding.
 //
-// Some machines never sleep, because they can start sounding with none of the above: a modular (cardinal) or code (genexpr)
-// that may run on its own, or a machine set to `sleep: never`. A free-running modulator (lfo, ctrl) keeps a machine awake
+// Some machines never sleep, because they can start sounding with none of the above: a code machine (genexpr) or a modular
+// (glsl, oscout, modchan ...) that may run on its own, or a machine set to `sleep: never`. A free-running modulator (lfo, ctrl) keeps a machine awake
 // unless its sound is shaped by notes (an envelope, a note trigger or a synth that plays only while a note sounds): then the
 // modulator can only change a sound that a note has to start, and a quiet machine stays quiet. (A drone whose level an LFO
 // swells in and out, with nothing note-gated in the machine, never sleeps; anything else odd can be kept awake with its Sleep switch.)
@@ -20,9 +20,9 @@
 export const SILENT = 3e-5;      // about −90 dB
 export const HOLD_S = 2;         // the shortest silence before a machine sleeps
 const MARGIN_S = 0.5;            // added to the longest delay time found
-const NEVER = new Set(['cardinal', 'genexpr', 'glsl', 'tempo', 'nsgroups', 'oscout', 'modchan']);
+const NEVER = new Set(['genexpr', 'glsl', 'tempo', 'nsgroups', 'oscout', 'modchan']);
 export const FREE = new Set(['lfo', 'ctrl']);   // modulators that run with no note: they keep running while the machine sleeps (they cost next to nothing), so a sweep or a synced LFO is where it should be when it wakes
-const GATED = new Set(['env', 'env2', 'notetrig', 'sampler', 'drumsynth', 'drumsynth2', 'clap', 'membrane', 'clang', 'subsynth', 'westcoast', 'pluckgate', 'fourpole', 'oberheim', 'piano', 'fmsynth', 'dvii',
+const GATED = new Set(['env', 'env2', 'notetrig', 'sampler', 'drumsynth', 'drumsynth2', 'clap', 'membrane', 'clang', 'subsynth', 'westcoast', 'pluckgate', 'fourpole', 'oberheim', 'cardinal', 'piano', 'fmsynth', 'dvii',
   'wavetable', 'granular', 'woodblock', 'jawharp', 'snarl', 'string', 'hat808', 'hat2', 'bongo', 'combperc', 'squelch', 'duette']);   // sound only while a note does
 const TIME_PARAM = /^(time|length|delay|predelay|maxdelay|mindelay|ringtime)$/;   // in ms, on the effect node types that have them
 

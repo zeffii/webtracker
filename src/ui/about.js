@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['676', ['Fix: a Cardinal machine sleeps when it is quiet (it kept running at about 23 % CPU after the song was paused)']],
   ['675', ['The opening song is the newest Plethora']],
   ['674', ['Fix: Sympathetic strings has a DC blocker in each string, so an offset in the input no longer piles up in them']],
   ['673', ['Fix: with the piano roll on, the sample display starts to the right of the key strip, so the start of the sample is no longer covered']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['669', ['Note pan: every note placed in the stereo field by style (keyboard, fan, alternate ...), with real-time swing or orbit round the listener and an orbit panel; help pages for the new space effects']],
   ['668', ['Sympathetic strings: follow notes, tuned to what the instrument plays (note, octave, twelfth ...)']],
   ['667', ['Muted rows are drawn as a faint diagonal hatch instead of dots']],
-  ['666', ['Five cheap room and head effects with panels: Reflections, Head pan, Haas widener, Ring mod (tracked carrier) and Sympathetic strings; the code-box status bar matches the box width']],
                     ];
