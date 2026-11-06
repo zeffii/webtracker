@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 674 · 2026-11-06
+
+- **Fix: Sympathetic strings has a DC blocker.** A string with a low-pass in its loop passes DC with a gain of 1 / (1 - loop gain), which is large for a long ring time, so an offset in the input (or a step) piled up in the strings and sat on the output as a large offset. Each string now has a 2 Hz high pass in its loop, so it has no DC gain; the line is made a touch longer to cancel the pitch shift the blocker would cause, so the strings stay in tune. The dry sound is untouched.
+
 ## 673 · 2026-11-06
 
 - **Fix: the piano roll's key strip no longer covers the start of the sample.** While the piano roll is on, the waveform (or spectrogram) now starts just to the right of the key strip instead of underneath it, so the first frames can be seen, clicked and dragged. Selecting, loops, slice markers, panning, zoom and the playhead all use the shifted start. With the roll off nothing changes.

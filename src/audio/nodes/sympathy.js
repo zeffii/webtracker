@@ -1,7 +1,7 @@
 // Sympathetic strings: a set of tuned resonators that ring when the input has a partial of their pitch, the way the undamped strings of
 // a piano or a sitar answer a note. Each is a short feedback delay (a string) with a low-pass in its loop (the string loses its top as it rings).
 // The chord picks which pitches are strung, `ringtime` how long they ring, `detune` how far they are from perfectly in tune (a little makes
-// them shimmer). Up to 12 strings, spread across the stereo field. The dry sound stays; `mix` is the level of the strings.
+// them shimmer). Each string has a DC blocker in its loop, so an offset in the sound does not pile up in the strings. Up to 12 strings, spread across the stereo field. The dry sound stays; `mix` is the level of the strings.
 //
 // follow notes: instead of a fixed chord, the strings are tuned to the notes the instrument is playing (the node hears every note that
 // is played, once, whatever the voices do). For each recent note the strings are the nearest piano strings (equal tempered, so a little
@@ -44,12 +44,14 @@ export default {
     const pan = Array.from({ length: MAX_STRINGS }, () => [Math.SQRT1_2, Math.SQRT1_2]);
     const bag = [];   // the notes played, newest first
     let key = '', dirty = true, watchLeft = 0, sent = 0, active = 0;
+    const hx = new Float64Array(MAX_STRINGS), hy = new Float64Array(MAX_STRINGS);   // each string's DC blocker (see below)
+    const DC_HZ = 2, dcR = 1 - 2 * Math.PI * DC_HZ / sampleRate;   // a one-pole high pass at 2 Hz: low enough to leave the strings' pitch alone
 
     // string i gets its pitch (a little off true, more for the ones further out), its loop gain from the ring time, and its place in the stereo field
     const tune = (i, p) => {
       const detune = p.detune * ((i >> 1) + 1) / 3 * (i % 2 ? 1 : -1);
       const hz = Math.max(LOWEST, midiHz(pitch[i]) * Math.pow(2, detune / 1200));
-      len[i] = Math.min(size - 3, sampleRate / hz);
+      len[i] = Math.min(size - 3, sampleRate / hz + sampleRate * Math.atan(DC_HZ / hz) / (2 * Math.PI * hz));   // the blocker leads the phase a little, which would tune the string sharp: the line is made as much longer
       fb[i] = Math.pow(0.001, len[i] / (p.ring / 1000 * sampleRate));   // the loop gain that falls 60 dB in the ring time
       const a = (i / (MAX_STRINGS - 1) * 2 - 1) * p.width * (i % 2 ? 1 : -1) * 0.5, q = (a + 1) * Math.PI / 4;
       pan[i][0] = Math.cos(q); pan[i][1] = Math.sin(q);
@@ -62,7 +64,7 @@ export default {
         if (pitch.includes(note)) continue;
         const i = pitch.indexOf(-1);
         if (i < 0) break;
-        pitch[i] = note; bufs[i].fill(0); lp[i] = 0; energy[i] = 0;
+        pitch[i] = note; bufs[i].fill(0); lp[i] = 0; hx[i] = 0; hy[i] = 0; energy[i] = 0;
       }
       active = 0;
       for (let i = 0; i < MAX_STRINGS; i++) if (pitch[i] >= 0) { tune(i, p); active++; }
@@ -99,7 +101,12 @@ export default {
             let rp = pos[s] - len[s]; if (rp < 0) rp += size;
             const j = rp | 0, f = rp - j, y = b[j] + (b[j + 1 === size ? 0 : j + 1] - b[j]) * f;
             lp[s] += (y - lp[s]) * c;
-            const w = lp[s] * fb[s] + x;
+            // The DC blocker is inside the loop: a string with a low-pass in its loop passes DC with a gain of 1 / (1 - loop gain), large
+            // for a long ring time, so a constant part in the input (or a step) would pile up as an offset that decays only with the ring time.
+            // With the blocker in the loop (after the input is added) the string has no DC gain at all.
+            const u = lp[s] * fb[s] + x, d = u - hx[s] + dcR * hy[s];
+            hx[s] = u; hy[s] = Math.abs(d) < 1e-20 ? 0 : d;
+            const w = d;
             b[pos[s]] = Math.abs(w) < 1e-20 ? 0 : w;
             if (++pos[s] === size) pos[s] = 0;
             l += y * pan[s][0]; r += y * pan[s][1];

@@ -10981,6 +10981,12 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   const tail = f => rms(run('sympathy', { root: 48, chord: 1, strings: 3, ringtime: 3000, detune: 0, mix: 1 }, burst(f), 48000)[0], 24000, 48000);
   const c3 = sp.midiHz(48);
   assert.ok(tail(c3) > 5 * tail(c3 * 1.19), 'a tone on a string pitch rings on, an unrelated one dies at once');
+  {   // a constant (DC) input does not pile up in the strings: faded in slowly (a step would make them ring), the output stays the dry sound
+    const T = 288000, fade = i => 0.5 * (1 - Math.cos(Math.PI * Math.min(1, i / 96000)));
+    const [dl] = run('sympathy', { root: 48, chord: 1, strings: 8, ringtime: 8000, detune: 0, mix: 1.5 }, () => Float32Array.from({ length: T }, (_, i) => fade(i)), T);
+    let mean = 0; for (let i = T - 48000; i < T; i++) mean += (dl[i] - fade(i)) / 48000;
+    assert.ok(Math.abs(mean) < 0.01, `DC in gives no offset out of the strings (${mean})`);
+  }
   const [sl] = run('sympathy', { strings: 12, chord: 7 }, sine(220, 48000), 48000);
   assert.ok(sl.every(Number.isFinite) && rms(sl) < 2, 'the strings stay finite and bounded');
   {   // follow notes: the strings go to the notes played, with their octaves and twelfths, and ring on after the note is released
