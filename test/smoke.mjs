@@ -10913,4 +10913,75 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   console.log('ok: drum synth 2');
 }
 
+{   // room and head effects: reflections, head pan, Haas widener, tracked ring modulator, sympathetic strings
+  const sp = await import('../src/audio/spacecore.js');
+  const rate = 48000, B = 128;
+  const slotsOf = def => Int32Array.from(def.params.map((_, i) => i));
+  const paramsOf = (def, v = {}) => Float32Array.from(def.params.map(p => v[p.name] ?? p.def));
+  const run = (type, v, input, N = 24000, emit = null, watch = false) => {
+    const def = NODE_TYPES[type], slots = slotsOf(def), node = def.create({ sampleRate: rate, emit }), params = paramsOf(def, v);
+    if (watch) node.message({ type: 'watch' });
+    const L = new Float32Array(N), R = new Float32Array(N), xl = input(0), xr = input(1);
+    for (let at = 0; at < N; at += B) node.process([[xl.subarray(at, at + B), xr.subarray(at, at + B)]], [[L.subarray(at, at + B), R.subarray(at, at + B)]], B, params, slots);
+    return [L, R];
+  };
+  const click = N => { const x = new Float32Array(N); x[100] = 1; return () => x; };
+  const sine = (f, N) => () => Float32Array.from({ length: N }, (_, i) => 0.5 * Math.sin(2 * Math.PI * f * i / rate));
+  const rms = (x, a = 0, b = x.length) => { let s = 0; for (let i = a; i < b; i++) s += x[i] * x[i]; return Math.sqrt(s / (b - a)); };
+
+  // geometry: the first reflection of a source straight ahead is the floor or ceiling, later than the direct sound and quieter
+  const room = sp.reflections({ w: 8, d: 11, h: 4, s: { x: 0.5, y: 0.8 }, l: { x: 0.5, y: 0.2 }, absorb: 0.3 }, 16);
+  assert.ok(room.list.length === 16 && room.list.every((t, i) => i === 0 || t.delay >= room.list[i - 1].delay), 'reflections come sorted by delay');
+  assert.ok(room.list.every(t => t.delay > room.direct && t.gain < 1), 'all later and quieter than the direct sound');
+  assert.ok(Math.abs(room.direct - 6.6 / sp.SPEED) < 1e-4, 'direct delay is distance / speed of sound');
+  const ceiling = room.list.find(t => t.order === 1 && Math.abs(t.pan) < 1e-6);
+  assert.ok(ceiling, 'a floor or ceiling reflection comes from straight ahead');
+  const left = sp.reflections({ w: 8, d: 11, h: 4, s: { x: 0.1, y: 0.5 }, l: { x: 0.5, y: 0.5 } }, 8).list.find(t => t.order === 1 && t.pan < -0.5);
+  assert.ok(left, 'a sound near the left wall has a reflection from the left');
+  // the node: dry click passes, the reflections arrive after it and stay finite
+  const [rl, rr] = run('reflect', { srcx: 0.2, srcy: 0.8, lisx: 0.5, lisy: 0.2, mix: 1 }, click(24000));
+  assert.ok(rl.every(Number.isFinite) && Math.abs(rl[100] - 1) < 0.01, 'reflect keeps the dry sound');
+  assert.ok(rms(rl, 200, 8000) > 1e-4 && rms(rr, 200, 8000) > 1e-4, 'and adds reflections in both channels');
+  assert.ok(rms(rl, 200, 8000) !== rms(rr, 200, 8000), 'unevenly, since the source is off to one side');
+  const [dl] = run('reflect', { mix: 0 }, click(8000), 8000);
+  assert.ok(Math.abs(dl[100] - 1) < 1e-6 && rms(dl, 200, 8000) < 1e-6, 'mix 0 is dry');
+
+  // head pan: a source on the right reaches the left ear later and quieter
+  const h = sp.headOf({ angle: 90, head: 17.5, shadow: 1 });
+  assert.equal(h.far, 'l');
+  assert.ok(h.itd > 0.00060 && h.itd < 0.00072, `time difference at 90 degrees is about 0.66 ms (${h.itd})`);
+  assert.ok(sp.headOf({ angle: 0 }).itd === 0 && sp.headOf({ angle: 180 }).rearCut < 8000, 'ahead has no difference, behind is duller');
+  const [hl, hr] = run('headpan', { angle: 90, distance: 1, shadow: 1 }, click(8000), 8000);
+  const peak = x => { let m = 0, at = 0; x.forEach((v, i) => { if (Math.abs(v) > m) { m = Math.abs(v); at = i; } }); return [m, at]; };
+  const [pl, al] = peak(hl), [pr, ar] = peak(hr);
+  assert.ok(pr > pl * 1.3, 'the near (right) ear is louder');
+  assert.ok(al - ar >= 20 && al - ar <= 40, `and earlier by about 32 samples (${al - ar})`);
+
+  // Haas: the late side is the copy of the right channel, time later
+  const [hal, har] = run('haas', { time: 10, gain: 1, side: 1, damp: 20000, mix: 1 }, click(8000), 8000);
+  assert.ok(Math.abs(hal[100] - 1) < 1e-6 && har[100 + 480] > 0.5 && Math.abs(har[100]) < 0.05, 'the right side comes 10 ms late');
+  assert.ok(Math.abs(sp.combResponse(50, 10, 1)) < 1e-6 && Math.abs(sp.combResponse(100, 10, 1) - 2) < 1e-6, 'the comb notch is at 1 / (2 x time)');
+
+  // ring mod: fixed carrier gives sum and difference tones; tracked follows the input
+  const N = 32768;
+  const level = (x, f) => { let re = 0, im = 0; for (let i = N - 8192; i < N; i++) { const w = 0.5 - 0.5 * Math.cos(2 * Math.PI * (i - (N - 8192)) / 8192), t = 2 * Math.PI * f * i / rate; re += x[i] * w * Math.cos(t); im += x[i] * w * Math.sin(t); } return Math.hypot(re, im) / 8192; };
+  const [ml] = run('ringmod', { track: 0, freq: 300, depth: 1, mix: 1 }, sine(1000, N), N);
+  assert.ok(level(ml, 700) > 0.05 && level(ml, 1300) > 0.05 && level(ml, 1000) < 0.01, 'a fixed carrier gives the sum and difference tones, not the input');
+  let seen = null;
+  const [tl] = run('ringmod', { track: 1, ratio: 0.5, depth: 1, mix: 1 }, sine(800, N), N, m => { seen = m; }, true);
+  assert.ok(seen && Math.abs(seen.f0 - 800) < 40 && Math.abs(seen.fc - 400) < 40, `the pitch is tracked and reported (${seen?.f0}, ${seen?.fc})`);
+  assert.ok(level(tl, 1200) > 0.03 && level(tl, 400) > 0.03, 'tracked at ratio 0.5: sidebands at 800 +/- 400');
+  assert.ok(sp.sidebands(200, 300, 2).some(s => s.hz === 100 && s.kind === 'diff') && sp.sidebands(200, 300, 2).some(s => s.hz === 500), 'sidebands(): |f0 - fc| and f0 + fc');
+
+  // sympathetic strings: a tone at a string's pitch makes it ring after the input stops; an unrelated tone does not
+  assert.deepEqual(sp.stringsOf(48, 1, 5), [48, 52, 55, 60, 64], 'strings climb the chord through the octaves');
+  const burst = f => () => Float32Array.from({ length: 48000 }, (_, i) => i < 12000 ? 0.5 * Math.sin(2 * Math.PI * f * i / rate) : 0);
+  const tail = f => rms(run('sympathy', { root: 48, chord: 1, strings: 3, ringtime: 3000, detune: 0, mix: 1 }, burst(f), 48000)[0], 24000, 48000);
+  const c3 = sp.midiHz(48);
+  assert.ok(tail(c3) > 5 * tail(c3 * 1.19), 'a tone on a string pitch rings on, an unrelated one dies at once');
+  const [sl] = run('sympathy', { strings: 12, chord: 7 }, sine(220, 48000), 48000);
+  assert.ok(sl.every(Number.isFinite) && rms(sl) < 2, 'the strings stay finite and bounded');
+  console.log('ok: room, head, haas, ring, sympathy');
+}
+
 console.log('smoke test passed');

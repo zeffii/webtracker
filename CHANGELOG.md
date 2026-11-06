@@ -2,6 +2,17 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 666 · 2026-11-06
+
+Five new effects (a "Space" group in the Effects menu), all cheap and each with its own panel. What the panel draws is the same calculation the node plays.
+
+- **Reflections.** The first echoes of a room you set: width, depth, height and how much the walls absorb. A plan of the room shows the sound (orange) and you (blue) to drag about, and its corner to drag to change the size; under it the echoes in time, leaning left or right by the side they come from. Up to 32 taps of one delay line (image-source method); no tail, so put a reverb after it.
+- **Head pan.** Places a sound around the head, not only left to right: the far ear hears it later (from the width of the head), quieter and duller, and a sound from behind loses its top. Drag the dot round the head on the panel; the panel shows time, level and brightness for each ear. Best on headphones.
+- **Haas widener.** One side a few milliseconds late: width without an echo (up to about 35 ms). Drag the late pulse for time and level; the panel also shows the comb of notches the two sides make in mono.
+- **Ring mod.** A ring modulator whose carrier can follow the pitch of what it hears (times a ratio, plus an offset), so a melody keeps its tune while the sound turns bell-like; fixed it is the classic one. The panel shows the partials, the carrier and the sum (blue) and difference (pink) sidebands, live; drag on it to move the carrier.
+- **Sympathetic strings.** Up to 12 tuned strings (a chord from a root note) that ring when the input has a partial of their pitch, like the undamped strings of a piano. Ring time, damping, detune and width; the panel shows each string glowing as it rings.
+- **Code boxes:** the status line under the shader and canvas boxes ("The canvas picture is running.") is now the same width as the box.
+
 ## 665 · 2026-11-06
 
 - **Kaleidoscope, overtone mode: set how many overtones.** Two settings of their own, `overtones` (0 to 32, how many copies above the source: x2, x3, x4 ...) and `under` (0 to 16, how many below: x1/2, x1/3 ...), and the panel has a minus and a plus beside the overtone button for the number above. `copies` stays for mirror and repeat. (A project that already had the overtone mode on starts with 8 overtones and 2 undertones.)

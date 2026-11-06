@@ -65,6 +65,31 @@ export const GLYPHS = {
     line(ctx, [[cx - s * 0.4, cy - s * 0.5], [cx - s, cy], [cx - s * 0.4, cy + s * 0.5]]);
     line(ctx, [[cx + s * 0.4, cy - s * 0.5], [cx + s, cy], [cx + s * 0.4, cy + s * 0.5]]);
   },
+  reflect: (ctx, cx, cy, w, h) => {   // a sound, and its echo off the wall
+    const x = f => cx - w / 2 + f * w, y = f => cy + h / 2 - f * h;
+    line(ctx, [[x(0.1), y(0.2)], [x(0.55), y(0.85)], [x(0.9), y(0.2)]]);
+    line(ctx, [[x(0.05), y(0.9)], [x(0.95), y(0.9)]]);
+    line(ctx, [[x(0.3), y(0.5)], [x(0.3), y(0.2)]]);
+  },
+  headpan: (ctx, cx, cy, w, h) => {   // a head seen from above, with a sound reaching it from the side
+    const r = Math.min(w, h) * 0.26;
+    ctx.beginPath(); ctx.arc(cx + w * 0.08, cy, r, 0, Math.PI * 2); ctx.stroke();
+    line(ctx, [[cx + w * 0.08, cy - r], [cx + w * 0.08, cy - r * 1.45]]);
+    line(ctx, [[cx - w * 0.46, cy - h * 0.3], [cx - w * 0.12, cy - h * 0.04]]);
+  },
+  haas: (ctx, cx, cy, w, h) => {   // one pulse, and the same pulse a little later
+    line(ctx, [[cx - w * 0.4, cy - h * 0.05], [cx - w * 0.4, cy - h * 0.4]]);
+    line(ctx, [[cx - w * 0.4, cy - h * 0.05], [cx + w * 0.4, cy - h * 0.05]]);
+    line(ctx, [[cx - w * 0.1, cy + h * 0.4], [cx - w * 0.1, cy + h * 0.05]]);
+    line(ctx, [[cx - w * 0.4, cy + h * 0.4], [cx + w * 0.4, cy + h * 0.4]]);
+  },
+  ringmod: (ctx, cx, cy, w, h) => {   // a wave, multiplied by a faster one
+    curve(ctx, cx, cy, w, h * 0.8, t => Math.sin(t * Math.PI * 2) * Math.sin(t * Math.PI * 14), 48);
+  },
+  sympathy: (ctx, cx, cy, w, h) => {   // three strings, the middle one swinging in answer
+    for (let i = 0; i < 3; i++) { const x = cx + (i - 1) * w * 0.3; ctx.beginPath(); ctx.moveTo(x, cy - h * 0.42); ctx.lineTo(x, cy + h * 0.42); ctx.stroke(); }
+    ctx.beginPath(); ctx.moveTo(cx, cy - h * 0.42); ctx.quadraticCurveTo(cx + w * 0.16, cy, cx, cy + h * 0.42); ctx.stroke();
+  },
   chorus: (ctx, cx, cy, w, h) => {   // two waves drifting against each other
     curve(ctx, cx, cy - h * 0.18, w, h * 0.5, t => Math.sin(t * Math.PI * 3));
     curve(ctx, cx, cy + h * 0.18, w, h * 0.5, t => Math.sin(t * Math.PI * 3 + 1.2));

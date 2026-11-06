@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['666', ['Five cheap room and head effects with panels: Reflections, Head pan, Haas widener, Ring mod (tracked carrier) and Sympathetic strings; the code-box status bar matches the box width']],
   ['665', ['Kaleidoscope overtone mode: set the number of overtones and undertones; a close button on the picture (and its floating window)']],
   ['664', ['Kaleidoscope: an Overtone mode (copies at x2, x3, x4 ... of each tone) with stretch and decay']],
   ['663', ['Adding an instrument or lane beside the cursor lane keeps the song playing and the cursor where it was']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['659', ['The song the page opens with is now Plethora']],
   ['658', ['The mixer no longer takes the keyboard focus; the meta machine Selections list always redraws after a change']],
   ['657', ['Kaleidoscope: arrays a band of the spectrum across the range, mirrored or repeated, with a live spectrum panel']],
-  ['656', ['The About box lists songs to explore: thirteen songs without samples, one click to open']],
                     ];

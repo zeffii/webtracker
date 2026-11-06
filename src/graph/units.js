@@ -10,6 +10,11 @@ const UNIT = {
   threshold: 'dB', makeup: 'dB', knee: 'dB', range: 'dB', hyst: 'dB', floor: 'dB', fenv: 'oct', mix: '%', width: '%',
 };
 const TYPE_UNIT = {
+  reflect: { width: 'm', depth: 'm', height: 'm', srcx: '%', srcy: '%', lisx: '%', lisy: '%', absorb: '%', taps: '', damp: 'Hz', mix: '%' },
+  headpan: { angle: '\u00b0', distance: 'm', head: 'cm', shadow: '%', mix: '%' },
+  sympathy: { root: '', ringtime: 'ms', damp: 'Hz', detune: 'ct', width: '%', mix: '%' },
+  haas: { time: 'ms', gain: '%', damp: 'Hz', mix: '%' },
+  ringmod: { freq: 'Hz', ratio: '', offset: 'Hz', depth: '%', mix: '%' },
   chorus: { depth: 'ms', delay: 'ms' },
   pogue: { pregain: 'dB', postgain: 'dB', mindelay: 'ms', maxdelay: 'ms', inertia: 'ms', lpcut: 'Hz', hpcut: 'Hz', resolution: 'Hz', change: '%', feedback: '', xfeedback: '', saturation: '%', degrade: '%', dither: '%', errormix: '%', lpq: '', hpq: '' },
   flanger: { depth: 'ms', delay: 'ms' },
@@ -136,6 +141,9 @@ const NAMES = {
   saturator: { type: ['soft', 'tape', 'tube', 'clip'], quality: ['standard', 'eco', 'hq'] },
   mbsat: { type: ['soft', 'tape', 'tube', 'clip'], quality: ['standard', 'eco', 'hq'] },
   hpss: { size: ['1024', '2048', '4096'] },
+  sympathy: { chord: ['open', 'major', 'minor', 'maj7', 'min7', 'sus4', 'dim', 'whole'] },
+  haas: { side: ['left', 'right'] },
+  ringmod: { track: ONOFF, wave: ['sine', 'triangle', 'square', 'saw'] },
   kaleidoscope: { mode: ['mirror', 'repeat', 'overtone'], size: ['1024', '2048', '4096'] },
   snarl: { vco1wave: ['saw', 'triangle', 'pulse', 'noise'], vco1oct: ['32\'', '16\'', '8\'', '4\''], vco2wave: ['saw', 'square', 'pulse', 'ring'], vco2oct: ['32\'', '16\'', '8\'', '4\''], mgwave: ['triangle', 'saw', 'ramp', 'square', 'random'] },
   membrane: { quality: ['standard', 'eco'] },

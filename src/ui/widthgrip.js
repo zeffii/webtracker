@@ -2,11 +2,12 @@
 // width. The width is remembered (per box, in this browser). The box keeps its own height; the text inside lays itself out again.
 //   box        the code box (it gets position: relative from the stylesheet)
 //   row        an element that holds the box and limits its width (the shader screen's row); its limit is lifted while a custom width is set
+//   follow     an element under the box (its status bar) that is kept the same width as the box
 //   reserve    () => pixels beside the box that must stay free (the knobs panel next to the shader box)
 const KEY = name => `wax.codeWidth.${name}`;
 const MIN = 320;
 
-export function attachWidthGrip(box, { name, row = null, reserve = () => 0 }) {
+export function attachWidthGrip(box, { name, row = null, reserve = () => 0, follow = null }) {
   const grip = Object.assign(document.createElement('div'), { className: 'width-grip', title: 'Drag to make the code box wider or narrower. Double-click: the usual width' });
   grip.setAttribute('role', 'separator'); grip.setAttribute('aria-orientation', 'vertical');
   box.append(grip);
@@ -23,6 +24,11 @@ export function attachWidthGrip(box, { name, row = null, reserve = () => 0 }) {
   let saved = 0;
   try { saved = Number(localStorage.getItem(KEY(name))) || 0; } catch { /* as above */ }
   if (saved >= MIN) apply(saved);
+
+  if (follow && typeof ResizeObserver === 'function') {
+    const sync = () => { follow.style.boxSizing = 'border-box'; const w = Math.round(box.getBoundingClientRect().width); follow.style.maxWidth = w > 0 ? `${w}px` : ''; };
+    new ResizeObserver(sync).observe(box); sync();
+  }
 
   let drag = null;
   grip.addEventListener('pointerdown', e => {

@@ -2032,8 +2032,8 @@ shaderView = createShaderView({
   onSwitch: () => renderGuide(),
 });
 $('shader-pop').addEventListener('click', () => popOut());
-attachWidthGrip($('shader-box'), { name: 'shader', row: $('shader-main'), reserve: () => ($('shader-knobs').hidden ? 0 : $('shader-knobs').offsetWidth + 10) });
-attachWidthGrip($('script-box'), { name: 'script' });
+attachWidthGrip($('shader-box'), { name: 'shader', row: $('shader-main'), follow: $('shader-status'), reserve: () => ($('shader-knobs').hidden ? 0 : $('shader-knobs').offsetWidth + 10) });
+attachWidthGrip($('script-box'), { name: 'script', follow: $('script-status') });
 // the guide under the editor: the shader guide, or the canvas guide while a canvas picture is being edited; built the first time it is opened.
 // Each whole shader example has a button that puts it in the editor (Ctrl+Z undoes).
 const renderGuide = () => {
@@ -2746,6 +2746,7 @@ sampleBrowser = createSampleBrowser({
   engine.onEmit = ({ instrument, node, msg }) => {
     if (msg.type === 'osc') { const [address, args] = noteMessage(msg, msg.p, instrument); osc.send(address, args); return; }
     if (msg.type === 'kal') { patcher.feedKal(instrument, node, msg); return; }
+    if (msg.type === 'ring' || msg.type === 'sym') { patcher.feedSpace(instrument, node, msg); return; }
     if (msg.type === 'cloud') { patcher.feedCloud(instrument, node, msg, engine.ctx.sampleRate); return; }
     const key = `${instrument}\u0000${node}`;
     if (msg.phase === 'start') { takes.set(key, { ...msg, node, ls: [], rs: [] }); projStatus(`Tap ${node}: recording into ${poolId(msg.smp)}…`); return; }
