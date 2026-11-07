@@ -120,5 +120,8 @@ export function createOverview({ host, grid, colourOf, onJump = () => {}, canJum
   canvas.addEventListener('pointermove', e => { if (dragging && geometry) onJump(tickAt(yIn(e) - dragging.grab, geometry.len, geometry.h)); });
   const end = () => { dragging = null; };
   canvas.addEventListener('pointerup', end); canvas.addEventListener('pointercancel', end);
-  return { paint, canvas, get width() { return canvas.hidden ? 0 : canvas.width; } };
+  // How far across the grid (pixels from its left edge) the playhead and loop lines should run: they stop at the strip's left border, since the strip
+  // has a playhead and loop band of its own. null when the strip is not showing (the lines run the full width).
+  const edge = () => (canvas.hidden ? null : Math.max(0, canvas.offsetLeft - (grid.offsetLeft ?? 0) - (grid.clientLeft ?? 0)));
+  return { paint, canvas, edge, get width() { return canvas.hidden ? 0 : canvas.width; } };
 }

@@ -722,18 +722,18 @@ export function createSequenceView({ el, statusEl, undoEl = null, listEl, transp
     else { lines.push(row('')); lines.push(row(trail)); }
     const html = lines.join('');
     if (html !== painted) { el.innerHTML = html; painted = html; }   // unchanged: leave the page alone
-    const head = el.firstElementChild;
+    overview.paint(config.get('seqOverview') ? { lanes, len, first: top, last: Math.min(rows, top + rowCount), cell: CELL, loop: song?.loop ?? null, cursor: cur, playTick: playing ? playTick : null, rowCount, rows } : { lanes: [], len, first: 0, last: 0, cell: CELL, cursor: cur, playTick: null, rowCount, rows });
+    const head = el.firstElementChild, stop = overview.edge?.() || undefined;   // the strip has its own playhead and loop band: the lines end at its left border
     if (lineMode && playing && head && playTick / CELL >= top && playTick / CELL < Math.min(rows, top + rowCount)) {
-      playline.show(head.offsetTop + head.offsetHeight * (1 + playTick / CELL - top));
+      playline.show(head.offsetTop + head.offsetHeight * (1 + playTick / CELL - top), 0, stop);
     } else playline.show(null);
     {
       const lp = song.loop, yOf = t => head && t / CELL >= top && t / CELL <= Math.min(rows, top + rowCount) ? head.offsetTop + head.offsetHeight * (1 + t / CELL - top) : null;
-      looplines.show(lp ? [yOf(lp.start), yOf(lp.end)] : null, !!lp?.off);
+      looplines.show(lp ? [yOf(lp.start), yOf(lp.end)] : null, !!lp?.off, stop);
     }
     curves.paint();
 
     updateTag();
-    overview.paint(config.get('seqOverview') ? { lanes, len, first: top, last: Math.min(rows, top + rowCount), cell: CELL, loop: song?.loop ?? null, cursor: cur, playTick: playing ? playTick : null, rowCount, rows } : { lanes: [], len, first: 0, last: 0, cell: CELL, cursor: cur, playTick: null, rowCount, rows });
     if (config.get('minimapOn')) minimap.paint({ lanes, first: top, last: Math.min(rows, top + rowCount), CELL, html, opts: { lengths: config.get('minimapLengths'), caps: config.get('minimapCaps'), params: config.get('minimapParams') } });
     else minimap.hide();
 

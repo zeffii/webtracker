@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 677 · 2026-11-07
+
+- **Fix: the playhead line stops at the song overview.** With the playhead set to a line, it ran on across the overview strip at the right of the sequence editor, on top of the strip's own playhead. It (and the loop lines) now end at the strip's left border. With the strip hidden they run the full width as before.
+
 ## 676 · 2026-11-06
 
 - **Fix: a Cardinal machine now sleeps when it is quiet.** The sleep rules listed the Cardinal synth among the machines that can sound on their own, so its lane kept running (about 23 % CPU in the demo song) after the song was paused. It only sounds while a note does (silent with no note and after release), so it is now a note-gated machine like the other synths: it sleeps once its tail has died, and wakes on a note, a parameter change or a message as before.
