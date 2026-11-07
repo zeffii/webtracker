@@ -840,6 +840,15 @@ const hit = 'C-2 .. .. ..';
   const structures = [], params = [], contexts = [];
   const live = {};
   const patcher = createPatcher({ canvas, panel, statusEl, doc, nodeTypes: NODE_TYPES, onStructure: id => structures.push(id), onContext: p => contexts.push(p), onParam: (...a) => params.push(a), getSampleIds: () => ['pluck'], readLive: (i, n, name) => (live[`${n}.${name}`]) });
+  {   // the graph is drawn at the screen's pixel density, and follows it when the page is zoomed or moved to another screen (a canvas left at the old density is stretched: soft text)
+    assert.equal(canvas.width, 900, 'at density 1 the backing store is the box');
+    globalThis.devicePixelRatio = 1.5; patcher.draw();
+    assert.equal(canvas.width, 1350, 'zoomed to 1.5: drawn at 1.5 x'); assert.equal(canvas.height, 540);
+    globalThis.devicePixelRatio = 1.25; patcher.draw();
+    assert.equal(canvas.width, 1125); assert.equal(canvas.height, 450);
+    delete globalThis.devicePixelRatio; patcher.draw();
+    assert.equal(canvas.width, 900, 'and back');
+  }
   patcher.load({ instruments: defs });
   patcher.show('kick');
   patcher.draw();                                        // draws without throwing

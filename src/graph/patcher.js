@@ -240,14 +240,19 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
   const ctx = canvas.getContext('2d');
   let W = canvas.width;
   let H = canvas.height;
-  const dpr = globalThis.devicePixelRatio || 1;
-  if (dpr !== 1) {
+  // The picture is drawn at the screen's own pixel density so the text is crisp. The backing store is a whole number of device pixels (a fractional
+  // one is cut short and then stretched to the box: soft text), and the scale is the real ratio of the two. dpr is read again at every draw: the
+  // window can move to another screen, or the page be zoomed.
+  let dpr = globalThis.devicePixelRatio || 1;
+  const snap = v => Math.round(v * dpr) / dpr;   // a position on a whole device pixel
+  const sizeBacking = () => {
     canvas.style.width = `${W}px`;
     canvas.style.height = `${H}px`;
-    canvas.width = W * dpr;
-    canvas.height = H * dpr;
-    ctx.scale(dpr, dpr);
-  }
+    canvas.width = Math.round(W * dpr);
+    canvas.height = Math.round(H * dpr);
+    ctx.setTransform?.(canvas.width / W, 0, 0, canvas.height / H, 0, 0);
+  };
+  if (dpr !== 1) sizeBacking();
 
   const def = () => instruments[instId];
   const desc = () => def().graph;
@@ -1462,6 +1467,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
     tidy();
     followLive();
     if (hoverPort) dirty = true;   // the hovered port pulses
+    { const d = globalThis.devicePixelRatio || 1; if (d !== dpr) { dpr = d; sizeBacking(); dirty = true; } }   // moved to another screen, or zoomed
     if (!dirty) return;
     dirty = false;
     ctx.clearRect(0, 0, W, H);
@@ -1536,8 +1542,10 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
       ctx.stroke();
     }
 
-    for (const node of desc().nodes) {
+    for (const placed of desc().nodes) {
+      const node = { ...placed, x: snap(placed.x), y: snap(placed.y) };   // drawn on whole device pixels: a node saved at 108.07 would put its text between two rows of pixels
       const type = nodeTypes[node.type], { w, h } = nodeBox(type, node);
+      const text = (str, x, y) => ctx.fillText(str, snap(x), snap(y));
       const chosen = (selected?.kind === 'node' && selected.id === node.id) || group.has(node.id);
       ctx.beginPath();
       if (type.shape === 'circle' || type.shape === 'dot') ctx.arc(node.x + w / 2, node.y + h / 2, w / 2, 0, 2 * Math.PI);
@@ -1560,10 +1568,10 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
       ctx.font = '11px ui-monospace, Consolas, monospace';
       ctx.textBaseline = 'alphabetic';
       ctx.textAlign = 'center';
-      if (type.shape !== 'dot' || chosen) ctx.fillText(node.id, node.x + w / 2, node.y - 5);   // the name sits above the shape (a route dot shows it only when chosen)
+      if (type.shape !== 'dot' || chosen) text(node.id, node.x + w / 2, node.y - 5);   // the name sits above the shape (a route dot shows it only when chosen)
       if (node.keepView) { ctx.beginPath(); ctx.arc(node.x + w - 4, node.y + 4, 2.2, 0, 2 * Math.PI); ctx.fillStyle = accent; ctx.fill(); }   // a dot: its pictures stay on
-      if (node.type === 'tap') { const slot = Math.round(node.params?.smp ?? type.params.find(q => q.name === 'smp').def), copy = Math.round(node.params?.copy ?? 0); ctx.fillText(slot >= 1 && slot <= 16 ? `\u2192 tap${String(slot).padStart(2, '0')}${copy ? `, copy ${copy}` : ''}` : '\u2192 (off)', node.x + w / 2, node.y + h + 12); }   // where it writes
-      if (node.type === 'sidechain' || node.type === 'listen') { ctx.fillText(node.source ? `\u2190 ${node.source}` : '\u2190 (none)', node.x + w / 2, node.y + h + 12); }   // where it listens to
+      if (node.type === 'tap') { const slot = Math.round(node.params?.smp ?? type.params.find(q => q.name === 'smp').def), copy = Math.round(node.params?.copy ?? 0); text(slot >= 1 && slot <= 16 ? `\u2192 tap${String(slot).padStart(2, '0')}${copy ? `, copy ${copy}` : ''}` : '\u2192 (off)', node.x + w / 2, node.y + h + 12); }   // where it writes
+      if (node.type === 'sidechain' || node.type === 'listen') { text(node.source ? `\u2190 ${node.source}` : '\u2190 (none)', node.x + w / 2, node.y + h + 12); }   // where it listens to
 
       if (type.face) {   // the node shows its own state on its face, selected or not
         const live = name => readLive(instId, node.id, name) ?? node.params?.[name] ?? type.params.find(q => q.name === name)?.def ?? 0;
@@ -1596,7 +1604,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
             ctx.fillStyle = ink;
             ctx.globalAlpha = 0.75;
             ctx.textAlign = side === 'in' ? 'left' : 'right';
-            ctx.fillText(name.startsWith('@') ? name.slice(1) : name, p.x + (side === 'in' ? 8 : -8), p.y);
+            text(name.startsWith('@') ? name.slice(1) : name, p.x + (side === 'in' ? 8 : -8), p.y);
             ctx.globalAlpha = 1;
           }
         });
@@ -1791,9 +1799,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
       const w = Math.round(Math.max(400, width));
       if (w === W) return W;
       W = w;
-      canvas.style.width = `${W}px`;
-      canvas.width = W * dpr;
-      if (dpr !== 1) ctx.setTransform?.(dpr, 0, 0, dpr, 0, 0);
+      sizeBacking();
       dirty = true;
       draw();   // at once: the observer runs after the frame's callbacks, so waiting for the next frame shows a cleared canvas
       return W;
@@ -1802,10 +1808,8 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
     // Changes the height of the graph area in CSS pixels (the width stays); the graph is drawn again at once.
     resize(height) {
       H = Math.round(Math.min(MAX_HEIGHT, Math.max(MIN_HEIGHT, height)));
-      canvas.style.height = `${H}px`;
       if (paramPanel) (paramPanel.parentElement ?? paramPanel).style.maxHeight = `${H - 2}px`;
-      canvas.height = H * dpr;   // a new size clears the canvas and its transform
-      if (dpr !== 1) ctx.setTransform?.(dpr, 0, 0, dpr, 0, 0);
+      sizeBacking();   // a new size clears the canvas and its transform
       dirty = true;
       draw();
       return H;

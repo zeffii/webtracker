@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['681', ['Fix: the graph view redraws at the new pixel density after a page zoom or a move to another screen, and its text sits on whole pixels (it was soft)']],
   ['680', ['The opening song is the newest Plethora']],
   ['679', ['Manual: the Voices node page and README say that everything before a poly is done per voice and everything after it on the summed signal']],
   ['678', ['Song overview: no outline round the shown part, and its light fill is a little fainter']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['674', ['Fix: Sympathetic strings has a DC blocker in each string, so an offset in the input no longer piles up in them']],
   ['673', ['Fix: with the piano roll on, the sample display starts to the right of the key strip, so the start of the sample is no longer covered']],
   ['672', ['Song overview: a strip at the right of the sequence editor showing the whole song scaled to fit (click to jump, drag the box to scroll)']],
-  ['671', ['Shift+L in the sequence editor sets the loop round the pattern under the cursor']],
                     ];
