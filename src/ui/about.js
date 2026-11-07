@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['680', ['The opening song is the newest Plethora']],
   ['679', ['Manual: the Voices node page and README say that everything before a poly is done per voice and everything after it on the summed signal']],
   ['678', ['Song overview: no outline round the shown part, and its light fill is a little fainter']],
   ['677', ['Fix: the playhead and loop lines in the sequence editor stop at the song overview instead of running over it']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['673', ['Fix: with the piano roll on, the sample display starts to the right of the key strip, so the start of the sample is no longer covered']],
   ['672', ['Song overview: a strip at the right of the sequence editor showing the whole song scaled to fit (click to jump, drag the box to scroll)']],
   ['671', ['Shift+L in the sequence editor sets the loop round the pattern under the cursor']],
-  ['670', ['The opening song is the newest Plethora']],
                     ];
