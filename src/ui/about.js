@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['678', ['Song overview: no outline round the shown part, and its light fill is a little fainter']],
   ['677', ['Fix: the playhead and loop lines in the sequence editor stop at the song overview instead of running over it']],
   ['676', ['Fix: a Cardinal machine sleeps when it is quiet (it kept running at about 23 % CPU after the song was paused)']],
   ['675', ['The opening song is the newest Plethora']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['671', ['Shift+L in the sequence editor sets the loop round the pattern under the cursor']],
   ['670', ['The opening song is the newest Plethora']],
   ['669', ['Note pan: every note placed in the stereo field by style (keyboard, fan, alternate ...), with real-time swing or orbit round the listener and an orbit panel; help pages for the new space effects']],
-  ['668', ['Sympathetic strings: follow notes, tuned to what the instrument plays (note, octave, twelfth ...)']],
                     ];

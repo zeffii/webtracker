@@ -100,8 +100,7 @@ export function createOverview({ host, grid, colourOf, onJump = () => {}, canJum
     });
     // the part the editor shows
     const [b0, b1] = geometry.box;
-    ctx.fillStyle = '#fff'; ctx.globalAlpha = 0.16; ctx.fillRect(0, b0, w, b1 - b0); ctx.globalAlpha = 1;
-    ctx.strokeStyle = '#d6336c'; ctx.lineWidth = 1.5; ctx.strokeRect(0.75, b0 + 0.25, w - 1.5, Math.max(1, b1 - b0 - 0.5));
+    ctx.fillStyle = '#fff'; ctx.globalAlpha = 0.14; ctx.fillRect(0, b0, w, b1 - b0); ctx.globalAlpha = 1;   // the shown part: a faint light fill, no outline
     // the cursor row and the playhead
     ctx.fillStyle = '#d6336c'; ctx.fillRect(0, Math.round(Y(s.cursor.tick)), w, 2);
     if (s.playTick !== null) { ctx.fillStyle = fg; ctx.globalAlpha = 0.9; ctx.fillRect(0, Math.round(Y(s.playTick)), w, 1); ctx.globalAlpha = 1; }

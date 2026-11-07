@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 678 · 2026-11-07
+
+- **Song overview: the shown part has no outline.** The pink outline round the part of the song the editor shows was too loud; the light fill says it well enough, and it is a touch fainter (an eighth). Clicking and dragging work as before.
+
 ## 677 · 2026-11-07
 
 - **Fix: the playhead line stops at the song overview.** With the playhead set to a line, it ran on across the overview strip at the right of the sequence editor, on top of the strip's own playhead. It (and the loop lines) now end at the strip's left border. With the strip hidden they run the full width as before.
