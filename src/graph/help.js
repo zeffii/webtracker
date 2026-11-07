@@ -31,6 +31,11 @@ export const PAGES = {
       ['Reason Studios list', 'https://www.reasonstudios.com/blog/free-reverb-resources-where-to-find-impulse-responses', 'a longer list, including guitar cabinets and classic reverb units'],
     ],
   },
+  voices: {
+    summary: 'Everything before a poly is done per voice, anything after a poly is done on the summed signal.',
+    best: ['Put what makes the sound (oscillators, filters, envelopes) before it and the shared effects (reverb, delay, chorus) after it: they run once, not once per voice, which is also much cheaper.'],
+    limits: ['A node after it hears the mixed sound, so it cannot treat one note differently from another: a per-note effect, such as Note pan, has to sit before it.'],
+  },
   notepan: {
     summary: 'Gives every note its own place in the stereo field, chosen from the notes being played, and can swing or circle them round the listener. The place round the head has a front and a back, so a note that goes behind you gets quieter and duller.',
     best: [

@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 679 · 2026-11-07
+
+- **Manual: how the voices node splits the signal.** The Voices node's help page and the README now say it: everything before a poly is done per voice, anything after a poly is done on the summed signal (with the tip to put shared effects after it, and per-note effects before it).
+
 ## 678 · 2026-11-07
 
 - **Song overview: the shown part has no outline.** The pink outline round the part of the song the editor shows was too loud; the light fill says it well enough, and it is a touch fainter (an eighth). Clicking and dragging work as before.

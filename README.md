@@ -70,6 +70,7 @@ with the instrument it plays), and add a lane for any instrument.
 
 An instrument is a graph of nodes, stored in the project as data. Add nodes with the menu (or double-click; it is a cascading menu with underlined hotkeys, and `/` searches), wire
 them up, expose parameters to the pattern, and set the number of voices (polyphony, up to 16 copies of the graph).
+Everything before a poly (the voices node) is done per voice, anything after a poly is done on the summed signal.
 Ready-made synths can be added with a lane in one step. Sources, mixing, effects and control nodes:
 
 - **Sources:** sampler, oscillator, envelope, LFO, subtractive synth, Oberheim-style synth, piano (physical model),
