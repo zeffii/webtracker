@@ -76,6 +76,7 @@ import { createTabs } from './ui/tabs.js';
 import { createKeymap } from './ui/kit/keys.js';
 import { popups } from './ui/kit/popups.js';
 import { createMixer } from './ui/mixer.js';
+import { createMixerDock } from './ui/mixerdock.js';
 import { createSaveFolder } from './project/savefolder.js';
 import { createScriptRunner } from './script/client.js';
 import { createScriptScreen } from './script/screen.js';
@@ -389,9 +390,8 @@ const seqView = createSequenceView({
 // ---- The mixer under the arrangement ----
 // Each strip proxies the Out node of its lane's instrument; its gain and master switch are written to that node, and to the running engine.
 const mixer = createMixer({
-  el: $('mixer'), seq: $('seq'),
+  el: $('mixer'),
   lanes: () => project?.lanes ?? [],
-  widths: () => seqView.widths(), chars: seqView.colChars,
   instruments: () => project?.instruments ?? {},
   cursorLane: () => seqView.lane,
   // the value goes to the running engine only (a test gain)
@@ -407,13 +407,8 @@ const mixer = createMixer({
   silence: li => { project.editor.silence(li); seqView.draw?.(); view.draw?.(); },
 });
 engine.onLevels = peaks => mixer.levels(peaks);
-{
-  let on = false;
-  try { on = localStorage.getItem('webtracker.mixer') === '1'; } catch {}
-  const apply = () => { $('mixer').hidden = !on; $('mixer-toggle').setAttribute('aria-pressed', String(on)); engine.setLevels(on); if (on) mixer.refresh(); };
-  $('mixer-toggle').addEventListener('click', e => { on = !on; try { localStorage.setItem('webtracker.mixer', on ? '1' : '0'); } catch {} apply(); fitArrangement(); e.currentTarget.blur(); });
-  apply();
-}
+let mixerDock = null;   // made below, once the meters are (the bottom of the window is laid out by layoutBottom)
+const bottomExtra = () => mixerDock?.shownHeight() ?? 0;   // what the mixer dock takes off the views
 
 // ---- Scripts ----
 // A script runs in a Worker on a copy of the pattern under the pattern editor's cursor (or its selection) and gives back
@@ -713,16 +708,16 @@ const fitArrangement = () => {
   document.body.classList.toggle('seqfit', config.get('seqFit'));
   document.body.classList.toggle('viewfit', config.get('viewFit'));
   if (config.get('seqFit') && tabs.active === 'arrange') {
-    const el = $('seq'), pane = $('pane-arrange'), room = innerHeight - el.getBoundingClientRect().top - foot - 2 - ($('mixer').hidden ? 0 : $('mixer').offsetHeight);   // the mixer takes its own height off the rows
+    const el = $('seq'), pane = $('pane-arrange'), room = innerHeight - el.getBoundingClientRect().top - foot - bottomExtra() - 2;
     seqView.setRows(Math.floor(room / 18) - Math.max(0, el.childElementCount - seqView.rows));
-    document.body.style.setProperty('--arr-h', `${Math.max(0, innerHeight - pane.getBoundingClientRect().top - foot)}px`);   // the panels reach the top of the status bar
+    document.body.style.setProperty('--arr-h', `${Math.max(0, innerHeight - pane.getBoundingClientRect().top - foot - bottomExtra())}px`);   // the panels reach the top of the status bar
   }
   if (config.get('viewFit') && tabs.active === 'patterns') {
     // the view is as tall as its rows: add or take away what is over or missing, and look again until nothing more fits
     // (one pass is not enough when the font size makes the measured line height a little off)
     const el = $('view');
     for (let pass = 0; pass < 6; pass++) {
-      const room = innerHeight - el.getBoundingClientRect().bottom - foot - 8, n = Math.floor(room / view.lineHeight());
+      const room = innerHeight - el.getBoundingClientRect().bottom - foot - bottomExtra() - 8, n = Math.floor(room / view.lineHeight());
       if (n === 0) break;
       view.setRows(view.rows + n);
     }
@@ -1864,13 +1859,32 @@ const meters = createMeters({
   box: metersBox, transport: engine.transport, sab: engine.vring, lsab: engine.lring, lanes: () => project?.lanes ?? [], setTaps: ids => engine.setLaneTaps(ids), sampleRate: () => engine.ctx?.sampleRate ?? 44100,
   options: () => ({ spectrum: config.get('meterSpectrum'), level: config.get('meterLevel'), corr: config.get('meterCorr'), limiter: config.get('meterLimiter'), ceiling: (() => { const k = engine.registry.slots.get('master.m.ceiling'); return k === undefined ? -0.3 : engine.registry.values[k]; })(), width: config.get('meterWidth'), sgram: config.get('meterSgram'), layers: config.get('meterLayers'), colour: config.get('meterColour'), vscope: config.get('meterScope'), linger: config.get('vscopeLinger'), glow: config.get('vscopeGlow') }),
 });
-const placeMeters = () => {
-  const foot = $('footer').offsetHeight, h = config.get('meterHeight');
-  metersBox.style.bottom = `${foot}px`; metersBox.style.height = `${h}px`;
-  document.body.style.paddingBottom = meters.open ? `${foot + h}px` : '';
+// The bottom of the window, from the bottom up: the status bar, the meters (when on), the mixer dock (when on). The views' bottom padding
+// leaves room for all of them.
+const layoutBottom = () => {
+  const foot = $('footer').offsetHeight, metersH = meters.open ? config.get('meterHeight') : 0, dockH = bottomExtra();
+  metersBox.style.bottom = `${foot}px`; metersBox.style.height = `${config.get('meterHeight')}px`;
+  $('mixer-dock').style.bottom = `${foot + metersH}px`;
+  document.body.style.setProperty('--dock-h', `${dockH}px`);
+  document.body.style.paddingBottom = meters.open ? `${foot + metersH + dockH}px` : '';
 };
+const placeMeters = layoutBottom;
 const showMeters = on => { if (on) meters.show(); else meters.hide(); $('meters-btn').setAttribute('aria-pressed', String(on)); placeMeters(); };
 const toggleMeters = () => config.set('meterOn', !meters.open);
+
+// The mixer dock is along the bottom of every view; the strips are redrawn whenever it opens, and the engine only sends levels while it is open.
+mixerDock = createMixerDock({
+  dock: $('mixer-dock'), grip: $('mixer-grip'),
+  onChange: on => {
+    $('mixer-toggle').setAttribute('aria-pressed', String(on));
+    engine.setLevels(on);
+    if (on) mixer.refresh();
+    layoutBottom();
+  },
+});
+$('mixer-toggle').addEventListener('mousedown', e => e.preventDefault());   // the view keeps the focus
+$('mixer-toggle').addEventListener('click', () => mixerDock.toggle());
+
 
 // The master limiter switch on the status bar: the master lane's `limit` parameter, kept in the project so it is saved with it.
 const limitSlot = () => engine.registry.slots.get('master.m.limit');

@@ -1,4 +1,4 @@
-// The mixer: a strip under the arrangement for every lane that makes sound, as wide as the lane's own column. Each strip is a proxy
+// The mixer: a strip for every lane that makes sound, side by side in the mixer dock (see mixerdock.js), each a fixed width. Each strip is a proxy
 // for the Out node of the lane's instrument: its fader is that node's gain, its "mix" button is that node's master switch, and M and S
 // are the lane's silence and solo. The level of the instrument is drawn inside the fader's track.
 //
@@ -9,7 +9,7 @@ const GAIN_MAX = 1.5, GAIN_DEFAULT = 0.8;
 
 const dbText = g => (g < 0.001 ? '-inf' : `${(20 * Math.log10(g)).toFixed(1)}`);
 
-export function createMixer({ el, seq, lanes, widths, chars, instruments, setParam, hear, solo, silence, cursorLane = () => -1 }) {
+export function createMixer({ el, lanes, instruments, setParam, hear, solo, silence, cursorLane = () => -1 }) {
   let strips = [];   // the strips on show: { li, inst, nodeId, show(), meter }
   const testing = new Map();   // instrument -> the test gain it is heard at while "test" is on
   const held = new Map();   // instrument -> the level drawn (it falls back between readings)
@@ -65,12 +65,10 @@ export function createMixer({ el, seq, lanes, widths, chars, instruments, setPar
 
   function refresh() {
     el.replaceChildren(); strips = [];
-    sync();
-    const gutter = document.createElement('div'); gutter.className = 'mx-gutter'; el.append(gutter);
-    const all = lanes(), w = widths();
+    const all = lanes();
     all.forEach((lane, li) => {
       const box = document.createElement('div');
-      box.className = 'mx-strip'; box.dataset.lane = li; box.style.setProperty('--n', String(w[li] ?? chars));
+      box.className = 'mx-strip'; box.dataset.lane = li;
       if (lane.instrument === 'master') { box.classList.add('blank'); el.append(box); return; }
       const node = outOf(lane.instrument);
       const name = document.createElement('div'), readout = document.createElement('div');
@@ -91,11 +89,6 @@ export function createMixer({ el, seq, lanes, widths, chars, instruments, setPar
     cursor();
   }
 
-  // The strips are laid out with the arrangement's own column size: the sequence view keeps it in --cw (a lane's width) and --gw (the tick column).
-  function sync() {
-    for (const k of ['--cw', '--gw']) { const v = seq.style.getPropertyValue(k); if (v) el.style.setProperty(k, v); }
-  }
-
   // The strip of the lane the cursor is on gets a rule above it.
   function cursor() {
     const here = cursorLane();
@@ -114,8 +107,5 @@ export function createMixer({ el, seq, lanes, widths, chars, instruments, setPar
 
   el.addEventListener('mousedown', e => e.preventDefault());   // nothing in the mixer takes the focus: the arrangement keeps it
 
-  // The engine's levels are only worth sending while the strips are on screen.
-  new MutationObserver(sync).observe(seq, { attributes: true, attributeFilter: ['style'] });
-
-  return { refresh, cursor, levels, sync, drop: () => testing.clear() };
+  return { refresh, cursor, levels, drop: () => testing.clear() };
 }

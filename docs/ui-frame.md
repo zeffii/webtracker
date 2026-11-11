@@ -109,3 +109,6 @@ e. Delete what the frame replaces (the old docks and the separate lists).
 
 ## Progress: step 4a (done)
 F1 Song, F2 Pattern, F3 Instrument, F4 Sample. The app opens on Song. Tab buttons follow the same order.
+
+## Progress: step 4b (done)
+The mixer is a dock along the bottom of every view (above the meters and the status bar), thin fixed-width strips, mouse-only. Drag the handle on its top edge to resize; under 20 px it hides and keeps its old height; double-click the handle for the usual height. The Mixer button moved to the status bar. Strips no longer align to the lane columns. src/ui/mixerdock.js holds the dock; main.js `layoutBottom` stacks status bar, meters, dock.
