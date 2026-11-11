@@ -12,7 +12,7 @@ let frontZ = 30;   // panels stack above the page; a pressed panel goes above th
 
 export function createFloating({ id, title = '', buttons = [], onClose = () => {}, start = { right: 24, top: 90 }, offset = 0, width = 230, doc = document, storageKey = `webtracker.floatPos.${id}` }) {
   const el = doc.createElement('div'), bar = doc.createElement('div'), name = doc.createElement('span'), content = doc.createElement('div');
-  el.className = 'fl'; el.dataset.panel = id; el.style.width = `${width}px`;
+  el.className = 'fl'; el.dataset.panel = id; el.style.width = `${Math.min(width, Math.floor(innerWidth / 2))}px`;   // opens at most half the window wide; a long panel scrolls
   bar.className = 'fl-title'; name.textContent = title; content.className = 'fl-body';
   bar.append(name);
   for (const b of buttons) bar.append(titleButton(doc, b.text, b.title, b.onClick));

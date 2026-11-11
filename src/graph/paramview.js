@@ -193,7 +193,9 @@ export function createParamView({ doc = document, el: host, side = 'right', show
   // width is remembered. How much each row shows depends on the width, through container queries in the stylesheet.
   const WIDTH = { min: 90, max: 520, normal: 210 }, KEY = side === 'left' ? 'webtracker.exposedWidth' : 'webtracker.paramWidth';
   const setWidth = w => { const room = (box.parentElement?.clientWidth || 1000) - 40; box.style.width = `${Math.round(Math.min(Math.min(WIDTH.max, room), Math.max(WIDTH.min, w)))}px`; };
-  try { setWidth(Number(localStorage.getItem(KEY)) || WIDTH.normal); } catch { setWidth(WIDTH.normal); }
+  // On opening, the panel is never wider than half its parent (a remembered width above that is cut back); dragging can still go wider.
+  const openWidth = w => Math.min(w, Math.floor((box.parentElement?.clientWidth || 1000) / 2));
+  try { setWidth(openWidth(Number(localStorage.getItem(KEY)) || WIDTH.normal)); } catch { setWidth(WIDTH.normal); }
   const save = () => { try { localStorage.setItem(KEY, String(box.offsetWidth)); } catch {} };
   const grip = box.querySelector?.('.pv-grip');
   if (grip) {

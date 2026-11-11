@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 685 · 2026-11-11
+
+- **Parameter panels open at most half the window wide.** The docked panel (Instrument view) and the floating ones cut a remembered or default width back to half the window on opening; dragging can still make them wider. Floating panels are at most half the window tall and scroll when their parameters are longer.
+
 ## 684 · 2026-11-11
 
 - **The look pass.** One look for controls, without changing how anything works:
