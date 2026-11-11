@@ -221,11 +221,34 @@ export function createDxView({ doc = document, bank, getVoice, setVoice, getPara
     infoLines.push(i); hintLines.push(h);
     return [i, h];
   };
+  const RANDOM_KEEP = 5, randoms = [];   // the voice before the first roll, then the last five rolled; ◂ ▸ step through them
+  let randomAt = -1, randomSlot = -1;
+  const sameSlot = () => { if (randomSlot !== cur()) { randoms.length = 0; randomAt = -1; randomSlot = cur(); } };   // another voice slot starts a fresh history
+  const randomTag = el('span', { className: 'tag' }, '');
+  const sayRandom = () => { randomTag.textContent = randoms.length > 1 ? `${randomAt}/${randoms.length - 1}` : ''; };
+  const recallRandom = dir => {
+    sameSlot();
+    const to = randomAt + dir;
+    if (!randoms.length || to < 0 || to >= randoms.length) return;
+    randomAt = to;
+    const keepName = voice().name;
+    edit(v => Object.assign(v, structuredClone(randoms[to]), { name: randoms[to].name ?? keepName }));
+    sayRandom();
+  };
   const feedback = slider('feedback', 0, 7, () => voice().fb, n => edit(v => { v.fb = n; }));
   feedback.classList.add('dx-fb');
   const nameRow = el('div', { className: 'prow' }, button('◀', () => setVoice(clamp(cur() - 1, 0, VOICES - 1))), nameInput, button('▶', () => setVoice(clamp(cur() + 1, 0, VOICES - 1))),
     button('init', () => edit(v => { Object.assign(v, initVoice({ name: v.name })); }), 'reset this voice to the DX7 init voice'),
-    button('randomise', () => edit(v => Object.assign(v, randomVoice(v.name)))),
+    button('randomise', () => {
+      sameSlot();
+      if (!randoms.length) randoms.push(structuredClone(voice()));   // the voice before the first roll stays recallable
+      edit(v => Object.assign(v, randomVoice(v.name)));
+      randoms.push(structuredClone(voice())); while (randoms.length > RANDOM_KEEP + 1) randoms.shift();
+      randomAt = randoms.length - 1; sayRandom();
+    }, 'roll a random voice; the last five stay recallable with the arrows'),
+    button('◂', () => recallRandom(-1), 'recall the previous random voice'),
+    button('▸', () => recallRandom(1), 'recall the next random voice'),
+    randomTag,
     button('colours', () => {
       pal = PALETTES[(PALETTES.indexOf(pal) + 1) % PALETTES.length];
       try { localStorage.setItem('wax.dxPalette', pal.name); } catch { /* no storage */ }

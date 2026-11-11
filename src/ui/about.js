@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['695', ['DX7 randomise keeps the last five rolls: ◂ ▸ steps back and forward through them.']],
   ['694', ['The Sample screen has a Speed field: type a rate or step it with Left/Right (Shift 100, Ctrl 1000).']],
   ['693', ['The follow panel can pop out into a window of its own and keeps following the machine under the cursor; pop-out windows are no longer indented.']],
   ['692', ['Pattern screen options under the browser list: follow, note preview, tint, hide empty columns, text size.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['688', ['Compact node tiles, opt-in (Config, Graph: Node look): smaller and flatter, no labels on a lone input or output, L and R for left and right.']],
   ['687', ['The manual, first draft: ten chapters, read inside Wax (the book button in the left rail, or Ctrl+Alt+B) or printed as an A5 booklet.']],
   ['686', ['One look for every slider: a hairline, a faint fill up to the value and one thin accent bar at the value, on parameter bars, mixer faders and all plain sliders.']],
-  ['685', ['Parameter panels open at most half the window wide (drag to go wider); floating panels are at most half the window tall and scroll when long.']],
                     ];

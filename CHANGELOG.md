@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 695 · 2026-11-11
+
+- **DX7 randomise keeps a history.** The voice before the first roll and the last five random voices are kept; the ◂ ▸ buttons beside *randomise* step back and forward through them (the tag shows where you are). Switching to another voice slot starts a fresh history.
+
 ## 694 · 2026-11-11
 
 - **Speed field on the Sample screen.** The sample's rate (Hz) now has its own field under the name, as in Impulse Tracker: Tab to it, type an exact rate, or step it with Left/Right (or + and -): 1 Hz, Shift 100, Ctrl 1000. The engine is told, so the pitch and length follow at once.
