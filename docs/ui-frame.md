@@ -125,3 +125,6 @@ Not done: pop-out into its own window (the parameter rows are drawn into the pag
 ## Progress: step 4e (done)
 Removed what the frame replaces: the pattern list's height bar (`#list-grip`, its CSS and drag code, the `webtracker.listHeight` handling), the `.sized` list rule, and the arrangement view's `widths`/`colChars` exports that only the old lane-aligned mixer used.
 Kept on purpose: Song's right column (lane controls, shortcuts) and its width bar, until those get their own place; the Instrument view's own panels.
+
+## Progress: browser split (options under the list)
+The browser is two parts with a drag bar between them (height remembered, double-click for the usual). Under the tabbed lists sit the options of the view: Instrument shows the instrument options (voices, tracks, sleep, presets, new instrument, duplicate/remove, preset library, file), Song shows the lane controls (rename, move, duplicate, remove, clone, insert silence, add lane). A view without options gives the lists the whole panel (Pattern now; Sample later). The blocks are the existing elements moved in, so their buttons and keys are unchanged. Song's right column is gone while the shortcut help is hidden, so the arrangement and the graph have the full width.

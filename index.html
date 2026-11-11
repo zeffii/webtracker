@@ -240,6 +240,11 @@
     #browser-tabs button { font: inherit; padding: 2px 8px 3px; border: 0; border-bottom: 2px solid transparent; background: transparent; color: var(--fg); opacity: .65; cursor: pointer; }
     #browser-tabs button.active { opacity: 1; border-bottom-color: var(--accent); }
     #browser-body { flex: 1 1 auto; min-height: 0; overflow: auto; padding: 4px 0; }
+    #browser-split { flex: none; height: 7px; cursor: row-resize; touch-action: none; border-top: 1px solid color-mix(in srgb, var(--fg) 30%, transparent); }
+    #browser-split.dragging { background: color-mix(in srgb, var(--accent) 35%, transparent); }
+    #browser-options { flex: none; overflow: auto; box-sizing: border-box; padding: 0 6px 6px; }
+    #browser-options #inst-side { min-height: 0; }
+    #browser-options #seq-tools { margin: 0; }
     #browser-grip { position: absolute; top: 0; bottom: 0; right: -4px; width: 8px; cursor: col-resize; touch-action: none; }
     #browser-grip.dragging { background: color-mix(in srgb, var(--accent) 35%, transparent); }
     #browser #seq-side { max-height: none; height: auto; background: transparent; }   /* the list takes the panel's height */
@@ -811,11 +816,11 @@
     /* hidden: the main part of each screen takes the whole width */
     body.nokeys .keys:not(.md) { display: none; }   /* the shortcuts live in the floating window (Shortcuts button); the script tutorial stays */
     body.nokeys #pane-script:not([hidden]) { grid-template-columns: minmax(0, 1fr) var(--keys-w, 20rem); }
-    body.nokeys #pane-arrange .keys { display: block; }   /* in the arrangement the pattern list stays; only the shortcuts go */
-    body.nokeys #pane-arrange .keys > :not(#seq-side):not(#seq-tools) { display: none; }
+    /* the song's right column held the pattern list and the lane controls, which are in the browser now: with the shortcuts hidden it is gone and the arrangement has the width */
+    body.nokeys #side-grip { display: none; }
     body.nokeys .pane.keyed:not([hidden]) { grid-template-columns: minmax(0, 1fr); }
     #pane-arrange { --side-w: 20rem; position: relative; }
-    body.nokeys #pane-arrange:not([hidden]), #pane-arrange.keyed:not([hidden]) { grid-template-columns: minmax(0, 1fr) var(--side-w); }
+    body:not(.nokeys) #pane-arrange.keyed:not([hidden]) { grid-template-columns: minmax(0, 1fr) var(--side-w); }
     body #pane-arrange.noside:not([hidden]) { grid-template-columns: minmax(0, 1fr) 0; gap: 0; }
     #pane-arrange.noside .keys { display: none !important; }
     #side-grip { position: absolute; top: .5rem; bottom: 2rem; right: calc(.75rem + var(--side-w) + .5rem - 5px); width: 10px; cursor: col-resize; z-index: 3; border-radius: 3px; touch-action: none; }
@@ -838,7 +843,7 @@
     #wave { border: 1px solid; max-width: 100%; display: block; cursor: default; }   /* col-resize over a slice marker that a drag would move (waveform.js) */
 
     /* instruments: a narrow list, the graph on the right */
-    #inst-layout { display: grid; grid-template-columns: 17rem minmax(0, 1fr); gap: 1rem; align-items: start; }
+    #inst-layout { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1rem; align-items: start; }   /* the instrument options are in the browser: the graph has the width */
     #inst-side, #inst-main { font: 13px/1.45 ui-monospace, Consolas, monospace; }
     #inst-side .help { max-width: none; }
     #inst-side .new { display: grid; gap: .25rem; margin-bottom: .5rem; }
@@ -1519,6 +1524,8 @@
   <aside id="browser" aria-label="Browser: patterns and machines" hidden>
     <div id="browser-tabs"></div>
     <div id="browser-body"></div>
+    <div id="browser-split" role="separator" aria-orientation="horizontal" aria-label="Height of the options under the list" title="Drag to change the height of the options; double-click for the usual height" hidden></div>
+    <div id="browser-options" hidden></div>
     <div id="browser-grip" role="separator" aria-orientation="vertical" aria-label="Width of the browser" title="Drag to change the width of the browser; all the way left closes it; double-click for the usual width"></div>
   </aside>
   <div id="split">
@@ -1693,7 +1700,7 @@
       <div id="inst-layout">
         <div id="inst-side">
           <div class="rs-panel">
-          <h2>Instruments</h2>
+          <h2>Instrument</h2>
           <div id="inst-list" tabindex="0" aria-label="Instruments"></div>
             <div id="inst-head">
               <div class="vn">
