@@ -77,6 +77,7 @@ import { createKeymap } from './ui/kit/keys.js';
 import { popups } from './ui/kit/popups.js';
 import { createMixer } from './ui/mixer.js';
 import { createMixerDock } from './ui/mixerdock.js';
+import { createBrowser } from './ui/browser.js';
 import { createSaveFolder } from './project/savefolder.js';
 import { createScriptRunner } from './script/client.js';
 import { createScriptScreen } from './script/screen.js';
@@ -187,14 +188,19 @@ let shaderView = null, dspView = null, nsView = null;
 let sampleBrowser = null;
 let replaceTarget = null;   // the slot a Replace button was pressed on, while the file chooser is open   // the sample browser (made further down); leaving the Samples screen stops what it is playing
 let tabBefore = 'arrange', tabNow = 'arrange';   // where the Info close button goes back to (the app opens on Song)
+let browser = null;   // the left panel, made below
+// The browser shows the list that belongs to the view: patterns for Song and Pattern, machines for Instrument.
+function showBrowserFor(id) { const section = { arrange: 'patterns', patterns: 'patterns', instruments: 'machines' }[id]; if (section && browser) browser.show(section); }
+// Keyboard focus for "the machine list": it lives in the browser, which is switched to it; with the browser closed the graph takes the focus.
+const focusMachines = () => { if (browser?.on) browser.show('machines'); (browser?.on ? $('inst-list') : $('patch')).focus(); };
 let onArrange = () => {};   // set once the mixer and the arrangement fit exist: the tabs may open on the arrangement before then
 const tabs = createTabs({
-  onChange: id => { if (id === 'instruments' && (tabNow === 'patterns' || tabNow === 'arrange')) showLaneInstrument(); if (id !== 'samples') sampleBrowser?.stop(); if (id === 'dsp') dspView?.open(patcher?.instrument); if (id === 'nodeseq') nsView?.refresh(); if (id === 'arrange') onArrange(); nsFlags(); if (id === 'shader') { shaderView?.load(); if (!vizOn) config.set('visualOn', true); } if (id !== tabNow) { tabBefore = tabNow; tabNow = id; } applyDock(id); keysRefresh(id); requestAnimationFrame(() => { fitArrangement(); syncFloat(); placeViz(); placeMeters(); }); },
+  onChange: id => { if (id === 'instruments' && (tabNow === 'patterns' || tabNow === 'arrange')) showLaneInstrument(); if (id !== 'samples') sampleBrowser?.stop(); if (id === 'dsp') dspView?.open(patcher?.instrument); if (id === 'nodeseq') nsView?.refresh(); if (id === 'arrange') onArrange(); nsFlags(); if (id === 'shader') { shaderView?.load(); if (!vizOn) config.set('visualOn', true); } if (id !== tabNow) { tabBefore = tabNow; tabNow = id; } applyDock(id); keysRefresh(id); showBrowserFor(id); requestAnimationFrame(() => { fitArrangement(); syncFloat(); placeViz(); placeMeters(); }); },
   tabs: [
     // The first-class views, in the order of their keys: Song (the arrangement) opens first.
     { id: 'arrange', key: 'F1', el: $('pane-arrange'), button: $('tab-arrange'), focus: $('seq') },
     { id: 'patterns', key: 'F2', el: $('pane-patterns'), button: $('tab-patterns'), focus: $('view') },
-    { id: 'instruments', key: 'F3', el: $('pane-instruments'), button: $('tab-instruments'), focus: $('inst-list') },
+    { id: 'instruments', key: 'F3', el: $('pane-instruments'), button: $('tab-instruments'), focus: { focus: () => focusMachines() } },
     { id: 'samples', key: 'F4', el: $('pane-samples'), button: $('tab-samples'), focus: $('smp') },
     { id: 'config', key: 'F11', el: $('pane-config'), button: $('tab-config'), focus: $('cfg') },
     { id: 'script', key: null, combo: e => e.ctrlKey && e.altKey && !e.metaKey && !e.shiftKey && e.code === 'KeyS', el: $('pane-script'), button: $('tab-script'), focus: $('script') },
@@ -613,7 +619,7 @@ const patcher = createPatcher({
   // the song's tick, for the lines on time and rate sliders: how long it is, how many make a beat, whether to show them and snap to them
   getTiming: () => (project?.song ? { tickMs: 60000 / (project.song.bpm * project.song.ticksPerBeat), perBeat: project.song.ticksPerBeat, lines: config.get('tickLines'), snap: config.get('tickSnap') } : null),
   onNote: (id, note, on) => { if (!started) return; if (on) engine.noteOn(id, note, 1); else engine.noteOff(id, note); },
-  canvas: $('patch'), panel: $('patch-panel'), toolsEl: $('patch-tools'), paramPanel: $('patch-scroll'), exposedDock: $('exposed-scroll'), floatDock: $('float-scroll'), onEscape: () => $('inst-list').focus(), statusEl: $('patch-status'), nodeTypes: NODE_TYPES,
+  canvas: $('patch'), panel: $('patch-panel'), toolsEl: $('patch-tools'), paramPanel: $('patch-scroll'), exposedDock: $('exposed-scroll'), floatDock: $('float-scroll'), onEscape: () => focusMachines(), statusEl: $('patch-status'), nodeTypes: NODE_TYPES,
   onStructure: id => reloadInstrument(id),
   onContext: ({ x, y, replace, wire }) => menu.open(x, y, replace, wire),
   onData: (id, node, msg) => engine.sendToNode(id, node, msg),
@@ -1361,7 +1367,7 @@ function renameInstrumentBox() {
   let done = false;
   const finish = ok => {
     if (done) return; done = true;
-    const text = box.value.trim(); box.remove(); $('inst-list').focus();
+    const text = box.value.trim(); box.remove(); focusMachines();
     if (ok && text && text !== id) reshape(() => { const next = ops.renameInstrument(project, id, text); return { instrument: next, message: `Renamed to ${next}.` }; }, { keepPlaying: true });
   };
   box.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') finish(true); else if (e.key === 'Escape') finish(false); });
@@ -1863,6 +1869,8 @@ const meters = createMeters({
 // leaves room for all of them.
 const layoutBottom = () => {
   const foot = $('footer').offsetHeight, metersH = meters.open ? config.get('meterHeight') : 0, dockH = bottomExtra();
+  document.body.style.setProperty('--header-h', `${$('header').offsetHeight}px`);
+  document.body.style.setProperty('--bottom-h', `${foot + metersH + dockH}px`);   // the browser stops above the bottom bands
   metersBox.style.bottom = `${foot}px`; metersBox.style.height = `${config.get('meterHeight')}px`;
   $('mixer-dock').style.bottom = `${foot + metersH}px`;
   document.body.style.setProperty('--dock-h', `${dockH}px`);
@@ -1884,6 +1892,19 @@ mixerDock = createMixerDock({
 });
 $('mixer-toggle').addEventListener('mousedown', e => e.preventDefault());   // the view keeps the focus
 $('mixer-toggle').addEventListener('click', () => mixerDock.toggle());
+
+// The browser holds the lists that used to sit in the views: the arrangement's pattern list and the instrument list move in here.
+browser = createBrowser({
+  el: $('browser'), tabsEl: $('browser-tabs'), bodyEl: $('browser-body'), grip: $('browser-grip'),
+  sections: [
+    { id: 'patterns', label: 'Patterns', element: $('seq-side') },
+    { id: 'machines', label: 'Machines', element: $('inst-list') },
+  ],
+  onChange: on => { $('browser-toggle').setAttribute('aria-pressed', String(on)); layoutBottom(); requestAnimationFrame(() => { fitArrangement(); try { seqView.draw(); } catch {} }); },
+});
+$('browser-toggle').addEventListener('mousedown', e => e.preventDefault());
+$('browser-toggle').addEventListener('click', () => browser.toggle());
+keys.bind('Alt+KeyB', () => browser.toggle(), { name: 'Show or hide the browser' });
 
 
 // The master limiter switch on the status bar: the master lane's `limit` parameter, kept in the project so it is saved with it.

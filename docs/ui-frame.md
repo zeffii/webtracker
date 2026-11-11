@@ -112,3 +112,7 @@ F1 Song, F2 Pattern, F3 Instrument, F4 Sample. The app opens on Song. Tab button
 
 ## Progress: step 4b (done)
 The mixer is a dock along the bottom of every view (above the meters and the status bar), thin fixed-width strips, mouse-only. Drag the handle on its top edge to resize; under 20 px it hides and keeps its old height; double-click the handle for the usual height. The Mixer button moved to the status bar. Strips no longer align to the lane columns. src/ui/mixerdock.js holds the dock; main.js `layoutBottom` stacks status bar, meters, dock.
+
+## Progress: step 4c (done for patterns and machines)
+The browser: a collapsible panel down the left of every view (Alt+B, or the status bar button), width remembered, drag its right edge (in past 90 px closes it). The real pattern list (from Song's right column) and the real machine list (from the Instrument view) are mounted in it with their keys intact; it shows Patterns for Song and Pattern, Machines for Instrument. F3 focuses the machine list (or the graph when the browser is closed). Shared drag code: `src/ui/kit/splitter.js` (the mixer dock uses it too). The old list-height grip is hidden; 4e removes it.
+Not done: Samples. Its list is drawn inside the Sample view, so it needs its own step.
