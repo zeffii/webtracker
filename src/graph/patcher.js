@@ -552,7 +552,23 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
     return { render: entry.render, refresh: () => view.refresh(), release: () => { view.hide(); machineViews.delete(entry); }, get open() { return view.open; } };
   }
 
+  // The following panel (the floating window with the cursor lane's machine) can also be drawn in a window of its own; each such
+  // copy follows the same machine as the panel in the page does, and is released when its window closes.
+  const floatCopies = new Set();
+  function floatPanel(host, where) {
+    const view = createParamView({ doc: where, el: host, side: 'left', showTip: () => {}, hideTip: () => {}, onFocusBack: () => where.activeElement?.blur?.() });
+    const copy = { host, view };
+    floatCopies.add(copy);
+    renderFloat();
+    return { refresh: () => view.refresh(), release: () => { view.hide(); floatCopies.delete(copy); }, get open() { return view.open; } };
+  }
+
   function renderFloat() {
+    for (const { host, view } of floatCopies) {
+      if (!instId) { view.hide(); continue; }
+      host.classList.toggle('wide', !!def().meta);
+      view.show('', exposedRows(), view.cursor, nothingExposed());
+    }
     if (!floatView) return;
     if (!floatOn || !instId) { floatView.hide(); return; }
     floatDock.classList.toggle('wide', !!def().meta);   // a meta machine's rows are named after the machine they belong to
@@ -1471,12 +1487,12 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
     const parts = [];
     const sel = selected?.kind === 'node' ? desc().nodes.find(n => n.id === selected.id) : null;
     if (sel && paramView?.open) for (const sp of nodeTypes[sel.type]?.params ?? []) parts.push(readLive(instId, sel.id, sp.name));
-    if (exposedView?.open || floatView?.open) for (const e of def().exposed) parts.push(readLive(instId, e.node, e.param));
+    if (exposedView?.open || floatView?.open || floatCopies.size) for (const e of def().exposed) parts.push(readLive(instId, e.node, e.param));
     for (const m of machineViews) for (const e of instruments[m.id]?.exposed ?? []) parts.push(readLive(m.id, e.node, e.param));
     const sig = parts.join(',');
     if (sig === liveSig) return;
     liveSig = sig;
-    paramView?.refresh(); exposedView?.refresh(); floatView?.refresh(); for (const m of machineViews) m.view.refresh(); tapEditor?.refresh(); gateEditor?.refresh(); specView?.refresh(); canyonView?.refresh(); drumView?.refresh(); drum2View?.refresh(); hat2View?.refresh(); kalView?.refresh(); spaceView?.refresh(); env2Editor?.refresh(); cardinalView?.refresh(); membraneView?.refresh(); granularView?.refresh(); intView?.refresh(); chordView?.refresh(); rangeView?.refresh(); dxView?.refresh();
+    paramView?.refresh(); exposedView?.refresh(); floatView?.refresh(); for (const c of floatCopies) c.view.refresh(); for (const m of machineViews) m.view.refresh(); tapEditor?.refresh(); gateEditor?.refresh(); specView?.refresh(); canyonView?.refresh(); drumView?.refresh(); drum2View?.refresh(); hat2View?.refresh(); kalView?.refresh(); spaceView?.refresh(); env2Editor?.refresh(); cardinalView?.refresh(); membraneView?.refresh(); granularView?.refresh(); intView?.refresh(); chordView?.refresh(); rangeView?.refresh(); dxView?.refresh();
   }
 
   // A graph is moved clear of the exposed-parameters dock once when its instrument is first shown after a load (the file
@@ -1862,6 +1878,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
     draw,
     // the floating exposed-parameters window: on or off, and kept current while another screen is showing
     float(on) { floatOn = !!on; renderFloat(); },
+    floatPanel,   // the following panel drawn in a window of its own (see main.js)
     machinePanel,   // a parameter panel for any one machine, in an element of the page's own (see src/ui/paramfloats.js)
     refreshExposed() { renderExposed(); },   // a meta machine's Selections changed: its parameter rows are the ones it plays
     live() { followLive(); },

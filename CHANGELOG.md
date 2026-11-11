@@ -2,6 +2,11 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 693 · 2026-11-11
+
+- **The follow panel can pop out too.** The floating parameter window (Ctrl+Alt+P) gets the same pop-out button as a pinned panel: its rows are drawn in a window of its own and keep following the machine under the cursor (the window's title shows which); closing the window brings the panel back, and switching the floating window off closes it.
+- **Pop-out windows are no longer indented:** the window copied the page's padding for the rail and browser.
+
 ## 692 · 2026-11-11
 
 - **Pattern view options in the browser.** On the Pattern screen the area under the browser list now holds the switches that needed a shortcut or a trip to Config: follow the playing row, note preview, tint patterns by colour, hide the empty columns of the cursor's lane, and the text size (smaller, bigger, reset). They are the same settings as before and stay in step with the keys and the Config panel; a click gives the keyboard back to the grid. (`src/ui/patternoptions.js`)

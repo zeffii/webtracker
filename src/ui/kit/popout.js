@@ -14,7 +14,7 @@ export function openPopout({ title, size = { width: 300, height: 420 }, onClosed
   doc.documentElement.className = document.documentElement.className;
   for (const [k, v] of Object.entries(document.documentElement.dataset)) doc.documentElement.dataset[k] = v;   // the colour theme
   doc.body.className = document.body.className;
-  doc.body.style.margin = '0';
+  doc.body.style.cssText = 'margin: 0; padding: 0';   // (the page's body is padded for its rail and browser: the window has neither)
   const host = doc.createElement('div');
   host.className = 'fl-body fl-popout';
   doc.body.append(host);

@@ -52,6 +52,7 @@ import { showContextMenu } from './ui/ctxmenu.js';
 import { buildInstrument, fitTail } from './project/ptr.js';
 import { ABOUT, CHANGELOG } from './ui/about.js';
 import { createManual } from './ui/manual.js';
+import { openPopout } from './ui/kit/popout.js';
 import { createPatternOptions } from './ui/patternoptions.js';
 import { SONGS } from './ui/songs.js';
 import { renderMarkdown } from './ui/markdown.js';
@@ -487,15 +488,33 @@ keys.bind('Ctrl+Alt+KeyR', () => {
 // The window that follows the cursor lane's machine. Its title bar has a pin: that keeps a panel for the machine open (see paramfloats.js).
 const followPanel = createFloating({
   id: 'follow', title: 'parameters', storageKey: 'webtracker.floatPos',
-  buttons: [{ text: 'pin', title: 'Keep a panel for this machine open until it is closed (a second press puts it away)', onClick: () => { if (patcher.instrument) paramFloats.toggle(patcher.instrument); } }],
+  buttons: [{ text: '\u21f1', title: 'Pop this panel out into a window of its own; closing that window brings it back', onClick: () => popOutFollow() }, { text: 'pin', title: 'Keep a panel for this machine open until it is closed (a second press puts it away)', onClick: () => { if (patcher.instrument) paramFloats.toggle(patcher.instrument); } }],
   onClose: () => setFloat(false),
 });
 followPanel.content.id = 'float-scroll';   // the patcher fills it (the id is also the hook for the styling of a meta machine's wide rows)
+// The follow panel in a window of its own: the same rows, following the same machine. Closing the window brings the panel back.
+let followPopout = null;
+function popOutFollow() {
+  if (followPopout) return;
+  const win = openPopout({ title: 'parameters', onClosed: popInFollow });
+  if (!win) { view.say('The browser blocked the pop-out window: allow pop-ups for this page.'); return; }
+  followPopout = { win, panel: patcher.floatPanel(win.host, win.doc) };
+  followPanel.setAway(true);
+  syncFloat();
+}
+function popInFollow() {
+  if (!followPopout) return;
+  followPopout.panel.release(); followPopout = null;
+  followPanel.setAway(false);
+  syncFloat();
+}
 const syncFloat = () => {
   const show = floatWanted && (tabs.active === 'patterns' || tabs.active === 'arrange');
   patcher.float(show);
   $('float-toggle').setAttribute('aria-pressed', String(floatWanted));
   if (show) followPanel.setTitle(`${patcher.instrument ?? ''} · parameters`);
+  if (followPopout) followPopout.win.doc.title = `${patcher.instrument ?? ''} · parameters`;
+  if (followPopout && !floatWanted) followPopout.win.close();   // switching the floating window off takes its pop-out with it
 };
 const setFloat = on => {
   floatWanted = on;
