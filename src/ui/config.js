@@ -46,6 +46,7 @@ export const SCHEMA = [
   { key: 'playhead', label: 'Playhead', type: 'choice', options: ['marker', 'line', 'band'], labels: { marker: 'a > in the tick column and a bold row', line: 'a thin red line across the grid', band: 'a faint band across the row' }, def: 'band' },
   { key: 'tapSlots', label: 'Show the empty tap slots in sample lists', hint: 'tap01 to tap16 in the sampler pickers even before a take is in them (a slot with a take, or one an instrument plays, always shows)', type: 'bool', def: false },
   { key: 'notePreview', label: 'Note preview', hint: 'typed notes sound in the pattern editor', type: 'bool', def: true },
+  { group: 'Graph', key: 'nodeLook', label: 'Node look', hint: 'classic is the tiles as they have been; compact is smaller and flatter: no outline until a node is chosen, no labels on a lone input or output, L and R for left and right, and a tile with no labels is only as wide as its picture', type: 'choice', options: ['classic', 'compact'], labels: { classic: 'classic', compact: 'compact (smaller, flatter)' }, def: 'classic' },
   { group: 'Graph', key: 'wireAudio', label: 'Wire colour: audio', hint: 'a mono audio signal', type: 'colour', def: '#5e94c9' },
   { key: 'wireControl', label: 'Wire colour: control', hint: 'envelopes, lfos and triggers', type: 'colour', def: '#e09429' },
   { key: 'wireStereo', label: 'Wire colour: stereo', hint: 'a left and right pair on one wire', type: 'colour', def: '#b177c5' },

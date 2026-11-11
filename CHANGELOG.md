@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 688 · 2026-11-11
+
+- **Compact node tiles (Config, Graph: Node look).** An opt-in look for the instrument graph, off by default while you compare: tiles keep their shapes (rounded sources, boxes, the voices circle, the output cone) but are smaller and flat, with no outline until a node is chosen. A lone input or output has no label, left and right read L and R, a tile with no labels is only as wide as its picture, and the picture moves against the output socket when only the inputs are named. The arithmetic lives in `src/graph/tilelayout.js`.
+
 ## 687 · 2026-11-11
 
 - **The manual, first draft.** Ten chapters as numbered Markdown files in `docs/manual/` (Tweak by ear, Your first sound, The four screens, Patterns, The song, Instruments, Samples, Files, Keys, Rules of thumb), plus a front page.

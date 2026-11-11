@@ -8731,6 +8731,19 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   assert.match(renderMarkdown('| a | b |\n|---|---|\n| 1 | 2 |'), /<table><thead><tr><th>a<\/th><th>b<\/th><\/tr><\/thead><tbody><tr><td>1<\/td><td>2<\/td>/, 'markdown tables');
   console.log('ok: manual chapters, index and booklet');
 }
+// The compact node look: lone ports have no label, left and right become L and R, a tile with no labels is only as wide as its glyph,
+// and the glyph moves against the output socket when only the inputs are named.
+{
+  const { compactLayout, portLabels } = await import('../src/graph/tilelayout.js');
+  assert.deepEqual(portLabels(['in']), [''], 'a lone port has no label');
+  assert.deepEqual(portLabels(['left', 'right']), ['L', 'R'], 'left and right are L and R');
+  const plain = compactLayout({ shape: 'box' }, ['in'], ['out']), named = compactLayout({ shape: 'rounded' }, ['pitch', 'cut'], ['out']), named2 = compactLayout({ shape: 'rounded' }, ['out'], ['pitch', 'cut']);
+  assert.ok(plain.w < 112 && plain.w <= plain.glyph.w + 24, 'with no labels the tile is its glyph plus padding');
+  assert.ok(named.glyph.x > named.w / 2, 'only the inputs are named: the glyph sits towards the output socket');
+  assert.ok(named2.glyph.x < named2.w / 2, 'only the outputs are named: the glyph sits towards the input socket');
+  assert.ok(named.w > plain.w, 'named ports make room for their names');
+  console.log('ok: compact node look');
+}
 // 110. The About page's text loads (a stray quote in it once broke the whole app) and shows at most ten builds.
 {
   const about = await import('../src/ui/about.js');

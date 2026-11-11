@@ -11,6 +11,7 @@ import { addNode, replaceNode, autoLayout, connect, disconnect, duplicateNodes, 
 import { GLYPHS, drawFace } from './glyphs.js';
 import { LOWER, UPPER } from '../seq/piano.js';
 import { inputsOf, portKind, resolveKinds } from './kinds.js';
+import { compactLayout, COMPACT_ROW } from './tilelayout.js';
 import { eligibleSources, playedBy, setParts } from './sidechain.js';
 import { factsFor, hintFor } from './hints.js';
 import { choices, display, unitOf } from './units.js';
@@ -68,6 +69,8 @@ const showTip = (anchor, { title, text, facts }) => {
 // Geometry. A node's shape comes from its type: 'box' for processors, 'rounded' for
 // sources and 'circle' for mixing and gain. Ports sit on the left (inputs) and right (outputs).
 export const ROW = 16, PORT_R = 4;
+// The node look setting (Config, Graph): 'classic' or 'compact'. See tilelayout.js.
+const compactLook = () => config.get('nodeLook') === 'compact';
 // The value a pattern cell holds for a parameter's value: what an exposed parameter's column would show, in hex.
 // A whole-number parameter's cell is the number itself (counted from its minimum); the others run across the range.
 export const hexOf = (spec, entry, value) => {
@@ -83,8 +86,11 @@ export const hexOf = (spec, entry, value) => {
 
 export const MIN_HEIGHT = 160, MAX_HEIGHT = 1600;   // the graph area, in pixels
 const SHAPE_W = { box: 112, rounded: 100, speaker: 100 };
+// The compact look's layout for a tile (cached on nothing: it is a few comparisons).
+const tileOf = (def, node) => compactLayout(def, inputsOf(node, def), def.outputs);
 export const nodeBox = (def, node) => {
   if (def.size) return { ...def.size };   // a node that draws its own face (the arp's step mask)
+  if (compactLook() && def.shape !== 'dot') { const { w, h } = tileOf(def, node); return { w, h }; }
   const rows = Math.max(inputsOf(node, def).length, def.outputs.length, 1);
   const h = Math.max(rows * ROW + 10, def.shape === 'circle' ? 44 : 0);
   return { w: def.shape === 'circle' ? h : SHAPE_W[def.shape ?? 'box'], h };
@@ -92,7 +98,8 @@ export const nodeBox = (def, node) => {
 export const portPos = (node, def, side, index) => {
   const { w, h } = nodeBox(def, node);
   const n = side === 'in' ? inputsOf(node, def).length : def.outputs.length;
-  const y = node.y + (h - n * ROW) / 2 + ROW / 2 + index * ROW;
+  const row = compactLook() && !def.size && def.shape !== 'dot' ? COMPACT_ROW : ROW;
+  const y = node.y + (h - n * row) / 2 + row / 2 + index * row;
   let x = side === 'in' ? node.x : node.x + w;
   if (def.shape === 'circle') {   // keep the dot on the circle's edge
     const r = w / 2, dy = y - (node.y + r), dx = Math.sqrt(Math.max(0, r * r - dy * dy));
@@ -1028,7 +1035,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
     if (text) { hoverText = text; say(text); }
     else if (hoverText) { if (statusEl?.textContent === hoverText) say(''); hoverText = ''; }
   });
-  config.onChange?.(k => { if (k.startsWith('wire')) dirty = true; });
+  config.onChange?.(k => { if (k.startsWith('wire') || k === 'nodeLook') dirty = true; });
   canvas.addEventListener('mouseleave', () => { if (hoverText && statusEl?.textContent === hoverText) say(''); hoverText = ''; });
 
   canvas.addEventListener('mousemove', e => {
@@ -1578,6 +1585,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
     for (const placed of desc().nodes) {
       const node = { ...placed, x: snap(placed.x), y: snap(placed.y) };   // drawn on whole device pixels: a node saved at 108.07 would put its text between two rows of pixels
       const type = nodeTypes[node.type], { w, h } = nodeBox(type, node);
+      const compact = compactLook() && !type.size && type.shape !== 'dot', layout = compact ? tileOf(type, node) : null;   // the compact look: flat fill, an outline only when chosen, short port names
       const text = (str, x, y) => ctx.fillText(str, snap(x), snap(y));
       const chosen = (selected?.kind === 'node' && selected.id === node.id) || group.has(node.id);
       ctx.beginPath();
@@ -1591,11 +1599,13 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
       }
       else ctx.rect(node.x, node.y, w, h);
       if (backdrop && type.shape !== 'dot') { ctx.fillStyle = backdrop; ctx.fill(); }   // wires run behind a node, not through it
-      ctx.fillStyle = type.shape === 'dot' ? kindColour(kindOf(node, 'out')) : 'rgba(128, 128, 128, 0.18)';   // a route point is a solid dot in its wire's colour
+      ctx.fillStyle = type.shape === 'dot' ? kindColour(kindOf(node, 'out')) : compact ? 'rgba(128, 128, 128, 0.2)' : 'rgba(128, 128, 128, 0.18)';   // a route point is a solid dot in its wire's colour
       ctx.fill();
-      ctx.strokeStyle = chosen ? accent : type.shape === 'dot' ? ink : 'rgba(128, 128, 128, 0.55)';   // a quiet grey until selected
-      ctx.lineWidth = chosen ? 2.5 : type.shape === 'dot' ? 1 : 1.5;
-      ctx.stroke();
+      if (!compact || chosen) {
+        ctx.strokeStyle = chosen ? accent : type.shape === 'dot' ? ink : 'rgba(128, 128, 128, 0.55)';   // a quiet grey until selected (compact: no outline at all until then)
+        ctx.lineWidth = chosen ? (compact ? 2 : 2.5) : type.shape === 'dot' ? 1 : 1.5;
+        ctx.stroke();
+      }
 
       ctx.fillStyle = ink;
       ctx.font = '11px ui-monospace, Consolas, monospace';
@@ -1616,7 +1626,8 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
         ctx.globalAlpha = 0.85;
         ctx.lineWidth = 1.25;
         const circle = type.shape === 'circle';
-        glyph(ctx, node.x + w / 2, node.y + h / 2, circle ? w * 0.55 : w - 64, circle ? w * 0.55 : Math.min(h - 12, 24));
+        if (layout) glyph(ctx, node.x + layout.glyph.x, node.y + h / 2, layout.glyph.w, layout.glyph.h);   // between the label columns
+        else glyph(ctx, node.x + w / 2, node.y + h / 2, circle ? w * 0.55 : w - 64, circle ? w * 0.55 : Math.min(h - 12, 24));
         ctx.globalAlpha = 1;
       }
 
@@ -1633,11 +1644,12 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
           ctx.strokeStyle = ink;
           ctx.lineWidth = 1;
           ctx.stroke();
-          if (type.shape !== 'circle') {   // the shape has no room for names inside a circle
+          const label = layout ? layout.labels[side][i] : name.startsWith('@') ? name.slice(1) : name;   // compact: none for a lone port, L and R for left and right
+          if (type.shape !== 'circle' && label) {   // the shape has no room for names inside a circle
             ctx.fillStyle = ink;
             ctx.globalAlpha = 0.75;
             ctx.textAlign = side === 'in' ? 'left' : 'right';
-            text(name.startsWith('@') ? name.slice(1) : name, p.x + (side === 'in' ? 8 : -8), p.y);
+            text(label, p.x + (side === 'in' ? 8 : -8), p.y);
             ctx.globalAlpha = 1;
           }
         });
