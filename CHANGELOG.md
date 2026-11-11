@@ -2,6 +2,15 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 683 · 2026-11-11
+
+- **The new frame (the `ui-frame` branch is now master).** One frame for every view:
+  - **Views and keys:** F1 Song (the arrangement; the app opens on it), F2 Pattern, F3 Instrument, F4 Sample, and the left-rail buttons follow the same order. Node help in the Instrument view moves to Shift+F1 (plain F1 is Song everywhere).
+  - **Browser:** a collapsible panel down the left of every view (Alt+B, or the button on the status bar; drag its right edge, in past 90 px closes it). Tabs: Patterns, Machines, Samples. Under the list, split off by a drag bar (half and half to start), sit the options of the view: the instrument options in Instrument, the lane controls in Song, Record/Browse in Sample. The pattern list, the machine list and the sample list are the real ones, moved in, so keys and mouse work as before. Song's right column and the Instrument view's left column are gone, so the arrangement and the graph have the whole width.
+  - **Mixer:** a dock along the bottom of every view, above the meters, with thin fixed-width strips. Drag its top edge to resize (under 20 px it hides and keeps its old height; double-click for the usual one); the Mixer button moved to the status bar. Mouse only, it never takes the keyboard focus. The strips no longer line up with the lane columns.
+  - **Floating parameter panels:** the Ctrl+Alt+P panel now has a pin button that keeps a panel for that machine open until it is closed. Several can be open at once; each remembers its place, and pinned panels come back with the project. A pinned panel can be popped out into a window of its own (the ⇱ button); closing that window brings it back.
+  - **Under the hood:** a small shared kit in `src/ui/kit/` (key chords and one table of the global shortcuts, one popup stack with one Escape rule for fourteen popups, splitter, floating panel, pop-out). See `docs/ui-frame.md`.
+
 ## 682 · 2026-11-11
 
 - **Fix: `npm test` failed on Windows** ("the demo validates ... C:\\C:\\Users\\..."). The Wax tools test built a file path from a URL's `.pathname`, which is "/C:/..." on Windows; it now uses `fileURLToPath`. (Test only, no change to the app.)
