@@ -133,3 +133,7 @@ The browser is two parts with a drag bar between them (height remembered, double
 Samples is the third browser tab. The sample screen draws its slot list into an element of its own (`listEl`, mounted in the browser; compact rows: pick, play, remove) and the details into the view, so there is one list. Replace moved next to the sample's heading. The Record/Browse slate sits under the list as the Sample view's options (stacked to fit the narrow panel).
 The list/options split starts at half and half (a dragged height is remembered; double-click the bar for half again).
 Kept: without `listEl` the sample screen draws its old two-column text screen (the smoke tests use it).
+
+## Progress: pop-out
+A pinned parameter panel has a pop-out button (⇱): its rows are drawn again in a browser window of its own (`src/ui/kit/popout.js` copies the page's styles and theme; the patcher's `machinePanel(id, host, doc)` builds the rows in that window's document). Closing the window brings the panel back into the floating one; closing the page closes the windows. A pop-up blocker is reported on the status line.
+Not yet: the cursor-lane (follow) panel has no pop-out, only pinned ones; the popped-out window is not remembered across a reload.

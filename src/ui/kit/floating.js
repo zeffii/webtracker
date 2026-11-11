@@ -43,7 +43,7 @@ export function createFloating({ id, title = '', buttons = [], onClose = () => {
     bar.addEventListener('pointermove', move); bar.addEventListener('pointerup', up);
   });
 
-  return { el, content, raise, setTitle: text => { name.textContent = text; }, destroy: () => el.remove() };
+  return { el, content, raise, setTitle: text => { name.textContent = text; }, setAway: away => el.classList.toggle('fl-popped', away), destroy: () => el.remove() };
 }
 
 function titleButton(doc, text, title, onClick) {

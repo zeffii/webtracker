@@ -1331,6 +1331,8 @@
     .fl-title button { all: unset; cursor: pointer; padding: 0 4px; }
     .fl-title button:hover { color: var(--accent); }
     .fl-body { flex: 1; min-height: 0; overflow-y: auto; }
+    .fl.fl-popped { display: none !important; }   /* the panel is in a window of its own */
+    .fl-popout { height: 100vh; font: 11px/16px ui-monospace, Consolas, monospace; user-select: none; background: var(--bg); color: var(--fg); }
     #float-scroll { flex: 1; min-height: 0; overflow-y: auto; }
     #patch-scroll, #exposed-scroll { flex: 1; min-width: 0; overflow-y: auto; }
     .pv-grip { width: 5px; flex: none; cursor: ew-resize; background: color-mix(in srgb, currentColor 18%, transparent); touch-action: none; }

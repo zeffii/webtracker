@@ -809,7 +809,7 @@ document.addEventListener('keydown', e => { if (e.altKey && (e.key === 'ArrowLef
 const listedInstruments = () => Object.keys(project.instruments).filter(id => id !== MASTER);
 
 // Keys in the instrument list: Up/Down choose, Home/End jump, Enter goes to the graph.
-paramFloats = createParamFloats({ patcher, instrumentIds: () => Object.keys(project?.instruments ?? {}).filter(id => id !== MASTER) });
+paramFloats = createParamFloats({ patcher, instrumentIds: () => Object.keys(project?.instruments ?? {}).filter(id => id !== MASTER), say: text => projStatus(text) });
 $('inst-list').addEventListener('keydown', e => {
   if (!project || e.ctrlKey || e.altKey || e.metaKey) return;
   const ids = listedInstruments(), at = ids.indexOf(patcher.instrument);

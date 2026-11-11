@@ -530,8 +530,10 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
   // A parameter panel kept for one machine, in an element of the page's own (a floating window that stays until closed).
   // It is kept current like the other panels. Returns { render, refresh, release, open }.
   const machineViews = new Set();
-  function machinePanel(id, host) {
-    const view = createParamView({ doc, el: host, side: 'left', showTip, hideTip, onFocusBack: () => doc.activeElement?.blur?.() });
+  // `where` is the document the rows are drawn in: the page's own, or a window the panel was popped out to (its tooltips stay in the page).
+  function machinePanel(id, host, where = doc) {
+    const own = where === doc;
+    const view = createParamView({ doc: where, el: host, side: 'left', showTip: own ? showTip : () => {}, hideTip: own ? hideTip : () => {}, onFocusBack: () => where.activeElement?.blur?.() });
     const entry = { id, host, view };
     entry.render = () => {
       if (!instruments[id]) { view.hide(); return; }
