@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 701 · 2026-11-11
+
+- **The ladder filter has a `phase` parameter.** It shifts the built-in LFO within its cycle (shown as a percentage of a turn): start a sweep at the top or the bottom, or offset one ladder's sweep against another's. At 0 nothing changes. It is the last parameter, so saved projects and pattern columns keep their meaning.
+
 ## 700 · 2026-11-11
 
 - **Space plays from the playhead.** On the Sample screen Space (over the waveform, or with the screen focused) starts the sample at the pink playhead instead of at the beginning; with the playhead at 0 nothing changes. Alt+Space or Ctrl+Space still play from the slice marker.

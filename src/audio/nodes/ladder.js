@@ -1,7 +1,7 @@
 // ladder: a four-pole (24 dB) resonant lowpass with a built-in LFO and a dry/wet mix, made to sit in a chain and be swept.
 // Zero-delay feedback, tanh-style saturation in front of the poles, and a resonance that reaches self-oscillation.
 // The LFO rate is on a log scale (0.01 to 20 Hz), so the slow end, where most sweeps live, has plenty of room.
-const CUT = 0, RES = 1, DRIVE = 2, RATE = 3, DEPTH = 4, SHAPE = 5, MIX = 6, LEVEL = 7;
+const CUT = 0, RES = 1, DRIVE = 2, RATE = 3, DEPTH = 4, SHAPE = 5, MIX = 6, LEVEL = 7, PHASE = 8;
 
 const sat = x => { const x2 = x * x; return x > 3 ? 1 : x < -3 ? -1 : x * (27 + x2) / (27 + 9 * x2); };
 const flush = v => (Math.abs(v) < 1e-18 ? 0 : v);
@@ -24,6 +24,7 @@ export default {
     { name: 'shape', min: 0, max: 3, def: 0, int: true },   // sine, triangle, saw down, square
     { name: 'mix', min: 0, max: 1, def: 1 },
     { name: 'level', min: 0, max: 2, def: 1 },
+    { name: 'phase', min: 0, max: 1, def: 0 },   // where in its cycle the LFO is, as a turn: shifts it against the music or against another filter's LFO
   ],
   create({ sampleRate }) {
     const sr = sampleRate, cs = 1 - Math.exp(-4 / (sr * 0.004)), ms = 1 - Math.exp(-1 / (sr * 0.02));
@@ -34,16 +35,17 @@ export default {
         const input = inputs[0], out = outputs[0], mod = inputs[1];
         const base = params[slots[CUT]], res = Math.min(Math.max(params[slots[RES]], 0), 1);
         const drive = 1 + params[slots[DRIVE]] * 5, inc = params[slots[RATE]] / sr, depth = params[slots[DEPTH]];
-        const shape = Math.round(params[slots[SHAPE]]), mixT = params[slots[MIX]], levT = params[slots[LEVEL]];
+        const shift = params[slots[PHASE]], shape = Math.round(params[slots[SHAPE]]), mixT = params[slots[MIX]], levT = params[slots[LEVEL]];
         const k = res * 4.3, comp = 1 + res * 0.6, wet = 1 + res * res * 4, kick = res > 0.97 ? 1e-5 : 0;
         if (mixNow < 0) { mixNow = mixT; lvl = levT; }
         for (let i = 0; i < n; i += 4) {
           const m = Math.min(4, n - i);
           let v;
-          if (shape === 0) v = Math.sin(2 * Math.PI * phase);
-          else if (shape === 1) v = phase < 0.25 ? 4 * phase : phase < 0.75 ? 2 - 4 * phase : 4 * phase - 4;
-          else if (shape === 2) v = 1 - 2 * phase;
-          else v = phase < 0.5 ? 1 : -1;
+          const ph = (phase + shift) % 1;   // the LFO as it is shifted by the phase parameter
+          if (shape === 0) v = Math.sin(2 * Math.PI * ph);
+          else if (shape === 1) v = ph < 0.25 ? 4 * ph : ph < 0.75 ? 2 - 4 * ph : 4 * ph - 4;
+          else if (shape === 2) v = 1 - 2 * ph;
+          else v = ph < 0.5 ? 1 : -1;
           phase += inc * m; if (phase >= 1) phase -= 1;
           let oct = v * depth;
           if (mod) oct += Math.max(-8, Math.min(8, mod[i]));

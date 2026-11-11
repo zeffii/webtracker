@@ -45,7 +45,7 @@ const TYPE_UNIT = {
   tap: { fade: 'ms', fadein: 'ms' },
   vocoder: { low: 'Hz', high: 'Hz', attack: 'ms', release: 'ms', shift: 'st', sibilance: '%', tune: 'Hz', noise: '%', level: '' },
   sweep: { resonance: '%' },
-  ladder: { cutoff: 'Hz', drive: '%', rate: 'Hz', depth: 'oct', mix: '%' },
+  ladder: { cutoff: 'Hz', drive: '%', rate: 'Hz', depth: 'oct', mix: '%', phase: '%' },
   filterpro: { cutoff: 'Hz', vowel: '', damp: '%', drive: '%', bias: '%', level: '' },
   duette: { vco2pitch: 'ct', cutoff: 'Hz', attack: 'ms', decay: 'ms', port: 'ms', slide: 'ms', tune: 'st' },
   squelch: { tune: 'st', cutoff: 'Hz', decay: 'ms', slide: 'ms', rel: 'ms' },

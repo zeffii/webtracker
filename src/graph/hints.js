@@ -198,6 +198,7 @@ const HINTS = {
     shape: 'LFO wave: sine, triangle, saw down or square.',
     mix: 'Dry/wet balance. Turn it from 0 to 1 while playing to morph the filter in smoothly; the control is smoothed so it never clicks.',
     level: 'Output level.',
+    phase: 'Where the LFO is in its cycle (a whole turn from 0 to 1). Shifts the sweep against the music, or against another filter\'s LFO.',
   },
   filterpro: {
     cutoff: 'Cutoff in Hz. For the vowel mode it slides all formants (1000 Hz is neutral); for the comb modes it is the pitch the comb rings at. Wire an envelope or LFO into `mod` (octaves, sample by sample).',
