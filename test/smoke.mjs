@@ -11117,4 +11117,46 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   console.log('ok: ui kit keys');
 }
 
+// ---- ui kit: the popup stack (src/ui/kit/popups.js) ----
+{
+  const { createPopups } = await import('../src/ui/kit/popups.js');
+  const ev = (o = {}) => ({ key: '', ctrlKey: false, altKey: false, metaKey: false, target: null, prevented: false, stopped: false, preventDefault() { this.prevented = true; }, stopImmediatePropagation() { this.stopped = true; }, ...o });
+  const box = () => { const el = { isConnected: true, hidden: false, inside: new Set(), contains(t) { return t === el || el.inside.has(t); } }; return el; };
+  const popups = createPopups(), log = [];
+  assert.equal(popups.handleKey(ev({ key: 'Escape' })), false, 'with nothing open the keys are not the stack\'s');
+
+  const a = box(), b = box();
+  const la = popups.open({ name: 'a', element: a, close: () => { log.push('close a'); la.release(); } });
+  const lb = popups.open({ name: 'b', element: b, close: () => { log.push('close b'); lb.release(); }, onKey: e => { if (e.key === 'ArrowDown') { log.push('b down'); return true; } return false; } });
+  assert.deepEqual(popups.names(), ['a', 'b']);
+  let e = ev({ key: 'ArrowDown' });
+  assert.equal(popups.handleKey(e), true); assert.equal(e.prevented && e.stopped, true, 'a key the popup took goes no further'); assert.deepEqual(log.splice(0), ['b down']);
+  e = ev({ key: 'x' }); assert.equal(popups.handleKey(e), false, 'a key nobody wants is left alone'); assert.equal(e.prevented, false);
+  e = ev({ key: 'Escape' }); assert.equal(popups.handleKey(e), true); assert.deepEqual(log.splice(0), ['close b'], 'Escape closes the topmost popup only');
+  assert.deepEqual(popups.names(), ['a']);
+  e = ev({ key: 'Escape', ctrlKey: true }); assert.equal(popups.handleKey(e), false, 'Ctrl+Escape is not Escape');
+  e = ev({ key: 'Escape' }); popups.handleKey(e); assert.deepEqual(log.splice(0), ['close a']); assert.deepEqual(popups.names(), []);
+
+  let searching = true;
+  const c = box(), lc = popups.open({ name: 'c', element: c, close: () => { log.push('close c'); lc.release(); }, onEscape: () => { if (searching) { searching = false; log.push('clear search'); return true; } return false; } });
+  popups.handleKey(ev({ key: 'Escape' })); assert.deepEqual(log.splice(0), ['clear search'], 'a popup can use Escape itself: it stays open');
+  popups.handleKey(ev({ key: 'Escape' })); assert.deepEqual(log.splice(0), ['close c'], 'the next Escape closes it');
+
+  const d = box(), inner = {}; d.inside.add(inner);
+  const ld = popups.open({ name: 'd', element: d, close: () => { log.push('close d'); ld.release(); } });
+  popups.handlePress(ev({ target: inner })); assert.deepEqual(log, [], 'a press inside leaves it open');
+  popups.handlePress(ev({ target: {} })); assert.deepEqual(log.splice(0), ['close d'], 'a press outside closes it');
+  const f = box(), lf = popups.open({ name: 'f', element: f, close: () => log.push('close f'), onOutside: () => { log.push('accept f'); lf.release(); } });
+  popups.handlePress(ev({ target: {} })); assert.deepEqual(log.splice(0), ['accept f'], 'onOutside replaces closing (a dialog that applies on a click away)');
+  const g = box(), lg = popups.open({ name: 'g', element: g, close: () => log.push('close g'), outside: false });
+  popups.handlePress(ev({ target: {} })); assert.deepEqual(log, [], 'outside: false ignores presses elsewhere'); lg.release();
+  const h = box(), lh = popups.open({ name: 'h', element: h, close: () => { log.push('close h'); lh.release(); }, closeOnScroll: true });
+  popups.handleScroll(ev({ target: h })); assert.deepEqual(log, [], 'a scroll inside it is its own'); popups.handleScroll(ev({ target: {} })); assert.deepEqual(log.splice(0), ['close h']);
+
+  const k = box(); popups.open({ name: 'k', element: k, close: () => log.push('close k') });
+  k.hidden = true; assert.equal(popups.handleKey(ev({ key: 'Escape' })), false, 'a hidden popup is dropped: no ghost swallows Escape'); assert.deepEqual(popups.names(), []);
+  const m = box(); popups.open({ name: 'm', element: m, close: () => {} }); m.isConnected = false; assert.deepEqual(popups.names(), [], 'so is a removed one');
+  console.log('ok: ui kit popups');
+}
+
 console.log('smoke test passed');

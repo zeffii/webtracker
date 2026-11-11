@@ -74,6 +74,7 @@ import { attachGrip } from './ui/grip.js';
 import { createTrackerView } from './seq/view.js';
 import { createTabs } from './ui/tabs.js';
 import { createKeymap } from './ui/kit/keys.js';
+import { popups } from './ui/kit/popups.js';
 import { createMixer } from './ui/mixer.js';
 import { createSaveFolder } from './project/savefolder.js';
 import { createScriptRunner } from './script/client.js';
@@ -203,6 +204,7 @@ const tabs = createTabs({
 });
 // The app's global shortcuts live in one table (src/ui/kit/keys.js). A few are added further down, next to the thing they drive.
 const keys = createKeymap();
+popups.attach(document);   // first, so an open popup hears a key before the shortcut table does
 keys.attach(document);
 keys.otherwise(e => tabs.handleKey(e));   // the F-keys and combos that switch tabs
 const inField = e => e.target.matches?.('input:not([type=range]):not([type=checkbox]), textarea, select');
