@@ -764,5 +764,5 @@ export function createSequenceView({ el, statusEl, undoEl = null, listEl, transp
   const commands = {
     clone: () => { act('clone', editor.clone(cur.lane, editTick()), 'Cloned: this placement now has its own copy.'); draw(); return message; },
   };
-  return { commands, draw, load, goto, setRows, widths: () => (lanes ?? []).map(colw), colChars: COLW, resume() { const was = paused; paused = false; lastAuto = null; return was; }, parked: () => paused, park() { paused = true; lastAuto = null; parkUntil = performance.now() + 2000; }, say: m => { message = m; }, get rows() { return rowCount; }, get lane() { return cur.lane; }, get tick() { return cur.tick; } };
+  return { commands, draw, load, goto, setRows, resume() { const was = paused; paused = false; lastAuto = null; return was; }, parked: () => paused, park() { paused = true; lastAuto = null; parkUntil = performance.now() + 2000; }, say: m => { message = m; }, get rows() { return rowCount; }, get lane() { return cur.lane; }, get tick() { return cur.tick; } };
 }

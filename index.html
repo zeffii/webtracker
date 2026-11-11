@@ -242,8 +242,7 @@
     #browser-body { flex: 1 1 auto; min-height: 0; overflow: auto; padding: 4px 0; }
     #browser-grip { position: absolute; top: 0; bottom: 0; right: -4px; width: 8px; cursor: col-resize; touch-action: none; }
     #browser-grip.dragging { background: color-mix(in srgb, var(--accent) 35%, transparent); }
-    #browser #seq-side, #browser #seq-side.sized { max-height: none; height: auto; background: transparent; }
-    #list-grip { display: none; }   /* the list is in the browser now, as tall as the panel */   /* the list takes the panel's height */
+    #browser #seq-side { max-height: none; height: auto; background: transparent; }   /* the list takes the panel's height */
     #browser #inst-list { margin: 0 6px; }
     /* the mixer dock: a band along the bottom of every view, above the meters and the status bar (main.js places it, see layoutBottom) */
     #mixer-dock { position: fixed; left: var(--rail); right: 0; z-index: 1; display: flex; flex-direction: column; box-sizing: border-box; background: color-mix(in srgb, var(--fg) 7%, var(--panel)); }
@@ -272,11 +271,6 @@
     .mx-btn.on { background: var(--accent); border-color: var(--accent); color: var(--bg, #fff); }
     #pane-arrange #seq { margin-top: 0; }   /* its top edge level with the pattern list panel beside it */
     /* the lane and silence controls under the pattern list */
-    #seq-side.sized { height: var(--list-h); max-height: none; }
-    #list-grip { height: 17px; margin: 0; cursor: row-resize; position: relative; touch-action: none; }   /* one row of space between the list and the lane controls, to drag */
-    #list-grip::before { content: ''; position: absolute; left: 0; right: 0; top: 8px; height: 1px; background: color-mix(in srgb, currentColor 30%, transparent); }
-    #list-grip::after { content: ''; position: absolute; left: calc(50% - 14px); top: 5px; width: 28px; height: 7px; border-radius: 4px; background: var(--bg, #fff); border: 1px solid color-mix(in srgb, currentColor 40%, transparent); box-sizing: border-box; }
-    #list-grip:hover::before, #list-grip.dragging::before, #list-grip:focus-visible::before { background: color-mix(in srgb, currentColor 65%, transparent); }
     #seq-tools { margin: 0 0 .7rem; font-size: 12px; }
     #seq-tools .manage { display: flex; flex-wrap: wrap; gap: .25rem; align-items: center; margin: .3rem 0; }
     #seq-tools .help { flex: 1 0 100%; opacity: .7; }
@@ -818,7 +812,7 @@
     body.nokeys .keys:not(.md) { display: none; }   /* the shortcuts live in the floating window (Shortcuts button); the script tutorial stays */
     body.nokeys #pane-script:not([hidden]) { grid-template-columns: minmax(0, 1fr) var(--keys-w, 20rem); }
     body.nokeys #pane-arrange .keys { display: block; }   /* in the arrangement the pattern list stays; only the shortcuts go */
-    body.nokeys #pane-arrange .keys > :not(#seq-side):not(#seq-tools):not(#list-grip) { display: none; }
+    body.nokeys #pane-arrange .keys > :not(#seq-side):not(#seq-tools) { display: none; }
     body.nokeys .pane.keyed:not([hidden]) { grid-template-columns: minmax(0, 1fr); }
     #pane-arrange { --side-w: 20rem; position: relative; }
     body.nokeys #pane-arrange:not([hidden]), #pane-arrange.keyed:not([hidden]) { grid-template-columns: minmax(0, 1fr) var(--side-w); }
@@ -1804,7 +1798,6 @@
     </div>
       <aside class="keys" aria-label="Arrangement patterns and shortcuts">
         <div id="seq-side"><div id="seq-list"></div></div>
-        <div id="list-grip" tabindex="0" role="separator" aria-orientation="horizontal" aria-label="Height of the pattern list: drag, or use Up and Down; double-click for the automatic height" title="Drag to change the height of the pattern list; double-click for the automatic height"></div>
         <div id="seq-tools">
         <div class="manage row">
           <span class="help">Lane under the cursor</span>

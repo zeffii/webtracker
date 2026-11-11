@@ -121,3 +121,7 @@ Not done: Samples. Its list is drawn inside the Sample view, so it needs its own
 `src/ui/kit/floating.js`: the floating panel (title bar drag, position remembered per id, click brings it to the front, close button, extra title buttons). The cursor-lane panel (Ctrl+Alt+P) is built on it and has a "pin" button; pin keeps a panel for that machine open until closed. Several can be open at once, each remembers its position, and the pinned set is remembered and reopened with the project (`src/ui/paramfloats.js`, patcher `machinePanel(id, host)`). Panels show in Song, Pattern, Instrument and Sample.
 Key change: node help is now Shift+F1 (plain F1 is Song everywhere; it used to open node help in the Instrument view, which stopped F1 from leaving that view).
 Not done: pop-out into its own window (the parameter rows are drawn into the page's own document), and the lane controls/shortcut column on Song's right are still docked (4e).
+
+## Progress: step 4e (done)
+Removed what the frame replaces: the pattern list's height bar (`#list-grip`, its CSS and drag code, the `webtracker.listHeight` handling), the `.sized` list rule, and the arrangement view's `widths`/`colChars` exports that only the old lane-aligned mixer used.
+Kept on purpose: Song's right column (lane controls, shortcuts) and its width bar, until those get their own place; the Instrument view's own panels.
