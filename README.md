@@ -26,10 +26,10 @@ Every push to `master` runs the tests and publishes the app to GitHub Pages (`.g
 
 | key | screen | what it is |
 |---|---|---|
-| F1 | **Patterns** | The grid. One column group per lane; notes, velocities, trigger columns, parameter columns and commands. |
-| F2 | **Samples** | Load audio, set loop and sustain-loop points and crossfades, mark slices, view the waveform or spectrogram. |
-| F3 | **Instruments** | The node graph of one instrument, its parameters, presets, and the preset library and instrument files. |
-| F4 | **Arrangement** | Patterns placed on a timeline, one column per lane; lane controls sit under the grid. |
+| F1 | **Song** | The arrangement: patterns placed on a timeline, one column per lane; lane controls sit under the grid. The app opens here. |
+| F2 | **Pattern** | The grid. One column group per lane; notes, velocities, trigger columns, parameter columns and commands. |
+| F3 | **Instrument** | The node graph of one instrument, its parameters, presets, and the preset library and instrument files. |
+| F4 | **Sample** | Load audio, set loop and sustain-loop points and crossfades, mark slices, view the waveform or spectrogram. |
 
 Pattern editor: Space writes the live value of the parameter under the cursor into its cell and steps down; Ctrl+Space writes the live values of every parameter column of the row (not notes, velocities or commands). Ctrl+Enter and Ctrl+Shift+Enter are free for something better.
 

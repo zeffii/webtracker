@@ -6,7 +6,7 @@ export const TUTORIAL = `
 A script writes notes and values into the **pattern under the cursor** in the pattern editor, or into just your selection if you have made one. Nothing changes until the script finishes without an error, and each run is one undo step.
 
 ### Try it
-1. In the pattern editor (F1), click in the note column you want to fill.
+1. In the pattern editor (F2), click in the note column you want to fill.
 2. Come back here and type a line in the box below the output, then press **Enter**. Or write in the big box and press **Ctrl+Enter**, which runs the selected code, or all of it.
 3. **Ctrl+Alt+R** in the pattern editor runs the whole script on that pattern without switching tabs.
 

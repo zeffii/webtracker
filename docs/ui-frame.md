@@ -106,3 +106,6 @@ b. The mixer docked in every view, with the splitter (drag to resize, hidden und
 c. The browser panel (patterns, samples, machines), collapsible.
 d. The floating parameter panels: draggable, remembered position, several at once, pop-out.
 e. Delete what the frame replaces (the old docks and the separate lists).
+
+## Progress: step 4a (done)
+F1 Song, F2 Pattern, F3 Instrument, F4 Sample. The app opens on Song. Tab buttons follow the same order.

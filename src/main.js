@@ -185,15 +185,16 @@ $('dock-grip').addEventListener('mousedown', e => {
 let shaderView = null, dspView = null, nsView = null;
 let sampleBrowser = null;
 let replaceTarget = null;   // the slot a Replace button was pressed on, while the file chooser is open   // the sample browser (made further down); leaving the Samples screen stops what it is playing
-let tabBefore = 'patterns', tabNow = 'patterns';   // where the Info close button goes back to
+let tabBefore = 'arrange', tabNow = 'arrange';   // where the Info close button goes back to (the app opens on Song)
 let onArrange = () => {};   // set once the mixer and the arrangement fit exist: the tabs may open on the arrangement before then
 const tabs = createTabs({
   onChange: id => { if (id === 'instruments' && (tabNow === 'patterns' || tabNow === 'arrange')) showLaneInstrument(); if (id !== 'samples') sampleBrowser?.stop(); if (id === 'dsp') dspView?.open(patcher?.instrument); if (id === 'nodeseq') nsView?.refresh(); if (id === 'arrange') onArrange(); nsFlags(); if (id === 'shader') { shaderView?.load(); if (!vizOn) config.set('visualOn', true); } if (id !== tabNow) { tabBefore = tabNow; tabNow = id; } applyDock(id); keysRefresh(id); requestAnimationFrame(() => { fitArrangement(); syncFloat(); placeViz(); placeMeters(); }); },
   tabs: [
-    { id: 'patterns', key: 'F1', el: $('pane-patterns'), button: $('tab-patterns'), focus: $('view') },
-    { id: 'samples', key: 'F2', el: $('pane-samples'), button: $('tab-samples'), focus: $('smp') },
+    // The first-class views, in the order of their keys: Song (the arrangement) opens first.
+    { id: 'arrange', key: 'F1', el: $('pane-arrange'), button: $('tab-arrange'), focus: $('seq') },
+    { id: 'patterns', key: 'F2', el: $('pane-patterns'), button: $('tab-patterns'), focus: $('view') },
     { id: 'instruments', key: 'F3', el: $('pane-instruments'), button: $('tab-instruments'), focus: $('inst-list') },
-    { id: 'arrange', key: 'F4', el: $('pane-arrange'), button: $('tab-arrange'), focus: $('seq') },
+    { id: 'samples', key: 'F4', el: $('pane-samples'), button: $('tab-samples'), focus: $('smp') },
     { id: 'config', key: 'F11', el: $('pane-config'), button: $('tab-config'), focus: $('cfg') },
     { id: 'script', key: null, combo: e => e.ctrlKey && e.altKey && !e.metaKey && !e.shiftKey && e.code === 'KeyS', el: $('pane-script'), button: $('tab-script'), focus: $('script') },
     { id: 'shader', key: null, combo: e => e.ctrlKey && e.altKey && !e.metaKey && !e.shiftKey && e.code === 'KeyG', el: $('pane-shader'), button: $('tab-shader'), focus: $('shader-input') },
@@ -289,7 +290,7 @@ const editInfo = on => {
   $('info-edit').textContent = on ? 'Done' : 'Edit';
   (on ? $('info') : $('info-view')).focus();
 };
-$('info-close').addEventListener('click', () => tabs.show(tabBefore === 'info' ? 'patterns' : tabBefore));
+$('info-close').addEventListener('click', () => tabs.show(tabBefore === 'info' ? 'arrange' : tabBefore));
 $('info-edit').addEventListener('click', () => editInfo(!$('info').hidden === false));
 $('info-view').addEventListener('dblclick', () => editInfo(true));
 $('info').addEventListener('keydown', e => { if (e.key === 'Escape') { editInfo(false); e.preventDefault(); } });
@@ -420,7 +421,7 @@ engine.onLevels = peaks => mixer.levels(peaks);
 const scriptTarget = () => {
   if (!project?.editor) return { error: 'Open or start a project first.' };
   const li = view.lane, lane = project.lanes[li], pl = lane && placementAt(lane, view.tick);
-  if (!pl) return { error: 'There is no pattern under the cursor in the pattern editor: put the cursor in one first (F1).' };
+  if (!pl) return { error: 'There is no pattern under the cursor in the pattern editor: put the cursor in one first (F2).' };
   const pat = lane.patterns[pl.puid], len = Math.min(pl.length, pat.rows.length), r = view.selection;
   const columns = lane.columns.map(c => ({ kind: c.kind, token: c.token, label: c.label, key: c.key, ...(c.param ? { param: c.param, node: c.node, base: c.base } : {}) }));
   const selection = r ? { r0: Math.max(0, r.t0 - pl.start), r1: Math.min(len - 1, r.t1 - pl.start), c0: r.c0, c1: r.c1 } : null;
