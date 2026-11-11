@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 682 · 2026-11-11
+
+- **Fix: `npm test` failed on Windows** ("the demo validates ... C:\\C:\\Users\\..."). The Wax tools test built a file path from a URL's `.pathname`, which is "/C:/..." on Windows; it now uses `fileURLToPath`. (Test only, no change to the app.)
+
 ## 681 · 2026-11-07
 
 - **Fix: the graph view's text was soft after the page was zoomed or moved to another screen.** The graph canvas read the screen's pixel density once, when it was made; after a browser zoom (Ctrl +/-) or a move to a screen with another scale, it went on drawing at the old density and the browser stretched the picture, so the node names and port labels were blurred next to the crisp page text. It now checks the density at every draw and redraws at the new one. Also: the backing store is always a whole number of device pixels, and node names and port labels are placed on whole device pixels (a node saved at a fractional position, like 108.07, put its text between two rows of pixels).

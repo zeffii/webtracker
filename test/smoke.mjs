@@ -4977,10 +4977,11 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
 // The Wax tools: the song is checked, outlined, rendered and measured without a browser.
 {
   const core = await import('../tools/wax-mcp/core.mjs');
-  const path = new URL('../src/project/demos/original.wax', import.meta.url).pathname;
+  const { fileURLToPath } = await import('node:url');   // (a URL's .pathname is "/C:/..." on Windows)
+  const path = fileURLToPath(new URL('../src/project/demos/original.wax', import.meta.url));
   const v = core.validate(path);
   assert.ok(v.ok && !v.problems.length, `the demo validates (${v.problems})`);
-  const bad = core.validate(new URL('../package.json', import.meta.url).pathname);
+  const bad = core.validate(fileURLToPath(new URL('../package.json', import.meta.url)));
   assert.ok(!bad.ok, 'a file that is not a project is refused');
   const o = core.outline(core.loadProject(path), { window: 128 });
   assert.ok(o.lanes.find(l => l.id === 'pad').notes_per_window.some(n => n > 0) && o.seconds > 60, 'the outline counts notes');
