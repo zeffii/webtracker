@@ -20,3 +20,19 @@
   border-bottom: var(--line-w) solid color-mix(in srgb, var(--fg) 40%, transparent); padding: 0 var(--space-3);
 }
 :where(input[type=checkbox], input[type=radio], input[type=range]) { accent-color: var(--accent); }
+
+/* Sliders. Every slider in Wax is a hairline, a faint fill up to the value (where the page sets --p), and one thin accent bar at
+   the value: the parameter bars (.pv-bar) and the mixer faders (.mx-track) are drawn in index.html in the same terms. */
+:where(input[type=range]) {
+  -webkit-appearance: none; appearance: none; height: 16px; margin: 0; padding: 0; border: 0; border-radius: 0; cursor: ew-resize;
+  background:
+    linear-gradient(var(--slider-fill), var(--slider-fill)) 0 50% / var(--p, 0%) 8px no-repeat,
+    linear-gradient(var(--slider-line), var(--slider-line)) 0 50% / 100% var(--line-w) no-repeat;
+}
+:where(input[type=range])::-webkit-slider-runnable-track { height: 16px; background: transparent; }
+:where(input[type=range])::-moz-range-track { height: 16px; background: transparent; }
+:where(input[type=range])::-webkit-slider-thumb { -webkit-appearance: none; width: var(--slider-mark-w); height: 14px; margin-top: 1px; border: 0; border-radius: 0; background: var(--accent); }
+:where(input[type=range])::-moz-range-thumb { width: var(--slider-mark-w); height: 14px; border: 0; border-radius: 0; background: var(--accent); }
+:where(input[type=range]):focus-visible { outline: none; }
+:where(input[type=range]):focus-visible::-webkit-slider-thumb { background: var(--hi); }
+:where(input[type=range]):focus-visible::-moz-range-thumb { background: var(--hi); }

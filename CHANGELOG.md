@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 686 · 2026-11-11
+
+- **One look for every slider.** A hairline track, a faint fill up to the value, and one thin accent bar at the value: the parameter bars, the mixer faders and every plain range slider (shader knobs, curve popup, sample and roll controls, quick config) now share it, instead of five different styles (bevelled black bar, outlined fill, hairline with a dot, native accent, framed fader). The tokens are `--slider-line`, `--slider-fill`, `--slider-mark-w`; the mixer's meter and test colours use `--ok` and `--warn`.
+
 ## 685 · 2026-11-11
 
 - **Parameter panels open at most half the window wide.** The docked panel (Instrument view) and the floating ones cut a remembered or default width back to half the window on opening; dragging can still make them wider. Floating panels are at most half the window tall and scroll when their parameters are longer.
