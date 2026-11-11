@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['690', ['Thinner wires in the compact node look.']],
   ['689', ['Compact node tiles are the default now; Config, Graph: Node look brings the classic ones back.']],
   ['688', ['Compact node tiles, opt-in (Config, Graph: Node look): smaller and flatter, no labels on a lone input or output, L and R for left and right.']],
   ['687', ['The manual, first draft: ten chapters, read inside Wax (the book button in the left rail, or Ctrl+Alt+B) or printed as an A5 booklet.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['683', ['The new frame: F1 Song, F2 Pattern, F3 Instrument, F4 Sample (Song opens first; node help is Shift+F1). A collapsible browser down the left (patterns, machines, samples, with the options of the view under the list), the mixer docked along the bottom of every view, and pinned floating parameter panels that can pop out into their own window.']],
   ['682', ['Fix: npm test failed on Windows (a file path built from a URL); test only, the app is unchanged']],
   ['681', ['Fix: the graph view redraws at the new pixel density after a page zoom or a move to another screen, and its text sits on whole pixels (it was soft)']],
-  ['680', ['The opening song is the newest Plethora']],
                     ];

@@ -1541,7 +1541,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
       const chosen = hot || lit || (selected?.kind === 'link' && selected.index === i);
       ctx.beginPath();
       ctx.strokeStyle = chosen ? accent : kindColour(kind);
-      ctx.lineWidth = hot ? 5 : lit ? 4.5 : chosen ? 3.5 : kind === 'stereo' ? 3 : 1.75;   // a stereo pair is drawn heavier
+      ctx.lineWidth = (hot ? 5 : lit ? 4.5 : chosen ? 3.5 : kind === 'stereo' ? 3 : 1.75) * (compactLook() ? 0.65 : 1);   // a stereo pair is drawn heavier; the compact look draws every wire thinner
       ctx.setLineDash((kind === 'control' || kind === 'param') && config.get('wireDashed') ? [7, 5] : []);   // control wires dashed
       ctx.moveTo(a.x, a.y);
       { const k = arm(a, b); ctx.bezierCurveTo(a.x + k, a.y, b.x - k, b.y, b.x, b.y); }

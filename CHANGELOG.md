@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 690 · 2026-11-11
+
+- **Thinner wires in the compact node look:** a wire is about two thirds of its old weight (stereo, chosen and hovered wires keep their order of weight).
+
 ## 689 · 2026-11-11
 
 - **Compact node tiles are now the default** (Config, Graph: Node look; classic is still there). Existing saved settings keep whatever they had chosen.
