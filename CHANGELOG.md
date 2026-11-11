@@ -2,6 +2,13 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 684 · 2026-11-11
+
+- **The look pass.** One look for controls, without changing how anything works:
+  - **Plain buttons are flat text:** no border or fill, a faint fill on hover, and "on" is the accent colour with a thin accent underline. Fields and selects get a faint fill and an underline. One stylesheet (`src/ui/kit/controls.css`) is the base; the option panels in the Instrument and Sample views no longer carry their own grey button styles.
+  - **State colours are tokens:** `--rec` (red), `--warn` (amber), `--info` (blue) and `--on-state` (text on those fills) replace 79 hardcoded colours, so themes can restyle them.
+  - **One slider drag:** parameter bars and mixer faders share `src/ui/kit/slider.js` (jump on press, drag, double-click reset).
+
 ## 683 · 2026-11-11
 
 - **The new frame (the `ui-frame` branch is now master).** One frame for every view:

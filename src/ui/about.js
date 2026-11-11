@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['684', ['The look pass: plain buttons are flat text (accent colour and underline when on), fields have a faint fill, state colours (record red, warning amber, info blue) are theme tokens, and parameter bars and mixer faders share one slider drag.']],
   ['683', ['The new frame: F1 Song, F2 Pattern, F3 Instrument, F4 Sample (Song opens first; node help is Shift+F1). A collapsible browser down the left (patterns, machines, samples, with the options of the view under the list), the mixer docked along the bottom of every view, and pinned floating parameter panels that can pop out into their own window.']],
   ['682', ['Fix: npm test failed on Windows (a file path built from a URL); test only, the app is unchanged']],
   ['681', ['Fix: the graph view redraws at the new pixel density after a page zoom or a move to another screen, and its text sits on whole pixels (it was soft)']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['677', ['Fix: the playhead and loop lines in the sequence editor stop at the song overview instead of running over it']],
   ['676', ['Fix: a Cardinal machine sleeps when it is quiet (it kept running at about 23 % CPU after the song was paused)']],
   ['675', ['The opening song is the newest Plethora']],
-  ['674', ['Fix: Sympathetic strings has a DC blocker in each string, so an offset in the input no longer piles up in them']],
                     ];
