@@ -1,0 +1,22 @@
+/* The basic controls, one definition for the whole interface (the minimal look: thin lines, text, dots; no outlined boxes).
+   Every rule is wrapped in :where() so it has no weight of its own: an area that needs something different says so with an
+   ordinary rule and wins, and the aim is for those exceptions to shrink. Colours come only from the tokens in themes.css.
+
+   button        flat text. A faint fill under the pointer; "on" (aria-pressed, .on, .active) is the accent colour with a
+                 thin accent line under it, the same mark the browser's tabs use
+   field/select  a faint fill with one hairline underneath
+   checkbox      the system one, in the accent colour                                                                    */
+
+:where(button) {
+  font: inherit; color: inherit; background: transparent; border: 0; border-radius: 0; padding: 0 var(--space-3); cursor: pointer;
+}
+:where(button:hover:not(:disabled)) { background: color-mix(in srgb, var(--fg) 10%, transparent); }
+:where(button:disabled) { opacity: .4; cursor: default; }
+:where(button[aria-pressed="true"], button[aria-selected="true"], button.on, button.active) { color: var(--accent); box-shadow: inset 0 calc(-1 * var(--line-w-strong)) 0 var(--accent); }
+:where(button:focus-visible, select:focus-visible, input:focus-visible, textarea:focus-visible) { outline: var(--line-w) solid var(--accent); outline-offset: -1px; }
+
+:where(select, input:not([type=range]):not([type=checkbox]):not([type=radio]):not([type=file]):not([type=color]), textarea) {
+  font: inherit; color: inherit; background: color-mix(in srgb, var(--fg) 6%, transparent); border: 0; border-radius: 0;
+  border-bottom: var(--line-w) solid color-mix(in srgb, var(--fg) 40%, transparent); padding: 0 var(--space-3);
+}
+:where(input[type=checkbox], input[type=radio], input[type=range]) { accent-color: var(--accent); }

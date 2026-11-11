@@ -14,6 +14,7 @@
   --accent: hsl(210 70% 55%); --cc: light-dark(#2a5db0, #7fb0ff);
   --btn: var(--field); --line: currentColor; --glow: transparent; --radius: 0;
   --space-1: 2px; --space-2: 4px; --space-3: 8px; --space-4: 12px; --space-5: 16px;
+  --rec: #d03040;   /* the record colour, the one red in the interface for "this is live" */
   --line-w: 1px; --line-w-strong: 2px;
   --font-s: 11px; --font-m: 13px; --font-l: 15px;
 }
@@ -93,14 +94,8 @@ html[data-theme="amber"] { --pat-hue: 38; --pat-spread: .25; --pat-ds: 5%; --pat
 html[data-theme="phosphor"] { --pat-hue: 140; --pat-spread: .25; --pat-dl: -27%; --pat-am: 1.5; }
 html[data-theme="synthwave"] { --pat-hue: 285; --pat-spread: .7; --pat-ds: -5%; --pat-dl: -15%; --pat-am: 1.5; }
 
-/* Everything that is not the plain system look gets styled controls (the system ones ignore these colours). */
-html[data-theme]:not([data-theme="system"]) :is(select, input:not([type=range]):not([type=checkbox]):not([type=radio]):not([type=file]), textarea) {
-  background: var(--field); color: var(--fg); border: 1px solid var(--line); border-radius: var(--radius); font-family: inherit;
-}
-html[data-theme]:not([data-theme="system"]) button { background: var(--btn); color: var(--fg); border: 1px solid var(--line); border-radius: var(--radius); font-family: inherit; }
-html[data-theme]:not([data-theme="system"]) button:hover:not(:disabled) { border-color: var(--hi); }
-html[data-theme]:not([data-theme="system"]) button:disabled { opacity: .45; }
-html[data-theme]:not([data-theme="system"]) :is(button.active, #tabs button.active) { box-shadow: 0 0 8px var(--glow); }
-html[data-theme]:not([data-theme="system"]) :is(input, select, button):focus-visible { outline: 1px solid var(--hi); box-shadow: 0 0 8px var(--glow); }
+/* The look of buttons, fields and selects is src/ui/kit/controls.css, the same in every theme (the system theme included); a theme only
+   chooses the colours through the tokens. What stays here: the glow of the active tab, and a field inside a .field box. */
+html[data-theme]:not([data-theme="system"]) :is(button.active, #tabs button.active) { box-shadow: 0 0 8px var(--glow), inset 0 calc(-1 * var(--line-w-strong)) 0 var(--accent); }
 html[data-theme]:not([data-theme="system"]) .field { border-color: var(--line); border-radius: var(--radius); }
 html[data-theme]:not([data-theme="system"]) .field input { border: 0; background: transparent; }

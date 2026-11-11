@@ -22,6 +22,7 @@
     }
   </script>
   <link rel="stylesheet" href="themes.css">
+  <link rel="stylesheet" href="src/ui/kit/controls.css">
   <title>Wax</title>
   <link rel="icon" href="icon.ico" sizes="any">
   <link rel="icon" type="image/png" href="icon.png">
@@ -101,11 +102,11 @@
     #smp .sl-seg::after { left: 1.7ch; width: .35ch; }
     #smp .sl-end::before { left: .1ch; width: 1.3ch; clip-path: polygon(0 0, 100% 50%, 0 100%); }   /* play on to the end */
     #smp .sl-end::after { left: 1.4ch; width: 1.3ch; clip-path: polygon(0 0, 100% 50%, 0 100%); }
-    #smp .sf, #smp-list .sf { background: rgba(128, 128, 128, .22); }
+    #smp .sf, #smp-list .sf { background: color-mix(in srgb, var(--fg) 8%, transparent); }   /* a field cell: the same faint fill as any field */
     #smp .sdim, #smp-list .sdim { opacity: .45; }
-    #smp .sbtn, #smp-list .sbtn { background: rgba(128, 128, 128, .22); cursor: pointer; }
-    #smp .sbtn:hover, #smp-list .sbtn:hover { background: rgba(128, 128, 128, .42); }
-    #smp .sbtn.load, #smp-list .sbtn.load { background: color-mix(in srgb, var(--hi) 35%, transparent); }
+    #smp .sbtn, #smp-list .sbtn { cursor: pointer; }   /* a button in the text screen: flat text, like every button */
+    #smp .sbtn:hover, #smp-list .sbtn:hover { background: color-mix(in srgb, var(--fg) 10%, transparent); }
+    #smp .sbtn.load, #smp-list .sbtn.load { color: var(--accent); }
     #smp .sf.on, #smp-list .sf.on { background: var(--hi); color: var(--hi-fg); }
     #smp .sf.ed, #smp-list .sf.ed { outline: 1px solid currentColor; }
     #smp .sl { display: inline-block; width: 24ch; height: 1em; border: 1px solid; box-sizing: border-box; vertical-align: -.15em; opacity: .55; }
@@ -857,7 +858,7 @@
     #inst-side { border-right: 1px solid color-mix(in srgb, currentColor 25%, transparent); padding-right: .75rem; min-height: 60vh; }
     /* retroslate: the look of the sample screen and the Instruments tab's left panel: one flat panel, text-like controls, a brighter list and fields */
     #inst-side { border-right: 0; padding: 0; min-height: 60vh; line-height: 1.35; display: grid; gap: .8rem; align-content: start; }
-    #inst-side .rs-panel { background: rgba(128, 128, 128, .22); padding: 0 0 .6rem; }
+    #inst-side .rs-panel { padding: 0 0 .6rem; }   /* sections are told apart by their headings, not by a grey ground */
     #inst-side h2 { opacity: 1; margin: .7rem 0 0; padding: 0 .6ch; }
     #inst-side .rs-panel > *, #inst-side .manage, #inst-side .new { padding-left: .6ch; padding-right: .6ch; box-sizing: border-box; }
     /* the GenExpr code panel */
@@ -907,12 +908,9 @@
     select option, select optgroup { background-color: color-mix(in srgb, var(--bg) 78%, #000); color: var(--fg); }
     select optgroup { color: color-mix(in srgb, var(--fg) 62%, var(--bg)); font-weight: 600; }
     select optgroup option { font-weight: 400; color: var(--fg); }
-    #inst-side button, #inst-side select, #inst-side input { font: inherit; border: 0; border-radius: 0; background: rgba(128, 128, 128, .28); color: inherit; padding: 0 .6ch; height: auto; box-shadow: none; }
-    #inst-side button:hover:not(:disabled) { background: var(--hi); color: var(--hi-fg); }
     #inst-side input::placeholder { color: inherit; opacity: .55; }
-    #inst-side input, #inst-side select { background: rgba(255, 255, 255, .34); }
     #inst-side .help { opacity: .7; padding: 0 .6ch; }
-    #inst-side #inst-list { margin: 0 .6ch; padding: 1px 0; background: rgba(255, 255, 255, .34); border: 1px solid rgba(128, 128, 128, .28); }
+    #inst-side #inst-list { margin: 0 .6ch; padding: 1px 0; }
     #inst-side #inst-list button { background: transparent; display: block; width: 100%; padding: 0 .6ch; }
     #inst-side #inst-list button:hover:not(:disabled) { background: color-mix(in srgb, currentColor 12%, transparent); color: inherit; }   /* a quiet tint: the bright highlight is hard to read on the light themes */
     #inst-side #inst-list button.active { background: color-mix(in srgb, currentColor 22%, transparent); }
@@ -959,9 +957,6 @@
     .intview-box { flex: 1; min-width: 0; text-align: center; font: 600 1.1rem var(--mono, monospace); }
     .intview-btn { width: 2.4rem; font: 600 1.2rem var(--mono, monospace); cursor: pointer; }
     #patch-tools .prow.presets input { grid-column: 1; width: 100%; min-width: 0; box-sizing: border-box; }
-    #inst-head button, #inst-head select, #inst-head input { font: inherit; border: 0; border-radius: 0; background: rgba(128, 128, 128, .28); color: inherit; padding: 0 .6ch; box-shadow: none; }
-    #inst-head input, #inst-head select { background: rgba(255, 255, 255, .34); }
-    #inst-head button:hover:not(:disabled) { background: var(--hi); color: var(--hi-fg); }
     #preset-section { grid-template-columns: repeat(4, auto); gap: .25rem .3rem; }
     #preset-section #preset-name { grid-column: 1 / -1; }
     #preset-section button { padding: 0 .3ch; font-size: 12px; justify-self: stretch; }
@@ -1094,20 +1089,13 @@
     #shader-guide-body pre { margin: .4rem 0 .1rem; padding: .5rem .7rem; overflow-x: auto; font: 12px/1.45 ui-monospace, Consolas, monospace; background: var(--panel); border: 1px solid color-mix(in srgb, var(--fg) 20%, transparent); }
     #shader-guide-body code { font: 12px ui-monospace, Consolas, monospace; }
     #shader-guide-body .try { margin: 0 0 .5rem; font-size: 11px; }
-    #smp-slate { margin: .5rem 0 1.2rem; max-width: 120ch; padding: .45rem .8rem .5rem; background: var(--panel); font: 13px/1.5 ui-monospace, Consolas, monospace; }
-    #smp-slate button, #smp-slate select { font: inherit; color: inherit; background: rgba(128, 128, 128, .22); border: 0; border-radius: 0; padding: 0 .8ch; cursor: pointer; }
-    #smp-slate #rec-take { background: #8a2f33; color: #fff; }
-    #smp-slate #rec-take::before { content: '● '; color: #ff6a6a; }
-    #smp-slate #rec-take:hover:not(:disabled) { background: #a63a3f; }
-    #smp-slate #rec-take.live { background: #d03040; animation: rec-pulse 1s ease-in-out infinite; }
-    #smp-slate #rec-take.live::before { content: '■ '; color: #fff; }
-    @keyframes rec-pulse { 50% { background: #a02030; } }
-    #smp-slate button:hover:not(:disabled) { background: rgba(128, 128, 128, .38); }
-    #smp-slate button:disabled, #smp-slate select:disabled { opacity: .4; cursor: default; }
-    #smp-slate button:focus-visible, #smp-slate select:focus-visible, #smp-slate input:focus-visible { outline: 1px solid var(--hi); }
-    #smp-slate input[type=checkbox] { accent-color: var(--hi); vertical-align: -.1em; }
+    #smp-slate { margin: .5rem 0 1.2rem; max-width: 120ch; padding: .45rem .8rem .5rem; font: 13px/1.5 ui-monospace, Consolas, monospace; }
+    #smp-slate #rec-take { color: var(--rec); }   /* the record colour is a token, as everywhere */
+    #smp-slate #rec-take::before { content: '● '; }
+    #smp-slate #rec-take.live { animation: rec-pulse 1s ease-in-out infinite; }
+    #smp-slate #rec-take.live::before { content: '■ '; }
+    @keyframes rec-pulse { 50% { opacity: .45; } }
     .sl-tabs { display: flex; flex-wrap: wrap; gap: .2rem 1ch; align-items: center; margin-bottom: .45rem; }
-    #smp-slate .sl-tabs button[aria-selected=true] { background: var(--hi); color: var(--hi-fg); }
     .sl-tabs #proj-status { margin-left: auto; }
     .sl-kv { display: grid; grid-template-columns: 8ch 1fr; gap: .15rem 0; align-items: center; min-height: 6em; }
     .sl-grp { display: inline-flex; flex-wrap: wrap; gap: .2rem 1ch; align-items: center; }
