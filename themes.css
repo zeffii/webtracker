@@ -5,12 +5,17 @@
      --accent  wires, highlights in the graph  --cc      the command column's blue
      --field   the inside of inputs, --btn the face of buttons           --line    borders on buttons and inputs
      --glow    a soft halo on the active tab and focused things (a colour, or transparent)
-     --radius  corner rounding of buttons and inputs */
+     --radius  corner rounding of buttons and inputs
+   Sizes shared by the whole interface (see src/ui/kit): --space-1..5 gaps and padding, --line-w the hairline every divider
+   and edge uses, --line-w-strong a marked edge (the mixer handle, the selected thing), --font-s/m/l the three type sizes. */
 :root {
   --bg: Canvas; --fg: CanvasText; --hi: Highlight; --hi-fg: HighlightText; --field: Field;
   --panel: light-dark(#d9dae0, Canvas);
   --accent: hsl(210 70% 55%); --cc: light-dark(#2a5db0, #7fb0ff);
   --btn: var(--field); --line: currentColor; --glow: transparent; --radius: 0;
+  --space-1: 2px; --space-2: 4px; --space-3: 8px; --space-4: 12px; --space-5: 16px;
+  --line-w: 1px; --line-w-strong: 2px;
+  --font-s: 11px; --font-m: 13px; --font-l: 15px;
 }
 html[data-theme="dark"],
 html[data-code-theme="dark"] :is(.code, .md pre) {

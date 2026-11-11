@@ -73,6 +73,7 @@ import { createSequenceView } from './seq/seqview.js';
 import { attachGrip } from './ui/grip.js';
 import { createTrackerView } from './seq/view.js';
 import { createTabs } from './ui/tabs.js';
+import { createKeymap } from './ui/kit/keys.js';
 import { createMixer } from './ui/mixer.js';
 import { createSaveFolder } from './project/savefolder.js';
 import { createScriptRunner } from './script/client.js';
@@ -200,59 +201,66 @@ const tabs = createTabs({
     { id: 'info', key: 'F10', el: $('pane-info'), button: $('tab-info'), focus: { focus: () => (!$('info').hidden ? $('info') : $('info-view')).focus() } },
   ],
 });
-document.addEventListener('keydown', e => {
-  if ((e.ctrlKey || e.metaKey) && !e.altKey && (e.code === 'KeyZ' || e.code === 'KeyY') && tabs.active === 'instruments' && !e.target.matches?.('input:not([type=range]):not([type=checkbox]), textarea, select')) {   // undo and redo in the graph editor
-    e.preventDefault(); (e.code === 'KeyY' || e.shiftKey ? patcher.redo() : patcher.undo()); return;
-  }
-  if (e.key === 'F1' && !e.ctrlKey && !e.altKey && !e.metaKey && !e.shiftKey && tabs.active === 'instruments' && (!nodeHelp.hidden ? (hideHelp(), true) : patcher.helpSelected())) { e.preventDefault(); return; }   // F1 on the instrument screen shows or hides the help of the selected node
-  if (e.ctrlKey && e.altKey && !e.metaKey && !e.shiftKey && e.code === 'KeyD') { e.preventDefault(); toggleDock(); return; }
-  if (e.key === 'F2' && e.ctrlKey && !e.altKey && !e.metaKey && !e.shiftKey && tabs.active === 'instruments' && project) { e.preventDefault(); renameInstrumentBox(); return; }   // rename the selected instrument
-  if (tabs.handleKey(e)) return;
-  const here = () => (tabs.active === 'arrange' ? seqView : view).tick;   // the row the cursor is on
-  // Ctrl+Shift+R arms and disarms MIDI recording; Alt+V switches MIDI velocity on and off.
-  if (e.ctrlKey && e.altKey && !e.shiftKey && !e.metaKey && e.code === 'KeyF') { e.preventDefault(); const on = perf.toggle(); $('status').textContent = on ? 'Frame timing on (Ctrl+Alt+F to close).' : 'Frame timing off.'; return; }
-  if (e.ctrlKey && e.altKey && !e.shiftKey && !e.metaKey && e.code === 'KeyM') { e.preventDefault(); toggleMeters(); return; }
-  if (e.ctrlKey && e.altKey && !e.shiftKey && !e.metaKey && e.code === 'KeyV') { e.preventDefault(); toggleViz(); return; }
-  if (e.ctrlKey && e.altKey && !e.shiftKey && !e.metaKey && e.code === 'KeyO') { e.preventDefault(); toggleScope(); return; }
-  if (e.ctrlKey && e.altKey && !e.shiftKey && !e.metaKey && e.code === 'KeyH') { e.preventDefault(); toggleHelp(); return; }
-  if (e.ctrlKey && e.shiftKey && !e.altKey && !e.metaKey && e.code === 'KeyR' && project) { e.preventDefault(); setRecording(!recording); return; }
-  if (e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey && e.code === 'KeyV' && project) {
-    e.preventDefault();
-    const on = !config.get('midiVelocity'); config.set('midiVelocity', on); midiSay(on ? 'MIDI velocity on: key velocity is played and written.' : 'MIDI velocity off: the default volume, nothing written.');
-    return;
-  }
-  // Alt+Up / Alt+Down: the song's tempo, 1 bpm at a time (10 with Shift).
-  if (e.altKey && !e.ctrlKey && !e.metaKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown') && project) {
-    e.preventDefault();
-    const bpm = Math.max(20, Math.min(400, project.song.bpm + (e.key === 'ArrowUp' ? 1 : -1) * (e.shiftKey ? 10 : 1)));
-    if (bpm !== project.song.bpm) { project.song.bpm = bpm; $('bpm').value = bpm; songChanged(); }
-    $('status').textContent = `Tempo ${bpm} bpm.`;
-    return;
-  }
-  // Alt+S: solo the lane under the cursor (the other lanes let go and play nothing); again to bring everyone back.
-  if (e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey && e.code === 'KeyS' && project && (tabs.active === 'arrange' || tabs.active === 'patterns')) {
-    e.preventDefault();
-    const li = seqView.lane, on = project.editor.solo(li), name = project.lanes[li]?.id;
-    const text = on === null ? 'The master lane cannot be soloed.' : on ? `${name} solo.` : project.lanes.some(l => l.solo) ? `${name} unsoloed.` : 'Solo off: every lane plays.';
-    seqView.say(text); view.say(text);
-    return;
-  }
-  // Alt+M: silence the lane under the cursor whatever its marks say (the pair of Alt+S); again to bring it back.
-  if (e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey && e.code === 'KeyM' && project && (tabs.active === 'arrange' || tabs.active === 'patterns')) {
-    e.preventDefault();
-    const li = seqView.lane, name = project.lanes[li]?.id, on = project.editor.silence(li);
-    const text = on ? `${name} muted.` : `${name} is back on.`;
-    seqView.say(text); view.say(text);
-    seqView.draw?.(); view.draw?.();
-    return;
-  }
-  const fKeys = { F5: () => setPlaying(true), F6: () => setPlaying(true, here()), F7: () => engine.playRow(here()), F8: () => setPlaying(false), F9: toggleFollow, Pause: togglePause };
-  if (!e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey && fKeys[e.key]) {
-    e.preventDefault();
-    if (started || e.key === 'F9') fKeys[e.key]();
-    return;
-  }
-});
+// The app's global shortcuts live in one table (src/ui/kit/keys.js). A few are added further down, next to the thing they drive.
+const keys = createKeymap();
+keys.attach(document);
+keys.otherwise(e => tabs.handleKey(e));   // the F-keys and combos that switch tabs
+const inField = e => e.target.matches?.('input:not([type=range]):not([type=checkbox]), textarea, select');
+const onLaneScreen = () => project && (tabs.active === 'arrange' || tabs.active === 'patterns');
+const here = () => (tabs.active === 'arrange' ? seqView : view).tick;   // the row the cursor is on
+
+// The graph editor: undo and redo (not while typing in a field), the node help, rename the selected instrument
+const onGraph = e => tabs.active === 'instruments' && !inField(e);
+keys.bind('Mod+KeyZ', () => patcher.undo(), { when: onGraph, name: 'Undo (graph)' });
+keys.bind('Mod+Shift+KeyZ', () => patcher.redo(), { when: onGraph, name: 'Redo (graph)' });
+keys.bind('Mod+KeyY', () => patcher.redo(), { when: onGraph, name: 'Redo (graph)' });
+keys.bind('Mod+Shift+KeyY', () => patcher.redo(), { when: onGraph, name: 'Redo (graph)' });
+keys.bind('F1', () => (!nodeHelp.hidden ? (hideHelp(), true) : patcher.helpSelected()) || false, { when: () => tabs.active === 'instruments', name: 'Help for the selected node' });
+keys.bind('Ctrl+F2', () => renameInstrumentBox(), { when: () => tabs.active === 'instruments' && project, name: 'Rename the selected instrument' });
+
+// Windows and panels
+keys.bind('Ctrl+Alt+KeyD', () => toggleDock(), { name: 'Dock' });
+keys.bind('Ctrl+Alt+KeyF', () => { const on = perf.toggle(); $('status').textContent = on ? 'Frame timing on (Ctrl+Alt+F to close).' : 'Frame timing off.'; }, { name: 'Frame timing' });
+keys.bind('Ctrl+Alt+KeyM', () => toggleMeters(), { name: 'Meters' });
+keys.bind('Ctrl+Alt+KeyV', () => toggleViz(), { name: 'Visuals' });
+keys.bind('Ctrl+Alt+KeyO', () => toggleScope(), { name: 'Scope' });
+keys.bind('Ctrl+Alt+KeyH', () => toggleHelp(), { name: 'Help' });
+
+// Recording and MIDI
+keys.bind('Ctrl+Shift+KeyR', () => setRecording(!recording), { when: () => project, name: 'Arm or disarm MIDI recording' });
+keys.bind('Alt+KeyV', () => {
+  const on = !config.get('midiVelocity'); config.set('midiVelocity', on); midiSay(on ? 'MIDI velocity on: key velocity is played and written.' : 'MIDI velocity off: the default volume, nothing written.');
+}, { when: () => project, name: 'MIDI velocity on and off' });
+
+// Alt+Up / Alt+Down: the song's tempo, 1 bpm at a time (10 with Shift).
+const nudgeTempo = by => () => {
+  const bpm = Math.max(20, Math.min(400, project.song.bpm + by));
+  if (bpm !== project.song.bpm) { project.song.bpm = bpm; $('bpm').value = bpm; songChanged(); }
+  $('status').textContent = `Tempo ${bpm} bpm.`;
+};
+keys.bind('Alt+ArrowUp', nudgeTempo(1), { when: () => project, name: 'Tempo up 1 bpm' });
+keys.bind('Alt+ArrowDown', nudgeTempo(-1), { when: () => project, name: 'Tempo down 1 bpm' });
+keys.bind('Alt+Shift+ArrowUp', nudgeTempo(10), { when: () => project, name: 'Tempo up 10 bpm' });
+keys.bind('Alt+Shift+ArrowDown', nudgeTempo(-10), { when: () => project, name: 'Tempo down 10 bpm' });
+
+// Alt+S: solo the lane under the cursor (the other lanes let go and play nothing); again to bring everyone back.
+keys.bind('Alt+KeyS', () => {
+  const li = seqView.lane, on = project.editor.solo(li), name = project.lanes[li]?.id;
+  const text = on === null ? 'The master lane cannot be soloed.' : on ? `${name} solo.` : project.lanes.some(l => l.solo) ? `${name} unsoloed.` : 'Solo off: every lane plays.';
+  seqView.say(text); view.say(text);
+}, { when: onLaneScreen, name: 'Solo the lane under the cursor' });
+// Alt+M: silence the lane under the cursor whatever its marks say (the pair of Alt+S); again to bring it back.
+keys.bind('Alt+KeyM', () => {
+  const li = seqView.lane, name = project.lanes[li]?.id, on = project.editor.silence(li);
+  const text = on ? `${name} muted.` : `${name} is back on.`;
+  seqView.say(text); view.say(text);
+  seqView.draw?.(); view.draw?.();
+}, { when: onLaneScreen, name: 'Mute the lane under the cursor' });
+
+// Transport: F5 play song, F6 play from the cursor, F7 play the row, F8 stop, F9 follow, Pause
+const transport = { F5: () => setPlaying(true), F6: () => setPlaying(true, here()), F7: () => engine.playRow(here()), F8: () => setPlaying(false), F9: () => toggleFollow(), Pause: () => togglePause() };
+const transportNames = { F5: 'Play the song', F6: 'Play from the cursor', F7: 'Play the row', F8: 'Stop', F9: 'Follow mode', Pause: 'Pause' };
+for (const [key, run] of Object.entries(transport)) keys.bind(key, () => { if (started || key === 'F9') run(); }, { name: transportNames[key] });
 
 // Song info: a plain text page of notes and greetings, kept in the project.
 const infoStatus = () => { const t = $('info').value; $('info-status').textContent = `${t ? t.split('\n').length : 0} lines · ${t.length} characters`; };
@@ -454,12 +462,10 @@ const scratch = createScratch({
 });
 
 // Ctrl+Alt+R in the pattern editor: run the whole script on the pattern there.
-document.addEventListener('keydown', e => {
-  if (!(e.ctrlKey && e.altKey && !e.metaKey && !e.shiftKey && e.code === 'KeyR') || tabs.active !== 'patterns') return;
-  e.preventDefault();
+keys.bind('Ctrl+Alt+KeyR', () => {
   view.say('Running the script...');
   scriptScreen.run().then(text => view.say(text));
-});
+}, { when: () => tabs.active === 'patterns', name: 'Run the script on the pattern' });
 
 // ---- the floating parameter window ----
 // The exposed sliders of the cursor lane's machine, over the pattern editor or the arrangement; the graph's own dock covers the rest.
@@ -500,10 +506,7 @@ const setFloat = on => {
   });
   $('float-toggle').addEventListener('click', e => { setFloat(!floatWanted); e.currentTarget.blur(); });
   $('float-close').addEventListener('click', () => setFloat(false));
-  document.addEventListener('keydown', e => {
-    if (!(e.ctrlKey && e.altKey && !e.metaKey && !e.shiftKey && e.code === 'KeyP')) return;
-    e.preventDefault(); setFloat(!floatWanted);
-  });
+  keys.bind('Ctrl+Alt+KeyP', () => setFloat(!floatWanted), { name: 'Floating parameter window' });
 }
 
 // ---- MIDI keyboard ----
@@ -1885,7 +1888,7 @@ const streams = createStreams({
   sampleRate: () => engine.ctx?.sampleRate ?? 44100, skip: [MASTER], silent: [SHADER, GRAPH],
 });
 engine.onStreams = rows => streams.update(rows);
-document.addEventListener('keydown', e => { if (e.ctrlKey && e.altKey && !e.shiftKey && !e.metaKey && e.code === 'KeyE') { e.preventDefault(); streams.toggle(); } });
+keys.bind('Ctrl+Alt+KeyE', () => streams.toggle(), { name: 'Streams' });
 
 // ---- the Node Sequencer (nodeseq/editor.js, audio/nodeseq.js): a graph of event and control wires that runs beside the pattern lanes ----
 const nsSkip = new Set([MASTER, SHADER, GRAPH]);
@@ -2508,7 +2511,7 @@ $('pname').addEventListener('change', () => {
   checkDirty();
 });
 // Ctrl+S: Save as, from anywhere (the capture phase, so even a number field that swallows keys lets it through)
-document.addEventListener('keydown', e => { if ((e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey && e.code === 'KeyS') { e.preventDefault(); e.stopPropagation(); if (project) saveProject(); } }, true);
+keys.bind('Mod+KeyS', () => { if (project) saveProject(); }, { capture: true, stop: true, name: 'Save as' });
 $('pname').addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === 'Escape') $('pname').blur(); });
 
 // Save as (File, Save and Ctrl+S): the browser's own save dialog, for a name and a folder, where it has one;
@@ -2912,7 +2915,7 @@ $('start').addEventListener('click', async () => {
 
 // Ctrl+W closes the tab in a normal browser window and no page can stop that, so the page asks before it goes
 // (the "Leave site?" box); where the key does reach the page (installed app, fullscreen) it is swallowed.
-window.addEventListener('keydown', e => { if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && e.code === 'KeyW') e.preventDefault(); }, true);
+keys.bind('Mod+KeyW', () => {}, { capture: true, name: 'Close the tab (swallowed where the page gets the key)' });
 let reloading = false;   // File, Reload app: leaving on purpose, so no "Leave site?" question
 window.addEventListener('beforeunload', e => { if (reloading) return; e.preventDefault(); e.returnValue = ''; });
 // File, Reload app: keep a snapshot of the song, drop the service worker and the caches so the newest code is fetched, and reload;

@@ -39,6 +39,7 @@ See `ui-frame-layout.png`. One frame for every view; only the centre changes.
 ## The kit (`src/ui/kit/`, one small file per part)
 
 - `tokens` spacing, line width, type sizes, canvas pixel density helper
+- `keys` chords and the table of global shortcuts (can be listed for a shortcut page)
 - `focus` exactly one keyboard owner at a time; layers: popup, then view, then global
 - `popups` one stack for menus, dialogs, tooltips (0.5 s hover); one Escape rule
 - `splitter` drag to resize, collapse threshold, remembered size
@@ -48,9 +49,13 @@ See `ui-frame-layout.png`. One frame for every view; only the centre changes.
 
 ## Steps (each leaves the app working and the tests green)
 
-1. Tokens: add the new ones, no visual change.
-2. `focus`: wrap the existing listeners behind it, then remove them view by view.
-3. `popups`: move the ten popups over, one at a time.
+1. Tokens: add the new ones, no visual change. (done: `themes.css`)
+2. `keys`: chords and one table of the global shortcuts, replacing the scattered
+   `e.ctrlKey && e.altKey && ...` listeners in `main.js`. (done: `src/ui/kit/keys.js`)
+3. `popups` and `focus` together: one stack of popups, and the focus owner that decides who
+   gets a key (popup first, then the view, then the shortcut table). They are built
+   together because the popups are the focus owner's first users; moving the ten popups
+   over one at a time.
 4. `splitter` and the frame shell: mixer docked first (Sample screen, the smallest).
 5. `slider`, `knob` and `floating`; the parameter panels.
 6. Move the views over: Sample, Instrument, Pattern, Arrange.

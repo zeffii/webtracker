@@ -11077,4 +11077,44 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   console.log('ok: song overview');
 }
 
+// ---- ui kit: key chords and the shortcut table (src/ui/kit/keys.js) ----
+{
+  const { parseChord, matches, createKeymap } = await import('../src/ui/kit/keys.js');
+  const ev = (o = {}) => ({ key: '', code: '', ctrlKey: false, altKey: false, shiftKey: false, metaKey: false, prevented: false, stopped: false, preventDefault() { this.prevented = true; }, stopPropagation() { this.stopped = true; }, ...o });
+  assert.throws(() => parseChord('Hyper+KeyD'), /Unknown modifier/);
+  assert.equal(matches(ev({ ctrlKey: true, altKey: true, code: 'KeyD' }), 'Ctrl+Alt+KeyD'), true, 'both modifiers and the physical key');
+  assert.equal(matches(ev({ ctrlKey: true, altKey: true, shiftKey: true, code: 'KeyD' }), 'Ctrl+Alt+KeyD'), false, 'modifiers match exactly: an extra Shift is not the chord');
+  assert.equal(matches(ev({ altKey: true, code: 'KeyD' }), 'Ctrl+Alt+KeyD'), false, 'a missing modifier is not the chord');
+  assert.equal(matches(ev({ key: 'F5', code: 'F5' }), 'F5'), true); assert.equal(matches(ev({ key: 'F5', code: 'F5', shiftKey: true }), 'F5'), false);
+  assert.equal(matches(ev({ key: 'ArrowUp', code: 'ArrowUp', altKey: true }), 'Alt+ArrowUp'), true);
+  assert.equal(matches(ev({ ctrlKey: true, code: 'KeyS' }), 'Mod+KeyS'), true, 'Mod is Ctrl...');
+  assert.equal(matches(ev({ metaKey: true, code: 'KeyS' }), 'Mod+KeyS'), true, '...or Cmd');
+  assert.equal(matches(ev({ ctrlKey: true, metaKey: true, code: 'KeyS' }), 'Mod+KeyS'), true, 'both held still count as Mod');
+  assert.equal(matches(ev({ code: 'KeyS' }), 'Mod+KeyS'), false);
+  assert.equal(matches(ev({ ctrlKey: true, code: 'KeyS' }), 'Ctrl+KeyS'), true); assert.equal(matches(ev({ metaKey: true, code: 'KeyS' }), 'Ctrl+KeyS'), false, 'Ctrl is not Cmd');
+
+  const keys = createKeymap(), log = [];
+  let allowed = true;
+  keys.bind('Alt+KeyS', () => log.push('solo'), { when: () => allowed, name: 'Solo' });
+  keys.bind('Alt+KeyS', () => log.push('second'), { name: 'Second binding of the same chord' });
+  keys.bind('F1', () => { log.push('help'); return false; });
+  keys.bind('Mod+KeyS', () => log.push('save'), { capture: true, stop: true });
+  keys.otherwise(e => { log.push(`other ${e.key}`); return e.key === 'F2'; });
+  let e = ev({ altKey: true, code: 'KeyS' });
+  assert.equal(keys.handle(e), true); assert.deepEqual(log.splice(0), ['solo']); assert.equal(e.prevented, true, 'a handled key is prevented');
+  allowed = false; e = ev({ altKey: true, code: 'KeyS' });
+  assert.equal(keys.handle(e), true); assert.deepEqual(log.splice(0), ['second'], 'when() false: the next binding of the chord gets its turn');
+  e = ev({ key: 'F1', code: 'F1' });
+  assert.equal(keys.handle(e), false, 'run() returning false leaves the key alone'); assert.equal(e.prevented, false);
+  assert.deepEqual(log.splice(0), ['help', 'other F1'], '...and it goes on to the fallback');
+  e = ev({ key: 'F2', code: 'F2' }); assert.equal(keys.handle(e), true, 'the fallback can take a key (the tab keys)'); log.length = 0;
+  e = ev({ ctrlKey: true, code: 'KeyS' });
+  assert.equal(keys.handle(e, 'bubble'), false, 'a capture binding does not fire in the bubble phase'); log.length = 0;
+  assert.equal(keys.handle(e, 'capture'), true); assert.equal(e.stopped, true, 'stop: the key goes no further'); assert.deepEqual(log.splice(0), ['save']);
+  assert.deepEqual(keys.list().slice(0, 2), [{ chord: 'Alt+KeyS', name: 'Solo' }, { chord: 'Alt+KeyS', name: 'Second binding of the same chord' }], 'the table can be listed for a shortcut page');
+  const off = keys.bind('KeyQ', () => log.push('q')); off();
+  assert.equal(keys.handle(ev({ code: 'KeyQ' })), false, 'a binding can be removed');
+  console.log('ok: ui kit keys');
+}
+
 console.log('smoke test passed');
