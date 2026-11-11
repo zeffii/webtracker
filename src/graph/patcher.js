@@ -216,7 +216,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
   // The choice lives on the node as node.scope = { mode, size }; the samples arrive from the audio side.
   const scopeData = new Map();   // node id -> { l, r, sr }
   const cloudData = new Map();   // granular node id -> { head, t, sr, gain, grains: [{ at, step, len, shape, t }] }: its grains, as they started
-  const eyeRect = node => { const { w, h } = nodeBox(nodeTypes[node.type], node); return { x: node.x + w / 2 - 10, y: node.y + h + 3, w: 20, h: 14 }; };   // under the node, clear of its name
+  const eyeRect = node => { const { w } = nodeBox(nodeTypes[node.type], node); return { x: node.x + w / 2 + node.id.length * 3 + 3, y: node.y - 12, w: 20, h: 14 }; };   // after the node's name (6 px a letter, centred above the shape)
   const scopeRectOf = node => {
     const { w, h } = nodeBox(nodeTypes[node.type], node), b = scopeBox(node, w, h, node.scope.size, node.scope.mode);
     if (selected?.kind === 'node' && selected.id === node.id && nodeTypes[node.type].adsr?.length) {   // its envelope box is open: the scope sits beside it, level with its middle
@@ -1535,7 +1535,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
     const boxes = [];
     for (const node of desc().nodes) {
       const { w, h } = nodeBox(nodeTypes[node.type], node);
-      boxes.push({ x: node.x, y: node.y - 14, w, h: h + 14 + (nodeTypes[node.type].outputs.length ? 20 : 0) });   // the name above, the eye below
+      boxes.push({ x: node.x, y: node.y - 14, w, h: h + 14 });   // the name and the eye above
       if (node.scope) { const b = scopeBox(node, w, h, node.scope.size, node.scope.mode); boxes.push({ x: b.x, y: b.y, w: b.w ?? b.size, h: b.size }); }
     }
     const { dx, dy } = nudgeClear(boxes, { x: dk.left - cv.left, y: dk.top - cv.top, w: dk.width, h: dk.height }, { w: canvas.width, h: canvas.height });
@@ -1865,6 +1865,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
           if (d.samples && renamed in d.samples) { const { [renamed]: smp, ...rest } = d.samples; d.samples = nodeTypes[type]?.samples ? { ...rest, [now]: smp } : rest; }
         } else if (def().samples?.[now] && !nodeTypes[type]?.samples) { const { [now]: _gone, ...rest } = def().samples; def().samples = rest; }
         if (nodeTypes[type]?.samples && !def().samples?.[now] && getSampleIds().length) def().samples = { ...def().samples, [now]: getSampleIds()[0] };
+        pruneDef(def(), nodeTypes);   // exposed parameters and commands the new type does not have go
         selected = { kind: 'node', id: now };
         group.clear();
         say(`${id} is now a ${type}${renamed ? ` (${now})` : ''}.`);

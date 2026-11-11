@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['702', ['The scope eye sits after the node name; swapping a node to another type drops exposed parameters it no longer has.']],
   ['701', ['The ladder filter has a phase parameter for its LFO.']],
   ['700', ['Space on the Sample screen plays from the playhead.']],
   ['699', ['Sample screen: click the waveform to place the playhead; Ctrl+C / Ctrl+X / Ctrl+V copy, cut and paste at it (Ctrl+Shift+V pastes over), also between samples.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['695', ['DX7 randomise keeps the last five rolls: ◂ ▸ steps back and forward through them.']],
   ['694', ['The Sample screen has a Speed field: type a rate or step it with Left/Right (Shift 100, Ctrl 1000).']],
   ['693', ['The follow panel can pop out into a window of its own and keeps following the machine under the cursor; pop-out windows are no longer indented.']],
-  ['692', ['Pattern screen options under the browser list: follow, note preview, tint, hide empty columns, text size.']],
                     ];

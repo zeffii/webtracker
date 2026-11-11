@@ -2,6 +2,11 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 702 · 2026-11-11
+
+- **The eye sits after the node's name** instead of under the tile, so the area below a node stays free (for the parameter-port strip, and for wires).
+- **Swapping a node's type drops what no longer exists.** Exposed parameters and commands that point at a parameter the new type does not have are removed at once, as they already are when a node is deleted.
+
 ## 701 · 2026-11-11
 
 - **The ladder filter has a `phase` parameter.** It shifts the built-in LFO within its cycle (shown as a percentage of a turn): start a sweep at the top or the bottom, or offset one ladder's sweep against another's. At 0 nothing changes. It is the last parameter, so saved projects and pattern columns keep their meaning.
