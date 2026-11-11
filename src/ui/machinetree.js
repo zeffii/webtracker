@@ -11,6 +11,7 @@
 // buildMachineTree(items) turns the flat list [{ value, label, disabled }] the app already has into the nodes below, laid out by
 // MACHINE_TREE (instruments.js). A machine that the layout does not name is put in a group called "other", so none goes missing.
 //   node = { name, title?, value?, disabled?, children? }      (a node with children is a group; one with a value is a machine)
+import { popups } from './kit/popups.js';
 import { MACHINE_TREE } from '../instruments.js';
 
 export function buildMachineTree(items) {
@@ -99,7 +100,7 @@ export function showMachineTree(at, tree, { onPick, title = '', doc = document }
     els[at_]?.scrollIntoView?.({ block: 'nearest' });
   };
   const keepOn = row => { draw(); at_ = Math.max(0, rows.findIndex(r => r.path === row.path)); mark(); };   // redraw after a fold, staying on that row
-  const close = () => { menu.remove(); doc.removeEventListener('mousedown', away, true); doc.removeEventListener('keydown', keys, true); doc.removeEventListener('scroll', onScroll, true); if (closeNow === close) closeNow = null; };
+  const close = () => { menu.remove(); layer.release(); if (closeNow === close) closeNow = null; };
   const activate = () => {
     const row = rows[at_];
     if (!row) return;
@@ -109,13 +110,11 @@ export function showMachineTree(at, tree, { onPick, title = '', doc = document }
     close();
     onPick(row.node.value);
   };
-  const away = ev => { if (!menu.contains(ev.target)) close(); };
-  const onScroll = ev => { if (!menu.contains(ev.target)) close(); };
-  const keys = ev => {
-    if (ev.ctrlKey || ev.altKey || ev.metaKey) return;
+  // Arrows, Home/End, Enter, fold and unfold, type-to-jump. Returns true if it took the key. (Escape, a click elsewhere and a scroll are the popup stack's.)
+  const onKey = ev => {
+    if (ev.ctrlKey || ev.altKey || ev.metaKey) return false;
     const row = rows[at_];
-    if (ev.key === 'Escape') close();
-    else if (ev.key === 'ArrowDown') { at_ = (at_ + 1) % rows.length; mark(); }
+    if (ev.key === 'ArrowDown') { at_ = (at_ + 1) % rows.length; mark(); }
     else if (ev.key === 'ArrowUp') { at_ = (at_ - 1 + rows.length) % rows.length; mark(); }
     else if (ev.key === 'Home') { at_ = 0; mark(); }
     else if (ev.key === 'End') { at_ = rows.length - 1; mark(); }
@@ -131,8 +130,8 @@ export function showMachineTree(at, tree, { onPick, title = '', doc = document }
     } else if (ev.key.length === 1 && /[a-z0-9]/i.test(ev.key)) {   // type a letter: the next row that starts with it
       const k = ev.key.toLowerCase();
       for (let n = 1; n <= rows.length; n++) { const i = (at_ + n) % rows.length; if (rows[i].node.name.toLowerCase().startsWith(k)) { at_ = i; mark(); break; } }
-    } else return;
-    ev.preventDefault(); ev.stopPropagation();
+    } else return false;
+    return true;
   };
 
   doc.body.append(menu);
@@ -142,9 +141,7 @@ export function showMachineTree(at, tree, { onPick, title = '', doc = document }
   const w = menu.offsetWidth, h = menu.offsetHeight, vw = doc.documentElement.clientWidth, vh = doc.documentElement.clientHeight;
   menu.style.left = `${Math.max(0, Math.min(at.x, vw - w - 4))}px`;
   menu.style.top = `${Math.max(0, Math.min(at.y, vh - h - 4))}px`;
-  doc.addEventListener('mousedown', away, true);
-  doc.addEventListener('keydown', keys, true);
-  doc.addEventListener('scroll', onScroll, true);
+  const layer = popups.open({ name: 'machine menu', element: menu, close, onKey, closeOnScroll: true, doc });
   closeNow = close;
   return close;
 }
