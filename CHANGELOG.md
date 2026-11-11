@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 689 · 2026-11-11
+
+- **Compact node tiles are now the default** (Config, Graph: Node look; classic is still there). Existing saved settings keep whatever they had chosen.
+
 ## 688 · 2026-11-11
 
 - **Compact node tiles (Config, Graph: Node look).** An opt-in look for the instrument graph, off by default while you compare: tiles keep their shapes (rounded sources, boxes, the voices circle, the output cone) but are smaller and flat, with no outline until a node is chosen. A lone input or output has no label, left and right read L and R, a tile with no labels is only as wide as its picture, and the picture moves against the output socket when only the inputs are named. The arithmetic lives in `src/graph/tilelayout.js`.

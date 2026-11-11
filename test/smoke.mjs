@@ -1388,8 +1388,9 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   patcher.load({ instruments: defs });
   patcher.show('lead');
   const node = defs.lead.graph.nodes.find(n => n.id === 'sampler');
-  canvas.listeners.mousedown({ offsetX: node.x + 70, offsetY: node.y + 10, preventDefault() {} });
-  canvas.listeners.mouseup({ offsetX: node.x + 70, offsetY: node.y + 10 });
+  const inNode = node.x + nodeBox(NODE_TYPES.sampler, node).w / 2;   // the middle of the tile, whatever the node look makes its width
+  canvas.listeners.mousedown({ offsetX: inNode, offsetY: node.y + 10, preventDefault() {} });
+  canvas.listeners.mouseup({ offsetX: inNode, offsetY: node.y + 10 });
   const selects = []; walk(panel, e => { if (e.tag === 'select' && e.children.some(c => c.value === 'tick')) selects.push(e); });
   assert.equal(selects.length, 1);
   assert.equal(selects[0].value, 'pluck');

@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['689', ['Compact node tiles are the default now; Config, Graph: Node look brings the classic ones back.']],
   ['688', ['Compact node tiles, opt-in (Config, Graph: Node look): smaller and flatter, no labels on a lone input or output, L and R for left and right.']],
   ['687', ['The manual, first draft: ten chapters, read inside Wax (the book button in the left rail, or Ctrl+Alt+B) or printed as an A5 booklet.']],
   ['686', ['One look for every slider: a hairline, a faint fill up to the value and one thin accent bar at the value, on parameter bars, mixer faders and all plain sliders.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['682', ['Fix: npm test failed on Windows (a file path built from a URL); test only, the app is unchanged']],
   ['681', ['Fix: the graph view redraws at the new pixel density after a page zoom or a move to another screen, and its text sits on whole pixels (it was soft)']],
   ['680', ['The opening song is the newest Plethora']],
-  ['679', ['Manual: the Voices node page and README say that everything before a poly is done per voice and everything after it on the summed signal']],
                     ];
