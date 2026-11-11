@@ -2686,7 +2686,9 @@ sampleBrowser = createSampleBrowser({
     peak *= 0.8;
     timeEl.textContent = recorder.state.recording ? `${recorder.state.seconds.toFixed(1)} s` : timeEl.textContent;
   };
+  let recordingLayer = null;   // while recording, Escape stops it (and keeps what was recorded): its place on the popup stack
   function finish(take) {
+    recordingLayer?.release(); recordingLayer = null;
     clearInterval(timer); timer = null; peak = 0; draw();
     btn.textContent = 'Record'; btn.classList.remove('live');
     if (!take) { projStatus('Nothing was recorded.'); timeEl.textContent = ''; return; }
@@ -2703,6 +2705,7 @@ sampleBrowser = createSampleBrowser({
       projStatus(source.value === 'display' ? 'Pick a tab and tick "Also share tab audio"…' : 'Starting…');
       await recorder.start(source.value, { waitForSound: wait });
       btn.textContent = 'Stop'; btn.classList.add('live'); timeEl.textContent = '0.0 s';
+      recordingLayer = popups.open({ name: 'recording', close: () => finish(recorder.stop()), outside: false, doc: document });
       projStatus(wait ? 'Recording: waiting for sound…' : 'Recording…');
       timer = setInterval(draw, 50);
       refreshInputs();
@@ -2710,7 +2713,6 @@ sampleBrowser = createSampleBrowser({
       projStatus(err.name === 'NotAllowedError' ? 'Recording was not allowed.' : err.message);
     }
   });
-  window.addEventListener('keydown', e => { if (e.key === 'Escape' && recorder.state.recording) { finish(recorder.stop()); e.preventDefault(); e.stopPropagation(); } }, true);
   refreshInputs();
 }
 
