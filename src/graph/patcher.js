@@ -558,6 +558,64 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
     return { render: entry.render, refresh: () => view.refresh(), release: () => { view.hide(); machineViews.delete(entry); }, get open() { return view.open; } };
   }
 
+  // The parameters of one node of any machine, in a panel of the caller's (the picture window's Parameters tab): the same rows and the same
+  // controls as the main parameter view. show(machine, node) switches it. Kept current like the others. Returns { show, refresh, release }.
+  const nodeViews = new Set();
+  function nodePanel(host, where) {
+    const view = createParamView({ doc: where, el: host, side: 'left', showTip: () => {}, hideTip: () => {}, onFocusBack: () => where.activeElement?.blur?.() });
+    const entry = { host, view, machine: null, node: null };
+    entry.render = () => {
+      const d = instruments[entry.machine], node = d?.graph.nodes.find(n => n.id === entry.node), type = node && nodeTypes[node.type];
+      if (!type) { view.hide(); return; }
+      view.show(`${node.id} · ${node.type}`, shownRows(rowsFor(node, type, entry.machine)), view.cursor, '');
+    };
+    nodeViews.add(entry);
+    return {
+      show(machine, node) { entry.machine = machine; entry.node = node; entry.render(); },
+      refresh: () => view.refresh(),
+      release: () => { view.hide(); nodeViews.delete(entry); },
+    };
+  }
+  // The node under a point of the cropped map (the same centring as drawMap), or null.
+  function nodeAtMap(machine, nodeId, x, y, W, H) {
+    const d = instruments[machine], cur = d?.graph.nodes.find(n => n.id === nodeId);
+    if (!cur) return null;
+    const { w, h } = nodeBox(nodeTypes[cur.type], cur), gx = x - (W / 2 - (cur.x + w / 2)), gy = y - (H / 2 - (cur.y + h / 2));
+    const hit = d.graph.nodes.find(n => nodeTypes[n.type].params.length && inside(n, nodeTypes[n.type], gx, gy));
+    return hit?.id ?? null;
+  }
+  // The nodes of a machine a window can step through (the ones with parameters), in the order of the graph.
+  const nodeIdsOf = machine => (instruments[machine]?.graph.nodes ?? []).filter(n => nodeTypes[n.type]?.params.length).map(n => n.id);
+  // A cropped map of a machine's graph: the nodes as small boxes and the wires between them, the window centred on one node and that node
+  // in the accent colour. Drawn into any 2D context (the picture window's canvas).
+  function drawMap(ctx, W, H, machine, nodeId, ink, accent) {
+    ctx.clearRect(0, 0, W, H);
+    const d = instruments[machine], node = d?.graph.nodes.find(n => n.id === nodeId);
+    if (!d || !node) return;
+    const { w, h } = nodeBox(nodeTypes[node.type], node), cx = node.x + w / 2, cy = node.y + h / 2, ox = W / 2 - cx, oy = H / 2 - cy;
+    ctx.save();
+    ctx.translate(ox, oy);
+    ctx.lineWidth = 1.2; ctx.globalAlpha = 0.5;
+    for (const link of d.graph.connections) {
+      try {
+        const { a, b } = linkEnds(d.graph, nodeTypes, link);
+        ctx.strokeStyle = ink; ctx.beginPath(); ctx.moveTo(a.x, a.y);
+        const k = arm(a, b); ctx.bezierCurveTo(a.x + k, a.y, b.x - k, b.y, b.x, b.y); ctx.stroke();
+      } catch { /* a wire to a node that is gone */ }
+    }
+    ctx.globalAlpha = 1; ctx.font = '10px ui-monospace, Consolas, monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    for (const n of d.graph.nodes) {
+      const t = nodeTypes[n.type], box = nodeBox(t, n), here = n.id === nodeId;
+      ctx.beginPath();
+      if (t.shape === 'circle' || t.shape === 'dot') ctx.arc(n.x + box.w / 2, n.y + box.h / 2, box.w / 2, 0, 2 * Math.PI);
+      else ctx.roundRect(n.x, n.y, box.w, box.h, t.shape === 'rounded' ? 8 : 2);
+      ctx.fillStyle = here ? accent : ink; ctx.globalAlpha = here ? 0.9 : 0.18; ctx.fill();
+      if (here) { ctx.globalAlpha = 1; ctx.strokeStyle = accent; ctx.lineWidth = 2; ctx.stroke(); }
+      ctx.globalAlpha = here ? 1 : 0.7; ctx.fillStyle = ink; ctx.fillText(n.id, n.x + box.w / 2, n.y - 6);
+    }
+    ctx.restore();
+  }
+
   // The following panel (the floating window with the cursor lane's machine) can also be drawn in a window of its own; each such
   // copy follows the same machine as the panel in the page does, and is released when its window closes.
   const floatCopies = new Set();
@@ -584,6 +642,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
   function renderExposed() {
     renderFloat();
     for (const m of machineViews) m.render();
+    for (const n of nodeViews) n.render();
     if (!exposedView) return;
     if (!instId) { exposedView.hide(); return; }
     exposedView.show('exposed', exposedRows(), exposedView.cursor, instId && def().meta ? nothingExposed() : 'Nothing exposed yet. Select a node, press Enter on a row and choose "Expose".');
@@ -1517,7 +1576,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
     const sig = parts.join(',');
     if (sig === liveSig) return;
     liveSig = sig;
-    paramView?.refresh(); exposedView?.refresh(); floatView?.refresh(); for (const c of floatCopies) c.view.refresh(); for (const m of machineViews) m.view.refresh(); tapEditor?.refresh(); gateEditor?.refresh(); specView?.refresh(); canyonView?.refresh(); drumView?.refresh(); drum2View?.refresh(); hat2View?.refresh(); kalView?.refresh(); spaceView?.refresh(); env2Editor?.refresh(); cardinalView?.refresh(); membraneView?.refresh(); granularView?.refresh(); intView?.refresh(); chordView?.refresh(); rangeView?.refresh(); dxView?.refresh();
+    paramView?.refresh(); exposedView?.refresh(); floatView?.refresh(); for (const c of floatCopies) c.view.refresh(); for (const m of machineViews) m.view.refresh(); for (const n of nodeViews) n.view.refresh(); tapEditor?.refresh(); gateEditor?.refresh(); specView?.refresh(); canyonView?.refresh(); drumView?.refresh(); drum2View?.refresh(); hat2View?.refresh(); kalView?.refresh(); spaceView?.refresh(); env2Editor?.refresh(); cardinalView?.refresh(); membraneView?.refresh(); granularView?.refresh(); intView?.refresh(); chordView?.refresh(); rangeView?.refresh(); dxView?.refresh();
   }
 
   // A graph is moved clear of the exposed-parameters dock once when its instrument is first shown after a load (the file
@@ -1695,9 +1754,11 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
         });
       }
     }
+    ctx.font = '10px ui-monospace, Consolas, monospace'; ctx.textBaseline = 'middle';
+    const xm = (ctx.measureText?.('x') ?? {}), xMid = ((xm.actualBoundingBoxAscent ?? 3) - (xm.actualBoundingBoxDescent ?? 0)) / 2;   // how far the middle of an x sits above the name's middle line
     for (const node of desc().nodes) {
       if (!nodeTypes[node.type].outputs.length || nodeTypes[node.type].shape === 'dot') continue;
-      const r = eyeRect(node), on = !!node.scope, cx = r.x + r.w / 2, cy = r.y + r.h / 2;
+      const r = eyeRect(node), on = !!node.scope, cx = r.x + r.w / 2, cy = node.y - 5 - xMid;   // the cornea is the eye's origin, level with the middle of the lowercase letters of the name beside it
       ctx.save();
       ctx.strokeStyle = on ? accent : ink; ctx.fillStyle = on ? accent : ink; ctx.globalAlpha = on ? 1 : 0.3; ctx.lineWidth = 1.25;
       ctx.beginPath(); ctx.moveTo(cx - 7, cy); ctx.quadraticCurveTo(cx, cy - 8, cx + 7, cy); ctx.quadraticCurveTo(cx, cy + 8, cx - 7, cy); ctx.stroke();
@@ -1906,6 +1967,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
     // the floating exposed-parameters window: on or off, and kept current while another screen is showing
     float(on) { floatOn = !!on; renderFloat(); },
     floatPanel,   // the following panel drawn in a window of its own (see main.js)
+    nodePanel, nodeIdsOf, drawMap, nodeAt: nodeAtMap,   // one node's parameters in a panel of the caller's, and the cropped graph map (the picture window's Parameters tab)
     machinePanel,   // a parameter panel for any one machine, in an element of the page's own (see src/ui/paramfloats.js)
     refreshExposed() { renderExposed(); },   // a meta machine's Selections changed: its parameter rows are the ones it plays
     live() { followLive(); },

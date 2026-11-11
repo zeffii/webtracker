@@ -53,6 +53,7 @@ import { buildInstrument, fitTail } from './project/ptr.js';
 import { ABOUT, CHANGELOG } from './ui/about.js';
 import { createManual } from './ui/manual.js';
 import { openPopout } from './ui/kit/popout.js';
+import { createPictureWindow } from './ui/picturewindow.js';
 import { createPatternOptions } from './ui/patternoptions.js';
 import { SONGS } from './ui/songs.js';
 import { renderMarkdown } from './ui/markdown.js';
@@ -2404,9 +2405,22 @@ const drawViz = now => {
 // The picture in a window of its own: Document Picture-in-Picture (Chrome, Edge, Brave), an always-on-top window that can go to any
 // screen. The picture's box moves into it and is drawn from that window's own frame loop, which keeps running when this window is
 // covered by other programs. Closing the window, or the button again, brings the box back.
-let pip = null;
-const popStyle = `html,body{margin:0;height:100%;background:#111;overflow:hidden}
-#viz{position:fixed;inset:0;width:auto;height:auto;border-radius:0;box-shadow:none;background:#111}
+let pip = null, pipTabs = null;
+const popStyle = `html,body{margin:0;padding:0;height:100%;background:#111;overflow:hidden}
+html body{display:flex!important;flex-direction:column;width:100%;color:#cfe3e7}
+.pw-tabs{flex:none;display:flex;gap:2px;padding:2px 4px;background:#1a1d1f}
+.pw-tabs button{background:none;border:0;color:#8fa4a9;font:12px system-ui,sans-serif;padding:3px 10px;cursor:pointer;border-bottom:2px solid transparent}
+.pw-tabs button[aria-selected=true]{color:#fff;border-bottom-color:var(--accent,#4a8fe0)}
+.pw-pane{flex:1;min-height:0;position:relative;width:100%;box-sizing:border-box}
+.pw-pane[hidden]{display:none}
+.pw-params{display:flex;flex-direction:column;overflow:hidden;background:var(--bg,#1a1d1f);color:var(--fg,#cfe3e7)}
+.pw-map{flex:none;width:100%;display:block;cursor:pointer;border-bottom:1px solid rgba(128,128,128,.35)}
+.pw-step{flex:none;display:flex;align-items:center;gap:.5rem;padding:2px 8px;font:12px ui-monospace,Consolas,monospace}
+.pw-what{opacity:.55;width:5.5ch}
+.pw-name{flex:none;width:14ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center}
+.pw-rowswrap{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column}
+.pw-rows{flex:none}
+#viz{position:absolute;inset:0;width:auto;height:auto;border-radius:0;box-shadow:none;background:#111}
 #viz canvas{position:absolute;left:50%;top:50%;width:100vmin;height:100vmin;transform:translate(-50%,-50%);display:block}
 #viz canvas[hidden]{display:none}
 #viz-text{pointer-events:none}
@@ -2420,16 +2434,20 @@ const popOut = async () => {
   if (!vizOn || !visual) return;
   if (!('documentPictureInPicture' in window)) { $('status').textContent = 'This browser has no floating windows (Document Picture-in-Picture: Chrome, Edge and Brave have it).'; return; }
   try {
-    const w = await documentPictureInPicture.requestWindow({ width: 340, height: 340 });
+    const w = await documentPictureInPicture.requestWindow({ width: 360, height: 520 });
     pip = w;
+    for (const sheet of document.head.querySelectorAll('link[rel="stylesheet"], style')) w.document.head.append(w.document.importNode(sheet, true));   // the page's styles: the Parameters tab uses the parameter view's
+    w.document.documentElement.className = document.documentElement.className;
+    for (const [k, v] of Object.entries(document.documentElement.dataset)) w.document.documentElement.dataset[k] = v;   // the colour theme
     w.document.head.append(Object.assign(w.document.createElement('style'), { textContent: popStyle }));
     w.document.title = 'Wax picture';
     vizBox.style.bottom = '';
-    w.document.body.append(w.document.adoptNode(vizBox));
+    pipTabs = createPictureWindow({ win: w, host: w.document.body, patcher, machineIds: () => Object.keys(project?.instruments ?? {}).filter(id => id !== MASTER) });
+    pipTabs.picturePane.append(w.document.adoptNode(vizBox));
     $('viz-btn').setAttribute('aria-pressed', 'true');
-    const loop = now => { if (pip !== w) return; if (vizOn && visual) drawViz(performance.now()); w.requestAnimationFrame(loop); };
+    const loop = now => { if (pip !== w) return; if (vizOn && visual) drawViz(performance.now()); pipTabs?.refresh(); w.requestAnimationFrame(loop); };
     w.requestAnimationFrame(loop);
-    w.addEventListener('pagehide', () => { if (pip === w) { pip = null; document.body.append(document.adoptNode(vizBox)); vizBox.hidden = !vizOn; placeViz(); } });
+    w.addEventListener('pagehide', () => { if (pip === w) { pip = null; pipTabs?.release(); pipTabs = null; document.body.append(document.adoptNode(vizBox)); vizBox.hidden = !vizOn; placeViz(); } });
     w.document.getElementById('viz-pop').addEventListener('click', () => w.close());
   } catch (e) { $('status').textContent = `Could not open the floating window: ${e.message}`; }
 };
