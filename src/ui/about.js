@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['694', ['The Sample screen has a Speed field: type a rate or step it with Left/Right (Shift 100, Ctrl 1000).']],
   ['693', ['The follow panel can pop out into a window of its own and keeps following the machine under the cursor; pop-out windows are no longer indented.']],
   ['692', ['Pattern screen options under the browser list: follow, note preview, tint, hide empty columns, text size.']],
   ['691', ['Compact node look: ports are half the radius, plain dots in their signal colour.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['687', ['The manual, first draft: ten chapters, read inside Wax (the book button in the left rail, or Ctrl+Alt+B) or printed as an A5 booklet.']],
   ['686', ['One look for every slider: a hairline, a faint fill up to the value and one thin accent bar at the value, on parameter bars, mixer faders and all plain sliders.']],
   ['685', ['Parameter panels open at most half the window wide (drag to go wider); floating panels are at most half the window tall and scroll when long.']],
-  ['684', ['The look pass: plain buttons are flat text (accent colour and underline when on), fields have a faint fill, state colours (record red, warning amber, info blue) are theme tokens, and parameter bars and mixer faders share one slider drag.']],
                     ];

@@ -1326,7 +1326,15 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   key('ArrowUp'); assert.equal(screen.selected, 'pluck');
 
   // loop end: type a value, step with the arrows and Shift
-  tab(4); assert.equal(screen.focus, 'loopEnd');
+  // speed: step with the arrows, type an exact rate
+  tab(2); assert.equal(screen.focus, 'rate');
+  const r0 = pluck.rate;
+  key('ArrowRight'); assert.equal(pluck.rate, r0 + 1);
+  key('ArrowRight', { shiftKey: true }); assert.equal(pluck.rate, r0 + 101);
+  key('ArrowLeft', { ctrlKey: true }); assert.equal(pluck.rate, r0 - 899);
+  type('48000'); key('Enter'); assert.equal(pluck.rate, 48000);
+  assert.deepEqual(events.at(-1), ['change', ['bass', 'lead']]);
+  tab(3); assert.equal(screen.focus, 'loopEnd');
   type('5000'); key('Enter');
   assert.deepEqual([pluck.loopStart, pluck.loopEnd], [0, 5000]);
   assert.deepEqual(events.at(-1), ['change', ['bass', 'lead']]);
@@ -4474,7 +4482,7 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   key('z'); key('z', { repeat: true }); assert.equal(events.filter(e => e[0] === 'note').length, 9, 'a held key does not retrigger');
   onUp({ key: 'z' });
   // a selection from the fields, then edit keys act on it
-  for (let i = 0; i < 12; i++) key('Tab');
+  for (let i = 0; i < 13; i++) key('Tab');
   assert.equal(screen.focus, 'selBeg');
   for (const c of '1000') key(c); key('Enter');
   assert.deepEqual(screen.selection, [1000, 4000]);

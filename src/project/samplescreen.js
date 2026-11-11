@@ -19,7 +19,7 @@ import { LOWER, UPPER } from '../seq/piano.js';
 // Every parameter, slider or number, answers to the same keys.
 
 const LIST_ROWS = 13, LEFT = 54, NAMEW = 20;
-const FIELDS = ['name', 'loopOn', 'loopBeg', 'loopEnd', 'loopXf', 'loopHide', 'susOn', 'susBeg', 'susEnd', 'susXf', 'susHide', 'selBeg', 'selEnd', 'selHide', 'volume', 'globalVolume', 'pan', 'view'];
+const FIELDS = ['name', 'rate', 'loopOn', 'loopBeg', 'loopEnd', 'loopXf', 'loopHide', 'susOn', 'susBeg', 'susEnd', 'susXf', 'susHide', 'selBeg', 'selEnd', 'selHide', 'volume', 'globalVolume', 'pan', 'view'];
 const SLIDERS = { volume: 'Default volume', globalVolume: 'Global volume', pan: 'Default pan' };
 const SWITCH = ['loopOn', 'susOn', 'loopHide', 'susHide', 'selHide', 'view'];   // fields that are switches: Space, Enter and a click flip them
 const LOOP_FIELDS = { loopOn: 'loop', loopBeg: 'loop', loopEnd: 'loop', loopXf: 'loop', susOn: 'sus', susBeg: 'sus', susEnd: 'sus', susXf: 'sus' };   // (loopHide and susHide are switches of their own, not numbers)
@@ -63,6 +63,7 @@ export function createSampleScreen({ el, listEl = null, statusEl, getProject, on
       const spec = SAMPLE_PROPS[field];
       return attempt(() => setSampleProps(project, sel, { [field]: round2(Math.min(spec.max, Math.max(spec.min, value))) }));
     }
+    if (field === 'rate') return attempt(() => setSampleProps(project, sel, { rate: Math.round(value) }));   // Speed
     if (field === 'selBeg' || field === 'selEnd') { setSel(field, value); return true; }
     const p = LOOP_FIELDS[field];
     const [sk, ek, ok, xk] = loopKeys(p);
@@ -153,6 +154,7 @@ export function createSampleScreen({ el, listEl = null, statusEl, getProject, on
       return;
     }
     const step = e.ctrlKey ? 1000 : e.shiftKey ? 100 : 1;
+    if (field === 'rate') { setField('rate', s.rate + dir * step); return; }   // Speed: up and down step it, as in Impulse Tracker
     const now = frameValue(s, field);
     if (field.endsWith('Beg') && !field.startsWith('sel') && !((s[`${LOOP_FIELDS[field]}End`] ?? 0) > 0)) { setField(field, 0); return; }
     setField(field, now + dir * step);
@@ -162,6 +164,7 @@ export function createSampleScreen({ el, listEl = null, statusEl, getProject, on
     const s = sample();
     if (field === 'name') return sel;
     if (field in SLIDERS) return String(s[field] ?? SAMPLE_PROPS[field].def);
+    if (field === 'rate') return String(s.rate);
     return String(frameValue(s, field));
   };
 
@@ -462,7 +465,7 @@ export function createSampleScreen({ el, listEl = null, statusEl, getProject, on
       const right = [
         line(' Sample', ...(listEl ? [' '.repeat(10), seg(' Replace… ', 'sbtn', ` data-act="replace" data-sid="${esc(sel)}" title="Put a different audio file in this slot: instruments that play it follow"`)] : [])),
         line(' Name     ', fieldCell('name', sel, 24)),
-        line(` Speed    ${s.rate} Hz   ${s.right ? 'stereo' : 'mono'}`),
+        line(' Speed    ', fieldCell('rate', String(s.rate), 7), ' Hz   ', s.right ? 'stereo' : 'mono'),
         line(` Length   ${String(s.data.length).padStart(8, '0')} frames  ${(s.data.length / s.rate).toFixed(2)} s`),
         line(''),
         loopLine('Loop', 'loop', 'loopOn', 'loopBeg', 'loopEnd', 'loopXf', 'loopHide'),

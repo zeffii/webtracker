@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 694 · 2026-11-11
+
+- **Speed field on the Sample screen.** The sample's rate (Hz) now has its own field under the name, as in Impulse Tracker: Tab to it, type an exact rate, or step it with Left/Right (or + and -): 1 Hz, Shift 100, Ctrl 1000. The engine is told, so the pitch and length follow at once.
+
 ## 693 · 2026-11-11
 
 - **The follow panel can pop out too.** The floating parameter window (Ctrl+Alt+P) gets the same pop-out button as a pinned panel: its rows are drawn in a window of its own and keep following the machine under the cursor (the window's title shows which); closing the window brings the panel back, and switching the floating window off closes it.

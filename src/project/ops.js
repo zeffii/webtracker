@@ -125,6 +125,7 @@ export const SAMPLE_PROPS = {
   pan: { min: -1, max: 1, def: 0 },
   loopOn: { bool: true }, susOn: { bool: true },
   loopXfade: { min: 0, int: true }, susXfade: { min: 0, int: true },
+  rate: { min: 1000, max: 384000, int: true },   // the Speed field: how many frames a second the sample is played at (its pitch and its length in seconds follow)
 };
 
 // Slice markers: frames of the sample, kept sorted. A slice's number is its place in the list, and its hex value
@@ -149,7 +150,7 @@ export function setSlices(project, id, frames) {
   return usersOfSample(project, id);
 }
 
-// Sets sample settings ({ volume, globalVolume, pan, loopOn, susOn, loopXfade, susXfade }). Returns the
+// Sets sample settings ({ volume, globalVolume, pan, loopOn, susOn, loopXfade, susXfade, rate }). Returns the
 // instruments that play the sample.
 export function setSampleProps(project, id, props) {
   const sample = project.samples[id];
@@ -164,7 +165,7 @@ export function setSampleProps(project, id, props) {
     }
   }
   for (const [key, value] of Object.entries(props)) {
-    if (value === SAMPLE_PROPS[key].def) delete sample[key]; else sample[key] = value;
+    if (key !== 'rate' && value === SAMPLE_PROPS[key].def) delete sample[key]; else sample[key] = value;   // (the rate is always kept: it has no default)
   }
   return usersOfSample(project, id);
 }
