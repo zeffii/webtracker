@@ -26,7 +26,37 @@ function remapLoops(s, map) {
   }
 }
 
+// A copy of a range as a clip: { data, right? } (right only for a stereo sample). Used by the sample screen's copy and cut.
+export function copyRange(s, range) {
+  const { from, to } = clampRange(s, range);
+  return { data: s.data.slice(from, to), ...(s.right ? { right: s.right.slice(from, to) } : {}) };
+}
+
 export const TOOLS = {
+  // puts a clip into the sample at frame `at`. 'insert' opens a gap for it (the sample grows; loops, markers and the sustain loop after
+  // that point move along, and a loop that surrounds it gets longer); 'overwrite' replaces the frames it lands on (growing the end if it
+  // runs past). A mono clip into a stereo sample goes to both sides; a stereo clip into a mono sample is mixed down.
+  paste(s, _range, at, clip, mode = 'insert') {
+    const n = s.data.length, len = clip.data.length;
+    if (!len) throw new Error('The clipboard is empty.');
+    at = Math.max(0, Math.min(n, Math.floor(at)));
+    const left = clip.data, right = s.right ? (clip.right ?? clip.data) : null;
+    const mono = !s.right && clip.right ? Float32Array.from(clip.data, (v, i) => (v + clip.right[i]) / 2) : left;
+    const make = (src, piece) => {
+      const end = mode === 'insert' ? n + len : Math.max(n, at + len), out = new Float32Array(end);
+      out.set(src.subarray(0, at));
+      out.set(piece, at);
+      if (mode === 'insert') out.set(src.subarray(at), at + len); else if (at + len < n) out.set(src.subarray(at + len), at + len);
+      return out;
+    };
+    s.data = make(s.data, s.right ? left : mono);
+    if (s.right) s.right = make(s.right, right);
+    if (mode === 'insert') {
+      remapLoops(s, p => (p < at ? p : p + len));
+      if (s.slices) s.slices = s.slices.map(p => (p >= at ? p + len : p));
+    }
+  },
+
   // keeps only the range (trim); with no selection it keeps the loop region. A loop survives if it was inside.
   crop(s, range) {
     if (!range) {

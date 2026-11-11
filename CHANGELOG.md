@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 699 · 2026-11-11
+
+- **Copy, cut and paste inside the sample screen, with a playhead you can place.** Click the waveform and a pink playhead line goes there (a drag still selects). Ctrl+C copies the selection, Ctrl+X cuts it, Ctrl+V pastes it at the playhead and makes room for it (loops, the sustain loop and slice markers after it move along; a loop around it gets longer), Ctrl+Shift+V pastes over what is there. The pasted part is selected and the playhead sits at its end, so another Ctrl+V continues from there. The clipboard stays when you pick another sample, so you can paste between samples; a mono clip fills both sides of a stereo sample and a stereo clip is mixed down for a mono one. All of it is on the waveform's right-click menu too (with "Put the playhead here") and is undoable. (`TOOLS.paste`, `copyRange` in `sampleedit.js`)
+
 ## 698 · 2026-11-11
 
 - **Sympathetic strings sit by distance from the played note, not by pitch.** The string on the note itself is in the middle; the octave, the twelfth and the neighbours move out, taking turns left and right, and ringing strings glide to their new place when a new note is played. `width` is how far the furthest ones go, and now starts at 0.25 (a subtle, piano-like spread; it was 0.7): turn it up to 1 for a wide, fat synth sound.

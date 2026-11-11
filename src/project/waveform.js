@@ -27,7 +27,7 @@ const GRAB = 6;   // pixels either side of a marker that grab it
 // it; drag across empty waveform to make a new loop; double-click to clear the loop. The
 // loop is applied when the mouse is released. Slice markers (red, labelled with their number and the hex value
 // an Off cell would need): Alt+click adds one, Alt+drag moves one, Alt+double-click removes the nearest.
-export function createWaveformView({ canvas, statusEl, getProject, onLoop, onSelect = () => {}, onSlices = () => {}, onActiveSlice = () => {}, onMenu = () => {}, onFocus = () => {} }) {
+export function createWaveformView({ canvas, statusEl, getProject, onLoop, onSelect = () => {}, onHead = () => {}, onSlices = () => {}, onActiveSlice = () => {}, onMenu = () => {}, onFocus = () => {} }) {
   const ctx = canvas.getContext('2d');
   let W = canvas.width;
   let H = canvas.height;
@@ -46,7 +46,7 @@ export function createWaveformView({ canvas, statusEl, getProject, onLoop, onSel
   let active = -1;   // the slice marker the keys nudge, drawn brighter
   let settled = true, settleTimer = null;   // while the size is being dragged the spectrogram is the old picture stretched; it is computed afresh once the size has rested
   const SETTLE_MS = 250;
-  let id = null, drag = null, cache = null, lastKey = null, mode = 'wave', selection = { from: 0, to: 0 };
+  let id = null, drag = null, cache = null, lastKey = null, mode = 'wave', selection = { from: 0, to: 0 }, insertAt = 0;
   const say = text => { if (statusEl) statusEl.textContent = text; };
   const sample = () => (id ? getProject().samples[id] : undefined);
   const frames = () => sample().data.length;
@@ -186,7 +186,7 @@ export function createWaveformView({ canvas, statusEl, getProject, onLoop, onSel
     const d = drag;
     drag = null;
     if (d?.kind === 'slice') { commitSlices(d.preview, d.preview[d.i]); return; }
-    if (d?.kind === 'select') { if (d.preview) onSelect({ from: d.preview.start, to: d.preview.end }); return; }
+    if (d?.kind === 'select') { if (d.preview) onSelect({ from: d.preview.start, to: d.preview.end }); else onHead(d.anchor); return; }   // a click without a drag places the playhead
     if (d?.preview) commit(Math.max(0, d.preview.start), d.preview.end, d.target ?? 'loop');
     else if (d?.kind === 'region' && d.markOnClick !== undefined) commitSlices([...(sample()?.slices ?? []), d.markOnClick], d.markOnClick);   // Alt+click without a drag: a slice marker
   };
@@ -316,6 +316,15 @@ export function createWaveformView({ canvas, statusEl, getProject, onLoop, onSel
       ctx.fillRect(xs, 0, 1, H);
       ctx.fillRect(xe - 1, 0, 1, H);
     }
+    if (insertAt >= 0 && insertAt <= frames()) {   // the playhead a paste goes to: a pink line with a flag, anywhere in the sample
+      const [va, vb] = range();
+      if (insertAt >= va && insertAt <= vb) {
+        const x = Math.round(frameToX(insertAt)) + 0.5;
+        ctx.fillStyle = 'hsl(335 80% 62%)';
+        ctx.fillRect(x - 0.5, 0, 1, H);
+        ctx.beginPath(); ctx.moveTo(x - 4, 0); ctx.lineTo(x + 5, 0); ctx.lineTo(x + 0.5, 6); ctx.closePath(); ctx.fill();
+      }
+    }
     slicesOf(s).forEach((f, i) => {   // the slice markers, numbered in order of position
       const hexMode = config.get('hexMode'), num = (drag?.kind === 'slice' ? [...drag.preview].sort((a, b) => a - b).indexOf(f) : i).toString(16).toUpperCase().padStart(2, '0');
       const x = frameToX(f), label = hexMode === 'absolute' ? num : `${num} ${sliceHex(f, frames())}`;   // the number and the relative hex at the top
@@ -423,6 +432,7 @@ export function createWaveformView({ canvas, statusEl, getProject, onLoop, onSel
     sliceBefore(frame) { const s = sample(); return (s?.slices ?? []).reduce((best, f) => (f <= frame && f > best ? f : best), -1); },
     sample,
     setSelection(from, to) { selection = { from, to }; lastKey = null; },
+    setHead(frame) { insertAt = frame; lastKey = null; },   // where a paste goes: drawn as a pink marker with a flag on top
     // the piano roll overlay (pianorollview.js), or null
     setOverlay(next) { overlay = next; lastKey = null; },
     redraw() { lastKey = null; },

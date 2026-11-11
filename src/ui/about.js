@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['699', ['Sample screen: click the waveform to place the playhead; Ctrl+C / Ctrl+X / Ctrl+V copy, cut and paste at it (Ctrl+Shift+V pastes over), also between samples.']],
   ['698', ['Sympathetic strings pan by distance from the played note (subtle by default); parameter ports hang as dots under a node tile; port tips appear after half a second.']],
   ['697', ['Envelope editors can show time in log mode (button under the drawing): the transient gets most of the room.']],
   ['696', ['? in a Cmd column lists the commands in effect at the cursor row that are not at their defaults, with their values.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['692', ['Pattern screen options under the browser list: follow, note preview, tint, hide empty columns, text size.']],
   ['691', ['Compact node look: ports are half the radius, plain dots in their signal colour.']],
   ['690', ['Thinner wires in the compact node look.']],
-  ['689', ['Compact node tiles are the default now; Config, Graph: Node look brings the classic ones back.']],
                     ];

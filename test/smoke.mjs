@@ -1326,6 +1326,33 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   key('ArrowUp'); assert.equal(screen.selected, 'pluck');
 
   // loop end: type a value, step with the arrows and Shift
+  // copy and paste: the playhead can be anywhere, a paste goes there, and undo puts it all back
+  { const before = pluck.data.slice(), len0 = n;
+    screen.setSelection(100, 200); key('c', { ctrlKey: true });
+    screen.setHead(500); assert.equal(screen.head, 500);
+    key('v', { ctrlKey: true });
+    assert.equal(pluck.data.length, len0 + 100, 'an insert grows the sample');
+    assert.deepEqual([...pluck.data.slice(500, 600)], [...before.slice(100, 200)], 'the copied frames are at the playhead');
+    assert.deepEqual([...pluck.data.slice(600, 700)], [...before.slice(500, 600)], 'what was there moved along');
+    assert.equal(screen.head, 600, 'the playhead moves to the end of the pasted part');
+    assert.deepEqual(screen.selection, [500, 600]);
+    key('z', { ctrlKey: true });
+    assert.equal(pluck.data.length, len0); assert.deepEqual([...pluck.data], [...before], 'undo puts the sample back');
+    screen.setHead(300); key('v', { ctrlKey: true, shiftKey: true });
+    assert.equal(pluck.data.length, len0, 'pasting over keeps the length'); assert.deepEqual([...pluck.data.slice(300, 400)], [...before.slice(100, 200)]);
+    key('z', { ctrlKey: true }); assert.deepEqual([...pluck.data], [...before]);
+    screen.setSelection(0, 0); }
+  { const { TOOLS, copyRange } = await import('../src/project/sampleedit.js');
+    const t = { rate: 1000, data: Float32Array.from({ length: 100 }, (_, i) => i), loopStart: 20, loopEnd: 60, loopOn: true, slices: [10, 50, 90] };
+    TOOLS.paste(t, null, 40, copyRange(t, { from: 0, to: 10 }), 'insert');
+    assert.equal(t.data.length, 110); assert.deepEqual([t.loopStart, t.loopEnd], [20, 70], 'a loop around the paste gets longer');
+    assert.deepEqual(t.slices, [10, 60, 100], 'markers after the paste move along');
+    const st = { rate: 1000, data: new Float32Array(10), right: new Float32Array(10) };
+    TOOLS.paste(st, null, 5, { data: new Float32Array(3).fill(1) }, 'insert');
+    assert.deepEqual([st.data.length, st.right.length, st.right[5]], [13, 13, 1], 'a mono clip fills both sides of a stereo sample');
+    const mo = { rate: 1000, data: new Float32Array(4) };
+    TOOLS.paste(mo, null, 2, { data: new Float32Array(2).fill(1), right: new Float32Array(2).fill(3) }, 'overwrite');
+    assert.deepEqual([...mo.data], [0, 0, 2, 2], 'a stereo clip is mixed down for a mono sample'); }
   // speed: step with the arrows, type an exact rate
   tab(2); assert.equal(screen.focus, 'rate');
   const r0 = pluck.rate;

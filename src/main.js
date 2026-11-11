@@ -1456,6 +1456,7 @@ const waveform = createWaveformView({
   onSlices: users => { sendLoop(users); auditionDirty = true; },
   onActiveSlice: i => sampleScreen.setActiveSlice(i),   // the screen redraws itself, so its numbers follow the markers
   onSelect: ({ from, to }) => sampleScreen.setSelection(from, to),
+  onHead: frame => sampleScreen.setHead(frame),
   onFocus: () => $('smp').focus(),
   onMenu: (e, frame) => {   // right click on the display: the edits, acting on the selection (else the whole sample)
     const [from, to] = sampleScreen.selection, has = to > from, s = waveform.sample();
@@ -1464,6 +1465,12 @@ const waveform = createWaveformView({
     showContextMenu(e, [
       { label: 'Trim to selection', hint: has ? 'Shift+C' : 'no selection: loop region', run: edit('crop') },
       { label: 'Cut selection', hint: 'Shift+X', disabled: !has, run: edit('cut') },
+      { label: 'Copy', hint: 'Ctrl+C', disabled: !has, run: () => { sampleScreen.copy(); $('smp').focus(); } },
+      { label: 'Cut', hint: 'Ctrl+X', disabled: !has, run: () => { sampleScreen.copy(true); $('smp').focus(); } },
+      { label: 'Paste at the playhead', hint: 'Ctrl+V', disabled: !sampleScreen.hasClip, run: () => { sampleScreen.paste('insert'); $('smp').focus(); } },
+      { label: 'Paste over', hint: 'Ctrl+Shift+V', disabled: !sampleScreen.hasClip, run: () => { sampleScreen.paste('overwrite'); $('smp').focus(); } },
+      { label: 'Put the playhead here', hint: `frame ${frame}`, run: () => { sampleScreen.setHead(frame); $('smp').focus(); } },
+      { separator: true },
       { label: 'Copy selection to a new sample', disabled: !has, run: copySelection },
       { label: 'Save sample to disk…', hint: '.wav', disabled: !s, run: () => saveSampleToDisk(true) },
       { label: 'Save selection to disk…', hint: '.wav', disabled: !has, run: () => saveSampleToDisk(false) },
@@ -1564,6 +1571,14 @@ let waveX = null;
       sampleScreen.say(e.altKey || e.ctrlKey ? (from >= 0 ? `Playing from slice ${slice.toString(16).toUpperCase().padStart(2, '0')}, frame ${from}.` : 'No slice marker to the left: playing from the start.') : 'Playing from the start.');
     }
   }, true);
+  // Ctrl+C, Ctrl+X and Ctrl+V with the mouse over the waveform copy, cut and paste (Shift on V: over what is there), wherever the focus is
+  document.addEventListener('keydown', e => {
+    if (!e.ctrlKey || e.altKey || e.metaKey || !['c', 'x', 'v'].includes(e.key.toLowerCase()) || waveX === null || tabs.active !== 'samples') return;
+    if (/^(INPUT|TEXTAREA|SELECT)$/.test(e.target?.tagName) || $('autoslice').open) return;
+    e.preventDefault(); e.stopImmediatePropagation();
+    const k = e.key.toLowerCase();
+    if (k === 'c') sampleScreen.copy(); else if (k === 'x') sampleScreen.copy(true); else sampleScreen.paste(e.shiftKey ? 'overwrite' : 'insert');
+  }, true);
   // Delete with the mouse over the waveform takes out the selected part (the same as Shift+X); it never removes the sample from the list
   document.addEventListener('keydown', e => {
     if (e.key !== 'Delete' || waveX === null || tabs.active !== 'samples') return;
@@ -1587,6 +1602,7 @@ const sampleScreen = createSampleScreen({
   onRename: () => { refreshProjectUi(); patcher.show(patcher.instrument); },
   onNote: playSample,
   onSelection: (from, to) => waveform.setSelection(from, to),
+  onHead: frame => waveform.setHead(frame),
   onSlice: i => waveform.setActiveSlice(i),
   onZoom: kind => waveform.zoom(kind),
   onAutoSlice: () => autoSliceOpen(),

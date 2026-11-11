@@ -18,6 +18,8 @@ Volume and pan; a **loop** and a **sustain loop**, each with a crossfade; **slic
 
 Right-click the waveform for the edits: trim to selection, cut, silence, reverse, normalise, fades, remove DC, bake the crossfades. Select all, clear, mark a slice at the mouse, undo and redo are there too.
 
+**Copy and paste** work anywhere inside a sample, and between samples. Click the waveform to put the **playhead** (the pink line) wherever you like, select a range and press Ctrl+C (or Ctrl+X to cut), then Ctrl+V pastes it at the playhead, making room for it; Ctrl+Shift+V pastes over what is there instead. The pasted part is selected and the playhead moves to its end, so pressing Ctrl+V again continues from there. Loops and slice markers after the paste move along with the audio. The **Speed** field sets the rate the sample plays at (Left/Right or the number keys change it).
+
 Other tools on the same menu: **auto-slice** finds the hits and marks slices; **detect chords** reads a held chord out of a sample; **post-transient resynthesis** keeps the first few milliseconds as real sample data and rebuilds the rest as a small synth, in a new instrument with its own lane.
 
 ## The tap pool

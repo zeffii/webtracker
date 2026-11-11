@@ -1,7 +1,7 @@
 import * as config from '../ui/config.js';
 import { detectOnsets } from './onsets.js';
 import { setLoop, setSampleProps, setSlices, placeHex, SAMPLE_PROPS, removeSample, renameSample, isPool } from './ops.js';
-import { applyEdit, createHistory, redoEdit, undoEdit } from './sampleedit.js';
+import { applyEdit, copyRange, createHistory, redoEdit, undoEdit } from './sampleedit.js';
 import { LOWER, UPPER } from '../seq/piano.js';
 
 // The sample screen (F4): a list of the project's samples on the left and, for the one selected, its
@@ -33,9 +33,10 @@ const EDITS = { C: 'crop', T: 'crop', X: 'cut', S: 'silence', R: 'reverse', N: '
 const ROOT = 60;
 const round2 = v => Math.round(v * 100) / 100;
 
-export function createSampleScreen({ el, listEl = null, statusEl, getProject, onChange = () => {}, onSelect = () => {}, onRemove = () => {}, onRename = () => {}, onNote = () => {}, onLoad = () => {}, onReplace = () => {}, onKeep = () => {}, onView = () => {}, onSelection = () => {}, onSlice = () => {}, onZoom = () => '', onAutoSlice = null, onChords = null, onRoll = null, rollUndo = null, onEdited = () => {} }) {
+export function createSampleScreen({ el, listEl = null, statusEl, getProject, onChange = () => {}, onSelect = () => {}, onRemove = () => {}, onRename = () => {}, onNote = () => {}, onLoad = () => {}, onReplace = () => {}, onKeep = () => {}, onView = () => {}, onSelection = () => {}, onHead = () => {}, onSlice = () => {}, onZoom = () => '', onAutoSlice = null, onChords = null, onRoll = null, rollUndo = null, onEdited = () => {} }) {
   let sel = null, focus = 'list', edit = null, mode = 'wave', announced = null, last = null, lastList = null, top = 0;
-  let selFrom = 0, selTo = 0, octave = 5, activeSlice = -1;   // the slice marker + and - move
+  let selFrom = 0, selTo = 0, octave = 5, activeSlice = -1;
+  let headAt = 0, clip = null;   // the playhead (where a paste goes; a click on the waveform puts it anywhere) and the clipboard, which stays when another sample is chosen   // the slice marker + and - move
   const held = new Map();   // key -> note it is playing
   const history = createHistory();
   const say = text => { if (statusEl) statusEl.textContent = text; };
@@ -106,6 +107,33 @@ export function createSampleScreen({ el, listEl = null, statusEl, getProject, on
       const to = Math.min(Math.max(1, Math.round(v)), n);
       setSelection(Math.min(selFrom, to - 1), to);
     }
+  }
+
+  // ---- the playhead and the clipboard ----
+  function setHead(frame) {
+    const s = sample();
+    if (!s) return;
+    headAt = Math.max(0, Math.min(s.data.length, Math.round(frame)));
+    onHead(headAt);
+    say(`Playhead at frame ${headAt}.`);
+  }
+  function copy(cut = false) {
+    if (!(selTo > selFrom)) { say('Select a range first (drag on the waveform), then copy it.'); return; }
+    const from = selFrom, to = selTo;
+    if (!attempt(() => { clip = copyRange(sample(), { from, to }); })) return;
+    say(`Copied ${to - from} frames.`);
+    if (cut) runEdit('cut');
+  }
+  // Paste at the playhead: 'insert' makes room for it, 'overwrite' replaces what is there. The pasted part is selected and the playhead
+  // moves to its end, so pasting again continues from there.
+  function paste(mode = 'insert') {
+    if (!clip) { say('Nothing copied yet: select a range and press Ctrl+C.'); return; }
+    const at = Math.min(headAt, sample().data.length), len = clip.data.length;
+    if (!attempt(() => applyEdit(getProject(), sel, history, 'paste', null, at, clip, mode))) return;
+    onEdited();
+    setSelection(at, at + len);
+    headAt = at + len; onHead(headAt);
+    say(`${mode === 'insert' ? 'Pasted' : 'Pasted over'} ${len} frames at frame ${at}.`);
   }
 
   function runEdit(tool) {
@@ -180,7 +208,7 @@ export function createSampleScreen({ el, listEl = null, statusEl, getProject, on
 
   function select(id) {
     if (!id || !(id in getProject().samples)) return;
-    if (id !== sel) { selFrom = 0; selTo = 0; onSelection(0, 0); activeSlice = -1; onSlice(-1); }
+    if (id !== sel) { selFrom = 0; selTo = 0; headAt = 0; onSelection(0, 0); onHead(0); activeSlice = -1; onSlice(-1); }
     sel = id; edit = null;
     const at = ids().indexOf(id);
     if (at < top) top = at;
@@ -233,6 +261,12 @@ export function createSampleScreen({ el, listEl = null, statusEl, getProject, on
       const redo = e.key === 'y' || e.shiftKey;
       if (rollUndo?.(redo)) { e.preventDefault?.(); return true; }   // while the piano roll is on, its own edits are undone first
       if (attempt(() => (redo ? redoEdit : undoEdit)(getProject(), sel, history)) && selTo > sample().data.length) setSelection(0, 0);
+      e.preventDefault?.();
+      return true;
+    }
+    if (e.ctrlKey && !e.altKey && !e.metaKey && sel && !edit && focus !== 'name' && ['c', 'x', 'v', 'C', 'X', 'V'].includes(e.key)) {   // Ctrl+C, Ctrl+X, Ctrl+V (Shift: over what is there)
+      const k = e.key.toLowerCase();
+      if (k === 'c') copy(); else if (k === 'x') copy(true); else paste(e.shiftKey ? 'overwrite' : 'insert');
       e.preventDefault?.();
       return true;
     }
@@ -471,6 +505,7 @@ export function createSampleScreen({ el, listEl = null, statusEl, getProject, on
         loopLine('Loop', 'loop', 'loopOn', 'loopBeg', 'loopEnd', 'loopXf', 'loopHide'),
         loopLine('SusLoop', 'sus', 'susOn', 'susBeg', 'susEnd', 'susXf', 'susHide'),
         line(' Select   ', seg('    ', ''), ' Beg ', numCell('selBeg'), ' End ', numCell('selEnd'), ' '.repeat(16 - selAll.t), selAll, ' ', fieldCell('selHide', config.get('waveHideSel') ? 'show' : 'hide', 4)),   // hide lines up with the ones above
+        line(` Playhead  ${headAt}`, clip ? `   clipboard ${clip.data.length} frames  (Ctrl+C copy, Ctrl+X cut, Ctrl+V paste at the playhead, Shift over)` : '   (click the waveform to place it; Ctrl+C copies the selection)'),
         line(''),
         line(' Levels'),
         ...Object.keys(SLIDERS).map(f => line(' ', slider(f))),
@@ -534,5 +569,5 @@ export function createSampleScreen({ el, listEl = null, statusEl, getProject, on
       return `Found ${hits.length} onsets${whole ? '' : ' in the selection'}: ${sample().slices.length} slice markers now.`;
     },
   };
-  return { draw, key, select, runEdit, autoSlice, playFrom, release: code => stopNote(code), say, undoRedo, markSlice, setSelection(from, to) { if (sel) setSelection(Math.max(0, from), Math.max(0, to)); }, setActiveSlice(i) { activeSlice = i; }, history, get octave() { return octave; }, get selection() { return [selFrom, selTo]; }, get selected() { return sel; }, get focus() { return focus; }, get mode() { return mode; } };
+  return { draw, key, select, runEdit, setHead, copy, paste, get head() { return headAt; }, get hasClip() { return !!clip; }, autoSlice, playFrom, release: code => stopNote(code), say, undoRedo, markSlice, setSelection(from, to) { if (sel) setSelection(Math.max(0, from), Math.max(0, to)); }, setActiveSlice(i) { activeSlice = i; }, history, get octave() { return octave; }, get selection() { return [selFrom, selTo]; }, get selected() { return sel; }, get focus() { return focus; }, get mode() { return mode; } };
 }
