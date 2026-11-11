@@ -216,7 +216,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
   // The choice lives on the node as node.scope = { mode, size }; the samples arrive from the audio side.
   const scopeData = new Map();   // node id -> { l, r, sr }
   const cloudData = new Map();   // granular node id -> { head, t, sr, gain, grains: [{ at, step, len, shape, t }] }: its grains, as they started
-  const eyeRect = node => { const { w } = nodeBox(nodeTypes[node.type], node); return { x: node.x + w / 2 + node.id.length * 3 + 3, y: node.y - 12, w: 20, h: 14 }; };   // after the node's name (6 px a letter, centred above the shape)
+  const eyeRect = node => { const { w } = nodeBox(nodeTypes[node.type], node); return { x: node.x + w / 2 + node.id.length * 3.3 + 1, y: node.y - 14, w: 20, h: 14 }; };   // after the node's name (11 px mono, 6.6 px a letter, centred above the shape)
   const scopeRectOf = node => {
     const { w, h } = nodeBox(nodeTypes[node.type], node), b = scopeBox(node, w, h, node.scope.size, node.scope.mode);
     if (selected?.kind === 'node' && selected.id === node.id && nodeTypes[node.type].adsr?.length) {   // its envelope box is open: the scope sits beside it, level with its middle
@@ -1754,8 +1754,8 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
         });
       }
     }
-    ctx.font = '10px ui-monospace, Consolas, monospace'; ctx.textBaseline = 'middle';
-    const xm = (ctx.measureText?.('x') ?? {}), xMid = ((xm.actualBoundingBoxAscent ?? 3) - (xm.actualBoundingBoxDescent ?? 0)) / 2;   // how far the middle of an x sits above the name's middle line
+    ctx.font = '11px ui-monospace, Consolas, monospace'; ctx.textBaseline = 'alphabetic';   // the name's own font and baseline
+    const xMid = ((ctx.measureText?.('x') ?? {}).actualBoundingBoxAscent ?? 5.7) / 2;   // how far the middle of a lowercase x sits above the name's baseline
     for (const node of desc().nodes) {
       if (!nodeTypes[node.type].outputs.length || nodeTypes[node.type].shape === 'dot') continue;
       const r = eyeRect(node), on = !!node.scope, cx = r.x + r.w / 2, cy = node.y - 5 - xMid;   // the cornea is the eye's origin, level with the middle of the lowercase letters of the name beside it

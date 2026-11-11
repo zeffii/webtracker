@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 705 · 2026-11-11
+
+- **The scope eye sits right beside the node name.** It was placed by a 10 px letter width and baseline while the name is 11 px, so it floated too far away and too low; it is now measured from the name's own font, with its cornea level with the middle of the lowercase letters.
+
 ## 704 · 2026-11-11
 
 - **The machine list in the browser uses the same small monospace font** as the rest of the browser (it had fallen back to the page's large body font when the list moved out of its old side panel).

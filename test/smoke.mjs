@@ -1191,7 +1191,7 @@ const hit = 'C-2 .. .. ..';
   patcher.show('kick');
   const node = defs.kick.graph.nodes.find(n => n.id === 'osc'), { w, h } = nodeBox(NODE_TYPES[node.type], node);
   const click = (x, y) => canvas.listeners.mousedown({ offsetX: x, offsetY: y, button: 0, preventDefault() {} }) ?? canvas.listeners.mouseup({ offsetX: x, offsetY: y });
-  const eye = [node.x + w / 2 + node.id.length * 3 + 13, node.y - 5];
+  const eye = [node.x + w / 2 + node.id.length * 3.3 + 11, node.y - 8];
   click(...eye);
   assert.ok(node.scope, 'the eye after the name of the node shows the scope');
   click(...eye);
