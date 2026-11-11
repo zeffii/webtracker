@@ -11288,4 +11288,18 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   console.log('ok: ui kit popups');
 }
 
+// The sympathy node reports each string's left and right gain, for the panel's stacked bars.
+{
+  const def = NODE_TYPES.sympathy, got = [];
+  const params = Float32Array.from(def.params.map(p => p.def)), slots = Int32Array.from(def.params.map((_, i) => i));
+  const node = def.create({ sampleRate: sr, connected: [true], maxBlock: 128, emit: msg => got.push(msg) });
+  node.message({ type: 'watch' });
+  const a = new Float32Array(128).fill(0.1), l = new Float32Array(128), r = new Float32Array(128);
+  for (let i = 0; i < 40; i++) node.process([[a, a]], [[l, r]], 128, params, slots);
+  const msg = got.find(g => g.type === 'sym');
+  assert.ok(msg && msg.pans.length === msg.notes.length && msg.pans.length > 0, 'sym report carries pans');
+  assert.ok(msg.pans.every(([gl, gr]) => gl >= 0 && gr >= 0 && Math.abs(gl * gl + gr * gr - 1) < 0.02), 'pan gains are equal power');
+  console.log('ok: sympathy pan report');
+}
+
 console.log('smoke test passed');

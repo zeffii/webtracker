@@ -133,9 +133,9 @@ export default {
           watchLeft -= n; sent += n;
           if (sent >= sampleRate * 0.08) {
             sent = 0;
-            const notes = [], e = [];
-            for (let s = 0; s < MAX_STRINGS; s++) if (pitch[s] >= 0) { notes.push(pitch[s]); e.push(energy[s]); }
-            emit({ type: 'sym', energy: e, notes });
+            const notes = [], e = [], pans = [];
+            for (let s = 0; s < MAX_STRINGS; s++) if (pitch[s] >= 0) { notes.push(pitch[s]); e.push(energy[s]); pans.push([pan[s][0], pan[s][1]]); }
+            emit({ type: 'sym', energy: e, notes, pans });   // pans: each string's left and right gain, for the panel's stacked bars
           }
         }
       },

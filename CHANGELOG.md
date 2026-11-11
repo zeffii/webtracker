@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 707 · 2026-11-11
+
+- **The sympathy panel shows the panning as a sum.** Under the strings, two bars (left above right) are built from one segment per string, as long as that string rings times how much of it goes to that side and coloured by pitch like the glow. A bar longer than the other is where the sound leans. The node reports each string's left and right gain with its energy.
+
 ## 706 · 2026-11-11
 
 - **Pulsar synthesis.** A new **Pulsar** synth (Sources > Synths) fires a short burst of waveform, the pulsaret, at the note's pitch while a separate *formant* sets how fast each burst plays, so pitch and colour are independent. Waves: sine, half sine, triangle, saw, square, noise. The shape of every burst is a **drawn Bezier window**, and a second drawing sweeps the formant after each note starts. *mask* drops pulsarets at random, *jitter* moves their times, *scatter* throws each one to a random place in the stereo field. The panel shows the pulse train as it will sound (with the masked bursts faint), the drawings under it.

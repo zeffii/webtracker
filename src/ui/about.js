@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['707', ['The sympathy panel draws its panning as a sum: left and right bars built from every ringing string.']],
   ['706', ['Pulsar synthesis: a Pulsar synth and a Pulse train source, with a drawn window for each burst and a drawn formant sweep. Accent colours darken on light themes.']],
   ['705', ['The scope eye sits right beside the node name, level with its lowercase letters.']],
   ['704', ['The machine list in the browser is back to the small monospace font.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['700', ['Space on the Sample screen plays from the playhead.']],
   ['699', ['Sample screen: click the waveform to place the playhead; Ctrl+C / Ctrl+X / Ctrl+V copy, cut and paste at it (Ctrl+Shift+V pastes over), also between samples.']],
   ['698', ['Sympathetic strings pan by distance from the played note (subtle by default); parameter ports hang as dots under a node tile; port tips appear after half a second.']],
-  ['697', ['Envelope editors can show time in log mode (button under the drawing): the transient gets most of the room.']],
                     ];
