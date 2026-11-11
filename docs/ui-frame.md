@@ -73,14 +73,36 @@ See `ui-frame-layout.png`. One frame for every view; only the centre changes.
 
 ## Progress notes
 
-Step 3, popup stack (`src/ui/kit/popups.js`): on the stack now are the context menu, the machine
-menu, the curve popup, the chord palette, the File menu, Backups, machine help, node help, the
-stream manager, the shortcut list and the bounce dialog. Each was checked in a browser against
-master (same keys, same results). Two kinds of popup: the ones that take over hear Escape
-wherever the focus is; floating panels you work beside are `focusScoped` and hear it only
-while the focus is inside them.
+Step 3, popup stack (`src/ui/kit/popups.js`): done for everything that pops up over the app. On the
+stack: the context menu, the machine menu, the curve popup, the chord palette, the File menu,
+Backups, machine help, node help, the stream manager, the shortcut list, the bounce dialog, the
+graph's insert menu, the node sequencer palette, and recording (Escape stops it). Each was checked
+in a browser against master: same keys, same results.
 
-Still to move: the graph's insert menu and parameter menus, the shader slider popup, the node
-sequencer palette, the command bar, and the inline editors (rename box and friends, where Escape
-is a local "cancel the edit"). Then the focus owner proper: the active view and the shortcut table
-as the layers below the popups.
+Two kinds of popup: the ones that take over hear Escape wherever the focus is; floating panels
+you work beside are `focusScoped` and hear it only while the focus is inside them. The second
+kind is exactly what the floating parameter panels will be.
+
+Left alone on purpose, because they belong to a view rather than to a popup: the parameter view's
+own menu and typing box, the shader view's number slider, the command bar and the inline rename
+editors (Escape there is a local "cancel the edit").
+
+## The focus owner: after the frame, not before
+
+The routing today is: popup stack, then the shortcut table, then each view's own key handler on
+the element that has the focus. The plan was a focus owner that makes the last layer explicit
+(views register with it instead of listening on their own). Deferred until the frame exists,
+because who owns the keyboard depends on the frame's regions (browser, centre view, floating
+panels, mixer: mouse-only, never takes focus), and building it first would mean doing it twice.
+
+## Step 4, the frame shell: proposed sub-steps (to agree before any code)
+
+a. Tab order, labels and F-keys: F1 Song (the arrangement, now F4), F2 Pattern, F3 Instrument,
+   F4 Sample; the app opens on Song. Small and visible; touches `main.js` tabs and the help text.
+b. The mixer docked in every view, with the splitter (drag to resize, hidden under 20 px, size
+   remembered). Open design point: in the arrangement and the pattern view the strips line up with the
+   lane columns; in the graph and sample views there are no lane columns, so the strips would be a
+   plain row of fixed width.
+c. The browser panel (patterns, samples, machines), collapsible.
+d. The floating parameter panels: draggable, remembered position, several at once, pop-out.
+e. Delete what the frame replaces (the old docks and the separate lists).
