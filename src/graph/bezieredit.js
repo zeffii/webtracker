@@ -12,16 +12,32 @@ import { SHAPES, cleanSpline, walk, autoHandles, splitSegment, nearestOnSpline }
 //   K                         the chosen anchor the sustain knot (with `knot`): the envelope waits there while the note is held
 //   arrows                    nudge (Shift for 10)                 Ctrl+Shift-drag   only along time or only along level
 //   Ctrl+Z, Ctrl+Shift+Z      undo and redo
+//   time button              linear time, or log time: the start of the drawing gets most of the room (for transients) and the ticks of the
+//                            ruler draw closer together towards the tail. Only the view changes; the drawing is the same in both.
 // With `firstHandle` the first anchor always shows its handle, so the start of the curve can be bent without choosing it first.
 const W = 520, H = 150, PL = 48, PR = 12, PT = 18, PB = 20;
 const GRAB = 8, PINK = 'hsl(335 80% 62%)', ARM = 'hsl(195 75% 58%)', HISTORY = 100;
 const SNAPS = [0, 8, 16, 32];   // off, or the number of steps across the drawing
+
+// Round times (ms) for the ruler of log time, up to the end of the drawing: 1, 2, 5, 10, 20, 50 ... and the end itself.
+function msMarks(total) {
+  const marks = [];
+  for (let decade = 0.1; decade <= total; decade *= 10) for (const m of [1, 2, 5]) { const v = Math.round(decade * m * 100) / 100; if (v <= total && v >= 1) marks.push(v); }
+  return [...new Set(marks)].sort((a, b) => a - b);
+}
 
 export function createBezierEditor({ doc = document, title, color, points, fallback = SHAPES.fall, getMs, labels = () => ['100%', '0'], firstHandle = false, knot = false, onChange }) {
   const el = (tag, props = {}, ...kids) => { const e = doc.createElement(tag); Object.assign(e, props); for (const k of kids) e.appendChild(typeof k === 'string' ? doc.createTextNode(k) : k); return e; };
   let spline = cleanSpline(points, fallback);
   let selected = null, drag = null, hover = null, snapAt = 0;   // hover: { kind: 'anchor' | 'l' | 'r' | 'curve', i }
   let undo = [], redo = [], mouse = null;
+  // Log time: x (the drawing's own time, 0 to 1) is shown at u = log(1 + K x) / log(1 + K), so the first few percent fill a good part of the width.
+  let logTime = false;
+  try { logTime = localStorage.getItem('wax.envLogTime') === '1'; } catch { /* no storage */ }
+  const LOG_K = 50, LOG_D = Math.log(1 + LOG_K);
+  const toView = x => (logTime ? Math.log(1 + LOG_K * x) / LOG_D : x);
+  const fromView = u => (logTime ? (Math.exp(u * LOG_D) - 1) / LOG_K : u);
+  const viewSlope = x => (logTime ? LOG_K / ((1 + LOG_K * x) * LOG_D) : 1);   // screen width per unit of x, relative to linear
   const dpr = Math.max(1, Math.min(3, (typeof devicePixelRatio === 'number' ? devicePixelRatio : 1)));
   const canvas = el('canvas', { width: W * dpr, height: H * dpr, className: 'bezier-pad', tabIndex: 0 });
   canvas.style && Object.assign(canvas.style, { width: `${W}px`, height: `${H}px`, outline: 'none' });
@@ -29,7 +45,7 @@ export function createBezierEditor({ doc = document, title, color, points, fallb
   const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
   const round = v => Math.round(v * 10000) / 10000;
   const pw = W - PL - PR, ph = H - PT - PB;
-  const X = x => PL + x * pw, Y = y => PT + (1 - y) * ph;
+  const X = x => PL + toView(x) * pw, Y = y => PT + (1 - y) * ph;
   const handlesOf = i => { const a = autoHandles(spline, i), p = spline[i]; return { l: p.l ?? a.l, r: p.r ?? a.r }; };
   const kindOf = p => p.t ?? 'smooth';
   const emit = () => onChange(spline.map(p => ({ x: round(p.x), y: round(p.y), l: p.l && p.l.map(round), r: p.r && p.r.map(round), ...(p.t ? { t: p.t } : {}), ...(p.s ? { s: true } : {}) })));
@@ -56,20 +72,28 @@ export function createBezierEditor({ doc = document, title, color, points, fallb
     ctx.clearRect(0, 0, W, H);
     ctx.lineWidth = 1; ctx.strokeStyle = ink; ctx.fillStyle = ink;
     // the grid: the snap steps when snapping, else quarters, with the middle and the ends a little stronger
-    const stepsX = snapAt || 4, stepsY = snapAt || 4;
+    const stepsX = snapAt || 4, stepsY = snapAt || 4, totalMs = getMs(), marks = logTime ? msMarks(totalMs) : [];
     ctx.globalAlpha = 0.09; ctx.beginPath();
-    for (let k = 0; k <= stepsX; k++) { ctx.moveTo(X(k / stepsX), Y(0)); ctx.lineTo(X(k / stepsX), Y(1)); }
+    if (logTime) for (const m of marks) { ctx.moveTo(X(m / totalMs), Y(0)); ctx.lineTo(X(m / totalMs), Y(1)); }
+    else for (let k = 0; k <= stepsX; k++) { ctx.moveTo(X(k / stepsX), Y(0)); ctx.lineTo(X(k / stepsX), Y(1)); }
     for (let k = 0; k <= stepsY; k++) { ctx.moveTo(PL, Y(k / stepsY)); ctx.lineTo(W - PR, Y(k / stepsY)); }
     ctx.stroke();
     ctx.globalAlpha = 0.2; ctx.beginPath();
     for (const v of [0, 0.5, 1]) { ctx.moveTo(PL, Y(v)); ctx.lineTo(W - PR, Y(v)); }
-    for (const t of [0, 0.5, 1]) { ctx.moveTo(X(t), Y(0)); ctx.lineTo(X(t), Y(1)); }
+    if (!logTime) for (const t of [0, 0.5, 1]) { ctx.moveTo(X(t), Y(0)); ctx.lineTo(X(t), Y(1)); }
     ctx.stroke();
     ctx.globalAlpha = 0.65; ctx.font = '10px ui-monospace, Consolas, monospace'; ctx.textBaseline = 'top';
     ctx.fillText(typeof title === 'function' ? title() : title, PL, 2);
     ctx.textAlign = 'right'; const [top, bottom] = labels(); ctx.fillText(top, PL - 6, Y(1) - 5); ctx.fillText(bottom, PL - 6, Y(0) - 5); ctx.textAlign = 'left';
     const ms = getMs();
-    for (const t of [0, 0.5, 1]) { ctx.textAlign = t === 0 ? 'left' : t === 1 ? 'right' : 'center'; ctx.fillText(`${Math.round(ms * t)}${t === 1 ? ' ms' : ''}`, X(t), H - PB + 5); }
+    if (logTime) {   // the ruler: round times, closer together towards the tail, a label when there is room for it
+      let lastRight = -Infinity; ctx.textAlign = 'center';
+      for (const m of marks) {
+        const x = X(m / ms), label = m >= 1000 ? `${m / 1000}s` : `${m}`, w = ctx.measureText(label).width;
+        if (x - w / 2 > lastRight + 4 && x + w / 2 < W - PR + 14) { ctx.fillText(label, x, H - PB + 5); lastRight = x + w / 2; }
+      }
+      ctx.textAlign = 'right'; ctx.fillText('log time, ms', W - PR - 70, 2); ctx.textAlign = 'left';
+    } else for (const t of [0, 0.5, 1]) { ctx.textAlign = t === 0 ? 'left' : t === 1 ? 'right' : 'center'; ctx.fillText(`${Math.round(ms * t)}${t === 1 ? ' ms' : ''}`, X(t), H - PB + 5); }
     ctx.textAlign = 'left';
     // the curve, and the area under it
     const line = walk(spline);
@@ -110,7 +134,7 @@ export function createBezierEditor({ doc = document, title, color, points, fallb
   const at = e => {
     const r = canvas.getBoundingClientRect(), s = r.width ? W / r.width : 1;
     const px = (e.clientX - r.left) * s, py = (e.clientY - r.top) * s;
-    return { px, py, x: clamp((px - PL) / pw, 0, 1), y: clamp(1 - (py - PT) / ph, 0, 1) };
+    return { px, py, x: clamp(fromView(clamp((px - PL) / pw, 0, 1)), 0, 1), y: clamp(1 - (py - PT) / ph, 0, 1) };
   };
   const near = (px, py, x, y) => Math.hypot(px - X(x), py - Y(y)) <= GRAB;
   const hitHandle = (px, py) => {
@@ -118,7 +142,7 @@ export function createBezierEditor({ doc = document, title, color, points, fallb
     return null;
   };
   const hitAnchor = (px, py) => spline.findIndex(p => near(px, py, p.x, p.y));
-  const hitCurve = m => { const n = nearestOnSpline(spline, m.x, m.y, [pw, ph]); return n && n.d <= 6 ? n : null; };
+  const hitCurve = m => { const n = nearestOnSpline(spline, m.x, m.y, [pw * viewSlope(m.x), ph]); return n && n.d <= 6 ? n : null; };
   const target = m => {
     const h = hitHandle(m.px, m.py); if (h) return h;
     const a = hitAnchor(m.px, m.py); if (a >= 0) return { kind: 'anchor', i: a };
@@ -167,8 +191,8 @@ export function createBezierEditor({ doc = document, title, color, points, fallb
     else { p.r = [0, 0]; q.l = [0, 0]; }
   };
 
-  const place = (m, e) => {   // where a dragged point or handle tip goes: on the grid, along one axis with Ctrl+Shift
-    let x = snapped(m.x, !e.altKey), y = snapped(m.y, !e.altKey);
+  const place = (m, e) => {   // where a dragged point or handle tip goes: on the grid (as drawn, so log time snaps to the log grid), along one axis with Ctrl+Shift
+    let x = fromView(snapped(toView(m.x), !e.altKey)), y = snapped(m.y, !e.altKey);
     return { x, y };
   };
   canvas.addEventListener('mousedown', e => {
@@ -180,7 +204,7 @@ export function createBezierEditor({ doc = document, title, color, points, fallb
     if (t && t.kind === 'anchor') { remember(); selected = t.i; drag = { kind: 'anchor', i: t.i, from: { x: spline[t.i].x, y: spline[t.i].y, mx: m.x, my: m.y }, before: snapshot() }; draw(); return; }
     if (t && t.kind === 'curve') { selected = null; draw(); return; }   // a click on the curve itself adds nothing: double-click puts an anchor there
     remember();
-    const k = addAnchor(snapped(m.x), snapped(m.y)); selected = k; drag = { kind: 'anchor', i: k, from: { x: spline[k].x, y: spline[k].y, mx: m.x, my: m.y }, before: null };   // (a new anchor is a step even if it is not moved)
+    const k = addAnchor(fromView(snapped(toView(m.x))), snapped(m.y)); selected = k; drag = { kind: 'anchor', i: k, from: { x: spline[k].x, y: spline[k].y, mx: m.x, my: m.y }, before: null };   // (a new anchor is a step even if it is not moved)
     emit(); draw();
   });
   canvas.addEventListener('mousemove', e => {
@@ -231,7 +255,7 @@ export function createBezierEditor({ doc = document, title, color, points, fallb
       act(() => {
         if (k === 'arrowup') p.y = clamp(p.y + step / ph, 0, 1);
         else if (k === 'arrowdown') p.y = clamp(p.y - step / ph, 0, 1);
-        else if (!first && !last) p.x = clamp(p.x + (k === 'arrowright' ? step : -step) / pw, spline[selected - 1].x + 0.004, spline[selected + 1].x - 0.004);
+        else if (!first && !last) p.x = clamp(fromView(toView(p.x) + (k === 'arrowright' ? step : -step) / pw), spline[selected - 1].x + 0.004, spline[selected + 1].x - 0.004);
       });
       return;
     }
@@ -249,6 +273,11 @@ export function createBezierEditor({ doc = document, title, color, points, fallb
   const shape = n => action(n, `Start from the ${n} shape`, () => set(SHAPES[n]()));
   const kindButton = (label, kind, tip) => action(label, tip, () => { if (selected === null) return; act(() => setKind(selected, kind)); });
   const snapButton = action('snap off', 'Snap anchors and handles to a grid (click to change the size)', () => { snapAt = SNAPS[(SNAPS.indexOf(snapAt) + 1) % SNAPS.length]; snapButton.textContent = snapAt ? `snap 1/${snapAt}` : 'snap off'; draw(); });
+  const timeButton = action(logTime ? 'time: log' : 'time: linear', 'Show time evenly (linear), or give the start of the drawing most of the room (log) so a transient is easy to shape', () => {
+    logTime = !logTime; timeButton.textContent = logTime ? 'time: log' : 'time: linear';
+    try { localStorage.setItem('wax.envLogTime', logTime ? '1' : '0'); } catch { /* no storage */ }
+    draw();
+  });
   const shapes = el('div', { className: 'osc-wave-row' }, ...Object.keys(SHAPES).map(shape));
   const kinds = el('div', { className: 'osc-wave-row' },
     kindButton('sharp', 'sharp', 'The chosen anchor a corner (X)'), kindButton('smooth', 'smooth', 'Its handles stay in line (S)'), kindButton('equal', 'equal', 'In line and the same length, mirrored as you drag (E)'), kindButton('free', 'free', 'Each handle on its own (F, or Alt-drag a handle)'),
@@ -258,7 +287,7 @@ export function createBezierEditor({ doc = document, title, color, points, fallb
     action('undo', 'Undo (Ctrl+Z)', () => { if (undo.length) { redo.push(snapshot()); restore(undo.pop()); } }),
     action('redo', 'Redo (Ctrl+Shift+Z)', () => { if (redo.length) { undo.push(snapshot()); restore(redo.pop()); } }),
     ...(knot ? [action('sustain', 'Make the chosen anchor the sustain knot, or take it off (K): the envelope waits there while the note is held', () => { if (selected !== null) act(() => setKnot(selected)); })] : []),
-    snapButton);
+    snapButton, timeButton);
   const tip = el('div', { className: 'bezier-tip', textContent: 'click adds · double-click a curve inserts · double-click an anchor sharp/smooth · right-click deletes an anchor or flips a segment line/curve · S E F X types · B line/curve · I insert · arrows nudge' });
   draw();
   return { el: el('div', { className: 'bezier-edit' }, canvas, shapes, kinds, tip), draw, refresh: draw, get points() { return spline.map(p => ({ ...p })); } };

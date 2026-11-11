@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 697 · 2026-11-11
+
+- **Log time for the envelope editors.** Every Bezier envelope editor (Env2, the drum and hat envelopes) has a *time: linear / log* button. Log gives the start of the drawing most of the room, so a transient is easy to shape, and the ruler's round times (1, 2, 5, 10, 20 … ms) bunch up towards the tail; dragging, snapping, inserting and the arrow keys all follow what is drawn. Only the view changes, never the envelope. The choice is remembered.
+
 ## 696 · 2026-11-11
 
 - **`?` lists the commands in effect.** With the cursor in a Cmd column, `?` (Shift+/) opens a small list of the commands that are on at that row and not at their default, with their current values: what the column has written from the top of the song down to the cursor, less what a reset (A0–AF) has put back. Any key closes it. (Save/load commands and preset recalls are not followed.)
