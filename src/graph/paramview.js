@@ -13,6 +13,7 @@
 // Ctrl less), Home/End go to the ends, PageUp/PageDown jump rows, Enter opens the row's menu.
 const TACK = '<svg viewBox="0 0 12 12" width="13" height="13" aria-hidden="true"><path d="M7.6 1 11 4.4 9.9 5.5 8.9 5l-1.7 1.7.3 2-.8.8-2-2L1.6 10.4 1 10l2.4-2.9-2-2 .8-.8 2 .3L5.3 3 4.8 2z" fill="currentColor"/></svg>';
 
+import { dragSlider } from '../ui/kit/slider.js';
 export function createParamView({ doc = document, el: host, side = 'right', showTip = () => {}, hideTip = () => {}, onFocusBack = () => {} }) {
   let rows = [], head = '', cursor = 0, menu = null, typing = null, pin = null, extra = [];
   const box = host.parentElement ?? host;   // the dock around the scrolling list: it is shown, hidden and resized as a whole
@@ -158,21 +159,16 @@ export function createParamView({ doc = document, el: host, side = 'right', show
       tv.title = 'The value in song ticks at this tempo';
       tail.append(...(row.cc !== undefined ? [Object.assign(make('span', 'pv-id', row.cc), { title: `Command ${row.cc} in the Cmd column writes this` })] : []), tv, hex);
       bar.append(val, tail);
-      const fromX = e => { const r = bar.getBoundingClientRect(); return (e.clientX - r.left - 1) / Math.max(1, r.width - 2); };
       // a drag lands on a tick line when it is close to one; Alt drags freely
-      const drag = (r, b, e) => { const p = clamp01(fromX(e)); return r.ticks && !e.altKey ? r.ticks.snap(p, Math.round(b.clientWidth || 200)) : p; };
-      bar.addEventListener('pointerdown', e => {
-        if (e.target.classList?.contains('pv-type')) return;
-        e.preventDefault();
-        cursor = i; mark(); closeMenu();
-        bar.setPointerCapture?.(e.pointerId);
-        bar.dragging = true;
-        set(row, drag(row, bar, e));
+      dragSlider(bar, {
+        inset: 1,
+        ignore: e => e.target.classList?.contains('pv-type'),
+        snap: (p, e) => row.ticks && !e.altKey ? row.ticks.snap(p, Math.round(bar.clientWidth || 200)) : p,
+        onStart: () => { cursor = i; mark(); closeMenu(); },
+        onChange: p => set(row, p),
+        onEnd: () => onFocusBack(),
+        onReset: () => { row.reset(); paintAll(); },
       });
-      bar.addEventListener('pointermove', e => { if (bar.dragging) set(row, drag(row, bar, e)); });
-      const end = e => { if (bar.dragging) { bar.dragging = false; bar.releasePointerCapture?.(e.pointerId); onFocusBack(); } };
-      bar.addEventListener('pointerup', end); bar.addEventListener('pointercancel', end);
-      bar.addEventListener('dblclick', () => { row.reset(); paintAll(); });
       line.addEventListener('contextmenu', e => { e.preventDefault(); cursor = i; mark(); openMenu(); });
       name.addEventListener('mousedown', e => { e.preventDefault(); cursor = i; mark(); closeMenu(); onFocusBack(); });
       // clickable switches, shown only when the panel is wide: expose as a pattern column, give a port, the column width

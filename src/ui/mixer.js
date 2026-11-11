@@ -5,6 +5,8 @@
 // "test" turns the fader into a test gain: moving it changes only what is heard (the running engine), not the Out node, so a level
 // can be tried without touching the instrument. A tick on the track marks the real gain; turning test off puts the real gain back.
 // Test gains are never saved, and are dropped when the project is loaded again.
+import { dragSlider } from './kit/slider.js';
+
 const GAIN_MAX = 1.5, GAIN_DEFAULT = 0.8;
 
 const dbText = g => (g < 0.001 ? '-inf' : `${(20 * Math.log10(g)).toFixed(1)}`);
@@ -44,14 +46,11 @@ export function createMixer({ el, lanes, instruments, setParam, hear, solo, sile
       else setParam(strip.inst, node.id, 'gain', g);
       for (const s of strips) if (s.inst === strip.inst) s.show();
     };
-    const at = e => { const r = track.getBoundingClientRect(); return Math.round(Math.max(0, Math.min(1, (r.bottom - e.clientY) / r.height)) * GAIN_MAX * 100) / 100; };
-    track.addEventListener('pointerdown', e => {
-      e.preventDefault();   // (the arrangement keeps the focus)
-      track.setPointerCapture(e.pointerId); put(at(e));
-      const move = ev => put(at(ev)), up = () => { track.removeEventListener('pointermove', move); track.removeEventListener('pointerup', up); };
-      track.addEventListener('pointermove', move); track.addEventListener('pointerup', up);
+    dragSlider(track, {
+      axis: 'y',
+      onChange: p => put(Math.round(p * GAIN_MAX * 100) / 100),
+      onReset: () => put(testing.has(strip.inst) ? gainOf(node) : GAIN_DEFAULT),
     });
-    track.addEventListener('dblclick', () => put(testing.has(strip.inst) ? gainOf(node) : GAIN_DEFAULT));
     strip.show = show; strip.meter = meter;
     return track;
   }
