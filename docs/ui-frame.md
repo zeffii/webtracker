@@ -26,10 +26,13 @@ the kit adds spacing, line width and type size tokens next to them.
 
 See `ui-frame-layout.png`. One frame for every view; only the centre changes.
 
-- top bar: transport, view tabs
+- top bar: transport, view tabs in this order: Arrange, Pattern, Instrument, Sample.
+  Arrange is the first-class view and the one the app opens on.
 - left: browser (patterns, samples, machines), collapsible
-- centre: the view (pattern grid, graph, sample, arrangement)
-- right: inspector (sliders for what is selected), collapsible; the popout is this panel torn off
+- centre: the view, full width
+- parameter views float over the centre until closed (the Buzz way): draggable,
+  position remembered, several can be open at once, and any of them can be popped
+  out into its own window. No docked inspector.
 - bottom: mixer with a drag handle, hidden under 20 px, mouse-only, never takes keyboard focus
 - last line: command bar and status
 
@@ -40,7 +43,8 @@ See `ui-frame-layout.png`. One frame for every view; only the centre changes.
 - `popups` one stack for menus, dialogs, tooltips (0.5 s hover); one Escape rule
 - `splitter` drag to resize, collapse threshold, remembered size
 - `tabs`, `tree`
-- `slider`, `knob` one implementation for inspector, node faces, mixer
+- `slider`, `knob` one implementation for floating parameter panels, node faces, mixer
+- `floating` the draggable panel: hairline edge, close button, remembered position
 
 ## Steps (each leaves the app working and the tests green)
 
@@ -48,12 +52,16 @@ See `ui-frame-layout.png`. One frame for every view; only the centre changes.
 2. `focus`: wrap the existing listeners behind it, then remove them view by view.
 3. `popups`: move the ten popups over, one at a time.
 4. `splitter` and the frame shell: mixer docked first (Sample screen, the smallest).
-5. `slider` and `knob`; the inspector.
+5. `slider`, `knob` and `floating`; the parameter panels.
 6. Move the views over: Sample, Instrument, Pattern, Arrange.
 7. Delete what the kit replaced.
 
-## Open questions
+## Decided
 
-- browser and inspector collapsible so the tracker grid can go wide?
-- Sample and Instrument keep full-width canvases, frame only adds mixer and inspector?
-- Arrange: a tab in the frame, or in the mixer area?
+- browser collapsible
+- parameter views float until closed; canvases run full width
+- Arrange first, then Pattern, Instrument, Sample
+
+## Open
+
+- F-keys: keep F1 Pattern, F2 Sample, F3 Instrument, F4 Arrange as they are, or renumber to match the new tab order?
