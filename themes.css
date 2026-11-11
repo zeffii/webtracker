@@ -14,7 +14,9 @@
   --accent: hsl(210 70% 55%); --cc: light-dark(#2a5db0, #7fb0ff);
   --btn: var(--field); --line: currentColor; --glow: transparent; --radius: 0;
   --space-1: 2px; --space-2: 4px; --space-3: 8px; --space-4: 12px; --space-5: 16px;
-  --rec: #d03040;   /* the record colour, the one red in the interface for "this is live" */
+  /* state colours, one each for the whole interface: --rec red (live, record, error, danger), --warn amber (a warning, a control
+     signal), --info blue (audio, information) */
+  --rec: #d8323f; --warn: #d98a1c; --info: #4a7fd0;
   --line-w: 1px; --line-w-strong: 2px;
   --font-s: 11px; --font-m: 13px; --font-l: 15px;
 }
