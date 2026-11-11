@@ -1,6 +1,7 @@
 // The curve popup of Ctrl+I: pick or bend a shape, paint one by hand, lay a wave on it, and see the cells that will be
 // written as dots on it. opts: { curve, xs (where the cells sit, 0..1), anchor: { x, y }, onChange(curve), onAccept(), onCancel() }.
 // Without a page (the tests) it just accepts what it is given.
+import { popups } from './kit/popups.js';
 import { SHAPES, CURVE_N, shapeTable, curveAt, paintTable, bezierFrom, bezierFix, bezierValue, bezierTable } from '../seq/curve.js';
 
 export function showCurvePopup(opts, { doc = typeof document === 'undefined' ? null : document } = {}) {
@@ -117,19 +118,16 @@ export function showCurvePopup(opts, { doc = typeof document === 'undefined' ? n
   doc.addEventListener('mousemove', move); doc.addEventListener('mouseup', up);
 
   let closed = false;
-  const close = () => { closed = true; box.remove(); doc.removeEventListener('keydown', keys, true); doc.removeEventListener('mousedown', away, true); doc.removeEventListener('mousemove', move); doc.removeEventListener('mouseup', up); };
+  const close = () => { closed = true; box.remove(); layer.release(); doc.removeEventListener('mousemove', move); doc.removeEventListener('mouseup', up); };
   const accept = () => { if (closed) return; close(); opts.onAccept(); };
   const cancel = () => { if (closed) return; close(); opts.onCancel(); };
-  const keys = e => {
-    if (e.key === 'Escape') cancel(); else if (e.key === 'Enter') accept(); else return;
-    e.preventDefault(); e.stopPropagation();
-  };
-  const away = e => { if (!box.contains(e.target)) accept(); };
+  // Enter applies. Escape (cancel) is the popup stack's; so is a click elsewhere, which here applies too.
+  const onKey = e => { if (e.key !== 'Enter') return false; accept(); return true; };
   doc.body.append(box);
   const w = box.offsetWidth, h = box.offsetHeight, vw = doc.documentElement.clientWidth, vh = doc.documentElement.clientHeight;
   box.style.left = `${Math.max(0, Math.min(opts.anchor.x, vw - w - 8))}px`;
   box.style.top = `${Math.max(0, Math.min(opts.anchor.y, vh - h - 8))}px`;
-  doc.addEventListener('keydown', keys, true); doc.addEventListener('mousedown', away, true);
+  const layer = popups.open({ name: 'curve popup', element: box, close: cancel, onKey, onOutside: accept, doc });
   mark(); draw(); opts.onChange(curve);
   return cancel;
 }

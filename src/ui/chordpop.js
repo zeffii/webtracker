@@ -4,6 +4,7 @@
 //   { notes (st, ascending), rows: [{ tick, notes }] (the selected rows, first is `notes`), scale: { key, id }, anchor: { x, y },
 //     preview(notes), onScale({ key, id }), onApply(notes), onSmooth([notes per row]), onCancel() }
 // Without a page (the tests) it just applies what it is given.
+import { popups } from './kit/popups.js';
 import { PC, QUALITIES, SCALES, spell, detect, voicings, setQuality, candidates, stepScale, scaleSet, voiceLead, movement, sameNotes } from '../seq/chords.js';
 
 const BLACK = [1, 3, 6, 8, 10];
@@ -124,16 +125,16 @@ export function showChordPalette(opts, { doc = typeof document === 'undefined' ?
   };
 
   let closed = false;
-  const close = () => { if (closed) return; closed = true; box.remove(); doc.removeEventListener('keydown', keys, true); doc.removeEventListener('mousedown', away, true); };
+  const close = () => { if (closed) return; closed = true; box.remove(); layer.release(); };
   const accept = () => { close(); if (tab === 'smooth' && smooth) opts.onSmooth(smoothed()); else opts.onApply(work); };
   const cancel = () => { close(); opts.onCancel(); };
-  const away = e => { if (!box.contains(e.target)) cancel(); };
   const TABS = () => ['voicings', 'one', 'quality', ...(smooth ? ['smooth'] : [])];
-  const keys = e => {
+  // Enter applies, Space hears it, Tab changes page, the arrows and [ ] move the notes. Returns true if it took the key.
+  // (Escape, which cancels, and a click elsewhere, which cancels too, are the popup stack's. A drop-down keeps its own keys.)
+  const onKey = e => {
     const k = e.key, big = e.shiftKey;
-    if (e.target?.tagName === 'SELECT') { if (k === 'Escape') cancel(); else return; e.preventDefault(); e.stopPropagation(); return; }
-    if (k === 'Escape') cancel();
-    else if (k === 'Enter') accept();
+    if (e.target?.tagName === 'SELECT') return false;
+    if (k === 'Enter') accept();
     else if (k === ' ') opts.preview(work);
     else if (k === 'Tab') { const t = TABS(); tab = t[(t.indexOf(tab) + (big ? -1 : 1) + t.length) % t.length]; draw(); }
     else if (k === 'ArrowLeft') { voice = Math.max(0, voice - 1); draw(); }
@@ -141,13 +142,12 @@ export function showChordPalette(opts, { doc = typeof document === 'undefined' ?
     else if (k === 'ArrowUp' || k === 'ArrowDown') { const d = k === 'ArrowUp' ? 1 : -1; moveVoice(e.ctrlKey ? work[voice] + 12 * d : big ? stepScale(work[voice], d, set()) : work[voice] + d); }
     else if (k === '[') setWork(asc([...work.slice(0, -1), work[work.length - 1] - 12]));
     else if (k === ']') setWork(asc([...work.slice(1), work[0] + 12]));
-    else return;
-    e.preventDefault(); e.stopPropagation();
+    else return false;
+    return true;
   };
   doc.body.append(box);
   draw();
-  doc.addEventListener('keydown', keys, true);
-  doc.addEventListener('mousedown', away, true);
+  const layer = popups.open({ name: 'chord palette', element: box, close: cancel, onKey, doc });
   const vw = doc.documentElement.clientWidth, vh = doc.documentElement.clientHeight, w = box.offsetWidth, hh = box.offsetHeight;
   box.style.left = `${Math.max(8, Math.min(opts.anchor.x, vw - w - 8))}px`;
   box.style.top = `${Math.max(8, Math.min(opts.anchor.y, vh - hh - 8))}px`;
