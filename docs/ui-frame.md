@@ -116,3 +116,8 @@ The mixer is a dock along the bottom of every view (above the meters and the sta
 ## Progress: step 4c (done for patterns and machines)
 The browser: a collapsible panel down the left of every view (Alt+B, or the status bar button), width remembered, drag its right edge (in past 90 px closes it). The real pattern list (from Song's right column) and the real machine list (from the Instrument view) are mounted in it with their keys intact; it shows Patterns for Song and Pattern, Machines for Instrument. F3 focuses the machine list (or the graph when the browser is closed). Shared drag code: `src/ui/kit/splitter.js` (the mixer dock uses it too). The old list-height grip is hidden; 4e removes it.
 Not done: Samples. Its list is drawn inside the Sample view, so it needs its own step.
+
+## Progress: step 4d (floating panels, pinning; pop-out still to do)
+`src/ui/kit/floating.js`: the floating panel (title bar drag, position remembered per id, click brings it to the front, close button, extra title buttons). The cursor-lane panel (Ctrl+Alt+P) is built on it and has a "pin" button; pin keeps a panel for that machine open until closed. Several can be open at once, each remembers its position, and the pinned set is remembered and reopened with the project (`src/ui/paramfloats.js`, patcher `machinePanel(id, host)`). Panels show in Song, Pattern, Instrument and Sample.
+Key change: node help is now Shift+F1 (plain F1 is Song everywhere; it used to open node help in the Instrument view, which stopped F1 from leaving that view).
+Not done: pop-out into its own window (the parameter rows are drawn into the page's own document), and the lane controls/shortcut column on Song's right are still docked (4e).

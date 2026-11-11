@@ -124,7 +124,7 @@ export function createParamView({ doc = document, el: host, side = 'right', show
       h.append(make('span', 'pv-title', title));
       if (tack?.help) {
         const q = make('span', 'pv-pin pv-help', '?');
-        q.title = 'Help for this node (F1)';
+        q.title = 'Help for this node (Shift+F1)';
         q.addEventListener('mousedown', e => { e.preventDefault(); e.stopPropagation(); tack.help(); });
         h.append(q);
       }

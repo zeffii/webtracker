@@ -514,6 +514,35 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
 
   const nothingExposed = () => (instId && def().meta ? 'This meta machine plays no parameters yet: add some in its Selections.' : 'Nothing exposed in this machine yet.');
 
+  // The exposed rows of any machine, not only the one shown in the graph (a meta machine's rows are only known while it is shown).
+  function exposedRowsOf(id) {
+    const d = instruments[id];
+    if (!d) return [];
+    if (d.meta) return id === instId ? metaRows() : [];
+    return d.exposed.flatMap(x => {
+      const node = d.graph.nodes.find(n => n.id === x.node);
+      const type = node && nodeTypes[node.type];
+      const row = type && rowsFor(node, type, id).find(r => r.name === x.param);
+      return row ? [Object.create(row, { name: { value: x.label } })] : [];
+    });
+  }
+
+  // A parameter panel kept for one machine, in an element of the page's own (a floating window that stays until closed).
+  // It is kept current like the other panels. Returns { render, refresh, release, open }.
+  const machineViews = new Set();
+  function machinePanel(id, host) {
+    const view = createParamView({ doc, el: host, side: 'left', showTip, hideTip, onFocusBack: () => doc.activeElement?.blur?.() });
+    const entry = { id, host, view };
+    entry.render = () => {
+      if (!instruments[id]) { view.hide(); return; }
+      host.classList.toggle('wide', !!instruments[id].meta);
+      view.show('', exposedRowsOf(id), view.cursor, instruments[id].meta ? 'This meta machine plays no parameters yet, or is not the one shown in the graph.' : 'Nothing exposed in this machine yet.');
+    };
+    machineViews.add(entry);
+    entry.render();
+    return { render: entry.render, refresh: () => view.refresh(), release: () => { view.hide(); machineViews.delete(entry); }, get open() { return view.open; } };
+  }
+
   function renderFloat() {
     if (!floatView) return;
     if (!floatOn || !instId) { floatView.hide(); return; }
@@ -523,6 +552,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
 
   function renderExposed() {
     renderFloat();
+    for (const m of machineViews) m.render();
     if (!exposedView) return;
     if (!instId) { exposedView.hide(); return; }
     exposedView.show('exposed', exposedRows(), exposedView.cursor, instId && def().meta ? nothingExposed() : 'Nothing exposed yet. Select a node, press Enter on a row and choose "Expose".');
@@ -1433,10 +1463,11 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
     const sel = selected?.kind === 'node' ? desc().nodes.find(n => n.id === selected.id) : null;
     if (sel && paramView?.open) for (const sp of nodeTypes[sel.type]?.params ?? []) parts.push(readLive(instId, sel.id, sp.name));
     if (exposedView?.open || floatView?.open) for (const e of def().exposed) parts.push(readLive(instId, e.node, e.param));
+    for (const m of machineViews) for (const e of instruments[m.id]?.exposed ?? []) parts.push(readLive(m.id, e.node, e.param));
     const sig = parts.join(',');
     if (sig === liveSig) return;
     liveSig = sig;
-    paramView?.refresh(); exposedView?.refresh(); floatView?.refresh(); tapEditor?.refresh(); gateEditor?.refresh(); specView?.refresh(); canyonView?.refresh(); drumView?.refresh(); drum2View?.refresh(); hat2View?.refresh(); kalView?.refresh(); spaceView?.refresh(); env2Editor?.refresh(); cardinalView?.refresh(); membraneView?.refresh(); granularView?.refresh(); intView?.refresh(); chordView?.refresh(); rangeView?.refresh(); dxView?.refresh();
+    paramView?.refresh(); exposedView?.refresh(); floatView?.refresh(); for (const m of machineViews) m.view.refresh(); tapEditor?.refresh(); gateEditor?.refresh(); specView?.refresh(); canyonView?.refresh(); drumView?.refresh(); drum2View?.refresh(); hat2View?.refresh(); kalView?.refresh(); spaceView?.refresh(); env2Editor?.refresh(); cardinalView?.refresh(); membraneView?.refresh(); granularView?.refresh(); intView?.refresh(); chordView?.refresh(); rangeView?.refresh(); dxView?.refresh();
   }
 
   // A graph is moved clear of the exposed-parameters dock once when its instrument is first shown after a load (the file
@@ -1819,6 +1850,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
     draw,
     // the floating exposed-parameters window: on or off, and kept current while another screen is showing
     float(on) { floatOn = !!on; renderFloat(); },
+    machinePanel,   // a parameter panel for any one machine, in an element of the page's own (see src/ui/paramfloats.js)
     refreshExposed() { renderExposed(); },   // a meta machine's Selections changed: its parameter rows are the ones it plays
     live() { followLive(); },
     get floating() { return !!floatView?.open; },

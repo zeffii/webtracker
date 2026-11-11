@@ -1319,9 +1319,14 @@
     .pv-help { font-weight: 700; cursor: help; }
     #patch-params, #patch-exposed { position: absolute; top: 1px; right: 1px; width: 210px; max-height: 298px; display: flex; background: color-mix(in srgb, var(--bg) 94%, transparent); border: 1px solid; font: 11px/16px ui-monospace, Consolas, monospace; z-index: 5; user-select: none; container-type: inline-size; }
     #patch-exposed { right: auto; left: 1px; }
-    #float-params { position: fixed; top: 90px; right: 24px; width: 230px; max-height: 60vh; display: none; flex-direction: column; background: color-mix(in srgb, var(--bg) 94%, transparent); border: 1px solid; font: 11px/16px ui-monospace, Consolas, monospace; z-index: 30; user-select: none; container-type: inline-size; box-shadow: 0 4px 18px #0006; }
-    #float-title { display: flex; justify-content: space-between; align-items: center; gap: .5rem; padding: 1px 4px; cursor: move; border-bottom: 1px solid; background: color-mix(in srgb, currentColor 12%, transparent); touch-action: none; }
-    #float-title button { all: unset; cursor: pointer; padding: 0 4px; }
+    /* floating panels (src/ui/kit/floating.js): thin line, title bar to drag by, no heavy frame */
+    .fl { position: fixed; display: none; flex-direction: column; max-height: 60vh; background: color-mix(in srgb, var(--bg) 94%, transparent); border: 1px solid color-mix(in srgb, var(--fg) 45%, transparent); font: 11px/16px ui-monospace, Consolas, monospace; user-select: none; container-type: inline-size; box-shadow: 0 4px 18px #0006; }
+    .fl.fl-away { visibility: hidden; pointer-events: none; }
+    .fl-title { display: flex; align-items: center; gap: .5rem; padding: 1px 4px; cursor: move; border-bottom: 1px solid color-mix(in srgb, var(--fg) 30%, transparent); background: color-mix(in srgb, currentColor 12%, transparent); touch-action: none; }
+    .fl-title span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .fl-title button { all: unset; cursor: pointer; padding: 0 4px; }
+    .fl-title button:hover { color: var(--accent); }
+    .fl-body { flex: 1; min-height: 0; overflow-y: auto; }
     #float-scroll { flex: 1; min-height: 0; overflow-y: auto; }
     #patch-scroll, #exposed-scroll { flex: 1; min-width: 0; overflow-y: auto; }
     .pv-grip { width: 5px; flex: none; cursor: ew-resize; background: color-mix(in srgb, currentColor 18%, transparent); touch-action: none; }
@@ -1687,7 +1692,7 @@
 
   <section id="pane-instruments" class="pane keyed" hidden>
     <div id="node-help" tabindex="-1" hidden role="dialog" aria-label="Node help">
-      <div id="node-help-head"><b id="node-help-title"></b><span>F1 or Esc closes</span><button id="node-help-close" type="button">Close</button></div>
+      <div id="node-help-head"><b id="node-help-title"></b><span>Shift+F1 or Esc closes</span><button id="node-help-close" type="button">Close</button></div>
       <div id="node-help-body"></div>
     </div>
     <div class="pane-main">
@@ -1769,7 +1774,7 @@
           <dt>Enter</dt><dd>menu for the parameter: type a value, reset, <b class="kw">expose</b> as a pattern column and its width, add a port (right-click a row does the same)</dd>
           <dt>Ctrl+Alt+M</dt><dd>the <b class="kw">meter band</b> along the bottom: spectrum, level and loudness (LUFS), correlation, stereo width by band, spectrogram; which panels and how tall in Config</dd>
           <dt>Ctrl+Alt+O</dt><dd>the <b class="kw">vectorscope</b> panel in the meter band: left against right, a square at its right end; look in Config</dd>
-          <dt>F1, ?</dt><dd>with a node selected: its <b class="kw">help</b> page (what it is for, how to get the most out of it, its limits)</dd>
+          <dt>Shift+F1, ?</dt><dd>with a node selected: its <b class="kw">help</b> page (what it is for, how to get the most out of it, its limits)</dd>
           <dt>Piano keys</dt><dd>with a generator node (oscillator, sampler, synth) selected: <b class="kw">play</b> the instrument; [ ] change the <b class="kw">octave</b></dd>
           <dt>Delete, Ctrl+X</dt><dd><b class="kw">remove</b> the node or wire</dd>
           <dt>Alt+R</dt><dd><b class="kw">remove</b> the node and <b class="kw">join</b> the wires round it: what fed it feeds what it fed (plain R is a keyjazz key on a generator)</dd>
@@ -1923,7 +1928,6 @@
     </div>
   </section>
 
-  <div id="float-params"><div id="float-title"><span id="float-name">parameters</span><button id="float-close" type="button" title="Close (Ctrl+Alt+P)" aria-label="Close the floating parameters">×</button></div><div id="float-scroll"></div></div>
   <div id="mixer-dock" hidden>
     <div id="mixer-grip" role="separator" aria-orientation="horizontal" aria-label="Height of the mixer" title="Drag to change the height of the mixer; all the way down hides it; double-click for the usual height"></div>
     <div id="mixer" aria-label="Mixer: a strip for each lane"></div>

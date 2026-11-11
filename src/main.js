@@ -78,6 +78,8 @@ import { popups } from './ui/kit/popups.js';
 import { createMixer } from './ui/mixer.js';
 import { createMixerDock } from './ui/mixerdock.js';
 import { createBrowser } from './ui/browser.js';
+import { createFloating } from './ui/kit/floating.js';
+import { createParamFloats } from './ui/paramfloats.js';
 import { createSaveFolder } from './project/savefolder.js';
 import { createScriptRunner } from './script/client.js';
 import { createScriptScreen } from './script/screen.js';
@@ -189,13 +191,14 @@ let sampleBrowser = null;
 let replaceTarget = null;   // the slot a Replace button was pressed on, while the file chooser is open   // the sample browser (made further down); leaving the Samples screen stops what it is playing
 let tabBefore = 'arrange', tabNow = 'arrange';   // where the Info close button goes back to (the app opens on Song)
 let browser = null;   // the left panel, made below
+let paramFloats = null;   // the pinned parameter panels, made once the patcher exists
 // The browser shows the list that belongs to the view: patterns for Song and Pattern, machines for Instrument.
 function showBrowserFor(id) { const section = { arrange: 'patterns', patterns: 'patterns', instruments: 'machines' }[id]; if (section && browser) browser.show(section); }
 // Keyboard focus for "the machine list": it lives in the browser, which is switched to it; with the browser closed the graph takes the focus.
 const focusMachines = () => { if (browser?.on) browser.show('machines'); (browser?.on ? $('inst-list') : $('patch')).focus(); };
 let onArrange = () => {};   // set once the mixer and the arrangement fit exist: the tabs may open on the arrangement before then
 const tabs = createTabs({
-  onChange: id => { if (id === 'instruments' && (tabNow === 'patterns' || tabNow === 'arrange')) showLaneInstrument(); if (id !== 'samples') sampleBrowser?.stop(); if (id === 'dsp') dspView?.open(patcher?.instrument); if (id === 'nodeseq') nsView?.refresh(); if (id === 'arrange') onArrange(); nsFlags(); if (id === 'shader') { shaderView?.load(); if (!vizOn) config.set('visualOn', true); } if (id !== tabNow) { tabBefore = tabNow; tabNow = id; } applyDock(id); keysRefresh(id); showBrowserFor(id); requestAnimationFrame(() => { fitArrangement(); syncFloat(); placeViz(); placeMeters(); }); },
+  onChange: id => { if (id === 'instruments' && (tabNow === 'patterns' || tabNow === 'arrange')) showLaneInstrument(); if (id !== 'samples') sampleBrowser?.stop(); if (id === 'dsp') dspView?.open(patcher?.instrument); if (id === 'nodeseq') nsView?.refresh(); if (id === 'arrange') onArrange(); nsFlags(); if (id === 'shader') { shaderView?.load(); if (!vizOn) config.set('visualOn', true); } if (id !== tabNow) { tabBefore = tabNow; tabNow = id; } applyDock(id); keysRefresh(id); showBrowserFor(id); paramFloats?.setVisible(['arrange', 'patterns', 'instruments', 'samples'].includes(id)); requestAnimationFrame(() => { fitArrangement(); syncFloat(); placeViz(); placeMeters(); }); },
   tabs: [
     // The first-class views, in the order of their keys: Song (the arrangement) opens first.
     { id: 'arrange', key: 'F1', el: $('pane-arrange'), button: $('tab-arrange'), focus: $('seq') },
@@ -225,13 +228,13 @@ keys.bind('Mod+KeyZ', () => patcher.undo(), { when: onGraph, name: 'Undo (graph)
 keys.bind('Mod+Shift+KeyZ', () => patcher.redo(), { when: onGraph, name: 'Redo (graph)' });
 keys.bind('Mod+KeyY', () => patcher.redo(), { when: onGraph, name: 'Redo (graph)' });
 keys.bind('Mod+Shift+KeyY', () => patcher.redo(), { when: onGraph, name: 'Redo (graph)' });
-// F1 on the graph screen shows the help of the selected node, or hides it if it is showing.
+// Shift+F1 on the graph screen shows the help of the selected node (plain F1 is the Song view, as everywhere), or hides it if it is showing.
 // With no node selected there is no help to show, so the key goes on to switch tabs as usual.
 const toggleNodeHelp = () => {
   if (!nodeHelp.hidden) { hideHelp(); return true; }
   return patcher.helpSelected() === true;
 };
-keys.bind('F1', () => toggleNodeHelp() || false, { when: () => tabs.active === 'instruments', name: 'Help for the selected node' });
+keys.bind('Shift+F1', () => toggleNodeHelp() || false, { when: () => tabs.active === 'instruments', name: 'Help for the selected node' });
 keys.bind('Ctrl+F2', () => renameInstrumentBox(), { when: () => tabs.active === 'instruments' && project, name: 'Rename the selected instrument' });
 
 // Windows and panels
@@ -479,12 +482,18 @@ keys.bind('Ctrl+Alt+KeyR', () => {
 
 // ---- the floating parameter window ----
 // The exposed sliders of the cursor lane's machine, over the pattern editor or the arrangement; the graph's own dock covers the rest.
-const floatBox = $('float-params');
+// The window that follows the cursor lane's machine. Its title bar has a pin: that keeps a panel for the machine open (see paramfloats.js).
+const followPanel = createFloating({
+  id: 'follow', title: 'parameters', storageKey: 'webtracker.floatPos',
+  buttons: [{ text: 'pin', title: 'Keep a panel for this machine open until it is closed (a second press puts it away)', onClick: () => { if (patcher.instrument) paramFloats.toggle(patcher.instrument); } }],
+  onClose: () => setFloat(false),
+});
+followPanel.content.id = 'float-scroll';   // the patcher fills it (the id is also the hook for the styling of a meta machine's wide rows)
 const syncFloat = () => {
   const show = floatWanted && (tabs.active === 'patterns' || tabs.active === 'arrange');
   patcher.float(show);
   $('float-toggle').setAttribute('aria-pressed', String(floatWanted));
-  if (show) $('float-name').textContent = `${patcher.instrument ?? ''} · parameters`;
+  if (show) followPanel.setTitle(`${patcher.instrument ?? ''} · parameters`);
 };
 const setFloat = on => {
   floatWanted = on;
@@ -494,28 +503,7 @@ const setFloat = on => {
 };
 {
   try { floatWanted = localStorage.getItem('webtracker.float') === '1'; } catch {}
-  try {
-    const pos = JSON.parse(localStorage.getItem('webtracker.floatPos') ?? 'null');
-    if (pos) { floatBox.style.left = `${pos.x}px`; floatBox.style.top = `${pos.y}px`; floatBox.style.right = 'auto'; }
-  } catch {}
-  const title = $('float-title');
-  title.addEventListener('pointerdown', e => {
-    if (e.target.closest('button')) return;
-    const r = floatBox.getBoundingClientRect(), dx = e.clientX - r.left, dy = e.clientY - r.top;
-    title.setPointerCapture(e.pointerId);
-    const move = ev => {
-      const x = Math.min(innerWidth - 40, Math.max(0, ev.clientX - dx)), y = Math.min(innerHeight - 24, Math.max(0, ev.clientY - dy));
-      Object.assign(floatBox.style, { left: `${x}px`, top: `${y}px`, right: 'auto' });
-    };
-    const up = () => {
-      title.removeEventListener('pointermove', move); title.removeEventListener('pointerup', up);
-      const b = floatBox.getBoundingClientRect();
-      try { localStorage.setItem('webtracker.floatPos', JSON.stringify({ x: Math.round(b.left), y: Math.round(b.top) })); } catch {}
-    };
-    title.addEventListener('pointermove', move); title.addEventListener('pointerup', up);
-  });
   $('float-toggle').addEventListener('click', e => { setFloat(!floatWanted); e.currentTarget.blur(); });
-  $('float-close').addEventListener('click', () => setFloat(false));
   keys.bind('Ctrl+Alt+KeyP', () => setFloat(!floatWanted), { name: 'Floating parameter window' });
 }
 
@@ -596,9 +584,9 @@ const midiIn = createMidiInput({
 config.onChange(k => { if (k === 'midiOn') midiIn.enable(config.get('midiOn')); });
 if (config.get('midiOn')) midiIn.enable(true);
 
-// The help page of a node (F1 with a node selected, or the ? on its parameter window): a panel over the instrument screen.
+// The help page of a node (Shift+F1 with a node selected, or the ? on its parameter window): a panel over the instrument screen.
 const nodeHelp = $('node-help');
-let nodeHelpLayer = null;   // its place on the popup stack while it shows: Escape or F1 with the focus in it closes it
+let nodeHelpLayer = null;   // its place on the popup stack while it shows: Escape or Shift+F1 with the focus in it closes it
 function showHelp(type) {
   const def = NODE_TYPES[type];
   if (!def) return;
@@ -836,6 +824,7 @@ function refreshProjectUi() {
   };
   renderInstList();
   fill($('new-inst-sample'), pickableSamples());
+  paramFloats?.reconcile();   // pinned panels follow the machines that exist
 }
 
 // Alt+Left and Alt+Right are the browser's back and forward; they must not leave the page.
@@ -845,6 +834,7 @@ document.addEventListener('keydown', e => { if (e.altKey && (e.key === 'ArrowLef
 const listedInstruments = () => Object.keys(project.instruments).filter(id => id !== MASTER);
 
 // Keys in the instrument list: Up/Down choose, Home/End jump, Enter goes to the graph.
+paramFloats = createParamFloats({ patcher, instrumentIds: () => Object.keys(project?.instruments ?? {}).filter(id => id !== MASTER) });
 $('inst-list').addEventListener('keydown', e => {
   if (!project || e.ctrlKey || e.altKey || e.metaKey) return;
   const ids = listedInstruments(), at = ids.indexOf(patcher.instrument);
