@@ -26,8 +26,8 @@ the kit adds spacing, line width and type size tokens next to them.
 
 See `ui-frame-layout.png`. One frame for every view; only the centre changes.
 
-- top bar: transport, view tabs in this order: Arrange, Pattern, Instrument, Sample.
-  Arrange is the first-class view and the one the app opens on.
+- top bar: transport, view tabs in this order: F1 Song (the arrangement), F2 Pattern,
+  F3 Instrument, F4 Sample. Song is the first-class view and the one the app opens on.
 - left: browser (patterns, samples, machines), collapsible
 - centre: the view, full width
 - parameter views float over the centre until closed (the Buzz way): draggable,
@@ -60,8 +60,8 @@ See `ui-frame-layout.png`. One frame for every view; only the centre changes.
 
 - browser collapsible
 - parameter views float until closed; canvases run full width
-- Arrange first, then Pattern, Instrument, Sample
+- F1 Song, F2 Pattern, F3 Instrument, F4 Sample (the old F-key order is dropped)
 
 ## Open
 
-- F-keys: keep F1 Pattern, F2 Sample, F3 Instrument, F4 Arrange as they are, or renumber to match the new tab order?
+- none at the moment
