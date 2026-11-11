@@ -4,6 +4,8 @@
 // nodes that match what is typed, with the same keys; press / (or Tab, or click the box) for it, Esc to get back to the tree.
 // It does not know about graphs; picking calls onPick(type, at) with the point the menu was opened at.
 
+import { popups } from '../ui/kit/popups.js';
+
 // How the nodes of a category are grouped. A node that is not listed here still shows up, at the end of its category.
 const GROUPS = {
   Sources: [
@@ -192,19 +194,21 @@ export function createInsertMenu({ parent, nodeTypes, onPick, doc = document }) 
   };
   const toSearch = () => { searching = true; active = 0; };
   const toTree = () => { searching = false; input.value = ''; };
+  // Escape steps back one level: search to the tree, a flyout to the column before it. At the top it closes the menu (the
+  // popup stack does that when this says it did not use the key).
+  const stepBack = () => {
+    if (searching) toTree();
+    else if (depth > 0) { depth--; sel = sel.slice(0, depth + 1); }
+    else return false;
+    render();
+    return true;
+  };
+  let layer = null;   // its place on the popup stack while it shows
 
   input.addEventListener('input', () => { if (input.value.trim()) searching = true; active = 0; render(); });
   input.addEventListener('mousedown', () => { if (!searching) { toSearch(); render(); } });
   input.addEventListener('keydown', e => {
     const plain = !e.ctrlKey && !e.metaKey && !e.altKey;
-    if (e.key === 'Escape') {
-      e.preventDefault();
-      if (searching) toTree();
-      else if (depth > 0) { depth--; sel = sel.slice(0, depth + 1); }
-      else { close(); return; }
-      render();
-      return;
-    }
     if (searching) {
       if (e.key === 'ArrowDown') active = shown.length ? (active + 1) % shown.length : 0;
       else if (e.key === 'ArrowUp') active = shown.length ? (active + shown.length - 1) % shown.length : 0;
@@ -249,9 +253,11 @@ export function createInsertMenu({ parent, nodeTypes, onPick, doc = document }) 
     input.value = '';
     active = 0; sel = [0]; depth = 0; searching = false;
     render();
+    layer?.release();
+    layer = popups.open({ name: 'insert menu', element: box, close, onEscape: stepBack, focusScoped: true, outside: false, doc });
     input.focus();
   }
-  function close() { box.hidden = true; }
+  function close() { box.hidden = true; layer?.release(); }
 
   return { open, close, entries, search, tree, get isOpen() { return !box.hidden; }, box };
 }

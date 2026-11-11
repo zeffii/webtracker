@@ -67,7 +67,7 @@ const consume = e => { e.preventDefault(); e.stopImmediatePropagation(); };
   };
 
   const attach = doc => {
-    if (attached.has(doc)) return;
+    if (attached.has(doc) || typeof doc.addEventListener !== 'function') return;   // (the tests' stand-in documents take no listeners)
     attached.add(doc);
     doc.addEventListener('keydown', handleKey, true);
     doc.addEventListener('mousedown', handlePress, true);

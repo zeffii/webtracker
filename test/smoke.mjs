@@ -2190,9 +2190,18 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   input.value = 'pan'; input.listeners.input();
   key('Enter');
   assert.equal(picks[1][0], 'pan');
+  // Escape is the popup stack's (src/ui/kit/popups.js): one step back through the menu, and at the top it closes
+  const { popups: stack } = await import('../src/ui/kit/popups.js');
+  menu.box.contains = () => true;   // the stand-in document has no focus: say it is inside the menu
+  const escape = () => stack.handleKey({ key: 'Escape', ctrlKey: false, altKey: false, metaKey: false, preventDefault() {}, stopImmediatePropagation() {} });
   menu.open(10, 10);
-  key('Escape');
-  assert.ok(!menu.isOpen && picks.length === 2);
+  key('ArrowRight');
+  assert.equal(escape(), true); assert.ok(menu.isOpen, 'Escape in a flyout goes back a column and the menu stays');
+  assert.equal(escape(), true); assert.ok(!menu.isOpen && picks.length === 2, 'Escape at the top closes it');
+  menu.open(10, 10);
+  input.value = 'pan'; input.listeners.input();
+  assert.equal(escape(), true); assert.ok(menu.isOpen && input.value === '', 'Escape in the search goes back to the tree');
+  assert.equal(escape(), true); assert.ok(!menu.isOpen);
   // hotkeys: each row's first free letter, and typing one opens or inserts
   assert.deepEqual(hotkeys(['Sources', 'Effects', 'Control', 'Mix & level', 'Synths', 'Sampler']), [0, 0, 0, 0, 1, 1], 'letters');
   assert.deepEqual(hotkeys(['sine', 'saw', 'square']), [0, 1, 1], 'a taken letter moves on to the next free one');
@@ -2202,7 +2211,7 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   menu.open(10, 10);
   key('ArrowUp'); key('Enter');   // wraps to the last category and opens it
   assert.ok(menu.isOpen, 'Enter on a category only opens it');
-  key('Escape'); key('Escape'); assert.ok(!menu.isOpen, 'Esc goes up a level, then closes');
+  escape(); escape(); assert.ok(!menu.isOpen, 'Esc goes up a level, then closes');
   // search: / switches to it, the arrows walk the matches (wrapping), Enter inserts, Esc returns to the tree
   menu.open(10, 10);
   key('/'); input.value = 'ch'; input.listeners.input();
@@ -2211,7 +2220,7 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   key('ArrowDown'); key('ArrowUp'); key('ArrowUp');   // wraps to the last match
   key('Enter');
   assert.equal(picks.at(-1)[0], found.at(-1), 'cursor keys choose among the matches');
-  menu.open(10, 10); key('/'); key('Escape'); assert.ok(menu.isOpen, 'Esc in the search goes back to the tree');
+  menu.open(10, 10); key('/'); escape(); assert.ok(menu.isOpen, 'Esc in the search goes back to the tree');
   // a redraw puts the pointer on the row it clicked again: that must not take the keys back to the first level
   menu.open(10, 10);
   const items = () => menu.box.children[1].children[0].children;   // the first level's rows
@@ -2221,7 +2230,7 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   key('ArrowDown');
   const flyout = items().find(r => text(r) === 'Effects').children.find(c => c.tag === 'div');
   assert.ok(flyout.children[1].className.includes('active'), 'the keys stay in the flyout after the pointer lands on its parent row');
-  key('Escape'); key('Escape');
+  escape(); escape();
 
 }
 
