@@ -268,7 +268,7 @@
     #browser-grip { position: absolute; top: 0; bottom: 0; right: -4px; width: 8px; cursor: col-resize; touch-action: none; }
     #browser-grip.dragging { background: color-mix(in srgb, var(--accent) 35%, transparent); }
     #browser #seq-side { max-height: none; height: auto; background: transparent; }   /* the list takes the panel's height */
-    #browser #inst-list { margin: 0 6px; }
+    #browser #inst-list { margin: 0 6px; font: 13px/1.45 ui-monospace, Consolas, monospace; }   /* the list lives in the browser now, outside #inst-side, so it needs the side panel's own font */
     #smp-list { margin: 0 6px; font: 13px/1.35 ui-monospace, Consolas, monospace; white-space: pre; }
     #browser-options #smp-slate { margin: 0; max-width: none; padding: .3rem 0; background: transparent; }
     #browser-options .sb-main { flex-direction: column; }   /* the file list over its preview, the browser is narrow */

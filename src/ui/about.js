@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['704', ['The machine list in the browser is back to the small monospace font.']],
   ['703', ['The picture window has Picture and Parameters tabs: one node\'s sliders, steppers through nodes and machines, and a cropped graph map.']],
   ['702', ['The scope eye sits after the node name; swapping a node to another type drops exposed parameters it no longer has.']],
   ['701', ['The ladder filter has a phase parameter for its LFO.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['697', ['Envelope editors can show time in log mode (button under the drawing): the transient gets most of the room.']],
   ['696', ['? in a Cmd column lists the commands in effect at the cursor row that are not at their defaults, with their values.']],
   ['695', ['DX7 randomise keeps the last five rolls: ◂ ▸ steps back and forward through them.']],
-  ['694', ['The Sample screen has a Speed field: type a rate or step it with Left/Right (Shift 100, Ctrl 1000).']],
                     ];

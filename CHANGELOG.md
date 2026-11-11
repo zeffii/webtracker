@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 704 · 2026-11-11
+
+- **The machine list in the browser uses the same small monospace font** as the rest of the browser (it had fallen back to the page's large body font when the list moved out of its old side panel).
+
 ## 703 · 2026-11-11
 
 - **The picture's window has two tabs: Picture and Parameters.** The floating window of the live picture (the button on the picture) now opens with a tab bar. *Parameters* is for tweaking a sound while watching the picture: the sliders of one node with every feature of the main parameter view, ◂ ▸ steppers for the node (Alt+Left/Right) and the machine (Alt+Up/Down), and above them a cropped map of the machine's graph with the current node lit (click a node on it to go there). It opens on the node selected in the graph. (`src/ui/picturewindow.js`; `nodePanel`, `drawMap` in the patcher)
