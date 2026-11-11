@@ -218,7 +218,8 @@ export function createSampleScreen({ el, listEl = null, statusEl, getProject, on
   function startNote(code, note) {
     if (!sel || held.has(code)) return;
     held.set(code, note);
-    onNote(sel, note, true);
+    if (code === ' ' && headAt > 0) onNote(sel, note, true, headAt, 0);   // Space plays from the playhead
+    else onNote(sel, note, true);
   }
   function stopNote(code) {
     if (!held.has(code)) return;

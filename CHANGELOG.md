@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 700 · 2026-11-11
+
+- **Space plays from the playhead.** On the Sample screen Space (over the waveform, or with the screen focused) starts the sample at the pink playhead instead of at the beginning; with the playhead at 0 nothing changes. Alt+Space or Ctrl+Space still play from the slice marker.
+
 ## 699 · 2026-11-11
 
 - **Copy, cut and paste inside the sample screen, with a playhead you can place.** Click the waveform and a pink playhead line goes there (a drag still selects). Ctrl+C copies the selection, Ctrl+X cuts it, Ctrl+V pastes it at the playhead and makes room for it (loops, the sustain loop and slice markers after it move along; a loop around it gets longer), Ctrl+Shift+V pastes over what is there. The pasted part is selected and the playhead sits at its end, so another Ctrl+V continues from there. The clipboard stays when you pick another sample, so you can paste between samples; a mono clip fills both sides of a stereo sample and a stereo clip is mixed down for a mono one. All of it is on the waveform's right-click menu too (with "Put the playhead here") and is undoable. (`TOOLS.paste`, `copyRange` in `sampleedit.js`)

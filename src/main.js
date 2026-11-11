@@ -1565,10 +1565,10 @@ let waveX = null;
     if (/^(INPUT|TEXTAREA|SELECT|BUTTON)$/.test(e.target?.tagName) || $('autoslice').open) return;
     e.preventDefault(); e.stopImmediatePropagation();
     if (e.repeat || !started) return;
-    const at = waveform.frameAtX(waveX), from = e.altKey || e.ctrlKey ? waveform.sliceBefore(at) : 0;
+    const at = waveform.frameAtX(waveX), from = e.altKey || e.ctrlKey ? waveform.sliceBefore(at) : sampleScreen.head;
     if (sampleScreen.playFrom('wave-space', Math.max(0, from))) {
       const slice = from >= 0 && (e.altKey || e.ctrlKey) ? (waveform.sample()?.slices ?? []).slice().sort((a, b) => a - b).indexOf(from) : -1;
-      sampleScreen.say(e.altKey || e.ctrlKey ? (from >= 0 ? `Playing from slice ${slice.toString(16).toUpperCase().padStart(2, '0')}, frame ${from}.` : 'No slice marker to the left: playing from the start.') : 'Playing from the start.');
+      sampleScreen.say(e.altKey || e.ctrlKey ? (from >= 0 ? `Playing from slice ${slice.toString(16).toUpperCase().padStart(2, '0')}, frame ${from}.` : 'No slice marker to the left: playing from the start.') : sampleScreen.head > 0 ? `Playing from the playhead, frame ${from}.` : 'Playing from the start.');
     }
   }, true);
   // Ctrl+C, Ctrl+X and Ctrl+V with the mouse over the waveform copy, cut and paste (Shift on V: over what is there), wherever the focus is
