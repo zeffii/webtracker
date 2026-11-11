@@ -10,20 +10,20 @@ import { createSplitter } from './kit/splitter.js';
 
 export const HIDE_BELOW = 90;   // a browser narrower than this closes
 const MIN_SHOWN = 160, MAX_SHOWN = 600, DEFAULT_WIDTH = 300, KEY_ON = 'webtracker.browser', KEY_WIDTH = 'webtracker.browserWidth', KEY_TAB = 'webtracker.browserTab', KEY_OPTIONS = 'webtracker.browserOptionsHeight';
-const MIN_OPTIONS = 60, DEFAULT_OPTIONS = 280;
+const MIN_OPTIONS = 60;   // the options start at half the panel's height, until the bar is dragged
 
 // sections: [{ id, label, element }]; onChange(open, width) tells the owner to lay out the window again.
 // options: [{ views: ['instruments'], element }] (the view ids are the tab ids); splitGrip and optionsEl are the bar and the area under the lists.
 export function createBrowser({ el, tabsEl, bodyEl, grip, sections, options = [], splitGrip, optionsEl, onChange = () => {} }) {
-  let on = true, width = DEFAULT_WIDTH, active = sections[0].id, optionsHeight = DEFAULT_OPTIONS, view = null;
+  let on = true, width = DEFAULT_WIDTH, active = sections[0].id, optionsHeight = null, view = null;   // optionsHeight: null is half the panel
   try {
     on = localStorage.getItem(KEY_ON) !== '0';
     const w = Number(localStorage.getItem(KEY_WIDTH)); if (w >= MIN_SHOWN) width = w;
     const t = localStorage.getItem(KEY_TAB); if (sections.some(s => s.id === t)) active = t;
-    const oh = Number(localStorage.getItem(KEY_OPTIONS)); if (oh >= MIN_OPTIONS) optionsHeight = oh;
+    const oh = Number(localStorage.getItem(KEY_OPTIONS)); if (oh >= MIN_OPTIONS) optionsHeight = oh;   // (only a dragged height is remembered)
   } catch { /* nothing remembered */ }
 
-  const remember = () => { try { localStorage.setItem(KEY_ON, on ? '1' : '0'); localStorage.setItem(KEY_WIDTH, String(Math.round(width))); localStorage.setItem(KEY_TAB, active); localStorage.setItem(KEY_OPTIONS, String(Math.round(optionsHeight))); } catch { /* private window */ } };
+  const remember = () => { try { localStorage.setItem(KEY_ON, on ? '1' : '0'); localStorage.setItem(KEY_WIDTH, String(Math.round(width))); localStorage.setItem(KEY_TAB, active); if (optionsHeight === null) localStorage.removeItem(KEY_OPTIONS); else localStorage.setItem(KEY_OPTIONS, String(Math.round(optionsHeight))); } catch { /* private window */ } };
   const clamp = w => Math.max(MIN_SHOWN, Math.min(MAX_SHOWN, w));
 
   // One button per section on the strip along the top; each section's element goes into a holder of its own.
@@ -51,7 +51,8 @@ export function createBrowser({ el, tabsEl, bodyEl, grip, sections, options = []
     const mine = currentOptions();
     for (const o of optionHolders) o.holder.hidden = o !== mine;
     splitGrip.hidden = optionsEl.hidden = !mine;
-    optionsEl.style.height = `${Math.round(Math.min(optionsHeight, Math.max(MIN_OPTIONS, el.clientHeight - 120)))}px`;
+    const wanted = optionsHeight ?? el.clientHeight / 2;
+    optionsEl.style.height = `${Math.round(Math.min(wanted, Math.max(MIN_OPTIONS, el.clientHeight - 120)))}px`;
   }
 
   function paint() {
@@ -87,9 +88,10 @@ export function createBrowser({ el, tabsEl, bodyEl, grip, sections, options = []
     current: () => optionsEl.offsetHeight,
     change: wanted => { optionsHeight = Math.max(MIN_OPTIONS, Math.min(el.clientHeight - 80, wanted)); paintOptions(); },
     done: remember,
-    reset: () => { optionsHeight = DEFAULT_OPTIONS; remember(); paintOptions(); },
+    reset: () => { optionsHeight = null; remember(); paintOptions(); },
   });
 
+  addEventListener('resize', paintOptions);   // half of the panel follows the window
   paint();
   return { showView, get on() { return on; }, get active() { return active; }, setOn, toggle: () => setOn(!on), show, shows: id => on && active === id };
 }

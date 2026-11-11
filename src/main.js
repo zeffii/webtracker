@@ -193,7 +193,7 @@ let tabBefore = 'arrange', tabNow = 'arrange';   // where the Info close button 
 let browser = null;   // the left panel, made below
 let paramFloats = null;   // the pinned parameter panels, made once the patcher exists
 // The browser shows the list that belongs to the view: patterns for Song and Pattern, machines for Instrument.
-function showBrowserFor(id) { browser?.showView(id); const section = { arrange: 'patterns', patterns: 'patterns', instruments: 'machines' }[id]; if (section && browser) browser.show(section); }
+function showBrowserFor(id) { browser?.showView(id); const section = { arrange: 'patterns', patterns: 'patterns', instruments: 'machines', samples: 'samples' }[id]; if (section && browser) browser.show(section); }
 // Keyboard focus for "the machine list": it lives in the browser, which is switched to it; with the browser closed the graph takes the focus.
 const focusMachines = () => { if (browser?.on) browser.show('machines'); (browser?.on ? $('inst-list') : $('patch')).focus(); };
 let onArrange = () => {};   // set once the mixer and the arrangement fit exist: the tabs may open on the arrangement before then
@@ -1554,7 +1554,7 @@ let autoSliceOpen = () => {};
 let chordScanOpen = () => {};
 let rollToggle = () => {}, rollOverlay = null;
 const sampleScreen = createSampleScreen({
-  el: $('smp'), statusEl: $('proj-status'), getProject: () => project,
+  el: $('smp'), listEl: $('smp-list'), statusEl: $('proj-status'), getProject: () => project,
   onChange: users => { sendLoop(users); auditionDirty = true; },   // loops, levels and edits change what the sample plays
   onSelect: id => { waveform.show(id); rollOverlay?.forget(); auditionDirty = true; },
   onRemove: refreshProjectUi,
@@ -1864,11 +1864,13 @@ browser = createBrowser({
   sections: [
     { id: 'patterns', label: 'Patterns', element: $('seq-side') },
     { id: 'machines', label: 'Machines', element: $('inst-list') },
+    { id: 'samples', label: 'Samples', element: $('smp-list') },
   ],
   // What sits under the lists, by view: the instrument options, and the lane controls of the song.
   options: [
     { views: ['instruments'], element: $('inst-side') },
     { views: ['arrange'], element: $('seq-tools') },
+    { views: ['samples'], element: $('smp-slate') },
   ],
   splitGrip: $('browser-split'), optionsEl: $('browser-options'),
   onChange: on => { $('browser-toggle').setAttribute('aria-pressed', String(on)); layoutBottom(); requestAnimationFrame(() => { fitArrangement(); try { seqView.draw(); } catch {} }); },

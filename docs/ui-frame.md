@@ -128,3 +128,8 @@ Kept on purpose: Song's right column (lane controls, shortcuts) and its width ba
 
 ## Progress: browser split (options under the list)
 The browser is two parts with a drag bar between them (height remembered, double-click for the usual). Under the tabbed lists sit the options of the view: Instrument shows the instrument options (voices, tracks, sleep, presets, new instrument, duplicate/remove, preset library, file), Song shows the lane controls (rename, move, duplicate, remove, clone, insert silence, add lane). A view without options gives the lists the whole panel (Pattern now; Sample later). The blocks are the existing elements moved in, so their buttons and keys are unchanged. Song's right column is gone while the shortcut help is hidden, so the arrangement and the graph have the full width.
+
+## Progress: Samples in the browser; the split starts at half
+Samples is the third browser tab. The sample screen draws its slot list into an element of its own (`listEl`, mounted in the browser; compact rows: pick, play, remove) and the details into the view, so there is one list. Replace moved next to the sample's heading. The Record/Browse slate sits under the list as the Sample view's options (stacked to fit the narrow panel).
+The list/options split starts at half and half (a dragged height is remembered; double-click the bar for half again).
+Kept: without `listEl` the sample screen draws its old two-column text screen (the smoke tests use it).

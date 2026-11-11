@@ -33,8 +33,8 @@ const EDITS = { C: 'crop', T: 'crop', X: 'cut', S: 'silence', R: 'reverse', N: '
 const ROOT = 60;
 const round2 = v => Math.round(v * 100) / 100;
 
-export function createSampleScreen({ el, statusEl, getProject, onChange = () => {}, onSelect = () => {}, onRemove = () => {}, onRename = () => {}, onNote = () => {}, onLoad = () => {}, onReplace = () => {}, onKeep = () => {}, onView = () => {}, onSelection = () => {}, onSlice = () => {}, onZoom = () => '', onAutoSlice = null, onChords = null, onRoll = null, rollUndo = null, onEdited = () => {} }) {
-  let sel = null, focus = 'list', edit = null, mode = 'wave', announced = null, last = null, top = 0;
+export function createSampleScreen({ el, listEl = null, statusEl, getProject, onChange = () => {}, onSelect = () => {}, onRemove = () => {}, onRename = () => {}, onNote = () => {}, onLoad = () => {}, onReplace = () => {}, onKeep = () => {}, onView = () => {}, onSelection = () => {}, onSlice = () => {}, onZoom = () => '', onAutoSlice = null, onChords = null, onRoll = null, rollUndo = null, onEdited = () => {} }) {
+  let sel = null, focus = 'list', edit = null, mode = 'wave', announced = null, last = null, lastList = null, top = 0;
   let selFrom = 0, selTo = 0, octave = 5, activeSlice = -1;   // the slice marker + and - move
   const held = new Map();   // key -> note it is playing
   const history = createHistory();
@@ -341,7 +341,7 @@ export function createSampleScreen({ el, statusEl, getProject, onChange = () => 
     else if (buf.trim() !== '' && Number.isFinite(Number(buf))) setField(field, Number(buf));
   };
   // the buttons on the slots: ▶ plays while the mouse is held, Replace and Load… ask for a file, × removes the sample
-  el.addEventListener('mousedown', e => {
+  const onMouseDown = e => {
     const act = e.target.closest?.('[data-act]');
     if (act?.dataset?.act) {
       e.preventDefault(); el.focus();
@@ -384,9 +384,11 @@ export function createSampleScreen({ el, statusEl, getProject, onChange = () => 
       setField(field, spec.min + Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)) * (spec.max - spec.min));
     } else if (again) edit = { field, buf: field === 'name' ? sel : '' };
     draw();
-  });
-  el.addEventListener('wheel', e => {   // the slot list scrolls when the pointer is over it
-    if (!e.target.closest?.('.lc')) return;
+  };
+  el.addEventListener('mousedown', onMouseDown);
+  listEl?.addEventListener('mousedown', onMouseDown);   // the slot list may be an element of its own (the browser holds it): the same mouse actions
+  el.addEventListener('wheel', e => {   // the slot list scrolls when the pointer is over it (a list of its own scrolls by itself)
+    if (listEl || !e.target.closest?.('.lc')) return;
     const total = Math.max(LIST_ROWS, ids().length + 1), next = Math.min(total - LIST_ROWS, Math.max(0, top + Math.sign(e.deltaY) * 3));
     if (next !== top) { top = next; draw(); }
     e.preventDefault();
@@ -416,25 +418,30 @@ export function createSampleScreen({ el, statusEl, getProject, onChange = () => 
     if (sel && !(sel in project.samples && ids().includes(sel))) { sel = null; edit = null; }
     if (!sel && list.length) select(list[0]);
     if (sel !== announced) { announced = sel; onSelect(sel); }
-    let html;
+    let html, listHtml = '';
     // The slots, numbered like Impulse Tracker's: a sample in each, then empty ones with a Load… button. A new sample always takes the first empty slot.
+    // Beside the details (no list element) the slots are a column of 13 rows that scrolls; in a list element of its own they are all there, narrower.
     const slotRows = () => {
-      const rows = [line(' Sample list')], total = Math.max(LIST_ROWS, list.length + 1);
-      top = Math.min(top, total - LIST_ROWS);
-      for (let i = top; i < Math.min(total, top + LIST_ROWS); i++) {
+      const rows = [line(' Sample list')], total = Math.max(LIST_ROWS, list.length + 1), first = listEl ? 0 : Math.min(top, total - LIST_ROWS), last = listEl ? total : Math.min(total, first + LIST_ROWS);
+      if (!listEl) top = first;
+      for (let i = first; i < last; i++) {
         const no = String(i + 1).padStart(2, '0'), id = list[i];
-        if (id === undefined) { rows.push(line(seg(`  ${no} ${'· · · empty'.padEnd(NAMEW)} ${' '.repeat(8)} `, 'sdim'), seg(' Load… ', 'sbtn load', ' data-act="load" title="Pick audio files: they fill this and the next empty slots"'))); continue; }
+        if (id === undefined) { rows.push(line(seg(`  ${no} ${'· · · empty'.padEnd(listEl ? 15 : NAMEW)} ${' '.repeat(listEl ? 0 : 8)} `, 'sdim'), seg(' Load… ', 'sbtn load', ' data-act="load" title="Pick audio files: they fill this and the next empty slots"'))); continue; }
         const d = project.samples[id], cls = id === sel ? (focus === 'list' ? 'sf on' : 'sf') : '', sid = ` data-sid="${esc(id)}"`;
-        rows.push(line(seg(`${id === sel ? '>' : ' '} ${no} ${id.padEnd(NAMEW).slice(0, NAMEW)} ${(d.data.length / d.rate).toFixed(2).padStart(6)}s `, cls, ` data-id="${esc(id)}"`), ' ',
+        const nameW = listEl ? 12 : NAMEW;
+        const slot = seg(`${id === sel ? '>' : ' '} ${no} ${id.padEnd(nameW).slice(0, nameW)} ${(d.data.length / d.rate).toFixed(2).padStart(6)}s `, cls, ` data-id="${esc(id)}"`);
+        if (listEl) { rows.push(line(slot, seg('▶', 'sbtn', ` data-act="play"${sid} title="Hear it (held)"`), ' ', seg('×', 'sbtn', ` data-act="remove"${sid} title="Remove this sample (Delete)"`))); continue; }   // (Replace is on the details side then)
+        rows.push(line(slot, ' ',
           seg(' ▶ ', 'sbtn', ` data-act="play"${sid} title="Hear it (held)"`), ' ', seg(' Replace ', 'sbtn', ` data-act="replace"${sid} title="Put a different audio file in this slot: instruments that play it follow"`), ' ', seg(' × ', 'sbtn', ` data-act="remove"${sid} title="Remove this sample (Delete)"`)));
       }
       return rows;
     };
     if (!list.length) {
-      const left = slotRows(), right = [line(' Sample'), line(''), line(' No samples yet. Load… a slot, drop audio files on this screen,'), line(' or use the Record and Browse tabs below.')];
+      const left = slotRows(), right = [line(' Sample'), line(''), line(' No samples yet. Load… a slot, drop audio files on this screen,'), line(' or use the Record and Browse tabs in the browser.')];
       const out = [];
       for (let i = 0; i < Math.max(left.length, right.length); i++) out.push(`<span class="lc">${i < left.length ? padTo(left[i], LEFT) : ' '.repeat(LEFT)}</span> ${i < right.length ? right[i].h : ''}`);
-      html = out.join('\n');
+      html = listEl ? right.map(r => r.h).join('\n') : out.join('\n');
+      listHtml = left.slice(1).map(r => r.h).join('\n');
     } else {
       const s = sample();
       const left = slotRows();
@@ -453,7 +460,7 @@ export function createSampleScreen({ el, statusEl, getProject, onChange = () => 
       const allSelected = selFrom === 0 && selTo >= s.data.length;
       const selAll = seg(allSelected ? ' Deselect ' : ' Select all ', 'sbtn', ` data-act="selall" title="${allSelected ? 'Select nothing: the edits then act on the whole sample' : 'Select the whole sample'}"`);
       const right = [
-        line(' Sample'),
+        line(' Sample', ...(listEl ? [' '.repeat(10), seg(' Replace… ', 'sbtn', ` data-act="replace" data-sid="${esc(sel)}" title="Put a different audio file in this slot: instruments that play it follow"`)] : [])),
         line(' Name     ', fieldCell('name', sel, 24)),
         line(` Speed    ${s.rate} Hz   ${s.right ? 'stereo' : 'mono'}`),
         line(` Length   ${String(s.data.length).padStart(8, '0')} frames  ${(s.data.length / s.rate).toFixed(2)} s`),
@@ -472,8 +479,14 @@ export function createSampleScreen({ el, statusEl, getProject, onChange = () => 
       const marks = sliceLines(s), RIGHTW = 74;
       const rows = Math.max(left.length, right.length);
       const out = [];
-      for (let i = 0; i < rows; i++) out.push(`<span class="lc">${i < left.length ? padTo(left[i], LEFT) : ' '.repeat(LEFT)}</span> ${i < right.length ? right[i].h : ''}`);   // the divider is the border of the left column
-      html = `${out.join('\n')}<div class="slbox" style="left:${LEFT + 1 + RIGHTW}ch;height:${(rows * 1.35).toFixed(2)}em">${marks.map(m => m.h).join('\n')}</div>`;
+      if (listEl) { for (const r of right) out.push(r.h); listHtml = left.slice(1).map(r => r.h).join('\n'); }
+      else for (let i = 0; i < rows; i++) out.push(`<span class="lc">${i < left.length ? padTo(left[i], LEFT) : ' '.repeat(LEFT)}</span> ${i < right.length ? right[i].h : ''}`);   // the divider is the border of the left column
+      html = `${out.join('\n')}<div class="slbox" style="left:${(listEl ? 0 : LEFT + 1) + RIGHTW}ch;height:${(rows * 1.35).toFixed(2)}em">${marks.map(m => m.h).join('\n')}</div>`;
+    }
+    if (listEl && listHtml !== lastList) {   // the list element of its own: redrawn when it changes, with the chosen sample kept in view
+      lastList = listHtml;
+      listEl.innerHTML = listHtml;
+      listEl.querySelector?.('[data-id].on, [data-id].sf')?.scrollIntoView?.({ block: 'nearest' });
     }
     if (html !== last) {
       last = html;
