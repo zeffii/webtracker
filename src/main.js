@@ -215,7 +215,13 @@ keys.bind('Mod+KeyZ', () => patcher.undo(), { when: onGraph, name: 'Undo (graph)
 keys.bind('Mod+Shift+KeyZ', () => patcher.redo(), { when: onGraph, name: 'Redo (graph)' });
 keys.bind('Mod+KeyY', () => patcher.redo(), { when: onGraph, name: 'Redo (graph)' });
 keys.bind('Mod+Shift+KeyY', () => patcher.redo(), { when: onGraph, name: 'Redo (graph)' });
-keys.bind('F1', () => (!nodeHelp.hidden ? (hideHelp(), true) : patcher.helpSelected()) || false, { when: () => tabs.active === 'instruments', name: 'Help for the selected node' });
+// F1 on the graph screen shows the help of the selected node, or hides it if it is showing.
+// With no node selected there is no help to show, so the key goes on to switch tabs as usual.
+const toggleNodeHelp = () => {
+  if (!nodeHelp.hidden) { hideHelp(); return true; }
+  return patcher.helpSelected() === true;
+};
+keys.bind('F1', () => toggleNodeHelp() || false, { when: () => tabs.active === 'instruments', name: 'Help for the selected node' });
 keys.bind('Ctrl+F2', () => renameInstrumentBox(), { when: () => tabs.active === 'instruments' && project, name: 'Rename the selected instrument' });
 
 // Windows and panels
