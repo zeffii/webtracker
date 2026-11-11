@@ -17,7 +17,7 @@ Column headers are short so lanes stay narrow. The status bar under the grid giv
 
 ## Typing
 
-Edit from the keyboard while the song plays. Left and Right move by whole cells; Ctrl+Left and Ctrl+Right move one character inside a cell, for changing a single digit. Typing a digit advances the cursor through the cell.
+Edit from the keyboard while the song plays. Left and Right move one character at a time, so you can change a single digit; Ctrl+Left and Ctrl+Right jump to the start of the next or previous column, and Ctrl+Shift+Left and Right to the next or previous lane. (Config, Editing, *Left and Right move by* can make them move by whole cells instead.) Typing a digit advances the cursor through the cell.
 
 Space writes the live value of the parameter under the cursor into its cell and steps down; Ctrl+Space does it for every parameter column of the row. This is the quickest way to record a knob move: turn the knob until it sounds right, then press Space. (Chapter 1 again.)
 
@@ -34,7 +34,8 @@ Shift+arrows (or the mouse) select a block. Then:
 | Ctrl+Insert | push the rows down from the cursor |
 | Ctrl+Alt+Up / Down | rotate the contents of the selected rows |
 | Ctrl+I | interpolate between the filled cells |
-| Ctrl+K | randomize menu; shuffle, scatter and so on |
+| Ctrl+R | randomize menu: shuffle, scatter and so on; Alt+R rolls again |
+| Ctrl+K | the next colour for the pattern under the cursor (Ctrl+Shift+K the previous) |
 | Alt+T | tint each pattern in its own colour |
 
 Rows never cross into the next pattern: a selection over several patterns is handled one pattern at a time.

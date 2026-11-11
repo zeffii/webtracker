@@ -65,6 +65,14 @@ export function createTrackerView({ showMenu = (e, items) => showContextMenu(e, 
   // any row of the lane; the column the cursor is in always stays, so nothing disappears from under it. The cursor
   // steps over hidden columns; show them again to type into one.
   const compact = new Set();   // indexes of the lanes whose empty columns are hidden
+  // Ctrl+Shift+H, and the Pattern options' button: hide or show the empty columns of the lane the cursor is in.
+  const toggleEmptyColumns = () => {
+    if (!lanes) return;
+    const li = cur.lane, on = !compact.has(li);
+    if (on) compact.add(li); else compact.delete(li);
+    message = on ? `Hiding empty columns in ${lanes[li].id}.` : `Showing every column of ${lanes[li].id}.`;
+    draw();
+  };
   let vis = [];                // the columns shown in each lane, as of the last draw
   let shownAt = '';        // where the cursor was when the view last scrolled sideways to follow it
   let rowCount = ROWS.normal;   // how many rows are shown; the drag bar under the view changes it
@@ -768,12 +776,7 @@ export function createTrackerView({ showMenu = (e, items) => showContextMenu(e, 
         e.preventDefault(); return;
       }
       if (key === ',' || key === '.' || key === '<' || key === '>') { transpose(false, key === '.' || key === '>' ? 1 : -1, key === '<' || key === '>'); e.preventDefault(); return; }
-      if (key === 'h' && e.shiftKey) {   // hide or show the empty columns of the lane the cursor is in
-        const li = cur.lane, on = !compact.has(li);
-        if (on) compact.add(li); else compact.delete(li);
-        message = on ? `Hiding empty columns in ${lanes[li].id}.` : `Showing every column of ${lanes[li].id}.`;
-        e.preventDefault(); return;
-      }
+      if (key === 'h' && e.shiftKey) { toggleEmptyColumns(); e.preventDefault(); return; }   // hide or show the empty columns of the lane the cursor is in
       if ((key === 'b' || key === 'e') && !e.shiftKey) {   // the loop: Ctrl+B starts it at this tick, Ctrl+E ends it with this tick
         message = key === 'b' ? setLoopPoint(song, 'start', cur.tick) : setLoopPoint(song, 'end', cur.tick + 1);
         onSong();
@@ -1157,5 +1160,5 @@ export function createTrackerView({ showMenu = (e, items) => showContextMenu(e, 
       sel = null; draw(); return message;
     },
   };
-  return { commands, typeCommand, draw, load, goto, enterSolo, relayout, say: m => { message = m; }, setSize, setRows, lineHeight, get rows() { return rowCount; }, get fontPx() { return fontPx; }, get tick() { return cur.tick; }, get lane() { return cur.lane; }, get col() { return cur.col; }, get ch() { return cur.ch; }, stepRows: n => { moveRow(n); }, resume() { const was = paused; paused = false; lastAuto = null; return was; }, get preview() { return preview; }, get selection() { return sel ? rect() : null; }, get rect() { return rect(); } };
+  return { commands, typeCommand, toggleEmptyColumns, draw, load, goto, enterSolo, relayout, say: m => { message = m; }, setSize, setRows, lineHeight, get rows() { return rowCount; }, get fontPx() { return fontPx; }, get tick() { return cur.tick; }, get lane() { return cur.lane; }, get col() { return cur.col; }, get ch() { return cur.ch; }, stepRows: n => { moveRow(n); }, resume() { const was = paused; paused = false; lastAuto = null; return was; }, get preview() { return preview; }, get selection() { return sel ? rect() : null; }, get rect() { return rect(); } };
 }

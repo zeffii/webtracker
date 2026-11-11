@@ -28,13 +28,14 @@ Every screen has a shortcut panel on the right; this is the same list, collected
 | keys | what |
 |---|---|
 | Space / Ctrl+Space | write the live value and step down / for every parameter column |
-| Left, Right | by whole cell (Ctrl: by character) |
+| Left, Right | one character (Ctrl+Left, Right: next or previous column; Ctrl+Shift: next or previous lane) |
 | Shift+arrows | select |
 | Ctrl+C X V D | copy, cut, paste, copy below |
 | Ctrl+Delete / Ctrl+Insert | gobble / push down |
 | Ctrl+Alt+Up, Down | rotate |
 | Ctrl+I | interpolate |
-| Ctrl+K | randomize |
+| Ctrl+R | randomize (Alt+R rolls again) |
+| Ctrl+K | colour of the pattern under the cursor |
 | Shift+1 | note off in every note column of the row |
 | Alt+Enter | solo-edit this pattern |
 | Alt+T | tint patterns |

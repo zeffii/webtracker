@@ -2,6 +2,11 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 692 · 2026-11-11
+
+- **Pattern view options in the browser.** On the Pattern screen the area under the browser list now holds the switches that needed a shortcut or a trip to Config: follow the playing row, note preview, tint patterns by colour, hide the empty columns of the cursor's lane, and the text size (smaller, bigger, reset). They are the same settings as before and stay in step with the keys and the Config panel; a click gives the keyboard back to the grid. (`src/ui/patternoptions.js`)
+- **Manual:** Ctrl+K is the pattern colour and Ctrl+R the randomize menu (the first draft had them mixed up); Left and Right move one character at a time by default.
+
 ## 691 · 2026-11-11
 
 - **Compact node look: ports at half the radius,** drawn as plain dots in their signal colour (no dark ring). Grabbing one still has the same reach as before.

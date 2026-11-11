@@ -52,6 +52,7 @@ import { showContextMenu } from './ui/ctxmenu.js';
 import { buildInstrument, fitTail } from './project/ptr.js';
 import { ABOUT, CHANGELOG } from './ui/about.js';
 import { createManual } from './ui/manual.js';
+import { createPatternOptions } from './ui/patternoptions.js';
 import { SONGS } from './ui/songs.js';
 import { renderMarkdown } from './ui/markdown.js';
 import { TUTORIAL } from './script/tutorial.js';
@@ -1864,6 +1865,8 @@ mixerDock = createMixerDock({
 $('mixer-toggle').addEventListener('mousedown', e => e.preventDefault());   // the view keeps the focus
 $('mixer-toggle').addEventListener('click', () => mixerDock.toggle());
 
+createPatternOptions({ el: $('pat-side'), config, view, focusGrid: () => $('view').focus() });
+
 // The browser holds the lists that used to sit in the views: the arrangement's pattern list and the instrument list move in here.
 browser = createBrowser({
   el: $('browser'), tabsEl: $('browser-tabs'), bodyEl: $('browser-body'), grip: $('browser-grip'),
@@ -1876,6 +1879,7 @@ browser = createBrowser({
   options: [
     { views: ['instruments'], element: $('inst-side') },
     { views: ['arrange'], element: $('seq-tools') },
+    { views: ['patterns'], element: $('pat-side') },
     { views: ['samples'], element: $('smp-slate') },
   ],
   splitGrip: $('browser-split'), optionsEl: $('browser-options'),

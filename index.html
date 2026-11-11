@@ -260,6 +260,11 @@
     #browser-options { flex: none; overflow: auto; box-sizing: border-box; padding: 0 6px 6px; }
     #browser-options #inst-side { min-height: 0; }
     #browser-options #seq-tools { margin: 0; }
+    #pat-side h4 { margin: .2rem 0 .4rem; font-size: 12px; font-weight: 600; opacity: .7; }
+    #pat-side .po-row { display: flex; align-items: center; gap: .4rem; margin: .3rem 0; font-size: 12px; }
+    #pat-side .po-size { min-width: 2ch; text-align: center; font-variant-numeric: tabular-nums; }
+    #browser-options #pat-side { margin: 0; padding: .3rem .8rem; }
+
     #browser-grip { position: absolute; top: 0; bottom: 0; right: -4px; width: 8px; cursor: col-resize; touch-action: none; }
     #browser-grip.dragging { background: color-mix(in srgb, var(--accent) 35%, transparent); }
     #browser #seq-side { max-height: none; height: auto; background: transparent; }   /* the list takes the panel's height */
@@ -1811,6 +1816,7 @@
     </div>
       <aside class="keys" aria-label="Arrangement patterns and shortcuts">
         <div id="seq-side"><div id="seq-list"></div></div>
+        <div id="pat-side" class="side-options"></div>
         <div id="seq-tools">
         <div class="manage row">
           <span class="help">Lane under the cursor</span>
