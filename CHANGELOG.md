@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 691 · 2026-11-11
+
+- **Compact node look: ports at half the radius,** drawn as plain dots in their signal colour (no dark ring). Grabbing one still has the same reach as before.
+
 ## 690 · 2026-11-11
 
 - **Thinner wires in the compact node look:** a wire is about two thirds of its old weight (stereo, chosen and hovered wires keep their order of weight).
