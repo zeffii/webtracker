@@ -87,17 +87,23 @@ export const hexOf = (spec, entry, value) => {
 export const MIN_HEIGHT = 160, MAX_HEIGHT = 1600;   // the graph area, in pixels
 const SHAPE_W = { box: 112, rounded: 100, speaker: 100 };
 // The compact look's layout for a tile (cached on nothing: it is a few comparisons).
-const tileOf = (def, node) => compactLayout(def, inputsOf(node, def), def.outputs);
+// The compact look keeps the parameter inputs (the '@' ports a node was given) off its face: they are a strip of small dots under the tile that
+// moves with it. The face holds only the node's own signal inputs.
+const stripped = (def, node) => compactLook() && !def.size && def.shape !== 'dot';
+const faceInputs = (node, def) => (stripped(def, node) ? def.inputs : inputsOf(node, def));
+const STRIP_STEP = 11, STRIP_GAP = 7;   // the dots' spacing, and how far under the tile they hang
+const tileOf = (def, node) => compactLayout(def, faceInputs(node, def), def.outputs);
 export const nodeBox = (def, node) => {
   if (def.size) return { ...def.size };   // a node that draws its own face (the arp's step mask)
   if (compactLook() && def.shape !== 'dot') { const { w, h } = tileOf(def, node); return { w, h }; }
-  const rows = Math.max(inputsOf(node, def).length, def.outputs.length, 1);
+  const rows = Math.max(faceInputs(node, def).length, def.outputs.length, 1);
   const h = Math.max(rows * ROW + 10, def.shape === 'circle' ? 44 : 0);
   return { w: def.shape === 'circle' ? h : SHAPE_W[def.shape ?? 'box'], h };
 };
 export const portPos = (node, def, side, index) => {
   const { w, h } = nodeBox(def, node);
-  const n = side === 'in' ? inputsOf(node, def).length : def.outputs.length;
+  if (side === 'in' && stripped(def, node) && index >= def.inputs.length) return { x: node.x + 8 + (index - def.inputs.length) * STRIP_STEP, y: node.y + h + STRIP_GAP };   // a parameter port, in the strip
+  const n = side === 'in' ? faceInputs(node, def).length : def.outputs.length;
   const row = compactLook() && !def.size && def.shape !== 'dot' ? COMPACT_ROW : ROW;
   const y = node.y + (h - n * row) / 2 + row / 2 + index * row;
   let x = side === 'in' ? node.x : node.x + w;
@@ -951,11 +957,29 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
   let hoverPort = null, pickWire = 0;
   const wiresAt = h => (h ? desc().connections.map((c, i) => [c, i]).filter(([c]) => c[h.side === 'in' ? 1 : 0] === `${h.node}.${h.port}`).map(([, i]) => i) : []);
   const litWire = () => { const ws = wiresAt(hoverPort); return ws.length ? ws[pickWire % ws.length] : -1; };
+  // A small tip with the port's name and what it carries, after the mouse has rested on a port for half a second (the status line says
+  // the same at once, but a parameter port in the strip under a tile has no label of its own).
+  let portTip = null, portTipTimer = 0;
+  const hidePortTip = () => { clearTimeout(portTipTimer); if (portTip) { portTip.remove(); portTip = null; } };
+  function armPortTip(p) {
+    hidePortTip();
+    if (!p || drag) return;
+    portTipTimer = setTimeout(() => {
+      const node = desc()?.nodes.find(n => n.id === p.node); if (!node) return;
+      const type = nodeTypes[node.type], at = portPos(node, type, p.side, p.side === 'in' ? inputsOf(node, type).indexOf(p.port) : type.outputs.indexOf(p.port));
+      const { kindOf } = resolveKinds(desc(), nodeTypes), box = canvas.getBoundingClientRect();
+      portTip = doc.createElement('div');
+      portTip.className = 'port-tip';
+      portTip.textContent = `${p.port.startsWith('@') ? `${p.port.slice(1)} (parameter)` : p.port} · ${p.side === 'in' ? 'in' : 'out'} · ${KIND_TEXT[kindOf(node, p.port)].split(':')[0]}`;
+      doc.body.append(portTip);
+      portTip.style.left = `${box.left + at.x + 10}px`; portTip.style.top = `${box.top + at.y + 12}px`;
+    }, 500);
+  }
   function setHover(e) {
     if (!def()) return null;   // an empty song has no instrument to hover over
     const h = hitTest(desc(), nodeTypes, e.offsetX, e.offsetY), p = h?.kind === 'port' ? h : null;
     const same = p && hoverPort && p.node === hoverPort.node && p.port === hoverPort.port && p.side === hoverPort.side;
-    if (!same) { hoverPort = p; pickWire = 0; dirty = true; if (p && (!doc.activeElement || doc.activeElement === doc.body)) canvas.focus?.(); }
+    if (!same) { hoverPort = p; pickWire = 0; dirty = true; armPortTip(p); if (p && (!doc.activeElement || doc.activeElement === doc.body)) canvas.focus?.(); }
     return h;
   }
   const portRef = (ref, side) => { const [id, port] = ref.split('.'), node = desc().nodes.find(n => n.id === id), type = nodeTypes[node.type]; return portPos(node, type, side, side === 'out' ? type.outputs.indexOf(port) : inputsOf(node, type).indexOf(port)); };
@@ -965,6 +989,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
   }
 
   canvas.addEventListener('mousedown', e => {
+    hidePortTip();
     if (!instId) return;
     canvas.focus?.();
     const x = e.offsetX, y = e.offsetY;
@@ -1183,7 +1208,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
     if (instId && !hitTest(desc(), nodeTypes, e.offsetX, e.offsetY)) onContext({ x: e.offsetX, y: e.offsetY });
   });
 
-  canvas.addEventListener('mouseleave', () => { if (drag?.kind === 'rewire') dropWire(drag, true); drag = null; hoverPort = null; dirty = true; });
+  canvas.addEventListener('mouseleave', () => { if (drag?.kind === 'rewire') dropWire(drag, true); drag = null; hoverPort = null; dirty = true; hidePortTip(); });
 
   // Moves the selection to the nearest node in a direction ('left', 'right', 'up', 'down'), or to the next one
   // ('next', 'prev') in left-to-right order. With nothing selected the leftmost node is chosen.
@@ -1658,7 +1683,8 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
           ctx.fillStyle = kindColour(kindOf(node, name));
           ctx.fill();
           if (!compact) { ctx.strokeStyle = ink; ctx.lineWidth = 1; ctx.stroke(); }   // (a ring would swallow a dot this small: the compact look shows just its colour)
-          const label = layout ? layout.labels[side][i] : name.startsWith('@') ? name.slice(1) : name;   // compact: none for a lone port, L and R for left and right
+          const inStrip = side === 'in' && layout && i >= type.inputs.length;   // a parameter dot under the tile: named by the hover tip, not drawn
+          const label = inStrip ? '' : layout ? layout.labels[side][i] : name.startsWith('@') ? name.slice(1) : name;   // compact: none for a lone port, L and R for left and right
           if (type.shape !== 'circle' && label) {   // the shape has no room for names inside a circle
             ctx.fillStyle = ink;
             ctx.globalAlpha = 0.75;

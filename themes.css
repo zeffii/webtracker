@@ -110,3 +110,5 @@ html[data-theme]:not([data-theme="system"]) .field input { border: 0; background
 .cmd-list-pop .cl-row { display: grid; grid-template-columns: 5ch 1fr auto; gap: 1rem; padding: .1rem 0; }
 .cmd-list-pop .cl-hex { color: var(--accent); font-family: monospace; }
 .cmd-list-pop .cl-val { font-variant-numeric: tabular-nums; }
+
+.port-tip { position: fixed; z-index: 70; pointer-events: none; padding: .15rem .4rem; font: 11px ui-monospace, Consolas, monospace; background: var(--bg); color: var(--fg); border: var(--line-w) solid color-mix(in srgb, var(--fg) 30%, transparent); white-space: nowrap; }

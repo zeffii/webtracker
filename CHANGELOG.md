@@ -2,6 +2,12 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 698 · 2026-11-11
+
+- **Sympathetic strings sit by distance from the played note, not by pitch.** The string on the note itself is in the middle; the octave, the twelfth and the neighbours move out, taking turns left and right, and ringing strings glide to their new place when a new note is played. `width` is how far the furthest ones go, and now starts at 0.25 (a subtle, piano-like spread; it was 0.7): turn it up to 1 for a wide, fat synth sound.
+- **Parameter ports under the tile.** In the compact node look the parameter inputs (the `@` ports a node was given) hang as a strip of small dots below the tile, in the parameter colour, and move with it; they are no longer part of the tile's face.
+- **Port tips.** Rest the mouse on any port for half a second and a small tip names it: the port, whether it is an input or output, and what it carries.
+
 ## 697 · 2026-11-11
 
 - **Log time for the envelope editors.** Every Bezier envelope editor (Env2, the drum and hat envelopes) has a *time: linear / log* button. Log gives the start of the drawing most of the room, so a transient is easy to shape, and the ruler's round times (1, 2, 5, 10, 20 … ms) bunch up towards the tail; dragging, snapping, inserting and the arrow keys all follow what is drawn. Only the view changes, never the envelope. The choice is remembered.

@@ -13,7 +13,8 @@ import { stringsOf, midiHz, wantedStrings, MAX_STRINGS } from '../spacecore.js';
 
 const ROOT = 0, CHORD = 1, STRINGS = 2, RING = 3, DAMP = 4, DETUNE = 5, WIDTH = 6, MIX = 7, FOLLOW = 8, PARTIALS = 9;
 const BAG = 12;   // the notes remembered
-const LOWEST = 30;   // Hz: the longest string
+const LOWEST = 30;
+const REACH = 36;   // semitones from the played note at which a string is as far out as `width` allows   // Hz: the longest string
 
 export default {
   type: 'sympathy',
@@ -31,7 +32,7 @@ export default {
     { name: 'ringtime', min: 100, max: 8000, def: 2500 },   // ms to fall 60 dB
     { name: 'damp', min: 1000, max: 16000, def: 6000 },     // Hz
     { name: 'detune', min: 0, max: 30, def: 4 },            // cents
-    { name: 'width', min: 0, max: 1, def: 0.7 },
+    { name: 'width', min: 0, max: 1, def: 0.25 },   // how far from the middle the strings furthest from the played note sit (a little for a piano, 1 for a wide synth)
     { name: 'mix', min: 0, max: 1.5, def: 0.5 },
     { name: 'follow', min: 0, max: 1, def: 0, int: true },  // 1: tune the strings to the notes being played
     { name: 'partials', min: 1, max: 6, def: 3, int: true }, // follow: how many harmonics of each note get a string
@@ -41,7 +42,7 @@ export default {
     const bufs = Array.from({ length: MAX_STRINGS }, () => new Float32Array(size));
     const pos = new Int32Array(MAX_STRINGS), lp = new Float64Array(MAX_STRINGS), len = new Float64Array(MAX_STRINGS), fb = new Float64Array(MAX_STRINGS), energy = new Float64Array(MAX_STRINGS);
     const pitch = new Int16Array(MAX_STRINGS).fill(-1);   // the note each string is tuned to, -1 for a string not in use
-    const pan = Array.from({ length: MAX_STRINGS }, () => [Math.SQRT1_2, Math.SQRT1_2]);
+    const pan = Array.from({ length: MAX_STRINGS }, () => [Math.SQRT1_2, Math.SQRT1_2]), panTo = Array.from({ length: MAX_STRINGS }, () => [Math.SQRT1_2, Math.SQRT1_2]);
     const bag = [];   // the notes played, newest first
     let key = '', dirty = true, watchLeft = 0, sent = 0, active = 0;
     const hx = new Float64Array(MAX_STRINGS), hy = new Float64Array(MAX_STRINGS);   // each string's DC blocker (see below)
@@ -53,21 +54,34 @@ export default {
       const hz = Math.max(LOWEST, midiHz(pitch[i]) * Math.pow(2, detune / 1200));
       len[i] = Math.min(size - 3, sampleRate / hz + sampleRate * Math.atan(DC_HZ / hz) / (2 * Math.PI * hz));   // the blocker leads the phase a little, which would tune the string sharp: the line is made as much longer
       fb[i] = Math.pow(0.001, len[i] / (p.ring / 1000 * sampleRate));   // the loop gain that falls 60 dB in the ring time
-      const a = (i / (MAX_STRINGS - 1) * 2 - 1) * p.width * (i % 2 ? 1 : -1) * 0.5, q = (a + 1) * Math.PI / 4;
-      pan[i][0] = Math.cos(q); pan[i][1] = Math.sin(q);
+    };
+    // Each string sits in the stereo field by how far its pitch is from the note that was played (the newest note when following, else the root):
+    // the string on the note itself is in the middle, the ones further away (the octave, the twelfth, the neighbours) move out, taking turns
+    // left and right so a pair of equally far strings is on both sides. `width` is how far the furthest ones go: a little for a piano, all the way
+    // for a synth. Not by pitch: a high string next to the played note stays near the middle.
+    const place = (reference, width, jump) => {
+      const used = [];
+      for (let i = 0; i < MAX_STRINGS; i++) if (pitch[i] >= 0) used.push({ i, d: Math.abs(pitch[i] - reference) });
+      used.sort((a, b) => a.d - b.d || a.i - b.i);
+      used.forEach(({ i, d }, rank) => {
+        const a = Math.min(1, d / REACH) * width * (rank % 2 ? 1 : -1), q = (a + 1) * Math.PI / 4;
+        panTo[i][0] = Math.cos(q); panTo[i][1] = Math.sin(q);
+        if (jump.has(i)) { pan[i][0] = panTo[i][0]; pan[i][1] = panTo[i][1]; }   // a new string starts where it belongs; ringing ones glide there
+      });
     };
     // string the notes in `list`: a string already on a wanted note keeps ringing; the others are freed and given to the new notes
     const assign = (list, p) => {
-      const want = list.slice(0, MAX_STRINGS);
+      const want = list.slice(0, MAX_STRINGS), fresh = new Set();
       for (let i = 0; i < MAX_STRINGS; i++) if (pitch[i] >= 0 && !want.includes(pitch[i])) pitch[i] = -1;
       for (const note of want) {
         if (pitch.includes(note)) continue;
         const i = pitch.indexOf(-1);
         if (i < 0) break;
-        pitch[i] = note; bufs[i].fill(0); lp[i] = 0; hx[i] = 0; hy[i] = 0; energy[i] = 0;
+        fresh.add(i); pitch[i] = note; bufs[i].fill(0); lp[i] = 0; hx[i] = 0; hy[i] = 0; energy[i] = 0;
       }
       active = 0;
       for (let i = 0; i < MAX_STRINGS; i++) if (pitch[i] >= 0) { tune(i, p); active++; }
+      place(p.reference, p.width, fresh);
     };
 
     return {
@@ -89,8 +103,9 @@ export default {
         if (k !== key || (follow && dirty)) {
           key = k; dirty = false;
           const list = follow ? wantedStrings(bag, v(PARTIALS), v(STRINGS)) : stringsOf(v(ROOT), v(CHORD), v(STRINGS));
-          assign(list, { detune: v(DETUNE), ring: v(RING), width: v(WIDTH) });
+          assign(list, { detune: v(DETUNE), ring: v(RING), width: v(WIDTH), reference: follow && bag.length ? bag[0] : v(ROOT) });
         }
+        for (let s = 0; s < MAX_STRINGS; s++) if (pitch[s] >= 0) { pan[s][0] += (panTo[s][0] - pan[s][0]) * 0.1; pan[s][1] += (panTo[s][1] - pan[s][1]) * 0.1; }   // glide, so a new note does not make the ringing strings jump
         const mix = v(MIX) / Math.sqrt(Math.max(1, active)) * 2, c = 1 - Math.exp(-2 * Math.PI * v(DAMP) / sampleRate), feed = 0.15;
         for (let i = 0; i < n; i++) {
           const x = (inL[i] + inR[i]) * 0.5 * feed;

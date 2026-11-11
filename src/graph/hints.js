@@ -260,7 +260,7 @@ const HINTS = {
     ringtime: 'How long a string rings after it is excited, in ms (time to fall by 60 dB).',
     damp: 'Low-pass inside each string in Hz: lower gives a warmer ring that loses its top as it fades.',
     detune: 'How far the strings are off true pitch in cents. A little makes them shimmer, a lot makes them out of tune.',
-    width: 'Spread of the strings across the stereo field.', mix: 'Level of the strings against the dry sound.',
+    width: 'How far from the middle the strings sit, by how far each is from the played note (the note itself stays central; octaves and neighbours move out). A little is piano-like, all the way is wide.', mix: 'Level of the strings against the dry sound.',
     follow: 'On: the strings are tuned to the notes the instrument plays, not to the chord. Each note gets the nearest piano strings to its octave, twelfth and so on, so what rings answers what is played. Root and chord are not used then.',
     partials: 'Follow notes: how many harmonics of each note get a string: 1 only the note itself, 2 adds the octave, 3 the twelfth, 4 two octaves ... Newest notes and lowest harmonics are strung first, up to the number of strings.',
   },

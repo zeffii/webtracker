@@ -5575,8 +5575,9 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   assert.equal(d.nodes[0].ports, undefined);
   // the patcher draws the extra input and finds it
   const filt = { id: 'filt', type: 'filter', x: 100, y: 100, ports: ['cutoff', 'mode'] }, td = { nodes: [filt], connections: [] };
-  assert.equal(nodeBox(NODE_TYPES.filter, filt).h > nodeBox(NODE_TYPES.filter).h, true, 'a node with ports is taller');
-  const p = portPos(filt, NODE_TYPES.filter, 'in', 2);
+  assert.deepEqual(nodeBox(NODE_TYPES.filter, filt), nodeBox(NODE_TYPES.filter, { ...filt, ports: undefined }), 'in the compact look the parameter ports are not part of the face');
+  const p = portPos(filt, NODE_TYPES.filter, 'in', 2), p2 = portPos(filt, NODE_TYPES.filter, 'in', 3);
+  assert.ok(p.y > filt.y + nodeBox(NODE_TYPES.filter, filt).h && p2.y === p.y && p2.x > p.x, 'they hang in a strip under the tile');
   assert.deepEqual(hitTest(td, NODE_TYPES, p.x, p.y), { kind: 'port', side: 'in', node: 'filt', port: '@cutoff' });
   assert.equal(portKind(NODE_TYPES.filter, '@cutoff', filt), 'param');
   assert.equal(portKind(NODE_TYPES.ctrl, 'out'), 'param');
