@@ -8718,6 +8718,19 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   assert.deepEqual(calls, ['load', `replace ${id}`], 'the buttons call back');
   console.log('ok: slot buttons and replace');
 }
+// The manual: every chapter has a title, and the generated index and booklet are up to date (run `node scripts/manual.mjs` after editing a chapter).
+{
+  const { readChapters, bookletHtml } = await import('../scripts/manual.mjs');
+  const { readFileSync } = await import('node:fs');
+  const dir = new URL('../docs/manual/', import.meta.url);
+  const chapters = readChapters();
+  assert.ok(chapters.length >= 10 && chapters.every(c => /^#\s+\S/m.test(c.text)), 'the manual has its chapters, each with a title');
+  assert.equal(readFileSync(new URL('index.json', dir), 'utf8'), `${JSON.stringify(chapters.map(({ file, title }) => ({ file, title })), null, 2)}\n`, 'docs/manual/index.json is up to date');
+  assert.equal(readFileSync(new URL('booklet.html', dir), 'utf8'), bookletHtml(chapters), 'docs/manual/booklet.html is up to date');
+  const { renderMarkdown } = await import('../src/ui/markdown.js');
+  assert.match(renderMarkdown('| a | b |\n|---|---|\n| 1 | 2 |'), /<table><thead><tr><th>a<\/th><th>b<\/th><\/tr><\/thead><tbody><tr><td>1<\/td><td>2<\/td>/, 'markdown tables');
+  console.log('ok: manual chapters, index and booklet');
+}
 // 110. The About page's text loads (a stray quote in it once broke the whole app) and shows at most ten builds.
 {
   const about = await import('../src/ui/about.js');

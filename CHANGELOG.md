@@ -2,6 +2,13 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 687 · 2026-11-11
+
+- **The manual, first draft.** Ten chapters as numbered Markdown files in `docs/manual/` (Tweak by ear, Your first sound, The four screens, Patterns, The song, Instruments, Samples, Files, Keys, Rules of thumb), plus a front page.
+  - **In Wax:** a book button at the foot of the left rail, or Ctrl+Alt+B, opens a reader with the chapter list on the left; it remembers the chapter you were on. The chapters are published with the app.
+  - **On paper:** `node scripts/manual.mjs` writes `docs/manual/index.json` and `docs/manual/booklet.html`, the whole manual set as an A5 booklet with a cover, contents and page numbers (print it from the browser, or save it as a PDF). `npm test` fails when either is out of date.
+  - The Markdown renderer now handles tables.
+
 ## 686 · 2026-11-11
 
 - **One look for every slider.** A hairline track, a faint fill up to the value, and one thin accent bar at the value: the parameter bars, the mixer faders and every plain range slider (shader knobs, curve popup, sample and roll controls, quick config) now share it, instead of five different styles (bevelled black bar, outlined fill, hairline with a dot, native accent, framed fader). The tokens are `--slider-line`, `--slider-fill`, `--slider-mark-w`; the mixer's meter and test colours use `--ok` and `--warn`.

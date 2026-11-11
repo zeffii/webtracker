@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Wax: the manual</title><style>
+@page { size: A5; margin: 16mm 14mm 18mm; @bottom-center { content: counter(page); font: 9pt Georgia, serif; } }
+@page :first { @bottom-center { content: none; } }
+html { font: 10.5pt/1.45 Georgia, 'Times New Roman', serif; color: #111; }
+body { margin: 0; }
+h1 { font: 700 20pt/1.1 Georgia, serif; margin: 0 0 .5em; break-before: page; }
+h2 { font: 700 12.5pt/1.2 Georgia, serif; margin: 1.2em 0 .3em; break-after: avoid; }
+h3 { font: italic 700 11pt/1.2 Georgia, serif; margin: 1em 0 .2em; break-after: avoid; }
+p, li { orphans: 3; widows: 3; } p { margin: .5em 0; } ul, ol { margin: .4em 0; padding-left: 1.3em; }
+code { font: 9pt ui-monospace, Consolas, monospace; }
+table { border-collapse: collapse; width: 100%; margin: .6em 0; font-size: 9.5pt; break-inside: avoid; }
+th, td { text-align: left; vertical-align: top; padding: 2pt 5pt 2pt 0; border-bottom: .4pt solid #888; } th { border-bottom: .8pt solid #111; }
+.cover h1 { break-before: auto; font-size: 44pt; margin-top: 38mm; } .cover { min-height: 150mm; }
+.toc h1 { break-before: page; } .toc ol { list-style: none; padding: 0; font-size: 12pt; } .toc li { margin: .35em 0; }
+</style></head>
+<body>
+<section class="cover"><h1>Wax</h1>
+<p><i>a musical spreadsheet</i></p></section>
+<section class="toc"><h1>Contents</h1><ol><li>1. Tweak by ear</li><li>2. Your first sound</li><li>3. The four screens</li><li>4. Patterns</li><li>5. The song</li><li>6. Instruments</li><li>7. Samples</li><li>8. Files</li><li>9. Keys</li><li>10. Rules of thumb</li></ol><p>This is the manual for Wax, a tracker that runs in a browser tab. You type notes on a grid, an instrument you built from a handful of nodes plays them, and nothing is sent anywhere.</p>
+<p>It is written to be read in two places: inside Wax (the book button at the foot of the left rail, or Ctrl+Alt+B) and on paper. The paper version is the same text, set as a small booklet. Print it, staple it, keep it next to the keyboard.</p>
+<h2>How to read it</h2>
+<p>You do not have to read it in order. Chapter 1 is the idea behind everything else and is short; chapter 2 gets a sound out of the machine in ten minutes. After that, dip in: each chapter stands alone and says which keys it uses.</p>
+<p>Keys are written the way you press them: <b>Ctrl+Alt+P</b> is the three keys together, <b>F5</b> is the function key, <b>Shift+arrows</b> is Shift held while you press an arrow. On a Mac, read Ctrl as Cmd where the Mac would expect it.</p>
+<p>Things you can type are in <code>code</code>. Things you can click are in <b>bold</b>.</p></section>
+<h1>1. Tweak by ear</h1>
+<p><i>Tweak by ear, not by eyesight or looking at numbers.</i></p>
+<p>This is the one rule. Everything else in the manual is mechanics.</p>
+<p>A tracker looks like a spreadsheet, and a spreadsheet invites you to think in numbers: a cutoff of 1840 Hz, a decay of 312 ms, a velocity of 0x7A. Resist it. Those numbers are the <i>result</i> of what you did, not the thing you are after. What you are after is a sound, and you can only judge a sound by listening.</p>
+<h2>What it means in practice</h2>
+<ul><li><b>Play while you work.</b> Start the song, put the cursor on a parameter and move it. Edits are heard on the next tick. If you stop the song every time you change something, you are working by eyesight.</li><li><b>Move a control until it is wrong, then back off.</b> Go too far on purpose. You learn what the control does faster than by nudging it in small steps, and you find the edge where it starts to sound good.</li><li><b>Trust the slider, not the readout.</b> Every parameter has a slider that runs across its whole range, and the value is written on it. Read the value afterwards if you want to remember it. Do not aim for a number.</li><li><b>Close your eyes now and then.</b> If you cannot hear the difference, it does not matter, and you can stop.</li><li><b>Do not polish what you cannot hear.</b> A parameter that changes nothing audible costs processor time for nothing. Wax will not tell you which ones those are: your ears will.</li></ul>
+<h2>Why the screen is quiet</h2>
+<p>The look of Wax is deliberately plain: thin lines, text, one accent colour. Nothing on the screen is there to impress you. The sliders are a hairline with a mark at the value, not a dial with a shadow, so there is nothing to look at but where the mark is. Listen instead.</p>
+<h1>2. Your first sound</h1>
+<p>Ten minutes, from a blank page to something you made yourself.</p>
+<h2>Start the machine</h2>
+<p>Open Wax and press <b>Start</b>. The browser only lets a page make sound after you have clicked it, which is why there is a button. The demo song loads; press <b>F5</b> to play it from the start, <b>F8</b> to stop. Let it run a while and look around: this is what the machine can do.</p>
+<p>Press <b>F1</b> to see the song as a timeline, <b>F2</b> for the pattern grid, <b>F3</b> for the instrument, <b>F4</b> for samples. They are four views of one project.</p>
+<h2>Make a note</h2>
+<ol><li>Press <b>F2</b>, the pattern grid. One column group per lane; a lane plays one instrument.</li><li>Put the cursor on a note cell. Type a note on the computer keyboard as if it were a piano: the home row is the white keys, the row above the black ones. The note appears (<code>C-4</code>) and you hear it if note preview is on, which it is unless you turned it off in Config (F11).</li><li>Move down with the arrow keys and type more. Space plays the row under the cursor once and steps down.</li><li>Press <b>F5</b>. The pattern plays. Keep typing while it plays; changes are heard on the next tick.</li></ol>
+<h2>Change the sound</h2>
+<ol><li>Press <b>F3</b>. The instrument is a graph of nodes joined by wires: a source on the left, effects after it, the output on the right.</li><li>Click a node. Its parameters appear in the panel on the right. Drag one of the bars. This is the moment for chapter 1: play the pattern and <i>listen</i> while you drag.</li><li>Add a node: double-click an empty place in the graph, or press <code>/</code> to search. Wire its output to the next node's input. An effect that is not wired in does nothing.</li></ol>
+<h2>Keep it</h2>
+<p><b>File</b> menu, <b>Save</b>. You get a <code>.wax</code> file: your song, instruments and samples in one small text file. Open it again later, or send it to someone.</p>
+<h2>Where next</h2>
+<p>The pattern grid is chapter 4; how a song is put together from patterns is chapter 5; what the nodes do is chapter 6.</p>
+<h1>3. The four screens</h1>
+<table><thead><tr><th>key</th><th>screen</th><th>what it is for</th></tr></thead><tbody><tr><td><b>F1</b></td><td>Song</td><td>the arrangement: patterns placed on a timeline, one column per lane</td></tr><tr><td><b>F2</b></td><td>Pattern</td><td>the grid you type notes into</td></tr><tr><td><b>F3</b></td><td>Instrument</td><td>the node graph of one instrument and its parameters</td></tr><tr><td><b>F4</b></td><td>Sample</td><td>load audio, set loops, mark slices</td></tr></tbody></table>
+<p>The buttons down the left side of the window follow the same order. <b>F10</b> is Info, a plain page of notes saved with the project; <b>F11</b> is Config, the settings.</p>
+<p>Wax opens on the Song screen.</p>
+<h2>The browser</h2>
+<p>Down the left of every screen is the <b>browser</b>, with three tabs: <b>Patterns</b>, <b>Machines</b>, <b>Samples</b>. Alt+B shows and hides it. The list shows what belongs to the screen you are on, and the area under the list holds that screen's options, split off by a bar you can drag. In the Instrument screen, for example, the list is the instruments and the options are voices, presets and the New instrument box.</p>
+<h2>The mixer</h2>
+<p>A strip for every lane that makes sound, along the bottom of every screen, above the meters. Each strip has a fader, an <b>M</b> (mute) and <b>S</b> (solo), a <b>test</b> button and a <b>mix</b> switch. The mixer is for the mouse: it never takes the keyboard away from the grid you were typing in.</p>
+<p>The fader is the gain of the lane's output node, so what you hear is what is saved. <b>test</b> turns the fader into a test gain that changes only what you hear, so you can try a level without touching the instrument; a tick on the track marks the real gain.</p>
+<p>Drag the top edge of the mixer to resize it; pull it down to nothing and it hides.</p>
+<h2>Parameter panels</h2>
+<p>The parameters of the selected node are listed on the right of the Instrument screen. <b>Ctrl+Alt+P</b> opens the same list in a floating panel for the machine under the cursor in any screen, so you can turn a knob while looking at the pattern. The <b>pin</b> on a panel keeps it open for that machine until you close it; several can be open at once, and each remembers where you put it. A panel can also be popped out into a window of its own, for a second monitor. Panels open at most half the window wide; drag the edge for more.</p>
+<h2>Themes and size</h2>
+<p>Themes are chosen top right. Ctrl and the mouse wheel change the size of the grids. The dotted bar under a view sets its height.</p>
+<h2>Playback</h2>
+<p><b>F5</b> plays from the start (or from the loop), <b>F6</b> from the cursor, <b>F7</b> plays the row under the cursor once, <b>F8</b> stops. <b>F9</b> makes the grids follow the playing row; moving the cursor elsewhere pauses the following so you can edit while the song plays, and F9 follows again.</p>
+<h1>4. Patterns</h1>
+<p>A <b>pattern</b> is a block of rows. A <b>row</b> is a tick, and the song runs at a set number of ticks per beat. You type into patterns on the Pattern screen (F2).</p>
+<h2>Lanes and columns</h2>
+<p>A <b>lane</b> plays one instrument. Its columns are made from that instrument:</p>
+<ul><li><b>Note</b> and <b>velocity</b> (<code>C-4 20</code>): one or more pairs per lane. A note off is <code>===</code>; a note cut is a backtick.</li><li><b>Trigger</b> columns, one hex digit: for machines that fire named hits, such as the two hats of the 808 hat. The digit is the velocity; 0 is nothing.</li><li><b>Parameter</b> columns, two or four hex digits: any node parameter you chose to expose. The value runs across the parameter's whole range. A column that never gets a value leaves the parameter alone.</li><li><b>Command</b> column (<code>01 0EPP</code>): a command id and its value. Command <code>00</code> recalls a preset by number; <code>10</code> starts a sample at a slice.</li></ul>
+<p>The <b>master lane</b> is always first. Its columns set tempo, swing, ticks per beat and volume, so a project can be empty apart from it and still change speed mid-song.</p>
+<p>Column headers are short so lanes stay narrow. The status bar under the grid gives the long name of the column under the cursor, a meter for where the value sits in its range, the value in real units, and the hex it is written as.</p>
+<h2>Typing</h2>
+<p>Edit from the keyboard while the song plays. Left and Right move by whole cells; Ctrl+Left and Ctrl+Right move one character inside a cell, for changing a single digit. Typing a digit advances the cursor through the cell.</p>
+<p>Space writes the live value of the parameter under the cursor into its cell and steps down; Ctrl+Space does it for every parameter column of the row. This is the quickest way to record a knob move: turn the knob until it sounds right, then press Space. (Chapter 1 again.)</p>
+<h2>Selections and editing</h2>
+<p>Shift+arrows (or the mouse) select a block. Then:</p>
+<table><thead><tr><th>keys</th><th>what it does</th></tr></thead><tbody><tr><td>Ctrl+C, Ctrl+X, Ctrl+V</td><td>copy, cut, paste with its top left at the cursor</td></tr><tr><td>Ctrl+D</td><td>copy the selection straight below itself, again and again by the same number of rows</td></tr><tr><td>Delete, <code>&gt;</code></td><td>clear the cells</td></tr><tr><td>Ctrl+Delete</td><td>delete the cells and pull the rows below up</td></tr><tr><td>Ctrl+Insert</td><td>push the rows down from the cursor</td></tr><tr><td>Ctrl+Alt+Up / Down</td><td>rotate the contents of the selected rows</td></tr><tr><td>Ctrl+I</td><td>interpolate between the filled cells</td></tr><tr><td>Ctrl+K</td><td>randomize menu; shuffle, scatter and so on</td></tr><tr><td>Alt+T</td><td>tint each pattern in its own colour</td></tr></tbody></table>
+<p>Rows never cross into the next pattern: a selection over several patterns is handled one pattern at a time.</p>
+<h3>Interpolation</h3>
+<p>Ctrl+I works column by column: the first and last filled cells in the selection are the ends, and the filled cells between them get values by row position (notes by semitone). The popup picks a shape (linear, ease in or out, s-curve, exponential, steps), bends it, adds a wave, and lets you paint your own curve. <b>bezier</b> turns the shape into a spline you can drag: square anchors, round handles. Double-click the curve to add an anchor.</p>
+<h2>Playing notes from a MIDI keyboard</h2>
+<p>In Config, MIDI (Chrome, Edge and Brave): the keyboard plays the machine under the cursor on every screen. In the pattern editor a note, or a chord struck within the chord window, goes into the note columns from the cursor; the chord is written lowest note first however you struck the keys.</p>
+<h2>Scripts</h2>
+<p>The <b>Script</b> tab (Ctrl+Alt+S) holds one script per project. A script fills pattern data; its changes are applied only if it finishes without an error, as one undo step. For example <code>tbin('x... x.x. x...', 'C-3')</code> writes a rhythm: <code>x</code> is a hit, <code>.</code> a rest, <code>?</code> a hit half of the time. Rests leave the cell alone, so a kick and a hat can share a column. <code>euclid(5, 16)</code>, <code>scale('minor', 'A', 2)</code> and <code>ramp(a, b)</code> are among the helpers. Ctrl+Enter runs the selected code, or all of it.</p>
+<h1>5. The song</h1>
+<p>The Song screen (F1) lays patterns out in time. Each lane is a column, time runs down, and a pattern is placed as a block of 16-tick rows.</p>
+<h2>Placing patterns</h2>
+<p>Place, clone, slice, resize, move and remove patterns with the mouse or the keyboard. Undo and redo work as everywhere. Patterns have colours, and Alt+T in the pattern editor tints the grid with them, so you can see where one pattern ends and the next begins.</p>
+<ul><li><b>Ctrl+G</b> gives the placement under the cursor its own copy of its pattern, in a new colour, so you can change that one without changing the others.</li><li><b>Ctrl+Enter</b> (or Alt+Enter in the pattern editor) opens one pattern on its own, <i>solo-edit</i>: edits and pastes cannot reach anything else. Alt+Enter or Esc leaves it. <b>Tab</b> flips between the one pattern (rows counted from 0) and the whole song with the rest greyed out.</li></ul>
+<h2>Loops and markers</h2>
+<p>Ctrl+B and Ctrl+E set the loop start and end. A note-off marker (Ctrl+1) tells the lane to let go of its notes at that row. You can mute a lane from a row onward, or silence it whole.</p>
+<h2>Blocks</h2>
+<p>Select a block of lanes and rows (Shift+arrows or drag), then copy, cut and paste it, or press Ctrl+D to copy it straight below itself.</p>
+<p><b>G</b> merges the block: every lane in it gets one new pattern made of what plays inside, cut at the block's edges, so nothing overlaps. One undo step.</p>
+<p><b>Insert silence</b> (under the grid): type a tick count, or press 16, 32 and so on up to 512, to push everything from the cursor row down. The song grows and the loop follows.</p>
+<h2>Following</h2>
+<p><b>F9</b> makes the grids scroll with the playing row. Move the cursor to another row and the following pauses, so you can edit elsewhere while the song plays.</p>
+<h2>Solo and mute</h2>
+<p><b>Alt+S</b> solos the lane under the cursor: the other lanes let go of their notes, which ring out naturally, and play nothing. Alt+S again, or soloing another lane, changes it. Solo is not saved with the song.</p>
+<h2>Under the grid</h2>
+<p>Rename, reorder, duplicate or remove the lane under the cursor (optionally with its instrument), and add a lane for any instrument.</p>
+<h1>6. Instruments</h1>
+<p>An instrument is a <b>graph of nodes</b>, stored in the project as data. A lane plays one instrument. You can start from a ready-made synth or from nothing.</p>
+<h2>New instrument</h2>
+<p>In the Instrument screen's options, the <b>New instrument</b> box makes a kick synth, any of the synths, a sampler on a chosen sample, or an <i>Empty</i> graph (just the output and the voices node) to build from. Wax ships with no factory presets: every instrument starts plain, so every sound is yours.</p>
+<h2>The graph</h2>
+<p>Add a node with the menu (double-click an empty place; it is a cascading menu with underlined hotkeys, and <code>/</code> searches). Wire one node's output to another's input by dragging. A node that is not wired to anything is ignored, and adding or removing such a node does not interrupt a playing song.</p>
+<p>Everything <i>before</i> the <b>voices</b> node runs once per voice (up to 16 copies of the graph, for polyphony). Everything <i>after</i> it runs once, on the summed signal.</p>
+<p>Useful gestures:</p>
+<ul><li><b>Shift+drag</b> a node takes it out of its chain (its neighbours are wired together) and moves it.</li><li><b>Alt+drag</b> makes a copy and moves the copy.</li><li><b>Ctrl+X</b> removes the selected node.</li><li>The <b>eye</b> under a node shows its output as a waveform, a spectrum or an XY picture.</li></ul>
+<h2>Parameters</h2>
+<p>Click a node and its parameters list on the right: a name, and a bar with the value written on it. Drag the bar, click it, or use Left and Right (Shift for more, Ctrl for less). Double-click puts it back to its default. Right-click a row for its menu.</p>
+<p>Three small switches show when the panel is wide. <b>e</b> exposes the parameter as a column in the pattern; <b>p</b> gives it a port, so another node can be wired into it; the third sets the column's width.</p>
+<p>A parameter in milliseconds or Hz can be read in ticks: its bar shows a faint line wherever a tick of the song falls, and the value in ticks beside the hex. Use it to put an echo exactly on the beat. Sound still decides: if it sounds better off the grid, leave it off the grid.</p>
+<h2>The nodes</h2>
+<ul><li><b>Sources:</b> sampler, oscillator, envelope, LFO, subtractive synth, an Oberheim-style synth, piano (a physical model), FM, additive, wavetable, granular, spectral, plucked string, DX bank loader, 808 hi-hat, a comb-resonator percussion machine, and a MOD channel.</li><li><b>Mix and level:</b> gain (with a VU meter), mix, pan, voices.</li><li><b>Effects:</b> filter, delay, multitap, chorus, phaser, flanger, distortion, waveshaper, fold, crusher, frequency shifter, gater, exciter, transient, compressor, gate, EQ, three reverbs (hall, plate, shimmer), vocoder, and more.</li><li><b>Control:</b> ctrl (glides and parameter ports), note trigger, envelope follower, tempo.</li></ul>
+<p>Select a node and press <b>Shift+F1</b> for its help page: a summary, what it is best at, and where it runs out.</p>
+<h2>Presets</h2>
+<p>A preset keeps a sound. Save one under a name, and recall it from a pattern with command <code>00</code>. A preset library (<code>.wxpr</code>) holds many. An instrument can be exported and imported on its own (<code>.waxi</code>).</p>
+<h2>Heavy nodes</h2>
+<p>Some nodes have a quality setting. The default sounds as it always did; the cheaper mode is for when a song asks too much of the processor. The footer shows the load (average, worst block, blocks that ran late), and Ctrl+Alt+E opens the stream manager, which shows the load per lane.</p>
+<h1>7. Samples</h1>
+<p>The Sample screen (F4) loads audio, and the sample data is stored inside the project, so a <code>.wax</code> file carries its sounds with it.</p>
+<h2>Loading</h2>
+<p><b>Load…</b> a slot, or drop audio files on the screen. Any format the browser can decode works. The list shows the slots on the left; select one to see its waveform.</p>
+<h2>Recording</h2>
+<p>The <b>Record</b> button has a source box. <i>Another tab or screen</i> opens the browser's share picker (Chrome and Edge): pick a tab and tick <i>Also share tab audio</i>, or on Windows pick Entire screen with <i>Share system audio</i> to capture everything the computer plays. The other sources are the machine's audio inputs.</p>
+<h2>Per sample</h2>
+<p>Volume and pan; a <b>loop</b> and a <b>sustain loop</b>, each with a crossfade; <b>slice markers</b>; and a waveform or a spectrogram view. Click a field to select it, click it again to type a value, or click a level bar to set it. Command <code>10</code> in a pattern starts the sample at a slice.</p>
+<h2>Editing</h2>
+<p>Right-click the waveform for the edits: trim to selection, cut, silence, reverse, normalise, fades, remove DC, bake the crossfades. Select all, clear, mark a slice at the mouse, undo and redo are there too.</p>
+<p>Other tools on the same menu: <b>auto-slice</b> finds the hits and marks slices; <b>detect chords</b> reads a held chord out of a sample; <b>post-transient resynthesis</b> keeps the first few milliseconds as real sample data and rebuilds the rest as a small synth, in a new instrument with its own lane.</p>
+<h2>The tap pool</h2>
+<p>The <b>tap</b> node records whatever passes through it into one of sixteen slots (<code>tap01</code> to <code>tap16</code>), started and stopped from a pattern column. The slots show up at the end of the sample list. They are not saved with the project.</p>
+<h1>8. Files</h1>
+<table><thead><tr><th>extension</th><th>what it is</th></tr></thead><tbody><tr><td><code>.wax</code></td><td>The project: plain JSON. Song, instruments as graphs, samples, lanes and patterns. Small until samples go in.</td></tr><tr><td><code>.waxi</code></td><td>One instrument.</td></tr><tr><td><code>.wxpr</code></td><td>A preset library.</td></tr><tr><td><code>.mid</code></td><td>A MIDI file, imported as lanes and patterns.</td></tr><tr><td><code>.mod</code></td><td>A ProTracker module. The order list is played out, tempo changes go to the master lane, each channel becomes a lane on a MOD channel machine, and the samples come along.</td></tr><tr><td><code>.wav</code></td><td>What <b>Export WAV</b> writes: the song rendered once, offline, with a tail, as 16-bit, 24-bit or 32-bit float stereo.</td></tr></tbody></table>
+<h2>Where things live</h2>
+<p>The project is the file. Settings (theme, view sizes, shortcuts panels) live in the browser's local storage; <b>Config</b> (F11) can export and import them as a JSON file, or reset them. Nothing is sent anywhere.</p>
+<h2>Backups</h2>
+<p>Wax keeps rolling snapshots of the project in the browser and can also write them to a folder you choose (Chrome and Brave; the permission is asked again after a restart). Brave keeps the folder picker off by default: enable <code>brave://flags/#file-system-access-api</code> and relaunch. In Config, <b>Download a backup file</b> hands you the project once per change.</p>
+<h2>The player</h2>
+<p><code>player.html</code> lists songs as a page of square artwork, each playable with the real engine and no tracker around it. It is a way to share finished songs with people who do not want a tracker.</p>
+<h1>9. Keys</h1>
+<p>Every screen has a shortcut panel on the right; this is the same list, collected.</p>
+<h2>Everywhere</h2>
+<table><thead><tr><th>keys</th><th>what</th></tr></thead><tbody><tr><td>F1 F2 F3 F4</td><td>Song, Pattern, Instrument, Sample</td></tr><tr><td>F5 / F6 / F7 / F8</td><td>play from start / from cursor / the row once / stop</td></tr><tr><td>F9</td><td>follow the playing row</td></tr><tr><td>F10 / F11</td><td>Info / Config</td></tr><tr><td>Alt+B</td><td>show or hide the browser</td></tr><tr><td>Alt+Up / Alt+Down</td><td>tempo by 1 bpm (with Shift, by 10)</td></tr><tr><td>Alt+S</td><td>solo the lane</td></tr><tr><td>Ctrl+Alt+P</td><td>floating parameter panel</td></tr><tr><td>Ctrl+Alt+E</td><td>stream manager (load per lane)</td></tr><tr><td>Ctrl+Alt+M</td><td>meters (loudness, correlation, spectrum)</td></tr><tr><td>Ctrl+Alt+O</td><td>vectorscope</td></tr><tr><td>Ctrl+Alt+S</td><td>script tab</td></tr><tr><td>Shift+F1</td><td>help for the selected node</td></tr><tr><td>Ctrl+Z</td><td>undo</td></tr><tr><td>Ctrl+Alt+B</td><td>this manual</td></tr><tr><td>Ctrl+Alt+H</td><td>help for the machine under the cursor</td></tr></tbody></table>
+<h2>Pattern editor</h2>
+<table><thead><tr><th>keys</th><th>what</th></tr></thead><tbody><tr><td>Space / Ctrl+Space</td><td>write the live value and step down / for every parameter column</td></tr><tr><td>Left, Right</td><td>by whole cell (Ctrl: by character)</td></tr><tr><td>Shift+arrows</td><td>select</td></tr><tr><td>Ctrl+C X V D</td><td>copy, cut, paste, copy below</td></tr><tr><td>Ctrl+Delete / Ctrl+Insert</td><td>gobble / push down</td></tr><tr><td>Ctrl+Alt+Up, Down</td><td>rotate</td></tr><tr><td>Ctrl+I</td><td>interpolate</td></tr><tr><td>Ctrl+K</td><td>randomize</td></tr><tr><td>Shift+1</td><td>note off in every note column of the row</td></tr><tr><td>Alt+Enter</td><td>solo-edit this pattern</td></tr><tr><td>Alt+T</td><td>tint patterns</td></tr><tr><td>Alt+V</td><td>MIDI velocity on or off</td></tr></tbody></table>
+<h2>Song</h2>
+<table><thead><tr><th>keys</th><th>what</th></tr></thead><tbody><tr><td>Ctrl+B, Ctrl+E</td><td>loop start, end</td></tr><tr><td>Ctrl+1</td><td>note-off marker</td></tr><tr><td>Ctrl+G</td><td>give the placement its own copy</td></tr><tr><td>Ctrl+Enter</td><td>solo-edit the pattern under the cursor</td></tr><tr><td>Tab</td><td>pattern alone or whole song</td></tr><tr><td>G</td><td>merge the selected block</td></tr></tbody></table>
+<h2>Instrument</h2>
+<table><thead><tr><th>keys</th><th>what</th></tr></thead><tbody><tr><td>double-click, <code>/</code></td><td>add a node</td></tr><tr><td>Shift+drag</td><td>take a node out of its chain</td></tr><tr><td>Alt+drag</td><td>copy a node</td></tr><tr><td>Ctrl+X</td><td>remove the node</td></tr></tbody></table>
+<h1>10. Rules of thumb</h1>
+<p>Short things that are usually true. They come from using the machine; add your own in the margin.</p>
+<h2>Sound</h2>
+<ul><li><b>Listen first, read second.</b> If you are looking at a number to decide how something sounds, stop and listen. (Chapter 1.)</li><li><b>Check a widened mix in mono.</b> Anything that widens the stereo image (the spectral panner, chorus) can thin out when it is summed. Sum it to mono and listen; if it is still good, it is good.</li><li><b>Noise has colours.</b> The <code>tilt</code> of a noise source is in dB per octave: -6 is brown, -3 pink, 0 white, +3 blue, +6 violet. Pick by ear.</li><li><b>Gentle wins.</b> If the effect is obvious on the first listen, it is probably too much by the tenth.</li></ul>
+<h2>Rhythm</h2>
+<ul><li><b>Cut patterns where the notes start</b>, and reuse them. Several short patterns placed many times beat one long pattern per lane.</li><li><b>Vary the timing a little.</b> Some events earlier than expected, some later, one or two much later. A machine that is exactly on the grid sounds like a machine.</li><li><b>Let a kick and a hat share a column.</b> In a script a rest leaves the cell alone, so layered rhythms do not erase each other.</li></ul>
+<h2>Processor</h2>
+<ul><li><b>An LFO does not need to run every sample.</b> Set its <i>steps</i> to 8 to 24 per tick: it sounds the same and costs far less.</li><li><b>Do not polish what you cannot hear.</b> If switching a node off changes nothing you can hear, delete it.</li><li><b>Watch the footer.</b> The load line (average, worst block, late blocks) is the early warning. Ctrl+Alt+E shows which lane is the expensive one.</li></ul>
+<h2>Working</h2>
+<ul><li><b>Edit while it plays.</b> Changes are heard on the next tick. The song is the best instrument for trying things.</li><li><b>Record a knob move with Space.</b> Turn until it sounds right, press Space.</li><li><b>Save under a new name before something big.</b> The file is small, so keep versions.</li></ul>
+</body></html>

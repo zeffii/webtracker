@@ -51,6 +51,7 @@ import { sampleToWav } from './project/samplewav.js';
 import { showContextMenu } from './ui/ctxmenu.js';
 import { buildInstrument, fitTail } from './project/ptr.js';
 import { ABOUT, CHANGELOG } from './ui/about.js';
+import { createManual } from './ui/manual.js';
 import { SONGS } from './ui/songs.js';
 import { renderMarkdown } from './ui/markdown.js';
 import { TUTORIAL } from './script/tutorial.js';
@@ -1206,6 +1207,11 @@ showCodeTheme(config.get('codeTheme'));
     code.addEventListener('click', () => { const l = $('script-line'); l.value = code.textContent.trim().split('\n')[0]; l.focus(); });
   }
 }
+
+// ---- the manual ----
+const manual = createManual({ dialog: $('manual'), openButton: $('manual-open') });
+$('manual').querySelector('.mn-close').addEventListener('click', () => manual.close());
+keys.bind('Ctrl+Alt+KeyB', () => manual.toggle(), { name: 'The manual' });
 
 // ---- about ----
 {

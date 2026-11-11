@@ -1,5 +1,5 @@
 // A small markdown renderer for the built-in help texts: headings (#, ##, ###), paragraphs, bullet and numbered lists,
-// fenced code blocks, ::widget args:: lines (placeholders filled in by the page), and inline **bold**, *emphasis* and `code`. Everything is escaped first, so the text cannot add markup.
+// fenced code blocks, tables, ::widget args:: lines (placeholders filled in by the page), and inline **bold**, *emphasis* and `code`. Everything is escaped first, so the text cannot add markup.
 const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 const inline = s => esc(s)
   .replace(/`([^`]+)`/g, '<code>$1</code>')
@@ -21,6 +21,14 @@ export function renderMarkdown(text) {
     }
     const w = /^::([a-z-]+)(?:\s+([^:]*))?::\s*$/.exec(l.trim());   // ::euclid 5 8:: and friends: a placeholder the page fills in with a picture or a widget
     if (w) { out.push(`<div class="md-widget" data-widget="${esc(w[1])}" data-args="${esc((w[2] ?? '').trim())}"></div>`); i++; continue; }
+    if (l.trim().startsWith('|') && /^\s*\|?\s*:?-{3,}/.test(lines[i + 1] ?? '')) {   // a table: a header row, a --- row, then the rows
+      const cells = row => row.trim().replace(/^\||\|$/g, '').split('|').map(c => inline(c.trim()));
+      const head = cells(l); i += 2;
+      const rows = [];
+      while (i < lines.length && lines[i].trim().startsWith('|')) rows.push(cells(lines[i++]));
+      out.push(`<table><thead><tr>${head.map(c => `<th>${c}</th>`).join('')}</tr></thead><tbody>${rows.map(r => `<tr>${r.map(c => `<td>${c}</td>`).join('')}</tr>`).join('')}</tbody></table>`);
+      continue;
+    }
     const h = /^(#{1,3})\s+(.*)$/.exec(l);
     if (h) { out.push(`<h${h[1].length}>${inline(h[2])}</h${h[1].length}>`); i++; continue; }
     const list = /^(\s*)([-*]|\d+\.)\s+/.exec(l);
@@ -35,7 +43,7 @@ export function renderMarkdown(text) {
       continue;
     }
     const para = [];
-    while (i < lines.length && lines[i].trim() && !lines[i].startsWith('```') && !/^#{1,3}\s/.test(lines[i]) && !/^(\s*)([-*]|\d+\.)\s+/.test(lines[i])) para.push(lines[i++].trim());
+    while (i < lines.length && lines[i].trim() && !lines[i].startsWith('```') && !/^#{1,3}\s/.test(lines[i]) && !lines[i].trim().startsWith('|') && !/^(\s*)([-*]|\d+\.)\s+/.test(lines[i])) para.push(lines[i++].trim());
     out.push(`<p>${inline(para.join(' '))}</p>`);
   }
   return out.join('\n');

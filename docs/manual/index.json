@@ -1,0 +1,46 @@
+[
+  {
+    "file": "00-front.md",
+    "title": "Wax"
+  },
+  {
+    "file": "01-tweak-by-ear.md",
+    "title": "1. Tweak by ear"
+  },
+  {
+    "file": "02-first-sound.md",
+    "title": "2. Your first sound"
+  },
+  {
+    "file": "03-screens.md",
+    "title": "3. The four screens"
+  },
+  {
+    "file": "04-patterns.md",
+    "title": "4. Patterns"
+  },
+  {
+    "file": "05-song.md",
+    "title": "5. The song"
+  },
+  {
+    "file": "06-instruments.md",
+    "title": "6. Instruments"
+  },
+  {
+    "file": "07-samples.md",
+    "title": "7. Samples"
+  },
+  {
+    "file": "08-files.md",
+    "title": "8. Files"
+  },
+  {
+    "file": "09-keys.md",
+    "title": "9. Keys"
+  },
+  {
+    "file": "10-tips.md",
+    "title": "10. Rules of thumb"
+  }
+]
