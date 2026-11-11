@@ -596,6 +596,7 @@ if (config.get('midiOn')) midiIn.enable(true);
 
 // The help page of a node (F1 with a node selected, or the ? on its parameter window): a panel over the instrument screen.
 const nodeHelp = $('node-help');
+let nodeHelpLayer = null;   // its place on the popup stack while it shows: Escape or F1 with the focus in it closes it
 function showHelp(type) {
   const def = NODE_TYPES[type];
   if (!def) return;
@@ -603,11 +604,12 @@ function showHelp(type) {
   $('node-help-title').textContent = page.title;
   $('node-help-body').innerHTML = page.html;
   nodeHelp.hidden = false;
+  nodeHelpLayer?.release();
+  nodeHelpLayer = popups.open({ name: 'node help', element: nodeHelp, close: hideHelp, onKey: e => { if (e.key !== 'F1') return false; hideHelp(); return true; }, focusScoped: true, outside: false, doc: document });
   $('node-help-body').scrollTop = 0;
   nodeHelp.focus();
 }
-function hideHelp() { if (nodeHelp.hidden) return false; nodeHelp.hidden = true; $('patch').focus(); return true; }
-nodeHelp.addEventListener('keydown', e => { if (e.key === 'Escape' || e.key === 'F1') { e.preventDefault(); e.stopPropagation(); hideHelp(); } });
+function hideHelp() { if (nodeHelp.hidden) return false; nodeHelp.hidden = true; nodeHelpLayer?.release(); $('patch').focus(); return true; }
 $('node-help-close').addEventListener('click', hideHelp);
 const monoOf = new WeakMap();   // a stereo sample's one-channel mix, for the granular scope
 const patcher = createPatcher({
@@ -765,12 +767,15 @@ attachGrip({ grip: $('seq-grip'), key: 'webtracker.arrangementRows', get: () => 
     if (words.length && !shown) body.append(Object.assign(document.createElement('p'), { className: 'none', textContent: 'No shortcut has all of those words.' }));
   };
   find.addEventListener('input', narrow);
-  const open = id => { fill(id); box.hidden = false; button.setAttribute('aria-pressed', 'true'); };   // 
-  const close = () => { if (box.hidden) return false; box.hidden = true; button.setAttribute('aria-pressed', 'false'); return true; };
+  let layer = null;   // its place on the popup stack while it shows
+  const open = id => {
+    fill(id); box.hidden = false; button.setAttribute('aria-pressed', 'true');
+    layer?.release();
+    layer = popups.open({ name: 'shortcut list', element: box, close, outside: false, doc: document });   // Esc closes it from anywhere, before anything else sees the key
+  };
+  const close = () => { if (box.hidden) return false; box.hidden = true; layer?.release(); button.setAttribute('aria-pressed', 'false'); return true; };
   button.addEventListener('click', () => { if (box.hidden) open(tabs.active); else close(); button.blur(); });
   $('keys-float-close').addEventListener('click', close);
-  // Esc closes it before anything else sees the key
-  document.addEventListener('keydown', e => { if (e.key === 'Escape' && !box.hidden && close()) { e.preventDefault(); e.stopImmediatePropagation(); } }, true);
   // dragging by the title bar
   $('keys-float').querySelector('header').addEventListener('mousedown', e => {
     if (e.target.closest('button')) return;

@@ -2,6 +2,8 @@
 // share of the audio block it costs) and two switches. Wax runs one AudioWorklet for everything, so the lanes are parts of it. Cut stops a
 // machine and skips it (it costs nothing) until Play is pressed; Reset rebuilds it (voices, delay tails, filter state), then it carries on.
 // Nothing is timed or sent while the drawer is closed.
+import { popups } from './kit/popups.js';
+
 export function createStreams({ root, button, footer, engine, lanes, instruments, nodeTypes, sampleRate = () => 44100, skip = [], silent = [], doc = document }) {
   const el = (tag, props = {}, ...kids) => { const e = doc.createElement(tag); Object.assign(e, props); for (const k of kids) e.append(k); return e; };
   let open = false, rows = null, sig = '', cells = new Map(), smooth = new Map();
@@ -72,14 +74,16 @@ export function createStreams({ root, button, footer, engine, lanes, instruments
   }
 
   const place = () => { root.style.bottom = `${footer.offsetHeight}px`; };
+  let layer = null;   // its place on the popup stack while the drawer is open: Escape with the focus in it closes it
   function set(on) {
-    open = on; root.hidden = !on; button.setAttribute('aria-pressed', String(on)); button.classList.toggle('on', on);
+    open = on; root.hidden = !on;
+    layer?.release();
+    if (on) layer = popups.open({ name: 'stream manager', element: root, close: () => set(false), focusScoped: true, outside: false, doc }); button.setAttribute('aria-pressed', String(on)); button.classList.toggle('on', on);
     engine.watchStreams(on);
     if (on) { sig = ''; place(); } else { smooth.clear(); }
   }
   button.addEventListener('click', e => { set(!open); e.currentTarget.blur(); });
   collapse.addEventListener('click', () => set(false));
-  root.addEventListener('keydown', e => { if (e.key === 'Escape') set(false); });
   root.addEventListener('click', e => e.target.closest?.('button')?.blur());   // keys stay with the song: F5 and F8 still play and stop
   return { update, set, place, get open() { return open; }, toggle: () => set(!open) };
 }

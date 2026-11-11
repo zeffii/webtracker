@@ -4,6 +4,8 @@
 // info = { laneId, patternName, ranges: { pattern, selection, loop, lane }, barTicks, scope }
 //   each range is { start, end } in ticks (end is the first tick not played) or null when there is none; scope names
 //   the range the dialog starts on.
+import { popups } from './kit/popups.js';
+
 const pad3 = n => String(n).padStart(3, '0');
 let remembered = { solo: true, maxTail: 10, marker: true };   // what the last bounce chose, for the next dialog
 
@@ -59,8 +61,10 @@ export function askBounce(info) {
     for (const input of [from, to]) input.addEventListener('input', () => { state.scope = ''; refresh(); });
     name.addEventListener('input', () => { state.named = true; refresh(); });
 
+    let layer = null;   // its place on the popup stack: Escape cancels
     const close = answer => {
       box.remove();
+      layer?.release();
       resolve(answer);
     };
     const go = el('button', { type: 'button', className: 'bn-go', textContent: 'bounce ▸', onclick: () => {
@@ -83,12 +87,12 @@ export function askBounce(info) {
       el('div', { className: 'bn-row' }, marker, el('label', { htmlFor: 'bn-marker', textContent: 'slice marker where the range ends (so you can see the tails)' })),
       el('div', { className: 'bn-row bn-end' }, cancel, go));
     box.addEventListener('keydown', e => {
-      if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); close(null); }
-      else if (e.key === 'Enter' && e.target.tagName !== 'BUTTON' && !go.disabled) { e.preventDefault(); e.stopPropagation(); go.click(); }
+      if (e.key === 'Enter' && e.target.tagName !== 'BUTTON' && !go.disabled) { e.preventDefault(); e.stopPropagation(); go.click(); }
       else e.stopPropagation();   // no key reaches the grid underneath
     });
     refresh();
     document.body.append(box);
+    layer = popups.open({ name: 'bounce dialog', element: box, close: () => close(null), outside: false, doc: document });
     to.focus(); go.focus();
   });
 }

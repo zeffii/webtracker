@@ -1,5 +1,7 @@
 // The Backups panel: the snapshots, newest first, each with Restore and Save as file; Back up now; the backup folder.
 // `backups` is the object from project/backup.js. onRestore(text, meta) opens a snapshot; onSave(text, meta) offers it as a file.
+import { popups } from './kit/popups.js';
+
 const ago = ms => {
   const s = Math.max(0, Math.round(ms / 1000));
   if (s < 90) return `${s} s ago`;
@@ -46,12 +48,17 @@ export function createBackupPanel({ doc = document, el, backups, onRestore, onSa
     }
     el.append(list);
   }
+  let layer = null;   // its place on the popup stack while it shows: Escape with the focus in it closes it
   const api = {
-    async show() { el.hidden = false; await render(); el.focus(); },
-    hide() { el.hidden = true; },
+    async show() {
+      el.hidden = false;
+      layer?.release();
+      layer = popups.open({ name: 'backups', element: el, close: () => api.hide(), focusScoped: true, outside: false, doc });
+      await render(); el.focus();
+    },
+    hide() { el.hidden = true; layer?.release(); },
     get open() { return !el.hidden; },
     refresh() { if (!el.hidden) render(); },
   };
-  el.addEventListener('keydown', e => { if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); api.hide(); } });
   return api;
 }

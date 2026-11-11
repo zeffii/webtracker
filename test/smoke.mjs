@@ -11156,6 +11156,17 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   const k = box(); popups.open({ name: 'k', element: k, close: () => log.push('close k') });
   k.hidden = true; assert.equal(popups.handleKey(ev({ key: 'Escape' })), false, 'a hidden popup is dropped: no ghost swallows Escape'); assert.deepEqual(popups.names(), []);
   const m = box(); popups.open({ name: 'm', element: m, close: () => {} }); m.isConnected = false; assert.deepEqual(popups.names(), [], 'so is a removed one');
+  // a floating panel hears the keyboard only while the focus is inside it
+  const focus = { activeElement: null, addEventListener() {} };
+  const panel = box(), outsideEl = {}, lp = popups.open({ name: 'panel', element: panel, close: () => { log.push('close panel'); lp.release(); }, focusScoped: true, doc: focus });
+  panel.contains = t => t === panel;
+  focus.activeElement = outsideEl; assert.equal(popups.handleKey(ev({ key: 'Escape' })), false, 'focus elsewhere: Escape is not the panel\'s');
+  focus.activeElement = panel; assert.equal(popups.handleKey(ev({ key: 'Escape' })), true); assert.deepEqual(log.splice(0), ['close panel'], 'focus inside: Escape closes it');
+  const under = box(), lu = popups.open({ name: 'under', element: under, close: () => { log.push('close under'); lu.release(); } });
+  const over = box(); over.contains = t => t === over;
+  const lo = popups.open({ name: 'over', element: over, close: () => { log.push('close over'); lo.release(); }, focusScoped: true, doc: focus });
+  focus.activeElement = outsideEl; popups.handleKey(ev({ key: 'Escape' })); assert.deepEqual(log.splice(0), ['close under'], 'a panel that is not listening lets the popup below hear Escape');
+  lo.release();
   console.log('ok: ui kit popups');
 }
 

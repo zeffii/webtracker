@@ -1,14 +1,24 @@
 // The File menu at the left of the top bar: Open, New, New From Existing (a submenu), then Save, Export and Backups.
 // The items are the same buttons the bar used to carry (same ids), so what they do stays where it was; this file only opens
 // and closes the menu, opens the submenu, and moves around with the keyboard.
+import { popups } from './kit/popups.js';
+
 export function createFileMenu({ button, menu, sub, subButton, doc = document }) {
   const items = () => [...menu.querySelectorAll(':scope > [role="menuitem"], :scope > .fm-sub > [role="menuitem"]')].filter(b => !b.disabled);
   const subItems = () => [...sub.querySelectorAll('[role="menuitem"]')].filter(b => !b.disabled);
 
   const openSub = (focus = false) => { sub.hidden = false; subButton.setAttribute('aria-expanded', 'true'); if (focus) subItems()[0]?.focus(); };
   const closeSub = () => { sub.hidden = true; subButton.setAttribute('aria-expanded', 'false'); };
-  const close = () => { menu.hidden = true; button.setAttribute('aria-expanded', 'false'); closeSub(); };
-  const open = () => { menu.hidden = false; button.setAttribute('aria-expanded', 'true'); };
+  let layer = null;   // its place on the popup stack while it shows
+  const close = () => { menu.hidden = true; layer?.release(); button.setAttribute('aria-expanded', 'false'); closeSub(); };
+  // Escape: the focus goes back to the File button if it was in the menu. (A click elsewhere is the menu's own, below: a press
+  // on the File button itself has to reach the button, which toggles.)
+  const closeFromKey = () => { const hadFocus = menu.contains(doc.activeElement); close(); if (hadFocus) button.focus(); };
+  const open = () => {
+    menu.hidden = false; button.setAttribute('aria-expanded', 'true');
+    layer?.release();
+    layer = popups.open({ name: 'file menu', element: menu, close: closeFromKey, outside: false, doc });
+  };
 
   button.addEventListener('click', e => { e.stopPropagation(); if (menu.hidden) { open(); items()[0]?.focus(); } else close(); });
   doc.addEventListener('click', e => { if (!menu.hidden && !menu.contains(e.target)) close(); });
@@ -32,10 +42,8 @@ export function createFileMenu({ button, menu, sub, subButton, doc = document })
     else if (e.key === 'ArrowUp') list[(at - 1 + list.length) % list.length]?.focus();
     else if (e.key === 'ArrowRight' && e.target === subButton) openSub(true);
     else if (e.key === 'ArrowLeft' && inSub) { closeSub(); subButton.focus(); }
-    else if (e.key === 'Escape') { close(); button.focus(); }
     else return;
     e.preventDefault(); e.stopPropagation();
   });
-  doc.addEventListener('keydown', e => { if (e.key === 'Escape' && !menu.hidden) close(); });
   return { open, close };
 }

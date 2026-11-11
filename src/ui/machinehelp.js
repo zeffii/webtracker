@@ -1,6 +1,7 @@
 // The machine help panel: a small floating window beside the pattern editor that says what the columns of the cursor's
 // machine hold and what each of its commands (the Cmd column) does. It follows the cursor lane; Ctrl+Alt+H or the
 // pattern editor's right-click menu opens it. Click a command to type it into the Cmd cell under the cursor.
+import { popups } from './kit/popups.js';
 import { commandRows } from '../seq/cmdhelp.js';
 import { rangeText } from '../seq/describe.js';
 
@@ -65,7 +66,7 @@ export function createMachineHelp({ doc = document, onInsert = () => {}, onClose
   }
 
   find.addEventListener('input', render);
-  find.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Escape') { if (find.value) { find.value = ''; render(); } else api.hide(); } });
+  find.addEventListener('keydown', e => e.stopPropagation());   // typing in the find box is not a shortcut
   x.addEventListener('click', () => api.hide());
 
   try {
@@ -85,14 +86,20 @@ export function createMachineHelp({ doc = document, onInsert = () => {}, onClose
     bar.addEventListener('pointermove', move); bar.addEventListener('pointerup', up);
   });
 
+  let layer = null;   // its place on the popup stack while it shows
   const api = {
     get open() { return open; },
-    show(l, focusId = null) { lane = l; focus = focusId; open = true; box.hidden = false; render(); },
+    show(l, focusId = null) {
+      lane = l; focus = focusId; open = true; box.hidden = false; render();
+      layer?.release();
+      // Escape with the focus in the panel first clears the find box, then closes the panel
+      layer = popups.open({ name: 'machine help', element: box, close: () => api.hide(), onEscape: () => { if (!find.value) return false; find.value = ''; render(); return true; }, focusScoped: true, outside: false, doc });
+    },
     // the cursor moved to another lane: follow it
     update(l) { if (!open || l === lane) return; lane = l; focus = null; render(); },
     // the cursor is on a command cell: mark it
     point(l, id) { if (!open) return; if (l === lane && id === focus) return; lane = l; focus = id; render(); },
-    hide() { if (!open) return; open = false; box.hidden = true; onClose(); },
+    hide() { if (!open) return; open = false; box.hidden = true; layer?.release(); onClose(); },
     toggle(l) { if (open) api.hide(); else api.show(l); },
     el: box,
   };

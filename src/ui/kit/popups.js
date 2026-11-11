@@ -9,6 +9,10 @@
 //   A mouse press outside a popup's element calls its onOutside() (default: close), unless outside is false.
 //   A scroll outside it closes it, if closeOnScroll is set.
 //
+// Two kinds of popup: the ones that take over (menus, dialogs) hear the keyboard wherever the focus is, and the floating
+// panels you work beside (help, parameters) set focusScoped: they only hear it while the focus is inside them, so Escape
+// in the pattern editor never closes a panel you left open.
+//
 // const layer = popups.open({ name: 'context menu', element: menu, close, onKey, closeOnScroll: true });
 // ...and when the popup closes by itself (an item was chosen), tell the stack: layer.release().
 // (When the stack closes it, on Escape or a press outside, it takes the popup off by itself.)
@@ -25,7 +29,9 @@ export function createPopups() {
   // A layer is alive while its element is on the page and shown (a layer with no element stays until released).
   const alive = layer => !layer.element || (layer.element.isConnected !== false && !layer.element.hidden);
   const dropDead = () => { for (let i = layers.length - 1; i >= 0; i--) if (!alive(layers[i])) layers.splice(i, 1); };
-  const top = () => { dropDead(); return layers.at(-1) ?? null; };
+  // The layer the keyboard talks to: the topmost one that is listening (a focusScoped panel listens only while it holds the focus).
+  const listening = layer => !layer.focusScoped || !!layer.element?.contains(layer.doc?.activeElement ?? null);
+  const top = () => { dropDead(); return [...layers].reverse().find(listening) ?? null; };
   const remove = layer => { const i = layers.indexOf(layer); if (i >= 0) layers.splice(i, 1); };
   // Closing from the stack's side always takes the layer off too, so a popup that forgets release() cannot leave a ghost behind.
   const closeLayer = layer => { remove(layer); layer.close(); };
@@ -68,17 +74,17 @@ const consume = e => { e.preventDefault(); e.stopImmediatePropagation(); };
     doc.addEventListener('scroll', handleScroll, true);
   };
 
-  // options: { name, element, close, onKey, onEscape, outside, onOutside, closeOnScroll, doc }
-  const open = ({ name = '', element = null, close, onKey = null, onEscape = null, outside = true, onOutside = null, closeOnScroll = false, doc = null }) => {
+  // options: { name, element, close, onKey, onEscape, outside, onOutside, closeOnScroll, focusScoped, doc }
+  const open = ({ name = '', element = null, close, onKey = null, onEscape = null, outside = true, onOutside = null, closeOnScroll = false, focusScoped = false, doc = null }) => {
     if (doc) attach(doc);
-    const layer = { name, element, close, onKey, onEscape, outside, onOutside, closeOnScroll };
+    const layer = { name, element, close, onKey, onEscape, outside, onOutside, closeOnScroll, focusScoped, doc };
     layers.push(layer);
     return { release: () => remove(layer) };
   };
 
   const names = () => { dropDead(); return layers.map(l => l.name); };   // for tests and a debug view: who is open, bottom first
 
-  return { open, attach, handleKey, handlePress, handleScroll, names, get isOpen() { return top() !== null; } };
+  return { open, attach, handleKey, handlePress, handleScroll, names, get isOpen() { dropDead(); return layers.length > 0; } };
 }
 
 // The app's one stack.

@@ -52,7 +52,7 @@ See `ui-frame-layout.png`. One frame for every view; only the centre changes.
 1. Tokens: add the new ones, no visual change. (done: `themes.css`)
 2. `keys`: chords and one table of the global shortcuts, replacing the scattered
    `e.ctrlKey && e.altKey && ...` listeners in `main.js`. (done: `src/ui/kit/keys.js`)
-3. `popups` and `focus` together: one stack of popups, and the focus owner that decides who
+3. (in progress) `popups` and `focus` together: one stack of popups, and the focus owner that decides who
    gets a key (popup first, then the view, then the shortcut table). They are built
    together because the popups are the focus owner's first users; moving the ten popups
    over one at a time.
@@ -70,3 +70,17 @@ See `ui-frame-layout.png`. One frame for every view; only the centre changes.
 ## Open
 
 - none at the moment
+
+## Progress notes
+
+Step 3, popup stack (`src/ui/kit/popups.js`): on the stack now are the context menu, the machine
+menu, the curve popup, the chord palette, the File menu, Backups, machine help, node help, the
+stream manager, the shortcut list and the bounce dialog. Each was checked in a browser against
+master (same keys, same results). Two kinds of popup: the ones that take over hear Escape
+wherever the focus is; floating panels you work beside are `focusScoped` and hear it only
+while the focus is inside them.
+
+Still to move: the graph's insert menu and parameter menus, the shader slider popup, the node
+sequencer palette, the command bar, and the inline editors (rename box and friends, where Escape
+is a local "cancel the edit"). Then the focus owner proper: the active view and the shortcut table
+as the layers below the popups.
