@@ -104,3 +104,9 @@ html[data-theme="synthwave"] { --pat-hue: 285; --pat-spread: .7; --pat-ds: -5%; 
 html[data-theme]:not([data-theme="system"]) :is(button.active, #tabs button.active) { box-shadow: 0 0 8px var(--glow), inset 0 calc(-1 * var(--line-w-strong)) 0 var(--accent); }
 html[data-theme]:not([data-theme="system"]) .field { border-color: var(--line); border-radius: var(--radius); }
 html[data-theme]:not([data-theme="system"]) .field input { border: 0; background: transparent; }
+
+.cmd-list-pop { position: fixed; z-index: 60; min-width: 18rem; max-width: 36rem; max-height: 60vh; overflow-y: auto; padding: .5rem .75rem; background: var(--bg); color: var(--fg); border: var(--line-w) solid color-mix(in srgb, var(--fg) 30%, transparent); font: var(--font-ui, inherit); }
+.cmd-list-pop .cl-title { opacity: .7; padding-bottom: .3rem; }
+.cmd-list-pop .cl-row { display: grid; grid-template-columns: 5ch 1fr auto; gap: 1rem; padding: .1rem 0; }
+.cmd-list-pop .cl-hex { color: var(--accent); font-family: monospace; }
+.cmd-list-pop .cl-val { font-variant-numeric: tabular-nums; }

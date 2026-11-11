@@ -7,7 +7,8 @@ import { KINDS, encodeCell, noteSemitones, noteToken } from './cells.js';
 import { esc } from './html.js';
 import { undoTrailHtml } from './undotrail.js';
 import { SHADER } from '../instruments.js';
-import { describeColumn, describeParts } from './describe.js';
+import { describeColumn, describeParts, activeCommands } from './describe.js';
+import { showCommandList } from '../ui/cmdlistpop.js';
 import { placementAt } from './edit.js';
 import { showContextMenu } from '../ui/ctxmenu.js';
 import { showCurvePopup } from '../ui/curvepop.js';
@@ -759,6 +760,13 @@ export function createTrackerView({ showMenu = (e, items) => showContextMenu(e, 
       e.preventDefault(); draw(); return;
     }
     if (!lanes || e.altKey) return;
+    if (e.key === '?' && !e.ctrlKey && !e.metaKey && lanes[cur.lane].columns[cur.col]?.kind === 'cmd') {   // ?: the commands in effect here that are not at their defaults
+      const rows = activeCommands(lanes[cur.lane], cur.tick);
+      message = rows.length ? `${rows.length} command${rows.length === 1 ? '' : 's'} not at the default.` : 'Every command is at its default.';
+      const box = el.getBoundingClientRect?.() ?? { left: 40, top: 40 };
+      showCommandList({ rows, title: `${lanes[cur.lane].id} · commands in effect at row ${cur.tick - showLo()}`, anchor: { x: box.left + 40, y: box.top + 40 } });
+      e.preventDefault(); return;
+    }
     if (!(e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'k') && !['Control', 'Shift', 'Alt', 'Meta'].includes(e.key)) roll = null;
     if (e.ctrlKey || e.metaKey) {
       const key = e.key.toLowerCase();

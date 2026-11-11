@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['696', ['? in a Cmd column lists the commands in effect at the cursor row that are not at their defaults, with their values.']],
   ['695', ['DX7 randomise keeps the last five rolls: ◂ ▸ steps back and forward through them.']],
   ['694', ['The Sample screen has a Speed field: type a rate or step it with Left/Right (Shift 100, Ctrl 1000).']],
   ['693', ['The follow panel can pop out into a window of its own and keeps following the machine under the cursor; pop-out windows are no longer indented.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['689', ['Compact node tiles are the default now; Config, Graph: Node look brings the classic ones back.']],
   ['688', ['Compact node tiles, opt-in (Config, Graph: Node look): smaller and flatter, no labels on a lone input or output, L and R for left and right.']],
   ['687', ['The manual, first draft: ten chapters, read inside Wax (the book button in the left rail, or Ctrl+Alt+B) or printed as an A5 booklet.']],
-  ['686', ['One look for every slider: a hairline, a faint fill up to the value and one thin accent bar at the value, on parameter bars, mixer faders and all plain sliders.']],
                     ];

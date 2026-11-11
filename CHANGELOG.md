@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 696 · 2026-11-11
+
+- **`?` lists the commands in effect.** With the cursor in a Cmd column, `?` (Shift+/) opens a small list of the commands that are on at that row and not at their default, with their current values: what the column has written from the top of the song down to the cursor, less what a reset (A0–AF) has put back. Any key closes it. (Save/load commands and preset recalls are not followed.)
+
 ## 695 · 2026-11-11
 
 - **DX7 randomise keeps a history.** The voice before the first roll and the last five random voices are kept; the ◂ ▸ buttons beside *randomise* step back and forward through them (the tag shows where you are). Switching to another voice slot starts a fresh history.

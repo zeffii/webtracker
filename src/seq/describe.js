@@ -112,3 +112,36 @@ export function describeColumn(lane, tick, ci) {
   }
   return parts.join(' · ');
 }
+
+// The commands in effect at a row of a lane: what the Cmd columns have written from the start of the pattern data up to and
+// including this tick, minus what a reset command (A0 to AF) has put back since, and minus values that equal the setting's default.
+// Returns [{ id, hex, name, token, value }] by command number. Save and load commands and preset recalls are not followed.
+export function activeCommands(lane, tick) {
+  const held = new Map();   // command id -> { t, token }
+  const cols = lane.columns.map((c, i) => [c, i]).filter(([c]) => c.kind === 'cmd');
+  for (let k = 0; k <= tick; k++) {
+    for (const [c, ci] of cols) {
+      const token = lane.rows[k]?.[ci];
+      if (isBlank(token)) continue;
+      const id = parseInt(token.slice(0, 2), 16), t = c.commands.find(x => x.id === id);
+      if (!t || t.setting) continue;
+      if (t.reset) {
+        for (const bit of [1, 2, 4, 8]) {
+          if (!(t.reset & bit)) continue;
+          const slots = new Set((c.groups?.[bit] ?? []).map(g => g.slot));
+          for (const [hid, h] of held) if (slots.has(h.t.slot)) held.delete(hid);
+        }
+        continue;
+      }
+      held.set(id, { t, token, c });
+    }
+  }
+  const rows = [];
+  for (const [id, { t, token, c }] of held) {
+    const raw = parseInt(token.slice(2), 16), real = Number.isFinite(t.fixed) ? t.fixed : scale(t, 65535, raw);
+    const dflt = Object.values(c.groups ?? {}).flat().find(g => g.slot === t.slot)?.value;
+    if (Number.isFinite(dflt) && Math.abs(real - dflt) <= (t.max - t.min) * 1e-4) continue;
+    rows.push({ id, hex: id.toString(16).toUpperCase().padStart(2, '0'), name: t.name, token, value: display(t.type, spec(t), real) });
+  }
+  return rows.sort((a, b) => a.id - b.id);
+}

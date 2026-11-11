@@ -6003,6 +6003,18 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   const cmd = cols.length - 1;
   lane.rows[2][cmd] = '010000';
   assert.match(describeColumn(lane, 2, cmd), /^Command · 01: Cutoff.*· 0000 = /, 'a command names its target and value');
+  { const { activeCommands } = await import('../src/seq/describe.js');
+    assert.equal(activeCommands(lane, 1).length, 0, 'before a command nothing is in effect');
+    lane.rows[2][cmd] = '01FFFF';
+    const rows = activeCommands(lane, 4);
+    assert.equal(rows.length, 1); assert.equal(rows[0].hex, '01'); assert.match(rows[0].value, /kHz/, 'the value stays in effect below the command');
+    const g1 = cols[cmd].groups[1].map(g => g.slot), tc = cols[cmd].commands.find(t => g1.includes(t.slot) && !t.reset && !t.setting);
+    lane.rows[2][cmd] = tc.id.toString(16).padStart(2, '0').toUpperCase() + 'C000';
+    assert.ok(activeCommands(lane, 3).some(r => r.id === tc.id), 'a setting written above is in effect');
+    lane.rows[3][cmd] = 'A10000';
+    assert.ok(!activeCommands(lane, 3).some(r => r.id === tc.id), 'a reset of its group takes it out again');
+    lane.rows[3][cmd] = '.'.repeat(6);
+    lane.rows[2][cmd] = '010000'; }
 }
 
 // MOD files: parse, play the arrangement out, build the project, and play it through the modchan machine.
