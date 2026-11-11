@@ -3,6 +3,7 @@
 // light runs along a wire each time an event goes down it. The data is the song's `nodeseq` (see graphops.js); the audio thread runs it
 // (audio/nodeseq.js) and sends back what it did, which is drawn here.
 import { NS_TYPES, DOT_TYPES, insOf, parseList, parseProbs, parseChordList, compileScript, DEFAULT_SCRIPT } from './nodes.js';
+import { popups } from '../ui/kit/popups.js';
 import { ensureGraph, newGraph, addNode, connect, disconnect, removeNodes, duplicateNodes, cleanGraph, canConnect, GROUP_NAMES } from './graphops.js';
 import { chordKeyboard } from './chordbar.js';
 import { chordView, describeChord, editNote, editVolume, noteLimit, midiName } from './chordtext.js';
@@ -726,15 +727,17 @@ export function createNodeSeqEditor({ root, getSong, noteTargets = () => [], par
     input.addEventListener('input', () => { palState.at = 0; show(); });
     input.addEventListener('keydown', e => {
       e.stopPropagation();
-      if (e.key === 'Escape') { hidePalette(); canvas.focus(); }
-      else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); const n = palState.items.length; if (n) { palState.at = (palState.at + (e.key === 'ArrowDown' ? 1 : -1) + n) % n; palState.items.forEach((it, i) => it.row.classList.toggle('on', i === palState.at)); palState.items[palState.at].row.scrollIntoView?.({ block: 'nearest' }); } }
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); const n = palState.items.length; if (n) { palState.at = (palState.at + (e.key === 'ArrowDown' ? 1 : -1) + n) % n; palState.items.forEach((it, i) => it.row.classList.toggle('on', i === palState.at)); palState.items[palState.at].row.scrollIntoView?.({ block: 'nearest' }); } }
       else if (e.key === 'Enter') { e.preventDefault(); const it = palState.items[palState.at]; if (it) pick(it.k); }
     });
     const mine = palState;
     input.addEventListener('blur', () => setTimeout(() => { if (palState === mine && doc.activeElement !== input) hidePalette(); }, 120));
     show(); input.focus();
+    palLayer?.release();
+    palLayer = popups.open({ name: 'node palette', element: palette, close: () => { hidePalette(); canvas.focus(); }, focusScoped: true, outside: false, doc });   // Escape with the focus in it closes it
   }
-  function hidePalette() { palette.hidden = true; palState = null; }
+  let palLayer = null;   // the palette's place on the popup stack
+  function hidePalette() { palette.hidden = true; palState = null; palLayer?.release(); }
   palBtn.addEventListener('click', () => { const r = canvas.getBoundingClientRect(); openPalette(40, 20); void r; });
 
   // ---- keys
