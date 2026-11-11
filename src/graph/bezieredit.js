@@ -1,4 +1,5 @@
 import { SHAPES, cleanSpline, walk, autoHandles, splitSegment, nearestOnSpline } from '../audio/nodes/bezier.js';
+import { forPage } from './spaceui.js';
 
 // One envelope drawn as a Bezier spline, edited the way the glyph editor edits a path: square anchors, round handles on thin arms,
 // the chosen anchor in pink, a ring on the first anchor, the area under the curve lightly filled. The drawing is a function of
@@ -97,10 +98,11 @@ export function createBezierEditor({ doc = document, title, color, points, fallb
     ctx.textAlign = 'left';
     // the curve, and the area under it
     const line = walk(spline);
-    ctx.globalAlpha = 0.1; ctx.fillStyle = color; ctx.beginPath(); ctx.moveTo(X(0), Y(0));
+    const tint = forPage(color, ink);
+    ctx.globalAlpha = 0.1; ctx.fillStyle = tint; ctx.beginPath(); ctx.moveTo(X(0), Y(0));
     for (const [x, y] of line) ctx.lineTo(X(x), Y(y));
     ctx.lineTo(X(1), Y(0)); ctx.closePath(); ctx.fill();
-    ctx.globalAlpha = 1; ctx.strokeStyle = color; ctx.lineWidth = hover?.kind === 'curve' ? 2.4 : 1.6; ctx.beginPath();
+    ctx.globalAlpha = 1; ctx.strokeStyle = tint; ctx.lineWidth = hover?.kind === 'curve' ? 2.4 : 1.6; ctx.beginPath();
     line.forEach(([x, y], k) => { if (k) ctx.lineTo(X(x), Y(y)); else ctx.moveTo(X(x), Y(y)); });
     ctx.stroke();
     // the handles: a thin arm and a round end

@@ -79,6 +79,16 @@ export const PAGES = {
     best: ['Track on, ratio 1 doubles the overtones; 0.5 and 2 give octaves; 1.5 a fifth. Add a few Hz of offset for a bell.', 'Track off is the classic ring modulator with a fixed carrier: low carriers (20 to 100 Hz) give a growl, high ones a metallic shimmer.', 'depth under 1 blends the carrier in as a tremolo.'],
     limits: ['The pitch is found by counting zero crossings: good for a single voice, poor on chords and noise (it falls back to freq).', 'The carrier slides to a new pitch over a few milliseconds.'],
   },
+  pulsar: {
+    summary: 'Pulsar synthesis: a short burst of waveform, the pulsaret, fired over and over. The note sets how often it fires and the formant sets how fast the burst plays, so pitch and colour are two separate controls. A drawn window shapes each burst.',
+    best: ['Raise the formant against a fixed note for a vowel-like sweep; draw the sweep so each note opens and settles.', 'A formant below the pitch leaves silence between bursts (a clicky, rhythmic tone); above it the bursts fill the period (a thick, formant-rich tone).', 'mask and jitter break the train up into glitches; scatter spreads the bursts across the stereo field.', 'Draw a sharp-cornered window for a harsher sound, a soft hump for a smooth one.'],
+    limits: ['Monophonic: the last note wins (put it in front of voices for chords).', 'Saw, square and noise bursts are not band-limited, so they alias at high formants.'],
+  },
+  pulsetrain: {
+    summary: 'The pulsar oscillator on its own, for building patches by hand: feed its fm and form inputs from envelopes or LFOs, or run it through a filter.',
+    best: ['Sweep the form input with an LFO for moving vowels.', 'Use it as a modulator: low pitch, high formant, with mask for rhythmic gating.'],
+    limits: ['Silent until the first note, like osc.'],
+  },
   sympathy: {
     summary: 'A set of tuned strings that ring when the sound has a partial of their pitch, like the undamped strings of a piano or a sitar. Choose a chord, or let the strings follow the notes being played.',
     best: ['Chord mode: pick a root and chord, then play things in that key; the strings answer.', 'follow notes: the strings are tuned to what the instrument plays (the note, its octave, its twelfth ...), so it works with any melody. Put it after the voices.', 'ringtime 2 to 4 s is a piano; 8 s is a drone. damp makes the ring warmer. A little detune makes it shimmer.', 'mix 0.3 to 0.6 and it is a halo; higher and the strings become the sound.'],

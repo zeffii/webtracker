@@ -1,5 +1,6 @@
 // How a parameter's value is shown in real units: "200 ms", "1.2 kHz", "+7 st", "triangle". A unit is looked up by
 // node type and parameter name, then by the name alone; a parameter with named choices shows the name instead.
+import { WAVES as PULSARET_WAVES } from '../audio/nodes/pulsarcore.js';
 import { ALGORITHMS } from '../audio/nodes/fmsynth.js';
 import { VOICINGS as AMP_VOICINGS, CABS as AMP_CABS } from '../audio/nodes/amp.js';
 import { MODES as ARP_MODES, RATE_NAMES as ARP_RATES, RETRIGGER as ARP_RETRIG } from '../audio/nodes/arp.js';
@@ -61,6 +62,8 @@ const TYPE_UNIT = {
   drumsynth: { startPitch: 'Hz', endPitch: 'Hz', pitchMul: 'x', patk: 'ms', pdec: 'ms', prel: 'ms', attack: 'ms', decay: 'ms', release: 'ms', drive: '%', noise: '%', noiseTone: 'Hz', natk: 'ms', ndec: 'ms', nrel: 'ms', click: '%', clickLen: 'ms', clickTone: 'Hz', clickTail: 'ms', body: '%' },
   woodblock: { tone: 'Hz', damping: 'ms', loss: '%', bend: 'st', attack: 'ms', decay: 'ms', release: 'ms', patk: 'ms', pdec: 'ms', prel: 'ms' },
   granular: { size: 'ms', pitchRand: 'ct', spread: '%', attack: 'ms', decay: 'ms', release: 'ms' },
+  pulsar: { formant: 'Hz', track: '%', tune: 'st', sweep: 'oct', sweepms: 'ms', mask: '%', jitter: '%', scatter: '%', glide: 'ms', atk: 'ms', dec: 'ms', sus: '%', rel: 'ms', vel: '%', level: '' },
+  pulsetrain: { freq: 'Hz', tune: 'st', formant: 'Hz', mask: '%', jitter: '%', scatter: '%', level: '' },
   subsynth: { slide: 'ticks', spread: 'ct', width: '%' },
   fourpole: { transpose: 'st', detune: 'ct', atk: 'ms', dec: 'ms', rel: 'ms', atk2: 'ms', dec2: 'ms', rel2: 'ms', inertia: 'ms', glide: 'ms', vibrate: 'Hz', tuning: 'Hz' },
   oberheim: { vib: 'ct', sweep: 'st' },
@@ -127,6 +130,8 @@ const NAMES = {
     route: ['1>2>3>4', '1+2>3>4', '1>2>3+4', '1>2+3>4', '1>2+3+4', '1+2>3+4', '1+2+3>4', '1+2+3+4'],
     limit: ['22050 Hz', '12000 Hz', '6000 Hz', '3000 Hz', '1500 Hz', '750 Hz', '325 Hz', 'note', 'note x2', 'note x3', 'note x4', 'note /2', 'note /3', 'note /4'],
   },
+  pulsar: { wave: PULSARET_WAVES },
+  pulsetrain: { wave: PULSARET_WAVES, track: ONOFF },
   subsynth: { wave1: ['saw', 'square', 'triangle', 'sine'], wave2: ['saw', 'square', 'triangle', 'sine'] },
   oberheim: { wave1: ['saw', 'pulse', 'triangle'], wave2: ['saw', 'pulse', 'triangle'], sync: ONOFF },
   wavetable: { source: ['table', 'pair'], snap: ONOFF },

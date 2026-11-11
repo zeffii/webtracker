@@ -2556,6 +2556,39 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   };
   const hz = n => 440 * Math.pow(2, (n - 69) / 12);
 
+  // ---- pulsar synthesis ----
+  {
+    const pulse = (type, values, opts) => play(type, values, { secs: 0.5, ...opts });
+    const base = { atk: 0.1, sus: 1, level: 1, formant: 2000, track: 0, sweep: 0, scatter: 0, mask: 0, jitter: 0 };
+    const a = pulse('pulsar', base);
+    assert.ok(a.L.every(Number.isFinite) && pk(a.L) > 0.05 && pk(a.L) < 3, `pulsar level ${pk(a.L)}`);
+    assert.ok(a.L.every((v, i) => v === a.R[i]), 'scatter 0 should be mono');
+    // the pitch is the rate of the pulsarets: at 2 kHz formant a note of 110 Hz still has its fundamental
+    const f0 = mag(a.L, hz(57), 8000), off = mag(a.L, hz(57) * 1.5, 8000);
+    assert.ok(f0 > 3 * off, `fundamental ${f0} vs between ${off}`);
+    // a duty under 1 leaves silence: a low note with a high formant has near-zero stretches
+    const dead = a.L.slice(8000, 8000 + 300).filter(v => Math.abs(v) < 1e-6).length;
+    assert.ok(dead > 20, 'a pulsaret shorter than its period should leave silence');
+    // masking drops pulsarets; scatter makes it stereo
+    const half = pulse('pulsar', { ...base, mask: 0.5 }), full = rms(a.L, 4000), masked = rms(half.L, 4000);
+    assert.ok(masked < 0.85 * full && masked > 0.3 * full, `mask 0.5 should thin the train (${masked} vs ${full})`);
+    const sc = pulse('pulsar', { ...base, scatter: 1 });
+    assert.ok(rms(sc.L.map((v, i) => v - sc.R[i]), 4000) > 0.1 * rms(sc.L, 4000), 'scatter should make it stereo');
+    // the formant is the colour: a higher one is brighter
+    const dark = pulse('pulsar', { ...base, formant: 500 }), bright = pulse('pulsar', { ...base, formant: 4000 });
+    assert.ok(brightness(bright.L) > 1.5 * brightness(dark.L), 'a higher formant should be brighter');
+    // a drawn window reaches the node as data and by message
+    const flat = [{ x: 0, y: 1, l: null, r: [0, 0] }, { x: 1, y: 1, l: [0, 0], r: null }];
+    const drawn = pulse('pulsar', base, { data: { env: { window: flat } } });
+    assert.ok(rms(drawn.L, 4000) > rms(a.L, 4000), 'a flat window should be louder than a hump');
+    const sent = pulse('pulsar', base, { events: [[0, n => n.message({ type: 'env', slot: 'window', points: flat })]] });
+    assert.ok(Math.abs(rms(sent.L, 4000) / rms(drawn.L, 4000) - 1) < 0.05, 'a window sent by message should match one given as data');
+    // the building block follows the note and is silent before one
+    const tr = pulse('pulsetrain', { formant: 2000, scatter: 0 }, { note: 69 });
+    assert.ok(mag(tr.L, 440, 8000) > 3 * mag(tr.L, 660, 8000), 'pulsetrain should sound at the note');
+    console.log('ok: pulsar synthesis');
+  }
+
   // ---- subsynth ----
   const pure = { wave1: 3, osc2: 0, cutoff: 20000, res: 0, drive: 0, fenv: 0, keytrack: 0, atk: 0.1, sus: 1, level: 1 };
   const silent = makeSynth('subsynth', {}), sl = new Float32Array(128), sr_ = new Float32Array(128);

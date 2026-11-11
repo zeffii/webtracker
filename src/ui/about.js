@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['706', ['Pulsar synthesis: a Pulsar synth and a Pulse train source, with a drawn window for each burst and a drawn formant sweep. Accent colours darken on light themes.']],
   ['705', ['The scope eye sits right beside the node name, level with its lowercase letters.']],
   ['704', ['The machine list in the browser is back to the small monospace font.']],
   ['703', ['The picture window has Picture and Parameters tabs: one node\'s sliders, steppers through nodes and machines, and a cropped graph map.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['699', ['Sample screen: click the waveform to place the playhead; Ctrl+C / Ctrl+X / Ctrl+V copy, cut and paste at it (Ctrl+Shift+V pastes over), also between samples.']],
   ['698', ['Sympathetic strings pan by distance from the played note (subtle by default); parameter ports hang as dots under a node tile; port tips appear after half a second.']],
   ['697', ['Envelope editors can show time in log mode (button under the drawing): the transient gets most of the room.']],
-  ['696', ['? in a Cmd column lists the commands in effect at the cursor row that are not at their defaults, with their values.']],
                     ];

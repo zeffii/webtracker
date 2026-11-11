@@ -2,6 +2,12 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 706 · 2026-11-11
+
+- **Pulsar synthesis.** A new **Pulsar** synth (Sources > Synths) fires a short burst of waveform, the pulsaret, at the note's pitch while a separate *formant* sets how fast each burst plays, so pitch and colour are independent. Waves: sine, half sine, triangle, saw, square, noise. The shape of every burst is a **drawn Bezier window**, and a second drawing sweeps the formant after each note starts. *mask* drops pulsarets at random, *jitter* moves their times, *scatter* throws each one to a random place in the stereo field. The panel shows the pulse train as it will sound (with the masked bursts faint), the drawings under it.
+- **Pulse train**, the same oscillator as a building block (Sources > Basic): `fm` and `form` inputs in octaves, stereo out, with the same window drawing.
+- **Drawn envelopes and the oscillator's wave** darken their accent colour on light themes, so the yellow no longer washes out on bright.
+
 ## 705 · 2026-11-11
 
 - **The scope eye sits right beside the node name.** It was placed by a 10 px letter width and baseline while the name is 11 px, so it floated too far away and too low; it is now measured from the name's own font, with its cornea level with the middle of the lowercase letters.

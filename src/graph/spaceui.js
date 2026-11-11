@@ -33,4 +33,10 @@ export const button = (doc, label, title, onClick) => {
   const b = doc.createElement('button'); b.type = 'button'; b.textContent = label; b.title = title; b.className = 'sp-btn';
   b.addEventListener('click', onClick); return b;
 };
+// A bright accent colour is hard to see on a light page, so on one (dark text, read from `ink`) an hsl() colour is darkened.
+export function forPage(color, ink) {
+  const rgb = /rgba?\(\s*(\d+)[ ,]+(\d+)[ ,]+(\d+)/.exec(ink ?? '');
+  if (!rgb || (0.299 * rgb[1] + 0.587 * rgb[2] + 0.114 * rgb[3]) / 255 > 0.5) return color;
+  return color.replace(/hsl\((\d+)\s+(\d+)%\s+(\d+)%\)/, (_, h, s, l) => `hsl(${h} ${Math.min(100, +s + 10)}% ${Math.round(l * 0.62)}%)`);
+}
 export const clamp = (v, a, b) => Math.max(a, Math.min(b, v));

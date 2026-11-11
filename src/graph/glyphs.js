@@ -340,6 +340,12 @@ export const GLYPHS = {
     line(ctx, [[x(0), y(0.08)], [x(0.15), y(0.08)], [x(0.15), y(0.45)], [x(0.7), y(0.45)], [x(0.7), y(0.08)], [x(1), y(0.08)]]);
     line(ctx, [[x(0.15), y(0.55)], [x(0.15), y(0.95)]]); line(ctx, [[x(0.1), y(0.85)], [x(0.15), y(0.95)], [x(0.2), y(0.85)]]);
   },
+  pulsar: (ctx, cx, cy, w, h) => {   // short bursts, each under its own hump, with silence between
+    for (let b = 0; b < 3; b++) {
+      const x0 = cx - w / 2 + (b + 0.1) * w / 3, bw = w / 3 * 0.55;
+      curve(ctx, x0 + bw / 2, cy, bw, h * 0.8, t => Math.sin(t * Math.PI * 4) * Math.sin(t * Math.PI), 20);
+    }
+  },
   subsynth: (ctx, cx, cy, w, h) => {   // a saw, the raw material the filter carves
     const x = f => cx - w / 2 + f * w, y = f => cy + h / 2 - f * h;
     line(ctx, [[x(0), y(0.1)], [x(0.3), y(0.95)], [x(0.3), y(0.1)], [x(0.6), y(0.95)], [x(0.6), y(0.1)], [x(1), y(0.95)]]);

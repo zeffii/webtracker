@@ -22,6 +22,7 @@ import { createCanyonView } from './canyonview.js';
 import { createDrumView } from './drumview.js';
 import { createDrum2View } from './drum2view.js';
 import { createHat2View } from './hat2view.js';
+import { createPulsarView } from './pulsarview.js';
 import { createKaleidoscopeView } from './kaleidoscopeview.js';
 import { createReflectView } from './reflectview.js';
 import { createHeadView } from './headview.js';
@@ -203,6 +204,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
   let spaceView = null;     // the panel of a room or head effect (reflect, headpan, haas, ringmod, sympathy)
   let kalView = null;       // the spectrum in, the spectrum out and the band of a kaleidoscope
   let hat2View = null;      // the two drawn volumes of Hi-hat 2
+  let pulsarView = null;    // the pulse train and the drawings of the pulsar nodes
   let drum2View = null;     // the three drawn envelopes of drum synth 2 and the hit they make
   let drumView = null;      // the envelopes, the click and the composed root note of a drum synth, redrawn when its parameters move
   let canyonView = null;    // the echoes of a Prisma Canyon against the song's ticks, redrawn when its parameters move
@@ -370,6 +372,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
         if (type.editor === 'drumsynth2') drum2View?.refresh();
         if (type.editor === 'env2') env2Editor?.refresh();
         if (type.editor === 'hat2') hat2View?.refresh();
+        if (type.editor === 'pulsar' || type.editor === 'pulsetrain') pulsarView?.refresh();
         if (type.editor === 'kaleidoscope') kalView?.refresh();
         spaceView?.refresh();
         if (type.editor === 'cardinal') cardinalView?.refresh();
@@ -864,6 +867,18 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
         },
       });
       items.splice(1, 0, hat2View.el);
+    }
+    pulsarView = null;
+    if (type.editor === 'pulsar' || type.editor === 'pulsetrain') {   // the pulse train, the window over each pulsaret and (the synth) the formant sweep
+      const param = name => readLive(instId, node.id, name) ?? node.params?.[name] ?? type.params.find(p => p.name === name)?.def ?? 0;
+      pulsarView = createPulsarView({
+        doc, getParam: param, env: node.data?.env ?? {}, sweep: type.editor === 'pulsar',
+        onChange: (slot, points) => {
+          node.data = { ...node.data, env: { ...node.data?.env, [slot]: points } };
+          onData(instId, node.id, { type: 'env', slot, points });
+        },
+      });
+      items.splice(1, 0, pulsarView.el);
     }
     drumView = null;
     if (type.editor === 'drumsynth') {   // the envelopes, the click and the composed note, drawn from the parameters and the click sample

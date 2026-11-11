@@ -1,10 +1,11 @@
+import { forPage } from './spaceui.js';
 import { WAVE_POINTS, WAVES, normalizeWave } from '../audio/nodes/waves.js';
 
 // The oscillator's drawn wave: one cycle, drawn by dragging across the panel, kept as WAVE_POINTS values from -1 to 1.
 // A thin line with dots, sitting straight on the page. It is only heard when the oscillator's `wave` is 8 (drawn), so the
 // drawing is dimmed otherwise. How the drawing is made may change later; this is the one place that knows.
 const W = 320, H = 120, PAD = 8, DRAWN = 8;
-const ACCENT = 'hsl(35 80% 55%)';
+const ACCENT = 'hsl(35 80% 55%)';   // (darkened on a light page: forPage)
 
 export function createOscWaveEditor({ doc = document, points, getWave, onChange }) {
   const el = (tag, props = {}, ...kids) => {
@@ -29,6 +30,7 @@ export function createOscWaveEditor({ doc = document, points, getWave, onChange 
     const ink = typeof getComputedStyle === 'function' ? getComputedStyle(canvas).color : '#888';
     const live = getWave?.() === DRAWN;
     ctx.clearRect(0, 0, W, H);
+    const accent = forPage(ACCENT, ink);
     ctx.lineWidth = 1; ctx.strokeStyle = ink; ctx.fillStyle = ink;
     ctx.globalAlpha = 0.22;   // the centre line, the peaks and the quarter marks
     ctx.beginPath();
@@ -39,11 +41,11 @@ export function createOscWaveEditor({ doc = document, points, getWave, onChange 
     ctx.beginPath(); ctx.moveTo(PAD, yOf(1)); ctx.lineTo(W - PAD, yOf(1)); ctx.moveTo(PAD, yOf(-1)); ctx.lineTo(W - PAD, yOf(-1)); ctx.stroke();
     ctx.setLineDash([]);
     ctx.globalAlpha = live ? 1 : 0.4;
-    ctx.strokeStyle = ACCENT; ctx.lineWidth = 1.5; ctx.beginPath();
+    ctx.strokeStyle = accent; ctx.lineWidth = 1.5; ctx.beginPath();
     wave.forEach((v, i) => { if (i) ctx.lineTo(xOf(i), yOf(v)); else ctx.moveTo(xOf(i), yOf(v)); });
     ctx.lineTo(xOf(WAVE_POINTS), yOf(wave[0]));   // the cycle closes on its first point
     ctx.stroke();
-    ctx.fillStyle = ACCENT;
+    ctx.fillStyle = accent;
     for (let i = 0; i < WAVE_POINTS; i += 8) { ctx.beginPath(); ctx.arc(xOf(i), yOf(wave[i]), 2, 0, 2 * Math.PI); ctx.fill(); }
     if (hover !== null) { ctx.globalAlpha = 1; ctx.beginPath(); ctx.arc(xOf(hover), yOf(wave[hover]), 3.5, 0, 2 * Math.PI); ctx.fill(); }
     ctx.globalAlpha = 0.6; ctx.fillStyle = ink; ctx.font = '10px ui-monospace, Consolas, monospace'; ctx.textBaseline = 'top';
