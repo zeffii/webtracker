@@ -1929,7 +1929,7 @@ const openRoll = () => {
   for (const [k, v] of Object.entries(document.documentElement.dataset)) w.document.documentElement.dataset[k] = v;
   w.document.head.append(Object.assign(w.document.createElement('style'), { textContent: rollStyle }));
   w.document.body.replaceChildren();
-  const roll = createPatternRoll({ win: w, host: w.document.body, playing: () => (Atomics.load(engine.transport, 1) === 1 ? Atomics.load(engine.transport, 0) : -1), follow: () => config.get('follow'), volume: config.get('rollVolume'), onVolume: v => config.set('rollVolume', v), target: () => (project?.lanes?.[view.lane] ? { lane: project.lanes[view.lane], li: view.lane, tick: view.tick } : null),
+  const roll = createPatternRoll({ win: w, host: w.document.body, playing: () => (Atomics.load(engine.transport, 1) === 1 ? Atomics.load(engine.transport, 0) : -1), follow: () => config.get('follow'), editing: config.get('rollEdit'), onEditing: v => config.set('rollEdit', v), volume: config.get('rollVolume'), onVolume: v => config.set('rollVolume', v), target: () => (project?.lanes?.[view.lane] ? { lane: project.lanes[view.lane], li: view.lane, tick: view.tick } : null),
     edit: (li, items, label, key) => { const done = project.editor.setCells(li, items, label, key); if (done) { view.draw(); seqView.draw(); } return done; },
     onNote: (instrument, midi, on) => { if (!started || !config.get('notePreview')) return; if (on) engine.noteOn(instrument, midi, 1); else engine.noteOff(instrument, midi); },
     noteLen: () => config.get('rollNoteRows'), onNoteLen: v => config.set('rollNoteRows', v),

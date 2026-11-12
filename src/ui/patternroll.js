@@ -5,7 +5,8 @@
 //   click on empty space   a new note (its length is the "New note" setting; drag down to stretch it as you click)
 //   drag a note            move it in time and pitch (the bottom edge of a note changes its length instead)
 //   drag a velocity dot    change the velocity       right-click or Delete   remove the note       Ctrl+Z / Ctrl+Y   undo / redo
-// Every change is written into the pattern's cells (see rollops.js) through edit(), so it is the pattern editor's own undo.
+// All of that happens only while the Edit switch in the top bar is on; with it off the roll only shows and scrolls, and nothing
+// can change. Every change is written into the pattern's cells (see rollops.js) through edit(), so it is the pattern editor's own undo.
 //
 // createPatternRoll({ win, host, target }): `win` is the window it lives in, `host` the element it fills, and target() returns
 // { lane, li, tick } (the lane object, its number and the tick under the cursor) or null. playing() returns the playing tick, or -1 when stopped; the
@@ -18,7 +19,7 @@ const hue = k => (k * 67 + 200) % 360;
 const GUT = 34, CHORD = 58, STALKS = 64, MAP = 34, RH = 16;
 
 export function createPatternRoll({ win, host, target, playing = () => -1, follow: followPlay = () => true, volume = true, onVolume,
-  edit = () => false, onNote = null, noteLen = () => 4, onNoteLen = null, onUndo = null, onPlay = null }) {
+  editing = false, onEditing = null, edit = () => false, onNote = null, noteLen = () => 4, onNoteLen = null, onUndo = null, onPlay = null }) {
   const doc = win.document;
   const make = (tag, text, cls) => { const e = doc.createElement(tag); if (text !== undefined) e.textContent = text; if (cls) e.className = cls; return e; };
   const bar = make('div', undefined, 'pr-bar'), title = make('span', 'No pattern', 'pr-title');
@@ -27,13 +28,19 @@ export function createPatternRoll({ win, host, target, playing = () => -1, follo
   const lenBox = make('input'); lenBox.type = 'number'; lenBox.min = 1; lenBox.max = 64; lenBox.value = noteLen(); lenBox.className = 'pr-len';
   const lenLab = make('label', undefined, 'pr-vol'); lenLab.title = 'How many rows a new note lasts'; lenLab.append(doc.createTextNode('New note '), lenBox, doc.createTextNode(' rows'));
   lenBox.addEventListener('change', () => { const v = Math.max(1, Math.min(64, Math.round(Number(lenBox.value)) || 4)); lenBox.value = v; onNoteLen?.(v); });
-  bar.append(title, lenLab, lab);
+  const editBox = make('input'); editBox.type = 'checkbox'; editBox.checked = editing;
+  const editLab = make('label', undefined, 'pr-vol'); editLab.title = 'Edit mode: while it is off, nothing you do in the roll changes the pattern'; editLab.append(editBox, doc.createTextNode(' Edit'));
+  const syncEdit = () => { lenBox.disabled = !editBox.checked; lenLab.style.opacity = editBox.checked ? 1 : .45; canvas.style.cursor = ''; if (!editBox.checked) { drag = null; sel = null; } };
+  editBox.addEventListener('change', () => { syncEdit(); onEditing?.(editBox.checked); });
+  bar.append(title, editLab, lenLab, lab);
   const canvas = make('canvas', undefined, 'pr-canvas');
   host.append(bar, canvas);
   const g = canvas.getContext('2d');
-  let top = 0, follow = -1, data = null, size = { w: 0, h: 0 }, dragging = false, rows = 0;
   let geo = null, hits = [], dots = [], sel = null, drag = null, serial = 0, hearing = null;
+  let top = 0, follow = -1, data = null, size = { w: 0, h: 0 }, dragging = false, rows = 0;
+  
   box.addEventListener('change', () => { onVolume?.(box.checked); });
+  syncEdit();
 
   const css = name => win.getComputedStyle(doc.documentElement).getPropertyValue(name).trim();
   const colors = () => ({ bg: css('--bg') || '#14171a', fg: css('--fg') || '#cfe3e7', accent: css('--accent') || '#4a8fe0' });
@@ -186,7 +193,7 @@ export function createPatternRoll({ win, host, target, playing = () => -1, follo
     const { x, y } = local(e);
     if (e.button !== 0) return;
     if (x >= size.w - MAP) { dragging = true; canvas.setPointerCapture(e.pointerId); toMap(e); return; }
-    if (!data || !geo) return;
+    if (!data || !geo || !editBox.checked) return;
     const key = `roll:${++serial}`;
     const dot = box.checked ? dotAt(x, y) : null;
     if (dot) { sel = { col: dot.n.col, row: dot.n.row }; drag = { mode: 'vel', n: dot.n, key }; canvas.setPointerCapture(e.pointerId); return; }
@@ -207,6 +214,7 @@ export function createPatternRoll({ win, host, target, playing = () => -1, follo
     const { x, y } = local(e);
     if (dragging) { toMap(e); return; }
     if (!drag) {
+      if (!editBox.checked) { canvas.style.cursor = ''; return; }
       const over = geo && data && x < size.w - MAP ? noteAt(x, y) : null;
       canvas.style.cursor = (box.checked && dotAt(x, y)) ? 'ew-resize' : over ? (y > over.y + over.h - 6 ? 'ns-resize' : 'grab') : 'crosshair';
       return;
@@ -229,6 +237,7 @@ export function createPatternRoll({ win, host, target, playing = () => -1, follo
   canvas.addEventListener('pointerup', release);
   canvas.addEventListener('pointercancel', release);
   canvas.addEventListener('contextmenu', e => {
+    if (!editBox.checked) return;
     e.preventDefault();
     const { x, y } = local(e), hit = noteAt(x, y);
     if (hit) { removeNote(hit.n); sel = null; draw(); }
@@ -236,6 +245,7 @@ export function createPatternRoll({ win, host, target, playing = () => -1, follo
   doc.addEventListener('keydown', e => {
     if (e.target?.tagName === 'INPUT' && e.target.type !== 'checkbox') return;
     const key = e.key.toLowerCase();
+    if (!editBox.checked) { if (key === ' ' && onPlay) { e.preventDefault(); onPlay(); } return; }
     if ((e.ctrlKey || e.metaKey) && (key === 'z' || key === 'y')) { e.preventDefault(); onUndo?.(key === 'y' || e.shiftKey); draw(); }
     else if ((key === 'delete' || key === 'backspace') && sel && data) {
       e.preventDefault();
@@ -250,7 +260,7 @@ export function createPatternRoll({ win, host, target, playing = () => -1, follo
 
 export const rollStyle = `html,body{margin:0;padding:0;height:100%;overflow:hidden;background:var(--bg,#14171a);color:var(--fg,#cfe3e7)}
 body{display:flex!important;flex-direction:column;width:100%}
-.pr-bar{flex:none;display:flex;align-items:center;justify-content:space-between;gap:.5rem;padding:4px 8px;font:12px system-ui,sans-serif;border-bottom:1px solid rgba(128,128,128,.35)}
+.pr-bar{flex:none;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:.5rem;padding:4px 8px;font:12px system-ui,sans-serif;border-bottom:1px solid rgba(128,128,128,.35)}
 .pr-title{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .pr-vol{flex:none;cursor:pointer;user-select:none}
 .pr-len{width:3.2em;font:inherit;background:transparent;color:inherit;border:1px solid rgba(128,128,128,.5);border-radius:3px}

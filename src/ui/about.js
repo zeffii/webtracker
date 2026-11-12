@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['720', ['The pattern roll has an Edit switch (off by default): with it off, nothing you do in the roll changes the pattern.']],
   ['719', ['The pattern roll edits notes: click to add (length set in the roll\'s bar), drag to move or stretch, drag a velocity dot, right-click or Delete to remove, Ctrl+Z to undo. Everything is written into the pattern\'s own cells.']],
   ['718', ['The pattern roll shows the playhead: a green line on the playing row, scrolling with it when Follow mode is on.']],
   ['717', ['A pattern roll window: the notes of the pattern under the cursor as a piano roll turned on its side (rows run down like the tracker), with chord names, an optional velocity lane and a minimap. Open it from Pattern view options.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['713', ['The mixer buttons are fully opaque.']],
   ['712', ['Mixer channels are about half as wide, with the buttons stacked in one column.']],
   ['711', ['A new mixer look: a dB scale with ticks, a level well that turns red toward the top and a clip dot; the fader is now in dB.']],
-  ['710', ['The mixer dock sits beside the browser panel: dragging it up no longer shortens the browser.']],
                     ];
