@@ -7,7 +7,14 @@
 // Test gains are never saved, and are dropped when the project is loaded again.
 import { dragSlider } from './kit/slider.js';
 
-const GAIN_MAX = 1.5, GAIN_DEFAULT = 0.8;
+const GAIN_DEFAULT = 0.8;
+// The fader and the level share one scale in dB: DB_MIN at the bottom, DB_MAX at the top (nothing at all is the very bottom).
+const DB_MIN = -30, DB_MAX = 6;
+const MAJOR_DB = [6, 0, -6, -12, -24], MINOR_DB = [3, -3, -9, -18];   // numbered marks, and the short ones between
+const posOfGain = g => (g < 0.0316 ? 0 : Math.max(0, Math.min(1, (20 * Math.log10(g) - DB_MIN) / (DB_MAX - DB_MIN))));   // 0 to 1 up the track
+const gainAtPos = p => (p < 0.01 ? 0 : 10 ** ((DB_MIN + p * (DB_MAX - DB_MIN)) / 20));
+const posOfDb = db => (db - DB_MIN) / (DB_MAX - DB_MIN);
+const percent = p => `${p * 100}%`;
 
 const dbText = g => (g < 0.001 ? '-inf' : `${(20 * Math.log10(g)).toFixed(1)}`);
 
@@ -30,11 +37,32 @@ export function createMixer({ el, lanes, instruments, setParam, hear, solo, sile
     return b;
   }
 
+  // The marks of the scale as empty elements placed up their parent: short ones for the in-between values, a longer one for the numbered.
+  function tickMarks(tag, className = 'tk') {
+    return [...MAJOR_DB, ...MINOR_DB].map(db => {
+      const mark = document.createElement(tag);
+      mark.className = `${className}${MAJOR_DB.includes(db) ? ' major' : ''}${db === 0 ? ' zero' : ''}`; mark.style.bottom = percent(posOfDb(db));
+      return mark;
+    });
+  }
+
+  // The scale down the left of the mixer: the numbered values, level with the marks on every strip.
+  function makeScale() {
+    const box = document.createElement('div'), name = document.createElement('div'), row = document.createElement('div'), labels = document.createElement('div');
+    box.className = 'mx-strip mx-scale'; name.className = 'mx-name'; name.textContent = '\u00a0'; row.className = 'mx-row'; labels.className = 'mx-labels';
+    for (const db of MAJOR_DB) {
+      const label = document.createElement('span');
+      label.textContent = db > 0 ? `+${db}` : `${db}`; label.style.bottom = percent(posOfDb(db)); labels.append(label);
+    }
+    row.append(labels); box.append(name, row);
+    return box;
+  }
+
   // A vertical fader: drag, or click anywhere on its track; double-click puts the gain back to its default.
   function makeFader(strip, node) {
     const track = document.createElement('div'), meter = document.createElement('s'), mark = document.createElement('u'), cap = document.createElement('b');
-    track.className = 'mx-track'; track.append(meter, mark, cap);
-    const pos = g => `${Math.max(0, Math.min(1, g / GAIN_MAX)) * 100}%`;
+    track.className = 'mx-track'; track.append(meter, mark, cap, ...tickMarks('i'));
+    const pos = g => percent(posOfGain(g));
     const show = () => {
       const test = testing.has(strip.inst), g = test ? testing.get(strip.inst) : gainOf(node);
       cap.style.bottom = pos(g); mark.style.bottom = pos(gainOf(node)); mark.hidden = !test;
@@ -48,10 +76,10 @@ export function createMixer({ el, lanes, instruments, setParam, hear, solo, sile
     };
     dragSlider(track, {
       axis: 'y',
-      onChange: p => put(Math.round(p * GAIN_MAX * 100) / 100),
+      onChange: p => put(Math.round(gainAtPos(p) * 100) / 100),
       onReset: () => put(testing.has(strip.inst) ? gainOf(node) : GAIN_DEFAULT),
     });
-    strip.show = show; strip.meter = meter;
+    strip.show = show; strip.meter = meter; strip.track = track;
     return track;
   }
 
@@ -64,6 +92,7 @@ export function createMixer({ el, lanes, instruments, setParam, hear, solo, sile
 
   function refresh() {
     el.replaceChildren(); strips = [];
+    el.append(makeScale());
     const all = lanes();
     all.forEach((lane, li) => {
       const box = document.createElement('div');
@@ -81,7 +110,7 @@ export function createMixer({ el, lanes, instruments, setParam, hear, solo, sile
       const mix = button('mix', 'On: the instrument is in the mix. Off: only sidechain nodes hear it (the Out node\'s master switch).', () => { setParam(lane.instrument, node.id, 'master', mixOf(node) ? 0 : 1); refresh(); });
       mute.classList.toggle('on', !!lane.silenced); solob.classList.toggle('on', !!lane.solo); mix.classList.toggle('on', mixOf(node)); test.classList.toggle('on', testing.has(lane.instrument));
       const side = document.createElement('div'); side.className = 'mx-side'; side.append(readout, mute, solob, test, mix);
-      const row = document.createElement('div'); row.className = 'mx-row'; row.append(fader, side);
+      const row = document.createElement('div'); row.className = 'mx-row'; row.append(...tickMarks('hr', 'grid'), fader, side);
       box.append(name, row); el.append(box); strips.push(strip);
       strip.show();
     });
@@ -99,8 +128,8 @@ export function createMixer({ el, lanes, instruments, setParam, hear, solo, sile
     for (const s of strips) {
       const was = held.get(s.inst) ?? 0, now = Math.max(peaks[s.inst] ?? 0, was * 0.82);
       held.set(s.inst, now);
-      s.meter.style.height = `${Math.min(1, now / GAIN_MAX) * 100}%`;
-      s.meter.classList.toggle('hot', now > 1);
+      s.meter.style.clipPath = `inset(${100 - posOfGain(now) * 100}% 0 0 0)`;   // the colours are fixed to the scale: the meter uncovers them
+      s.track.classList.toggle('clip', now >= 1);   // at 0 dB or over, a red dot above the track
     }
   }
 

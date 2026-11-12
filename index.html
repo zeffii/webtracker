@@ -289,12 +289,22 @@
     .mx-name { font-size: 10px; letter-spacing: .06em; text-transform: uppercase; opacity: .7; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .mx-strip.cur .mx-name { opacity: 1; color: var(--accent); }
     .mx-row { display: flex; gap: 6px; min-width: 0; flex: 1 1 auto; min-height: 0; }
-    .mx-track { position: relative; flex: none; width: 22px; align-self: stretch; min-height: 12px; box-sizing: border-box; cursor: ns-resize; touch-action: none; background: linear-gradient(var(--slider-line), var(--slider-line)) 50% 0 / var(--line-w) 100% no-repeat; }
-    .mx-track s { position: absolute; left: 8px; right: 8px; bottom: 0; height: 0; background: var(--ok); opacity: .85; transition: height .06s linear; }   /* the instrument's level */
-    .mx-track s.hot { background: var(--warn); }
+    .mx-track { position: relative; flex: none; width: 36px; align-self: stretch; min-height: 12px; box-sizing: border-box; cursor: ns-resize; touch-action: none; }
+    .mx-track::before { content: ""; position: absolute; left: 6px; right: 6px; top: 0; bottom: 0; background: color-mix(in srgb, var(--fg) 9%, var(--panel)); }   /* the well the level fills */
+    .mx-track s { position: absolute; left: 6px; right: 6px; top: 0; bottom: 0; opacity: .9; background: linear-gradient(to top, var(--ok) 52%, var(--warn) 78%, var(--rec)); clip-path: inset(100% 0 0 0); transition: clip-path .06s linear; }   /* the instrument's level: a full-height gradient, uncovered from the bottom */
+    .mx-track.clip::after { content: ""; position: absolute; left: 50%; top: -6px; width: 5px; height: 5px; margin-left: -2.5px; border-radius: 50%; background: var(--rec); }   /* at or over 0 dB */
     .mx-track u { position: absolute; left: 0; right: 0; height: 0; border-top: 1px dashed var(--fg); }   /* the real gain, while a test gain is on */
-    .mx-track b { position: absolute; left: 0; right: 0; height: var(--slider-mark-w); margin-bottom: calc(var(--slider-mark-w) / -2); background: var(--accent); }
+    .mx-track b { position: absolute; left: 1px; right: 1px; height: var(--slider-mark-w); margin-bottom: calc(var(--slider-mark-w) / -2); background: var(--accent); }
     .mx-track.test b { background: var(--warn); }
+    .mx-track i { position: absolute; right: 0; width: 3px; height: 0; border-top: 1px solid var(--fg); opacity: .4; }   /* the scale's marks, on the right of the well */
+    .mx-track i.major { width: 5px; }
+    .mx-track i.zero { opacity: .55; }
+    .mx-row { position: relative; }
+    .mx-row hr.grid { position: absolute; left: 0; right: 0; height: 0; margin: 0; border: 0; border-top: 1px dotted color-mix(in srgb, var(--fg) 30%, transparent); opacity: 0; pointer-events: none; }   /* a faint line across the strip at each numbered value */
+    .mx-row hr.grid.major { opacity: 1; }
+    .mx-scale { width: 32px; padding-right: 0; border-right: 0; }
+    .mx-labels { position: relative; width: 100%; }
+    .mx-labels span { position: absolute; left: 0; margin-bottom: -6px; font-size: 10px; opacity: .6; }
     .mx-side { display: grid; grid-template-columns: auto auto; gap: 3px; align-content: start; justify-content: start; min-width: 0; overflow: hidden; }
     .mx-side .mx-db { grid-column: 1 / 3; }
     .mx-db { font-size: 10px; opacity: .75; white-space: nowrap; }
