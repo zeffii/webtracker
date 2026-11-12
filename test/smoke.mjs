@@ -1100,6 +1100,14 @@ const hit = 'C-2 .. .. ..';
   canvas.listeners.mouseup({ offsetX: point.x, offsetY: point.y });
   const rowFor = name => patcher.paramRows().find(r => r.name === name);
 
+  {   // the picture window's map fits the whole graph: every node with parameters can be found on it, whatever the strip's size
+    for (const [mw, mh] of [[300, 130], [600, 130], [200, 60]]) {
+      const found = new Set();
+      for (let x = 0; x < mw; x += 2) for (let y = 0; y < mh; y += 2) { const id = patcher.nodeAt('kick', null, x, y, mw, mh); if (id) found.add(id); }
+      const want = patcher.nodeIdsOf('kick');
+      assert.deepEqual([...found].sort(), [...want].sort(), `every node of the machine is on the ${mw}x${mh} map`);
+    }
+  }
   const reset = rowFor('reset');
   assert.equal(reset.exposed, false, 'nothing is exposed until asked');
   reset.expose(true);

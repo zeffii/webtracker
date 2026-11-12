@@ -121,6 +121,7 @@ const inside = (node, def, x, y) => {
   if (def.shape === 'circle' || def.shape === 'dot') return Math.hypot(x - (node.x + w / 2), y - (node.y + h / 2)) <= w / 2 + 2;
   return x >= node.x && x <= node.x + w && y >= node.y && y <= node.y + h;
 };
+const nodeHit = inside;   // (createPatcher has an `inside` of its own for plain rectangles)
 
 // Wire and port colours by what the signal is: audio, or control (envelopes, lfos, triggers).
 export { portKind };
@@ -282,7 +283,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
   const canJazz = () => !!instId && !!def() && desc().nodes.some(n => nodeTypes[n.type]?.generator);
   const releaseKeys = () => { for (const note of held.values()) onNote(instId, note, false); held.clear(); };
   const say = text => { if (statusEl) statusEl.textContent = text; };
-  const structure = () => { dirty = true; onStructure(instId); };
+  const structure = (id = instId) => { dirty = true; onStructure(id); };
 
   // ---- undo: a snapshot of the instrument (graph, exposed columns, commands, samples) after each edit the user finishes ----
   const history = new Map();   // instrument id -> { undo: [json], redo: [json], last: json }
@@ -349,7 +350,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
   const shownRows = rows => (config.get('pvHideCc') ? rows.filter(r => r.cc === undefined && !r.adv) : rows);
   // `id` is the instrument the node belongs to: the one open in the graph, or (for a meta machine's parameters) another one.
   function rowsFor(node, type, id = instId) {
-    const D = () => instruments[id], G = () => D().graph, here = id === instId;
+    const D = () => instruments[id], G = () => D().graph;
     const tgt = type.type === 'range' ? rangeTargetOf(G(), nodeTypes, node.id) : null;
     return type.params.map(base => {
       const ruled = !!tgt && base.name !== 'at';   // a range node's lo and hi are in the units of the port it feeds
@@ -424,9 +425,9 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
         get ported() { return (node.ports ?? []).includes(spec.name); },
         hint: () => ({ title: spec.name, text: hintFor(node.type, base) + (ruled ? ` Now in the units of ${tgt.node}.${tgt.param}.` : ''), facts: factsFor(spec) }),
         reset: () => apply(spec.def),
-        expose: on => { if (!here) return; setExposed(D(), nodeTypes, node.id, spec.name, on); structure(); renderPanel(); },
-        setBits: bits => { if (!here) return; setBits(D(), node.id, spec.name, bits); structure(); renderPanel(); },
-        port: on => { if (!here) return; setPort(G(), nodeTypes, node.id, spec.name, on); structure(); dirty = true; renderPanel(); },
+        expose: on => { if (!D()) return; setExposed(D(), nodeTypes, node.id, spec.name, on); structure(id); renderPanel(); },
+        setBits: bits => { if (!D()) return; setBits(D(), node.id, spec.name, bits); structure(id); renderPanel(); },
+        port: on => { if (!D()) return; setPort(G(), nodeTypes, node.id, spec.name, on); structure(id); dirty = true; renderPanel(); },
       };
     });
   }
@@ -579,26 +580,40 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
       release: () => { view.hide(); nodeViews.delete(entry); },
     };
   }
-  // The node under a point of the cropped map (the same centring as drawMap), or null.
+  // How the map frames a machine's graph: every node (and its name above it) scaled to fit the strip with a margin all round,
+  // never bigger than life. Returns the scale and where the graph's origin lands.
+  const MAP_PAD = 12;
+  function mapFrame(d, W, H) {
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    for (const n of d.graph.nodes) {
+      const { w, h } = nodeBox(nodeTypes[n.type], n);
+      x0 = Math.min(x0, n.x); y0 = Math.min(y0, n.y - 12); x1 = Math.max(x1, n.x + w); y1 = Math.max(y1, n.y + h);
+    }
+    if (!isFinite(x0)) return { s: 1, ox: 0, oy: 0 };
+    const bw = Math.max(1, x1 - x0), bh = Math.max(1, y1 - y0);
+    const s = Math.min(1, (W - 2 * MAP_PAD) / bw, (H - 2 * MAP_PAD) / bh);
+    return { s, ox: (W - bw * s) / 2 - x0 * s, oy: (H - bh * s) / 2 - y0 * s };
+  }
+  // The node under a point of the map (the same framing as drawMap), or null.
   function nodeAtMap(machine, nodeId, x, y, W, H) {
-    const d = instruments[machine], cur = d?.graph.nodes.find(n => n.id === nodeId);
-    if (!cur) return null;
-    const { w, h } = nodeBox(nodeTypes[cur.type], cur), gx = x - (W / 2 - (cur.x + w / 2)), gy = y - (H / 2 - (cur.y + h / 2));
-    const hit = d.graph.nodes.find(n => nodeTypes[n.type].params.length && inside(n, nodeTypes[n.type], gx, gy));
+    const d = instruments[machine];
+    if (!d) return null;
+    const { s, ox, oy } = mapFrame(d, W, H), gx = (x - ox) / s, gy = (y - oy) / s;
+    const hit = d.graph.nodes.find(n => nodeTypes[n.type].params.length && nodeHit(n, nodeTypes[n.type], gx, gy));
     return hit?.id ?? null;
   }
   // The nodes of a machine a window can step through (the ones with parameters), in the order of the graph.
   const nodeIdsOf = machine => (instruments[machine]?.graph.nodes ?? []).filter(n => nodeTypes[n.type]?.params.length).map(n => n.id);
-  // A cropped map of a machine's graph: the nodes as small boxes and the wires between them, the window centred on one node and that node
-  // in the accent colour. Drawn into any 2D context (the picture window's canvas).
+  // A map of a machine's graph: the nodes as small boxes and the wires between them, the whole graph fitted into the strip and the
+  // given node in the accent colour. Drawn into any 2D context (the picture window's canvas).
   function drawMap(ctx, W, H, machine, nodeId, ink, accent) {
     ctx.clearRect(0, 0, W, H);
     const d = instruments[machine], node = d?.graph.nodes.find(n => n.id === nodeId);
     if (!d || !node) return;
-    const { w, h } = nodeBox(nodeTypes[node.type], node), cx = node.x + w / 2, cy = node.y + h / 2, ox = W / 2 - cx, oy = H / 2 - cy;
+    const { s, ox, oy } = mapFrame(d, W, H);
     ctx.save();
-    ctx.translate(ox, oy);
-    ctx.lineWidth = 1.2; ctx.globalAlpha = 0.5;
+    ctx.translate(ox, oy); ctx.scale(s, s);
+    ctx.lineWidth = 1.2 / s; ctx.globalAlpha = 0.5;
     for (const link of d.graph.connections) {
       try {
         const { a, b } = linkEnds(d.graph, nodeTypes, link);
@@ -606,15 +621,15 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
         const k = arm(a, b); ctx.bezierCurveTo(a.x + k, a.y, b.x - k, b.y, b.x, b.y); ctx.stroke();
       } catch { /* a wire to a node that is gone */ }
     }
-    ctx.globalAlpha = 1; ctx.font = '10px ui-monospace, Consolas, monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.globalAlpha = 1; ctx.font = `${10 / s}px ui-monospace, Consolas, monospace`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';   // (names stay 10px however small the graph is drawn)
     for (const n of d.graph.nodes) {
       const t = nodeTypes[n.type], box = nodeBox(t, n), here = n.id === nodeId;
       ctx.beginPath();
       if (t.shape === 'circle' || t.shape === 'dot') ctx.arc(n.x + box.w / 2, n.y + box.h / 2, box.w / 2, 0, 2 * Math.PI);
       else ctx.roundRect(n.x, n.y, box.w, box.h, t.shape === 'rounded' ? 8 : 2);
       ctx.fillStyle = here ? accent : ink; ctx.globalAlpha = here ? 0.9 : 0.18; ctx.fill();
-      if (here) { ctx.globalAlpha = 1; ctx.strokeStyle = accent; ctx.lineWidth = 2; ctx.stroke(); }
-      ctx.globalAlpha = here ? 1 : 0.7; ctx.fillStyle = ink; ctx.fillText(n.id, n.x + box.w / 2, n.y - 6);
+      if (here) { ctx.globalAlpha = 1; ctx.strokeStyle = accent; ctx.lineWidth = 2 / s; ctx.stroke(); }
+      ctx.globalAlpha = here ? 1 : 0.7; ctx.fillStyle = ink; ctx.fillText(n.id, n.x + box.w / 2, n.y - 6 / s);
     }
     ctx.restore();
   }

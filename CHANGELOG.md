@@ -2,6 +2,11 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 737 · 2026-11-12
+
+- **The picture window's Parameters tab shows the whole graph.** The map of the machine is scaled to fit the strip with a margin all round (it was a 1:1 crop around the current node), and the strip is a little taller. Clicking a node on the map now goes to it (it never did: a local helper shadowed the hit test).
+- **Expose, port and width switches are always shown in that window**, on every row, and work for any machine in the window, not only the one open in the graph.
+
 ## 736 · 2026-11-12
 
 - **The pattern window opens on the pattern you are looking at, and picks others itself.** Ctrl+Alt+W (or the "Pattern window" button, or "Show in a pattern window" in the arrangement's right-click menu) shows the pattern under the cursor, in whichever editor you are in. Inside the window, the title button (or the I key) opens the Instruments → Patterns menu to move to another instrument or pattern.

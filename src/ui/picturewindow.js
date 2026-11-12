@@ -6,7 +6,7 @@
 //   ◂ ▸ beside the machine name   the previous or next machine (Alt+Up, Alt+Down)
 //   click a node on the map       goes to it
 // Opened with the machine and node that are selected in the graph (else the first node with parameters).
-const MAP_H = 110;
+const MAP_H = 130;
 
 export function createPictureWindow({ win, host, patcher, machineIds, say = () => {} }) {
   const doc = win.document;

@@ -2515,6 +2515,8 @@ html body{display:flex!important;flex-direction:column;width:100%;color:#cfe3e7}
 .pw-name{flex:none;width:14ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center}
 .pw-rowswrap{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column}
 .pw-rows{flex:none}
+.pw-rows .pv-row{grid-template-columns:11ch 1fr auto}
+.pw-rows .pv-tg{display:flex}
 #viz{position:absolute;inset:0;width:auto;height:auto;border-radius:0;box-shadow:none;background:#111}
 #viz canvas{position:absolute;left:50%;top:50%;width:100vmin;height:100vmin;transform:translate(-50%,-50%);display:block}
 #viz canvas[hidden]{display:none}

@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['737', ['The picture window\'s Parameters tab shows the whole graph in its map (click a node to go to it), and always shows the expose, port and width switches, for any machine.']],
   ['736', ['The pattern window opens on the pattern under the cursor (Ctrl+Alt+W, a button, or the arrangement\'s right-click menu) and has its own Instruments → Patterns menu (I) to change pattern.']],
   ['735', ['A pattern can be shown in a window of its own: pick it from Instruments → Patterns (button in the Pattern options). One pattern at a time, read-only, with the playing row marked.']],
   ['734', ['The strip of pictures in a node panel has its scroll bar on top, shown only when something is cut off.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['730', ['FilterPro has a panel: the sound going in, the sound coming out and the filter curve between them, with frequency marks, the cutoff to drag, and formants or comb teeth for the vowel and comb voicings. The vowel voicing no longer drifts.']],
   ['729', ['Low Pulsar notes keep their release tail instead of cutting off when the key is let go.']],
   ['728', ['The Pulsar synth is in the Shift+I menu (synths, digital): a ready-made instrument with formant, track, mask and scatter on its panel.']],
-  ['727', ['Mixer meters turn grey for lanes whose Mix button is off, since those do not reach the output.']],
                     ];
