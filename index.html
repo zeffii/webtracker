@@ -1338,7 +1338,7 @@
     #patch-params, #patch-exposed { position: absolute; top: 1px; right: 1px; width: 210px; max-height: 298px; display: flex; background: color-mix(in srgb, var(--bg) 94%, transparent); border: 1px solid; font: 11px/16px ui-monospace, Consolas, monospace; z-index: 5; user-select: none; container-type: inline-size; }
     #patch-exposed { right: auto; left: 1px; }
     /* floating panels (src/ui/kit/floating.js): thin line, title bar to drag by, no heavy frame */
-    .fl { position: fixed; display: none; flex-direction: column; max-height: 50vh; background: color-mix(in srgb, var(--bg) 94%, transparent); border: 1px solid color-mix(in srgb, var(--fg) 45%, transparent); font: 11px/16px ui-monospace, Consolas, monospace; user-select: none; container-type: inline-size; box-shadow: 0 4px 18px #0006; }
+    .fl { position: fixed; z-index: 20; display: none; flex-direction: column; max-height: 50vh; background: color-mix(in srgb, var(--bg) 94%, transparent); border: 1px solid color-mix(in srgb, var(--fg) 45%, transparent); font: 11px/16px ui-monospace, Consolas, monospace; user-select: none; container-type: inline-size; box-shadow: 0 4px 18px #0006; }
     .fl.fl-away { visibility: hidden; pointer-events: none; }
     .fl-title { display: flex; align-items: center; gap: .5rem; padding: 1px 4px; cursor: move; border-bottom: 1px solid color-mix(in srgb, var(--fg) 30%, transparent); background: color-mix(in srgb, currentColor 12%, transparent); touch-action: none; }
     .fl-title span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

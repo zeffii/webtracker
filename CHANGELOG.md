@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 740 · 2026-11-12
+
+- **The floating parameter panel is drawn above the arrangement's pattern minimaps.** The minimap's picture (z-index 1) covered the panel, which had none, so the buttons at its top right could not be clicked.
+
 ## 739 · 2026-11-12
 
 - **The picture window's parameter rows use the regular parameter view's small monospace text** (11px), instead of the window's unset default font.

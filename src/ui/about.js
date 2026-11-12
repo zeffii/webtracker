@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['740', ['The floating parameter panel is no longer covered by the arrangement\'s minimaps: its top-right buttons can be clicked.']],
   ['739', ['The picture window\'s parameter rows use the same small monospace text as the regular parameter view.']],
   ['738', ['The picture window\'s parameter rows fill the window and follow it when it is resized.']],
   ['737', ['The picture window\'s Parameters tab shows the whole graph in its map (click a node to go to it), and always shows the expose, port and width switches, for any machine.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['733', ['Node panels lay their pictures and editors side by side in one strip that scrolls sideways when they do not fit, instead of stacking them. Pogue\'s panel is four pictures in a row.']],
   ['732', ['Pogue has a panel: its voices moving between the shortest and longest delay, live, with the band to drag, plus pictures of its filters, saturation and bit reduction, and feedback.']],
   ['731', ['Keyjazz plays whichever node is selected, so you can tweak a filter or an effect while you play. Typing a value still keeps the keys.']],
-  ['730', ['FilterPro has a panel: the sound going in, the sound coming out and the filter curve between them, with frequency marks, the cutoff to drag, and formants or comb teeth for the vowel and comb voicings. The vowel voicing no longer drifts.']],
                     ];
