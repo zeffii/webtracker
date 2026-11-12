@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 729 · 2026-11-12
+
+- **Low Pulsar notes keep their release tail.** A pulse train is silent between its pulses, and at a low pitch those gaps are long. The runtime counts three silent blocks as a finished released voice, so a low note was stopped part-way through its release. A node can now report that it is still busy (the pulsar does while its envelope runs), and the voice ends only after that. Smoke test added.
+
 ## 728 · 2026-11-12
 
 - **The Pulsar synth can be added from the Shift+I menu.** Build 706 added the Pulsar node but not the ready-made instrument, so the menu (and the "new instrument" lists) had nothing to offer. It is now under synths, digital: a pulsar synth with a voices node and an Out, six voices and two note columns, with Formant, Track, Mask and Scatter exposed, and commands for formant, track, wave, mask, jitter, scatter, glide and sweep. A smoke test now checks that every synth kind has a place in the machine tree, so one cannot be left out again.

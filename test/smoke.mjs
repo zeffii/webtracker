@@ -2936,6 +2936,23 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     assert.equal(peak(render(rt, 0.1).left), 0);
   }
 
+  // a pulsar is silent between its pulses: a low note must not be judged finished in one of those gaps, and so lose its release
+  {
+    const g = { voices: 2, nodes: [
+      { id: 'p', type: 'pulsar', params: { formant: 4000, track: 0, atk: 1, sus: 1, rel: 800, level: 1 } },
+      { id: 'poly', type: 'voices' }, { id: 'out', type: 'out', params: { gain: 0.5 } } ],
+      connections: [['p.out', 'poly.in'], ['poly.out', 'out.in']] };
+    const { rt } = make(g);
+    on(rt, 24);   // about 33 Hz: a period of 1300 samples with a pulsaret of a few dozen
+    render(rt, 0.2);
+    off(rt, 24);
+    const x = render(rt, 0.3).left;
+    assert.ok(peak(x.slice(0, 4000)) > 0.01 && peak(x.slice(sr * 0.2, sr * 0.3)) > 0.003, 'the release tail of a low pulsar note should keep sounding');
+    assert.equal(sounding(rt), 1, 'the voice is still in its release');
+    render(rt, 2);
+    assert.equal(sounding(rt), 0, 'and it stops once the release is over');
+  }
+
   // stealing: with two voices a third note takes the oldest; a released voice goes first
   {
     const { rt } = make(synthGraph({ voices: 2 }));

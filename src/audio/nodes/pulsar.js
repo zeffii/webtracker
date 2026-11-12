@@ -51,6 +51,7 @@ export default {
     train.setWindow(data?.env?.window);
     let note = 60, pos = 60, velocity = 1, age = 0;
     return {
+      get busy() { return !amp.idle; },   // a low note is silent for long stretches between pulsarets, so silence alone does not mean the release is over
       message(msg) {
         if (msg.type !== 'env') return;
         if (msg.slot === 'window') train.setWindow(msg.points);

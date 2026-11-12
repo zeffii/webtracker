@@ -472,7 +472,7 @@ export class GraphRuntime {
           let peak = 0;
           for (const [l, r] of set.taps) for (let i = 0; i < n; i++) { const a = Math.abs(l[i]), b = Math.abs(r[i]); if (a > peak) peak = a; if (b > peak) peak = b; }
           set.silent = peak < 1e-5 ? set.silent + 1 : 0;
-          if (set.released && set.silent >= 3) set.active = false;   // finished: it stops costing anything
+          if (set.released && set.silent >= 3 && !set.nodes.some(nd => nd.instance.busy)) set.active = false;   // finished: it stops costing anything (a node can say it is still in its release, since a pulse train is silent between its pulses)
           if (inst.mixing) {
             const [l, r] = set.taps[0];
             for (let i = 0; i < n; i++) { inst.left[i] += l[i]; inst.right[i] += r[i]; }
