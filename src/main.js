@@ -2514,6 +2514,7 @@ html body{display:flex!important;flex-direction:column;width:100%;color:#cfe3e7}
 .pw-what{opacity:.55;width:5.5ch}
 .pw-name{flex:none;width:14ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center}
 .pw-rowswrap{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;width:auto!important}   /* the parameter view sets a pixel width on its dock: here it is always the window's */
+.pw-params{font:11px/16px ui-monospace,Consolas,monospace;user-select:none}
 .pw-rows{flex:none}
 .pw-rows .pv-row{grid-template-columns:11ch 1fr auto}
 .pw-rows .pv-tg{display:flex}

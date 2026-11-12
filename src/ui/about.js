@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['739', ['The picture window\'s parameter rows use the same small monospace text as the regular parameter view.']],
   ['738', ['The picture window\'s parameter rows fill the window and follow it when it is resized.']],
   ['737', ['The picture window\'s Parameters tab shows the whole graph in its map (click a node to go to it), and always shows the expose, port and width switches, for any machine.']],
   ['736', ['The pattern window opens on the pattern under the cursor (Ctrl+Alt+W, a button, or the arrangement\'s right-click menu) and has its own Instruments → Patterns menu (I) to change pattern.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['732', ['Pogue has a panel: its voices moving between the shortest and longest delay, live, with the band to drag, plus pictures of its filters, saturation and bit reduction, and feedback.']],
   ['731', ['Keyjazz plays whichever node is selected, so you can tweak a filter or an effect while you play. Typing a value still keeps the keys.']],
   ['730', ['FilterPro has a panel: the sound going in, the sound coming out and the filter curve between them, with frequency marks, the cutoff to drag, and formants or comb teeth for the vowel and comb voicings. The vowel voicing no longer drifts.']],
-  ['729', ['Low Pulsar notes keep their release tail instead of cutting off when the key is let go.']],
                     ];

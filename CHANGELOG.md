@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 739 · 2026-11-12
+
+- **The picture window's parameter rows use the regular parameter view's small monospace text** (11px), instead of the window's unset default font.
+
 ## 738 · 2026-11-12
 
 - **The picture window's parameter rows fill the window's width** and follow it when the window is resized (the parameter view's own remembered width no longer applies there).
