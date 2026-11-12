@@ -156,6 +156,7 @@ export function parseProject(text) {
     throw new Error(`Unsupported file version ${data.version}; this build reads version ${VERSION}.`);
   }
   upgradeSamplerLayout(data);
+  for (const def of Object.values(data.instruments ?? {})) for (const n of def.graph?.nodes ?? []) if (n.type === 'busin') n.type = 'bus-in';   // build 748 called it busin
   ensureSliceCommand(data);
   const samples = ensurePool(Object.fromEntries(Object.entries(data.samples ?? {}).filter(([id]) => !isPool(id)).map(([id, s]) => [id, decodeSample(s)])));
   for (const [id, def] of Object.entries(data.instruments)) {

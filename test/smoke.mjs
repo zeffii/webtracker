@@ -11571,7 +11571,7 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   const build = wire => {
     const { rt, registry } = setup();
     const g = structuredClone(masterInstrument({ bpm: 120, ticksPerBeat: 4, swing: 0.5 }).graph);
-    if (wire) { g.nodes.push({ id: 'mix', type: 'busin', x: 40, y: 140, params: { level: 0.5 } }); g.connections.push(['mix.out', 'out.in']); }
+    if (wire) { g.nodes.push({ id: 'mix', type: 'bus-in', x: 40, y: 140, params: { level: 0.5 } }); g.connections.push(['mix.out', 'out.in']); }
     rt.load(compile(g, { instrument: 'master', nodeTypes: NODE_TYPES, registry }));
     rt.note('lead', { type: 'noteOn', note: 60, vel: 1 });
     return render(rt, 0.4);

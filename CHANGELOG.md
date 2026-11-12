@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 750 · 2026-11-12
+
+- **The master's Mix node is called bus-in.** It is the name you see in the menu and on the node (it was `busin`); projects saved with build 748 are converted when they open.
+
 ## 749 · 2026-11-12
 
 - **Groove starts at zero.** Every part (warp, wear, tracing, dust, scratch, pops, surface, rumble) defaults to 0, so a new Groove node passes the sound through untouched until you turn something up.
