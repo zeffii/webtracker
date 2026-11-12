@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 744 · 2026-11-12
+
+- **The pattern window has a B side to try chords on.** Compare (key C) makes B, a scratch copy of the pattern that is not part of the song. A and B play on their own in a loop through the pattern's instrument (A and B keys, Tab flips between them in the same place, Space stops). B can be changed while it plays: arrows move, + and - a semitone, ] and [ an octave, and with Alt the whole row moves together (a chord). Cells that differ are marked, green in B and red in A. Reset B (R) makes it A again so you can diverge afresh; Enter keeps B over A, Shift+Enter keeps it as a new pattern in the list, Delete drops it. The A pane is still read-only.
+
 ## 743 · 2026-11-12
 
 - **The live picture can be parked at the bottom left.** A new button on the picture (the two arrows, beside the pop-out button) swaps it between bottom right and bottom left, and the choice is remembered (Config, Visual: "Picture: parked bottom left").

@@ -38,24 +38,27 @@ export function visiblePatternColumns(lane, pat) {
   return keep;
 }
 
-export function patternLines(lane, puid, playRow = -1) {
-  const pat = lane?.patterns?.[puid];
-  if (!pat) return [esc('This pattern is gone.')];
-  const cols = visiblePatternColumns(lane, pat);
+// Lines for any rows of a lane's columns. cols are the column indices to show; options:
+//   playRow   the row to mark as playing        diff   a Set of "t,ci" to colour (diffClass: the class they get)
+//   cursor    { t, ci } the cell under the cursor (the pane is then clickable: every cell carries its row and column)
+export function rowLines(lane, title, rows, cols, { playRow = -1, diff = null, diffClass = 'new', cursor = null } = {}) {
   const width = ci => Math.max((lane.columns[ci].short ?? lane.columns[ci].label ?? '').length, KINDS[lane.columns[ci].token]?.width ?? 1);
   const gutter = `<span class="g">${' '.repeat(GUTTER)}</span>`;
   const lines = [
-    `${gutter} ${esc(lane.id)} · ${esc(pat.name ?? '')} · ${pat.rows.length} rows`,
+    `${gutter} ${esc(title)}`,
     `${gutter} ${cols.map(ci => esc((lane.columns[ci].short ?? lane.columns[ci].label ?? '').padEnd(width(ci)))).join(' ')}`,
   ];
-  pat.rows.forEach((row, t) => {
+  rows.forEach((row, t) => {
     const cells = cols.map(ci => {
       const c = lane.columns[ci];
       const text = String(row[ci] ?? KINDS[c.token]?.blank ?? '').padEnd(width(ci));
-      return Array.from(text, (ch, i) => {
+      const html = Array.from(text, (ch, i) => {
         const cls = [c.token === 'cmd' && i < 2 ? 'cc' : '', c.rel && text.trimEnd() === '00' ? 'noff' : ''].filter(Boolean).join(' ');
         return cls ? `<span class="${cls}">${esc(ch)}</span>` : esc(ch);
       }).join('').replace(/\.+/g, dots => `<span class="d">${dots}</span>`);
+      const changed = diff?.has(`${t},${ci}`), here = cursor && cursor.t === t && cursor.ci === ci;
+      if (!cursor && !changed) return html;
+      return `<span class="${[cursor ? 'pcell' : '', changed ? diffClass : '', here ? 'cell' : ''].filter(Boolean).join(' ')}" data-t="${t}" data-c="${ci}">${html}</span>`;
     }).join(' ');
     const here = t === playRow;
     const head = `<span class="g">${here ? '>' : ' '}${String(t).padStart(4, '0')} </span> ${cells}`;
@@ -64,6 +67,12 @@ export function patternLines(lane, puid, playRow = -1) {
     lines.push(shade ? `<span class="${shade}">${line}</span>` : line);
   });
   return lines;
+}
+
+export function patternLines(lane, puid, playRow = -1) {
+  const pat = lane?.patterns?.[puid];
+  if (!pat) return [esc('This pattern is gone.')];
+  return rowLines(lane, `${lane.id} · ${pat.name ?? ''} · ${pat.rows.length} rows`, pat.rows, visiblePatternColumns(lane, pat), { playRow });
 }
 
 // Which row of the pattern the transport is on, or -1 (not playing, or the playing tick is under another pattern).

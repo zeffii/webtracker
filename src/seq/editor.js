@@ -66,6 +66,8 @@ export function createEditor(lanes, length, { limit = 20 } = {}) {
       return done ? shape : null;
     },
     setCell: (li, tick, col, token) => change('edit cell', `${li}:${tick}:${col}`, () => ops.setCell(at(li), length, tick, col, token)),
+    setPatternRows: (li, puid, rows) => change('replace pattern', null, () => ops.setPatternRows(at(li), length, puid, rows)),
+    addPatternCopy: (li, rows, name) => change('new pattern', null, () => ops.addPatternCopy(at(li), length, rows, name)),
     setCells: (li, items, label = 'edit cells', key = null) => change(label, key, () => ops.setCells(at(li), length, items)),
     insertPattern: (li, tick, { overlay = false } = {}) => change('insert pattern', null, () => ops.insertPattern(at(li), length, snap(tick), 16, overlay)),
     placePattern: (li, tick, puid) => change('place pattern', null, () => ops.placePattern(at(li), length, snap(tick), puid)),

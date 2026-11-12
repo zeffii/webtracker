@@ -272,6 +272,24 @@ export function shiftPlacements(lane, length, from, delta) {
   return delta;
 }
 
+// Replaces the rows of a pattern with a copy of `rows` (the same number of rows, or the pattern is left alone): every place it is
+// used changes with it. Returns whether anything changed.
+export function setPatternRows(lane, length, puid, rows) {
+  const pat = lane.patterns[puid];
+  if (!pat || rows.length !== pat.rows.length) return false;
+  if (rows.every((r, t) => r.length === pat.rows[t].length && r.every((v, i) => v === pat.rows[t][i]))) return false;
+  pat.rows = copyRows(rows);
+  refresh(lane, length);
+  return true;
+}
+
+// A new pattern in the lane's pool (not placed anywhere) holding a copy of `rows`. Returns its puid, or null.
+export function addPatternCopy(lane, length, rows, name) {
+  const puid = addPattern(lane, copyRows(rows), name);
+  if (puid !== null) refresh(lane, length);
+  return puid;
+}
+
 // Copies a pattern (a { name, rows, color } as saved with a copied block) into this lane's pool. Returns its puid, or
 // null if all 256 indices are taken.
 export const adoptPattern = (lane, pattern) => addPattern(lane, copyRows(pattern.rows), pattern.name, pattern.color);

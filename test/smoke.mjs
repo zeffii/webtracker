@@ -11475,4 +11475,45 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   console.log('ok: pattern window lines');
 }
 
+{
+  // ---- the pattern window's scratch copy (B) ----
+  const ab = await import('../src/seq/patternab.js');
+  const cols = [{ kind: 'note', token: 'note', label: 'n' }, { kind: 'param', token: '2hex', label: 'vel' }, { kind: 'note', token: 'note', label: 'n' }, { kind: 'param', token: 'cmd', label: 'cmd' }];
+  const A = [['C-4', '80', 'E-4', '......'], ['...', '..', '...', '......'], ['===', '..', '^^^', '......'], ['G-4', '..', '...', '......']];
+  assert.equal(ab.shiftToken('C-4', 1), 'C#4'); assert.equal(ab.shiftToken('B-4', 1), 'C-5'); assert.equal(ab.shiftToken('...', 1), null); assert.equal(ab.shiftToken('C-0', -1), null);
+  const B = ab.shiftRow(A, 0, cols, 12);
+  assert.deepEqual(B[0], ['C-5', '80', 'E-5', '......'], 'a whole row moves together, the velocity stays'); assert.equal(A[0][0], 'C-4', 'A is not changed');
+  assert.equal(ab.shiftCell(A, 1, 0, 1), A, 'an empty cell does not move');
+  assert.deepEqual([...ab.diffCells(A, B)].sort(), ['0,0', '0,2']);
+  const ev = ab.noteEvents(A, cols);
+  assert.deepEqual(ev[0].map(e => [e.col, e.midi, e.vel > 0.49 && e.vel < 0.51]), [[0, 60, true], [2, 64, false]], 'midi is the note + 12 semitones, velocity from its column (full when it has none)');
+  assert.deepEqual(ev[2].map(e => [e.col, e.on]), [[0, false], [2, false]], 'note off and cut end notes');
+  // playing: a row per tick, a new note ends the column's last one, a loop
+  const log = []; let now = 0;
+  const au = ab.createAudition({ on: (m, v) => log.push(`on${m}`), off: m => log.push(`off${m}`), tickMs: () => 100 });
+  au.start(A, cols, now); au.advance(0); au.advance(250); now = 250;
+  assert.deepEqual(log, ['on60', 'on64', 'off60', 'off64'], 'rows 0, 1 and 2 are played by 250 ms');
+  au.advance(350); assert.equal(au.row, 3); assert.equal(log.at(-1), 'on67');
+  au.advance(450); assert.equal(au.row, 0, 'it loops'); assert.ok(log.slice(-3).includes('off67'), 'the note of the last loop ends first');
+  au.stop(); assert.equal(au.playing, false);
+  // swap keeps the place
+  au.start(A, cols, 0); au.advance(150); au.swap(B, cols); assert.equal(au.row, 1);
+  // keeping B: over A (same row count only), or as a new pattern
+  const registry = new ParamRegistry();
+  compile(instruments.lead.graph, { instrument: 'lead', nodeTypes: NODE_TYPES, registry });
+  const realCols = buildColumns('lead', instruments.lead, registry);
+  const blank = () => realCols.map(c => KINDS[c.token].blank);
+  const rowsA = Array.from({ length: 4 }, blank); rowsA[0][0] = 'C-4';
+  const rowsB = rowsA.map(r => r.slice()); rowsB[0][0] = 'C-5';
+  const lane = { id: 'p', columns: realCols, patterns: { a: { name: 'pat00', index: 0, length: 4, rows: rowsA.map(r => r.slice()) } }, placements: [{ puid: 'a', start: 0, length: 4 }] };
+  lane.pages = buildPages(flattenLane(lane, realCols, 16), realCols);
+  const eds = await import('../src/seq/edit.js');
+  assert.equal(eds.setPatternRows(lane, 16, 'a', rowsA), false, 'the same rows change nothing');
+  assert.equal(eds.setPatternRows(lane, 16, 'a', rowsB.slice(0, 2)), false, 'a different row count is refused');
+  assert.equal(eds.setPatternRows(lane, 16, 'a', rowsB), true); assert.equal(lane.patterns.a.rows[0][0], 'C-5'); assert.notEqual(lane.patterns.a.rows[0], rowsB[0], 'the pattern has its own copy');
+  const np = eds.addPatternCopy(lane, 16, rowsA, 'pat00 B');
+  assert.ok(np && lane.patterns[np].name === 'pat00 B' && lane.patterns[np].index === 1, 'a new pattern in the pool');
+  console.log('ok: pattern window scratch copy');
+}
+
 console.log('smoke test passed');
