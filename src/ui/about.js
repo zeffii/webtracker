@@ -17,5 +17,4 @@ export const CHANGELOG = [
   ['712', ['Mixer channels are about half as wide, with the buttons stacked in one column.']],
   ['711', ['A new mixer look: a dB scale with ticks, a level well that turns red toward the top and a clip dot; the fader is now in dB.']],
   ['710', ['The mixer dock sits beside the browser panel: dragging it up no longer shortens the browser.']],
-  ['709', ['The pattern editor and arrangement refit when the mixer dock or meter band opens, closes or is resized, and run down to where it starts.']],
                     ];
