@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 735 · 2026-11-12
+
+- **A pattern can be shown in a window of its own.** Pattern options has a "Pattern window…" button that opens an Instruments → Patterns menu (every instrument with its patterns); picking one opens a read-only window with that pattern's rows, drawn like the main grid, with empty columns hidden and the playing row marked. One pattern at a time: picking another moves the same window.
+
 ## 734 · 2026-11-12
 
 - **The node panel's strip has its scroll bar on top.** The sideways scroll bar of the views strip (build 733) sat at the bottom, often off the screen. It is now a thin bar above the strip, drawn only while something is cut off: drag the thumb, click the track to bring that spot to the middle, or use the wheel or a trackpad on the strip as before. The native bar at the bottom is hidden.

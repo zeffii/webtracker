@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['735', ['A pattern can be shown in a window of its own: pick it from Instruments → Patterns (button in the Pattern options). One pattern at a time, read-only, with the playing row marked.']],
   ['734', ['The strip of pictures in a node panel has its scroll bar on top, shown only when something is cut off.']],
   ['733', ['Node panels lay their pictures and editors side by side in one strip that scrolls sideways when they do not fit, instead of stacking them. Pogue\'s panel is four pictures in a row.']],
   ['732', ['Pogue has a panel: its voices moving between the shortest and longest delay, live, with the band to drag, plus pictures of its filters, saturation and bit reduction, and feedback.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['728', ['The Pulsar synth is in the Shift+I menu (synths, digital): a ready-made instrument with formant, track, mask and scatter on its panel.']],
   ['727', ['Mixer meters turn grey for lanes whose Mix button is off, since those do not reach the output.']],
   ['726', ['Click a note in the pattern roll (or a row number) to put the pattern editor\'s cursor there, with Edit mode on or off.']],
-  ['725', ['A plain first screen: the Wax logo and a thin loader bar, and the app starts by itself after about a second (sound switches on at your first click or key press). The effect looks and their setting are gone.']],
                     ];

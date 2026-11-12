@@ -11446,4 +11446,25 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   console.log('ok: machine tree lists every synth');
 }
 
+{
+  // ---- the pattern window ----
+  const { patternMenu, patternLines, playingRow, visiblePatternColumns } = await import('../src/seq/patternpop.js');
+  const lane = { id: 'bass', columns: [{ kind: 'note', token: 'note', label: 'note', short: 'n' }, { kind: 'param', token: '2hex', label: 'cut', short: 'cut' }, { kind: 'param', token: 'cmd', label: 'cmd', short: 'cmd' }],
+    patterns: { b: { name: 'pat01', index: 1, rows: [['...', '..', '......'], ['...', '..', '......']] }, a: { name: 'pat00', index: 0, rows: [['C-4', '..', '......'], ['...', '40', '......'], ['...', '..', '......'], ['...', '..', '......']] } },
+    placements: [{ puid: 'a', start: 8, length: 4 }] };
+  const menu = patternMenu([lane, { id: 'empty', patterns: {} }]);
+  assert.equal(menu.length, 1, 'lanes without patterns are not listed');
+  assert.deepEqual(menu[0].children.map(c => c.value.puid), ['a', 'b'], 'patterns come in index order');
+  assert.ok(menu[0].children[0].name.includes('4 rows'));
+  assert.deepEqual(visiblePatternColumns(lane, lane.patterns.a), [0, 1], 'empty columns are hidden');
+  assert.deepEqual(visiblePatternColumns(lane, lane.patterns.b), [0], 'the first note column always stays');
+  const lines = patternLines(lane, 'a', 1);
+  assert.equal(lines.length, 2 + 4, 'a title, a header and a line per row');
+  assert.ok(lines[2].includes('r16') && lines[3].includes('<b>') && lines[3].includes('&gt;') === false && lines[3].includes('>'), 'bar shading and the playing row');
+  assert.equal(playingRow(lane, 'a', 9), 1);
+  assert.equal(playingRow(lane, 'a', 3), -1);
+  assert.equal(playingRow(lane, 'b', 9), -1);
+  console.log('ok: pattern window lines');
+}
+
 console.log('smoke test passed');

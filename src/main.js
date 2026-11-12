@@ -53,6 +53,8 @@ import { buildInstrument, fitTail } from './project/ptr.js';
 import { ABOUT, CHANGELOG } from './ui/about.js';
 import { createManual } from './ui/manual.js';
 import { openPopout } from './ui/kit/popout.js';
+import { patternMenu, patternLines, playingRow } from './seq/patternpop.js';
+import { showMachineTree } from './ui/machinetree.js';
 import { createPictureWindow } from './ui/picturewindow.js';
 import { createPatternOptions } from './ui/patternoptions.js';
 import { createPatternRoll, rollStyle } from './ui/patternroll.js';
@@ -1941,7 +1943,43 @@ const openRoll = () => {
   w.addEventListener('pagehide', () => { if (rollWin === w) rollWin = null; });
   addEventListener('pagehide', () => w.close());
 };
-createPatternOptions({ el: $('pat-side'), config, view, focusGrid: () => $('view').focus(), openRoll });
+// The pattern window: one pattern, read-only, in a window of its own. Instruments -> Patterns picks which one; picking again
+// moves the same window to that pattern. It reads the project every frame, so edits show at once.
+let patWin = null, patTarget = null;
+const showPattern = (li, puid) => {
+  patTarget = { li, puid };
+  if (patWin && !patWin.closed) { patWin.focus(); return; }
+  const w = window.open('', 'wax-pattern', 'popup,width=520,height=640');
+  if (!w) { $('status').textContent = 'The browser blocked the pattern window: allow pop-ups for this page.'; return; }
+  patWin = w;
+  w.document.title = 'Wax pattern';
+  for (const sheet of document.head.querySelectorAll('link[rel="stylesheet"], style')) w.document.head.append(w.document.importNode(sheet, true));
+  w.document.documentElement.className = document.documentElement.className;
+  for (const [k, v] of Object.entries(document.documentElement.dataset)) w.document.documentElement.dataset[k] = v;
+  w.document.body.style.cssText = 'margin: 0; padding: 0';
+  const host = w.document.createElement('div'); host.id = 'view'; host.style.cssText = 'height: 100vh; overflow: auto; box-sizing: border-box; padding: 4px 0';
+  w.document.body.replaceChildren(host);
+  let last = '';
+  const loop = () => {
+    if (patWin !== w || w.closed) return;
+    try {
+      const lane = project?.lanes?.[patTarget.li], tick = Atomics.load(engine.transport, 1) === 1 ? Atomics.load(engine.transport, 0) : -1;
+      const html = lane ? patternLines(lane, patTarget.puid, playingRow(lane, patTarget.puid, tick)).map(l => `<div class="ln">${l}</div>`).join('') : '<div class="ln">No project.</div>';
+      if (html !== last) { last = html; host.innerHTML = html; }
+      w.document.title = `Wax pattern · ${lane?.id ?? ''} ${lane?.patterns?.[patTarget.puid]?.name ?? ''}`;
+    } catch (e) { console.error(e); }
+    w.requestAnimationFrame(loop);
+  };
+  w.requestAnimationFrame(loop);
+  w.addEventListener('pagehide', () => { if (patWin === w) patWin = null; });
+  addEventListener('pagehide', () => w.close());
+};
+const openPatternMenu = at => {
+  const tree = patternMenu(project?.lanes ?? []);
+  if (!tree.length) { $('status').textContent = 'No patterns to show.'; return; }
+  showMachineTree(at, tree, { title: 'Instruments → Patterns', onPick: v => showPattern(v.li, v.puid) });
+};
+createPatternOptions({ el: $('pat-side'), config, view, focusGrid: () => $('view').focus(), openRoll, openPatternMenu });
 
 // The browser holds the lists that used to sit in the views: the arrangement's pattern list and the instrument list move in here.
 browser = createBrowser({
