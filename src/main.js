@@ -109,13 +109,14 @@ let started = false, playing = false, project = null, recording = false;
 
 const PLAY_ICON = '<svg class="ico" viewBox="0 0 12 12"><path d="M2.5 1 L10.5 6 L2.5 11 Z" fill="currentColor"/></svg>';
 const STOP_ICON = '<svg class="ico" viewBox="0 0 12 12"><rect x="2" y="2" width="8" height="8" fill="currentColor"/></svg>';
+let stopAudition = () => {};   // the pattern window's A/B loop (set where that window is made)
 let pausedAt = null;   // the tick a pause stopped at; Play carries on from there
 const setPaused = tick => { pausedAt = tick; $('pause').setAttribute('aria-pressed', String(tick !== null)); };
 const setPlaying = (value, from = null) => {
   if (value && from === null && pausedAt !== null) from = pausedAt;   // after a pause, Play resumes
   setPaused(null);
   playing = value;
-  if (playing) scratch?.stop?.();
+  if (playing) { scratch?.stop?.(); stopAudition(); }
   if (playing) engine.play(from); else engine.stop();
   if (playing) engine.wake().then(ok => { if (!ok && playing) $('status').textContent = `The audio context is ${engine.ctx.state}, so nothing can sound: press Play again, and if it stays silent reload the page (the audio device may have changed).`; });
   $('play').innerHTML = playing ? STOP_ICON : PLAY_ICON;
@@ -1965,6 +1966,7 @@ const patternWindow = createPatternWindow({
     if (!started) return { error: 'Click the first screen to start the audio first.' };
     const id = project?.lanes?.[li]?.instrument;
     if (!id || id === 'master') return { error: 'This lane has no instrument to play.' };
+    if (playing) { setPlaying(false); $('status').textContent = 'The song stopped: A and B play on their own, so you hear only the one you test.'; }
     return { on: (m, v) => engine.noteOn(id, m, v), off: m => engine.noteOff(id, m), tickMs: () => 60000 / (project.song.bpm * project.song.ticksPerBeat) };
   },
   transportTick: () => (Atomics.load(engine.transport, 1) === 1 ? Atomics.load(engine.transport, 0) : -1),
@@ -1974,6 +1976,7 @@ const patternWindow = createPatternWindow({
   say: text => { $('status').textContent = text; },
 });
 const showPattern = (li, puid) => patternWindow.show(li, puid);
+stopAudition = () => patternWindow.stop();
 keys.bind('Ctrl+Alt+KeyW', showPatternUnderCursor, { when: () => project, name: 'Show the pattern under the cursor in a window' });
 createPatternOptions({ el: $('pat-side'), config, view, focusGrid: () => $('view').focus(), openRoll, openPatternWindow: showPatternUnderCursor });
 

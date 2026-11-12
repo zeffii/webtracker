@@ -188,6 +188,7 @@ export function createPatternWindow({ lanes, voiceFor, transportTick, replaceRow
       if (win && !win.closed) { win.focus(); return; }
       open();
     },
+    stop: stopPlaying,   // (the song starting ends the test loop)
     get open() { return !!win && !win.closed; },
   };
 }

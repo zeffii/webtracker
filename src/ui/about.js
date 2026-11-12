@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['745', ['Testing A or B in the pattern window stops the song, so only the pattern you test is heard.']],
   ['744', ['The pattern window has a B side: a scratch copy to try chords on, played separately from A, changed freely, reset to A, or kept over A or as a new pattern.']],
   ['743', ['The live picture can be parked at the bottom left: the arrows button on the picture swaps sides.']],
   ['742', ['The live picture is no longer covered by the arrangement\'s overview strip.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['738', ['The picture window\'s parameter rows fill the window and follow it when it is resized.']],
   ['737', ['The picture window\'s Parameters tab shows the whole graph in its map (click a node to go to it), and always shows the expose, port and width switches, for any machine.']],
   ['736', ['The pattern window opens on the pattern under the cursor (Ctrl+Alt+W, a button, or the arrangement\'s right-click menu) and has its own Instruments → Patterns menu (I) to change pattern.']],
-  ['735', ['A pattern can be shown in a window of its own: pick it from Instruments → Patterns (button in the Pattern options). One pattern at a time, read-only, with the playing row marked.']],
                     ];
