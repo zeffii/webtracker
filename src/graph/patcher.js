@@ -27,6 +27,7 @@ import { createKaleidoscopeView } from './kaleidoscopeview.js';
 import { createReflectView } from './reflectview.js';
 import { createHeadView } from './headview.js';
 import { createHaasView } from './haasview.js';
+import { createFilterProView } from './filterproview.js';
 import { createRingView } from './ringview.js';
 import { createSympathyView } from './sympathyview.js';
 import { createNotePanView } from './notepanview.js';
@@ -834,7 +835,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
       items.splice(1, 0, drum2View.el);
     }
     spaceView = null;
-    const SPACE = { reflect: createReflectView, headpan: createHeadView, haas: createHaasView, ringmod: createRingView, sympathy: createSympathyView, notepan: createNotePanView };
+    const SPACE = { reflect: createReflectView, headpan: createHeadView, haas: createHaasView, ringmod: createRingView, sympathy: createSympathyView, notepan: createNotePanView, filterpro: createFilterProView };
     if (SPACE[type.editor]) {   // the plan of the room, the head, the delay pulses, the sidebands or the strings, each live with its parameters
       const param = name => readLive(instId, node.id, name) ?? node.params?.[name] ?? type.params.find(p => p.name === name)?.def ?? 0;
       spaceView = SPACE[type.editor]({

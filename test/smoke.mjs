@@ -11003,6 +11003,41 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   // a drawing sent while it plays takes effect; the hit ends by itself and goes silent
   const flat = play({ noise: 0, click: 0 }, { env: { amp: bz.SHAPES.flat() } });
   assert.ok(Math.max(...flat.map(Math.abs)) < 1e-6, 'a volume drawing at zero is silence');
+  // FilterPro's panel: the curve it draws is the filter's real response, the vowel voicing does not drift, and the node reports spectra
+  {
+    const def = NODE_TYPES.filterpro, sr = 48000, names = def.params.map(q => q.name), slots = Int32Array.from(names.map((_, k) => k));
+    const { responseGain } = await import('../src/audio/nodes/filterproresponse.js');
+    const render = (f, vals, emit, watch) => {
+      const node = def.create({ sampleRate: sr, emit }), params = names.map(n => vals[n] ?? def.params.find(q => q.name === n).def);
+      if (watch) node.message({ type: 'watch' });
+      const x = new Float32Array(128), y = new Float32Array(128);
+      let sum = 0, cnt = 0, peak = 0;
+      for (let b = 0; b < 400; b++) {
+        for (let k = 0; k < 128; k++) x[k] = 0.05 * Math.sin(2 * Math.PI * f * (b * 128 + k) / sr);
+        node.process([x, null], [y], 128, params, slots);
+        if (b > 200) for (let k = 0; k < 128; k++) { sum += y[k] * y[k]; cnt++; peak = Math.max(peak, Math.abs(y[k])); }
+      }
+      return { gain: Math.sqrt(sum / cnt) / (0.05 / Math.SQRT2), peak };
+    };
+    for (const mode of [0, 1, 2, 3, 4, 6, 7, 8, 9, 10, 11]) {
+      const v = { mode, cutoff: 1500, resonance: 0.4, vowel: 1.5, morph: 0.3 };
+      for (const f of [300, 1700, 6000]) {
+        const real = 20 * Math.log10(render(f, v).gain), drawn = 20 * Math.log10(responseGain(f, { damp: 0.3, mix: 1, level: 1, ...v }, sr));
+        if (drawn > -45 && real > -45) assert.ok(Math.abs(real - drawn) < 1.5, `mode ${mode} at ${f} Hz: the panel draws ${drawn.toFixed(1)} dB, the filter does ${real.toFixed(1)}`);
+      }
+    }
+    const away = render(1500, { mode: 9, cutoff: 1500, vowel: 1.5, resonance: 0.4 });
+    assert.ok(away.peak < 0.02, `the vowel voicing should not drift: ${away.peak}`);
+    const heard = [];
+    render(440, { mode: 0 }, (msg, transfer) => heard.push(msg), true);
+    assert.ok(heard.length > 3 && heard[0].type === 'fpro' && heard[0].input.length === 240, 'a watched filter reports its spectra');
+    const top = Math.max(...heard.at(-1).input), at = heard.at(-1).input.indexOf(top), f = 20 * Math.pow(1000, (at + 0.5) / 240);
+    assert.ok(top > 0.65 && top < 0.78 && Math.abs(f / 440 - 1) < 0.1, `the input spectrum should peak at the tone (${f.toFixed(0)} Hz, ${top})`);
+    const quiet = []; render(440, { mode: 0 }, msg => quiet.push(msg), false);
+    assert.equal(quiet.length, 0, 'an unwatched filter reports nothing');
+    console.log('ok: filterpro panel');
+  }
+
   {
     const node = def.create({ sampleRate: rate }), params = Float32Array.from(def.params.map(p => (p.name === 'noise' || p.name === 'click' ? 0 : p.def))); node.message({ type: 'env', slot: 'amp', points: bz.SHAPES.flat() });
     node.note({ type: 'noteOn', note: 60, vel: 1 }); const L = new Float32Array(128); let peak = 0;

@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['730', ['FilterPro has a panel: the sound going in, the sound coming out and the filter curve between them, with frequency marks, the cutoff to drag, and formants or comb teeth for the vowel and comb voicings. The vowel voicing no longer drifts.']],
   ['729', ['Low Pulsar notes keep their release tail instead of cutting off when the key is let go.']],
   ['728', ['The Pulsar synth is in the Shift+I menu (synths, digital): a ready-made instrument with formant, track, mask and scatter on its panel.']],
   ['727', ['Mixer meters turn grey for lanes whose Mix button is off, since those do not reach the output.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['723', ['No purples or pinks on the first screen: the random colours skip that part of the colour wheel, and the blob keeps to yellow, blue and orange colourways.']],
   ['722', ['A new first screen: reaction diffusion and flowing plasma join the blob and the logo, in new random colours on every start (the old teal is gone). Pick one, or leave Config "First screen look" on random.']],
   ['721', ['The mixer\'s button column sits 5 px clear of the dB tick marks (strips are 5 px wider).']],
-  ['720', ['The pattern roll has an Edit switch (off by default): with it off, nothing you do in the roll changes the pattern.']],
                     ];

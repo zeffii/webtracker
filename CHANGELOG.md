@@ -2,6 +2,11 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 730 · 2026-11-12
+
+- **FilterPro has a panel.** It shows the sound going into the filter (grey), the sound coming out (orange) and the filter's own curve (green) on one frequency axis from 20 Hz to 20 kHz, with the curve's scale (+24 to -36 dB, 0 dB dashed). The curve is drawn from the real filter maths and moves with every setting; a line under the picture names the voicing, where it has fallen 3 dB and its highest point. The cutoff has a dot to drag (along for the cutoff, up and down for the resonance). The vowel voicing marks its three formants in Hz, and the combs mark their teeth at the whole multiples of the cutoff. The spectra are live while the panel is open and cost nothing when it is not. Drive, bias and the cutoff input are not part of the curve.
+- **The vowel voicing no longer drifts.** Its three band filters left out a term in one of their states, so that state only integrated, and the output carried a slow wobble several times louder than the filtered sound. Now it is a plain band filter. The vowel sound itself is cleaner and quieter between the formants. Smoke test added: the drawn curve is checked against the real filter in eleven voicings.
+
 ## 729 · 2026-11-12
 
 - **Low Pulsar notes keep their release tail.** A pulse train is silent between its pulses, and at a low pitch those gaps are long. The runtime counts three silent blocks as a finished released voice, so a low note was stopped part-way through its release. A node can now report that it is still busy (the pulsar does while its envelope runs), and the voice ends only after that. Smoke test added.
