@@ -1,16 +1,19 @@
 import { makeCanvas, drag, heartbeat, clamp } from './spaceui.js';
 
-// The Pogue panel. Above, the voices themselves: where each one reads the delay line, over the last few seconds (the node
-// reports them while the panel asks, every second), inside the band between the shortest and the longest delay. The two edges
-// of the band can be dragged. A wide setting draws the right side's voices thinner and dashed. Below, the wet path in three
-// small pictures: the high-pass and low-pass it goes through (their two cut-offs can be dragged), what saturation and the bit
-// reduction do to a sound (the curve from what goes in to what comes out), and how much of the wet sound is fed back to its own
-// side and to the other one (the thicker the arrow, the more; a dashed one is inverted).
-const W = 560, PL = 40, PR = 14, TOP = 22, TRACE = 150, GAP = 40, STRIP = 92, H = TOP + TRACE + GAP + STRIP + 24;
+// The Pogue panel, in four pictures that sit side by side in a row (the node's strip scrolls sideways when they do not fit; see
+// .subui-strip in index.html). The big one shows the voices themselves: where each one reads the delay line, over the last few seconds
+// (the node reports them while the panel asks, every second), inside the band between the shortest and the longest delay. The two
+// edges of the band can be dragged. A wide setting draws the right side's voices thinner and dashed. The three small ones are the wet
+// path: the high-pass and low-pass it goes through (their two cut-offs can be dragged), what saturation and the bit reduction do to a
+// sound (the curve from what goes in to what comes out), and how much of the wet sound is fed back to its own side and to the other
+// one (the thicker the arrow, the more; a dashed one is inverted).
+const VW = 560, PL = 40, PR = 14, TOP = 22, TRACE = 150, VH = TOP + TRACE + 22;   // the voices picture
+const SW = 190, STOP = 22, STRIP = 92, SH = STOP + STRIP + 22;   // each of the three small ones: title, picture, labels
 const SECONDS = 6, KEPT = 180;   // the history shown, and how many reports it holds (about 35 ms apart)
 const AMBER = 'hsl(40 95% 62%)', GREEN = 'hsl(165 55% 52%)', ORANGE = 'hsl(30 90% 58%)', RED = 'hsl(8 80% 62%)';
 const voiceColour = (v, count) => `hsl(${28 + (count > 1 ? v / (count - 1) : 0) * 170} 78% 58%)`;   // orange to cyan, so no purples
 const STEREO = ['mono', 'wide', 'spread'];
+const FONT = '9px ui-monospace, Consolas, monospace';
 
 const hz = v => (v >= 1000 ? `${+(v / 1000).toFixed(v >= 10000 ? 0 : 1)} kHz` : `${Math.round(v)} Hz`);
 
@@ -22,15 +25,15 @@ const passGain = (f, cut, q, high, sampleRate) => {
 
 export function createPogueView({ doc = document, getParam, setParam, watch = () => {}, sampleRate = 48000 }) {
   const el = doc.createElement('div'); el.className = 'spacepanel pogue-panel';
-  const { canvas, ctx, ink } = makeCanvas(doc, W, H, 'sp-pad');
+  const row = doc.createElement('div'); row.className = 'subui-row';
   const info = doc.createElement('div'); info.className = 'sp-info';
-  el.append(canvas, info);
+  const voices = makeCanvas(doc, VW, VH, 'sp-pad'), filters = makeCanvas(doc, SW, SH, 'sp-pad'), shaper = makeCanvas(doc, SW, SH, 'sp-pad'), feedback = makeCanvas(doc, SW, SH, 'sp-pad');
+  row.append(voices.canvas, filters.canvas, shaper.canvas, feedback.canvas);
+  el.append(row, info);
 
   const history = [];   // each report: { l: [...ms], r: [...ms] }
   let live = false, queued = false;
-  const pw = W - PL - PR, trackY = TOP + TRACE + GAP;
-  const stripW = (W - 3 * 18 - PL + 18) / 3;   // three pictures side by side
-  const stripX = i => PL - 18 + 18 + i * (stripW + 18);
+  const pw = VW - PL - PR;
 
   const feed = msg => {
     history.push({ l: Array.from(msg.l), r: Array.from(msg.r) });
@@ -39,40 +42,37 @@ export function createPogueView({ doc = document, getParam, setParam, watch = ()
     if (!queued) { queued = true; (doc.defaultView?.requestAnimationFrame ?? (f => f()))(() => { queued = false; draw(); }); }
   };
 
+  // a canvas ready to draw on: cleared, in the panel's small monospace, with a label helper
+  const begin = ({ canvas, ctx, ink }, w, h) => {
+    ctx.setTransform(canvas.width / w, 0, 0, canvas.height / h, 0, 0);
+    ctx.clearRect(0, 0, w, h);
+    ctx.font = FONT; ctx.textBaseline = 'top'; ctx.lineJoin = 'round'; ctx.textAlign = 'left';
+    const c = ink();
+    const label = (text, x, y, colour = c, alpha = 0.6, align = 'left') => { ctx.globalAlpha = alpha; ctx.fillStyle = colour; ctx.textAlign = align; ctx.fillText(text, x, y); ctx.textAlign = 'left'; ctx.globalAlpha = 1; };
+    return { ctx, c, label };
+  };
+
+  // ---- the voices over time ----
   // the delay axis: 0 to a little over the longest the voices can reach
   const axisMax = () => Math.max(8, Math.ceil(Math.max(getParam('mindelay'), getParam('maxdelay')) * 1.25 / 2) * 2);
   const DY = ms => TOP + TRACE - clamp(ms / axisMax(), 0, 1) * TRACE;
   const msAt = y => clamp((TOP + TRACE - y) / TRACE * axisMax(), 0.5, 50);
 
-  // the filters' picture: log frequency 20 Hz to 20 kHz, -36 to +12 dB
-  const fx = (f, x0, w) => x0 + (Math.log2(f) - Math.log2(20)) / (Math.log2(20000) - Math.log2(20)) * w;
-  const freqAtX = (x, x0, w) => Math.pow(2, Math.log2(20) + (x - x0) / w * (Math.log2(20000) - Math.log2(20)));
-  const FY = d => trackY + STRIP - (clamp(d, -36, 12) + 36) / 48 * STRIP;
-
-  function draw() {
-    if (!ctx) return;
-    const c = ink(), count = Math.round(getParam('voices')), stereo = Math.round(getParam('stereo'));
-    const lo = Math.min(getParam('mindelay'), getParam('maxdelay')), hi = Math.max(getParam('mindelay'), getParam('maxdelay'));
-    ctx.setTransform(canvas.width / W, 0, 0, canvas.height / H, 0, 0);
-    ctx.clearRect(0, 0, W, H);
-    ctx.font = '9px ui-monospace, Consolas, monospace'; ctx.textBaseline = 'top'; ctx.lineJoin = 'round';
-    const label = (text, x, y, colour = c, alpha = 0.6) => { ctx.globalAlpha = alpha; ctx.fillStyle = colour; ctx.fillText(text, x, y); ctx.globalAlpha = 1; };
-
-    // ---- the voices over time ----
+  function drawVoices(count, stereo, lo, hi) {
+    if (!voices.ctx) return;
+    const { ctx, c, label } = begin(voices, VW, VH);
     label('VOICES · where each one reads the delay line (ms)', PL, 6);
     ctx.strokeStyle = c; ctx.lineWidth = 1;
     const top = axisMax(), step = top <= 16 ? 2 : top <= 30 ? 5 : 10;
-    ctx.textAlign = 'right';
     for (let ms = 0; ms <= top; ms += step) {
-      ctx.globalAlpha = 0.12; ctx.beginPath(); ctx.moveTo(PL, Math.round(DY(ms)) + 0.5); ctx.lineTo(W - PR, Math.round(DY(ms)) + 0.5); ctx.stroke();
-      label(String(ms), PL - 5, DY(ms) - 4);
+      ctx.globalAlpha = 0.12; ctx.beginPath(); ctx.moveTo(PL, Math.round(DY(ms)) + 0.5); ctx.lineTo(VW - PR, Math.round(DY(ms)) + 0.5); ctx.stroke(); ctx.globalAlpha = 1;
+      label(String(ms), PL - 5, DY(ms) - 4, c, 0.6, 'right');
     }
-    ctx.textAlign = 'left';
     ctx.fillStyle = AMBER; ctx.globalAlpha = 0.1; ctx.fillRect(PL, DY(hi), pw, DY(lo) - DY(hi)); ctx.globalAlpha = 1;
     ctx.strokeStyle = AMBER; ctx.lineWidth = 1.2; ctx.globalAlpha = 0.8; ctx.setLineDash([4, 3]);
-    for (const ms of [lo, hi]) { ctx.beginPath(); ctx.moveTo(PL, Math.round(DY(ms)) + 0.5); ctx.lineTo(W - PR, Math.round(DY(ms)) + 0.5); ctx.stroke(); }
+    for (const ms of [lo, hi]) { ctx.beginPath(); ctx.moveTo(PL, Math.round(DY(ms)) + 0.5); ctx.lineTo(VW - PR, Math.round(DY(ms)) + 0.5); ctx.stroke(); }
     ctx.setLineDash([]); ctx.globalAlpha = 1;
-    label(`longest ${+hi.toFixed(1)} ms`, W - PR - 84, DY(hi) - 11, AMBER, 0.95); label(`shortest ${+lo.toFixed(1)} ms`, W - PR - 90, DY(lo) + 3, AMBER, 0.95);
+    label(`longest ${+hi.toFixed(1)} ms`, VW - PR - 84, DY(hi) - 11, AMBER, 0.95); label(`shortest ${+lo.toFixed(1)} ms`, VW - PR - 90, DY(lo) + 3, AMBER, 0.95);
     for (let s = 0; s <= SECONDS; s++) label(s === SECONDS ? 'now' : `-${SECONDS - s}s`, PL + s / SECONDS * pw - (s === SECONDS ? 8 : 6), TOP + TRACE + 3, c, 0.45);
     // the traces: the right side (wide mode) first, thin and dashed, so the left side's lines lie over them
     const x = k => PL + pw - (history.length - 1 - k) / KEPT * pw;
@@ -92,55 +92,70 @@ export function createPogueView({ doc = document, getParam, setParam, watch = ()
       for (let v = 0; v < count; v++) if (last.l[v] !== undefined) { ctx.fillStyle = voiceColour(v, count); ctx.beginPath(); ctx.arc(x(history.length - 1), DY(last.l[v]), 3.2, 0, Math.PI * 2); ctx.fill(); }
     }
     if (!live) label('play something through it to watch the voices', PL + pw / 2 - 118, TOP + TRACE / 2 - 4, c, 0.5);
+  }
 
-    // ---- the wet path ----
-    // 1. the filters
-    const x1 = stripX(0), w1 = stripW, hpCut = getParam('hpcut'), lpCut = getParam('lpcut'), hpQ = getParam('hpq'), lpQ = getParam('lpq');
-    label('FILTERS', x1, trackY - 14);
-    ctx.strokeStyle = c; ctx.globalAlpha = 0.13; ctx.lineWidth = 1;
-    for (const f of [100, 1000, 10000]) { ctx.beginPath(); ctx.moveTo(Math.round(fx(f, x1, w1)) + 0.5, trackY); ctx.lineTo(Math.round(fx(f, x1, w1)) + 0.5, trackY + STRIP); ctx.stroke(); label(f >= 1000 ? `${f / 1000}k` : String(f), fx(f, x1, w1) - 6, trackY + STRIP + 3, c, 0.45); ctx.globalAlpha = 0.13; }
-    ctx.beginPath(); ctx.moveTo(x1, Math.round(FY(0)) + 0.5); ctx.lineTo(x1 + w1, Math.round(FY(0)) + 0.5); ctx.stroke(); ctx.globalAlpha = 1;
+  // ---- the filters: log frequency 20 Hz to 20 kHz, -36 to +12 dB ----
+  const fx = f => 8 + (Math.log2(f) - Math.log2(20)) / (Math.log2(20000) - Math.log2(20)) * (SW - 16);
+  const freqAtX = x => Math.pow(2, Math.log2(20) + (x - 8) / (SW - 16) * (Math.log2(20000) - Math.log2(20)));
+  const FY = d => STOP + STRIP - (clamp(d, -36, 12) + 36) / 48 * STRIP;
+
+  function drawFilters() {
+    if (!filters.ctx) return;
+    const { ctx, c, label } = begin(filters, SW, SH);
+    const hpCut = getParam('hpcut'), lpCut = getParam('lpcut'), hpQ = getParam('hpq'), lpQ = getParam('lpq');
+    label('FILTERS', 8, 4);
+    ctx.strokeStyle = c; ctx.lineWidth = 1;
+    for (const f of [100, 1000, 10000]) { ctx.globalAlpha = 0.13; ctx.beginPath(); ctx.moveTo(Math.round(fx(f)) + 0.5, STOP); ctx.lineTo(Math.round(fx(f)) + 0.5, STOP + STRIP); ctx.stroke(); ctx.globalAlpha = 1; label(f >= 1000 ? `${f / 1000}k` : String(f), fx(f) - 6, STOP + STRIP + 3, c, 0.45); }
+    ctx.globalAlpha = 0.13; ctx.beginPath(); ctx.moveTo(8, Math.round(FY(0)) + 0.5); ctx.lineTo(SW - 8, Math.round(FY(0)) + 0.5); ctx.stroke(); ctx.globalAlpha = 1;
     ctx.strokeStyle = GREEN; ctx.lineWidth = 1.6; ctx.beginPath();
     for (let i = 0; i <= 120; i++) {
       const f = 20 * Math.pow(1000, i / 120), g = 20 * Math.log10(Math.max(1e-4, passGain(f, hpCut, hpQ, true, sampleRate) * passGain(f, lpCut, lpQ, false, sampleRate)));
-      if (i) ctx.lineTo(fx(f, x1, w1), FY(g)); else ctx.moveTo(fx(f, x1, w1), FY(g));
+      if (i) ctx.lineTo(fx(f), FY(g)); else ctx.moveTo(fx(f), FY(g));
     }
     ctx.stroke();
-    for (const [cut, text, a] of [[hpCut, 'hp', 'right'], [lpCut, 'lp', 'left']]) {
-      ctx.strokeStyle = AMBER; ctx.fillStyle = AMBER; ctx.globalAlpha = 0.8; ctx.setLineDash([2, 3]);
-      ctx.beginPath(); ctx.moveTo(Math.round(fx(cut, x1, w1)) + 0.5, trackY); ctx.lineTo(Math.round(fx(cut, x1, w1)) + 0.5, trackY + STRIP); ctx.stroke(); ctx.setLineDash([]);
-      ctx.beginPath(); ctx.arc(fx(cut, x1, w1), FY(-3 + (text === 'hp' ? 0 : 0)), 3, 0, Math.PI * 2); ctx.fill();
-      const side = a === 'left' && fx(cut, x1, w1) + 62 > x1 + w1 ? 'right' : a;   // keep the label inside its picture
-      ctx.globalAlpha = 1; ctx.textAlign = side; ctx.fillText(`${text} ${hz(cut)}`, fx(cut, x1, w1) + (side === 'right' ? -4 : 4), trackY + 2); ctx.textAlign = 'left';
+    for (const [cut, text, align] of [[hpCut, 'hp', 'right'], [lpCut, 'lp', 'left']]) {
+      ctx.strokeStyle = AMBER; ctx.fillStyle = AMBER; ctx.globalAlpha = 0.8; ctx.lineWidth = 1; ctx.setLineDash([2, 3]);
+      ctx.beginPath(); ctx.moveTo(Math.round(fx(cut)) + 0.5, STOP); ctx.lineTo(Math.round(fx(cut)) + 0.5, STOP + STRIP); ctx.stroke(); ctx.setLineDash([]);
+      ctx.beginPath(); ctx.arc(fx(cut), FY(-3), 3, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1;
+      const side = align === 'left' && fx(cut) + 62 > SW ? 'right' : align;   // keep the label inside the picture
+      label(`${text} ${hz(cut)}`, fx(cut) + (side === 'right' ? -4 : 4), STOP + 2, AMBER, 1, side);
     }
+  }
 
-    // 2. saturation then bit reduction: what comes out for what goes in
-    const x2 = stripX(1), w2 = stripW, sat = getParam('saturation'), degrade = getParam('degrade');
-    const levels = degrade > 0 ? Math.pow(2, 16 - 14 * degrade - 1) : 0, drive = 1 + 9 * sat;
-    label(`SATURATE + BITS${degrade > 0 ? ` · ${(16 - 14 * degrade).toFixed(1)} bits` : ''}`, x2, trackY - 14);
-    ctx.strokeStyle = c; ctx.globalAlpha = 0.25; ctx.lineWidth = 1; ctx.strokeRect(x2 + 0.5, trackY + 0.5, w2, STRIP);
-    ctx.beginPath(); ctx.moveTo(x2, trackY + STRIP / 2 + 0.5); ctx.lineTo(x2 + w2, trackY + STRIP / 2 + 0.5); ctx.moveTo(x2 + w2 / 2 + 0.5, trackY); ctx.lineTo(x2 + w2 / 2 + 0.5, trackY + STRIP); ctx.stroke();
-    ctx.setLineDash([2, 3]); ctx.globalAlpha = 0.3; ctx.beginPath(); ctx.moveTo(x2, trackY + STRIP); ctx.lineTo(x2 + w2, trackY); ctx.stroke(); ctx.setLineDash([]); ctx.globalAlpha = 1;
+  // ---- saturation then bit reduction: what comes out for what goes in ----
+  function drawShaper() {
+    if (!shaper.ctx) return;
+    const { ctx, c, label } = begin(shaper, SW, SH);
+    const sat = getParam('saturation'), degrade = getParam('degrade'), levels = degrade > 0 ? Math.pow(2, 16 - 14 * degrade - 1) : 0, drive = 1 + 9 * sat;
+    const x0 = 8, w = SW - 16;
+    label(`SATURATE + BITS${degrade > 0 ? ` · ${(16 - 14 * degrade).toFixed(1)} bits` : ''}`, 8, 4);
+    ctx.strokeStyle = c; ctx.globalAlpha = 0.25; ctx.lineWidth = 1; ctx.strokeRect(x0 + 0.5, STOP + 0.5, w, STRIP);
+    ctx.beginPath(); ctx.moveTo(x0, STOP + STRIP / 2 + 0.5); ctx.lineTo(x0 + w, STOP + STRIP / 2 + 0.5); ctx.moveTo(x0 + w / 2 + 0.5, STOP); ctx.lineTo(x0 + w / 2 + 0.5, STOP + STRIP); ctx.stroke();
+    ctx.setLineDash([2, 3]); ctx.globalAlpha = 0.3; ctx.beginPath(); ctx.moveTo(x0, STOP + STRIP); ctx.lineTo(x0 + w, STOP); ctx.stroke(); ctx.setLineDash([]); ctx.globalAlpha = 1;
     ctx.strokeStyle = ORANGE; ctx.lineWidth = 1.6; ctx.beginPath();
     for (let i = 0; i <= 160; i++) {
       const xin = -1 + 2 * i / 160;
       let y = sat > 0 ? Math.tanh(xin * drive) / Math.tanh(drive) : xin;
       if (levels > 0) y = Math.round(y * levels) / levels;
-      const px = x2 + (xin + 1) / 2 * w2, py = trackY + STRIP / 2 - clamp(y, -1, 1) * STRIP / 2;
+      const px = x0 + (xin + 1) / 2 * w, py = STOP + STRIP / 2 - clamp(y, -1, 1) * STRIP / 2;
       if (i) ctx.lineTo(px, py); else ctx.moveTo(px, py);
     }
     ctx.stroke();
-    label(`sat ${Math.round(sat * 100)}%`, x2 + 4, trackY + 3, ORANGE, 0.9);
+    label(`sat ${Math.round(sat * 100)}%`, x0 + 4, STOP + 3, ORANGE, 0.9);
+  }
 
-    // 3. the feedback: self and across, between the two sides
-    const x3 = stripX(2), w3 = stripW, fb = getParam('feedback'), xfb = getParam('xfeedback');
-    label('FEEDBACK', x3, trackY - 14);
-    const cy = trackY + STRIP * 0.58, lx = x3 + w3 * 0.22, rx = x3 + w3 * 0.78, rad = 12;
-    const arrow = (x0, y0, x1b, y1b, amount) => {
+  // ---- the feedback: to its own side and across, between the two sides ----
+  function drawFeedback() {
+    if (!feedback.ctx) return;
+    const { ctx, c, label } = begin(feedback, SW, SH);
+    const fb = getParam('feedback'), xfb = getParam('xfeedback');
+    label('FEEDBACK', 8, 4);
+    const cy = STOP + STRIP * 0.58, lx = SW * 0.22, rx = SW * 0.78, rad = 12;
+    const arrow = (x0, y0, x1, y1, amount) => {
       const a = Math.abs(amount); if (a < 0.005) return;
       ctx.strokeStyle = amount < 0 ? RED : GREEN; ctx.fillStyle = ctx.strokeStyle; ctx.lineWidth = 1 + a * 5; ctx.globalAlpha = 0.9; ctx.setLineDash(amount < 0 ? [4, 3] : []);
-      ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1b, y1b); ctx.stroke(); ctx.setLineDash([]);
-      const ang = Math.atan2(y1b - y0, x1b - x0); ctx.beginPath(); ctx.moveTo(x1b, y1b); ctx.lineTo(x1b - 7 * Math.cos(ang - 0.45), y1b - 7 * Math.sin(ang - 0.45)); ctx.lineTo(x1b - 7 * Math.cos(ang + 0.45), y1b - 7 * Math.sin(ang + 0.45)); ctx.closePath(); ctx.fill(); ctx.globalAlpha = 1;
+      ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke(); ctx.setLineDash([]);
+      const ang = Math.atan2(y1 - y0, x1 - x0); ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x1 - 7 * Math.cos(ang - 0.45), y1 - 7 * Math.sin(ang - 0.45)); ctx.lineTo(x1 - 7 * Math.cos(ang + 0.45), y1 - 7 * Math.sin(ang + 0.45)); ctx.closePath(); ctx.fill(); ctx.globalAlpha = 1;
     };
     const loop = (cx, amount) => {
       const a = Math.abs(amount); if (a < 0.005) return;
@@ -154,34 +169,37 @@ export function createPogueView({ doc = document, getParam, setParam, watch = ()
       label(name, cx - 3, cy - 4, c, 0.9);
     }
     const pct = v => `${v < 0 ? '-' : ''}${Math.round(Math.abs(v) * 100)}%`;
-    label(`own ${pct(fb)}`, x3 + 2, trackY + STRIP - 4, fb < 0 ? RED : GREEN, 0.9); ctx.textAlign = 'right'; label(`across ${pct(xfb)}`, x3 + w3, trackY + STRIP - 4, xfb < 0 ? RED : GREEN, 0.9); ctx.textAlign = 'left';
+    label(`own ${pct(fb)}`, 8, STOP + STRIP + 3, fb < 0 ? RED : GREEN, 0.9); label(`across ${pct(xfb)}`, SW - 8, STOP + STRIP + 3, xfb < 0 ? RED : GREEN, 0.9, 'right');
+  }
 
+  function draw() {
+    const count = Math.round(getParam('voices')), stereo = Math.round(getParam('stereo'));
+    const lo = Math.min(getParam('mindelay'), getParam('maxdelay')), hi = Math.max(getParam('mindelay'), getParam('maxdelay'));
+    drawVoices(count, stereo, lo, hi); drawFilters(); drawShaper(); drawFeedback();
     info.textContent = `${count} voice${count === 1 ? '' : 's'} · ${STEREO[stereo] ?? ''} · ${+lo.toFixed(1)} to ${+hi.toFixed(1)} ms · fastest ${+getParam('rate').toFixed(2)} Hz · ${Math.round(getParam('change') * 100)}% random · mix ${Math.round(getParam('mix') * 100)}%`;
   }
 
   // dragging: an edge of the delay band (up and down), or a filter cut-off (along)
-  let grab = null;
-  drag(canvas, W, H, {
+  let edge = null;
+  drag(voices.canvas, VW, VH, {
     start: (px, py) => {
-      if (py >= TOP - 4 && py <= TOP + TRACE + 4 && px >= PL - 4) {
-        const lo = getParam('mindelay'), hi = getParam('maxdelay');
-        const near = [['mindelay', lo], ['maxdelay', hi]].filter(([, ms]) => Math.abs(py - DY(ms)) <= 7).sort((a, b) => Math.abs(py - DY(a[1])) - Math.abs(py - DY(b[1])))[0];
-        if (near) { grab = { kind: 'delay', name: near[0] }; return true; }
-        return false;
-      }
-      if (py >= trackY - 4 && py <= trackY + STRIP + 4) {
-        const x1 = stripX(0);
-        const near = [['hpcut', getParam('hpcut')], ['lpcut', getParam('lpcut')]].filter(([, f]) => Math.abs(px - fx(f, x1, stripW)) <= 8).sort((a, b) => Math.abs(px - fx(a[1], x1, stripW)) - Math.abs(px - fx(b[1], x1, stripW)))[0];
-        if (near) { grab = { kind: 'cut', name: near[0] }; return true; }
-      }
-      return false;
+      if (py < TOP - 4 || py > TOP + TRACE + 4 || px < PL - 4) return false;
+      const near = [['mindelay', getParam('mindelay')], ['maxdelay', getParam('maxdelay')]].filter(([, ms]) => Math.abs(py - DY(ms)) <= 7).sort((a, b) => Math.abs(py - DY(a[1])) - Math.abs(py - DY(b[1])))[0];
+      if (!near) return false;
+      edge = near[0]; return true;
     },
-    move: (px, py) => {
-      if (grab.kind === 'delay') setParam(grab.name, Math.round(msAt(py) * 10) / 10);
-      else setParam(grab.name, Math.round(grab.name === 'hpcut' ? clamp(freqAtX(px, stripX(0), stripW), 10, 2000) : clamp(freqAtX(px, stripX(0), stripW), 200, 20000)));
-      draw();
+    move: (px, py) => { setParam(edge, Math.round(msAt(py) * 10) / 10); draw(); },
+    done: () => { edge = null; },
+  });
+  let cut = null;
+  drag(filters.canvas, SW, SH, {
+    start: px => {
+      const near = [['hpcut', getParam('hpcut')], ['lpcut', getParam('lpcut')]].filter(([, f]) => Math.abs(px - fx(f)) <= 8).sort((a, b) => Math.abs(px - fx(a[1])) - Math.abs(px - fx(b[1])))[0];
+      if (!near) return false;
+      cut = near[0]; return true;
     },
-    done: () => { grab = null; },
+    move: px => { setParam(cut, Math.round(cut === 'hpcut' ? clamp(freqAtX(px), 10, 2000) : clamp(freqAtX(px), 200, 20000))); draw(); },
+    done: () => { cut = null; },
   });
 
   heartbeat(doc, el, watch);

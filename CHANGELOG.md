@@ -2,6 +2,11 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 733 · 2026-11-12
+
+- **One layout rule for node panels: the views sit side by side in a strip that scrolls sideways.** The pictures and editors of a node (the drum's pitch and volume curves, the pulsar's pulse train and drawings, the filter and chorus panels, and so on) used to stack down the page. Now they go in one row, in a fixed order, and when they are wider than the panel the row gets its own scroll bar, as a chain of devices does in a DAW. The rows of controls (listens to, presets, notes) stay one to a line above it. A panel made of several parts lays its parts along the strip the same way; the DX bank keeps the whole width and wraps itself as before. Any new picture follows the rule by being one more view (`sub(...)` in the node panel code, `.subui` in the page styles).
+- **Pogue's panel is four pictures in a row** (the voices, the filters, saturation and bits, the feedback) instead of one tall one, so it follows the rule too.
+
 ## 732 · 2026-11-12
 
 - **Pogue has a panel.** The top half shows the voices themselves: where each one reads the delay line, over the last six seconds, between the shortest and the longest delay (the node reports its real voice positions while the panel is open, so the wobble you see is the wobble you hear). In wide mode the right side's voices are drawn thinner and dashed. The two edges of the delay band can be dragged. Below are three pictures of the wet path: the high-pass and low-pass it goes through (drag either cut-off), the curve saturation and the bit reduction make from what goes in to what comes out (a staircase when degrade is up), and the feedback to its own side and across (arrow thickness is the amount, dashed red is inverted). A line under it sums up the settings.

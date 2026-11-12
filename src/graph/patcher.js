@@ -677,6 +677,9 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
       shownNode = node.id;
     }
     const items = [];
+    // The views (the pictures and editors of a node) are marked, and end up side by side in one strip (see stripped() below and
+    // .subui-strip in index.html). The rows of controls stay one to a line.
+    const sub = view => { view.classList?.add('subui'); return view; };
     if (type.instrumentSource) {   // which instrument this node listens to; the ones that would make a loop are not offered
       const options = eligibleSources(instruments, instId).filter(id => id !== instId);
       const pick = el('select', { ariaLabel: 'Instrument to listen to' }, el('option', { value: '', textContent: '(none)' }), ...options.map(id => el('option', { value: id, textContent: id })));
@@ -714,7 +717,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
           onData(instId, node.id, { type: 'curve', points });
         },
       });
-      items.splice(1, 0, editor.el);
+      items.splice(1, 0, sub(editor.el));
     }
     if (type.editor === 'spectrum') {   // drawable harmonic levels, kept on the node and sent live
       const editor = createSpectrumEditor({
@@ -724,7 +727,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
           onData(instId, node.id, { type: 'spectrum', points });
         },
       });
-      items.splice(1, 0, editor.el);
+      items.splice(1, 0, sub(editor.el));
     }
     if (type.editor === 'wave') {   // one drawable single-cycle waveform per operator, kept on the node and sent live
       const editor = createWaveEditor({
@@ -734,7 +737,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
           onData(instId, node.id, { type: 'waves', points: waves });
         },
       });
-      items.splice(1, 0, editor.el);
+      items.splice(1, 0, sub(editor.el));
     }
     oscWave = null;
     if (type.editor === 'oscwave') {   // one drawable single-cycle wave, kept on the node and sent live
@@ -746,7 +749,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
           onData(instId, node.id, { type: 'wave', points });
         },
       });
-      items.splice(1, 0, oscWave.el);
+      items.splice(1, 0, sub(oscWave.el));
     }
     gateEditor = null;
     if (type.editor === 'gate') {   // the step levels, kept on the node and sent live
@@ -758,7 +761,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
           onData(instId, node.id, { type: 'gate', points });
         },
       });
-      items.splice(1, 0, gateEditor.el);
+      items.splice(1, 0, sub(gateEditor.el));
     }
     if (type.editor === 'genexpr') {   // the code of a GenExpr node, kept on the node and sent live; its Params move the knobs
       const code = createGenexprEditor({
@@ -766,7 +769,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
         setKnob: (i, value) => { const name = `p${i + 1}`; setParam(desc(), node.id, name, value); onParam(instId, node.id, name, value); paramView?.refresh(); },
         onChange: text => { node.data = { ...node.data, code: text }; onData(instId, node.id, { type: 'code', text }); },
       });
-      items.splice(1, 0, code.el);
+      items.splice(1, 0, sub(code.el));
     }
     dxView = null; overDx = false;
     if (type.editor === 'dx') {   // a DX7 bank on the node, sent live; the voice parameter picks from it
@@ -781,22 +784,23 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
       });
       dxView.el.addEventListener('mouseenter', () => { overDx = true; });
       dxView.el.addEventListener('mouseleave', () => { overDx = false; });
-      items.splice(1, 0, dxView.el);
+      dxView.el.classList.add('fill');
+      items.splice(1, 0, sub(dxView.el));
     }
     specView = null;
     if (type.editor === 'specpan') {   // the pan of each band against frequency, drawn from the parameters
       specView = createSpecPanView({ doc, getParam: name => readLive(instId, node.id, name) ?? node.params?.[name] ?? type.params.find(p => p.name === name)?.def ?? 0 });
-      items.splice(1, 0, specView.el);
+      items.splice(1, 0, sub(specView.el));
     }
     cardinalView = null;
     if (type.editor === 'cardinal') {   // the oscillators, filter, envelopes and LFOs, drawn from the parameters
       cardinalView = createCardinalView({ doc, getParam: name => readLive(instId, node.id, name) ?? node.params?.[name] ?? type.params.find(q => q.name === name)?.def ?? 0 });
-      items.splice(1, 0, cardinalView.el);
+      items.splice(1, 0, sub(cardinalView.el));
     }
     membraneView = null;
     if (type.editor === 'membrane') {   // the head and its modes, drawn from the parameters
       membraneView = createMembraneView({ doc, getParam: name => readLive(instId, node.id, name) ?? node.params?.[name] ?? type.params.find(q => q.name === name)?.def ?? 0 });
-      items.splice(1, 0, membraneView.el);
+      items.splice(1, 0, sub(membraneView.el));
     }
     granularView = null;
     if (type.editor === 'granular') {   // the sample the grains are cut from, the grains and the cloud, drawn from the parameters
@@ -805,7 +809,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
         doc, getParam: param,
         getSample: () => { const cur = def().samples?.[node.id], list = Array.isArray(cur) ? cur : cur === undefined ? [] : [cur]; const id = list[Math.round(param('sample'))]; return id === undefined ? null : getSample(id); },
       });
-      items.splice(1, 0, granularView.el);
+      items.splice(1, 0, sub(granularView.el));
     }
     env2Editor = null;
     if (type.editor === 'env2') {   // one drawn envelope, kept on the node and sent live
@@ -818,7 +822,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
           onData(instId, node.id, { type: 'env', slot: 'main', points });
         },
       });
-      items.splice(1, 0, env2Editor.el);
+      items.splice(1, 0, sub(env2Editor.el));
     }
     drum2View = null;
     if (type.editor === 'drumsynth2') {   // three drawn envelopes, kept on the node and sent live, and the composed hit
@@ -831,7 +835,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
           onData(instId, node.id, { type: 'env', slot, points });
         },
       });
-      items.splice(1, 0, drum2View.el);
+      items.splice(1, 0, sub(drum2View.el));
     }
     spaceView = null;
     const SPACE = { reflect: createReflectView, headpan: createHeadView, haas: createHaasView, ringmod: createRingView, sympathy: createSympathyView, notepan: createNotePanView, filterpro: createFilterProView, pogue: createPogueView };
@@ -843,7 +847,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
         watch: () => onData(instId, node.id, { type: 'watch' }),
       });
       spaceView.nodeId = node.id;
-      items.splice(1, 0, spaceView.el);
+      items.splice(1, 0, sub(spaceView.el));
     }
     kalView = null;
     if (type.editor === 'kaleidoscope') {   // the live spectrum with the band to drag, and the arrayed result
@@ -854,7 +858,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
         watch: () => onData(instId, node.id, { type: 'watch' }),
       });
       kalView.nodeId = node.id;
-      items.splice(1, 0, kalView.el);
+      items.splice(1, 0, sub(kalView.el));
     }
     hat2View = null;
     if (type.editor === 'hat2') {   // the volume drawings of the closed and the open hat, kept on the node and sent live
@@ -866,7 +870,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
           onData(instId, node.id, { type: 'env', slot, points });
         },
       });
-      items.splice(1, 0, hat2View.el);
+      items.splice(1, 0, sub(hat2View.el));
     }
     pulsarView = null;
     if (type.editor === 'pulsar' || type.editor === 'pulsetrain') {   // the pulse train, the window over each pulsaret and (the synth) the formant sweep
@@ -878,7 +882,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
           onData(instId, node.id, { type: 'env', slot, points });
         },
       });
-      items.splice(1, 0, pulsarView.el);
+      items.splice(1, 0, sub(pulsarView.el));
     }
     drumView = null;
     if (type.editor === 'drumsynth') {   // the envelopes, the click and the composed note, drawn from the parameters and the click sample
@@ -887,7 +891,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
         doc, getParam: param,
         getClickSample: () => { const cur = def().samples?.[node.id], list = Array.isArray(cur) ? cur : cur === undefined ? [] : [cur]; const id = list[Math.round(param('clickSample'))]; return id === undefined ? null : getSample(id); },
       });
-      items.splice(1, 0, drumView.el);
+      items.splice(1, 0, sub(drumView.el));
     }
     rangeView = null;
     if (node.type === 'range') {   // the port it feeds and the stretch of its span in use
@@ -895,7 +899,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
         doc, getTarget: () => rangeTargetOf(desc(), nodeTypes, node.id),
         getParam: name => readLive(instId, node.id, name) ?? node.params?.[name] ?? type.params.find(q => q.name === name)?.def ?? 0,
       });
-      items.splice(1, 0, rangeView.el);
+      items.splice(1, 0, sub(rangeView.el));
     }
     intView = null;
     if (type.editor === 'int') {   // a number box with - and + buttons
@@ -905,7 +909,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
         get: () => readLive(instId, node.id, 'value') ?? node.params?.value ?? spec.def,
         set: v => { setParam(desc(), node.id, 'value', v); onParam(instId, node.id, 'value', v); paramView?.refresh(); exposedView?.refresh(); dirty = true; },
       });
-      items.splice(1, 0, intView.el);
+      items.splice(1, 0, sub(intView.el));
     }
     chordView = null;
     if (type.editor === 'chord') {   // the 256 chord names, kept on the node and sent live
@@ -923,12 +927,12 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
         current: () => Math.round(live('chord')),
         octave: () => Math.round(live('octave')),
       });
-      items.splice(1, 0, chordView.el);
+      items.splice(1, 0, sub(chordView.el));
     }
     canyonView = null;
     if (type.editor === 'canyon') {   // the four delay lines and their echoes against the ticks, drawn from the parameters
       canyonView = createCanyonView({ doc, getTiming, getParam: name => readLive(instId, node.id, name) ?? node.params?.[name] ?? type.params.find(p => p.name === name)?.def ?? 0 });
-      items.splice(1, 0, canyonView.el);
+      items.splice(1, 0, sub(canyonView.el));
     }
     tapEditor = null;
     if (type.editor === 'taps') {   // the taps of a Shiva delay, kept on the node and sent live
@@ -940,7 +944,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
           onData(instId, node.id, { type: 'taps', points });
         },
       });
-      items.splice(1, 0, tapEditor.el);
+      items.splice(1, 0, sub(tapEditor.el));
     }
     tableEditor = null;
     if (type.editor === 'wavetable') {   // the table and the A / B waves, kept on the node and sent live
@@ -954,7 +958,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
           else if (!node.data.meta) delete node.data.meta;
         },
       });
-      items.splice(1, 0, tableEditor.el);
+      items.splice(1, 0, sub(tableEditor.el));
     }
     if (nodeTypes[node.type]?.samples) {   // the samples this node plays: a list, picked from a pattern by the Smp column (00 is the first)
       const cur = def().samples?.[node.id];
@@ -1011,7 +1015,19 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
     }
     // the preset row and the duplicate and delete buttons live in the bar above the graph, next to Add node
     const tool = x => x.classList?.contains('presets') || x.classList?.contains('tool');
-    if (toolsEl) { toolsEl.replaceChildren(...items.filter(tool)); panel.replaceChildren(...items.filter(x => !tool(x))); } else panel.replaceChildren(...items);
+    // The rows of controls stack as they always did; the views go into one strip, side by side, which scrolls sideways (with its own bar)
+    // when they are wider than the panel, as a chain of devices does in a DAW. One rule for every node: a new picture is just one more
+    // view in the strip.
+    const stripped = list => {
+      const out = [], views = list.filter(x => x.classList?.contains('subui'));
+      let placed = false;
+      for (const x of list) {
+        if (!views.includes(x)) { out.push(x); continue; }
+        if (!placed) { placed = true; out.push(el('div', { className: 'subui-strip' }, ...views)); }
+      }
+      return out;
+    };
+    if (toolsEl) { toolsEl.replaceChildren(...items.filter(tool)); panel.replaceChildren(...stripped(items.filter(x => !tool(x)))); } else panel.replaceChildren(...stripped(items));
   }
 
   // ---- mouse and keyboard ----
