@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 749 · 2026-11-12
+
+- **Groove starts at zero.** Every part (warp, wear, tracing, dust, scratch, pops, surface, rumble) defaults to 0, so a new Groove node passes the sound through untouched until you turn something up.
+
 ## 748 · 2026-11-12
 
 - **Effects on the master, before the limiter.** The Master machine's graph can be edited now: the new row *master effects* at the end of the Machines list opens it. A **Mix** node (Routing) is the sound of the whole song so far; wire it through any effects into the Out node and the result replaces the mix, and then the master volume and the limiter act on it. Nothing wired into Out: the mix passes through as before, so old songs sound the same. The Master runs after every machine, never sleeps, and its effects take no part in delay compensation. Exposed parameters of its nodes become columns in the Master lane like the others.

@@ -62,15 +62,15 @@ export default {
   latency: p => (Math.round(p.quality) === 1 ? oversampleLatency(4) : 0),   // the stylus's oversampling filters
   params: [
     { name: 'speed', min: 0, max: 2, def: 0, int: true },   // 33, 45, 78 rpm
-    { name: 'warp', min: 0, max: 1, def: 0.3 },
-    { name: 'wear', min: 0, max: 1, def: 0.3 },
-    { name: 'tracing', min: 0, max: 1, def: 0.2 },
-    { name: 'dust', min: 0, max: 1, def: 0.4 },
-    { name: 'scratch', min: 0, max: 1, def: 0.2 },
+    { name: 'warp', min: 0, max: 1, def: 0 },
+    { name: 'wear', min: 0, max: 1, def: 0 },
+    { name: 'tracing', min: 0, max: 1, def: 0 },
+    { name: 'dust', min: 0, max: 1, def: 0 },
+    { name: 'scratch', min: 0, max: 1, def: 0 },
     { name: 'stuck', min: 0, max: 1, def: 0 },
-    { name: 'pops', min: 0, max: 1, def: 0.1 },
-    { name: 'surface', min: 0, max: 1, def: 0.3 },
-    { name: 'rumble', min: 0, max: 1, def: 0.2 },
+    { name: 'pops', min: 0, max: 1, def: 0 },
+    { name: 'surface', min: 0, max: 1, def: 0 },
+    { name: 'rumble', min: 0, max: 1, def: 0 },
     { name: 'mix', min: 0, max: 1, def: 1 },
     { name: 'quality', min: 0, max: 1, def: 0, int: true },   // standard, simulation
   ],
