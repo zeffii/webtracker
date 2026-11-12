@@ -4,14 +4,15 @@
 // pattern with the part on show boxed; click or drag in it to scroll. It only reads: it follows the cursor and draws what is written.
 //
 // createPatternRoll({ win, host, target }): `win` is the window it lives in, `host` the element it fills, and target() returns
-// { lane, tick } (the lane object and the tick under the cursor) or null. refresh() draws it; call it every frame.
+// { lane, tick } (the lane object and the tick under the cursor) or null. playing() returns the playing tick, or -1 when stopped; the
+// playing row is drawn as a green line, and the roll scrolls with it when follow() is true. refresh() draws it; call it every frame.
 import { rollData } from '../seq/rolldata.js';
 
 const BLACK = new Set([1, 3, 6, 8, 10]);
 const hue = k => (k * 67 + 200) % 360;
 const GUT = 34, CHORD = 58, STALKS = 64, MAP = 34, RH = 16;
 
-export function createPatternRoll({ win, host, target, volume = true, onVolume }) {
+export function createPatternRoll({ win, host, target, playing = () => -1, follow: followPlay = () => true, volume = true, onVolume }) {
   const doc = win.document;
   const make = (tag, text, cls) => { const e = doc.createElement(tag); if (text !== undefined) e.textContent = text; if (cls) e.className = cls; return e; };
   const bar = make('div', undefined, 'pr-bar'), title = make('span', 'No pattern', 'pr-title');
@@ -67,6 +68,11 @@ export function createPatternRoll({ win, host, target, volume = true, onVolume }
       const y = curRow * RH;
       if (y < top + RH) top = y - RH * 2; else if (y > top + h - RH * 3) top = y - h + RH * 4;
     }
+    const play = playing() - data.start;
+    if (play >= 0 && play < data.length && followPlay()) {   // playing: the roll scrolls so the playing row stays in view
+      const y = play * RH;
+      if (y < top + RH || y > top + h - RH * 3) top = y - h / 3;
+    }
     clampTop();
     const { px0, px1, cx, sx, mx } = geometry();
     const [lo, hi] = span(), pw = (px1 - px0) / (hi - lo), X = p => px0 + (p - lo) * pw;
@@ -115,6 +121,7 @@ export function createPatternRoll({ win, host, target, volume = true, onVolume }
     // the cursor row
     const cy = curRow * RH - top + RH / 2;
     g.globalAlpha = 1; g.fillStyle = '#e5484d'; g.fillRect(0, cy - 0.5, mx - 4, 1.5);
+    if (play >= 0 && play < data.length) { const py = play * RH - top + RH / 2; g.globalAlpha = 1; g.fillStyle = '#2fb36b'; g.fillRect(0, py - 1, mx - 4, 2); }
     // the minimap: the whole pattern squeezed into the strip's height, the part on show boxed
     const mh = h - 8, my = 4, unit = mh / data.length;
     g.globalAlpha = .1; g.fillStyle = c.fg; g.fillRect(mx, my, MAP - 8, mh);
@@ -125,6 +132,7 @@ export function createPatternRoll({ win, host, target, volume = true, onVolume }
     }
     const vy = my + (top / RH) * unit, vh = Math.min(mh, (h / RH) * unit);
     g.globalAlpha = 1; g.strokeStyle = c.accent; g.lineWidth = 1.5; g.strokeRect(mx - 0.5, Math.min(vy, my + mh - vh), MAP - 7, vh);
+    if (play >= 0 && play < data.length) { g.fillStyle = '#2fb36b'; g.fillRect(mx - 2, my + play * unit - 0.5, MAP - 4, 1.5); }
     g.fillStyle = '#e5484d'; g.fillRect(mx - 2, my + curRow * unit - 0.5, MAP - 4, 1.5);
     g.globalAlpha = 1;
   };

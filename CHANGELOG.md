@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 718 · 2026-11-12
+
+- **The pattern roll shows the playhead.** While the song plays, the playing row is a green line in the roll (and in its minimap), apart from the red cursor line. With Follow mode on the roll scrolls to keep it in view.
+
 ## 717 · 2026-11-12
 
 - **A pattern roll window.** Pattern view options has a new "Pattern roll…" button that opens the notes of the pattern under the cursor as a piano roll in a window of its own, turned on its side so its rows run down like the tracker's and line up with them. Pitch runs across (black keys shaded, an octave line at each C), each note column has its own colour, and a note's brightness follows its velocity. A chord's name stands beside the row where it begins, worked out from the notes sounding together. A "Volume" switch shows each note's velocity as a stalk in a lane on the right. A minimap down the edge shows the whole pattern with the part on screen boxed: click or drag in it to scroll, or use the wheel. The red line is the cursor row and the roll follows it. It only reads for now.

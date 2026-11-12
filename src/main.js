@@ -1929,7 +1929,7 @@ const openRoll = () => {
   for (const [k, v] of Object.entries(document.documentElement.dataset)) w.document.documentElement.dataset[k] = v;
   w.document.head.append(Object.assign(w.document.createElement('style'), { textContent: rollStyle }));
   w.document.body.replaceChildren();
-  const roll = createPatternRoll({ win: w, host: w.document.body, volume: config.get('rollVolume'), onVolume: v => config.set('rollVolume', v), target: () => (project?.lanes?.[view.lane] ? { lane: project.lanes[view.lane], tick: view.tick } : null) });
+  const roll = createPatternRoll({ win: w, host: w.document.body, playing: () => (Atomics.load(engine.transport, 1) === 1 ? Atomics.load(engine.transport, 0) : -1), follow: () => config.get('follow'), volume: config.get('rollVolume'), onVolume: v => config.set('rollVolume', v), target: () => (project?.lanes?.[view.lane] ? { lane: project.lanes[view.lane], tick: view.tick } : null) });
   const loop = () => { if (rollWin !== w || w.closed) return; try { roll.refresh(); } catch (e) { console.error(e); } w.requestAnimationFrame(loop); };
   w.requestAnimationFrame(loop);
   w.addEventListener('pagehide', () => { if (rollWin === w) rollWin = null; });

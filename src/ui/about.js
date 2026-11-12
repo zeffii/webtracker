@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['718', ['The pattern roll shows the playhead: a green line on the playing row, scrolling with it when Follow mode is on.']],
   ['717', ['A pattern roll window: the notes of the pattern under the cursor as a piano roll turned on its side (rows run down like the tracker), with chord names, an optional velocity lane and a minimap. Open it from Pattern view options.']],
   ['716', ['The arrangement\'s last row no longer flickers when the mixer is dragged: the rows that fit are measured, not counted.']],
   ['715', ['No more scrollbars flashing in the arrangement while the mixer is dragged up or down.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['711', ['A new mixer look: a dB scale with ticks, a level well that turns red toward the top and a clip dot; the fader is now in dB.']],
   ['710', ['The mixer dock sits beside the browser panel: dragging it up no longer shortens the browser.']],
   ['709', ['The pattern editor and arrangement refit when the mixer dock or meter band opens, closes or is resized, and run down to where it starts.']],
-  ['708', ['The chord view uses the same monospace font as the rest of the app (its font name was never defined).']],
                     ];
