@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['719', ['The pattern roll edits notes: click to add (length set in the roll\'s bar), drag to move or stretch, drag a velocity dot, right-click or Delete to remove, Ctrl+Z to undo. Everything is written into the pattern\'s own cells.']],
   ['718', ['The pattern roll shows the playhead: a green line on the playing row, scrolling with it when Follow mode is on.']],
   ['717', ['A pattern roll window: the notes of the pattern under the cursor as a piano roll turned on its side (rows run down like the tracker), with chord names, an optional velocity lane and a minimap. Open it from Pattern view options.']],
   ['716', ['The arrangement\'s last row no longer flickers when the mixer is dragged: the rows that fit are measured, not counted.']],

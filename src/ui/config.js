@@ -37,6 +37,7 @@ export const SCHEMA = [
   { key: 'splash', label: 'First screen', hint: 'only a "click to initialize" button at first, then the tracker (off: the tracker with its Start button)', type: 'bool', def: true },
   { key: 'codeViews', label: 'Show the Script, Shader and DSP views', hint: 'their buttons in the left rail, with the Script dock toggle (the flask button in the status bar switches this too; the shortcuts Ctrl+Alt+S, G, I and D work either way)', type: 'bool', def: false },
   { key: 'rollVolume', label: 'Pattern roll: velocity lane', hint: 'the pattern roll window shows each note\'s velocity as a stalk in a lane on the right', type: 'bool', def: true },
+  { key: 'rollNoteRows', label: 'Pattern roll: new note length', hint: 'how many rows a note lasts when it is added in the pattern roll window', type: 'int', min: 1, max: 64, def: 4 },
   { key: 'patternTint', label: 'Tint patterns by colour', hint: 'a faint patchwork behind each pattern in the pattern editor (Alt+T)', type: 'bool', def: false },
   { key: 'fontSize', label: 'Pattern editor font size', type: 'int', min: 8, max: 40, def: 13, legacy: ['patternFontSize', v => Number(v)] },
   { group: 'Playing', key: 'delayComp', label: 'Delay compensation', hint: 'lines up what is late: quicker paths inside a machine, and quicker machines, wait for the slowest (spectral and oversampled nodes), so everything lands together on the beat. The whole mix then comes out as late as the "chain" in the status bar; off, nothing is delayed', type: 'bool', def: true },

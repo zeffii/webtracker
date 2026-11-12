@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 719 · 2026-11-12
+
+- **The pattern roll can edit notes.** Click on empty space to add a note (a "New note … rows" box in the roll's top bar sets its length, 4 by default; keep the button down and drag to stretch it as you place it). Drag a note to move it in time and pitch, or drag its bottom edge to change its length. Drag a velocity dot to change the velocity. Right-click a note, or select it and press Delete, to remove it. Ctrl+Z and Ctrl+Y undo and redo, and Space plays and stops. Every change is written into the pattern's own cells, as the pattern editor would write them, so it is one undo step per drag, in the same undo list. A note's length is real pattern data: it lasts until the next cell in its column that is not blank, so a later note interrupts it, and a `===` is only written where the cell is blank. A new note goes in the first note column free on that row. Notes sound while you place and move them (when Note preview is on).
+
 ## 718 · 2026-11-12
 
 - **The pattern roll shows the playhead.** While the song plays, the playing row is a green line in the roll (and in its minimap), apart from the red cursor line. With Follow mode on the roll scrolls to keep it in view.

@@ -24,7 +24,7 @@ export function rollData(lane, tick) {
         close(r);
         const vc = velCols[k] !== undefined ? lane.rows[pl.start + r]?.[velCols[k]] : null;
         const vel = vc && /^[0-9A-Fa-f]{2}$/.test(vc) ? parseInt(vc, 16) / 255 : 1;
-        open = { row: r, len: 1, pitch: st, vel, col: k };
+        open = { row: r, len: 1, pitch: st, vel, velTok: vc && vc !== '..' ? vc : null, col: k };
       } else if (cell === '===' || cell === '^^^') close(r);
     }
     close(length);
@@ -46,6 +46,6 @@ export function rollData(lane, tick) {
   return {
     puid: pl.puid, name: pat.name, start: pl.start, length, notes, chords,
     lo: pitches.length ? Math.min(...pitches) : 36, hi: pitches.length ? Math.max(...pitches) : 60,
-    columns: noteCols.length,
+    columns: noteCols.length, noteCols, velCols,
   };
 }

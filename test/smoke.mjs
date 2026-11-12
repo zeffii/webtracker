@@ -54,6 +54,7 @@ import { SHADER } from '../src/instruments.js';
 import * as lib from '../src/project/library.js';
 import { compileDsp } from '../src/audio/wasm/load.js';
 import { rollData } from '../src/seq/rolldata.js';
+import { rollContext, createNote, moveNote, resizeNote, clearNote, setVelocity } from '../src/seq/rollops.js';
 
 import * as uiConfig from '../src/ui/config.js';
 uiConfig.set('arrowStyle', 'char');   // most tests were written for one character per arrow press; the whole-cell mode has its own test
@@ -11321,6 +11322,41 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   assert.deepEqual(d.chords.map(c => [c.row, c.name]), [[0, 'C'], [4, 'F']]);
   assert.equal(rollData(lane, 99), null);
   console.log('ok: pattern roll data');
+}
+
+{
+  // ---- pattern roll editing ----
+  const columns = [{ kind: 'note' }, { kind: 'vel' }, { kind: 'note' }, { kind: 'vel' }];
+  const mk = () => Array.from({ length: 16 }, () => ['...', '..', '...', '..']);
+  const lane = { columns, rows: mk(), patterns: { p: { name: 'A', length: 16 } }, placements: [{ puid: 'p', start: 0, length: 16 }] };
+  const run = make => { const d = rollData(lane, 0), ctx = rollContext(lane, d), r = make(ctx, d); for (const i of ctx.items) lane.rows[i.tick][i.col] = i.token; return r; };
+  const notes = () => rollData(lane, 0).notes;
+  // a new note lasts its length: a note cell, and === where it stops
+  run(ctx => createNote(ctx, { row: 2, pitch: 48, len: 4 }));
+  assert.equal(lane.rows[2][0], 'C-4'); assert.equal(lane.rows[6][0], '===');
+  assert.deepEqual(notes().map(n => [n.row, n.len, n.col]), [[2, 4, 0]]);
+  // a second note on the same row goes to the next column; a later note on the same column interrupts the first
+  run(ctx => createNote(ctx, { row: 2, pitch: 52, len: 4 }));
+  assert.deepEqual(notes().map(n => n.col).sort(), [0, 1]);
+  run(ctx => createNote(ctx, { row: 4, pitch: 55, len: 1 }));   // columns 0 is sounding, 1 is sounding: the first free blank cell, interrupting
+  assert.ok(notes().some(n => n.pitch === 55));
+  assert.ok(notes().every(n => n.row + n.len <= 16));
+  // move: the old cells are cleared, the new ones written, the length kept
+  const a = notes().find(n => n.pitch === 48);
+  const moved = run(ctx => moveNote(ctx, a, { row: 8, pitch: 50 }));
+  assert.equal(lane.rows[2][0], '...');
+  assert.equal(lane.rows[8][moved.col * 2], 'D-4');
+  // resize moves the === and never overwrites a note
+  const m = notes().find(n => n.pitch === 50);
+  run(ctx => resizeNote(ctx, m, 2));
+  assert.equal(notes().find(n => n.pitch === 50).len, 2);
+  assert.equal(lane.rows[10][m.col * 2], '===');
+  // velocity goes in the paired column; delete takes note, velocity and the end mark away
+  const v = run(ctx => setVelocity(ctx, notes().find(n => n.pitch === 50), 0.5));
+  assert.equal(lane.rows[8][m.col * 2 + 1], '80'); assert.ok(v.velTok === '80');
+  run(ctx => clearNote(ctx, notes().find(n => n.pitch === 50)));
+  assert.ok(!notes().some(n => n.pitch === 50)); assert.equal(lane.rows[10][m.col * 2], '...'); assert.equal(lane.rows[8][m.col * 2 + 1], '..');
+  console.log('ok: pattern roll editing');
 }
 
 console.log('smoke test passed');
