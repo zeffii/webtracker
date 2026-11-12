@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 742 · 2026-11-12
+
+- **The live picture is drawn above the arrangement's overview strip.** The strip (z-index 5) covered the picture (3) at the right edge, so its corner buttons could not be clicked.
+
 ## 741 · 2026-11-12
 
 - **The build is shown again.** The label script stopped at a splash element that build 725 removed, so the window title lost its build number and nothing else was updated. The splash now shows "build NNN · sha" small at the bottom right, the build number sits under the logo in the rail (hover for the commit and date), and the footer label and window title work as before.
