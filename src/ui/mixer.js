@@ -104,7 +104,7 @@ export function createMixer({ el, lanes, instruments, setParam, hear, solo, sile
       name.className = 'mx-name'; name.textContent = lane.id; name.title = `${lane.id} plays ${lane.instrument}`;
       readout.className = 'mx-db';
       if (!node) { box.classList.add('nooutput'); name.title += ': no Out node'; readout.textContent = 'no out'; box.append(name, readout); el.append(box); return; }
-      const strip = { li, inst: lane.instrument, readout }, fader = makeFader(strip, node);
+      const strip = { li, inst: lane.instrument, readout, node }, fader = makeFader(strip, node);
       const mute = button('M', 'Silence this lane (Alt+M)', () => { silence(li); refresh(); });
       const solob = button('S', 'Solo this lane (Alt+S)', () => { solo(li); refresh(); });
       const test = button('test', 'Test gain: on, the fader changes only what you hear, not the Out node\'s gain (a tick marks the real gain); off, the fader is the gain.', () => toggleTest(lane.instrument, node));
@@ -130,7 +130,8 @@ export function createMixer({ el, lanes, instruments, setParam, hear, solo, sile
       const was = held.get(s.inst) ?? 0, now = Math.max(peaks[s.inst] ?? 0, was * 0.82);
       held.set(s.inst, now);
       s.meter.style.clipPath = `inset(${100 - posOfGain(now) * 100}% 0 0 0)`;   // the colours are fixed to the scale: the meter uncovers them
-      s.track.classList.toggle('clip', now >= 1);   // at 0 dB or over, a red dot above the track
+      s.track.classList.toggle('clip', now >= 1 && mixOf(s.node));   // at 0 dB or over, a red dot above the track
+      s.track.classList.toggle('nomix', !mixOf(s.node));   // not in the mix: the meter is grey, the sound does not reach the output
     }
   }
 

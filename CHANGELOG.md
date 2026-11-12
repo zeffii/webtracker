@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 727 · 2026-11-12
+
+- **Mixer meters go grey when the lane is not in the mix.** A channel whose Mix button is off does not reach the output (only sidechain nodes hear it), so its level meter is drawn grey, and its clip dot stays off, instead of the green-to-red meter. The level still moves, so you can see what the lane is doing; turning Mix back on brings the colours back.
+
 ## 726 · 2026-11-12
 
 - **Click a note in the pattern roll to put the pattern editor's cursor on it.** The cursor goes to the note's row and note column, in the editor and the arrangement, whether or not Edit mode is on. Clicking a row number in the roll's left margin moves the cursor to that row in the column it is already in. In Edit mode a note you drag takes the cursor with it.

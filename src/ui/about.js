@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['727', ['Mixer meters turn grey for lanes whose Mix button is off, since those do not reach the output.']],
   ['726', ['Click a note in the pattern roll (or a row number) to put the pattern editor\'s cursor there, with Edit mode on or off.']],
   ['725', ['A plain first screen: the Wax logo and a thin loader bar, and the app starts by itself after about a second (sound switches on at your first click or key press). The effect looks and their setting are gone.']],
   ['724', ['The first screen blob\'s background gradient is the complement of the blob\'s colour (yellow on blue, cyan on red).']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['720', ['The pattern roll has an Edit switch (off by default): with it off, nothing you do in the roll changes the pattern.']],
   ['719', ['The pattern roll edits notes: click to add (length set in the roll\'s bar), drag to move or stretch, drag a velocity dot, right-click or Delete to remove, Ctrl+Z to undo. Everything is written into the pattern\'s own cells.']],
   ['718', ['The pattern roll shows the playhead: a green line on the playing row, scrolling with it when Follow mode is on.']],
-  ['717', ['A pattern roll window: the notes of the pattern under the cursor as a piano roll turned on its side (rows run down like the tracker), with chord names, an optional velocity lane and a minimap. Open it from Pattern view options.']],
                     ];
