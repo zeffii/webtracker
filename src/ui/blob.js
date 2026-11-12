@@ -4,7 +4,7 @@
 // and the pointer drawing the first ball. Moving the pointer brings up a patch of wireframe under it (blobshimmer.js). createBlob(canvas) returns null when WebGL is not available, so the caller can fall back to the logo.
 import { SHIMMER_UNIFORMS, SHIMMER_FUNCS, SHIMMER_APPLY } from './blobshimmer.js';
 const VS = 'attribute vec2 a;void main(){gl_Position=vec4(a,0.,1.);}';
-const FS = `precision highp float;uniform vec2 R,M;uniform float T,B;uniform vec3 C1,C2;uniform mat3 HUE;${SHIMMER_UNIFORMS}
+const FS = `precision highp float;uniform vec2 R,M;uniform float T,B;uniform vec3 C1,C2,BGA,BGB,BGC;uniform mat3 HUE;${SHIMMER_UNIFORMS}
 // the picture shader's lane look-ups, for a screen with no song: a hit swells a ball a little when the card is excited (B), nothing is held
 float hit(int i){return B*.12;}
 float pitch(int i){return .5;}
@@ -23,7 +23,7 @@ float map(vec3 p){float d=1e3;for(int i=0;i<5;i++){float f=float(i);
 vec3 nrm(vec3 p){vec2 e=vec2(.0061,0);return normalize(vec3(map(p+e.xyy)-map(p-e.xyy),map(p+e.yxy)-map(p-e.yxy),map(p+e.yyx)-map(p-e.yyx)));}
 ${SHIMMER_FUNCS}
 void main(){vec2 uv=gl_FragCoord.xy/R;vec2 p=(gl_FragCoord.xy-.5*R)/min(R.x,R.y*0.96);
-vec3 bg=mix(vec3(1.9,1.28,.58),vec3(.72,0.,0.),smoothstep(.45,1.,uv.y));bg=mix(bg,vec3(.95,.93,.78),smoothstep(1.735,.0,uv.y)*.585);
+vec3 bg=mix(BGA,BGB,smoothstep(.45,1.,uv.y));bg=mix(bg,BGC,smoothstep(1.735,.0,uv.y)*.585);   // bright at the foot, deep at the top, a pale wash at the foot
 bg*=0.78-.16*pow(length(p)*.8,2.);
 vec3 ro=vec3(0.,0.,-5.6),rd=normalize(vec3(p,1.9));float t=0.;bool hitp=false;
 for(int i=0;i<72;i++){float d=map(ro+rd*t);if(d<.0053){hitp=true;break;}t+=d;if(t>24.)break;}
@@ -69,7 +69,13 @@ export function hueMatrix(degrees = 0, saturation = 1) {
   return new Float32Array([0, 1, 2].flatMap(col => [0, 1, 2].map(row => m[row][col])));
 }
 
-export function createBlob(canvas, { colours = [[.30, .74, .80], [.62, .97, .98]], hue = { degrees: 0, saturation: 1 } } = {}) {
+const apply3 = (m, [x, y, z]) => [0, 1, 2].map(r => m[r] * x + m[3 + r] * y + m[6 + r] * z);
+
+// colours: the blob's two tints. hue: how far the whole picture is turned (see hueMatrix). background: the colours the background
+// gradient should have in the end ({ bottom, top, pale }, as [r, g, b]); without it the gradient is the original yellow and red,
+// turned with everything else. The turn is applied to the finished picture, so a background asked for is run back through the
+// opposite turn first, to come out as asked.
+export function createBlob(canvas, { colours = [[.30, .74, .80], [.62, .97, .98]], hue = { degrees: 0, saturation: 1 }, background = null } = {}) {
   const gl = canvas.getContext('webgl', { antialias: false, alpha: false, powerPreference: 'low-power' });
   if (!gl) return null;
   const shader = (type, src) => { const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); return gl.getShaderParameter(s, gl.COMPILE_STATUS) ? s : null; };
@@ -85,6 +91,9 @@ export function createBlob(canvas, { colours = [[.30, .74, .80], [.62, .97, .98]
   const uR = u('R'), uM = u('M'), uT = u('T'), uB = u('B'), uSP = u('SP'), uSA = u('SA');
   gl.uniform3fv(u('WE'), WIRE_EDGE); gl.uniform3fv(u('WV'), WIRE_VERT);
   gl.uniformMatrix3fv(u('HUE'), false, hueMatrix(hue.degrees, hue.saturation));
+  const undo = hueMatrix(-hue.degrees, 1 / hue.saturation);
+  const ground = background ? [background.bottom, background.top, background.pale].map(c => apply3(undo, c)) : [[1.9, 1.28, .58], [.72, 0, 0], [.95, .93, .78]];
+  gl.uniform3fv(u('BGA'), ground[0]); gl.uniform3fv(u('BGB'), ground[1]); gl.uniform3fv(u('BGC'), ground[2]);
   gl.uniform3fv(u('C1'), colours[0]); gl.uniform3fv(u('C2'), colours[1]);
   const still = matchMedia?.('(prefers-reduced-motion: reduce)').matches;
   let time = 7, last = 0, mx = 0, my = 0, tx = 0, ty = 0, boost = 0, boostTo = 0;

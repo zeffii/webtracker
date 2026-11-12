@@ -7,6 +7,7 @@
 //
 // hueTurn(rand) gives the angle (degrees) and strength to bend the translucent blob's built-in colours by, kept well away from
 // the old teal/orange pair so that the look is never the same one twice running.
+import { hueMatrix } from './blob.js';
 
 // No purple or pink. The colour wheel is squeezed into the part that is left (reds round through orange, yellow, green and cyan to
 // blue, 355 degrees to 245), so a spread of random hues still never lands in the band between.
@@ -72,3 +73,20 @@ export function hueTurn(rand = Math.random) {
 // Which look a start uses: the one chosen in Config, or any of the three at random.
 export const LOOKS = ['blob', 'reaction', 'plasma'];
 export const pickLook = (style, rand = Math.random) => (style === 'random' ? LOOKS[Math.floor(rand() * LOOKS.length)] : style);
+
+// The hue (degrees) of a colour, or null for a grey.
+export function hueOf([r, g, b]) {
+  const top = Math.max(r, g, b), d = top - Math.min(r, g, b);
+  if (d < 0.04) return null;
+  const h = top === r ? ((g - b) / d) % 6 : top === g ? (b - r) / d + 2 : (r - g) / d + 4;
+  return (h * 60 + 360) % 360;
+}
+
+// The blob's background for a turn: the complement of the blob's own colour (the hue opposite, found by turning the blob's orange
+// body the same way), as a bright foot, a deep top and a pale wash.
+export function blobBackground({ degrees, saturation }) {
+  const m = hueMatrix(degrees, saturation), body = [1, 0.123, 0.052];
+  const turned = [0, 1, 2].map(r => m[r] * body[0] + m[3 + r] * body[1] + m[6 + r] * body[2]);
+  const h = ((hueOf(turned.map(v => Math.max(0, Math.min(1, v)))) ?? 30) + 180) % 360;
+  return { hue: h, bottom: hslToRgb(h, 0.85, 0.6).map(v => v * 1.5), top: hslToRgb(h, 0.9, 0.22), pale: hslToRgb(h, 0.3, 0.88) };
+}

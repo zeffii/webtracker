@@ -54,7 +54,7 @@ import { SHADER } from '../src/instruments.js';
 import * as lib from '../src/project/library.js';
 import { compileDsp } from '../src/audio/wasm/load.js';
 import { rollData } from '../src/seq/rolldata.js';
-import { randomPalette, hueTurn, pickLook, luminance, allowedHue, isPurplish, BLOB_TURNS, LOOKS } from '../src/ui/splashpalette.js';
+import { randomPalette, hueTurn, pickLook, luminance, allowedHue, isPurplish, BLOB_TURNS, blobBackground, LOOKS } from '../src/ui/splashpalette.js';
 import { hueMatrix } from '../src/ui/blob.js';
 import { rollContext, createNote, moveNote, resizeNote, clearNote, setVelocity } from '../src/seq/rollops.js';
 
@@ -11386,6 +11386,12 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   for (const [lo, hi] of BLOB_TURNS) for (let d = lo; d <= hi; d += 1) {
     const m = hueMatrix(d, 1);
     for (const c of BLOB_COLOURS) { const h = hueOf([0, 1, 2].map(r => c.reduce((s, v, k) => s + m[k * 3 + r] * v, 0))); assert.ok(h === null || !(h > 245 && h < 350), `blob turned ${d} gives hue ${h}`); }
+  }
+  for (const [lo, hi] of BLOB_TURNS) for (let d = lo; d <= hi; d += 1) {
+    const bg = blobBackground({ degrees: d, saturation: 1 });
+    assert.ok(!isPurplish(bg.hue), `the blob's background is not purple (turn ${d}: ${bg.hue})`);
+    const m = hueMatrix(d, 1), body = hueOf([0, 1, 2].map(r => m[r] + 0.123 * m[3 + r] + 0.052 * m[6 + r]).map(v => Math.max(0, Math.min(1, v))));
+    assert.ok(Math.abs(((bg.hue - body + 360) % 360) - 180) < 1, 'the background is opposite the blob');
   }
   const id = hueMatrix(0, 1);   // no turn: the identity
   [1, 0, 0, 0, 1, 0, 0, 0, 1].forEach((v, i) => assert.ok(Math.abs(id[i] - v) < 0.01));

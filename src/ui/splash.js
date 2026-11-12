@@ -4,7 +4,7 @@
 // The logo is fourteen identical slabs in one plane (from your 3D model), drawn as a wireframe on a plain canvas.
 import { createBlob } from './blob.js';
 import { createReaction, createPlasma } from './splashfx.js';
-import { randomPalette, hueTurn, pickLook } from './splashpalette.js';
+import { randomPalette, hueTurn, blobBackground, pickLook } from './splashpalette.js';
 import * as config from './config.js';
 const wait = ms => new Promise(r => setTimeout(r, ms));
 const frame = () => new Promise(r => requestAnimationFrame(r));
@@ -30,7 +30,7 @@ function chooseBackdrop(canvas, style) {
   const order = { reaction: ['reaction', 'plasma', 'blob'], plasma: ['plasma', 'blob'], blob: ['blob'] }[look] ?? [];
   for (const kind of order) {
     let fx = null;
-    try { fx = kind === 'reaction' ? createReaction(canvas, palette) : kind === 'plasma' ? createPlasma(canvas, palette) : createBlob(canvas, { hue: turn }); } catch { fx = null; }
+    try { fx = kind === 'reaction' ? createReaction(canvas, palette) : kind === 'plasma' ? createPlasma(canvas, palette) : createBlob(canvas, { hue: turn, background: blobBackground(turn) }); } catch { fx = null; }
     if (fx) return { fx, vars: kind === 'blob' ? turn.vars : palette.vars };
   }
   return null;

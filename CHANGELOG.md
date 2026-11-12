@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 724 · 2026-11-12
+
+- **The blob's background is the complement of the blob.** The gradient behind the blob is now worked out from the blob's own colour: the hue opposite it on the colour wheel, as a bright foot, a deep top and a pale wash. A yellow blob sits on blue, a cyan blob on red. (The smoke test checks that the two are always opposite and that the background never lands in the purples.)
+
 ## 723 · 2026-11-12
 
 - **No purples or pinks on the first screen.** The random colours for the reaction-diffusion and plasma looks now come from the colour wheel with the purple and pink band taken out (reds, oranges, yellows, greens, cyans and blues remain), whichever scheme is drawn. The blob's colours can no longer turn pink or purple either: it now comes in a few yellow-and-blue, or blue-and-orange, colourways (its turns were measured on its own colours, and the smoke test checks that none of them lands in the purples).
