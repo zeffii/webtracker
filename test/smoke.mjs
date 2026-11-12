@@ -54,7 +54,7 @@ import { SHADER } from '../src/instruments.js';
 import * as lib from '../src/project/library.js';
 import { compileDsp } from '../src/audio/wasm/load.js';
 import { rollData } from '../src/seq/rolldata.js';
-import { randomPalette, hueTurn, pickLook, luminance, LOOKS } from '../src/ui/splashpalette.js';
+import { randomPalette, hueTurn, pickLook, luminance, allowedHue, isPurplish, BLOB_TURNS, LOOKS } from '../src/ui/splashpalette.js';
 import { hueMatrix } from '../src/ui/blob.js';
 import { rollContext, createNote, moveNote, resizeNote, clearNote, setVelocity } from '../src/seq/rollops.js';
 
@@ -11374,11 +11374,19 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     assert.ok(['--s-word', '--s-go', '--s-log', '--s-pill', '--s-edge'].every(k => typeof p.vars[k] === 'string'));
     seen.add(p.bg.map(v => v.toFixed(1)).join());
     const t = hueTurn(rand);
-    assert.ok(t.degrees >= 45 && t.degrees <= 315, 'the blob never keeps its old colours');
+    assert.ok(BLOB_TURNS.some(([lo, hi]) => t.degrees >= lo && t.degrees <= hi));
   }
   assert.ok(seen.size > 20, 'every start is different');
+  for (let h = 0; h < 360; h += 3) assert.ok(!isPurplish(allowedHue(h)), `no purple at ${h}`);
   assert.deepEqual([...new Set(Array.from({ length: 60 }, () => pickLook('random', rand)))].sort(), [...LOOKS].sort());
   assert.equal(pickLook('plasma', rand), 'plasma'); assert.equal(pickLook('logo', rand), 'logo');
+  // the blob's own colours, turned by every angle it may use, never come out purple or pink
+  const hueOf = ([r, g, b]) => { const mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn; if (d < 0.04) return null; const h = mx === r ? ((g - b) / d) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4; return (h * 60 + 360) % 360; };
+  const BLOB_COLOURS = [[1, .123, .052], [.30, .74, .80], [.62, .97, .98], [1, .67, .30], [.72, .02, .02], [.95, .93, .78]];
+  for (const [lo, hi] of BLOB_TURNS) for (let d = lo; d <= hi; d += 1) {
+    const m = hueMatrix(d, 1);
+    for (const c of BLOB_COLOURS) { const h = hueOf([0, 1, 2].map(r => c.reduce((s, v, k) => s + m[k * 3 + r] * v, 0))); assert.ok(h === null || !(h > 245 && h < 350), `blob turned ${d} gives hue ${h}`); }
+  }
   const id = hueMatrix(0, 1);   // no turn: the identity
   [1, 0, 0, 0, 1, 0, 0, 0, 1].forEach((v, i) => assert.ok(Math.abs(id[i] - v) < 0.01));
   const white = [1, 1, 1], m = hueMatrix(137, 1), out = [0, 1, 2].map(r => white.reduce((s, v, c) => s + m[c * 3 + r] * v, 0));

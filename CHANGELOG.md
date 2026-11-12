@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 723 · 2026-11-12
+
+- **No purples or pinks on the first screen.** The random colours for the reaction-diffusion and plasma looks now come from the colour wheel with the purple and pink band taken out (reds, oranges, yellows, greens, cyans and blues remain), whichever scheme is drawn. The blob's colours can no longer turn pink or purple either: it now comes in a few yellow-and-blue, or blue-and-orange, colourways (its turns were measured on its own colours, and the smoke test checks that none of them lands in the purples).
+
 ## 722 · 2026-11-12
 
 - **A new first screen: two new looks, and new colours on every start.** Besides the translucent blob and the turning logo, the first screen can now grow a reaction-diffusion pattern (coral, labyrinth or worms, already grown when it opens; drag on the card to seed new growth) or flow as domain-warped plasma. Every start draws a fresh random set of colours from a few colour schemes, always a dark or a light ground with a matching pattern, highlight and accent, and the wordmark, prompt and start-up lines take colours that read on it. The blob's colours turn round the wheel by a random angle, so the old teal is gone. Config "First screen look" has a new default, "one of the three at random", and each look can also be chosen on its own. A look the browser cannot draw (these need WebGL, the reaction one also float textures) gives way to a simpler one, and in the end to the logo.

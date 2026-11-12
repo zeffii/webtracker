@@ -8,6 +8,12 @@
 // hueTurn(rand) gives the angle (degrees) and strength to bend the translucent blob's built-in colours by, kept well away from
 // the old teal/orange pair so that the look is never the same one twice running.
 
+// No purple or pink. The colour wheel is squeezed into the part that is left (reds round through orange, yellow, green and cyan to
+// blue, 355 degrees to 245), so a spread of random hues still never lands in the band between.
+const FIRST_HUE = 355, HUE_SPAN = 250;
+export const allowedHue = h => (FIRST_HUE + (((h % 360) + 360) % 360) / 360 * HUE_SPAN) % 360;
+export const isPurplish = h => { const x = ((h % 360) + 360) % 360; return x > 250 && x < 350; };
+
 const SCHEMES = [[0, 25, -25, 180], [0, 180, 150, 210], [0, 120, 240, 60], [0, 150, 210, 30], [0, 60, 300, 180], [0, 40, 80, 200]];
 
 // h in degrees, s and l from 0 to 1.
@@ -30,7 +36,7 @@ function apart(h, s, l, ref, gap, up) {
 
 export function randomPalette(rand = Math.random) {
   const base = rand() * 360, scheme = SCHEMES[Math.floor(rand() * SCHEMES.length)], dark = rand() < 0.5;
-  const hue = i => (base + scheme[i % scheme.length] + 360) % 360;
+  const hue = i => allowedHue(base + scheme[i % scheme.length]);
   const bg = hslToRgb(hue(0), between(rand, 0.2, 0.55), dark ? between(rand, 0.06, 0.14) : between(rand, 0.8, 0.9));
   const ink = apart(hue(1), between(rand, 0.55, 0.85), dark ? between(rand, 0.5, 0.62) : between(rand, 0.3, 0.4), bg, 0.2, dark);
   const hi = dark ? apart(hue(2), between(rand, 0.55, 0.9), between(rand, 0.72, 0.84), bg, 0.3, true) : hslToRgb(hue(2), between(rand, 0.55, 0.9), between(rand, 0.92, 0.97));
@@ -49,10 +55,16 @@ export function randomPalette(rand = Math.random) {
   };
 }
 
-// The turning of the blob's colours: degrees (never within 45 of the original), a saturation factor, and the text colours to match.
+// The turning of the blob's colours (degrees in the YIQ colour space, see hueMatrix in blob.js): the blob's own colours are a warm
+// family (red, orange, yellow, cream) and a cool one (teal, cyan). Measured by turning each of them, these ranges are the turns that
+// keep every one out of the purples and pinks and away from the original look: 300 to 330 (warm yellows and greens under blue)
+// and 175 to 185 (blue where it was orange, orange and red where it was teal). Tested in the smoke test.
+export const BLOB_TURNS = [[300, 330], [175, 185]];
 const ORIGINAL_HUE = 192;
 export function hueTurn(rand = Math.random) {
-  const degrees = 45 + rand() * 270, saturation = between(rand, 0.85, 1.2), h = (ORIGINAL_HUE + degrees) % 360;
+  const [lo, hi] = BLOB_TURNS[rand() < 0.6 ? 0 : 1], degrees = lo + rand() * (hi - lo), saturation = between(rand, 0.9, 1.15);
+  // text colours: the old teal-grey, turned to match the picture (the same turn, roughly, in the usual hue wheel)
+  const h = (ORIGINAL_HUE + (degrees < 250 ? 170 : -40)) % 360;
   const text = hslToRgb(h, 0.22, 0.34), soft = hslToRgb(h, 0.16, 0.5), glow = hslToRgb(h, 0.5, 0.33);
   return { degrees, saturation, vars: { '--s-go': css(text), '--s-log': css(soft), '--s-glow': css(glow, 0.38), '--s-edge': css(text, 0.25), '--s-lift': css(glow, 0.15) } };
 }
