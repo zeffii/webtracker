@@ -702,7 +702,9 @@ const fitArrangement = () => {
   document.body.classList.toggle('viewfit', config.get('viewFit'));
   if (config.get('seqFit') && tabs.active === 'arrange') {
     const el = $('seq'), pane = $('pane-arrange'), room = innerHeight - el.getBoundingClientRect().top - foot - roomBelow() - 2;
-    seqView.setRows(Math.floor(room / 18) - Math.max(0, el.childElementCount - seqView.rows));
+    // lines of the arrangement that are not rows (a header) take room too; the overlays on it (loop lines, curves, the play line) are positioned over it and take none
+    const inFlow = [...el.children].filter(child => getComputedStyle(child).position !== 'absolute').length;
+    seqView.setRows(Math.floor(room / 18) - Math.max(0, inFlow - seqView.rows));
     document.body.style.setProperty('--arr-h', `${Math.max(0, innerHeight - pane.getBoundingClientRect().top - foot - roomBelow())}px`);   // the panels reach the top of the status bar
   }
   if (config.get('viewFit') && tabs.active === 'patterns') {

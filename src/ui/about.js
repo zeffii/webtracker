@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['714', ['The arrangement fills its whole height with rows; a few rows at the bottom were missing (leaving only the automation curve).']],
   ['713', ['The mixer buttons are fully opaque.']],
   ['712', ['Mixer channels are about half as wide, with the buttons stacked in one column.']],
   ['711', ['A new mixer look: a dB scale with ticks, a level well that turns red toward the top and a clip dot; the fader is now in dB.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['707', ['The sympathy panel draws its panning as a sum: left and right bars built from every ringing string.']],
   ['706', ['Pulsar synthesis: a Pulsar synth and a Pulse train source, with a drawn window for each burst and a drawn formant sweep. Accent colours darken on light themes.']],
   ['705', ['The scope eye sits right beside the node name, level with its lowercase letters.']],
-  ['704', ['The machine list in the browser is back to the small monospace font.']],
                     ];
