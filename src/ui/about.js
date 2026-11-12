@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['725', ['A plain first screen: the Wax logo and a thin loader bar, and the app starts by itself after about a second (sound switches on at your first click or key press). The effect looks and their setting are gone.']],
   ['724', ['The first screen blob\'s background gradient is the complement of the blob\'s colour (yellow on blue, cyan on red).']],
   ['723', ['No purples or pinks on the first screen: the random colours skip that part of the colour wheel, and the blob keeps to yellow, blue and orange colourways.']],
   ['722', ['A new first screen: reaction diffusion and flowing plasma join the blob and the logo, in new random colours on every start (the old teal is gone). Pick one, or leave Config "First screen look" on random.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['718', ['The pattern roll shows the playhead: a green line on the playing row, scrolling with it when Follow mode is on.']],
   ['717', ['A pattern roll window: the notes of the pattern under the cursor as a piano roll turned on its side (rows run down like the tracker), with chord names, an optional velocity lane and a minimap. Open it from Pattern view options.']],
   ['716', ['The arrangement\'s last row no longer flickers when the mixer is dragged: the rows that fit are measured, not counted.']],
-  ['715', ['No more scrollbars flashing in the arrangement while the mixer is dragged up or down.']],
                     ];

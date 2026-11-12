@@ -27,14 +27,14 @@ export const GROUPS = {
 };
 
 // Settings that sit in a different card from the one the list below puts them in, by key.
-const MOVED = { splashStyle: 'Look', wireStraight: 'Graph', graphPullOut: 'Graph', vscopeLinger: 'Meters', vscopeGlow: 'Meters', midiLatency: 'MIDI', ptrMax: 'Resynthesis', ptrTolerance: 'Resynthesis', ptrTransient: 'Resynthesis' };
+const MOVED = { wireStraight: 'Graph', graphPullOut: 'Graph', vscopeLinger: 'Meters', vscopeGlow: 'Meters', midiLatency: 'MIDI', ptrMax: 'Resynthesis', ptrTolerance: 'Resynthesis', ptrTransient: 'Resynthesis' };
 
 
 // type: bool | int | choice | colour (a #rrggbb string) | rules. `legacy` is the older single-purpose localStorage key, read once to carry settings over.
 export const SCHEMA = [
   { group: 'Look', key: 'codeTheme', label: 'Code box theme', hint: 'the editors for scripts, shaders, canvas pictures, node source and the code in the guides can have a look of their own, apart from the colour theme', type: 'choice', options: ['same', ...THEMES], labels: { same: 'same as the colour theme' }, def: 'same' },
   { group: 'Look', key: 'theme', label: 'Colour theme', type: 'choice', options: THEMES, def: 'system', legacy: ['webtracker.theme', v => v] },
-  { key: 'splash', label: 'First screen', hint: 'only a "click to initialize" button at first, then the tracker (off: the tracker with its Start button)', type: 'bool', def: true },
+  { key: 'splash', label: 'First screen', hint: 'the logo and a loader bar while the engine starts by itself, then the tracker (off: the tracker with its Start button)', type: 'bool', def: true },
   { key: 'codeViews', label: 'Show the Script, Shader and DSP views', hint: 'their buttons in the left rail, with the Script dock toggle (the flask button in the status bar switches this too; the shortcuts Ctrl+Alt+S, G, I and D work either way)', type: 'bool', def: false },
   { key: 'rollVolume', label: 'Pattern roll: velocity lane', hint: 'the pattern roll window shows each note\'s velocity as a stalk in a lane on the right', type: 'bool', def: true },
   { key: 'rollEdit', label: 'Pattern roll: edit mode', hint: 'the pattern roll window can change notes only while this is on (the Edit switch in its top bar)', type: 'bool', def: false },
@@ -44,7 +44,6 @@ export const SCHEMA = [
   { group: 'Playing', key: 'delayComp', label: 'Delay compensation', hint: 'lines up what is late: quicker paths inside a machine, and quicker machines, wait for the slowest (spectral and oversampled nodes), so everything lands together on the beat. The whole mix then comes out as late as the "chain" in the status bar; off, nothing is delayed', type: 'bool', def: true },
   { key: 'sleepIdle', label: 'Sleep quiet machines', hint: 'a machine with no note sounding whose output has stayed silent for 2 seconds (longer when it has a long delay) stops running, and costs no CPU, until a note, a parameter change or its sidechain wakes it; nothing is reset, so it carries on exactly where it was. Machines with a free-running LFO, arp, gater or similar never sleep, and any machine can be kept awake with its Sleep switch on the Instruments screen. Off: every machine runs all the time, as before', type: 'bool', def: true },
   { group: 'Playing', key: 'follow', label: 'Follow mode', hint: 'the grids scroll with the playing row', type: 'bool', def: true, legacy: ['webtracker.follow', v => v === '1'] },
-  { key: 'splashStyle', label: 'First screen look', hint: 'what moves behind the first screen: grown reaction-diffusion patterns, flowing plasma or a translucent blob (these need WebGL), or the turning wireframe logo. The colours are new on every start.', type: 'choice', options: ['random', 'reaction', 'plasma', 'blob', 'logo'], labels: { random: 'one of the three at random', reaction: 'growing patterns (reaction diffusion)', plasma: 'flowing plasma', blob: 'a slow translucent blob', logo: 'the turning logo' }, def: 'random' },
   { key: 'followRoam', label: 'Allow the caret to roam while following', hint: 'moving the caret to another row pauses the following until F9 or the Follow button', type: 'bool', def: true },
   { key: 'playhead', label: 'Playhead', type: 'choice', options: ['marker', 'line', 'band'], labels: { marker: 'a > in the tick column and a bold row', line: 'a thin red line across the grid', band: 'a faint band across the row' }, def: 'band' },
   { key: 'tapSlots', label: 'Show the empty tap slots in sample lists', hint: 'tap01 to tap16 in the sampler pickers even before a take is in them (a slot with a take, or one an instrument plays, always shows)', type: 'bool', def: false },

@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 725 · 2026-11-12
+
+- **A plain first screen that starts the app by itself.** The first screen is now the Wax logo on the theme's own background with a thin loader bar along the bottom. There is nothing to click: the engine starts as soon as the screen has been painted, the bar fills as the steps finish, and after about a second the screen fades and the app is there. The effects (reaction diffusion, plasma, the blob and the turning wireframe logo) and the "First screen look" setting are gone; the "First screen" switch in Config still turns the whole screen off. A browser keeps audio suspended until the page has had a click or a key press, so when the app opens without one, the status line says "Click anywhere or press a key to switch the sound on", and the first click or key does it. If the start-up fails, the reason is shown under the logo and a click tries again.
+
 ## 724 · 2026-11-12
 
 - **The blob's background is the complement of the blob.** The gradient behind the blob is now worked out from the blob's own colour: the hue opposite it on the colour wheel, as a bright foot, a deep top and a pale wash. A yellow blob sits on blue, a cyan blob on red. (The smoke test checks that the two are always opposite and that the background never lands in the purples.)

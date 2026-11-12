@@ -60,7 +60,9 @@ export class Engine {
     for (const key of this.watching) { const [instrument, node] = key.split('\u0000'); this.node.port.postMessage({ type: 'scope', instrument, node, on: true }); }
     this.node.connect(this.ctx.destination);
     this.ctx.onstatechange = () => this.onState?.(this.ctx.state);
-    await this.ctx.resume();
+    // Without a click or key press first the browser keeps the context suspended, and resume() then does not answer until it is
+    // allowed to run. Start-up must not wait for that: wake() (see below) is what the first interaction calls.
+    await Promise.race([this.ctx.resume(), new Promise(r => setTimeout(r, 200))]);
   }
 
   // After a long idle (or a sleep, or the output device changing) the browser may have suspended the audio context: the

@@ -2944,6 +2944,18 @@ document.addEventListener('keydown', e => {
 const splash = config.get('splash') ? createSplash({ box: $('splash'), onStart: () => $('start').click() }) : null;
 document.documentElement.classList.remove('pre-splash');   // the first screen (if any) now covers the page itself
 document.addEventListener('visibilitychange', () => { if (!document.hidden && started) engine.wake(); });   // coming back to the tab wakes a context the browser put to sleep
+// The first screen starts the engine by itself, with no click, and a browser keeps audio suspended until the page has been clicked or a key
+// pressed. So the app opens at once and sound switches on at the first interaction (this listener), whichever it is.
+function unlockAudio() {
+  if (engine.ctx.state === 'running') return;
+  $('status').textContent = 'Click anywhere or press a key to switch the sound on.';
+  const wake = async () => {
+    if (!(await engine.wake())) return;
+    for (const type of ['pointerdown', 'keydown']) removeEventListener(type, wake, true);
+    $('status').textContent = `Running at ${engine.ctx.sampleRate} Hz, base latency ${(engine.ctx.baseLatency * 1000).toFixed(1)} ms`;
+  };
+  for (const type of ['pointerdown', 'keydown']) addEventListener(type, wake, true);
+}
 $('start').addEventListener('click', async () => {
   try {
     splash?.say('checking cross-origin isolation', crossOriginIsolated ? 'ok' : 'no');
@@ -3015,6 +3027,7 @@ $('start').addEventListener('click', async () => {
     for (const id of ['filemenu-btn', 'play', 'pause', 'panic', 'cut', 'rec-take', 'rec-source', 'add-inst', 'add-lane', 'add-lane-inst', 'inst-voices', 'inst-notecols', 'inst-sleep', 'inst-up', 'inst-down', 'inst-dup', 'inst-remove', 'lane-name', 'lane-rename', 'lane-left', 'lane-right', 'lane-dup', 'lane-clone', 'lane-remove', 'lane-remove-all', 'length', 'ins-n', 'ins-go', 'bpm', 'swing', 'tpb', 'bar', 'preset-name', 'preset-save', 'preset-over', 'preset-rename', 'preset-remove', 'inst-export', 'inst-import', 'lib-load', 'lib-add', 'lib-save']) $(id).disabled = false;
     $('status').textContent =
       `Running at ${engine.ctx.sampleRate} Hz, base latency ${(engine.ctx.baseLatency * 1000).toFixed(1)} ms`;
+    unlockAudio();
     // Only the screen that is showing is drawn: a hidden one has nothing to measure or paint, and its work would only delay the one you are using.
     const frame = now => {
       const tab = tabs.active;
