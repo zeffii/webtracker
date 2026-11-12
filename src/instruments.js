@@ -978,8 +978,9 @@ export const MASTER = 'master';
 export const masterInstrument = song => ({
   graph: {
     nodes: [
-      { id: 'm', type: 'tempo', x: 40, y: 40, params: { bpm: song.bpm, swing: Math.round((song.swing ?? 0.5) * 100), tpb: song.ticksPerBeat, volume: 1 } },
-      { id: 'out', type: 'out', x: 240, y: 40, params: { gain: 1 } },   // unity: the bus passes through unchanged when effects are wired
+      { id: 'm', type: 'tempo', x: 40, y: 40, hidden: true, params: { bpm: song.bpm, swing: Math.round((song.swing ?? 0.5) * 100), tpb: song.ticksPerBeat, volume: 1 } },
+      { id: 'bus', type: 'bus-in', x: 40, y: 40 },   // the whole mix: wire it through effects into out
+      { id: 'out', type: 'out', x: 400, y: 40, params: { gain: 1 } },   // unity: the bus passes through unchanged when effects are wired
     ],
     connections: [],
   },
@@ -1047,6 +1048,12 @@ export function ensureMaster({ song, instruments }) {
   const rest = Object.entries(instruments).filter(([k]) => k !== MASTER);
   const master = keep ?? fresh;
   if (keep) Object.assign(keep.graph.nodes.find(n => n.id === 'm').params, fresh.graph.nodes[0].params);
+  const tempo = keep?.graph.nodes.find(n => n.id === 'm');
+  if (tempo) tempo.hidden = true;
+  if (keep && !keep.graph.nodes.some(n => n.type === 'bus-in')) {   // an older project gets the bus-in node too, unconnected
+    const id = keep.graph.nodes.some(n => n.id === 'bus') ? 'bus-in' : 'bus';
+    keep.graph.nodes.push({ id, type: 'bus-in', x: 40, y: 140 });
+  }
   const outNode = keep?.graph.nodes.find(n => n.id === 'out');
   if (outNode && outNode.params?.gain === undefined) outNode.params = { ...outNode.params, gain: 1 };
   for (const k of Object.keys(instruments)) delete instruments[k];

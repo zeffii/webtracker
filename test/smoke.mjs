@@ -11579,6 +11579,11 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   const plain = build(false), halved = build(true);
   assert.ok(peak(plain.left) > 0.01, 'the unwired master leaves the mix alone');
   assert.ok(Math.abs(peak(halved.left) / peak(plain.left) - 0.5) < 0.02, 'a Mix wired through the master Out scales the whole bus');
+  const fresh = masterInstrument({ bpm: 120, ticksPerBeat: 4, swing: 0.5 }).graph;
+  assert.ok(fresh.nodes.some(n => n.type === 'bus-in') && fresh.connections.length === 0, 'the master starts with a bus-in node, unconnected');
+  assert.ok(fresh.nodes.find(n => n.id === 'm').hidden === true, 'the tempo node is hidden');
+  const tempoNode = fresh.nodes.find(n => n.id === 'm'), hit = hitTest(fresh, NODE_TYPES, tempoNode.x + 5, tempoNode.y + 5);
+  assert.ok(!(hit?.kind === 'node' && hit.id === 'm'), 'a hidden node cannot be clicked');
   console.log('ok: master effects');
 }
 

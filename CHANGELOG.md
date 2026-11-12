@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 751 · 2026-11-12
+
+- **The Master graph starts with a bus-in node (unconnected), and the tempo node `m` is hidden.** Wire bus-in through effects into out to use it. BPM, swing, TPB, volume and the limiter are still the Master lane's columns and the exposed panel. A project that has no bus-in in its master gets one when it opens (leave it unwired and nothing changes; delete it and it returns next time).
+
 ## 750 · 2026-11-12
 
 - **The master's Mix node is called bus-in.** It is the name you see in the menu and on the node (it was `busin`); projects saved with build 748 are converted when they open.

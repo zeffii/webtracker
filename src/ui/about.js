@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['751', ['The Master graph starts with a bus-in node, unconnected, ready to wire through effects into out; the tempo node is hidden (its columns are still there).']],
   ['750', ['The master bus node is now called bus-in; projects saved with it open as before.']],
   ['749', ['Groove starts with every part at zero: a new one passes the sound through until you turn a part up.']],
   ['748', ['Effects on the master, before the limiter: the new master effects row in Machines opens the Master graph; a Mix node brings in the whole song, and what you wire from it into Out replaces the mix before volume and limiter.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['744', ['The pattern window has a B side: a scratch copy to try chords on, played separately from A, changed freely, reset to A, or kept over A or as a new pattern.']],
   ['743', ['The live picture can be parked at the bottom left: the arrows button on the picture swaps sides.']],
   ['742', ['The live picture is no longer covered by the arrangement\'s overview strip.']],
-  ['741', ['The build number is shown again: small at the bottom right of the first screen, under the logo in the rail, in the footer and in the window title.']],
                     ];

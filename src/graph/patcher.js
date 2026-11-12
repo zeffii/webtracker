@@ -161,6 +161,7 @@ const linkEnds = (desc, nodeTypes, link, kindOf) => {
 export function hitTest(desc, nodeTypes, x, y) {
   const near = (p, r) => Math.hypot(p.x - x, p.y - y) <= r;
   for (const node of [...desc.nodes].reverse()) {
+    if (node.hidden) continue;   // (the Master's tempo node is not shown)
     const def = nodeTypes[node.type];
     for (const [side, names] of [['in', inputsOf(node, def)], ['out', def.outputs]]) {
       for (let i = 0; i < names.length; i++) {
@@ -169,6 +170,7 @@ export function hitTest(desc, nodeTypes, x, y) {
     }
   }
   for (const node of [...desc.nodes].reverse()) {
+    if (node.hidden) continue;
     if (inside(node, nodeTypes[node.type], x, y)) return { kind: 'node', id: node.id };
   }
   for (let i = 0; i < desc.connections.length; i++) {
@@ -1347,7 +1349,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
   function selectNear(way) {
     if (!instId) return false;
     const boxOf = n => { const { w, h } = nodeBox(nodeTypes[n.type], n); return { x: n.x + w / 2, y: n.y + h / 2 }; };
-    const nodes = desc().nodes.filter(n => n.x !== undefined);
+    const nodes = desc().nodes.filter(n => n.x !== undefined && !n.hidden);
     if (!nodes.length) return false;
     const order = [...nodes].sort((a, b) => boxOf(a).x - boxOf(b).x || boxOf(a).y - boxOf(b).y);
     const here = selected?.kind === 'node' ? nodes.find(n => n.id === selected.id) : null;
@@ -1670,6 +1672,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
     if (!dk || !dk.width || exposedDock.style?.display === 'none') return;   // nothing exposed: no dock
     const boxes = [];
     for (const node of desc().nodes) {
+      if (node.hidden) continue;
       const { w, h } = nodeBox(nodeTypes[node.type], node);
       boxes.push({ x: node.x, y: node.y - 14, w, h: h + 14 });   // the name and the eye above
       if (node.scope) { const b = scopeBox(node, w, h, node.scope.size, node.scope.mode); boxes.push({ x: b.x, y: b.y, w: b.w ?? b.size, h: b.size }); }
@@ -1760,6 +1763,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
     }
 
     for (const placed of desc().nodes) {
+      if (placed.hidden) continue;
       const node = { ...placed, x: snap(placed.x), y: snap(placed.y) };   // drawn on whole device pixels: a node saved at 108.07 would put its text between two rows of pixels
       const type = nodeTypes[node.type], { w, h } = nodeBox(type, node);
       const compact = compactLook() && !type.size && type.shape !== 'dot', layout = compact ? tileOf(type, node) : null;   // the compact look: flat fill, an outline only when chosen, short port names
@@ -1834,7 +1838,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
     ctx.font = '11px ui-monospace, Consolas, monospace'; ctx.textBaseline = 'alphabetic';   // the name's own font and baseline
     const xMid = ((ctx.measureText?.('x') ?? {}).actualBoundingBoxAscent ?? 5.7) / 2;   // how far the middle of a lowercase x sits above the name's baseline
     for (const node of desc().nodes) {
-      if (!nodeTypes[node.type].outputs.length || nodeTypes[node.type].shape === 'dot') continue;
+      if (node.hidden || !nodeTypes[node.type].outputs.length || nodeTypes[node.type].shape === 'dot') continue;
       const r = eyeRect(node), on = !!node.scope, cx = r.x + r.w / 2, cy = node.y - 5 - xMid;   // the cornea is the eye's origin, level with the middle of the lowercase letters of the name beside it
       ctx.save();
       ctx.strokeStyle = on ? accent : ink; ctx.fillStyle = on ? accent : ink; ctx.globalAlpha = on ? 1 : 0.3; ctx.lineWidth = 1.25;
