@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 738 · 2026-11-12
+
+- **The picture window's parameter rows fill the window's width** and follow it when the window is resized (the parameter view's own remembered width no longer applies there).
+
 ## 737 · 2026-11-12
 
 - **The picture window's Parameters tab shows the whole graph.** The map of the machine is scaled to fit the strip with a margin all round (it was a 1:1 crop around the current node), and the strip is a little taller. Clicking a node on the map now goes to it (it never did: a local helper shadowed the hit test).
