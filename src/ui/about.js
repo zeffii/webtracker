@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['715', ['No more scrollbars flashing in the arrangement while the mixer is dragged up or down.']],
   ['714', ['The arrangement fills its whole height with rows; a few rows at the bottom were missing (leaving only the automation curve).']],
   ['713', ['The mixer buttons are fully opaque.']],
   ['712', ['Mixer channels are about half as wide, with the buttons stacked in one column.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['708', ['The chord view uses the same monospace font as the rest of the app (its font name was never defined).']],
   ['707', ['The sympathy panel draws its panning as a sum: left and right bars built from every ringing string.']],
   ['706', ['Pulsar synthesis: a Pulsar synth and a Pulse train source, with a drawn window for each burst and a drawn formant sweep. Accent colours darken on light themes.']],
-  ['705', ['The scope eye sits right beside the node name, level with its lowercase letters.']],
                     ];

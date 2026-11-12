@@ -704,8 +704,14 @@ const fitArrangement = () => {
     const el = $('seq'), pane = $('pane-arrange'), room = innerHeight - el.getBoundingClientRect().top - foot - roomBelow() - 2;
     // lines of the arrangement that are not rows (a header) take room too; the overlays on it (loop lines, curves, the play line) are positioned over it and take none
     const inFlow = [...el.children].filter(child => getComputedStyle(child).position !== 'absolute').length;
-    seqView.setRows(Math.floor(room / 18) - Math.max(0, inFlow - seqView.rows));
     document.body.style.setProperty('--arr-h', `${Math.max(0, innerHeight - pane.getBoundingClientRect().top - foot - roomBelow())}px`);   // the panels reach the top of the status bar
+    seqView.setRows(Math.floor(room / 18) - Math.max(0, inFlow - seqView.rows));
+    // look again at what really happened (the line height and a horizontal scrollbar can make the estimate a little off): take away rows until all that is drawn is shown
+    for (let pass = 0; pass < 3; pass++) {
+      const over = el.scrollHeight - el.clientHeight;
+      if (over <= 0) break;
+      seqView.setRows(seqView.rows - Math.ceil(over / 18));
+    }
   }
   if (config.get('viewFit') && tabs.active === 'patterns') {
     // the view is as tall as its rows: add or take away what is over or missing, and look again until nothing more fits

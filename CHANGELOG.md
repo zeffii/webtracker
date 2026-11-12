@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 715 · 2026-11-12
+
+- **No more scrollbars flashing in the arrangement while the mixer is dragged.** Between one row count and the next the arrangement was a few pixels too tall for its box, so a vertical scrollbar appeared; it took 15 px of width, which made the lanes overflow sideways and brought a horizontal one, until the next row fell into place. The arrangement has no vertical scrollbar any more (its rows are fitted to the height), and after fitting it checks that everything drawn is really shown.
+
 ## 714 · 2026-11-12
 
 - **The arrangement shows rows all the way down.** The number of rows that fit was taken off by every extra element in the arrangement, including the ones laid over it (the loop lines and the automation curves), which take no room; with three of those, three rows were missing at the bottom, a strip with the curve drawn across it and no pattern data. Only the lines that really take room are counted now.

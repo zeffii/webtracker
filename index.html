@@ -245,7 +245,7 @@
     body.seqfit:has(#pane-arrange:not([hidden])) { padding-bottom: calc(var(--footer-h, 2rem) + var(--dock-h, 0px)); }   /* the arrangement already runs down to the status bar: no extra padding, so the page does not scroll for nothing */
     body.seqfit #pane-arrange:not([hidden]) { padding-bottom: 0; min-height: var(--arr-h, 0); box-sizing: border-box; }   /* the arrangement and its side panel run down to the status bar */
     body.seqfit #pane-arrange .pane-main { display: flex; flex-direction: column; align-self: stretch; }
-    body.seqfit #pane-arrange #seq { flex: 1 1 auto; box-sizing: border-box; }
+    body.seqfit #pane-arrange #seq { flex: 1 1 auto; box-sizing: border-box; overflow-y: hidden; }   /* the rows are fitted to the height: no vertical scrollbar to come and go (it would take width, which brings the horizontal one) */
     /* the browser: a panel down the left of every view, from under the header to above the status bar and the meters (main.js keeps --header-h and --bottom-h) */
     #browser { position: fixed; left: var(--rail); top: var(--header-h, 3rem); bottom: var(--bottom-h, 2rem); z-index: 1; display: flex; flex-direction: column; box-sizing: border-box; background: var(--bg); border-right: 1px solid color-mix(in srgb, var(--fg) 22%, transparent); }
     #browser[hidden] { display: none; }
