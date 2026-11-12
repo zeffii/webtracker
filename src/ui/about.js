@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['710', ['The mixer dock sits beside the browser panel: dragging it up no longer shortens the browser.']],
   ['709', ['The pattern editor and arrangement refit when the mixer dock or meter band opens, closes or is resized, and run down to where it starts.']],
   ['708', ['The chord view uses the same monospace font as the rest of the app (its font name was never defined).']],
   ['707', ['The sympathy panel draws its panning as a sum: left and right bars built from every ringing string.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['703', ['The picture window has Picture and Parameters tabs: one node\'s sliders, steppers through nodes and machines, and a cropped graph map.']],
   ['702', ['The scope eye sits after the node name; swapping a node to another type drops exposed parameters it no longer has.']],
   ['701', ['The ladder filter has a phase parameter for its LFO.']],
-  ['700', ['Space on the Sample screen plays from the playhead.']],
                     ];

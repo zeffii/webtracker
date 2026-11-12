@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 710 · 2026-11-12
+
+- **The mixer dock sits beside the browser panel, not under it.** Dragging the mixer up no longer shortens the browser (Patterns / Machines / Samples): it keeps its full height down to the status bar (or the meter band) and the mixer runs along the bottom of the main area only.
+
 ## 709 · 2026-11-12
 
 - **The pattern editor and the arrangement follow the mixer dock and the meter band.** The rows shown were fitted only when the window or the status bar changed, so opening, closing or resizing the mixer left the grid either hidden under it or stopping short with a gap; they are now fitted again whenever the bottom bands change, and the meter band is counted too. The slack under the pattern grid is down from 8 px to 2 px, so what is left is under one row.

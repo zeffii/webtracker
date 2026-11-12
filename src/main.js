@@ -1880,7 +1880,7 @@ const meters = createMeters({
 const layoutBottom = () => {
   const foot = $('footer').offsetHeight, metersH = meters.open ? config.get('meterHeight') : 0, dockH = bottomExtra();
   document.body.style.setProperty('--header-h', `${$('header').offsetHeight}px`);
-  document.body.style.setProperty('--bottom-h', `${foot + metersH + dockH}px`);   // the browser stops above the bottom bands
+  document.body.style.setProperty('--bottom-h', `${foot + metersH}px`);   // the browser stops above the status bar and the meters; the mixer dock sits beside it, not under it
   metersBox.style.bottom = `${foot}px`; metersBox.style.height = `${config.get('meterHeight')}px`;
   $('mixer-dock').style.bottom = `${foot + metersH}px`;
   document.body.style.setProperty('--dock-h', `${dockH}px`);

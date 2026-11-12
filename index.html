@@ -246,7 +246,7 @@
     body.seqfit #pane-arrange:not([hidden]) { padding-bottom: 0; min-height: var(--arr-h, 0); box-sizing: border-box; }   /* the arrangement and its side panel run down to the status bar */
     body.seqfit #pane-arrange .pane-main { display: flex; flex-direction: column; align-self: stretch; }
     body.seqfit #pane-arrange #seq { flex: 1 1 auto; box-sizing: border-box; }
-    /* the browser: a panel down the left of every view, from under the header to above the bottom bands (main.js keeps --header-h and --bottom-h) */
+    /* the browser: a panel down the left of every view, from under the header to above the status bar and the meters (main.js keeps --header-h and --bottom-h) */
     #browser { position: fixed; left: var(--rail); top: var(--header-h, 3rem); bottom: var(--bottom-h, 2rem); z-index: 1; display: flex; flex-direction: column; box-sizing: border-box; background: var(--bg); border-right: 1px solid color-mix(in srgb, var(--fg) 22%, transparent); }
     #browser[hidden] { display: none; }
     body.browser-open { padding-left: calc(var(--rail) + var(--browser-w, 0px)); }
@@ -276,6 +276,7 @@
     #browser-options .sb-side { flex: none; padding-left: 0; }
     /* the mixer dock: a band along the bottom of every view, above the meters and the status bar (main.js places it, see layoutBottom) */
     #mixer-dock { position: fixed; left: var(--rail); right: 0; z-index: 1; display: flex; flex-direction: column; box-sizing: border-box; background: color-mix(in srgb, var(--fg) 7%, var(--panel)); }
+    body.browser-open #mixer-dock { left: calc(var(--rail) + var(--browser-w, 0px)); }   /* beside the browser panel, which keeps its full height */
     #mixer-dock[hidden] { display: none; }
     #mixer-grip { flex: none; height: 7px; cursor: ns-resize; touch-action: none; border-top: 2px solid var(--accent); }
     #mixer-grip.dragging { background: color-mix(in srgb, var(--accent) 35%, transparent); }
