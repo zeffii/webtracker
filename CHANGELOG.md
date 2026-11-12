@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 746 · 2026-11-12
+
+- **Randomize has a "Diverge the parameters" mode** (Ctrl+R menu). Parameter cells in the selection that hold a value jump to anywhere in their column's range; notes, commands and empty cells stay as they are. Alt+R rolls it again, from the original values each time, until something clicks, and the rolls are one undo step.
+
 ## 745 · 2026-11-12
 
 - **Testing A or B in the pattern window stops the song.** The song's own copy of the pattern kept playing underneath, so A could be heard while trying B. Starting A or B now stops the song (the status line says so), and starting the song ends the A/B loop.

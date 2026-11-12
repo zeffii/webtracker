@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['746', ['Randomize (Ctrl+R) has Diverge the parameters: filled parameter cells jump anywhere in their range, notes stay, and Alt+R rolls again.']],
   ['745', ['Testing A or B in the pattern window stops the song, so only the pattern you test is heard.']],
   ['744', ['The pattern window has a B side: a scratch copy to try chords on, played separately from A, changed freely, reset to A, or kept over A or as a new pattern.']],
   ['743', ['The live picture can be parked at the bottom left: the arrows button on the picture swaps sides.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['739', ['The picture window\'s parameter rows use the same small monospace text as the regular parameter view.']],
   ['738', ['The picture window\'s parameter rows fill the window and follow it when it is resized.']],
   ['737', ['The picture window\'s Parameters tab shows the whole graph in its map (click a node to go to it), and always shows the expose, port and width switches, for any machine.']],
-  ['736', ['The pattern window opens on the pattern under the cursor (Ctrl+Alt+W, a button, or the arrangement\'s right-click menu) and has its own Instruments → Patterns menu (I) to change pattern.']],
                     ];

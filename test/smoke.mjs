@@ -7635,6 +7635,20 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   assert.ok(notes().slice(0, 8).every((n, i) => Math.abs(noteSemitones(n) - noteSemitones(orig[i])) <= 2), 'a nudge is a small step');
   press('z', { ctrlKey: true });
   assert.deepEqual(notes(), orig);
+  // diverge: only parameter cells that hold a value, anywhere in their range, and Alt+R rolls again
+  editor.setCells(0, [0, 1, 2, 3].map(tick => ({ tick, col: 1, token: '40' })), 'seed');
+  const vels = () => lanes[0].rows.map(r => r[1]);
+  const before = vels();
+  view.setCursor(0, 0, 1); press('ArrowDown', { shiftKey: true }, 7);
+  pick('Diverge');
+  assert.ok(vels().slice(0, 4).some(v => v !== '40') && vels().slice(0, 4).every(v => /^[0-9A-F]{2}$/.test(v)), 'filled parameter cells get new values');
+  assert.deepEqual(vels().slice(4, 8), before.slice(4, 8), 'empty cells stay empty');
+  assert.deepEqual(notes(), orig, 'notes are not touched');
+  const rolled = vels().join();
+  press('r', { altKey: true, code: 'KeyR' });
+  assert.notEqual(vels().join(), rolled, 'Alt+R diverges again from the original values');
+  press('z', { ctrlKey: true });
+  assert.deepEqual(vels(), before, 'one undo for all the rolls');
   console.log('ok: pattern gobble, rotate, randomize');
 }
 

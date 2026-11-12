@@ -376,7 +376,7 @@ export function createTrackerView({ showMenu = (e, items) => showContextMenu(e, 
   let roll = null;
   const MODES = {
     values: 'Shuffled the values.', cells: 'Shuffled the cells.', redraw: 'Redrew the values from their spread.',
-    nudge: 'Nudged the values.', fill: 'Redrew the values, empty cells included.',
+    nudge: 'Nudged the values.', diverge: 'Diverged the parameters: Alt+R rolls again.', fill: 'Redrew the values, empty cells included.',
   };
   const spreadOf = (kind, tokens) => {   // the numbers behind a column's pitched or hex values: [{ token, n }]
     const n = tokens.map(t => (kind === 'note' ? noteSemitones(t) : kind === 'cmd' ? null : parseInt(t, 16))).filter(v => v !== null && !Number.isNaN(v));
@@ -404,6 +404,11 @@ export function createTrackerView({ showMenu = (e, items) => showContextMenu(e, 
       } else if (mode === 'fill') {
         const p = filled.length / cells.length;
         out = new Map(cells.map(o => [o.tick, random() < p ? tokens[rnd(tokens.length)] : blank]));
+      } else if (mode === 'diverge') {   // parameter cells that hold a value jump anywhere in the column's whole range (notes, commands and empty cells stay)
+        const col = lane.columns[c];
+        if (col.kind === 'note' || col.rel || col.kind === 'spacer' || kind === 'cmd' || kind === 'note') continue;
+        const w = KINDS[kind].width;
+        out = new Map(filled.map(o => [o.tick, rnd(16 ** w).toString(16).toUpperCase().padStart(w, '0')]));
       } else if (mode === 'nudge') {
         const sp = spreadOf(kind, tokens);
         out = new Map();
@@ -445,6 +450,7 @@ export function createTrackerView({ showMenu = (e, items) => showContextMenu(e, 
       { label: 'Shuffle the cells', hint: 'empty cells move too', run: () => { randomize('cells'); draw(); } },
       { label: 'Redraw from the spread', hint: 'filled cells only', run: () => { randomize('redraw'); draw(); } },
       { label: 'Nudge', hint: 'small steps from where they are', run: () => { randomize('nudge'); draw(); } },
+      { label: 'Diverge the parameters', hint: 'filled parameter cells jump anywhere in their range, notes stay; Alt+R rolls again', run: () => { randomize('diverge'); draw(); } },
       { separator: true },
       { label: 'Redraw, empty cells too', hint: 'keeps how full it is', run: () => { randomize('fill'); draw(); } },
     ]);
