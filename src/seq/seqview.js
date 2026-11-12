@@ -24,7 +24,7 @@ const hex2 = n => n.toString(16).toUpperCase().padStart(2, '0');
 // column. The cursor sits on a row; edits happen at the row's start, or at the start of a
 // pattern that begins inside it. A pattern is a block that starts with its index and name; a later
 // pattern covers the ones under it. Keyboard-driven.
-export function createSequenceView({ el, statusEl, undoEl = null, listEl, transport, onToggle, onOpen, onMove, onSeek, onParams = () => {}, instruments = () => [], unassigned = () => [], newKinds = () => [], onNewInstrument = () => {}, onAddLane = () => {}, onMoveLane = () => {}, onBounce = () => {}, onSong = () => {}, onShape = () => {}, follow = () => false }) {
+export function createSequenceView({ el, statusEl, undoEl = null, listEl, transport, onToggle, onOpen, onMove, onSeek, onParams = () => {}, onPopout = () => {}, instruments = () => [], unassigned = () => [], newKinds = () => [], onNewInstrument = () => {}, onAddLane = () => {}, onMoveLane = () => {}, onBounce = () => {}, onSong = () => {}, onShape = () => {}, follow = () => false }) {
   let lanes = null, len = 0, editor = null, song = null;
   const cur = { lane: 0, tick: 0 };
   let typed = '', message = '';
@@ -314,6 +314,7 @@ export function createSequenceView({ el, statusEl, undoEl = null, listEl, transp
     showContextMenu(e, [
       { label: 'Open in the pattern editor', hint: 'Enter', run: () => onOpen(li, t) },
       { label: 'Open on its own', hint: 'Ctrl+double-click', run: () => onOpen(li, t, { solo: true }) },
+      { label: 'Show in a pattern window', hint: 'Ctrl+Alt+W', run: () => onPopout(li, t) },
       { separator: true },
       { label: 'Give it its own copy', hint: 'N', run: () => go('clone', editor.clone(li, t), 'Cloned: this placement now has its own copy.') },
       { label: 'Slice here', hint: 'S', run: () => go('slice', editor.slice(li, t), 'Sliced.') },

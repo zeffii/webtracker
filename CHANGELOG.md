@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 736 · 2026-11-12
+
+- **The pattern window opens on the pattern you are looking at, and picks others itself.** Ctrl+Alt+W (or the "Pattern window" button, or "Show in a pattern window" in the arrangement's right-click menu) shows the pattern under the cursor, in whichever editor you are in. Inside the window, the title button (or the I key) opens the Instruments → Patterns menu to move to another instrument or pattern.
+
 ## 735 · 2026-11-12
 
 - **A pattern can be shown in a window of its own.** Pattern options has a "Pattern window…" button that opens an Instruments → Patterns menu (every instrument with its patterns); picking one opens a read-only window with that pattern's rows, drawn like the main grid, with empty columns hidden and the playing row marked. One pattern at a time: picking another moves the same window.
