@@ -43,6 +43,7 @@ const svf = (state, c, x, high) => {
 };
 
 const MAX_VOICES = 8;
+const REPORT_EVERY = 1600, WATCH_SECONDS = 3;   // the panel's picture: about every 35 ms, while it keeps asking
 const MAX_MS = 60;
 const MONO = 0, WIDE = 1, SPREAD = 2;
 const NEAREST = 0, LINEAR = 1;
@@ -55,6 +56,7 @@ export default {
   kinds: { in: 'stereo', out: 'stereo' },
   shape: 'box',
   glyph: 'pogue',
+  editor: 'pogue',   // the panel: where each voice is in its delay, over the last seconds
   params: [
     { name: 'pregain', min: -24, max: 24, def: 0 },            // dB
     { name: 'voices', min: 1, max: MAX_VOICES, def: 3, int: true },
@@ -79,7 +81,7 @@ export default {
     { name: 'postgain', min: -24, max: 24, def: 0 },            // dB
     { name: 'mix', min: 0, max: 1, def: 0.5 },
   ],
-  create({ sampleRate }) {
+  create({ sampleRate, emit }) {
     const size = Math.ceil(sampleRate * MAX_MS / 1000) + 4;
     const bufL = new Float32Array(size), bufR = new Float32Array(size);
     let write = 0;
@@ -142,7 +144,17 @@ export default {
       }
     };
 
+    // While the panel is open (it asks every second) the node reports where its voices are, about every 30 ms: the delay of each,
+    // in ms, for the left set and (wide mode) the right one.
+    let watchLeft = 0, sinceReport = 0;
+    const report = count => {
+      const l = new Float32Array(count), r = new Float32Array(count), ms = 1000 / sampleRate;
+      for (let v = 0; v < count; v++) { l[v] = voices[0][v].delay * ms; r[v] = voices[1][v].delay * ms; }
+      emit({ type: 'pogue', l, r }, [l.buffer, r.buffer]);
+    };
+
     return {
+      message(msg) { if (msg.type === 'watch') watchLeft = WATCH_SECONDS * sampleRate; },
       process(inputs, outputs, n, params, slots) {
         const [inL, inR] = inputs[0], [outL, outR] = outputs[0];
         const p = i => params[slots[i]];
@@ -196,6 +208,10 @@ export default {
 
           outL[i] = (dryL + wetL * mix) * post;
           outR[i] = (dryR + wetR * mix) * post;
+        }
+        if (watchLeft > 0 && emit) {
+          watchLeft -= n; sinceReport += n;
+          if (sinceReport >= REPORT_EVERY) { sinceReport = 0; report(count); }
         }
       },
     };

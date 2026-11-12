@@ -11038,6 +11038,25 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     console.log('ok: filterpro panel');
   }
 
+  // Pogue's panel: a watched node reports where its voices are, inside the band between the shortest and the longest delay
+  {
+    const def = NODE_TYPES.pogue, sr = 48000, names = def.params.map(q => q.name), slots = Int32Array.from(names.map((_, k) => k));
+    const run = (watch, vals = {}) => {
+      const heard = [], node = def.create({ sampleRate: sr, emit: msg => heard.push(msg) }), params = names.map(n => vals[n] ?? def.params.find(q => q.name === n).def);
+      if (watch) node.message({ type: 'watch' });
+      const x = new Float32Array(128), y = new Float32Array(128), l = new Float32Array(128), r = new Float32Array(128);
+      for (let b = 0; b < 400; b++) { for (let k = 0; k < 128; k++) x[k] = 0.1 * Math.sin(k + b); node.process([[x, x]], [[l, r]], 128, params, slots); }
+      return heard;
+    };
+    const heard = run(true, { voices: 4, mindelay: 6, maxdelay: 14, stereo: 1 });
+    assert.ok(heard.length > 10 && heard[0].type === 'pogue' && heard[0].l.length === 4 && heard[0].r.length === 4, 'a watched Pogue reports each voice');
+    const all = heard.flatMap(h => [...h.l, ...h.r]);
+    assert.ok(all.every(ms => ms >= 5.9 && ms <= 14.1), 'the voices stay between the shortest and the longest delay');
+    assert.ok(Math.max(...all) - Math.min(...all) > 1, 'and they move');
+    assert.equal(run(false).length, 0, 'an unwatched Pogue reports nothing');
+    console.log('ok: pogue panel');
+  }
+
   {
     const node = def.create({ sampleRate: rate }), params = Float32Array.from(def.params.map(p => (p.name === 'noise' || p.name === 'click' ? 0 : p.def))); node.message({ type: 'env', slot: 'amp', points: bz.SHAPES.flat() });
     node.note({ type: 'noteOn', note: 60, vel: 1 }); const L = new Float32Array(128); let peak = 0;

@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 732 · 2026-11-12
+
+- **Pogue has a panel.** The top half shows the voices themselves: where each one reads the delay line, over the last six seconds, between the shortest and the longest delay (the node reports its real voice positions while the panel is open, so the wobble you see is the wobble you hear). In wide mode the right side's voices are drawn thinner and dashed. The two edges of the delay band can be dragged. Below are three pictures of the wet path: the high-pass and low-pass it goes through (drag either cut-off), the curve saturation and the bit reduction make from what goes in to what comes out (a staircase when degrade is up), and the feedback to its own side and across (arrow thickness is the amount, dashed red is inverted). A line under it sums up the settings.
+
 ## 731 · 2026-11-12
 
 - **Keyjazz works whichever node is selected.** The piano keys used to play only while a generator node (oscillator, sampler, synth) was selected, so tweaking a filter or an effect meant clicking back to the synth to hear the change. Now they play the instrument with any node selected, or none, as long as the instrument has a generator. Typing into the box for a value still keeps the keys, and so do the other text fields. The same holds if the focus is on a control in one of the parameter panels (the node's, the exposed one, the floating ones). Smoke test updated.
