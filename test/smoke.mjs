@@ -4746,13 +4746,13 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   assert.ok(gen && other);
   assert.equal(patcher.selectedNode, gen.id, 'showing an instrument selects its generator, so the keys play at once');
   canvas.listeners.mousedown({ offsetX: 5000, offsetY: 5000, preventDefault() {} }); canvas.listeners.mouseup({ offsetX: 5000, offsetY: 5000 });
-  down('z'); assert.equal(notes.length, 0, 'nothing plays with no node selected');
+  down('z'); assert.equal(notes.length, 1, 'the keys play with no node selected too'); up('z'); notes.length = 0;
   const pick = node => {
     const { w, h } = nodeBox(NODE_TYPES[node.type]);
     canvas.listeners.mousedown({ offsetX: node.x + w / 2, offsetY: node.y + h / 2, preventDefault() {} });
     canvas.listeners.mouseup({ offsetX: node.x + w / 2, offsetY: node.y + h / 2 });
   };
-  pick(other); down('z'); assert.equal(notes.length, 0, 'a node that is not a generator does not play');
+  pick(other); down('z'); assert.deepEqual(notes, [['lead', 48, true]], 'a node that is not a generator can be tweaked while the keys play'); up('z'); notes.length = 0;
   pick(gen);
   down('z'); down('z', { repeat: true }); assert.deepEqual(notes, [['lead', 48, true]], 'C of octave 3 (MIDI 48, as the pattern plays C-3), once despite key repeat');
   down('q'); assert.deepEqual(notes.at(-1), ['lead', 60, true], 'the upper row is an octave up');

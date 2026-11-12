@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['731', ['Keyjazz plays whichever node is selected, so you can tweak a filter or an effect while you play. Typing a value still keeps the keys.']],
   ['730', ['FilterPro has a panel: the sound going in, the sound coming out and the filter curve between them, with frequency marks, the cutoff to drag, and formants or comb teeth for the vowel and comb voicings. The vowel voicing no longer drifts.']],
   ['729', ['Low Pulsar notes keep their release tail instead of cutting off when the key is let go.']],
   ['728', ['The Pulsar synth is in the Shift+I menu (synths, digital): a ready-made instrument with formant, track, mask and scatter on its panel.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['724', ['The first screen blob\'s background gradient is the complement of the blob\'s colour (yellow on blue, cyan on red).']],
   ['723', ['No purples or pinks on the first screen: the random colours skip that part of the colour wheel, and the blob keeps to yellow, blue and orange colourways.']],
   ['722', ['A new first screen: reaction diffusion and flowing plasma join the blob and the logo, in new random colours on every start (the old teal is gone). Pick one, or leave Config "First screen look" on random.']],
-  ['721', ['The mixer\'s button column sits 5 px clear of the dB tick marks (strips are 5 px wider).']],
                     ];

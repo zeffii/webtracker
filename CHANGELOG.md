@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 731 · 2026-11-12
+
+- **Keyjazz works whichever node is selected.** The piano keys used to play only while a generator node (oscillator, sampler, synth) was selected, so tweaking a filter or an effect meant clicking back to the synth to hear the change. Now they play the instrument with any node selected, or none, as long as the instrument has a generator. Typing into the box for a value still keeps the keys, and so do the other text fields. The same holds if the focus is on a control in one of the parameter panels (the node's, the exposed one, the floating ones). Smoke test updated.
+
 ## 730 · 2026-11-12
 
 - **FilterPro has a panel.** It shows the sound going into the filter (grey), the sound coming out (orange) and the filter's own curve (green) on one frequency axis from 20 Hz to 20 kHz, with the curve's scale (+24 to -36 dB, 0 dB dashed). The curve is drawn from the real filter maths and moves with every setting; a line under the picture names the voicing, where it has fallen 3 dB and its highest point. The cutoff has a dot to drag (along for the cutoff, up and down for the resonance). The vowel voicing marks its three formants in Hz, and the combs mark their teeth at the whole multiples of the cutoff. The spectra are live while the panel is open and cost nothing when it is not. Drive, bias and the cutoff input are not part of the curve.

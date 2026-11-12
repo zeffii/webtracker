@@ -272,15 +272,13 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
 
   const def = () => instruments[instId];
   const desc = () => def().graph;
-  // Keyjazz: with a generator node (an oscillator, a sampler, a synth) selected, the piano keys play the whole
-  // instrument while held, as in the pattern view; [ and ] change the octave.
+  // Keyjazz: in an instrument with a generator node (an oscillator, a sampler, a synth) the piano keys play the whole
+  // instrument while held, as in the pattern view, whichever node is selected; [ and ] change the octave.
   const PIANO = { ...LOWER, ...UPPER };
   const held = new Map();   // key -> the note it started, so a key released after an octave change stops the right one
   let octave = 3, overDx = false;   // overDx: the mouse is over the DX panel (its keys play notes)
-  const generatorSelected = () => {
-    const node = selected?.kind === 'node' ? desc().nodes.find(n => n.id === selected.id) : null;
-    return !!node && !!nodeTypes[node.type]?.generator;
-  };
+  // The keys play the instrument whichever node is selected (to tweak a filter while playing, say), as long as it has a generator.
+  const canJazz = () => !!instId && !!def() && desc().nodes.some(n => nodeTypes[n.type]?.generator);
   const releaseKeys = () => { for (const note of held.values()) onNote(instId, note, false); held.clear(); };
   const say = text => { if (statusEl) statusEl.textContent = text; };
   const structure = () => { dirty = true; onStructure(instId); };
@@ -1361,7 +1359,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
       e.preventDefault();
       return;
     }
-    if (!e.ctrlKey && !e.altKey && !e.metaKey && generatorSelected()) {
+    if (!e.ctrlKey && !e.altKey && !e.metaKey && canJazz()) {
       const k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
       if (k === '[' || k === ']') { octave = Math.min(8, Math.max(0, octave + (k === ']' ? 1 : -1))); say(`Keyjazz octave ${octave}`); e.preventDefault(); return; }
       if (Object.hasOwn(PIANO, k)) {
@@ -1383,8 +1381,12 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
   // Keyjazz over the DX panel: while the mouse is over its box the piano keys play the instrument, whatever has the focus
   // (a slider or a button in the panel would otherwise keep the keys); typing in a text field is left alone.
   const typing = t => /^(TEXTAREA|SELECT)$/.test(t?.tagName) || (t?.tagName === 'INPUT' && !/^(range|checkbox|radio|button|file)$/.test(t.type)) || t?.isContentEditable === true;
+  // The same goes for the parameter panels (the focus can be on a slider or a button in one, after a click): only the box
+  // for typing a value keeps the keys.
+  const inDocks = t => [paramPanel, exposedDock, floatDock].some(h => h?.contains?.(t));
+  const jazzHere = t => overDx || (inDocks(t) && canJazz());
   doc.addEventListener?.('keydown', e => {
-    if (!overDx || typing(e.target) || e.ctrlKey || e.altKey || e.metaKey) return;
+    if (!jazzHere(e.target) || typing(e.target) || e.ctrlKey || e.altKey || e.metaKey) return;
     const k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
     if (k === '[' || k === ']') { octave = Math.min(8, Math.max(0, octave + (k === ']' ? 1 : -1))); say(`Keyjazz octave ${octave}`); e.preventDefault(); e.stopImmediatePropagation(); return; }
     if (!Object.hasOwn(PIANO, k)) return;
@@ -1393,7 +1395,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
   }, true);
   doc.addEventListener?.('keyup', e => {
     const k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
-    if (overDx && held.has(k)) { onNote(instId, held.get(k), false); held.delete(k); e.stopImmediatePropagation(); }
+    if (held.has(k) && (overDx || inDocks(e.target))) { onNote(instId, held.get(k), false); held.delete(k); e.stopImmediatePropagation(); }
   }, true);
 
   // ---- drawing ----
