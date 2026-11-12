@@ -422,6 +422,8 @@ const mixer = createMixer({
 engine.onLevels = peaks => mixer.levels(peaks);
 let mixerDock = null;   // made below, once the meters are (the bottom of the window is laid out by layoutBottom)
 const bottomExtra = () => mixerDock?.shownHeight() ?? 0;   // what the mixer dock takes off the views
+let metersBand = null;   // set once the meters exist: the height of the meter band while it is open
+const roomBelow = () => bottomExtra() + (metersBand?.() ?? 0);   // everything between the views and the bottom of the window, apart from the status bar
 
 // ---- Scripts ----
 // A script runs in a Worker on a copy of the pattern under the pattern editor's cursor (or its selection) and gives back
@@ -699,16 +701,16 @@ const fitArrangement = () => {
   document.body.classList.toggle('seqfit', config.get('seqFit'));
   document.body.classList.toggle('viewfit', config.get('viewFit'));
   if (config.get('seqFit') && tabs.active === 'arrange') {
-    const el = $('seq'), pane = $('pane-arrange'), room = innerHeight - el.getBoundingClientRect().top - foot - bottomExtra() - 2;
+    const el = $('seq'), pane = $('pane-arrange'), room = innerHeight - el.getBoundingClientRect().top - foot - roomBelow() - 2;
     seqView.setRows(Math.floor(room / 18) - Math.max(0, el.childElementCount - seqView.rows));
-    document.body.style.setProperty('--arr-h', `${Math.max(0, innerHeight - pane.getBoundingClientRect().top - foot - bottomExtra())}px`);   // the panels reach the top of the status bar
+    document.body.style.setProperty('--arr-h', `${Math.max(0, innerHeight - pane.getBoundingClientRect().top - foot - roomBelow())}px`);   // the panels reach the top of the status bar
   }
   if (config.get('viewFit') && tabs.active === 'patterns') {
     // the view is as tall as its rows: add or take away what is over or missing, and look again until nothing more fits
     // (one pass is not enough when the font size makes the measured line height a little off)
     const el = $('view');
     for (let pass = 0; pass < 6; pass++) {
-      const room = innerHeight - el.getBoundingClientRect().bottom - foot - bottomExtra() - 8, n = Math.floor(room / view.lineHeight());
+      const room = innerHeight - el.getBoundingClientRect().bottom - foot - roomBelow() - 2, n = Math.floor(room / view.lineHeight());
       if (n === 0) break;
       view.setRows(view.rows + n);
     }
@@ -1883,7 +1885,9 @@ const layoutBottom = () => {
   $('mixer-dock').style.bottom = `${foot + metersH}px`;
   document.body.style.setProperty('--dock-h', `${dockH}px`);
   document.body.style.paddingBottom = meters.open ? `${foot + metersH + dockH}px` : '';
+  fitArrangement();   // the mixer dock or the meter band came, went or changed height: the rows shown follow
 };
+metersBand = () => (meters.open ? config.get('meterHeight') : 0);
 const placeMeters = layoutBottom;
 const showMeters = on => { if (on) meters.show(); else meters.hide(); $('meters-btn').setAttribute('aria-pressed', String(on)); placeMeters(); };
 const toggleMeters = () => config.set('meterOn', !meters.open);

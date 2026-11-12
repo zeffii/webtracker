@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['709', ['The pattern editor and arrangement refit when the mixer dock or meter band opens, closes or is resized, and run down to where it starts.']],
   ['708', ['The chord view uses the same monospace font as the rest of the app (its font name was never defined).']],
   ['707', ['The sympathy panel draws its panning as a sum: left and right bars built from every ringing string.']],
   ['706', ['Pulsar synthesis: a Pulsar synth and a Pulse train source, with a drawn window for each burst and a drawn formant sweep. Accent colours darken on light themes.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['702', ['The scope eye sits after the node name; swapping a node to another type drops exposed parameters it no longer has.']],
   ['701', ['The ladder filter has a phase parameter for its LFO.']],
   ['700', ['Space on the Sample screen plays from the playhead.']],
-  ['699', ['Sample screen: click the waveform to place the playhead; Ctrl+C / Ctrl+X / Ctrl+V copy, cut and paste at it (Ctrl+Shift+V pastes over), also between samples.']],
                     ];
