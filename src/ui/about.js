@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['734', ['The strip of pictures in a node panel has its scroll bar on top, shown only when something is cut off.']],
   ['733', ['Node panels lay their pictures and editors side by side in one strip that scrolls sideways when they do not fit, instead of stacking them. Pogue\'s panel is four pictures in a row.']],
   ['732', ['Pogue has a panel: its voices moving between the shortest and longest delay, live, with the band to drag, plus pictures of its filters, saturation and bit reduction, and feedback.']],
   ['731', ['Keyjazz plays whichever node is selected, so you can tweak a filter or an effect while you play. Typing a value still keeps the keys.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['727', ['Mixer meters turn grey for lanes whose Mix button is off, since those do not reach the output.']],
   ['726', ['Click a note in the pattern roll (or a row number) to put the pattern editor\'s cursor there, with Edit mode on or off.']],
   ['725', ['A plain first screen: the Wax logo and a thin loader bar, and the app starts by itself after about a second (sound switches on at your first click or key press). The effect looks and their setting are gone.']],
-  ['724', ['The first screen blob\'s background gradient is the complement of the blob\'s colour (yellow on blue, cyan on red).']],
                     ];

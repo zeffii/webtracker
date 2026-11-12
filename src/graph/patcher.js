@@ -1018,12 +1018,39 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
     // The rows of controls stack as they always did; the views go into one strip, side by side, which scrolls sideways (with its own bar)
     // when they are wider than the panel, as a chain of devices does in a DAW. One rule for every node: a new picture is just one more
     // view in the strip.
+    // The strip's own scroll bar, thin and above it, drawn only while something is cut off (the native one is hidden): drag the thumb,
+    // click the track to move a page, or use the wheel or a trackpad on the strip as usual.
+    const scrollable = strip => {
+      const thumb = el('div', { className: 'subui-thumb' }), bar = el('div', { className: 'subui-bar' }, thumb);
+      const wrap = el('div', { className: 'subui-scroll' }, bar, strip);
+      const update = () => {
+        const { scrollWidth, clientWidth, scrollLeft } = strip, over = scrollWidth - clientWidth > 1;
+        bar.hidden = !over;
+        if (!over) return;
+        thumb.style.width = `${clientWidth / scrollWidth * 100}%`; thumb.style.left = `${scrollLeft / scrollWidth * 100}%`;
+      };
+      let grab = null;
+      bar.addEventListener('pointerdown', e => {
+        const track = bar.getBoundingClientRect(), at = (e.clientX - track.left) / (track.width || 1) * strip.scrollWidth;
+        const left = strip.scrollLeft;
+        if (at >= left && at <= left + strip.clientWidth) grab = { x: e.clientX, left, ratio: strip.scrollWidth / (track.width || 1) };   // on the thumb: drag it
+        else strip.scrollLeft = at - strip.clientWidth / 2;   // off it: that spot to the middle
+        bar.setPointerCapture?.(e.pointerId); e.preventDefault();
+      });
+      bar.addEventListener('pointermove', e => { if (grab) strip.scrollLeft = grab.left + (e.clientX - grab.x) * grab.ratio; });
+      const release = () => { grab = null; };
+      bar.addEventListener('pointerup', release); bar.addEventListener('pointercancel', release);
+      strip.addEventListener('scroll', update);
+      if (typeof ResizeObserver === 'function') new ResizeObserver(update).observe(strip);
+      requestAnimationFrame?.(update);
+      return wrap;
+    };
     const stripped = list => {
       const out = [], views = list.filter(x => x.classList?.contains('subui'));
       let placed = false;
       for (const x of list) {
         if (!views.includes(x)) { out.push(x); continue; }
-        if (!placed) { placed = true; out.push(el('div', { className: 'subui-strip' }, ...views)); }
+        if (!placed) { placed = true; out.push(scrollable(el('div', { className: 'subui-strip' }, ...views))); }
       }
       return out;
     };

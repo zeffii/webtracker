@@ -1006,11 +1006,16 @@
     #patch-tools .prow.presets { margin: 0; gap: .4rem; } #patch-tools .prow.presets > span { width: auto; } #patch-tools .prow.presets input { width: 7rem; }
     #inst-main { --form-w: 42rem; }
     #preset-list, #preset-section { max-width: var(--form-w); }
-    #patch-panel > :not(.subui-strip) { max-width: var(--form-w); }   /* the rows of controls are as wide as a form */
+    #patch-panel > :not(.subui-scroll) { max-width: var(--form-w); }   /* the rows of controls are as wide as a form */
     /* The node's views (.subui: the pictures and editors) sit side by side in one strip, in a fixed order, which scrolls sideways with its
        own bar when they are wider than the panel, as a chain of devices does in a DAW. A view made of several parts (.drum2 and .subui-row:
        the drum, pulsar and Pogue panels) lays its parts out the same way, so the parts are simply more places along the strip. */
-    .subui-strip { display: flex; align-items: flex-start; gap: .25rem 1.5rem; overflow-x: auto; padding-bottom: .4rem; max-width: 100%; }
+    .subui-scroll { max-width: 100%; min-width: 0; }
+    .subui-strip { display: flex; align-items: flex-start; gap: .25rem 1.5rem; overflow-x: auto; max-width: 100%; scrollbar-width: none; }
+    .subui-strip::-webkit-scrollbar { display: none; }
+    .subui-bar { position: relative; height: 6px; margin: 0 0 .5rem; background: color-mix(in srgb, currentColor 12%, transparent); cursor: pointer; touch-action: none; }   /* the strip's scroll bar, above it: only there while something is cut off */
+    .subui-thumb { position: absolute; top: 0; bottom: 0; min-width: 24px; background: color-mix(in srgb, currentColor 45%, transparent); }
+    .subui-bar:hover .subui-thumb { background: color-mix(in srgb, currentColor 70%, transparent); }
     .subui-strip > .subui { flex: 0 0 auto; }
     .subui-strip > .subui.fill { flex: 1 0 100%; min-width: 0; }   /* a view that keeps the whole width and lays itself out (the DX bank) */
     .subui.drum2, .subui-row { display: flex; align-items: flex-start; gap: .25rem 1.5rem; }

@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 734 · 2026-11-12
+
+- **The node panel's strip has its scroll bar on top.** The sideways scroll bar of the views strip (build 733) sat at the bottom, often off the screen. It is now a thin bar above the strip, drawn only while something is cut off: drag the thumb, click the track to bring that spot to the middle, or use the wheel or a trackpad on the strip as before. The native bar at the bottom is hidden.
+
 ## 733 · 2026-11-12
 
 - **One layout rule for node panels: the views sit side by side in a strip that scrolls sideways.** The pictures and editors of a node (the drum's pitch and volume curves, the pulsar's pulse train and drawings, the filter and chorus panels, and so on) used to stack down the page. Now they go in one row, in a fixed order, and when they are wider than the panel the row gets its own scroll bar, as a chain of devices does in a DAW. The rows of controls (listens to, presets, notes) stay one to a line above it. A panel made of several parts lays its parts along the strip the same way; the DX bank keeps the whole width and wraps itself as before. Any new picture follows the rule by being one more view (`sub(...)` in the node panel code, `.subui` in the page styles).
