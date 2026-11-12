@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['741', ['The build number is shown again: small at the bottom right of the first screen, under the logo in the rail, in the footer and in the window title.']],
   ['740', ['The floating parameter panel is no longer covered by the arrangement\'s minimaps: its top-right buttons can be clicked.']],
   ['739', ['The picture window\'s parameter rows use the same small monospace text as the regular parameter view.']],
   ['738', ['The picture window\'s parameter rows fill the window and follow it when it is resized.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['734', ['The strip of pictures in a node panel has its scroll bar on top, shown only when something is cut off.']],
   ['733', ['Node panels lay their pictures and editors side by side in one strip that scrolls sideways when they do not fit, instead of stacking them. Pogue\'s panel is four pictures in a row.']],
   ['732', ['Pogue has a panel: its voices moving between the shortest and longest delay, live, with the band to drag, plus pictures of its filters, saturation and bit reduction, and feedback.']],
-  ['731', ['Keyjazz plays whichever node is selected, so you can tweak a filter or an effect while you play. Typing a value still keeps the keys.']],
                     ];

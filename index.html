@@ -211,6 +211,8 @@
     /* the rail: the logo (the start button until the audio runs), one icon per screen, and help and config at the foot */
     #rail { position: fixed; left: 0; top: 0; bottom: 0; width: var(--rail); box-sizing: border-box; z-index: 5; display: flex; flex-direction: column; align-items: center; gap: .3rem; padding: .5rem 0; background: var(--bg); border-right: 1px solid color-mix(in srgb, currentColor 14%, transparent); }
     #rail #logo { width: 2.3rem; margin-bottom: .5rem; display: flex; }
+    #rail-build { font: 10px/1 ui-monospace, Consolas, monospace; opacity: .6; margin: -.3rem 0 .5rem; text-align: center; }
+    #rail-build:empty { display: none; }
     .logo-glyph { width: 100%; height: auto; display: block; }
     #rail #tabs { flex-direction: column; gap: .3rem; }
     #rail button { width: 2.4rem; height: 2.2rem; padding: 0; display: inline-flex; align-items: center; justify-content: center; font: inherit; border: 1px solid transparent; border-radius: 3px; background: transparent; color: inherit; cursor: pointer; opacity: .75; }
@@ -1298,6 +1300,7 @@
     .s-word { margin: 0; width: min(46vw, 520px); line-height: 0; user-select: none; }
     .s-glyph { width: 100%; height: auto; display: block; }
     .s-msg { position: absolute; left: 0; right: 0; top: calc(50% + min(14vw, 150px)); padding: 0 1rem; text-align: center; font: 13px/1.5 ui-monospace, Consolas, monospace; color: var(--warn, #d33); }
+    .s-build { position: absolute; right: 12px; bottom: 10px; font: 11px ui-monospace, Consolas, monospace; opacity: .4; pointer-events: none; }
     .s-bar { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: color-mix(in srgb, var(--fg, #000) 12%, transparent); }
     .s-bar i { display: block; height: 100%; background: var(--accent, #2b6be0); transform-origin: left; transform: scaleX(0); transition: transform .25s ease-out; }
     #splash.failed .s-bar i { background: var(--warn, #d33); }
@@ -1438,6 +1441,7 @@
     <p class="s-word"><svg class="s-glyph" xmlns="http://www.w3.org/2000/svg" viewBox="70 90 2320 820" fill="currentColor" fill-rule="evenodd" role="img" aria-label="Wax"><path transform="translate(280)" d="M40 850 L280 640 L310 800 L460 800 L850 130 L420 530 L380 360 L110 590 L-20 300 L-210 250 Z"/><path transform="translate(910)" d="M-140 800 L250 310 L454.7 311.2 L630 800 L440 800 L410 680 L130 720 L60 800 Z M200 610 L390 580 L347 414.8 Z"/><path transform="translate(1580)" d="M-20 650 L100 570 L-80 470 L-150 280 L230 480 L810 90 L630 400 L390 570 L540 650 L730 910 L240 650 L30 800 Z"/></svg></p>
     <div class="s-msg" role="status" aria-live="polite"></div>
     <div class="s-bar"><i></i></div>
+    <small class="s-build"></small>
   </div>
   <div id="meters" hidden></div>
   <div id="viz" hidden><canvas id="viz-canvas" width="300" height="300"></canvas><canvas id="viz-draw" width="300" height="300" hidden></canvas><button id="viz-close" type="button" title="Close the picture" aria-label="Close the picture">&#x2715;</button><button id="viz-pop" type="button" title="Pop the picture out into its own always-on-top window (and back)">&#x2197;</button><canvas id="viz-text" width="300" height="300"></canvas><div id="viz-err" hidden></div></div>
@@ -1445,6 +1449,7 @@
   <div id="backup-panel" tabindex="-1" hidden role="dialog" aria-label="Backups"></div>
   <nav id="rail" aria-label="Screens">
     <strong id="logo" class="idle" title="Click to start the audio" role="button" tabindex="0"><svg class="logo-glyph" xmlns="http://www.w3.org/2000/svg" viewBox="70 90 2320 820" fill="currentColor" fill-rule="evenodd" role="img" aria-label="Wax"><path transform="translate(280)" d="M40 850 L280 640 L310 800 L460 800 L850 130 L420 530 L380 360 L110 590 L-20 300 L-210 250 Z"/><path transform="translate(910)" d="M-140 800 L250 310 L454.7 311.2 L630 800 L440 800 L410 680 L130 720 L60 800 Z M200 610 L390 580 L347 414.8 Z"/><path transform="translate(1580)" d="M-20 650 L100 570 L-80 470 L-150 280 L230 480 L810 90 L630 400 L390 570 L540 650 L730 910 L240 650 L30 800 Z"/></svg></strong>
+    <small id="rail-build" title="Build"></small>
     <nav id="tabs">
       <button id="tab-arrange" title="Song: the arrangement (F1)" aria-label="Song"><svg class="ri" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 4h4v8H3z M10 9h4v11h-4z M17 3h4v5h-4z M17 12h4v6h-4z"/></svg></button>
       <button id="tab-patterns" title="Pattern (F2)" aria-label="Pattern"><svg class="ri" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h16v16H4z M4 10h16 M4 15h16 M10 4v16"/></svg></button>
@@ -1963,8 +1968,11 @@
       if (!v || !v.build) return;
       const b = document.getElementById('build');
       b.textContent = `build ${v.build} · ${v.commit}`; b.title = v.date;
-      document.querySelector('.s-build').textContent = `build ${v.build} · ${v.commit}`;
       document.title = `Wax ${v.build}`;
+      const splash = document.querySelector('.s-build');
+      if (splash) splash.textContent = `build ${v.build} · ${v.commit}`;
+      const rail = document.getElementById('rail-build');   // under the logo: the number, and the commit when hovered
+      if (rail) { rail.textContent = v.build; rail.title = `build ${v.build} · ${v.commit} · ${v.date}`; }
     }).catch(() => {});
   </script>
   <script type="module" src="src/main.js"></script>

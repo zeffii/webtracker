@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 741 · 2026-11-12
+
+- **The build is shown again.** The label script stopped at a splash element that build 725 removed, so the window title lost its build number and nothing else was updated. The splash now shows "build NNN · sha" small at the bottom right, the build number sits under the logo in the rail (hover for the commit and date), and the footer label and window title work as before.
+
 ## 740 · 2026-11-12
 
 - **The floating parameter panel is drawn above the arrangement's pattern minimaps.** The minimap's picture (z-index 1) covered the panel, which had none, so the buttons at its top right could not be clicked.
