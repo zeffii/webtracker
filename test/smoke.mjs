@@ -54,6 +54,7 @@ import { SHADER } from '../src/instruments.js';
 import * as lib from '../src/project/library.js';
 import { compileDsp } from '../src/audio/wasm/load.js';
 import { rollData } from '../src/seq/rolldata.js';
+import { buildMachineTree } from '../src/ui/machinetree.js';
 import { rollContext, createNote, moveNote, resizeNote, clearNote, setVelocity } from '../src/seq/rollops.js';
 
 import * as uiConfig from '../src/ui/config.js';
@@ -11357,6 +11358,21 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   run(ctx => clearNote(ctx, notes().find(n => n.pitch === 50)));
   assert.ok(!notes().some(n => n.pitch === 50)); assert.equal(lane.rows[10][m.col * 2], '...'); assert.equal(lane.rows[8][m.col * 2 + 1], '..');
   console.log('ok: pattern roll editing');
+}
+
+{
+  // ---- every synth kind is in the machine tree (Shift+I) ----
+  const items = Object.entries(synthKinds).map(([k, { label }]) => ({ value: `synth:${k}`, label }));
+  const walk = nodes => nodes.flatMap(n => (n.children ? walk(n.children) : [n]));
+  const placed = walk(buildMachineTree(items));
+  const other = buildMachineTree(items).find(g => g.name === 'other');
+  assert.deepEqual(other?.children?.map(c => c.value) ?? [], [], 'every synth kind has its place in the tree (instruments.js MACHINE_TREE)');
+  assert.ok(placed.some(n => n.value === 'synth:pulsar'), 'the pulsar synth can be added');
+  const def = synthKinds.pulsar.make(), registry = new ParamRegistry();
+  compile(def.graph, { instrument: 'pul', nodeTypes: NODE_TYPES, registry });
+  const cols = buildColumns('pul', def, registry);
+  assert.ok(cols.some(c => c.kind === 'note') && cols.filter(c => c.kind === 'param').length >= 4, 'the pulsar instrument has notes and parameters');
+  console.log('ok: machine tree lists every synth');
 }
 
 console.log('smoke test passed');

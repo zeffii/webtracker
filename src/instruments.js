@@ -232,7 +232,7 @@ export const MACHINE_TREE = [
   { name: 'samplers', items: [['sampler', 'Sampler'], ['modchan', 'MOD channel']] },
   { name: 'synths', groups: [
     { name: 'analogue', items: [['subtractive', 'Subtractive'], ['fourpole', 'Fourpole'], ['oberheim', 'Oberheim-style'], ['squelch', 'Squelch'], ['duette', 'Duette'], ['cardinal', 'Cardinal'], ['snarl', 'Snarl']] },
-    { name: 'digital', items: [['fm', 'FM synth'], ['dvii', 'DVIIloader'], ['wavetable', 'Wavetable'], ['additive', 'Additive'], ['spectral', 'Spectral'], ['granular', 'Granular']] },
+    { name: 'digital', items: [['fm', 'FM synth'], ['dvii', 'DVIIloader'], ['wavetable', 'Wavetable'], ['pulsar', 'Pulsar'], ['additive', 'Additive'], ['spectral', 'Spectral'], ['granular', 'Granular']] },
     { name: 'physical', items: [['piano', 'Piano'], ['string', 'Plucked string'], ['jawharp', 'Jaw harp']] },
   ] },
   { name: 'drums', groups: [
@@ -388,6 +388,29 @@ export const synthKinds = {
         { id: 0x06, node: 'synth', param: 'sweep' },
         { id: 0x07, node: 'synth', param: 'detune' },
         { id: 0x08, node: 'synth', param: 'glide' },
+      ],
+    }),
+  },
+  pulsar: {
+    label: 'Pulsar synth',
+    make: () => ({
+      graph: { nodes: [{ id: 'synth', type: 'pulsar' }, { id: 'poly', type: 'voices' }, { id: 'out', type: 'out', params: { gain: 0.5 } }], connections: [['synth.out', 'poly.in'], ['poly.out', 'out.in']], voices: 6 },
+      noteColumns: 2,
+      exposed: [
+        { node: 'synth', param: 'formant', label: 'For', scale: 'log' },
+        { node: 'synth', param: 'track', label: 'Trk' },
+        { node: 'synth', param: 'mask', label: 'Msk' },
+        { node: 'synth', param: 'scatter', label: 'Sct' },
+      ],
+      commands: [
+        { id: 0x01, node: 'synth', param: 'formant', scale: 'log' },
+        { id: 0x02, node: 'synth', param: 'track' },
+        { id: 0x03, node: 'synth', param: 'wave' },
+        { id: 0x04, node: 'synth', param: 'mask' },
+        { id: 0x05, node: 'synth', param: 'jitter' },
+        { id: 0x06, node: 'synth', param: 'scatter' },
+        { id: 0x07, node: 'synth', param: 'glide' },
+        { id: 0x08, node: 'synth', param: 'sweep' },
       ],
     }),
   },

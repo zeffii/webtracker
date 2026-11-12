@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 728 · 2026-11-12
+
+- **The Pulsar synth can be added from the Shift+I menu.** Build 706 added the Pulsar node but not the ready-made instrument, so the menu (and the "new instrument" lists) had nothing to offer. It is now under synths, digital: a pulsar synth with a voices node and an Out, six voices and two note columns, with Formant, Track, Mask and Scatter exposed, and commands for formant, track, wave, mask, jitter, scatter, glide and sweep. A smoke test now checks that every synth kind has a place in the machine tree, so one cannot be left out again.
+
 ## 727 · 2026-11-12
 
 - **Mixer meters go grey when the lane is not in the mix.** A channel whose Mix button is off does not reach the output (only sidechain nodes hear it), so its level meter is drawn grey, and its clip dot stays off, instead of the green-to-red meter. The level still moves, so you can see what the lane is doing; turning Mix back on brings the colours back.
