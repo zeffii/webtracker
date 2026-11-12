@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['721', ['The mixer\'s button column sits 5 px clear of the dB tick marks (strips are 5 px wider).']],
   ['720', ['The pattern roll has an Edit switch (off by default): with it off, nothing you do in the roll changes the pattern.']],
   ['719', ['The pattern roll edits notes: click to add (length set in the roll\'s bar), drag to move or stretch, drag a velocity dot, right-click or Delete to remove, Ctrl+Z to undo. Everything is written into the pattern\'s own cells.']],
   ['718', ['The pattern roll shows the playhead: a green line on the playing row, scrolling with it when Follow mode is on.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['714', ['The arrangement fills its whole height with rows; a few rows at the bottom were missing (leaving only the automation curve).']],
   ['713', ['The mixer buttons are fully opaque.']],
   ['712', ['Mixer channels are about half as wide, with the buttons stacked in one column.']],
-  ['711', ['A new mixer look: a dB scale with ticks, a level well that turns red toward the top and a clip dot; the fader is now in dB.']],
                     ];

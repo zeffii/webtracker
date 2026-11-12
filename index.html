@@ -282,7 +282,7 @@
     #mixer-grip.dragging { background: color-mix(in srgb, var(--accent) 35%, transparent); }
     /* the mixer, in the retroslate look: small monospace, hairline slate lines, flat chips, the accent only where something is on */
     #mixer { display: flex; flex: 1 1 auto; min-height: 0; overflow-x: auto; overflow-y: hidden; font: 11px/1.3 ui-monospace, Consolas, monospace; }
-    .mx-strip { flex: none; width: 68px; padding: 2px 3px 4px; box-sizing: border-box; overflow: hidden; display: flex; flex-direction: column; gap: 3px; border-right: 1px solid color-mix(in srgb, var(--fg) 22%, transparent); }
+    .mx-strip { flex: none; width: 73px; padding: 2px 3px 4px; box-sizing: border-box; overflow: hidden; display: flex; flex-direction: column; gap: 3px; border-right: 1px solid color-mix(in srgb, var(--fg) 22%, transparent); }
     .mx-strip.blank { display: none; }
     .mx-strip.cur { box-shadow: inset 0 2px 0 var(--accent); }
     .mx-strip.nooutput { opacity: .55; }
@@ -305,7 +305,7 @@
     .mx-scale { width: 32px; padding-right: 0; border-right: 0; }
     .mx-labels { position: relative; width: 100%; }
     .mx-labels span { position: absolute; left: 0; margin-bottom: -6px; font-size: 10px; opacity: .6; }
-    .mx-side { display: grid; grid-template-columns: 1fr; gap: 3px; align-content: start; justify-content: start; min-width: 0; overflow: hidden; }
+    .mx-side { display: grid; grid-template-columns: 1fr; gap: 3px; align-content: start; justify-content: start; min-width: 0; overflow: hidden; margin-left: 5px; }   /* a little clear of the dB ticks */
     .mx-side .mx-btn { padding: 0 2px; text-align: center; }
     .mx-db { font-size: 10px; opacity: .75; white-space: nowrap; }
     .mx-btn { font: inherit; font-size: 10px; line-height: 14px; padding: 0 5px; border: 1px solid color-mix(in srgb, var(--accent) 55%, var(--panel)); border-radius: 0; background: color-mix(in srgb, var(--fg) 4%, var(--panel)); color: var(--fg); cursor: pointer; position: relative; }   /* opaque: the dotted scale lines behind the strip do not show through */

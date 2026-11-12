@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 721 · 2026-11-12
+
+- **The mixer's button column sits 5 px clear of the dB tick marks.** Each channel strip is 5 px wider (73 px) so the readout and the M, S, test and mix buttons keep their full width.
+
 ## 720 · 2026-11-12
 
 - **The pattern roll has an edit mode.** An "Edit" switch in the roll's top bar, off by default and remembered. While it is off, nothing you do in the roll changes the pattern: clicks, drags, right-clicks and the Delete and undo keys do nothing, and the "New note" box is greyed out. Scrolling, the minimap and Space (play and stop) still work. Turn it on to add, move, stretch and delete notes.
