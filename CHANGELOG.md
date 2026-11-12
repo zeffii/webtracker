@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 712 · 2026-11-12
+
+- **Narrower mixer channels, buttons stacked.** A strip is about half as wide (68 px instead of 120): the dB figure and the M, S, test and mix buttons sit in one column beside the fader, so more lanes fit on screen. The readout shows the figure alone; hover it for the full text, and the test button shows when it is a test gain.
+
 ## 711 · 2026-11-12
 
 - **A new look for the mixer.** Each lane has a well that its level fills with a gradient fixed to the scale (green, then amber, then red as the level nears the top), a red dot above it at 0 dB or over, and the fader as a short bar across it. A dB scale runs down the left of the mixer (+6, 0, -6, -12, -24), with short ticks beside every well and a faint dotted line across each strip at the numbered values. The fader and the level now share one dB scale, -30 to +6 (before, the fader was linear in gain up to 1.5); saved gains are unchanged, only where they sit on the track.

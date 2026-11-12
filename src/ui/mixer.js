@@ -67,7 +67,8 @@ export function createMixer({ el, lanes, instruments, setParam, hear, solo, sile
       const test = testing.has(strip.inst), g = test ? testing.get(strip.inst) : gainOf(node);
       cap.style.bottom = pos(g); mark.style.bottom = pos(gainOf(node)); mark.hidden = !test;
       track.classList.toggle('test', test);
-      strip.readout.textContent = `${test ? 'test ' : ''}${dbText(g)} dB`;
+      strip.readout.textContent = dbText(g);   // dB; the test button shows when it is a test gain
+      strip.readout.title = `${test ? 'Test gain' : 'Gain'} ${dbText(g)} dB`;
     };
     const put = g => {
       if (testing.has(strip.inst)) { testing.set(strip.inst, g); hear(strip.inst, node.id, 'gain', g); }
