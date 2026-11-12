@@ -2473,7 +2473,7 @@ let rollBarSync = () => {};
   $('roll-toggle').addEventListener('click', () => { rollToggle(); $('smp').focus(); });
   config.onChange(k => { if (k.startsWith('roll')) { shownKey = ''; waveform.redraw(); } });
 }
-const placeViz = () => { if (pip) return; vizBox.style.bottom = `${$('footer').offsetHeight + (meters.open ? config.get('meterHeight') : 0) + 14}px`; };
+const placeViz = () => { if (pip) return; const left = config.get('visualLeft'); vizBox.style.left = left ? `calc(var(--rail) + 14px)` : ''; vizBox.style.right = left ? 'auto' : ''; vizBox.style.bottom = `${$('footer').offsetHeight + (meters.open ? config.get('meterHeight') : 0) + 14}px`; };
 const showViz = on => {
   vizOn = on;
   if (on && !visual) {
@@ -2522,6 +2522,7 @@ html body{display:flex!important;flex-direction:column;width:100%;color:#cfe3e7}
 #viz canvas{position:absolute;left:50%;top:50%;width:100vmin;height:100vmin;transform:translate(-50%,-50%);display:block}
 #viz canvas[hidden]{display:none}
 #viz-text{pointer-events:none}
+#viz-side{display:none}
 #viz-pop,#viz-close{position:absolute;right:36px;top:6px;width:26px;height:26px;padding:0;opacity:0;transition:opacity .15s;background:rgba(0,0,0,.55);color:#cfe3e7;border:0;border-radius:4px;cursor:pointer;z-index:2}
 #viz-close{right:6px}
 #viz:hover #viz-pop,#viz:hover #viz-close{opacity:1}
@@ -2550,6 +2551,8 @@ const popOut = async () => {
   } catch (e) { $('status').textContent = `Could not open the floating window: ${e.message}`; }
 };
 $('viz-pop').addEventListener('click', popOut);
+$('viz-side').addEventListener('click', () => config.set('visualLeft', !config.get('visualLeft')));
+config.onChange(k => { if (k === 'visualLeft') placeViz(); });
 $('viz-close').addEventListener('click', () => config.set('visualOn', false));   // closes the picture, in its floating window too
 const toggleViz = () => config.set('visualOn', !vizOn);
 $('viz-btn').addEventListener('click', toggleViz);

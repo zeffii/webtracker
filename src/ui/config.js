@@ -121,6 +121,7 @@ export const SCHEMA = [
   { key: 'minimapCaps', label: 'Minimaps: note off and kill', hint: 'cyan for ===, magenta for ^^^ (a kill: fade out, reset, sleep until the next note)', type: 'bool', def: true },
   { key: 'minimapParams', label: 'Minimaps: parameters', hint: 'one narrow column each at the right edge, darker the higher the value', type: 'bool', def: true },
   { group: 'Visual', key: 'visualOn', label: 'Live picture', hint: 'a 300 x 300 picture in the corner (Ctrl+Alt+V, or the button in the status bar)', type: 'bool', def: false },
+  { key: 'visualLeft', label: 'Picture: parked bottom left', hint: 'the live picture sits at the bottom left, where there is usually room, instead of the bottom right (the arrows button on the picture does the same)', type: 'bool', def: false },
   { key: 'visualSkeleton', label: 'Picture: pattern skeleton', hint: 'draws every lane\'s pattern around the playhead as thin rows of ticks over the picture (pitch is height, velocity is strength), scrolling past a fixed line', type: 'bool', def: true },
   { key: 'shaderSliders', label: 'Shader view: number sliders', hint: 'numbers in the shader are drawn on a faint chip (orange for floats, green for ints); click one, or drag it sideways, for a slider that writes into the text', type: 'bool', def: true },
   { key: 'shaderKnobs', label: 'Shader view: knobs panel', hint: 'a list of every number in the shader, each with its own slider and tick box; unticking puts the number back as it was', type: 'bool', def: false },

@@ -1288,7 +1288,8 @@
     #viz-pop { position: absolute; right: 6px; top: 6px; width: 1.6rem; height: 1.6rem; padding: 0; opacity: 0; transition: opacity .15s; background: rgba(0,0,0,.55); color: #cfe3e7; border: 0; border-radius: 4px; cursor: pointer; }
     #viz-close { position: absolute; right: 6px; top: 6px; width: 1.6rem; height: 1.6rem; padding: 0; opacity: 0; transition: opacity .15s; background: rgba(0,0,0,.55); color: #cfe3e7; border: 0; border-radius: 4px; cursor: pointer; z-index: 2; }
     #viz-pop { right: 36px; }
-    #viz:hover #viz-pop, #viz-pop:focus-visible, #viz:hover #viz-close, #viz-close:focus-visible { opacity: 1; }
+    #viz-side { position: absolute; right: 66px; top: 6px; width: 1.6rem; height: 1.6rem; padding: 0; opacity: 0; transition: opacity .15s; background: rgba(0,0,0,.55); color: #cfe3e7; border: 0; border-radius: 4px; cursor: pointer; }
+    #viz:hover #viz-side, #viz-side:focus-visible, #viz:hover #viz-pop, #viz-pop:focus-visible, #viz:hover #viz-close, #viz-close:focus-visible { opacity: 1; }
     #viz-err { position: absolute; left: 0; right: 0; bottom: 0; padding: 3px 8px; font: 11px ui-monospace, Consolas, monospace; color: #ffd9d4; background: rgba(120,20,10,.85); }
     #pause[aria-pressed="true"] { background: var(--hi); color: var(--hi-fg); }
     #viz-btn[aria-pressed="true"] { background: var(--hi); color: var(--hi-fg); }
@@ -1444,7 +1445,7 @@
     <small class="s-build"></small>
   </div>
   <div id="meters" hidden></div>
-  <div id="viz" hidden><canvas id="viz-canvas" width="300" height="300"></canvas><canvas id="viz-draw" width="300" height="300" hidden></canvas><button id="viz-close" type="button" title="Close the picture" aria-label="Close the picture">&#x2715;</button><button id="viz-pop" type="button" title="Pop the picture out into its own always-on-top window (and back)">&#x2197;</button><canvas id="viz-text" width="300" height="300"></canvas><div id="viz-err" hidden></div></div>
+  <div id="viz" hidden><canvas id="viz-canvas" width="300" height="300"></canvas><canvas id="viz-draw" width="300" height="300" hidden></canvas><button id="viz-close" type="button" title="Close the picture" aria-label="Close the picture">&#x2715;</button><button id="viz-side" type="button" title="Park the picture on the other side (bottom left or bottom right)">&#x21C6;</button><button id="viz-pop" type="button" title="Pop the picture out into its own always-on-top window (and back)">&#x2197;</button><canvas id="viz-text" width="300" height="300"></canvas><div id="viz-err" hidden></div></div>
   <div id="cmdbar" hidden><label for="cmd">|</label><input id="cmd" type="text" autocomplete="off" spellcheck="false" aria-label="Command"><span id="cmd-hint"></span></div>
   <div id="backup-panel" tabindex="-1" hidden role="dialog" aria-label="Backups"></div>
   <nav id="rail" aria-label="Screens">

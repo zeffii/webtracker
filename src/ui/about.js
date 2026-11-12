@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['743', ['The live picture can be parked at the bottom left: the arrows button on the picture swaps sides.']],
   ['742', ['The live picture is no longer covered by the arrangement\'s overview strip.']],
   ['741', ['The build number is shown again: small at the bottom right of the first screen, under the logo in the rail, in the footer and in the window title.']],
   ['740', ['The floating parameter panel is no longer covered by the arrangement\'s minimaps: its top-right buttons can be clicked.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['736', ['The pattern window opens on the pattern under the cursor (Ctrl+Alt+W, a button, or the arrangement\'s right-click menu) and has its own Instruments → Patterns menu (I) to change pattern.']],
   ['735', ['A pattern can be shown in a window of its own: pick it from Instruments → Patterns (button in the Pattern options). One pattern at a time, read-only, with the playing row marked.']],
   ['734', ['The strip of pictures in a node panel has its scroll bar on top, shown only when something is cut off.']],
-  ['733', ['Node panels lay their pictures and editors side by side in one strip that scrolls sideways when they do not fit, instead of stacking them. Pogue\'s panel is four pictures in a row.']],
                     ];

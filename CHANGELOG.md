@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 743 · 2026-11-12
+
+- **The live picture can be parked at the bottom left.** A new button on the picture (the two arrows, beside the pop-out button) swaps it between bottom right and bottom left, and the choice is remembered (Config, Visual: "Picture: parked bottom left").
+
 ## 742 · 2026-11-12
 
 - **The live picture is drawn above the arrangement's overview strip.** The strip (z-index 5) covered the picture (3) at the right edge, so its corner buttons could not be clicked.
