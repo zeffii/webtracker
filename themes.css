@@ -9,6 +9,7 @@
    Sizes shared by the whole interface (see src/ui/kit): --space-1..5 gaps and padding, --line-w the hairline every divider
    and edge uses, --line-w-strong a marked edge (the mixer handle, the selected thing), --font-s/m/l the three type sizes. */
 :root {
+  --mono: ui-monospace, Consolas, monospace;   /* the one monospace stack: the chord view used this name without it being defined, and fell back to the browser's plain `monospace` */
   --bg: Canvas; --fg: CanvasText; --hi: Highlight; --hi-fg: HighlightText; --field: Field;
   --panel: light-dark(#d9dae0, Canvas);
   --accent: hsl(210 70% 55%); --cc: light-dark(#2a5db0, #7fb0ff);

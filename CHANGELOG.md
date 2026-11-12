@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 708 · 2026-11-12
+
+- **One monospace font stack.** The chord view asked for `var(--mono)`, which was never defined, so its text fell back to the browser's plain `monospace` (a different face, and a different default size) while everything else used `ui-monospace, Consolas, monospace`. `--mono` is now defined as that stack.
+
 ## 707 · 2026-11-11
 
 - **The sympathy panel shows the panning as a sum.** Under the strings, two bars (left above right) are built from one segment per string, as long as that string rings times how much of it goes to that side and coloured by pitch like the glow. A bar longer than the other is where the sound leans. The node reports each string's left and right gain with its energy.
