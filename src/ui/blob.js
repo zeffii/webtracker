@@ -4,7 +4,7 @@
 // and the pointer drawing the first ball. Moving the pointer brings up a patch of wireframe under it (blobshimmer.js). createBlob(canvas) returns null when WebGL is not available, so the caller can fall back to the logo.
 import { SHIMMER_UNIFORMS, SHIMMER_FUNCS, SHIMMER_APPLY } from './blobshimmer.js';
 const VS = 'attribute vec2 a;void main(){gl_Position=vec4(a,0.,1.);}';
-const FS = `precision highp float;uniform vec2 R,M;uniform float T,B;uniform vec3 C1,C2;${SHIMMER_UNIFORMS}
+const FS = `precision highp float;uniform vec2 R,M;uniform float T,B;uniform vec3 C1,C2;uniform mat3 HUE;${SHIMMER_UNIFORMS}
 // the picture shader's lane look-ups, for a screen with no song: a hit swells a ball a little when the card is excited (B), nothing is held
 float hit(int i){return B*.12;}
 float pitch(int i){return .5;}
@@ -49,6 +49,7 @@ body+=vec3(-.02,0.,.1335)*fill*(3.78-wrap)*.58;
 body=mix(body,C2*vec3(3.2,1.4,1.58),pow(back,4.)*clamp(.25+thin,0.,3.4)*.64);
 body=mix(body,C2,hits()*.22);
 col=body;${SHIMMER_APPLY}}
+col=HUE*col;   // the colours turned round the wheel (see hueMatrix), so every start has its own
 // dither (triangular, about two levels) takes the banding out of the slow gradients, plus a faint grain
 vec2 fc=gl_FragCoord.xy+fract(T*7.3)*91.;
 col+=(h(fc)+h(fc+17.3)-1.)*(2.2/255.)+(h(fc*.77+5.)-.5)*.012;
@@ -57,7 +58,18 @@ gl_FragColor=vec4(col,1.);}`;
 // the shimmer's colours: deep purple edges, orange vertices
 const WIRE_EDGE = [.29, .06, .48], WIRE_VERT = [1, .48, .06];
 
-export function createBlob(canvas, { colours = [[.30, .74, .80], [.62, .97, .98]] } = {}) {
+// A matrix that turns every colour by `degrees` round the hue wheel and scales its saturation (in the YIQ colour space, where
+// that is a plain rotation of two of the three axes). Column-major, as WebGL wants it.
+export function hueMatrix(degrees = 0, saturation = 1) {
+  const a = degrees * Math.PI / 180, c = Math.cos(a) * saturation, s = Math.sin(a) * saturation;
+  const toYiq = [[.299, .587, .114], [.596, -.274, -.322], [.211, -.523, .312]], fromYiq = [[1, .956, .621], [1, -.272, -.647], [1, -1.106, 1.703]];
+  const turn = [[1, 0, 0], [0, c, -s], [0, s, c]];
+  const mul = (x, y) => x.map(row => y[0].map((_, j) => row.reduce((sum, v, k) => sum + v * y[k][j], 0)));
+  const m = mul(fromYiq, mul(turn, toYiq));
+  return new Float32Array([0, 1, 2].flatMap(col => [0, 1, 2].map(row => m[row][col])));
+}
+
+export function createBlob(canvas, { colours = [[.30, .74, .80], [.62, .97, .98]], hue = { degrees: 0, saturation: 1 } } = {}) {
   const gl = canvas.getContext('webgl', { antialias: false, alpha: false, powerPreference: 'low-power' });
   if (!gl) return null;
   const shader = (type, src) => { const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); return gl.getShaderParameter(s, gl.COMPILE_STATUS) ? s : null; };
@@ -72,6 +84,7 @@ export function createBlob(canvas, { colours = [[.30, .74, .80], [.62, .97, .98]
   const u = n => gl.getUniformLocation(pr, n);
   const uR = u('R'), uM = u('M'), uT = u('T'), uB = u('B'), uSP = u('SP'), uSA = u('SA');
   gl.uniform3fv(u('WE'), WIRE_EDGE); gl.uniform3fv(u('WV'), WIRE_VERT);
+  gl.uniformMatrix3fv(u('HUE'), false, hueMatrix(hue.degrees, hue.saturation));
   gl.uniform3fv(u('C1'), colours[0]); gl.uniform3fv(u('C2'), colours[1]);
   const still = matchMedia?.('(prefers-reduced-motion: reduce)').matches;
   let time = 7, last = 0, mx = 0, my = 0, tx = 0, ty = 0, boost = 0, boostTo = 0;

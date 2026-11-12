@@ -54,6 +54,8 @@ import { SHADER } from '../src/instruments.js';
 import * as lib from '../src/project/library.js';
 import { compileDsp } from '../src/audio/wasm/load.js';
 import { rollData } from '../src/seq/rolldata.js';
+import { randomPalette, hueTurn, pickLook, luminance, LOOKS } from '../src/ui/splashpalette.js';
+import { hueMatrix } from '../src/ui/blob.js';
 import { rollContext, createNote, moveNote, resizeNote, clearNote, setVelocity } from '../src/seq/rollops.js';
 
 import * as uiConfig from '../src/ui/config.js';
@@ -11357,6 +11359,31 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   run(ctx => clearNote(ctx, notes().find(n => n.pitch === 50)));
   assert.ok(!notes().some(n => n.pitch === 50)); assert.equal(lane.rows[10][m.col * 2], '...'); assert.equal(lane.rows[8][m.col * 2 + 1], '..');
   console.log('ok: pattern roll editing');
+}
+
+{
+  // ---- first screen: random colours and looks ----
+  let seed = 7; const rand = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  const seen = new Set();
+  for (let i = 0; i < 200; i++) {
+    const p = randomPalette(rand);
+    for (const c of [p.bg, p.ink, p.hi, p.warm]) assert.ok(c.every(v => v >= -1e-9 && v <= 1 + 1e-9), 'palette colours are in range');
+    assert.ok(Math.abs(luminance(p.ink) - luminance(p.bg)) >= 0.15, 'the pattern stands off the ground');
+    if (p.dark) assert.ok(luminance(p.hi) - luminance(p.bg) >= 0.25, 'the highlight stands off a dark ground');
+    assert.equal(p.dark, luminance(p.bg) < 0.4, 'dark means a dark ground');
+    assert.ok(['--s-word', '--s-go', '--s-log', '--s-pill', '--s-edge'].every(k => typeof p.vars[k] === 'string'));
+    seen.add(p.bg.map(v => v.toFixed(1)).join());
+    const t = hueTurn(rand);
+    assert.ok(t.degrees >= 45 && t.degrees <= 315, 'the blob never keeps its old colours');
+  }
+  assert.ok(seen.size > 20, 'every start is different');
+  assert.deepEqual([...new Set(Array.from({ length: 60 }, () => pickLook('random', rand)))].sort(), [...LOOKS].sort());
+  assert.equal(pickLook('plasma', rand), 'plasma'); assert.equal(pickLook('logo', rand), 'logo');
+  const id = hueMatrix(0, 1);   // no turn: the identity
+  [1, 0, 0, 0, 1, 0, 0, 0, 1].forEach((v, i) => assert.ok(Math.abs(id[i] - v) < 0.01));
+  const white = [1, 1, 1], m = hueMatrix(137, 1), out = [0, 1, 2].map(r => white.reduce((s, v, c) => s + m[c * 3 + r] * v, 0));
+  out.forEach(v => assert.ok(Math.abs(v - 1) < 0.01, 'grey stays grey when the hue turns'));
+  console.log('ok: first screen palettes');
 }
 
 console.log('smoke test passed');

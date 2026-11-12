@@ -3,6 +3,8 @@
 // the engine starts, a few grey lines report the real steps, and the card fades to show the tracker (about a second).
 // The logo is fourteen identical slabs in one plane (from your 3D model), drawn as a wireframe on a plain canvas.
 import { createBlob } from './blob.js';
+import { createReaction, createPlasma } from './splashfx.js';
+import { randomPalette, hueTurn, pickLook } from './splashpalette.js';
 import * as config from './config.js';
 const wait = ms => new Promise(r => setTimeout(r, ms));
 const frame = () => new Promise(r => requestAnimationFrame(r));
@@ -21,11 +23,25 @@ const BOXES = PETALS.map(([x, y, deg]) => {
   return pts;
 });
 
+// The backdrop for this start, with the colours for it: the look chosen in Config (or one of the three at random), in colours drawn
+// fresh each time. A look the browser cannot draw gives way to the next simpler one, and in the end to the turning logo (null).
+function chooseBackdrop(canvas, style) {
+  const look = pickLook(style), palette = randomPalette(), turn = hueTurn();
+  const order = { reaction: ['reaction', 'plasma', 'blob'], plasma: ['plasma', 'blob'], blob: ['blob'] }[look] ?? [];
+  for (const kind of order) {
+    let fx = null;
+    try { fx = kind === 'reaction' ? createReaction(canvas, palette) : kind === 'plasma' ? createPlasma(canvas, palette) : createBlob(canvas, { hue: turn }); } catch { fx = null; }
+    if (fx) return { fx, vars: kind === 'blob' ? turn.vars : palette.vars };
+  }
+  return null;
+}
+
 export function createSplash({ box, onStart }) {
   const card = box.querySelector('.s-card'), cv = box.querySelector('canvas'), go = box.querySelector('.s-go'), log = box.querySelector('.s-log');
-  // The backdrop: a translucent blob in WebGL (Config: First screen look), or, without WebGL or on request, the turning logo.
+  // The backdrop: a look drawn in WebGL (Config: First screen look), or, without WebGL or on request, the turning logo.
   const bcv = box.querySelector('.s-blob');
-  const blob = config.get('splashStyle') === 'blob' && bcv ? createBlob(bcv) : null;
+  const backdrop = bcv ? chooseBackdrop(bcv, config.get('splashStyle')) : null, blob = backdrop?.fx ?? null;
+  for (const [name, value] of Object.entries(backdrop?.vars ?? {})) box.style.setProperty(name, value);
   box.classList.toggle('blob', !!blob);
   if (!blob && bcv) bcv.hidden = true;
   const g = blob ? null : cv.getContext('2d');
