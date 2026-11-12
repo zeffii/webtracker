@@ -367,6 +367,7 @@ export const GLYPHS = {
     line(ctx, [[cx + w * 0.3, cy + h * 0.4], [cx + w * 0.3, cy - h * 0.2]]);
     ctx.beginPath(); ctx.ellipse(cx + w * 0.2, cy + h * 0.4, w * 0.1, h * 0.08, -0.3, 0, Math.PI * 2); ctx.stroke();
   },
+  busin: (ctx, cx, cy, w, h) => { for (const k of [-0.3, 0, 0.3]) line(ctx, [[cx - w / 2, cy + h * k], [cx + w * 0.05, cy + h * 0.0]]); line(ctx, [[cx + w * 0.05, cy], [cx + w / 2, cy]]); },
   sidechain: (ctx, cx, cy, w, h) => { line(ctx, [[cx - w / 2, cy - h * 0.25], [cx + w * 0.1, cy - h * 0.25], [cx + w * 0.1, cy + h * 0.25], [cx + w / 2, cy + h * 0.25]]); line(ctx, [[cx + w * 0.3, cy + h * 0.12], [cx + w / 2, cy + h * 0.25], [cx + w * 0.3, cy + h * 0.38]]); },   // a signal from outside, coming in
   piano: (ctx, cx, cy, w, h) => {   // a few white keys with the black ones between them
     const x = f => cx - w / 2 + f * w, y = f => cy + h / 2 - f * h;

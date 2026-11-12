@@ -92,7 +92,7 @@ export class GraphRuntime {
     const fresh = () => Array.from({ length: compiled.bufferCount }, () => new Float32Array(this.maxBlock));
     const resolver = buffers => ref => (Array.isArray(ref) ? ref.map(b => buffers[b]) : buffers[ref]);   // stereo ports are [left, right]
     const make = (n, resolve) => {
-      const create = () => NODE_TYPES[n.type].create({ sampleRate: this.sampleRate, maxBlock: this.maxBlock, connected: n.connected, wasm: this.wasm, data: n.data, init: n.init, target: n.target, stereo: n.stereo === true, clock: this.clock, shared: (shared.has(n.id) ? shared : shared.set(n.id, {})).get(n.id), notes: msg => this.deliver(compiled.instrument, msg), source: n.source, tap: (id, parts) => this.tap(id, parts), parts: n.parts, emit: (msg, transfer) => this.onEmit?.(compiled.instrument, n.id, msg, transfer) });
+      const create = () => NODE_TYPES[n.type].create({ sampleRate: this.sampleRate, maxBlock: this.maxBlock, connected: n.connected, wasm: this.wasm, data: n.data, init: n.init, target: n.target, stereo: n.stereo === true, clock: this.clock, shared: (shared.has(n.id) ? shared : shared.set(n.id, {})).get(n.id), notes: msg => this.deliver(compiled.instrument, msg), source: n.source, tap: (id, parts) => this.tap(id, parts), bus: () => (compiled.instrument === 'master' ? this.bus : null), parts: n.parts, emit: (msg, transfer) => this.onEmit?.(compiled.instrument, n.id, msg, transfer) });
       const node = { id: n.id, instance: create(), slots: Int32Array.from(n.slots), inputs: n.inputs.map(resolve), outputs: n.outputs.map(resolve) };
       if (n.dual) {   // a mono node on a stereo signal: one copy per channel over the same parameters
         const left = node.instance, right = create();
@@ -141,7 +141,7 @@ export class GraphRuntime {
     const inst = { nodes: [], sets: [], byId: new Map(), left: null, right: null, amp: compiled.amp, send: compiled.send, ampPrev: 1, latency: compiled.latency ?? 0, lag: null };
     const register = (node, at) => { const list = inst.byId.get(node.id) ?? []; list[at] = node; inst.byId.set(node.id, list); };
     this.instruments.set(compiled.instrument, inst);
-    inst.sleep = sleepState(compiled, NODE_TYPES);   // null: this machine never sleeps
+    inst.sleep = compiled.instrument === 'master' ? null : sleepState(compiled, NODE_TYPES);   // the master has no voices to wake it: it always runs   // null: this machine never sleeps
     inst.peak = 0;                                   // the peak of its last block, for the sidechains that listen to it
 
     inst.columnVoice = compiled.nodes.some(n => NODE_TYPES[n.type]?.columnVoice === true);
@@ -394,6 +394,8 @@ export class GraphRuntime {
       order.push(id);
     };
     for (const id of this.instruments.keys()) visit(id);
+    const at = order.indexOf('master');   // the master graph (its effects on the summed bus) runs last
+    if (at >= 0 && at < order.length - 1) order.push(order.splice(at, 1)[0]);
     return (this.order = order);
   }
 
@@ -447,7 +449,7 @@ export class GraphRuntime {
   // How many samples everything is held back by, with delay compensation on: the delay of the slowest instrument.
   alignment() {
     if (!this.delayComp) return 0;
-    if (this.maxDelay === null) { let m = 0; for (const inst of this.instruments.values()) m = Math.max(m, inst.latency ?? 0); this.maxDelay = m; }
+    if (this.maxDelay === null) { let m = 0; for (const [id, inst] of this.instruments) if (id !== 'master') m = Math.max(m, inst.latency ?? 0); this.maxDelay = m; }
     return this.maxDelay;
   }
 
@@ -457,6 +459,7 @@ export class GraphRuntime {
     if (this.dying.size) { for (const id of this.dying) { this.rebuild(id); this.killed.add(id); } this.dying.clear(); }   // the fades that ended last block
     this.blockNo = (this.blockNo ?? 0) + 1;
     this.blockSize = n;
+    this.bus = [left, right];   // what the master graph's Mix node hears: everything added so far
     for (const id of this.runOrder()) {
       const inst = this.instruments.get(id);
       if (!inst) continue;
@@ -513,6 +516,11 @@ export class GraphRuntime {
       this.settle(inst, n);
       if (inst.sleep?.asleep) continue;   // it just fell asleep: this block was silent anyway
       if (inst.send !== undefined && this.params[inst.send] < 0.5) continue;   // out node's master switch off: heard only by sidechain nodes, not in the mix
+      if (id === 'master' && this.graphs.get(id)?.wired) {   // effects on the bus: what the master graph makes replaces the bus
+        left.set(inst.left.subarray(0, n), 0); right.set(inst.right.subarray(0, n), 0);
+        continue;
+      }
+      if (id === 'master') continue;   // nothing wired into its Out: the bus goes on as it is
       const gap = this.alignment() - (inst.latency ?? 0);   // a quicker instrument waits for the slowest
       if (gap > 0) {
         if (inst.lag?.gap !== gap) inst.lag = new LagLine(gap);

@@ -891,7 +891,13 @@ function renderInstList() {
     b.addEventListener('click', () => { patcher.show(id); renderInstList(); $('patch').focus(); });
     return b;
   });
-  $('inst-list').replaceChildren(...buttons);
+  const master = document.createElement('button');   // the Master's graph: effects on the summed mix, before the master volume and the limiter
+  master.textContent = `${patcher.instrument === MASTER ? '>' : ' '} ·· master effects`;
+  master.title = 'The Master machine: add a Mix node (Routing) and effects after it, wired to its Out, to process the whole song before the master volume and the limiter.';
+  master.tabIndex = -1;
+  master.classList.toggle('active', patcher.instrument === MASTER);
+  master.addEventListener('click', () => { patcher.show(MASTER); renderInstList(); $('patch').focus(); });
+  $('inst-list').replaceChildren(...buttons, master);
   renderLaneInstruments();
   renderPresetList();
   syncPoly();

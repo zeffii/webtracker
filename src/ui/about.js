@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['748', ['Effects on the master, before the limiter: the new master effects row in Machines opens the Master graph; a Mix node brings in the whole song, and what you wire from it into Out replaces the mix before volume and limiter.']],
   ['747', ['New effect Groove, what a record does to a sound: warp, wear, tracing, dust, scratches (that can come round again), pops, surface noise and rumble, each with its own level and skipped at zero, and an oversampled simulation mode.']],
   ['746', ['Randomize (Ctrl+R) has Diverge the parameters: filled parameter cells jump anywhere in their range, notes stay, and Alt+R rolls again.']],
   ['745', ['Testing A or B in the pattern window stops the song, so only the pattern you test is heard.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['741', ['The build number is shown again: small at the bottom right of the first screen, under the logo in the rail, in the footer and in the window title.']],
   ['740', ['The floating parameter panel is no longer covered by the arrangement\'s minimaps: its top-right buttons can be clicked.']],
   ['739', ['The picture window\'s parameter rows use the same small monospace text as the regular parameter view.']],
-  ['738', ['The picture window\'s parameter rows fill the window and follow it when it is resized.']],
                     ];

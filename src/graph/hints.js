@@ -783,6 +783,7 @@ const HINTS = {
     mode: '0 peak (follows the loudest sample), 1 rms (average power, closer to what you hear).',
     invert: '1 flips the output so a louder sound gives a lower value: use it to duck a level.',
   },
+  busin: { level: 'How loud the whole mix goes into the master effects.' },
   sidechain: { level: 'How loud the other instrument\'s sound comes in.' },
   listen: {
     on: '1 plays the notes of the other instrument here too, 0 does not. A note that is already sounding still ends, so nothing sticks.',

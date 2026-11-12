@@ -979,7 +979,7 @@ export const masterInstrument = song => ({
   graph: {
     nodes: [
       { id: 'm', type: 'tempo', x: 40, y: 40, params: { bpm: song.bpm, swing: Math.round((song.swing ?? 0.5) * 100), tpb: song.ticksPerBeat, volume: 1 } },
-      { id: 'out', type: 'out', x: 240, y: 40 },
+      { id: 'out', type: 'out', x: 240, y: 40, params: { gain: 1 } },   // unity: the bus passes through unchanged when effects are wired
     ],
     connections: [],
   },
@@ -1047,6 +1047,8 @@ export function ensureMaster({ song, instruments }) {
   const rest = Object.entries(instruments).filter(([k]) => k !== MASTER);
   const master = keep ?? fresh;
   if (keep) Object.assign(keep.graph.nodes.find(n => n.id === 'm').params, fresh.graph.nodes[0].params);
+  const outNode = keep?.graph.nodes.find(n => n.id === 'out');
+  if (outNode && outNode.params?.gain === undefined) outNode.params = { ...outNode.params, gain: 1 };
   for (const k of Object.keys(instruments)) delete instruments[k];
   Object.assign(instruments, { [MASTER]: master }, Object.fromEntries(rest));
   const at = song.lanes.findIndex(l => l.id === MASTER);

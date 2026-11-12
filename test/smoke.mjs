@@ -11565,4 +11565,21 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   console.log('ok: groove');
 }
 
+{
+  // ---- master effects: the summed bus goes through the Master graph before the master volume and the limiter ----
+  const { masterInstrument } = await import('../src/instruments.js');
+  const build = wire => {
+    const { rt, registry } = setup();
+    const g = structuredClone(masterInstrument({ bpm: 120, ticksPerBeat: 4, swing: 0.5 }).graph);
+    if (wire) { g.nodes.push({ id: 'mix', type: 'busin', x: 40, y: 140, params: { level: 0.5 } }); g.connections.push(['mix.out', 'out.in']); }
+    rt.load(compile(g, { instrument: 'master', nodeTypes: NODE_TYPES, registry }));
+    rt.note('lead', { type: 'noteOn', note: 60, vel: 1 });
+    return render(rt, 0.4);
+  };
+  const plain = build(false), halved = build(true);
+  assert.ok(peak(plain.left) > 0.01, 'the unwired master leaves the mix alone');
+  assert.ok(Math.abs(peak(halved.left) / peak(plain.left) - 0.5) < 0.02, 'a Mix wired through the master Out scales the whole bus');
+  console.log('ok: master effects');
+}
+
 console.log('smoke test passed');

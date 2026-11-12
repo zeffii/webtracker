@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 748 · 2026-11-12
+
+- **Effects on the master, before the limiter.** The Master machine's graph can be edited now: the new row *master effects* at the end of the Machines list opens it. A **Mix** node (Routing) is the sound of the whole song so far; wire it through any effects into the Out node and the result replaces the mix, and then the master volume and the limiter act on it. Nothing wired into Out: the mix passes through as before, so old songs sound the same. The Master runs after every machine, never sleeps, and its effects take no part in delay compensation. Exposed parameters of its nodes become columns in the Master lane like the others.
+
 ## 747 · 2026-11-12
 
 - **New effect: Groove (what playing a record does to a sound).** One node (Distortion group) with a level for every part, and a part at zero is not worked out at all: *warp* (the pitch drifts once a turn, at 33, 45 or 78 rpm, with a smaller swing twice a turn), *wear* (the highs go and the bass of the stereo difference is taken out), *tracing* (a soft, lopsided stylus distortion), *dust* (tiny random clicks), *scratch* (bigger ringing clicks) with *stuck* (the chance each comes round again on the next turn, at the same place in the turn), *pops* (loud pops with a thump), *surface* (the hiss of the vinyl) and *rumble* (motor and floor), then *mix*. *Quality* has a simulation mode: the stylus runs at four times the sample rate and the clicks are band-limited, which costs a delay of 30 samples (the clean sound is delayed to match, and delay compensation knows).
