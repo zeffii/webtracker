@@ -1934,7 +1934,8 @@ const openRoll = () => {
     onNote: (instrument, midi, on) => { if (!started || !config.get('notePreview')) return; if (on) engine.noteOn(instrument, midi, 1); else engine.noteOff(instrument, midi); },
     noteLen: () => config.get('rollNoteRows'), onNoteLen: v => config.set('rollNoteRows', v),
     onUndo: redo => { const label = redo ? project.editor.redo() : project.editor.undo(); if (label) { view.draw(); seqView.draw(); } },
-    onPlay: togglePlay });
+    onPlay: togglePlay,
+    onJump: (li, tick, col) => { view.setCursor(li, tick, col); seqView.goto(li, tick); view.draw(); } });
   const loop = () => { if (rollWin !== w || w.closed) return; try { roll.refresh(); } catch (e) { console.error(e); } w.requestAnimationFrame(loop); };
   w.requestAnimationFrame(loop);
   w.addEventListener('pagehide', () => { if (rollWin === w) rollWin = null; });

@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 726 · 2026-11-12
+
+- **Click a note in the pattern roll to put the pattern editor's cursor on it.** The cursor goes to the note's row and note column, in the editor and the arrangement, whether or not Edit mode is on. Clicking a row number in the roll's left margin moves the cursor to that row in the column it is already in. In Edit mode a note you drag takes the cursor with it.
+
 ## 725 · 2026-11-12
 
 - **A plain first screen that starts the app by itself.** The first screen is now the Wax logo on the theme's own background with a thin loader bar along the bottom. There is nothing to click: the engine starts as soon as the screen has been painted, the bar fills as the steps finish, and after about a second the screen fades and the app is there. The effects (reaction diffusion, plasma, the blob and the turning wireframe logo) and the "First screen look" setting are gone; the "First screen" switch in Config still turns the whole screen off. A browser keeps audio suspended until the page has had a click or a key press, so when the app opens without one, the status line says "Click anywhere or press a key to switch the sound on", and the first click or key does it. If the start-up fails, the reason is shown under the logo and a click tries again.

@@ -4,6 +4,7 @@
 // pattern with the part on show boxed; click or drag in it to scroll. It follows the cursor, and the notes can be edited in it:
 //   click on empty space   a new note (its length is the "New note" setting; drag down to stretch it as you click)
 //   drag a note            move it in time and pitch (the bottom edge of a note changes its length instead)
+//   click a note (or a row number)   the pattern editor's cursor goes there, edit mode or not
 //   drag a velocity dot    change the velocity       right-click or Delete   remove the note       Ctrl+Z / Ctrl+Y   undo / redo
 // All of that happens only while the Edit switch in the top bar is on; with it off the roll only shows and scrolls, and nothing
 // can change. Every change is written into the pattern's cells (see rollops.js) through edit(), so it is the pattern editor's own undo.
@@ -19,7 +20,7 @@ const hue = k => (k * 67 + 200) % 360;
 const GUT = 34, CHORD = 58, STALKS = 64, MAP = 34, RH = 16;
 
 export function createPatternRoll({ win, host, target, playing = () => -1, follow: followPlay = () => true, volume = true, onVolume,
-  editing = false, onEditing = null, edit = () => false, onNote = null, noteLen = () => 4, onNoteLen = null, onUndo = null, onPlay = null }) {
+  editing = false, onEditing = null, edit = () => false, onNote = null, noteLen = () => 4, onNoteLen = null, onUndo = null, onPlay = null, onJump = null }) {
   const doc = win.document;
   const make = (tag, text, cls) => { const e = doc.createElement(tag); if (text !== undefined) e.textContent = text; if (cls) e.className = cls; return e; };
   const bar = make('div', undefined, 'pr-bar'), title = make('span', 'No pattern', 'pr-title');
@@ -193,7 +194,12 @@ export function createPatternRoll({ win, host, target, playing = () => -1, follo
     const { x, y } = local(e);
     if (e.button !== 0) return;
     if (x >= size.w - MAP) { dragging = true; canvas.setPointerCapture(e.pointerId); toMap(e); return; }
-    if (!data || !geo || !editBox.checked) return;
+    if (!data || !geo) return;
+    const t = target();
+    if (x < GUT && t && onJump) { const row = rowAt(y); if (row >= 0 && row < data.length) onJump(t.li, data.start + row); return; }   // a row number
+    const touched = noteAt(x, y);
+    if (touched && t && onJump) onJump(t.li, data.start + touched.n.row, data.noteCols[touched.n.col]);
+    if (!editBox.checked) return;
     const key = `roll:${++serial}`;
     const dot = box.checked ? dotAt(x, y) : null;
     if (dot) { sel = { col: dot.n.col, row: dot.n.row }; drag = { mode: 'vel', n: dot.n, key }; canvas.setPointerCapture(e.pointerId); return; }
@@ -233,7 +239,11 @@ export function createPatternRoll({ win, host, target, playing = () => -1, follo
     } catch { n = null; }   // a pitch off the end of what a note cell can hold
     if (n) { drag.n = n; sel = { col: n.col, row: n.row }; draw(); }
   });
-  const release = () => { dragging = false; drag = null; hear(null); };
+  const release = () => {
+    const t = target();
+    if (drag && drag.mode !== 'vel' && t && onJump && data) onJump(t.li, data.start + drag.n.row, data.noteCols[drag.n.col]);   // the cursor goes with a moved note
+    dragging = false; drag = null; hear(null);
+  };
   canvas.addEventListener('pointerup', release);
   canvas.addEventListener('pointercancel', release);
   canvas.addEventListener('contextmenu', e => {

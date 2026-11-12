@@ -1135,6 +1135,13 @@ export function createTrackerView({ showMenu = (e, items) => showContextMenu(e, 
     message = '';
   };
 
+  // Puts the cursor on a cell (the column is kept when none is given) without touching which rows are showing: the pattern roll uses it.
+  const setCursor = (laneIdx, tick, col) => {
+    cur.lane = laneIdx; cur.tick = tick;
+    if (col !== undefined) { cur.col = col; cur.ch = 0; }
+    snapCol(); message = '';
+  };
+
   // Solo-edit on the placement under the tick, if there is one: only its rows are shown, numbered from 0.
   const enterSolo = (laneIdx, tick) => {
     const pl = placementAt(lanes[laneIdx], tick);
@@ -1168,5 +1175,5 @@ export function createTrackerView({ showMenu = (e, items) => showContextMenu(e, 
       sel = null; draw(); return message;
     },
   };
-  return { commands, typeCommand, toggleEmptyColumns, draw, load, goto, enterSolo, relayout, say: m => { message = m; }, setSize, setRows, lineHeight, get rows() { return rowCount; }, get fontPx() { return fontPx; }, get tick() { return cur.tick; }, get lane() { return cur.lane; }, get col() { return cur.col; }, get ch() { return cur.ch; }, stepRows: n => { moveRow(n); }, resume() { const was = paused; paused = false; lastAuto = null; return was; }, get preview() { return preview; }, get selection() { return sel ? rect() : null; }, get rect() { return rect(); } };
+  return { commands, typeCommand, toggleEmptyColumns, draw, load, goto, setCursor, enterSolo, relayout, say: m => { message = m; }, setSize, setRows, lineHeight, get rows() { return rowCount; }, get fontPx() { return fontPx; }, get tick() { return cur.tick; }, get lane() { return cur.lane; }, get col() { return cur.col; }, get ch() { return cur.ch; }, stepRows: n => { moveRow(n); }, resume() { const was = paused; paused = false; lastAuto = null; return was; }, get preview() { return preview; }, get selection() { return sel ? rect() : null; }, get rect() { return rect(); } };
 }
