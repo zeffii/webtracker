@@ -53,6 +53,7 @@ import { addShaderKnob, removeShaderKnob } from '../src/project/ops.js';
 import { SHADER } from '../src/instruments.js';
 import * as lib from '../src/project/library.js';
 import { compileDsp } from '../src/audio/wasm/load.js';
+import { rollData } from '../src/seq/rolldata.js';
 
 import * as uiConfig from '../src/ui/config.js';
 uiConfig.set('arrowStyle', 'char');   // most tests were written for one character per arrow press; the whole-cell mode has its own test
@@ -11300,6 +11301,26 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   assert.ok(msg && msg.pans.length === msg.notes.length && msg.pans.length > 0, 'sym report carries pans');
   assert.ok(msg.pans.every(([gl, gr]) => gl >= 0 && gr >= 0 && Math.abs(gl * gl + gr * gr - 1) < 0.02), 'pan gains are equal power');
   console.log('ok: sympathy pan report');
+}
+
+{
+  // ---- pattern roll data ----
+  const columns = [{ kind: 'note' }, { kind: 'vel' }, { kind: 'note' }, { kind: 'vel' }, { kind: 'note' }, { kind: 'vel' }];
+  const B = ['...', '..'];
+  const rows = [
+    ['C-4', '80', 'E-4', '..', 'G-4', 'FF'], [...B, ...B, ...B], ['===', '..', '^^^', '..', '...', '..'], [...B, ...B, ...B],
+    ['F-4', '..', 'A-4', '..', 'C-5', '..'], [...B, ...B, ...B], [...B, ...B, ...B], [...B, ...B, ...B],
+  ];
+  const lane = { columns, rows: [...rows, ...rows], patterns: { p: { name: 'A', length: 8 } }, placements: [{ puid: 'p', start: 0, length: 8 }] };
+  const d = rollData(lane, 3);
+  assert.equal(d.notes.length, 6);
+  const c4 = d.notes.find(n => n.pitch === 48);
+  assert.equal(c4.len, 2); assert.ok(Math.abs(c4.vel - 128 / 255) < 1e-6);
+  assert.equal(d.notes.find(n => n.pitch === 52).len, 2);   // cut with ^^^
+  assert.equal(d.notes.find(n => n.pitch === 55).len, 4);   // runs until the next non-blank cell in its column: none, so to the row of the next note... 
+  assert.deepEqual(d.chords.map(c => [c.row, c.name]), [[0, 'C'], [4, 'F']]);
+  assert.equal(rollData(lane, 99), null);
+  console.log('ok: pattern roll data');
 }
 
 console.log('smoke test passed');

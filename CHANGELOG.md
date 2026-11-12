@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 717 · 2026-11-12
+
+- **A pattern roll window.** Pattern view options has a new "Pattern roll…" button that opens the notes of the pattern under the cursor as a piano roll in a window of its own, turned on its side so its rows run down like the tracker's and line up with them. Pitch runs across (black keys shaded, an octave line at each C), each note column has its own colour, and a note's brightness follows its velocity. A chord's name stands beside the row where it begins, worked out from the notes sounding together. A "Volume" switch shows each note's velocity as a stalk in a lane on the right. A minimap down the edge shows the whole pattern with the part on screen boxed: click or drag in it to scroll, or use the wheel. The red line is the cursor row and the roll follows it. It only reads for now.
+
 ## 716 · 2026-11-12
 
 - **The arrangement's last row no longer flickers while the mixer is dragged.** The number of rows that fit was worked out by counting the arrangement's elements, which gave a different answer depending on the last draw, so while the dock moved up the row count flipped between two values at every step and the last row came and went. It is measured now: draw, look at where the last row ends, add or take away what is over or missing. The count changes only once per row of travel and a row never sits under the dock.

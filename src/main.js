@@ -55,6 +55,7 @@ import { createManual } from './ui/manual.js';
 import { openPopout } from './ui/kit/popout.js';
 import { createPictureWindow } from './ui/picturewindow.js';
 import { createPatternOptions } from './ui/patternoptions.js';
+import { createPatternRoll, rollStyle } from './ui/patternroll.js';
 import { SONGS } from './ui/songs.js';
 import { renderMarkdown } from './ui/markdown.js';
 import { TUTORIAL } from './script/tutorial.js';
@@ -1914,7 +1915,27 @@ mixerDock = createMixerDock({
 $('mixer-toggle').addEventListener('mousedown', e => e.preventDefault());   // the view keeps the focus
 $('mixer-toggle').addEventListener('click', () => mixerDock.toggle());
 
-createPatternOptions({ el: $('pat-side'), config, view, focusGrid: () => $('view').focus() });
+// The pattern roll: the notes of the pattern under the cursor as a piano roll, in a window of its own (a plain popup: the picture
+// already uses the one Picture-in-Picture window there can be). It is drawn from its own frame loop and follows the pattern cursor.
+let rollWin = null;
+const openRoll = () => {
+  if (rollWin && !rollWin.closed) { rollWin.focus(); return; }
+  const w = window.open('', 'wax-roll', 'popup,width=380,height=620');
+  if (!w) { $('status').textContent = 'The browser blocked the pattern roll window: allow pop-ups for this page.'; return; }
+  rollWin = w;
+  w.document.title = 'Wax pattern roll';
+  for (const sheet of document.head.querySelectorAll('link[rel="stylesheet"], style')) w.document.head.append(w.document.importNode(sheet, true));
+  w.document.documentElement.className = document.documentElement.className;
+  for (const [k, v] of Object.entries(document.documentElement.dataset)) w.document.documentElement.dataset[k] = v;
+  w.document.head.append(Object.assign(w.document.createElement('style'), { textContent: rollStyle }));
+  w.document.body.replaceChildren();
+  const roll = createPatternRoll({ win: w, host: w.document.body, volume: config.get('rollVolume'), onVolume: v => config.set('rollVolume', v), target: () => (project?.lanes?.[view.lane] ? { lane: project.lanes[view.lane], tick: view.tick } : null) });
+  const loop = () => { if (rollWin !== w || w.closed) return; try { roll.refresh(); } catch (e) { console.error(e); } w.requestAnimationFrame(loop); };
+  w.requestAnimationFrame(loop);
+  w.addEventListener('pagehide', () => { if (rollWin === w) rollWin = null; });
+  addEventListener('pagehide', () => w.close());
+};
+createPatternOptions({ el: $('pat-side'), config, view, focusGrid: () => $('view').focus(), openRoll });
 
 // The browser holds the lists that used to sit in the views: the arrangement's pattern list and the instrument list move in here.
 browser = createBrowser({

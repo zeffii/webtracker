@@ -3,10 +3,10 @@
 // (hide the empty columns of the cursor's lane), so this block only presents them; it owns no state of its own.
 //
 // createPatternOptions({ el, config, view, focusGrid }): fills `el`. focusGrid() gives the keyboard back to the pattern grid
-// after a click, so typing carries on where it was.
+// after a click, so typing carries on where it was. openRoll() opens the pattern roll window (a button shows when it is given).
 const FONT = { min: 8, max: 40, normal: 13 };
 
-export function createPatternOptions({ el, config, view, focusGrid, doc = document }) {
+export function createPatternOptions({ el, config, view, focusGrid, openRoll, doc = document }) {
   const make = (tag, text, className) => { const e = doc.createElement(tag); if (text !== undefined) e.textContent = text; if (className) e.className = className; return e; };
   const title = make('h4', 'Pattern view');
 
@@ -24,6 +24,7 @@ export function createPatternOptions({ el, config, view, focusGrid, doc = docume
   const button = (label, hint, run) => { const b = make('button', label); b.type = 'button'; b.title = hint; b.addEventListener('mousedown', e => e.preventDefault()); b.addEventListener('click', () => { run(); focusGrid(); }); return b; };
   const hide = button('Hide empty columns', 'Hide or show the empty columns of the lane the cursor is in (Ctrl+Shift+H)', () => view.toggleEmptyColumns());
   tools.append(hide);
+  if (openRoll) tools.append(button('Pattern roll…', 'Open the notes of this pattern as a piano roll in a window of its own, to see chords and voice leading', openRoll));
 
   // Text size: smaller, bigger, back to normal (Ctrl+minus, Ctrl+plus, Ctrl+0 do the same).
   const size = make('div', undefined, 'po-row'), sizeText = make('span', '', 'po-size');
