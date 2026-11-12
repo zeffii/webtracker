@@ -702,15 +702,16 @@ const fitArrangement = () => {
   document.body.classList.toggle('viewfit', config.get('viewFit'));
   if (config.get('seqFit') && tabs.active === 'arrange') {
     const el = $('seq'), pane = $('pane-arrange'), room = innerHeight - el.getBoundingClientRect().top - foot - roomBelow() - 2;
-    // lines of the arrangement that are not rows (a header) take room too; the overlays on it (loop lines, curves, the play line) are positioned over it and take none
-    const inFlow = [...el.children].filter(child => getComputedStyle(child).position !== 'absolute').length;
     document.body.style.setProperty('--arr-h', `${Math.max(0, innerHeight - pane.getBoundingClientRect().top - foot - roomBelow())}px`);   // the panels reach the top of the status bar
-    seqView.setRows(Math.floor(room / 18) - Math.max(0, inFlow - seqView.rows));
-    // look again at what really happened (the line height and a horizontal scrollbar can make the estimate a little off): take away rows until all that is drawn is shown
-    for (let pass = 0; pass < 3; pass++) {
-      const over = el.scrollHeight - el.clientHeight;
-      if (over <= 0) break;
-      seqView.setRows(seqView.rows - Math.ceil(over / 18));
+    // The rows that fit are found by measuring, not by counting elements (the arrangement has a header line and overlays on top of its rows, and any
+    // count of them goes wrong in a way that depends on the last draw): draw, see how tall it came out, add or take away what is over or missing, look again.
+    let rows = Math.floor(room / 18);
+    for (let pass = 0; pass < 4; pass++) {
+      seqView.setRows(rows);
+      const drawn = el.querySelectorAll('.r'), height = drawn.length ? drawn[drawn.length - 1].getBoundingClientRect().bottom - el.getBoundingClientRect().top : 0;   // down to the last row (the overlays are taller than the rows, so scrollHeight is no use)
+      const spare = Math.floor((room - height) / 18);   // negative: too tall
+      if (spare === 0) break;
+      rows = seqView.rows + spare;
     }
   }
   if (config.get('viewFit') && tabs.active === 'patterns') {

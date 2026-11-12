@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 716 · 2026-11-12
+
+- **The arrangement's last row no longer flickers while the mixer is dragged.** The number of rows that fit was worked out by counting the arrangement's elements, which gave a different answer depending on the last draw, so while the dock moved up the row count flipped between two values at every step and the last row came and went. It is measured now: draw, look at where the last row ends, add or take away what is over or missing. The count changes only once per row of travel and a row never sits under the dock.
+
 ## 715 · 2026-11-12
 
 - **No more scrollbars flashing in the arrangement while the mixer is dragged.** Between one row count and the next the arrangement was a few pixels too tall for its box, so a vertical scrollbar appeared; it took 15 px of width, which made the lanes overflow sideways and brought a horizontal one, until the next row fell into place. The arrangement has no vertical scrollbar any more (its rows are fitted to the height), and after fitting it checks that everything drawn is really shown.
