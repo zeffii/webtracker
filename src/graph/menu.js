@@ -22,7 +22,7 @@ const GROUPS = {
     ['Space', ['reflect', 'headpan', 'haas', 'ringmod', 'sympathy', 'notepan']],
     ['Reverb', ['hall', 'plate', 'shimmer', 'urugraVerb', 'convolver']],
     ['Spectral', ['blur', 'specpan', 'kaleidoscope', 'hpss', 'bodyblur', 'specdyn', 'islands', 'xsynth', 'mosh']],
-    ['Distortion', ['amp', 'distortion', 'saturator', 'mbsat', 'waveshaper', 'wavefolder', 'pluckgate', 'crusher', 'tape']],
+    ['Distortion', ['amp', 'distortion', 'saturator', 'mbsat', 'waveshaper', 'wavefolder', 'pluckgate', 'crusher', 'tape', 'groove']],
     ['Routing', ['route', 'split', 'tap']],
     ['Code', ['genexpr']],
   ],

@@ -48,6 +48,7 @@ const TYPE_UNIT = {
   sweep: { resonance: '%' },
   ladder: { cutoff: 'Hz', drive: '%', rate: 'Hz', depth: 'oct', mix: '%', phase: '%' },
   filterpro: { cutoff: 'Hz', vowel: '', damp: '%', drive: '%', bias: '%', level: '' },
+  groove: { speed: ['33 rpm', '45 rpm', '78 rpm'], quality: ['standard', 'simulation'] },
   duette: { vco2pitch: 'ct', cutoff: 'Hz', attack: 'ms', decay: 'ms', port: 'ms', slide: 'ms', tune: 'st' },
   squelch: { tune: 'st', cutoff: 'Hz', decay: 'ms', slide: 'ms', rel: 'ms' },
   combperc: { decay: 'ms', click: 'ms', tune: 'st', sweep: 'oct', sdec: 'ms' },

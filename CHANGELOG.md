@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 747 · 2026-11-12
+
+- **New effect: Groove (what playing a record does to a sound).** One node (Distortion group) with a level for every part, and a part at zero is not worked out at all: *warp* (the pitch drifts once a turn, at 33, 45 or 78 rpm, with a smaller swing twice a turn), *wear* (the highs go and the bass of the stereo difference is taken out), *tracing* (a soft, lopsided stylus distortion), *dust* (tiny random clicks), *scratch* (bigger ringing clicks) with *stuck* (the chance each comes round again on the next turn, at the same place in the turn), *pops* (loud pops with a thump), *surface* (the hiss of the vinyl) and *rumble* (motor and floor), then *mix*. *Quality* has a simulation mode: the stylus runs at four times the sample rate and the clicks are band-limited, which costs a delay of 30 samples (the clean sound is delayed to match, and delay compensation knows).
+
 ## 746 · 2026-11-12
 
 - **Randomize has a "Diverge the parameters" mode** (Ctrl+R menu). Parameter cells in the selection that hold a value jump to anywhere in their column's range; notes, commands and empty cells stay as they are. Alt+R rolls it again, from the original values each time, until something clicks, and the rolls are one undo step.

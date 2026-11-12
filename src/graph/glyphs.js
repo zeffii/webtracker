@@ -443,6 +443,11 @@ export const GLYPHS = {
     for (const x of [lx, rx]) { const pts = []; for (let i = 0; i <= 16; i++) { const a = i / 16 * Math.PI * 2; pts.push([x + Math.cos(a) * r, y + Math.sin(a) * r]); } line(ctx, pts); }
     line(ctx, [[lx - r, y + 0.2 * h], [lx, y + r], [rx, y + r], [rx + r, y + 0.2 * h]]);
   },
+  groove: (ctx, cx, cy, w, h) => {   // a record: the rim, two grooves, the label and the spindle hole
+    const r = Math.min(w, h) * 0.42, ring = rr => { const pts = []; for (let i = 0; i <= 20; i++) { const a = i / 20 * Math.PI * 2; pts.push([cx + Math.cos(a) * rr, cy + Math.sin(a) * rr]); } line(ctx, pts); };
+    ring(r); ring(r * 0.78); ring(r * 0.58); ring(r * 0.24);
+    line(ctx, [[cx + r * 0.9, cy - r * 0.9], [cx + r * 0.3, cy - r * 0.2]]);   // the arm
+  },
   squelch: (ctx, cx, cy, w, h) => {   // a saw tooth rising through a resonant filter peak
     const x = f => cx - w / 2 + f * w, y = f => cy + h / 2 - f * h;
     const saw = []; for (let i = 0; i <= 3; i++) { saw.push([x(0.05 + i * 0.12), y(0.15)], [x(0.05 + i * 0.12 + 0.11), y(0.55)]); }

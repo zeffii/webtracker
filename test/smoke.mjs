@@ -11530,4 +11530,39 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   console.log('ok: pattern window scratch copy');
 }
 
+{
+  // ---- groove: every part has a level, and a part at zero does nothing ----
+  const T = NODE_TYPES.groove, sr = 48000, N = 512;
+  const run = (over, input, blocks = 120) => {
+    const params = T.params.map(p => over[p.name] ?? p.def), slots = Int32Array.from(params.keys());
+    const inst = T.create({ sampleRate: sr, maxBlock: N }), outs = [[new Float32Array(N), new Float32Array(N)]], all = [];
+    for (let b = 0; b < blocks; b++) {
+      const ins = [[Float32Array.from({ length: N }, (_, i) => input(b * N + i)), Float32Array.from({ length: N }, (_, i) => input(b * N + i))]];
+      inst.process(ins, outs, N, params, slots);
+      all.push(...outs[0][0]);
+    }
+    return all;
+  };
+  const zero = Object.fromEntries(['warp', 'wear', 'tracing', 'dust', 'scratch', 'stuck', 'pops', 'surface', 'rumble'].map(k => [k, 0]));
+  const sine = i => 0.3 * Math.sin(2 * Math.PI * 220 * i / sr), silence = () => 0;
+  const rms = a => Math.sqrt(a.reduce((q, v) => q + v * v, 0) / a.length);
+  assert.ok(run({ ...zero }, sine, 20).every((v, i) => v === Math.fround(sine(i))), 'with every part at zero the sound passes through untouched');
+  assert.equal(rms(run({ ...zero }, silence)), 0, 'and silence stays silence');
+  for (const k of ['dust', 'scratch', 'pops', 'surface', 'rumble']) {
+    const o = run({ ...zero, [k]: 1 }, silence);
+    assert.ok(o.every(Number.isFinite) && rms(o) > 1e-4 && Math.max(...o.map(Math.abs)) < 1, `${k} makes its own sound from silence`);
+  }
+  const dry = run({ ...zero }, sine, 60).slice(8000), tr = run({ ...zero, tracing: 1 }, sine, 60).slice(8000);
+  assert.ok(Math.abs(rms(tr) / rms(dry) - 1) < 0.5, 'tracing keeps about the level'); assert.ok(tr.some((v, i) => Math.abs(v - dry[i]) > 0.01), 'and changes the sound');
+  const worn = run({ ...zero, wear: 1 }, i => 0.3 * Math.sin(2 * Math.PI * 12000 * i / sr), 60).slice(8000);
+  assert.ok(rms(worn) < 0.35 * rms(run({ ...zero }, i => 0.3 * Math.sin(2 * Math.PI * 12000 * i / sr), 60).slice(8000)), 'wear takes the highs off');
+  const warped = run({ ...zero, warp: 1 }, sine, 120).slice(8000);
+  assert.ok(warped.every(Number.isFinite) && warped.some((v, i) => Math.abs(v - Math.fround(sine(i + 8000))) > 0.02), 'warp moves the pitch');
+  const sim = run({ ...zero, tracing: 1, dust: 1, quality: 1 }, sine, 60);
+  assert.ok(sim.every(Number.isFinite), 'simulation stays finite'); assert.equal(T.latency({ quality: 1 }), 30); assert.equal(T.latency({ quality: 0 }), 0);
+  const stuck = run({ ...zero, scratch: 1, stuck: 1, speed: 2 }, silence, 300);
+  assert.ok(stuck.every(Number.isFinite), 'stuck scratches stay finite');
+  console.log('ok: groove');
+}
+
 console.log('smoke test passed');
