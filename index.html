@@ -308,7 +308,7 @@
     .mx-side { display: grid; grid-template-columns: 1fr; gap: 3px; align-content: start; justify-content: start; min-width: 0; overflow: hidden; }
     .mx-side .mx-btn { padding: 0 2px; text-align: center; }
     .mx-db { font-size: 10px; opacity: .75; white-space: nowrap; }
-    .mx-btn { font: inherit; font-size: 10px; line-height: 14px; padding: 0 5px; border: 1px solid color-mix(in srgb, var(--accent) 55%, transparent); border-radius: 0; background: color-mix(in srgb, var(--fg) 4%, var(--panel)); color: var(--fg); cursor: pointer; }
+    .mx-btn { font: inherit; font-size: 10px; line-height: 14px; padding: 0 5px; border: 1px solid color-mix(in srgb, var(--accent) 55%, var(--panel)); border-radius: 0; background: color-mix(in srgb, var(--fg) 4%, var(--panel)); color: var(--fg); cursor: pointer; position: relative; }   /* opaque: the dotted scale lines behind the strip do not show through */
     .mx-btn.on { background: var(--accent); border-color: var(--accent); color: var(--bg, #fff); }
     #pane-arrange #seq { margin-top: 0; }   /* its top edge level with the pattern list panel beside it */
     /* the lane and silence controls under the pattern list */

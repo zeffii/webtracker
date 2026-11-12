@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 713 · 2026-11-12
+
+- **The mixer buttons are fully opaque.** Their outline was a see-through mix, so the scale's dotted lines showed through; it is now a solid colour.
+
 ## 712 · 2026-11-12
 
 - **Narrower mixer channels, buttons stacked.** A strip is about half as wide (68 px instead of 120): the dB figure and the M, S, test and mix buttons sit in one column beside the fader, so more lanes fit on screen. The readout shows the figure alone; hover it for the full text, and the test button shows when it is a test gain.

@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['713', ['The mixer buttons are fully opaque.']],
   ['712', ['Mixer channels are about half as wide, with the buttons stacked in one column.']],
   ['711', ['A new mixer look: a dB scale with ticks, a level well that turns red toward the top and a clip dot; the fader is now in dB.']],
   ['710', ['The mixer dock sits beside the browser panel: dragging it up no longer shortens the browser.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['706', ['Pulsar synthesis: a Pulsar synth and a Pulse train source, with a drawn window for each burst and a drawn formant sweep. Accent colours darken on light themes.']],
   ['705', ['The scope eye sits right beside the node name, level with its lowercase letters.']],
   ['704', ['The machine list in the browser is back to the small monospace font.']],
-  ['703', ['The picture window has Picture and Parameters tabs: one node\'s sliders, steppers through nodes and machines, and a cropped graph map.']],
                     ];
