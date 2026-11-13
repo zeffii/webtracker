@@ -18,17 +18,37 @@ import { rowLines, visiblePatternColumns, playingRow } from '../seq/patternpop.j
 import { KINDS } from '../seq/cells.js';
 import { copyRows, createAudition, diffCells, setToken, shiftCell, shiftRow } from '../seq/patternab.js';
 
+// The window's own colours: the slate and orange of the A/B mock-up, in a dark and a light version (the page's theme picks which).
+const PALETTE = {
+  dark: '--pw-bg: #0d1218; --pw-panel: #151c24; --pw-fg: #c7d3e0; --pw-dim: #7f90a4; --pw-line: #26333f; --pw-acc: #ff9a2e; --pw-acc-fg: #111; --pw-new: #5fd0b0; --pw-old: #e0607a;',
+  light: '--pw-bg: #eef1f4; --pw-panel: #ffffff; --pw-fg: #1d2733; --pw-dim: #5d6c7c; --pw-line: #cfd7df; --pw-acc: #c46a00; --pw-acc-fg: #fff; --pw-new: #0f8a6c; --pw-old: #b3304a;',
+};
 const STYLE = `
-.pw-bar { padding: 4px 6px; border-bottom: 1px solid var(--line); font: 13px ui-monospace, Consolas, monospace; display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
-.pw-bar button { font: inherit; }
-.pw-bar button.on { background: var(--hi); color: var(--hi-fg); }
-.pw-msg { margin-left: auto; opacity: .7; font-size: 12px; }
-.pw-ab { display: flex; gap: 2.5rem; width: max-content; min-width: 100%; }
-.pw-pane { flex: none; }
-.pw-pane .new { color: hsl(165 55% 38%); font-weight: bold; }
-.pw-pane .gone { color: hsl(350 60% 48%); text-decoration: line-through; }
+html.pw-dark { ${PALETTE.dark} color-scheme: dark; }
+html.pw-light { ${PALETTE.light} color-scheme: light; }
+body { background: var(--pw-panel); color: var(--pw-fg); }
+.pw-bar { padding: 4px 8px; border-bottom: 1px solid var(--pw-line); font: 13px ui-monospace, Consolas, monospace; display: flex; gap: 6px; flex-wrap: wrap; align-items: center; background: var(--pw-panel); color: var(--pw-dim); }
+.pw-bar button { font: inherit; color: var(--pw-fg); background: transparent; border: 1px solid var(--pw-line); padding: 0 6px; cursor: pointer; }
+.pw-bar button:hover { border-color: var(--pw-dim); }
+.pw-bar button.on { background: var(--pw-acc); border-color: var(--pw-acc); color: var(--pw-acc-fg); }
+.pw-msg { margin-left: auto; font-size: 12px; color: var(--pw-dim); }
+#view.pw-view { background: var(--pw-panel); color: var(--pw-fg); }
+.pw-ab { display: flex; gap: 0; width: max-content; min-width: 100%; }
+.pw-pane { flex: none; padding: 2px 12px; border-right: 1px solid var(--pw-line); }
+.pw-pane:last-child { border-right: 0; }
+.pw-pane .ln:first-child { color: var(--pw-dim); }
+.pw-pane .new { color: var(--pw-new); font-weight: bold; }
+.pw-pane .gone { color: var(--pw-old); text-decoration: line-through; }
 .pw-pane .pcell { cursor: pointer; }
-.pw-title { opacity: .75; }`;
+.pw-pane .g { color: var(--pw-dim); }
+.pw-pane .cell { background: color-mix(in srgb, var(--pw-acc) 30%, transparent); }
+.pw-pane .now { background: color-mix(in srgb, var(--pw-acc) 15%, transparent); }`;
+
+// Is the page's colour theme a dark one? (the luminance of its background)
+function pageIsDark() {
+  const m = getComputedStyle(document.body).backgroundColor.match(/[\d.]+/g)?.slice(0, 3).map(Number);
+  return !m || (0.299 * m[0] + 0.587 * m[1] + 0.114 * m[2]) < 128;
+}
 
 export function createPatternWindow({ lanes, voiceFor, transportTick, replaceRows, addCopy, pick, say }) {
   let win = null, target = null, B = null, cursor = { t: 0, ci: 0 }, side = null, last = {};
@@ -122,9 +142,9 @@ export function createPatternWindow({ lanes, voiceFor, transportTick, replaceRow
     d.title = 'Wax pattern';
     for (const sheet of document.head.querySelectorAll('link[rel="stylesheet"], style')) d.head.append(d.importNode(sheet, true));
     d.head.append(Object.assign(d.createElement('style'), { textContent: STYLE }));
-    d.documentElement.className = document.documentElement.className;
+    d.documentElement.className = `${document.documentElement.className} ${pageIsDark() ? 'pw-dark' : 'pw-light'}`;
     for (const [k, v] of Object.entries(document.documentElement.dataset)) d.documentElement.dataset[k] = v;
-    d.body.style.cssText = 'margin: 0; padding: 0; background: var(--panel)';
+    d.body.style.cssText = 'margin: 0; padding: 0';
     const bar = d.createElement('div'); bar.className = 'pw-bar';
     const button = (text, title, run, id) => { const b = d.createElement('button'); b.type = 'button'; b.textContent = text; b.title = title; if (id) b.id = id; b.addEventListener('mousedown', e => e.preventDefault()); b.addEventListener('click', run); return b; };
     const ui = {
@@ -140,7 +160,7 @@ export function createPatternWindow({ lanes, voiceFor, transportTick, replaceRow
     };
     const note = d.createElement('span'); note.className = 'pw-msg';
     bar.append(...Object.values(ui), note);
-    const host = d.createElement('div'); host.id = 'view'; host.style.cssText = 'height: calc(100vh - 34px); overflow: auto; box-sizing: border-box; padding: 4px 0';
+    const host = d.createElement('div'); host.id = 'view'; host.className = 'pw-view'; host.style.cssText = 'height: calc(100vh - 34px); overflow: auto; box-sizing: border-box; padding: 4px 0';
     const split = d.createElement('div'); split.className = 'pw-ab';
     const paneA = d.createElement('div'), paneB = d.createElement('div'); paneA.className = paneB.className = 'pw-pane';
     split.append(paneA, paneB); host.append(split);

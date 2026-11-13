@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 752 · 2026-11-13
+
+- **The pattern window has its own colours, from the A/B mock-up.** Slate panel, thin dividing line between A and B, dim titles and gutter, orange for the active A/B button, green for notes that differ in B and rose for the ones that are gone. A dark and a light version, chosen by the page's theme.
+
 ## 751 · 2026-11-12
 
 - **The Master graph starts with a bus-in node (unconnected), and the tempo node `m` is hidden.** Wire bus-in through effects into out to use it. BPM, swing, TPB, volume and the limiter are still the Master lane's columns and the exposed panel. A project that has no bus-in in its master gets one when it opens (leave it unwired and nothing changes; delete it and it returns next time).
