@@ -11966,4 +11966,23 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   console.log('ok: lone lead synth');
 }
 
+// The wavetable position slews instead of stepping.
+{
+  const sr = 48000, def = NODE_TYPES.wavetable, slots = Int32Array.from(def.params.map((_, i) => i));
+  const worst = smooth => {
+    const node = def.create({ sampleRate: sr, connected: [] }), l = new Float32Array(128), r = new Float32Array(128);
+    const params = Float32Array.from(def.params.map(p => (p.name === 'smooth' ? smooth : p.name === 'position' ? 0.1 : p.def)));
+    node.note({ type: 'noteOn', note: 45, vel: 1 });
+    let prev = 0, jump = 0;
+    for (let b = 0; b < 20; b++) {
+      if (b === 10) params[def.params.findIndex(p => p.name === 'position')] = 0.9;
+      node.process([], [[l, r]], 128, params, slots);
+      if (b >= 10) for (let i = 0; i < 128; i++) { jump = Math.max(jump, Math.abs(l[i] - prev)); prev = l[i]; } else prev = l[127];
+    }
+    return jump;
+  };
+  assert.ok(worst(30) < worst(0), 'a jump in position is slewed with smooth on');
+  console.log('ok: wavetable position smoothing');
+}
+
 console.log('smoke test passed');

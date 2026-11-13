@@ -66,6 +66,7 @@ const SPEC = [
   { name: 'fine', min: -100, max: 100, def: 0 },              // cents
   { name: 'vel', min: 0, max: 1, def: 0.5 },
   { name: 'level', min: 0, max: 1, def: 0.5 },
+  { name: 'smooth', min: 0, max: 500, def: 10 },              // ms: how fast the position may move when it is changed
 ];
 const P = {};
 SPEC.forEach((s, i) => { P[s.name] = i; });
@@ -112,7 +113,7 @@ export default {
     const table = braidsFrames(), count = table.length / FRAME;
     const amp = new Adsr(sampleRate), fil = new Adsr(sampleRate), posEnv = new Adsr(sampleRate);
     let master = 0, slave = 0, subPhase = 0, lfoPhase = 0, held = 0, since = 0;
-    let note = 60, pos = 60, velocity = 1, seed = 4242;
+    let shown = -1, note = 60, pos = 60, velocity = 1, seed = 4242;
     let legatoOn = false, latch = false, ampFresh = false, from = -1, rate = 0;
     const s = new Float64Array(4);
     const flush = v => (Math.abs(v) < 1e-18 ? 0 : v);
@@ -122,7 +123,7 @@ export default {
         if (msg.type === 'noteOn') {
           const tied = legatoOn && heldNow();
           ampFresh = amp.idle;
-          if (amp.idle) { master = slave = subPhase = 0; lfoPhase = 0; since = 0; s.fill(0); pos = msg.note; }
+          if (amp.idle) { shown = -1; master = slave = subPhase = 0; lfoPhase = 0; since = 0; s.fill(0); pos = msg.note; }
           note = msg.note; velocity = msg.vel ?? 1;
           latch = true; from = msg.from ?? -1;
           if (!tied) { amp.on(); fil.on(); posEnv.on(); since = 0; }
@@ -167,7 +168,8 @@ export default {
         const fenv = g('fenv'), keyOct = (g('keytrack') * (pos - 60)) / 12;
         const baseHz = 440 * Math.pow(2, (pos + g('tune') + g('fine') / 100 - 69) / 12);
         const level = g('level') * (1 - g('vel') + g('vel') * velocity) * 2.2;
-        const nyq = sampleRate * 0.45;
+        const nyq = sampleRate * 0.45, slew = g('smooth') > 0 ? 1 - Math.exp(-1 / (sampleRate * g('smooth') * 0.001)) : 1;
+        if (shown < 0) shown = position;
         let G = 0, G2 = 0, G3 = 0, G4 = 0, norm = 1;
         for (let i = 0; i < n; i++) {
           const a = amp.next(), f = fil.next(), pe = posEnv.next();
@@ -186,6 +188,7 @@ export default {
           const fm = Math.pow(2, (vib > 0 ? vib * lfo : 0) + (pitchOn ? pitchIn[i] : 0));
           const inc = Math.min(0.2, (baseHz * fm) / sampleRate);
           const sinc = Math.min(0.45, inc * ratio);
+          shown += (position - shown) * slew;
           let v = 0;
           if (sawL > 0 || pulseL > 0 || wtL > 0) {
             if (sawL > 0) v += sawL * sawAt(slave, sinc);
@@ -194,7 +197,7 @@ export default {
               v += pulseL * 0.8 * pulseAt(slave, sinc, pw);
             }
             if (wtL > 0) {
-              let p = position + pAmt * pe + pLfo * 0.5 * lfo + (posOn ? posIn[i] : 0);
+              let p = shown + pAmt * pe + pLfo * 0.5 * lfo + (posOn ? posIn[i] : 0);
               p = p < 0 ? 0 : p > 1 ? 1 : p;
               const fp = p * (count - 1), kf = Math.min(count - 2, Math.floor(fp)), ff = fp - kf;
               const x = slave * FRAME, j = Math.floor(x), t = x - j, j1 = j + 1 >= FRAME ? 0 : j + 1;

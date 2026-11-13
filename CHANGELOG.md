@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 770 · 2026-11-13
+
+- **The wavetable position no longer clicks when it jumps.** A new `smooth` parameter (10 ms by default) slews the position (or the A/B mix) towards its new value instead of stepping it, on the Wavetable node and on Lone. Set it to 0 for the old instant behaviour, higher for a slower glide between waves.
+
 ## 769 · 2026-11-13
 
 - **Lone, a lead synth in one node, mono or poly.** Saw, pulse with pulse-width modulation (by hand, LFO or envelope), a sub oscillator, noise and the Braids wavetable beside them, with its position set by hand, swept by its own envelope, moved by the LFO or written from a pattern column. Hard sync, a wave folder, the ladder low-pass with key tracking, an LFO with a fade-in delay, glide, slide and legato. The Lone machine starts with one voice (a mono lead); raise Voices for chords. The node is also in the Synths menu to build your own.

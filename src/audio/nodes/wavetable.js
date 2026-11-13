@@ -31,6 +31,7 @@ const SPEC = [
   { name: 'prel', min: 1, max: 5000, def: 300 },
   { name: 'lfoRate', min: 0.05, max: 20, def: 2 },     // Hz
   { name: 'lfoDepth', min: 0, max: 1, def: 0 },
+  { name: 'smooth', min: 0, max: 500, def: 10 },     // ms: how fast position / mix may move when it is changed, so a jump slews instead of clicking
 ];
 const P = {};
 SPEC.forEach((s, i) => { P[s.name] = i; });
@@ -51,7 +52,7 @@ export default {
     const load = text => (typeof text === 'string' && text.length ? decodeFrames(text) : null);
     const set = { table: load(data?.table) ?? braidsFrames(), pair: load(data?.pair) ?? defaultPair() };
     const ampEnv = new Adsr(sampleRate), posEnv = new Adsr(sampleRate);
-    let phase = 0, note = 60, pos = 60, velocity = 1, lfo = 0;
+    let phase = 0, note = 60, pos = 60, velocity = 1, lfo = 0, shown = -1, lastPair = false;   // shown: the position as heard, following the set value
     return {
       message(msg) {
         if (msg.type === 'table') set.table = load(msg.points) ?? braidsFrames();
@@ -59,7 +60,7 @@ export default {
       },
       note(msg) {
         if (msg.type === 'noteOn') {
-          if (ampEnv.idle) { phase = 0; lfo = 0; pos = msg.note; }
+          if (ampEnv.idle) { phase = 0; lfo = 0; pos = msg.note; shown = -1; }
           note = msg.note; velocity = msg.vel ?? 1;
           ampEnv.on(); posEnv.on();
         } else if (msg.type === 'noteOff' || msg.type === 'allOff') { ampEnv.off(); posEnv.off(); }
@@ -79,9 +80,13 @@ export default {
         const pairMode = g('source') >= 0.5, snap = g('snap') >= 0.5;
         const frames = pairMode ? set.pair : set.table, count = frames.length / FRAME;
         const base = pairMode ? g('mix') : g('position'), amt = g('pamt'), depth = g('lfoDepth'), lfoInc = (2 * Math.PI * g('lfoRate')) / sampleRate;
+        const slew = g('smooth') > 0 ? 1 - Math.exp(-1 / (sampleRate * g('smooth') * 0.001)) : 1;
+        if (shown < 0 || pairMode !== lastPair) shown = base;
+        lastPair = pairMode;
         for (let i = 0; i < n; i++) {
+          shown += (base - shown) * slew;
           // the frame position for this sample: the base value moved by the second envelope and the LFO
-          let p = base + amt * posEnv.next() + depth * 0.5 * Math.sin(lfo);
+          let p = shown + amt * posEnv.next() + depth * 0.5 * Math.sin(lfo);
           lfo += lfoInc;
           p = p < 0 ? 0 : p > 1 ? 1 : p;
           let fp = p * (count - 1);

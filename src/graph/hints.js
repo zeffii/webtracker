@@ -942,6 +942,7 @@ const HINTS = {
     pwenv: 'How far the filter envelope moves the pulse width over a note.',
     wt: 'Level of the Braids wavetable oscillator. With the saw at 0 it replaces the saw.',
     position: 'Where in the 256 waves of the table the oscillator is, 0 to 1. Write it from a pattern column to step through the table.',
+    smooth: 'How fast the position may move when it is changed, in ms. More removes the clicks of a jump; 0 follows instantly.',
     pamt: 'How far the position envelope moves the position over each note. Negative sweeps the other way.',
     plfo: 'How far the LFO moves the wavetable position.',
     patk: 'Attack of the position envelope, in ms.', pdec: 'Decay of the position envelope, in ms.',
@@ -1042,6 +1043,7 @@ const HINTS = {
   },
   wavetable: {
     source: '0 uses the stack of wave frames (table); 1 uses the pair of waves you cut from a sample.',
+    smooth: 'How fast the position (or mix) may move when it is changed, in ms. More removes the clicks of a jump; 0 follows instantly.',
     position: 'Where in the table to read, 0 to 1. It blends the two frames it falls between.',
     mix: 'In pair mode: blends from wave A (0) to wave B (1).',
     snap: '1 jumps from frame to frame instead of blending.',
@@ -1052,6 +1054,7 @@ const HINTS = {
     lfoDepth: 'How far the LFO wobbles the position (or mix).',
   },
   granular: {
+    smooth: 'How fast the position (or mix) may move when it is changed, in ms. More removes the clicks of a jump; 0 follows instantly.',
     position: 'Where in the sample the cloud starts when a note starts, from 0 (start) to 1 (end). Scan then moves it on from there; spray scatters the grains around it.',
     spray: 'Random scatter of the start positions. Higher is a cloudier, less focused sound.',
     scan: 'Moves the position along the sample over time, as a fraction of it per second. Negative goes backwards.',
