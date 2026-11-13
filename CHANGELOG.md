@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 768 · 2026-11-13
+
+- **The pattern view's tick column starts to the right of the scope strip.** The strip no longer covers the row numbers: the sequence view has its own gutter at the left for it.
+
 ## 767 · 2026-11-13
 
 - **The sampler's playhead moves with the keys.** After a click on the waveform (or with the mouse over it), Left and Right move the playhead one frame, Shift moves it one pixel of the view, and Home and End put it at the very start or the very end, so it can be placed sample-accurately. The waveform scrolls to follow it when zoomed in, and Space plays from the playhead as before. The arrows go back to the sample screen's own fields once you press anywhere else.
