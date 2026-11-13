@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 754 · 2026-11-13
+
+- **Pogue: the onset detector is drawn over the voices.** With onset above 0 the voices picture also shows the detector (the level ratio, faint), the sensitivity line (drag it, it is the onset slider) and a line through the picture at every hit or step in pitch, so you see where the voices were moved; with onset at 0 none of that shows. Pattern steps that fired show as lines too. The old Triggers picture is now a small Pattern picture holding just the steps.
+
 ## 753 · 2026-11-13
 
 - **Pogue: the voices can move on a hit, a pitch step or a pattern.** New settings: *onset* (0 is the random timer as before; above 0 the timer stops and a new random target is picked when the sound has a transient or an abrupt change of pitch, the value being the sensitivity), *pattern* with *patlen* and *patrate* (a row of up to 16 steps on the song's grid, in ticks; a 1 fires; it also stops the timer, and can run together with onset), *moves* (what a fire does: new targets, a jump of each voice's sine to a random phase, or both) and *lookahead* (live: no delay, the move follows the hit by a fraction of a ms and a pitch step by a few periods; aligned: the sound is held back 10 ms, reported as latency, so the move lands on the hit). The panel has a new Triggers picture: the detector over the last seconds, the sensitivity line (drag it, it is the onset slider), a mark for each hit, pitch step and pattern step, and the pattern's steps, which you click on and off.

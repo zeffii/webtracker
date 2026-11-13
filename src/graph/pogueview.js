@@ -7,12 +7,13 @@ import { makeCanvas, drag, heartbeat, clamp } from './spaceui.js';
 // path: the high-pass and low-pass it goes through (their two cut-offs can be dragged), what saturation and the bit reduction do to a
 // sound (the curve from what goes in to what comes out), and how much of the wet sound is fed back to its own side and to the other
 // one (the thicker the arrow, the more; a dashed one is inverted).
-// A fifth shows what moves the voices when onset or the pattern is on: the detector's ratio of the fast level to the slow one over
-// the last seconds, with the sensitivity line (drag it: it is the onset slider) and a mark each time something fired (a hit, a step
-// in pitch, or a pattern step); and under it the pattern's steps, which can be clicked on and off.
+// With onset above 0 the voices picture also shows the detector, drawn over the voices on the same time line: the ratio of the fast
+// level to the slow one (faint, on its own log scale), the sensitivity line (drag it: it is the onset slider) and a line through the
+// picture each time a hit or a step in pitch fired. Pattern steps that fired show too. A small fifth picture holds the pattern's
+// steps, which can be clicked on and off.
 const VW = 560, PL = 40, PR = 14, TOP = 22, TRACE = 150, VH = TOP + TRACE + 22;   // the voices picture
 const SW = 190, STOP = 22, STRIP = 92, SH = STOP + STRIP + 22;   // each of the three small ones: title, picture, labels
-const TW = 330, TTOP = 22, TTRACE = 62, TSTEPS = 22, TH = TTOP + TTRACE + TSTEPS + 24;   // the triggers picture
+const TW = 330, TTOP = 22, TSTEPS = 22, TH = TTOP + TSTEPS + 24;   // the pattern picture
 const SECONDS = 6, KEPT = 180;   // the history shown, and how many reports it holds (about 35 ms apart)
 const AMBER = 'hsl(40 95% 62%)', GREEN = 'hsl(165 55% 52%)', ORANGE = 'hsl(30 90% 58%)', RED = 'hsl(8 80% 62%)';
 const voiceColour = (v, count) => `hsl(${28 + (count > 1 ? v / (count - 1) : 0) * 170} 78% 58%)`;   // orange to cyan, so no purples
@@ -82,6 +83,25 @@ export function createPogueView({ doc = document, getParam, setParam, watch = ()
     ctx.setLineDash([]); ctx.globalAlpha = 1;
     label(`longest ${+hi.toFixed(1)} ms`, VW - PR - 84, DY(hi) - 11, AMBER, 0.95); label(`shortest ${+lo.toFixed(1)} ms`, VW - PR - 90, DY(lo) + 3, AMBER, 0.95);
     for (let s = 0; s <= SECONDS; s++) label(s === SECONDS ? 'now' : `-${SECONDS - s}s`, PL + s / SECONDS * pw - (s === SECONDS ? 8 : 6), TOP + TRACE + 3, c, 0.45);
+    // the detector (onset above 0): the fast/slow level ratio on a log scale of its own, the sensitivity line, and a line through the
+    // picture for each trigger: the voices move there
+    const onset = getParam('onset'), patternOn = Math.round(getParam('pattern')) > 0;
+    const hx = k => PL + pw - (history.length - 1 - k) / KEPT * pw;
+    if (onset > 0) {
+      const RY = ratio => TOP + TRACE - clamp(Math.log(Math.max(1, ratio)) / Math.log(RATIO_MAX), 0, 1) * TRACE;
+      ctx.strokeStyle = AMBER; ctx.lineWidth = 1.2; ctx.globalAlpha = 0.45; ctx.beginPath();
+      history.forEach((h, k) => { if (k) ctx.lineTo(hx(k), RY(h.ratio)); else ctx.moveTo(hx(k), RY(h.ratio)); }); ctx.stroke();
+      const line = RY(ratioThreshold(onset));
+      ctx.strokeStyle = GREEN; ctx.globalAlpha = 0.9; ctx.setLineDash([5, 4]); ctx.beginPath(); ctx.moveTo(PL, Math.round(line) + 0.5); ctx.lineTo(VW - PR, Math.round(line) + 0.5); ctx.stroke(); ctx.setLineDash([]);
+      label(`onset ${onset.toFixed(2)}`, PL + 4, line - 11, GREEN, 0.95);
+    }
+    history.forEach((h, k) => {
+      for (const [bit, colour, show] of [[1, GREEN, onset > 0], [2, CYAN, onset > 0], [4, ORANGE, patternOn]]) {
+        if (!(h.fired & bit) || !show) continue;
+        ctx.strokeStyle = colour; ctx.lineWidth = 1; ctx.globalAlpha = 0.55; ctx.beginPath(); ctx.moveTo(Math.round(hx(k)) + 0.5, TOP); ctx.lineTo(Math.round(hx(k)) + 0.5, TOP + TRACE); ctx.stroke();
+      }
+    });
+    ctx.globalAlpha = 1;
     // the traces: the right side (wide mode) first, thin and dashed, so the left side's lines lie over them
     const x = k => PL + pw - (history.length - 1 - k) / KEPT * pw;
     const trace = (side, width, dash, alpha) => {
@@ -102,47 +122,20 @@ export function createPogueView({ doc = document, getParam, setParam, watch = ()
     if (!live) label('play something through it to watch the voices', PL + pw / 2 - 118, TOP + TRACE / 2 - 4, c, 0.5);
   }
 
-  // ---- the triggers: the detector, what fired, and the pattern's steps ----
-  const RY = ratio => TTOP + TTRACE - clamp(Math.log(Math.max(1, ratio)) / Math.log(RATIO_MAX), 0, 1) * TTRACE;
-  const ratioAtY = y => Math.exp(clamp((TTOP + TTRACE - y) / TTRACE, 0, 1) * Math.log(RATIO_MAX));
+  // ---- the pattern: its steps (the first is the highest bit, so the row reads as the binary number) ----
   const stepBox = (k, len) => { const w = (TW - 16) / len; return { x: 8 + k * w, w }; };
-  function drawTriggers() {
+  function drawPattern() {
     if (!trig.ctx) return;
-    const { ctx, c, label } = begin(trig, TW, TH);
+    const { ctx, label } = begin(trig, TW, TH);
     const onset = getParam('onset'), steps = Math.round(getParam('pattern')), len = Math.round(getParam('patlen')), moves = Math.round(getParam('moves'));
-    const active = onset > 0 || steps > 0;
-    label(`TRIGGERS · ${active ? ['new targets', 'phase jump', 'targets + phase'][moves] ?? '' : 'off: random timer'}`, 8, 4);
-    const x0 = 8, w = TW - 16, x = k => x0 + w - (history.length - 1 - k) / KEPT * w;
-    ctx.strokeStyle = c; ctx.lineWidth = 1; ctx.globalAlpha = 0.25; ctx.strokeRect(x0 + 0.5, TTOP + 0.5, w, TTRACE); ctx.globalAlpha = 1;
-    // the level, faint, behind the detector
-    ctx.fillStyle = c; ctx.globalAlpha = 0.12; ctx.beginPath(); ctx.moveTo(x(0), TTOP + TTRACE);
-    history.forEach((h, k) => ctx.lineTo(x(k), TTOP + TTRACE - clamp(Math.sqrt(h.level) * 1.6, 0, 1) * TTRACE)); ctx.lineTo(x(Math.max(0, history.length - 1)), TTOP + TTRACE); ctx.fill(); ctx.globalAlpha = 1;
-    ctx.strokeStyle = AMBER; ctx.lineWidth = 1.5; ctx.beginPath();
-    history.forEach((h, k) => { if (k) ctx.lineTo(x(k), RY(h.ratio)); else ctx.moveTo(x(k), RY(h.ratio)); }); ctx.stroke();
-    const line = RY(ratioThreshold(onset > 0 ? onset : 0.5));
-    ctx.strokeStyle = GREEN; ctx.globalAlpha = onset > 0 ? 0.95 : 0.35; ctx.lineWidth = 1.2; ctx.setLineDash([5, 4]);
-    ctx.beginPath(); ctx.moveTo(x0, Math.round(line) + 0.5); ctx.lineTo(x0 + w, Math.round(line) + 0.5); ctx.stroke(); ctx.setLineDash([]); ctx.globalAlpha = 1;
-    label(onset > 0 ? `onset ${onset.toFixed(2)}` : 'onset 0 (drag the line)', x0 + 4, line - 11, GREEN, onset > 0 ? 0.95 : 0.5);
-    history.forEach((h, k) => {   // a mark for each trigger
-      if (!h.fired) return;
-      let at = 0;
-      for (const [bit, colour] of [[1, GREEN], [2, CYAN], [4, ORANGE]]) {
-        if (!(h.fired & bit)) continue;
-        ctx.fillStyle = colour; ctx.globalAlpha = active || bit === 4 ? 1 : 0.35; ctx.fillRect(Math.round(x(k)) - 1, TTOP + 2 + at * 5, 2, TTRACE - 4 - at * 5); at++;
-      }
-      ctx.globalAlpha = 1;
-    });
-    label('hit', TW - 100, 4, GREEN, 0.9); label('pitch', TW - 74, 4, CYAN, 0.9); label('step', TW - 38, 4, ORANGE, 0.9);
-    if (!live) label('play something through it', x0 + w / 2 - 62, TTOP + TTRACE / 2 - 2, c, 0.4);
-    // the steps: the first is the highest bit, so the row reads as the binary number
-    const sy = TTOP + TTRACE + 8;
+    label(`PATTERN · ${onset > 0 || steps > 0 ? ['new targets', 'phase jump', 'targets + phase'][moves] ?? '' : 'off: random timer'}`, 8, 4);
     for (let k = 0; k < len; k++) {
       const b = stepBox(k, len), on = (steps >> (len - 1 - k)) & 1;
-      ctx.strokeStyle = ORANGE; ctx.lineWidth = 1; ctx.globalAlpha = 0.7; ctx.strokeRect(b.x + 1.5, sy + 0.5, b.w - 3, TSTEPS - 4);
-      if (on) { ctx.fillStyle = ORANGE; ctx.globalAlpha = 0.85; ctx.fillRect(b.x + 3, sy + 2, b.w - 6, TSTEPS - 7); }
+      ctx.strokeStyle = ORANGE; ctx.lineWidth = 1; ctx.globalAlpha = 0.7; ctx.strokeRect(b.x + 1.5, TTOP + 0.5, b.w - 3, TSTEPS - 4);
+      if (on) { ctx.fillStyle = ORANGE; ctx.globalAlpha = 0.85; ctx.fillRect(b.x + 3, TTOP + 2, b.w - 6, TSTEPS - 7); }
       ctx.globalAlpha = 1;
     }
-    label(`pattern ${steps > 0 ? steps.toString(2).padStart(len, '0') : 'off'} · click the steps`, 8, sy + TSTEPS + 1, ORANGE, 0.8);
+    label(`${steps > 0 ? steps.toString(2).padStart(len, '0') : 'off'} · click the steps`, 8, TTOP + TSTEPS + 1, ORANGE, 0.8);
   }
 
   // ---- the filters: log frequency 20 Hz to 20 kHz, -36 to +12 dB ----
@@ -226,7 +219,7 @@ export function createPogueView({ doc = document, getParam, setParam, watch = ()
   function draw() {
     const count = Math.round(getParam('voices')), stereo = Math.round(getParam('stereo'));
     const lo = Math.min(getParam('mindelay'), getParam('maxdelay')), hi = Math.max(getParam('mindelay'), getParam('maxdelay'));
-    drawVoices(count, stereo, lo, hi); drawTriggers(); drawFilters(); drawShaper(); drawFeedback();
+    drawVoices(count, stereo, lo, hi); drawPattern(); drawFilters(); drawShaper(); drawFeedback();
     info.textContent = `${count} voice${count === 1 ? '' : 's'} · ${STEREO[stereo] ?? ''} · ${+lo.toFixed(1)} to ${+hi.toFixed(1)} ms · fastest ${+getParam('rate').toFixed(2)} Hz · ${Math.round(getParam('change') * 100)}% random · mix ${Math.round(getParam('mix') * 100)}%`;
   }
 
@@ -235,21 +228,22 @@ export function createPogueView({ doc = document, getParam, setParam, watch = ()
   drag(voices.canvas, VW, VH, {
     start: (px, py) => {
       if (py < TOP - 4 || py > TOP + TRACE + 4 || px < PL - 4) return false;
+      const onsetY = getParam('onset') > 0 ? TOP + TRACE - clamp(Math.log(Math.max(1, ratioThreshold(getParam('onset')))) / Math.log(RATIO_MAX), 0, 1) * TRACE : null;
+      if (onsetY !== null && Math.abs(py - onsetY) <= 7 && [getParam('mindelay'), getParam('maxdelay')].every(ms => Math.abs(py - DY(ms)) > Math.abs(py - onsetY))) { edge = 'onset'; return true; }
       const near = [['mindelay', getParam('mindelay')], ['maxdelay', getParam('maxdelay')]].filter(([, ms]) => Math.abs(py - DY(ms)) <= 7).sort((a, b) => Math.abs(py - DY(a[1])) - Math.abs(py - DY(b[1])))[0];
       if (!near) return false;
       edge = near[0]; return true;
     },
-    move: (px, py) => { setParam(edge, Math.round(msAt(py) * 10) / 10); draw(); },
+    move: (px, py) => {
+      if (edge === 'onset') setParam('onset', Math.round(sensitivityOf(Math.exp(clamp((TOP + TRACE - py) / TRACE, 0, 1) * Math.log(RATIO_MAX))) * 100) / 100);
+      else setParam(edge, Math.round(msAt(py) * 10) / 10);
+      draw();
+    },
     done: () => { edge = null; },
-  });
-  drag(trig.canvas, TW, TH, {   // the sensitivity line is the onset slider
-    start: (px, py) => py >= TTOP - 4 && py <= TTOP + TTRACE + 4 && Math.abs(py - RY(ratioThreshold(getParam('onset') > 0 ? getParam('onset') : 0.5))) <= 8,
-    move: (px, py) => { setParam('onset', Math.round(sensitivityOf(ratioAtY(py)) * 100) / 100); draw(); },
-    done: () => {},
   });
   trig.canvas.addEventListener('click', e => {   // a step on or off
     const r = trig.canvas.getBoundingClientRect(), px = (e.clientX - r.left) * TW / r.width, py = (e.clientY - r.top) * TH / r.height;
-    const len = Math.round(getParam('patlen')), sy = TTOP + TTRACE + 8;
+    const len = Math.round(getParam('patlen')), sy = TTOP;
     if (py < sy || py > sy + TSTEPS || px < 8 || px > TW - 8) return;
     const k = clamp(Math.floor((px - 8) / ((TW - 16) / len)), 0, len - 1);
     setParam('pattern', (Math.round(getParam('pattern')) ^ (1 << (len - 1 - k))) & 0xffff); draw();

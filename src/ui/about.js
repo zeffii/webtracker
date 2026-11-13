@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['754', ['Pogue draws the onset detector over its voices (only while onset is above 0), with the sensitivity line you can drag and a line at each trigger.']],
   ['753', ['Pogue can move its voices on a hit, a step in pitch or a step pattern (onset, pattern, moves, lookahead), with a Triggers picture in its panel.']],
   ['752', ['The pattern window has its own slate and orange colours (dark or light with the page theme), with green and rose marking what changed in B.']],
   ['751', ['The Master graph starts with a bus-in node, unconnected, ready to wire through effects into out; the tempo node is hidden (its columns are still there).']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['747', ['New effect Groove, what a record does to a sound: warp, wear, tracing, dust, scratches (that can come round again), pops, surface noise and rumble, each with its own level and skipped at zero, and an oversampled simulation mode.']],
   ['746', ['Randomize (Ctrl+R) has Diverge the parameters: filled parameter cells jump anywhere in their range, notes stay, and Alt+R rolls again.']],
   ['745', ['Testing A or B in the pattern window stops the song, so only the pattern you test is heard.']],
-  ['744', ['The pattern window has a B side: a scratch copy to try chords on, played separately from A, changed freely, reset to A, or kept over A or as a new pattern.']],
                     ];
