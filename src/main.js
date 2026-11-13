@@ -1607,6 +1607,19 @@ let waveX = null;
     const k = e.key.toLowerCase();
     if (k === 'c') sampleScreen.copy(); else if (k === 'x') sampleScreen.copy(true); else sampleScreen.paste(e.shiftKey ? 'overwrite' : 'insert');
   }, true);
+  // The playhead with the keys: after a click on the waveform (or with the mouse over it), Left and Right move it one frame, Shift one
+  // pixel of the view; Home and End put it at the start or the end. So it can be placed sample accurately, e.g. at the very start.
+  let waveClicked = false;   // the last press was on the waveform: the arrows are for the playhead until a press somewhere else
+  document.addEventListener('pointerdown', e => { waveClicked = !!e.target?.closest?.('#wave'); }, true);
+  document.addEventListener('keydown', e => {
+    if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key) || (waveX === null && !waveClicked) || tabs.active !== 'samples') return;
+    if (e.ctrlKey || e.altKey || e.metaKey || !waveform.sample()) return;
+    if (/^(INPUT|TEXTAREA|SELECT)$/.test(e.target?.tagName) || $('autoslice').open) return;
+    e.preventDefault(); e.stopImmediatePropagation();
+    if (e.key === 'Home') sampleScreen.moveHead({ to: 'start' });
+    else if (e.key === 'End') sampleScreen.moveHead({ to: 'end' });
+    else sampleScreen.moveHead({ delta: (e.key === 'ArrowLeft' ? -1 : 1) * (e.shiftKey ? Math.round(waveform.framesPerPixel()) : 1) });
+  }, true);
   // Delete with the mouse over the waveform takes out the selected part (the same as Shift+X); it never removes the sample from the list
   document.addEventListener('keydown', e => {
     if (e.key !== 'Delete' || waveX === null || tabs.active !== 'samples') return;
@@ -1631,6 +1644,7 @@ const sampleScreen = createSampleScreen({
   onNote: playSample,
   onSelection: (from, to) => waveform.setSelection(from, to),
   onHead: frame => waveform.setHead(frame),
+  onReveal: frame => waveform.reveal(frame),
   onSlice: i => waveform.setActiveSlice(i),
   onZoom: kind => waveform.zoom(kind),
   onAutoSlice: () => autoSliceOpen(),

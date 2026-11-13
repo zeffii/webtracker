@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 767 · 2026-11-13
+
+- **The sampler's playhead moves with the keys.** After a click on the waveform (or with the mouse over it), Left and Right move the playhead one frame, Shift moves it one pixel of the view, and Home and End put it at the very start or the very end, so it can be placed sample-accurately. The waveform scrolls to follow it when zoomed in, and Space plays from the playhead as before. The arrows go back to the sample screen's own fields once you press anywhere else.
+
 ## 766 · 2026-11-13
 
 - **A scope overlay for the pattern view.** One big oscilloscope of the master output laid over the whole pattern view, switched on and off from a strip of icons at the view's left edge (like the graph's strip) or with Ctrl+Alt+L. The strip shows everything: the on/off switch, three looks (trace: left in orange and right in blue, locked to a rising zero crossing so a steady note stands still; phosphor: with a slow glow; XY: left against right) and two sliders, strength and window (8 to 58 ms across). Clicks and keys go straight through to the pattern editor, and it costs nothing while off: nothing is drawn and the audio thread does not fill the ring. The settings are in Config (Scope overlay), off to start with.

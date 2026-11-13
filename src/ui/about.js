@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['767', ['The sampler playhead moves with the keys: after a click on the waveform, Left and Right step it one frame (Shift: one pixel), Home and End jump to the start and end.']],
   ['766', ['A scope overlay for the pattern view: one big oscilloscope of the master output (trace, phosphor or XY), with an icon strip at the left edge showing its switch and sliders. Ctrl+Alt+L. Off by default.']],
   ['765', ['Spectral panner: a punch slider keeps attacks in the centre (a sweeping kick no longer splits and crunches), with punchTime for how long until the image opens again. Off by default.']],
   ['764', ['Khufu, a string machine: three sawtooth registers an octave apart with a drawn amplitude envelope, played through the new ensemble effect (three wobbling delays), which is a node of its own.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['760', ['Carve in the mixer: a spectral stage for mastering where the loudest lane in a band keeps its level and quieter overlapping lanes dip (Amt, Depth, Focus, and a lead button per lane). Off by default; about 85 ms of delay while on.']],
   ['759', ['The graph toolbar strip is centred on the graph\'s height and hides itself when there is no room for it.']],
   ['758', ['The instrument graph has a toolbar strip on its left edge: grid, snap, wire looks, compact nodes, pull out and hiding command parameters, with hover text.']],
-  ['757', ['Parameter sliders show their full extent again, with a faint background behind the empty part.']],
                     ];

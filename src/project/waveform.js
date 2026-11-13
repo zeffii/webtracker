@@ -429,6 +429,14 @@ export function createWaveformView({ canvas, statusEl, getProject, onLoop, onSel
     activeFrame() { const s = sample(); return s && active >= 0 ? slicesOf(s)[active] ?? -1 : -1; },
     // the frame under a canvas x, and the slice marker at or before a frame (-1 when there is none)
     frameAtX(x) { return Math.min(Math.max(0, xToFrame(x)), Math.max(0, frames() - 1)); },
+    // how many frames one pixel of the view covers (1 or more), and a scroll that brings a frame into view when the view is zoomed in
+    framesPerPixel() { const [a, b] = range(); return Math.max(1, (b - a) / Math.max(1, W - gutter())); },
+    reveal(frame) {
+      if (!sample() || vb <= 0) return;
+      const [a, b] = range();
+      if (frame >= a && frame <= b) return;
+      const span = b - a; setView(frame - span / 2, frame + span / 2);
+    },
     sliceBefore(frame) { const s = sample(); return (s?.slices ?? []).reduce((best, f) => (f <= frame && f > best ? f : best), -1); },
     sample,
     setSelection(from, to) { selection = { from, to }; lastKey = null; },

@@ -1337,6 +1337,16 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   key('ArrowUp'); assert.equal(screen.selected, 'pluck');
 
   // loop end: type a value, step with the arrows and Shift
+  // the playhead with the keys: a frame at a time, to the start and to the end, and never outside the sample
+  { screen.setHead(10);
+    screen.moveHead({ delta: -1 }); assert.equal(screen.head, 9, 'one frame back');
+    screen.moveHead({ delta: 1 }); screen.moveHead({ delta: 1 }); assert.equal(screen.head, 11, 'one frame on');
+    screen.moveHead({ to: 'start' }); assert.equal(screen.head, 0, 'Home puts it at the very start');
+    screen.moveHead({ delta: -1 }); assert.equal(screen.head, 0, 'not before the start');
+    screen.moveHead({ to: 'end' }); assert.equal(screen.head, n, 'End puts it at the end');
+    screen.moveHead({ delta: 5 }); assert.equal(screen.head, n, 'not past the end');
+    screen.setHead(0);
+  }
   // copy and paste: the playhead can be anywhere, a paste goes there, and undo puts it all back
   { const before = pluck.data.slice(), len0 = n;
     screen.setSelection(100, 200); key('c', { ctrlKey: true });

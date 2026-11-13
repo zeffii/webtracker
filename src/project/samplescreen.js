@@ -33,7 +33,7 @@ const EDITS = { C: 'crop', T: 'crop', X: 'cut', S: 'silence', R: 'reverse', N: '
 const ROOT = 60;
 const round2 = v => Math.round(v * 100) / 100;
 
-export function createSampleScreen({ el, listEl = null, statusEl, getProject, onChange = () => {}, onSelect = () => {}, onRemove = () => {}, onRename = () => {}, onNote = () => {}, onLoad = () => {}, onReplace = () => {}, onKeep = () => {}, onView = () => {}, onSelection = () => {}, onHead = () => {}, onSlice = () => {}, onZoom = () => '', onAutoSlice = null, onChords = null, onRoll = null, rollUndo = null, onEdited = () => {} }) {
+export function createSampleScreen({ el, listEl = null, statusEl, getProject, onChange = () => {}, onSelect = () => {}, onRemove = () => {}, onRename = () => {}, onNote = () => {}, onLoad = () => {}, onReplace = () => {}, onKeep = () => {}, onView = () => {}, onSelection = () => {}, onHead = () => {}, onReveal = () => {}, onSlice = () => {}, onZoom = () => '', onAutoSlice = null, onChords = null, onRoll = null, rollUndo = null, onEdited = () => {} }) {
   let sel = null, focus = 'list', edit = null, mode = 'wave', announced = null, last = null, lastList = null, top = 0;
   let selFrom = 0, selTo = 0, octave = 5, activeSlice = -1;
   let headAt = 0, clip = null;   // the playhead (where a paste goes; a click on the waveform puts it anywhere) and the clipboard, which stays when another sample is chosen   // the slice marker + and - move
@@ -116,6 +116,14 @@ export function createSampleScreen({ el, listEl = null, statusEl, getProject, on
     headAt = Math.max(0, Math.min(s.data.length, Math.round(frame)));
     onHead(headAt);
     say(`Playhead at frame ${headAt}.`);
+  }
+  // The playhead moved with the keys: by `delta` frames, or to the start or the end of the sample (`to`: 'start' or 'end'). It is sample
+  // accurate: one frame per press, and the waveform scrolls to follow it when it is zoomed in.
+  function moveHead({ delta = 0, to = null } = {}) {
+    const s = sample();
+    if (!s) return;
+    setHead(to === 'start' ? 0 : to === 'end' ? s.data.length : headAt + delta);
+    onReveal(headAt);
   }
   function copy(cut = false) {
     if (!(selTo > selFrom)) { say('Select a range first (drag on the waveform), then copy it.'); return; }
@@ -506,7 +514,7 @@ export function createSampleScreen({ el, listEl = null, statusEl, getProject, on
         loopLine('Loop', 'loop', 'loopOn', 'loopBeg', 'loopEnd', 'loopXf', 'loopHide'),
         loopLine('SusLoop', 'sus', 'susOn', 'susBeg', 'susEnd', 'susXf', 'susHide'),
         line(' Select   ', seg('    ', ''), ' Beg ', numCell('selBeg'), ' End ', numCell('selEnd'), ' '.repeat(16 - selAll.t), selAll, ' ', fieldCell('selHide', config.get('waveHideSel') ? 'show' : 'hide', 4)),   // hide lines up with the ones above
-        line(` Playhead  ${headAt}`, clip ? `   clipboard ${clip.data.length} frames  (Ctrl+C copy, Ctrl+X cut, Ctrl+V paste at the playhead, Shift over)` : '   (click the waveform to place it; Ctrl+C copies the selection)'),
+        line(` Playhead  ${headAt}`, clip ? `   clipboard ${clip.data.length} frames  (Ctrl+C copy, Ctrl+X cut, Ctrl+V paste at the playhead, Shift over)` : '   (click the waveform to place it; then Left and Right move it a frame, Home and End go to the ends)'),
         line(''),
         line(' Levels'),
         ...Object.keys(SLIDERS).map(f => line(' ', slider(f))),
@@ -570,5 +578,5 @@ export function createSampleScreen({ el, listEl = null, statusEl, getProject, on
       return `Found ${hits.length} onsets${whole ? '' : ' in the selection'}: ${sample().slices.length} slice markers now.`;
     },
   };
-  return { draw, key, select, runEdit, setHead, copy, paste, get head() { return headAt; }, get hasClip() { return !!clip; }, autoSlice, playFrom, release: code => stopNote(code), say, undoRedo, markSlice, setSelection(from, to) { if (sel) setSelection(Math.max(0, from), Math.max(0, to)); }, setActiveSlice(i) { activeSlice = i; }, history, get octave() { return octave; }, get selection() { return [selFrom, selTo]; }, get selected() { return sel; }, get focus() { return focus; }, get mode() { return mode; } };
+  return { draw, key, select, runEdit, setHead, moveHead, copy, paste, get head() { return headAt; }, get hasClip() { return !!clip; }, autoSlice, playFrom, release: code => stopNote(code), say, undoRedo, markSlice, setSelection(from, to) { if (sel) setSelection(Math.max(0, from), Math.max(0, to)); }, setActiveSlice(i) { activeSlice = i; }, history, get octave() { return octave; }, get selection() { return [selFrom, selTo]; }, get selected() { return sel; }, get focus() { return focus; }, get mode() { return mode; } };
 }
