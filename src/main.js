@@ -59,6 +59,8 @@ import { showMachineTree } from './ui/machinetree.js';
 import { createPictureWindow } from './ui/picturewindow.js';
 import { createPatternOptions } from './ui/patternoptions.js';
 import { createGraphRail } from './ui/graphrail.js';
+import { createScopeOverlay } from './ui/scopeoverlay.js';
+import { createScopeRail } from './ui/scoperail.js';
 import { createPatternRoll, rollStyle } from './ui/patternroll.js';
 import { SONGS } from './ui/songs.js';
 import { renderMarkdown } from './ui/markdown.js';
@@ -1987,6 +1989,13 @@ const showPattern = (li, puid) => patternWindow.show(li, puid);
 stopAudition = () => patternWindow.stop();
 keys.bind('Ctrl+Alt+KeyW', showPatternUnderCursor, { when: () => project, name: 'Show the pattern under the cursor in a window' });
 createGraphRail({ host: $('patch-wrap'), config, repaint: () => patcher.repaint() });
+// The scope overlay over the pattern view, and its strip at the view's left edge (Ctrl+Alt+L)
+{
+  const host = $('seq').parentElement;
+  createScopeOverlay({ host, over: $('seq'), ring: engine.vring, sampleRate: () => engine.ctx?.sampleRate ?? 48000, config });
+  createScopeRail({ host, config });
+  keys.bind('Ctrl+Alt+KeyL', () => config.set('scopeOn', !config.get('scopeOn')), { name: 'Scope overlay' });
+}
 createPatternOptions({ el: $('pat-side'), config, view, focusGrid: () => $('view').focus(), openRoll, openPatternWindow: showPatternUnderCursor });
 
 // The browser holds the lists that used to sit in the views: the arrangement's pattern list and the instrument list move in here.

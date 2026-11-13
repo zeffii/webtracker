@@ -11892,4 +11892,16 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   console.log('ok: specpan punch');
 }
 
+{
+  // ---- scope overlay settings: off to start with, and the ranges the strip's sliders use ----
+  const s = key => uiConfig.SCHEMA.find(x => x.key === key);
+  assert.equal(s('scopeOn').def, false, 'the scope overlay is off to start with');
+  assert.equal(s('scopeLook').def, 'trace');
+  assert.deepEqual(s('scopeLook').options, ['trace', 'phosphor', 'xy']);
+  assert.ok(s('scopeAmt').min === 10 && s('scopeAmt').max === 100 && s('scopeWin').min === 8 && s('scopeWin').max === 58, 'the sliders keep to their ranges');
+  const { RING } = await import('../src/audio/vring.js');
+  assert.ok(Math.round(58 / 1000 * 48000) + 1100 < RING, 'the widest window and the trigger search fit in the ring');
+  console.log('ok: scope overlay settings');
+}
+
 console.log('smoke test passed');

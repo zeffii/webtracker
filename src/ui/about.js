@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['766', ['A scope overlay for the pattern view: one big oscilloscope of the master output (trace, phosphor or XY), with an icon strip at the left edge showing its switch and sliders. Ctrl+Alt+L. Off by default.']],
   ['765', ['Spectral panner: a punch slider keeps attacks in the centre (a sweeping kick no longer splits and crunches), with punchTime for how long until the image opens again. Off by default.']],
   ['764', ['Khufu, a string machine: three sawtooth registers an octave apart with a drawn amplitude envelope, played through the new ensemble effect (three wobbling delays), which is a node of its own.']],
   ['763', ['Rotary, a rotating speaker cabinet: a spinning horn and drum heard by two microphones, with a stop, slow and fast switch whose glide you can write in a pattern.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['759', ['The graph toolbar strip is centred on the graph\'s height and hides itself when there is no room for it.']],
   ['758', ['The instrument graph has a toolbar strip on its left edge: grid, snap, wire looks, compact nodes, pull out and hiding command parameters, with hover text.']],
   ['757', ['Parameter sliders show their full extent again, with a faint background behind the empty part.']],
-  ['756', ['The parameter sliders lose the thin line under them: just the fill and the mark.']],
                     ];

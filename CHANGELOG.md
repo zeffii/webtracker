@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 766 · 2026-11-13
+
+- **A scope overlay for the pattern view.** One big oscilloscope of the master output laid over the whole pattern view, switched on and off from a strip of icons at the view's left edge (like the graph's strip) or with Ctrl+Alt+L. The strip shows everything: the on/off switch, three looks (trace: left in orange and right in blue, locked to a rising zero crossing so a steady note stands still; phosphor: with a slow glow; XY: left against right) and two sliders, strength and window (8 to 58 ms across). Clicks and keys go straight through to the pattern editor, and it costs nothing while off: nothing is drawn and the audio thread does not fill the ring. The settings are in Config (Scope overlay), off to start with.
+
 ## 765 · 2026-11-13
 
 - **Punch on the spectral panner.** A new `punch` slider (0 is off, and off is the default, so songs sound as before) pulls the stereo image back to the centre while an attack goes by, and `punchTime` (5 to 200 ms) sets how long it takes to open again. A kick whose pitch sweeps down through the panned bands used to split its click between left and right and sound crunchy: measured on a sweeping kick, the side level in the first 100 ms falls from about 0.2 to near 0 with punch at full. The attack is found by a fast and a slow level follower, with no added latency, and the image moves at once at the hit and then eases open.
