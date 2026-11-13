@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 755 · 2026-11-13
+
+- **Pogue: the Pattern picture is the last one in the panel**, after Feedback, instead of sitting next to the voices.
+
 ## 754 · 2026-11-13
 
 - **Pogue: the onset detector is drawn over the voices.** With onset above 0 the voices picture also shows the detector (the level ratio, faint), the sensitivity line (drag it, it is the onset slider) and a line through the picture at every hit or step in pitch, so you see where the voices were moved; with onset at 0 none of that shows. Pattern steps that fired show as lines too. The old Triggers picture is now a small Pattern picture holding just the steps.

@@ -37,7 +37,7 @@ export function createPogueView({ doc = document, getParam, setParam, watch = ()
   const row = doc.createElement('div'); row.className = 'subui-row';
   const info = doc.createElement('div'); info.className = 'sp-info';
   const voices = makeCanvas(doc, VW, VH, 'sp-pad'), filters = makeCanvas(doc, SW, SH, 'sp-pad'), shaper = makeCanvas(doc, SW, SH, 'sp-pad'), feedback = makeCanvas(doc, SW, SH, 'sp-pad'), trig = makeCanvas(doc, TW, TH, 'sp-pad');
-  row.append(voices.canvas, trig.canvas, filters.canvas, shaper.canvas, feedback.canvas);
+  row.append(voices.canvas, filters.canvas, shaper.canvas, feedback.canvas, trig.canvas);
   el.append(row, info);
 
   const history = [];   // each report: { l: [...ms], r: [...ms] }
