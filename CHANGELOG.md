@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 758 · 2026-11-13
+
+- **A toolbar strip in the instrument graph.** A narrow column of icon switches low on the graph's left edge: grid, snap, dashed control wires, straight short wires, compact nodes, pull out, and hide command parameters (in the parameter view). Each is a setting that already exists in Config and stays in step with it. Hover a button for its name, whether it is on, and what it does. It is mouse-only and never takes the keyboard from the graph.
+
 ## 757 · 2026-11-13
 
 - **The empty part of a parameter slider has a faint background** (7% of the text colour, the theme token `--slider-rest`), so you can see how far a slider goes when it is not at full.

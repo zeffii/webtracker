@@ -58,6 +58,7 @@ import { createPatternWindow } from './ui/patternwindow.js';
 import { showMachineTree } from './ui/machinetree.js';
 import { createPictureWindow } from './ui/picturewindow.js';
 import { createPatternOptions } from './ui/patternoptions.js';
+import { createGraphRail } from './ui/graphrail.js';
 import { createPatternRoll, rollStyle } from './ui/patternroll.js';
 import { SONGS } from './ui/songs.js';
 import { renderMarkdown } from './ui/markdown.js';
@@ -1984,6 +1985,7 @@ const patternWindow = createPatternWindow({
 const showPattern = (li, puid) => patternWindow.show(li, puid);
 stopAudition = () => patternWindow.stop();
 keys.bind('Ctrl+Alt+KeyW', showPatternUnderCursor, { when: () => project, name: 'Show the pattern under the cursor in a window' });
+createGraphRail({ host: $('patch-wrap'), config, repaint: () => patcher.repaint() });
 createPatternOptions({ el: $('pat-side'), config, view, focusGrid: () => $('view').focus(), openRoll, openPatternWindow: showPatternUnderCursor });
 
 // The browser holds the lists that used to sit in the views: the arrangement's pattern list and the instrument list move in here.

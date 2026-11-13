@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['758', ['The instrument graph has a toolbar strip on its left edge: grid, snap, wire looks, compact nodes, pull out and hiding command parameters, with hover text.']],
   ['757', ['Parameter sliders show their full extent again, with a faint background behind the empty part.']],
   ['756', ['The parameter sliders lose the thin line under them: just the fill and the mark.']],
   ['755', ['The Pogue panel puts its Pattern picture last, after Feedback.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['751', ['The Master graph starts with a bus-in node, unconnected, ready to wire through effects into out; the tempo node is hidden (its columns are still there).']],
   ['750', ['The master bus node is now called bus-in; projects saved with it open as before.']],
   ['749', ['Groove starts with every part at zero: a new one passes the sound through until you turn a part up.']],
-  ['748', ['Effects on the master, before the limiter: the new master effects row in Machines opens the Master graph; a Mix node brings in the whole song, and what you wire from it into Out replaces the mix before volume and limiter.']],
                     ];

@@ -1093,6 +1093,14 @@
     .curve-presets { display: flex; flex-wrap: wrap; gap: 2px; margin: .25rem 0; max-width: 200px; }
     .curve-presets button { font: inherit; font-size: 11px; padding: 0 .35rem; }
     #patch-wrap { position: relative; }
+    /* the graph's toolbar strip (src/ui/graphrail.js): icon switches along the left edge, over the canvas */
+    .gr-rail { position: absolute; left: 1px; bottom: 1px;   /* low on the left edge: the exposed-parameters dock is at the top */  z-index: 3; display: flex; flex-direction: column; gap: 2px; padding: 3px; background: color-mix(in srgb, var(--panel) 88%, transparent); border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+    .gr-btn { all: unset; box-sizing: border-box; position: relative; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: color-mix(in srgb, var(--fg) 55%, transparent); }
+    .gr-btn:hover { color: var(--fg); background: color-mix(in srgb, var(--fg) 10%, transparent); }
+    .gr-btn[aria-pressed="true"] { color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, transparent); }
+    .gr-btn svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; pointer-events: none; }
+    .gr-tip { position: absolute; left: calc(100% + 8px); top: 50%; transform: translateY(-50%); background: var(--fg); color: var(--bg); padding: 1px 6px; white-space: nowrap; font: 11px/16px ui-monospace, Consolas, monospace; pointer-events: none; opacity: 0; transition: opacity .08s; z-index: 4; }
+    .gr-btn:hover .gr-tip { opacity: 1; transition-delay: .25s; }
     #backup-panel { position: fixed; z-index: 60; top: 48px; right: 12px; width: min(640px, calc(100% - 24px)); max-height: calc(100% - 72px); display: flex; flex-direction: column; background: var(--panel); color: var(--fg); border: 1px solid var(--line); box-shadow: 0 6px 24px rgba(0,0,0,.35); outline: none; }
     #backup-panel[hidden] { display: none; }
     #backup-panel .bk-head { display: flex; gap: 10px; align-items: baseline; padding: 4px 10px; border-bottom: 1px solid var(--line); }
