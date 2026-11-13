@@ -48,7 +48,31 @@ export function createGraphRail({ host, config, repaint = () => {}, doc = docume
   }
   sync();
   host.append(rail);
+  // Centred on the graph's height (by the stylesheet), and out of sight when there is no room: the graph is lower than the strip,
+  // or the strip would sit over the exposed-parameters dock or the parameter panel.
+  const MARGIN = 6;
+  function fit() {
+    const canvas = host.querySelector('canvas');
+    if (!canvas) return;
+    rail.style.top = `${canvas.offsetTop + canvas.offsetHeight / 2}px`;   // the middle of the canvas (the host also holds the grip under it)
+    rail.classList.remove('gr-away');
+    const c = canvas.getBoundingClientRect(), r = rail.getBoundingClientRect();
+    let room = c.height >= r.height + 2 * MARGIN;
+    for (const other of host.querySelectorAll('#patch-exposed, #patch-params')) {
+      const o = other.getBoundingClientRect();
+      if (!o.width || !o.height || getComputedStyle(other).display === 'none') continue;
+      if (o.left < r.right && o.right > r.left && o.top < r.bottom + MARGIN && o.bottom > r.top - MARGIN) room = false;
+    }
+    rail.classList.toggle('gr-away', !room);
+  }
+  if (typeof ResizeObserver === 'function') {
+    const watch = new ResizeObserver(fit);
+    watch.observe(host);
+    for (const el of host.querySelectorAll('canvas, #patch-exposed, #patch-params')) watch.observe(el);
+  }
+  host.addEventListener('transitionend', fit);
+  fit();
   const mine = new Set(['graphGrid', 'graphSnap', 'wireDashed', 'wireStraight', 'nodeLook', 'graphPullOut', 'pvHideCc']);
   config.onChange(key => { if (mine.has(key)) { sync(); repaint(); } });   // a change made in Config shows here too
-  return { el: rail, sync };
+  return { el: rail, sync, fit };
 }

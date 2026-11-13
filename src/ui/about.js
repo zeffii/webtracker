@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['759', ['The graph toolbar strip is centred on the graph\'s height and hides itself when there is no room for it.']],
   ['758', ['The instrument graph has a toolbar strip on its left edge: grid, snap, wire looks, compact nodes, pull out and hiding command parameters, with hover text.']],
   ['757', ['Parameter sliders show their full extent again, with a faint background behind the empty part.']],
   ['756', ['The parameter sliders lose the thin line under them: just the fill and the mark.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['752', ['The pattern window has its own slate and orange colours (dark or light with the page theme), with green and rose marking what changed in B.']],
   ['751', ['The Master graph starts with a bus-in node, unconnected, ready to wire through effects into out; the tempo node is hidden (its columns are still there).']],
   ['750', ['The master bus node is now called bus-in; projects saved with it open as before.']],
-  ['749', ['Groove starts with every part at zero: a new one passes the sound through until you turn a part up.']],
                     ];

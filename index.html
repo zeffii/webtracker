@@ -1094,7 +1094,8 @@
     .curve-presets button { font: inherit; font-size: 11px; padding: 0 .35rem; }
     #patch-wrap { position: relative; }
     /* the graph's toolbar strip (src/ui/graphrail.js): icon switches along the left edge, over the canvas */
-    .gr-rail { position: absolute; left: 1px; bottom: 1px;   /* low on the left edge: the exposed-parameters dock is at the top */  z-index: 3; display: flex; flex-direction: column; gap: 2px; padding: 3px; background: color-mix(in srgb, var(--panel) 88%, transparent); border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+    .gr-rail { position: absolute; left: 1px; top: 50%; transform: translateY(-50%);   /* centred on the graph's height; graphrail.js hides it when there is no room */  z-index: 3; display: flex; flex-direction: column; gap: 2px; padding: 3px; background: color-mix(in srgb, var(--panel) 88%, transparent); border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+    .gr-rail.gr-away { visibility: hidden; }
     .gr-btn { all: unset; box-sizing: border-box; position: relative; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: color-mix(in srgb, var(--fg) 55%, transparent); }
     .gr-btn:hover { color: var(--fg); background: color-mix(in srgb, var(--fg) 10%, transparent); }
     .gr-btn[aria-pressed="true"] { color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, transparent); }
