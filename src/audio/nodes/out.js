@@ -14,6 +14,7 @@ export default {
     { name: 'gain', min: 0, max: 1.5, def: 0.8 },
     { name: 'pan', min: -1, max: 1, def: 0 },
     { name: 'master', min: 0, max: 1, def: 1, int: true },   // 1: the sound goes to the mix; 0: it does not, but a sidechain node in another instrument still hears it
+    { name: 'lead', min: 0, max: 1, def: 0, int: true },     // 1: the carve stage (in the mixer) never dips this lane; the others give way to it
   ],
   create() {
     let gl0 = -1, gr0 = 0;

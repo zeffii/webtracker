@@ -6,7 +6,7 @@
 import { createSplitter } from './kit/splitter.js';
 
 export const HIDE_BELOW = 20;   // a dock lower than this disappears
-const MIN_SHOWN = 60, DEFAULT_HEIGHT = 120, KEY_ON = 'webtracker.mixer', KEY_HEIGHT = 'webtracker.mixerHeight';
+const MIN_SHOWN = 60, DEFAULT_HEIGHT = 146, KEY_ON = 'webtracker.mixer', KEY_HEIGHT = 'webtracker.mixerHeight';
 
 export function createMixerDock({ dock, grip, onChange = () => {}, maxHeight = () => innerHeight * 0.6 }) {
   let on = false, height = DEFAULT_HEIGHT;

@@ -42,7 +42,7 @@ export async function renderSong(state, { tail = 10, onProgress = () => {}, canc
   const { rt, seq, sampleRate } = buildOffline(state, Once);
   if (!seq.song?.length) throw new Error('There is no song to render.');
   const chunks = [], limit = Math.floor(sampleRate * maxSeconds);
-  const lag = rt.alignment();   // with delay compensation on, the whole mix comes out this many samples late: the start is trimmed off below
+  const lag = rt.alignment() + rt.carveLatency();   // with delay compensation on, the whole mix comes out this many samples late: the start is trimmed off below
   let frames = 0, tailLeft = Math.round(tail * sampleRate) + lag, peak = 0, slice = performance.now();
   seq.play(0);
   const l = new Float32Array(BLOCK), r = new Float32Array(BLOCK);

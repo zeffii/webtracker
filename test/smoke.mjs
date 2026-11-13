@@ -11618,4 +11618,30 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   console.log('ok: pogue triggers');
 }
 
+{
+  // ---- carve: the loudest lane in a band keeps its level, quieter overlapping lanes give way, a lead lane is never dipped ----
+  const { Carve, CARVE_N } = await import('../src/audio/carve.js');
+  const sr = 48000, B = 128;
+  const run = (amount, depth, leadB, ampB = 0.05) => {
+    const c = new Carve(sr, B), L = new Float32Array(B), R = new Float32Array(B), A = new Float32Array(B), Bs = new Float32Array(B);
+    const out = [];
+    for (let blk = 0; blk < 120; blk++) {
+      for (let i = 0; i < B; i++) { const t = blk * B + i; A[i] = 0.5 * Math.sin(2 * Math.PI * 1000 * t / sr); Bs[i] = ampB * Math.sin(2 * Math.PI * 1000 * t / sr + 1); }
+      c.push('a', A, A, B, false); c.push('b', Bs, Bs, B, leadB);
+      c.pull(L, R, B, amount, depth, 0.6);
+      out.push(...L);
+    }
+    return out;
+  };
+  const tail = a => peak(a.slice(a.length - 4000));
+  const none = run(0, 12, false);
+  assert.ok(Math.abs(tail(none) - 0.55) < 0.03, `amount 0 just adds the lanes (got ${tail(none)})`);
+  assert.equal(peak(run(0, 12, false).slice(0, CARVE_N - 1)), 0, 'the mix is a window late');
+  const carved = run(1, 12, false), kept = run(1, 12, true);
+  assert.ok(tail(carved) < tail(none) - 0.01 && tail(carved) > 0.4, `the quiet lane is dipped, the loud one stays (got ${tail(carved)})`);
+  assert.ok(Math.abs(tail(kept) - tail(none)) < 0.03, `a lead lane is not dipped (got ${tail(kept)})`);
+  assert.ok(carved.every(Number.isFinite), 'finite');
+  console.log('ok: carve');
+}
+
 console.log('smoke test passed');

@@ -137,5 +137,6 @@ export function compile(source, { instrument, nodeTypes, registry, delayComp = f
   // The hidden channel stage after the output node: a level (0..1) the sequencer's Volume curve moves, applied smoothly to the whole machine.
   const amp = registry.allocate(`${instrument}.mix.amp`, 1, 0, 1);
   const sendSlot = nodes.find(x => x.id === masters[0])?.slots?.[byId.get(masters[0]).def.params.findIndex(p => p.name === 'master')];   // the out node's "master" switch
-  return { instrument, nodes, bufferCount: nextBuf, master: outBufs.get(masters[0]), voices, sleep: desc.sleep !== 'never', amp, send: sendSlot, wired: nodes.find(x => x.id === masters[0])?.connected?.[0] === true, latency: arrive.get(masters[0]) ?? 0 };
+  const leadSlot = nodes.find(x => x.id === masters[0])?.slots?.[byId.get(masters[0]).def.params.findIndex(p => p.name === 'lead')];   // the out node's "lead" switch (the carve stage never dips a lead lane)
+  return { instrument, nodes, bufferCount: nextBuf, master: outBufs.get(masters[0]), voices, sleep: desc.sleep !== 'never', amp, send: sendSlot, lead: leadSlot, wired: nodes.find(x => x.id === masters[0])?.connected?.[0] === true, latency: arrive.get(masters[0]) ?? 0 };
 }

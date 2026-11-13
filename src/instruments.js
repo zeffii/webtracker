@@ -991,6 +991,7 @@ export const masterInstrument = song => ({
     { node: 'm', param: 'tpb', label: 'TPB' },
     { node: 'm', param: 'volume', label: 'Vol' },
     ...limiterColumns(),
+    ...carveColumns(),
   ],
   commands: [],
 });
@@ -1000,6 +1001,13 @@ const limiterColumns = () => [
   { node: 'm', param: 'ceiling', label: 'Ceil', long: 'Ceiling' },
   { node: 'm', param: 'boost', label: 'Gain', long: 'Limiter gain' },
   { node: 'm', param: 'release', label: 'Rel', long: 'Limiter release', scale: 'log' },
+];
+// The carve stage's columns: on or off, how strongly, how deep (dB), and how narrow the bands.
+const carveColumns = () => [
+  { node: 'm', param: 'carve', label: 'Crv', long: 'Carve', bits: 4 },
+  { node: 'm', param: 'cvamt', label: 'CAmt', long: 'Carve amount' },
+  { node: 'm', param: 'cvdepth', label: 'CDep', long: 'Carve depth' },
+  { node: 'm', param: 'cvfocus', label: 'CFoc', long: 'Carve focus' },
 ];
 
 // The group machine: the Node Sequencer's groups as pattern columns, G1 to G8. A 1 in a cell starts that group of nodes (from its beginning), a 0
@@ -1063,4 +1071,5 @@ export function ensureMaster({ song, instruments }) {
   song.lanes.unshift(lane);
   ensureShaderColumn(instruments);
   if (!master.exposed.some(e => e.param === 'limit')) master.exposed.push(...limiterColumns());   // a project saved before the limiter gets its columns
+  if (!master.exposed.some(e => e.param === 'carve')) master.exposed.push(...carveColumns());
 }

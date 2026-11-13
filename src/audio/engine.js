@@ -167,7 +167,7 @@ export class Engine {
 
   setSong({ bpm, ticksPerBeat, length, swing = 0.5, loop, beatsPerBar }) {
     const slot = name => this.registry.slots.get(`master.m.${name}`);   // the master lane's parameters, once its instrument is loaded
-    const master = slot('bpm') !== undefined ? { bpm: slot('bpm'), swing: slot('swing'), tpb: slot('tpb'), volume: slot('volume'), limit: slot('limit'), ceiling: slot('ceiling'), boost: slot('boost'), release: slot('release') } : undefined;
+    const master = slot('bpm') !== undefined ? { bpm: slot('bpm'), swing: slot('swing'), tpb: slot('tpb'), volume: slot('volume'), limit: slot('limit'), ceiling: slot('ceiling'), boost: slot('boost'), release: slot('release'), carve: slot('carve'), cvamt: slot('cvamt'), cvdepth: slot('cvdepth'), cvfocus: slot('cvfocus') } : undefined;
     this.sent?.set('song', { type: 'song', song: { bpm, ticksPerBeat, length, swing, beatsPerBar, ...(master ? { master } : {}) } });
     this.node.port.postMessage({ type: 'song', song: { bpm, ticksPerBeat, length, swing, beatsPerBar, ...(master ? { master } : {}), ...(loop && !loop.off ? { loop: { start: loop.start, end: loop.end } } : {}) } });
   }

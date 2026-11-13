@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 760 · 2026-11-13
+
+- **Carve: a spectral mixer stage for mastering.** A Carve block at the left of the mixer (the dB scale and the strips moved right to make room). Where lanes overlap in a band of the spectrum, the loudest keeps its level and the quieter ones dip, so they stop masking each other. Amt is how strongly, Depth the most any lane is dipped (dB), Focus how narrow the bands are (an octave to a sixth). A **lead** button on each strip means that lane is never dipped, the others give way to it. It works in a 4096-sample window, so it adds about 85 ms of delay while on (the exported audio is trimmed for it) and costs nothing when off, which is the default. The signal path is lanes, carve, sum, master effects, master volume, limiter. The switch and the three settings are Master-lane columns (Crv, CAmt, CDep, CFoc), so they can be automated. The mixer dock starts a little taller to fit the extra button.
+
 ## 759 · 2026-11-13
 
 - **The graph's toolbar strip is centred on the graph's height**, and hides itself when there is no room: the graph is lower than the strip, or the strip would sit over the exposed-parameters dock or the parameter panel. It comes back when there is room again.

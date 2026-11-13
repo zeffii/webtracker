@@ -17,6 +17,10 @@ export default {
     { name: 'ceiling', min: -12, max: 0, def: -0.3 },              // dB: nothing leaves above this
     { name: 'boost', min: 0, max: 18, def: 0 },                    // dB into the limiter: louder, with the peaks held under the ceiling
     { name: 'release', min: 10, max: 1000, def: 120 },             // ms for the limiter to let go after a peak
+    { name: 'carve', min: 0, max: 1, def: 0, int: true },          // the mixer's carve stage: 1 on, 0 off (adds a window of delay while on)
+    { name: 'cvamt', min: 0, max: 1, def: 0.5 },                   // how strongly quieter lanes give way where another lane is louder
+    { name: 'cvdepth', min: 0, max: 15, def: 6 },                  // dB: the most any lane is dipped in a band
+    { name: 'cvfocus', min: 0, max: 1, def: 0.6 },                 // band width: 0 is an octave, 1 is a sixth of one
   ],
   create() { return { process() {} }; },
 };

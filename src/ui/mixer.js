@@ -16,6 +16,9 @@ const gainAtPos = p => (p < 0.01 ? 0 : 10 ** ((DB_MIN + p * (DB_MAX - DB_MIN)) /
 const posOfDb = db => (db - DB_MIN) / (DB_MAX - DB_MIN);
 const percent = p => `${p * 100}%`;
 
+// The carve block: its three settings and on switch are parameters of the master lane's tempo node ('m').
+const CARVE = { carve: 0, cvamt: 0.5, cvdepth: 6, cvfocus: 0.6 };
+const FOCUS_NAMES = f => { const bpo = 1 + 5 * f; return bpo < 1.25 ? '1 oct' : `1/${Math.round(bpo)} oct`; };
 const dbText = g => (g < 0.001 ? '-inf' : `${(20 * Math.log10(g)).toFixed(1)}`);
 
 export function createMixer({ el, lanes, instruments, setParam, hear, solo, silence, cursorLane = () => -1 }) {
@@ -26,6 +29,7 @@ export function createMixer({ el, lanes, instruments, setParam, hear, solo, sile
   // The Out node of an instrument: where the gain and the master switch live. Null for an instrument without one.
   const outOf = id => instruments()[id]?.graph?.nodes?.find(n => n.type === 'out') ?? null;
   const gainOf = node => node.params?.gain ?? GAIN_DEFAULT;
+  const leadOf = node => (node.params?.lead ?? 0) >= 0.5;
   const mixOf = node => (node.params?.master ?? 1) >= 0.5;
 
   function button(text, title, onClick) {
@@ -44,6 +48,32 @@ export function createMixer({ el, lanes, instruments, setParam, hear, solo, sile
       mark.className = `${className}${MAJOR_DB.includes(db) ? ' major' : ''}${db === 0 ? ' zero' : ''}`; mark.style.bottom = percent(posOfDb(db));
       return mark;
     });
+  }
+
+  // The carve block at the left of the mixer: a title with an on/off switch, and bars for amount, depth and focus.
+  function makeCarve() {
+    const m = instruments().master?.graph?.nodes?.find(n => n.id === 'm');
+    if (!m) return null;
+    const val = k => m.params?.[k] ?? CARVE[k];
+    const box = document.createElement('div'), head = document.createElement('div'), note = document.createElement('div');
+    box.className = 'mx-carve'; head.className = 'mx-carve-head'; head.textContent = 'CARVE';
+    const on = val('carve') >= 0.5;
+    box.classList.toggle('off', !on);
+    const sw = button(on ? 'on' : 'off', 'Spectral carve: where lanes overlap in a band, the loudest keeps its level and the quieter ones dip. For mastering: it adds about 85 ms of delay while on.', () => { setParam('master', 'm', 'carve', on ? 0 : 1); refresh(); });
+    sw.classList.toggle('on', on); head.append(sw); box.append(head);
+    const bar = (label, key, title, lo, hi, text) => {
+      const row = document.createElement('div'), name = document.createElement('i'), track = document.createElement('div'), t = document.createElement('span');
+      row.className = 'mx-carve-row'; row.title = title; name.textContent = label; track.className = 'mx-carve-bar'; track.append(t);
+      const norm = () => (val(key) - lo) / (hi - lo), draw = () => { track.style.setProperty('--p', `${norm() * 100}%`); t.textContent = text(val(key)); };
+      draw();
+      dragSlider(track, { axis: 'x', onChange: p => { setParam('master', 'm', key, Math.round((lo + p * (hi - lo)) * 100) / 100); draw(); }, onReset: () => { setParam('master', 'm', key, CARVE[key]); draw(); } });
+      row.append(name, track); box.append(row);
+    };
+    bar('Amt', 'cvamt', 'How strongly quieter lanes give way in a band where another lane is louder (0 does nothing). Double-click resets.', 0, 1, v => `${Math.round(v * 100)}%`);
+    bar('Depth', 'cvdepth', 'The most any lane is dipped in a band, in dB.', 0, 15, v => `${Math.round(v)} dB`);
+    bar('Focus', 'cvfocus', 'How narrow the bands are: from an octave to a sixth of one.', 0, 1, FOCUS_NAMES);
+    note.className = 'mx-carve-note'; note.textContent = on ? '+85 ms delay' : 'off: no delay'; box.append(note);
+    return box;
   }
 
   // The scale down the left of the mixer: the numbered values, level with the marks on every strip.
@@ -93,6 +123,7 @@ export function createMixer({ el, lanes, instruments, setParam, hear, solo, sile
 
   function refresh() {
     el.replaceChildren(); strips = [];
+    const carve = makeCarve(); if (carve) el.append(carve);
     el.append(makeScale());
     const all = lanes();
     all.forEach((lane, li) => {
@@ -110,7 +141,9 @@ export function createMixer({ el, lanes, instruments, setParam, hear, solo, sile
       const test = button('test', 'Test gain: on, the fader changes only what you hear, not the Out node\'s gain (a tick marks the real gain); off, the fader is the gain.', () => toggleTest(lane.instrument, node));
       const mix = button('mix', 'On: the instrument is in the mix. Off: only sidechain nodes hear it (the Out node\'s master switch).', () => { setParam(lane.instrument, node.id, 'master', mixOf(node) ? 0 : 1); refresh(); });
       mute.classList.toggle('on', !!lane.silenced); solob.classList.toggle('on', !!lane.solo); mix.classList.toggle('on', mixOf(node)); test.classList.toggle('on', testing.has(lane.instrument));
-      const side = document.createElement('div'); side.className = 'mx-side'; side.append(readout, mute, solob, test, mix);
+      const lead = button('lead', 'Lead: the carve stage never dips this lane, the other lanes give way to it.', () => { setParam(lane.instrument, node.id, 'lead', leadOf(node) ? 0 : 1); refresh(); });
+      lead.classList.toggle('lead', leadOf(node)); lead.classList.toggle('on', leadOf(node));
+      const side = document.createElement('div'); side.className = 'mx-side'; side.append(readout, mute, solob, test, lead, mix);
       const row = document.createElement('div'); row.className = 'mx-row'; row.append(...tickMarks('hr', 'grid'), fader, side);
       box.append(name, row); el.append(box); strips.push(strip);
       strip.show();

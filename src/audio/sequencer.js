@@ -55,6 +55,7 @@ export class Sequencer {
   setSong(song) {
     const old = this.song;
     this.song = song;
+    this.runtime.carveSlots = song.master;
     const changed = !old.master || old.bpm !== song.bpm || old.ticksPerBeat !== song.ticksPerBeat || (old.swing ?? 0.5) !== (song.swing ?? 0.5);
     if (song.master && changed) this.resetTempo();
     if (this.runtime.clock) this.runtime.clock.tickSamples = (this.sampleRate * 60) / (song.bpm * song.ticksPerBeat);
@@ -415,7 +416,7 @@ export class Sequencer {
     // how far through the sounding tick the song is, for whatever on the page wants a position finer than a tick (MIDI recording)
     this.transport[2] = this.playing && this.tickLen > 0 ? Math.max(0, Math.min(65535, Math.floor((1 - this.countdown / this.tickLen) * 65536))) : 0;
     // With delay compensation on, what is heard is the slowest chain late: the position the page shows is where the sound is, not where the song is
-    const lag = this.playing ? this.runtime.alignment?.() ?? 0 : 0;
+    const lag = this.playing ? (this.runtime.alignment?.() ?? 0) + (this.runtime.carveLatency?.() ?? 0) : 0;
     if (lag > 0) {
       const { bpm, tpb } = this.tempo(), heard = Math.max(0, this.tick + this.transport[2] / 65536 - lag / (this.sampleRate * 60 / (bpm * tpb)));
       this.transport[0] = Math.floor(heard);

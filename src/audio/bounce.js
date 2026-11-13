@@ -58,7 +58,7 @@ export async function bounceRange(state, { from, to, lane = null, quiet = -72, m
   if (!seq.song?.length) throw new Error('There is no song to render.');
   seq.from = from;
   seq.to = Math.min(to, seq.song.length);
-  const lag = rt.alignment();   // the mix comes out this many samples late with delay compensation on
+  const lag = rt.alignment() + rt.carveLatency();   // the mix comes out this many samples late with delay compensation on
   const threshold = 10 ** (quiet / 20), calm = Math.round(0.15 * sampleRate), tailCap = Math.round(maxTail * sampleRate);
   const chunks = [];
   let frames = 0, kept = -1, quietRun = 0, peak = 0, slice = performance.now();

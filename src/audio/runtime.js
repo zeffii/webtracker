@@ -23,6 +23,7 @@ export class LagLine {
   }
 }
 
+import { Carve, CARVE_N } from './carve.js';
 const KILL_MS = 120;   // how long a kill (^^^) takes to fade the instrument out before the machine is reset
 
 export class GraphRuntime {
@@ -138,7 +139,7 @@ export class GraphRuntime {
       return node;
     };
     const buffers0 = fresh(), resolve0 = resolver(buffers0);
-    const inst = { nodes: [], sets: [], byId: new Map(), left: null, right: null, amp: compiled.amp, send: compiled.send, ampPrev: 1, latency: compiled.latency ?? 0, lag: null };
+    const inst = { nodes: [], sets: [], byId: new Map(), left: null, right: null, amp: compiled.amp, send: compiled.send, lead: compiled.lead, ampPrev: 1, latency: compiled.latency ?? 0, lag: null };
     const register = (node, at) => { const list = inst.byId.get(node.id) ?? []; list[at] = node; inst.byId.set(node.id, list); };
     this.instruments.set(compiled.instrument, inst);
     inst.sleep = compiled.instrument === 'master' ? null : sleepState(compiled, NODE_TYPES);   // the master has no voices to wake it: it always runs   // null: this machine never sleeps
@@ -453,6 +454,16 @@ export class GraphRuntime {
     return this.maxDelay;
   }
 
+  // The carve stage's settings from the master lane's slots (set by the sequencer), or null when it is off.
+  carveSettings() {
+    const c = this.carveSlots;
+    if (!c || c.carve === undefined || this.params[c.carve] < 0.5) return null;
+    return { amount: this.params[c.cvamt] ?? 0.5, depth: this.params[c.cvdepth] ?? 6, focus: this.params[c.cvfocus] ?? 0.6 };
+  }
+
+  // Samples the whole mix is late by because of the carve stage (a window), 0 when it is off.
+  carveLatency() { return this.carveSettings() ? CARVE_N : 0; }
+
   process(left, right, n) {
     left.fill(0, 0, n);
     right.fill(0, 0, n);
@@ -460,7 +471,13 @@ export class GraphRuntime {
     this.blockNo = (this.blockNo ?? 0) + 1;
     this.blockSize = n;
     this.bus = [left, right];   // what the master graph's Mix node hears: everything added so far
+    const cv = this.carveSettings();
+    if (cv) { this.carve ??= new Carve(this.sampleRate, this.maxBlock); if (!this.carving) this.carve.reset(); }
+    this.carving = !!cv;
+    let flushed = !cv;
+    const flush = () => { flushed = true; this.carve.pull(left, right, n, cv.amount, cv.depth, cv.focus); };   // the lanes, carved and added, are the bus
     for (const id of this.runOrder()) {
+      if (!flushed && id === 'master') flush();
       const inst = this.instruments.get(id);
       if (!inst) continue;
       if (this.cut.has(id) || this.killed.has(id)) { this.onLane?.(id, inst.left, inst.right, n); continue; }   // switched off in the Stream Manager: it runs nothing, and its buffers hold silence
@@ -522,7 +539,16 @@ export class GraphRuntime {
       }
       if (id === 'master') continue;   // nothing wired into its Out: the bus goes on as it is
       const gap = this.alignment() - (inst.latency ?? 0);   // a quicker instrument waits for the slowest
-      if (gap > 0) {
+      if (cv) {   // carve: the lane goes to the carve stage instead of the sum
+        let sl = inst.left, sr = inst.right;
+        if (gap > 0) {
+          if (inst.lag?.gap !== gap) inst.lag = new LagLine(gap);
+          const tl = (this.carveTemp ??= [new Float32Array(this.maxBlock), new Float32Array(this.maxBlock)])[0], tr = this.carveTemp[1];
+          tl.fill(0, 0, n); tr.fill(0, 0, n);
+          inst.lag.addInto(tl, tr, inst.left, inst.right, n); sl = tl; sr = tr;
+        } else inst.lag = null;
+        this.carve.push(id, sl, sr, n, inst.lead !== undefined && this.params[inst.lead] >= 0.5);
+      } else if (gap > 0) {
         if (inst.lag?.gap !== gap) inst.lag = new LagLine(gap);
         inst.lag.addInto(left, right, inst.left, inst.right, n);
       } else {
@@ -533,6 +559,7 @@ export class GraphRuntime {
         }
       }
     }
+    if (!flushed) flush();   // no master lane to wait for
   }
 
   // Keeps the last SCOPE_N samples of a node's first output in a ring (the voices' copies added together when it is a
