@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 761 · 2026-11-13
+
+- **Open a song from a gist, by id.** `?gist=ID` in the address opens the first .wax file of a public gist (add `&file=NAME` to pick another); `?src=URL` opens a link to any .wax file that allows other sites to read it (raw.githubusercontent.com and the like). File, **Open from link...** takes the same things typed or pasted: a bare gist id, a gist address, or a file link. No sign-in is needed for public gists. A gist that is not a Wax project, a missing gist and a rate-limited GitHub each give a short message, and the song you had stays open.
+
 ## 760 · 2026-11-13
 
 - **Carve: a spectral mixer stage for mastering.** A Carve block at the left of the mixer (the dB scale and the strips moved right to make room). Where lanes overlap in a band of the spectrum, the loudest keeps its level and the quieter ones dip, so they stop masking each other. Amt is how strongly, Depth the most any lane is dipped (dB), Focus how narrow the bands are (an octave to a sixth). A **lead** button on each strip means that lane is never dipped, the others give way to it. It works in a 4096-sample window, so it adds about 85 ms of delay while on (the exported audio is trimmed for it) and costs nothing when off, which is the default. The signal path is lanes, carve, sum, master effects, master volume, limiter. The switch and the three settings are Master-lane columns (Crv, CAmt, CDep, CFoc), so they can be automated. The mixer dock starts a little taller to fit the extra button.

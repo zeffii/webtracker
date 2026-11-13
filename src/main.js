@@ -73,6 +73,7 @@ import { createPianoRollOverlay } from './project/pianorollview.js';
 import { noteToken } from './seq/cells.js';
 import { createMidiWriter } from './seq/midiwrite.js';
 import { createMarkerRegionView } from './project/markerregion.js';
+import { parseSource, fetchProjectText } from './project/remote.js';
 import { FILE_EXT, INSTRUMENT_EXT, parseInstrument, parseProject, serializeInstrument, serializeProject } from './project/file.js';
 import { createEditor } from './seq/editor.js';
 import { toggleLoop, loopRange, loopActive } from './seq/loop.js';
@@ -2717,6 +2718,16 @@ async function saveProject() {
 }
 $('save').addEventListener('click', () => { saveProject(); });
 $('load').addEventListener('click', () => $('file').click());
+// Open from link: a gist id or address, or a link to a .wax file
+$('load-link').addEventListener('click', async () => {
+  const input = prompt('A gist id or address, or a link to a .wax file:');
+  if (!input?.trim()) return;
+  if (dirty && !confirm('Your current project has changes that are not saved. Open the link anyway?')) return;
+  try {
+    openProject(parseProject(await fetchProjectText(parseSource(input))));
+    $('status').textContent = 'Opened the project from the link.';
+  } catch (err) { $('status').textContent = `Could not open the link: ${err.message}`; }
+});
 $('file').addEventListener('change', async e => {
   const [file] = e.target.files;
   e.target.value = '';
@@ -3057,6 +3068,13 @@ $('start').addEventListener('click', async () => {
         if (text) { openProject(parseProject(text)); reopened = true; }
       }
     } catch (err) { console.warn(err); }
+    const query = new URLSearchParams(location.search);
+    if (!reopened && (query.has('gist') || query.has('src'))) {   // ?gist=ID or ?src=URL: a project from a link
+      try {
+        openProject(parseProject(await fetchProjectText(parseSource(query.get('gist') ?? query.get('src'), query.get('file') ?? ''))));
+        reopened = true;
+      } catch (err) { console.warn(err); projStatus(`Could not open the link: ${err.message}`); }
+    }
     if (reopened) { /* the song is open */ }
     else if (wanted === 'arp') openProject(createArpDemoProject());
     else {

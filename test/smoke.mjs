@@ -11644,4 +11644,24 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   console.log('ok: carve');
 }
 
+{
+  // ---- open from a link: gist ids, gist addresses and plain links ----
+  const { parseSource, fetchProjectText } = await import('../src/project/remote.js');
+  const id = 'aa11bb22cc33dd44ee55ff6677889900';
+  assert.deepEqual(parseSource(id), { gist: id, file: '' }, 'a bare gist id');
+  assert.deepEqual(parseSource(` https://gist.github.com/zeffii/${id} `, 'song.wax'), { gist: id, file: 'song.wax' }, 'a gist address, with the file asked for');
+  assert.deepEqual(parseSource('https://raw.githubusercontent.com/a/b/main/x.wax'), { url: 'https://raw.githubusercontent.com/a/b/main/x.wax' }, 'a plain link');
+  assert.throws(() => parseSource('http://example.com/x.wax'), /https/, 'only https');
+  assert.throws(() => parseSource('hello'), /not a gist id/, 'nonsense');
+  assert.throws(() => parseSource('https://gist.github.com/zeffii/'), /No gist id/, 'a gist address without an id');
+  const realFetch = globalThis.fetch, files = { 'notes.txt': { filename: 'notes.txt', content: 'no' }, 'a.wax': { filename: 'a.wax', content: 'WAX-A' }, 'big.wax': { filename: 'big.wax', truncated: true, raw_url: 'https://gist.githubusercontent.com/raw/big.wax' } };
+  globalThis.fetch = async url => url.startsWith('https://api.github.com/gists/') ? (url.endsWith('/missing') ? { ok: false, status: 404 } : { ok: true, json: async () => ({ files }) }) : { ok: true, headers: new Map(), text: async () => `RAW ${url}` };
+  try {
+    assert.equal(await fetchProjectText({ gist: id }), 'WAX-A', 'the first .wax file of the gist');
+    assert.equal(await fetchProjectText({ gist: id, file: 'big.wax' }), 'RAW https://gist.githubusercontent.com/raw/big.wax', 'a truncated file is fetched whole');
+    await assert.rejects(fetchProjectText({ gist: 'missing' }), /404/, 'a missing gist says so');
+  } finally { globalThis.fetch = realFetch; }
+  console.log('ok: open from link');
+}
+
 console.log('smoke test passed');

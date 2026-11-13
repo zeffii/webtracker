@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['761', ['Songs open from a gist by id: ?gist=ID in the address, or File, Open from link with an id, a gist address or a link to a .wax file.']],
   ['760', ['Carve in the mixer: a spectral stage for mastering where the loudest lane in a band keeps its level and quieter overlapping lanes dip (Amt, Depth, Focus, and a lead button per lane). Off by default; about 85 ms of delay while on.']],
   ['759', ['The graph toolbar strip is centred on the graph\'s height and hides itself when there is no room for it.']],
   ['758', ['The instrument graph has a toolbar strip on its left edge: grid, snap, wire looks, compact nodes, pull out and hiding command parameters, with hover text.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['754', ['Pogue draws the onset detector over its voices (only while onset is above 0), with the sensitivity line you can drag and a line at each trigger.']],
   ['753', ['Pogue can move its voices on a hit, a step in pitch or a step pattern (onset, pattern, moves, lookahead), with a Triggers picture in its panel.']],
   ['752', ['The pattern window has its own slate and orange colours (dark or light with the page theme), with green and rose marking what changed in B.']],
-  ['751', ['The Master graph starts with a bus-in node, unconnected, ready to wire through effects into out; the tempo node is hidden (its columns are still there).']],
                     ];
