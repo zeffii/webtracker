@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 756 · 2026-11-13
+
+- **The parameter sliders have no hairline under them.** Only the filled part and the position mark show the range.
+
 ## 755 · 2026-11-13
 
 - **Pogue: the Pattern picture is the last one in the panel**, after Feedback, instead of sitting next to the voices.
