@@ -21,7 +21,7 @@
   --ok: #4f9a5c;
   --rec: #d8323f; --warn: #d98a1c; --info: #4a7fd0;
   --line-w: 1px; --line-w-strong: 2px;
-  --slider-line: color-mix(in srgb, var(--fg) 40%, transparent); --slider-fill: color-mix(in srgb, var(--fg) 16%, transparent); --slider-mark-w: 3px;   /* every slider: a hairline, a faint fill up to the value, one thin accent bar at the value */
+  --slider-line: color-mix(in srgb, var(--fg) 40%, transparent); --slider-fill: color-mix(in srgb, var(--fg) 16%, transparent); --slider-rest: color-mix(in srgb, var(--fg) 7%, transparent); --slider-mark-w: 3px;   /* every slider: a hairline, a faint fill up to the value, one thin accent bar at the value */
   --font-s: 11px; --font-m: 13px; --font-l: 15px;
 }
 html[data-theme="dark"],

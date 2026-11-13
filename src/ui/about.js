@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['757', ['Parameter sliders show their full extent again, with a faint background behind the empty part.']],
   ['756', ['The parameter sliders lose the thin line under them: just the fill and the mark.']],
   ['755', ['The Pogue panel puts its Pattern picture last, after Feedback.']],
   ['754', ['Pogue draws the onset detector over its voices (only while onset is above 0), with the sensitivity line you can drag and a line at each trigger.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['750', ['The master bus node is now called bus-in; projects saved with it open as before.']],
   ['749', ['Groove starts with every part at zero: a new one passes the sound through until you turn a part up.']],
   ['748', ['Effects on the master, before the limiter: the new master effects row in Machines opens the Master graph; a Mix node brings in the whole song, and what you wire from it into Out replaces the mix before volume and limiter.']],
-  ['747', ['New effect Groove, what a record does to a sound: warp, wear, tracing, dust, scratches (that can come round again), pops, surface noise and rumble, each with its own level and skipped at zero, and an oversampled simulation mode.']],
                     ];

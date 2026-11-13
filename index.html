@@ -1380,7 +1380,7 @@
     .pv-pin.pv-cc-toggle { width: auto; padding: 0 3px; font-size: 10px; color: var(--info); border-color: var(--info); }
     .pv-pin.pv-cc-toggle.on { background: color-mix(in srgb, var(--info) 25%, transparent); }
     .pv-row.ex .pv-name::before { content: ''; display: inline-block; width: 4px; height: 4px; border-radius: 2px; background: var(--rec); margin: 0 2px 1px -4px; }
-    .pv-bar { position: relative; height: 13px; margin: 0 4px 0 2px; background: linear-gradient(to right, var(--slider-fill) var(--p, 0%), transparent var(--p, 0%)); cursor: ew-resize; touch-action: none; }
+    .pv-bar { position: relative; height: 13px; margin: 0 4px 0 2px; background: linear-gradient(to right, var(--slider-fill) var(--p, 0%), var(--slider-rest) var(--p, 0%)); cursor: ew-resize; touch-action: none; }
     .pv-bar::after { content: ''; position: absolute; top: 0; bottom: 0; left: var(--p, 0%); width: var(--slider-mark-w); margin-left: calc(var(--slider-mark-w) / -2); background: var(--accent); }
     .pv-val { position: absolute; left: 4px; right: 2px; top: -2px; line-height: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: none; }
     .pv-end { position: absolute; right: 4px; top: -2px; line-height: 14px; display: flex; gap: .8ch; pointer-events: none; }

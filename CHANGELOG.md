@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 757 · 2026-11-13
+
+- **The empty part of a parameter slider has a faint background** (7% of the text colour, the theme token `--slider-rest`), so you can see how far a slider goes when it is not at full.
+
 ## 756 · 2026-11-13
 
 - **The parameter sliders have no hairline under them.** Only the filled part and the position mark show the range.
