@@ -69,6 +69,11 @@ export const PAGES = {
     best: ['Best on headphones.', 'Drag the dot round the head: round sets the angle, in and out the distance. At 90 degrees the time difference is about 0.66 ms.', 'Sweep angle from a pattern for a sound that moves round the listener.'],
     limits: ['On loudspeakers the effect is much weaker.', 'It models a head, not an ear shape, so up and down are not changed.'],
   },
+  lone: {
+    summary: 'A lead synth in one node: saw, pulse with pulse-width modulation, a sub oscillator and noise, with the Braids wavetable beside them, then hard sync, a wave folder and a ladder low-pass, with envelopes for the filter, the amplitude and the wavetable position, and an LFO that fades in.',
+    best: ['One voice (the machine\'s default) is a mono lead: set glide or slide and legato for runs that stay connected.', 'Put the wavetable level up and the saw down, then give position an envelope amount for a note that opens up as it plays.', 'Raise Voices on the machine for chords; each voice has its own copy of everything.', 'Write position, pulse width, sync ratio and fold from the pattern to move them note by note.'],
+    limits: ['Glide and legato belong to one voice: with several voices a new note takes a free voice, so there is little to glide from.', 'Hard sync and the folder are not band-limited, and bright settings alias a little.'],
+  },
   khufu: {
     summary: 'The voice of a string machine: three sawtooth registers an octave apart, cut from one phase so they never drift, through a low cut and a gentle low-pass, with a drawn amplitude envelope. On its own it is plain; with an ensemble after the voices it is a string section.',
     best: ['Play chords, wide ones: the instrument is made for held harmony, not for lines.', 'high up and low down for the classic thin, glassy strings; low up for cellos under a pad.', 'Draw a slow rise and a long release for strings, or a sharp start and no sustain for a plucked, harpsichord-like tone.', 'Keep it in front of voices and put the ensemble after them, so one ensemble works on the whole chord. A phaser after that is the other half of the classic sound.', 'Raise lowcut when there is a bass in the song.'],

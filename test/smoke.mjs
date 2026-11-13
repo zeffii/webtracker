@@ -11914,4 +11914,56 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   console.log('ok: scope overlay settings');
 }
 
+// Lone, the one-node lead synth.
+{
+  const { lfoAt, fold } = await import('../src/audio/nodes/lone.js');
+  const sr = 48000;
+  const setup = (values = {}) => { const def = NODE_TYPES.lone; return [def, Float32Array.from(def.params.map(p => values[p.name] ?? p.def)), Int32Array.from(def.params.map((_, i) => i))]; };
+  const run = (values, { secs = 0.5, notes = [[0, 57]], off = null } = {}) => {
+    const [def, params, slots] = setup(values), node = def.create({ sampleRate: sr, connected: [false, false, false] });
+    const N = Math.floor(sr * secs / 128) * 128, L = new Float32Array(N), l = new Float32Array(128), r = new Float32Array(128);
+    for (let at = 0; at < N; at += 128) {
+      for (const [when, note, extra] of notes) if (when * sr >= at && when * sr < at + 128) node.note({ type: 'noteOn', note, vel: 1, ...extra });
+      if (off !== null && off * sr >= at && off * sr < at + 128) node.note({ type: 'noteOff' });
+      node.process([null, null, null], [[l, r]], 128, params, slots); L.set(l, at);
+    }
+    return L;
+  };
+  const rms = (x, a = 0, b = x.length) => { let s = 0; for (let i = a; i < b; i++) s += x[i] * x[i]; return Math.sqrt(s / (b - a)); };
+  const diff = (a, b) => { let s = 0; for (let i = 0; i < a.length; i++) s += Math.abs(a[i] - b[i]); return s / a.length; };
+  assert.equal(lfoAt(1, 0.1, 0), 1); assert.equal(lfoAt(2, 0, 0), 1); assert.equal(lfoAt(3, 0.2, 0.7), 0.7); assert.ok(Math.abs(lfoAt(0, 0.25, 0) - 1) < 1e-9);
+  assert.equal(fold(0.3, 0), 0.3); assert.ok(Math.abs(fold(0.9, 1)) < 1, 'the folder stays inside the range');
+
+  const base = run({});
+  assert.ok(base.every(Number.isFinite) && rms(base, 4800) > 0.01 && Math.max(...base.map(Math.abs)) < 1.5, `lone sounds, rms ${rms(base, 4800)}`);
+  assert.ok(diff(base, run({ wt: 1, saw: 0 })) > 0.01, 'the wavetable replaces the saw');
+  const w1 = run({ wt: 1, saw: 0, position: 0.1 }), w2 = run({ wt: 1, saw: 0, position: 0.8 });
+  assert.ok(diff(w1, w2) > 0.01 && rms(w1, 4800) > 0.01, 'position changes the wave');
+  assert.ok(diff(run({ wt: 1, saw: 0, pamt: 0.8 }), w1) > 0.005, 'the position envelope moves it');
+  assert.ok(diff(base, run({ pulse: 1, saw: 0, pw: 0.2 })) > 0.01 && diff(run({ pulse: 1, saw: 0, pw: 0.2 }), run({ pulse: 1, saw: 0, pw: 0.5 })) > 0.01, 'pulse width changes the pulse');
+  assert.ok(diff(run({ pulse: 1, saw: 0, pwlfo: 0.4, lfoRate: 6 }), run({ pulse: 1, saw: 0 })) > 0.005, 'the LFO moves the width');
+  assert.ok(diff(base, run({ sync: 1, syncratio: 3.3 })) > 0.01, 'sync changes the wave');
+  assert.ok(diff(base, run({ fold: 0.8 })) > 0.01, 'the folder changes the wave');
+  assert.ok(rms(run({ sub: 1, saw: 0 }), 4800) > 0.01 && rms(run({ noise: 1, saw: 0, sub: 0 }), 4800) > 0.01, 'sub and noise sound on their own');
+  assert.ok(diff(run({ vib: 100, lfoRate: 6, lfoDelay: 0 }), base) > 0.005, 'vibrato moves the pitch');
+  const lf = { fmod: 3, lfoRate: 6, res: 0.1 };
+  assert.ok(diff(run({ ...lf, lfoDelay: 0 }), run({ ...lf, lfoDelay: 4000 })) > 0.003 && diff(run({ ...lf, lfoDelay: 4000 }), run({ ...lf, fmod: 0 })) < diff(run({ ...lf, lfoDelay: 0 }), run({ ...lf, fmod: 0 })), 'the LFO delay fades the LFO in');
+
+  // legato: the second note does not restart the amplitude attack; without it, it does
+  const notes = [[0, 57], [0.25, 64]], atkLong = { atk: 1, dec: 40, sus: 0.3, fatk: 1, fdec: 40, fsus: 0 };
+  const tied = run({ ...atkLong, legato: 1 }, { secs: 0.5, notes }), retrig = run({ ...atkLong, legato: 0 }, { secs: 0.5, notes });
+  assert.ok(rms(retrig, 12100, 12700) > 1.3 * rms(tied, 12100, 12700), 'legato keeps the envelope at its sustain; otherwise the new note attacks again');
+  // glide: the pitch moves towards the new note instead of jumping
+  const jump = run({}, { secs: 0.4, notes: [[0, 57], [0.2, 69]] }), slid = run({ glide: 300 }, { secs: 0.4, notes: [[0, 57], [0.2, 69]] });
+  assert.ok(diff(jump, slid) > 0.01, 'glide changes the approach to the new note');
+  // after its release the node is silent and the machine compiles, mono and poly
+  const gone = run({ rel: 20 }, { secs: 0.6, off: 0.1 });
+  assert.ok(rms(gone, 24000) < 1e-4, 'it ends after its release');
+  const made = synthKinds.lone.make().graph;
+  assert.deepEqual(made.nodes.map(n => n.type), ['lone', 'voices', 'out']);
+  assert.equal(made.voices, 1);
+  compile(made, { instrument: 'lone', nodeTypes: NODE_TYPES, registry: new ParamRegistry() });
+  console.log('ok: lone lead synth');
+}
+
 console.log('smoke test passed');

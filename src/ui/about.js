@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['769', ['Lone, a lead synth in one node: saw, pulse with PWM, sub, noise and the Braids wavetable (position by hand, envelope, LFO or pattern), hard sync, a wave folder, ladder filter, LFO with delay, glide, slide and legato. One voice is a mono lead; raise Voices for polyphony.']],
   ['768', ['The pattern view\'s tick column now starts to the right of the scope strip, so the strip no longer covers the row numbers.']],
   ['767', ['The sampler playhead moves with the keys: after a click on the waveform, Left and Right step it one frame (Shift: one pixel), Home and End jump to the start and end.']],
   ['766', ['A scope overlay for the pattern view: one big oscilloscope of the master output (trace, phosphor or XY), with an icon strip at the left edge showing its switch and sliders. Ctrl+Alt+L. Off by default.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['762', ['Compass, a vector synth with wave sequencing: four lanes of stepped waves at the points of a diamond, a drawn path that moves the mix, drawn amplitude and filter envelopes. Its blocks are nodes too: waveseq, vecmix and vecpath.']],
   ['761', ['Songs open from a gist by id: ?gist=ID in the address, or File, Open from link with an id, a gist address or a link to a .wax file.']],
   ['760', ['Carve in the mixer: a spectral stage for mastering where the loudest lane in a band keeps its level and quieter overlapping lanes dip (Amt, Depth, Focus, and a lead button per lane). Off by default; about 85 ms of delay while on.']],
-  ['759', ['The graph toolbar strip is centred on the graph\'s height and hides itself when there is no room for it.']],
                     ];

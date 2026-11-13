@@ -77,6 +77,11 @@ export const GLYPHS = {
     line(ctx, [[cx + w * 0.08, cy - r], [cx + w * 0.08, cy - r * 1.45]]);
     line(ctx, [[cx - w * 0.46, cy - h * 0.3], [cx - w * 0.12, cy - h * 0.04]]);
   },
+  lone: (ctx, cx, cy, w, h) => {   // a saw over a square: the lead and its sub
+    const x = f => cx - w / 2 + f * w;
+    line(ctx, [[x(0), cy - h * 0.05], [x(0.5), cy - h * 0.38], [x(0.5), cy - h * 0.05], [x(1), cy - h * 0.38]]);
+    line(ctx, [[x(0), cy + h * 0.38], [x(0), cy + h * 0.12], [x(0.5), cy + h * 0.12], [x(0.5), cy + h * 0.38], [x(1), cy + h * 0.38]]);
+  },
   khufu: (ctx, cx, cy, w, h) => {   // three saws an octave apart, stacked
     const x = f => cx - w / 2 + f * w;
     [[1, -0.3], [2, 0], [4, 0.3]].forEach(([teeth, at]) => {

@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 769 · 2026-11-13
+
+- **Lone, a lead synth in one node, mono or poly.** Saw, pulse with pulse-width modulation (by hand, LFO or envelope), a sub oscillator, noise and the Braids wavetable beside them, with its position set by hand, swept by its own envelope, moved by the LFO or written from a pattern column. Hard sync, a wave folder, the ladder low-pass with key tracking, an LFO with a fade-in delay, glide, slide and legato. The Lone machine starts with one voice (a mono lead); raise Voices for chords. The node is also in the Synths menu to build your own.
+
 ## 768 · 2026-11-13
 
 - **The pattern view's tick column starts to the right of the scope strip.** The strip no longer covers the row numbers: the sequence view has its own gutter at the left for it.
