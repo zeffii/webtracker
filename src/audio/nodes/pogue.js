@@ -21,12 +21,29 @@
 //   wide   - the right channel has its own set of voices.
 //   spread - each voice reads both channels and is panned somewhere across the stereo field.
 //
+// What moves the voices (the triggers):
+//   Timer     by default the random targets are picked anew at random moments (see above).
+//   Onset     `onset` above 0 turns the timer off: a new random target is picked when the sound has a transient (a quick rise
+//             in level) or an abrupt change of pitch. The value is the sensitivity: low catches only hard hits, high catches
+//             soft ones and small pitch steps too.
+//   Pattern   `pattern` above 0 is a row of steps (patlen of them, the first is the highest bit, so it reads as binary from the
+//             left), stepped at `patrate` (in song ticks) on the song's grid: a 1 fires, a 0 does nothing. It also turns the timer off.
+//   Onset and pattern can run together: either one fires.
+//   `moves` is what a fire does: pick new random targets, jump each voice's sine to a random phase, or both. (`change` is still
+//   how far the voices go towards their targets: at 0 only a phase jump can be heard.)
+//   `lookahead` aligned: the sound is held back by `LOOK_MS` so the move lands on the transient, not just after it. The node
+//   reports that latency, and the machine's delay compensation holds the other machines back by it. Live: no delay; the move
+//   follows the hit by a fraction of a ms and a pitch step by a few periods.
+//
 // Interpolation is how a delay between two samples is read: none (the nearest sample, gritty), linear, or cubic.
 // Gains are in dB: `pregain` before the effect (the dry sound too), `postgain` on the output.
 
 const PREGAIN = 0, VOICES = 1, RATE = 2, RESOLUTION = 3, CHANGE = 4, MINDELAY = 5, MAXDELAY = 6, STEREO = 7, INTERP = 8;
 const FEEDBACK = 9, XFEEDBACK = 10, SATURATION = 11, DEGRADE = 12, DITHER = 13, ERRORMIX = 14;
+const ONSET = 22, PATTERN = 23, PATLEN = 24, PATRATE = 25, MOVES = 26, LOOKAHEAD = 27;
 const LPCUT = 15, LPQ = 16, HPCUT = 17, HPQ = 18, INERTIA = 19, POSTGAIN = 20, MIX = 21;
+
+import { RATES } from './arp.js';
 
 // A state-variable filter (topology-preserving transform). The state is [ic1eq, ic2eq].
 const svfCoefs = (cutoff, q, sampleRate) => {
@@ -45,11 +62,15 @@ const svf = (state, c, x, high) => {
 const MAX_VOICES = 8;
 const REPORT_EVERY = 1600, WATCH_SECONDS = 3;   // the panel's picture: about every 35 ms, while it keeps asking
 const MAX_MS = 60;
+const LOOK_MS = 10;   // lookahead: how far the sound is held back, ms
+const HOLDOFF_MS = 30;   // after a trigger the detector is deaf for this long: a hit fires once
+const MOVE_TARGET = 0, MOVE_PHASE = 1;   // (2 is both)
 const MONO = 0, WIDE = 1, SPREAD = 2;
 const NEAREST = 0, LINEAR = 1;
 
 export default {
   type: 'pogue',
+  latency: (p, sampleRate = 48000) => (Math.round(p.lookahead) === 1 && p.onset > 0 ? Math.round(LOOK_MS * sampleRate / 1000) : 0),
   inputs: ['in'],
   outputs: ['out'],
   category: 'Effects',
@@ -80,8 +101,14 @@ export default {
     { name: 'inertia', min: 0, max: 500, def: 20 },             // ms
     { name: 'postgain', min: -24, max: 24, def: 0 },            // dB
     { name: 'mix', min: 0, max: 1, def: 0.5 },
+    { name: 'onset', min: 0, max: 1, def: 0 },                   // 0 off (random timer); above: sensitivity of the transient and pitch-jump trigger
+    { name: 'pattern', min: 0, max: 65535, def: 0, int: true }, // the step pattern as a number (0 off); first step is the highest bit of patlen
+    { name: 'patlen', min: 1, max: 16, def: 8, int: true },
+    { name: 'patrate', min: 0, max: RATES.length - 1, def: 4, int: true },   // ticks per step, from the arp's list
+    { name: 'moves', min: 0, max: 2, def: MOVE_TARGET, int: true },        // a trigger: new targets, phase jump, both
+    { name: 'lookahead', min: 0, max: 1, def: 0, int: true },              // live, aligned
   ],
-  create({ sampleRate, emit }) {
+  create({ sampleRate, emit, clock }) {
     const size = Math.ceil(sampleRate * MAX_MS / 1000) + 4;
     const bufL = new Float32Array(size), bufR = new Float32Array(size);
     let write = 0;
@@ -128,21 +155,95 @@ export default {
       return rounded + (error - rounded) * errormix;   // errormix 1: only the error
     };
 
-    const moveVoices = (count, rate, change, lo, hi, stepSeconds) => {
+    // Where a voice wants to be now: its sine, drawn towards its target by `change`.
+    const aim = (voice, change, lo, hi) => {
+      const sine = 0.5 + 0.5 * Math.sin(2 * Math.PI * voice.phase);
+      const where = sine + (voice.target - sine) * change;
+      voice.want = (lo + (hi - lo) * where) * sampleRate / 1000;
+      if (voice.delay < 0) voice.delay = voice.want;
+    };
+    // The movement update: the sines advance, and (timer mode) a target is sometimes picked anew.
+    const moveVoices = (count, rate, change, lo, hi, stepSeconds, timer) => {
       for (const set of voices) {
         for (let v = 0; v < count; v++) {
           const voice = set[v];
           const hz = rate * voice.speed;
           voice.phase += hz * stepSeconds;
           if (voice.phase >= 1) voice.phase -= Math.floor(voice.phase);
-          if (random() < change * hz * stepSeconds * 2) voice.target = random();   // about twice a cycle at change 1
-          const sine = 0.5 + 0.5 * Math.sin(2 * Math.PI * voice.phase);
-          const where = sine + (voice.target - sine) * change;
-          voice.want = (lo + (hi - lo) * where) * sampleRate / 1000;
-          if (voice.delay < 0) voice.delay = voice.want;
+          if (timer && random() < change * hz * stepSeconds * 2) voice.target = random();   // about twice a cycle at change 1
+          aim(voice, change, lo, hi);
         }
       }
     };
+    // A trigger: new targets and/or new phases, and the voices are aimed at once (not at the next movement update).
+    const fire = (count, moves, change, lo, hi) => {
+      for (const set of voices) {
+        for (let v = 0; v < count; v++) {
+          const voice = set[v];
+          if (moves !== MOVE_PHASE) voice.target = random();
+          if (moves >= MOVE_PHASE) voice.phase = random();
+          aim(voice, change, lo, hi);
+        }
+      }
+    };
+
+    // ---- the triggers ----
+    // Onset: a fast and a slow follower of the level; a hit is the fast one jumping well above the slow one. Pitch: the
+    // time between rising zero crossings of a low-passed copy; two new periods that agree with each other and differ from
+    // the three before them are a step in pitch.
+    const fastCoef = 1 - Math.exp(-1 / (0.0008 * sampleRate)), slowCoef = 1 - Math.exp(-1 / (0.06 * sampleRate));
+    const lpCoef = 0.25, FLOOR = 0.004, holdoff = Math.round(HOLDOFF_MS * sampleRate / 1000);
+    let repLevel = 0, repRatio = 1, repFired = 0;   // what the panel is told: the loudest level, the highest fast/slow ratio, and which triggers fired (1 hit, 2 pitch step, 4 pattern) since the last report
+    const det = { fast: 0, slow: 0, lp: 0, since: 0, hold: 0, periods: [0, 0, 0, 0, 0], count: 0 };
+    // the ratio of the fast level to the slow one that counts as a hit: 1.2 at full sensitivity, 9.2 at the least
+    const ratioThreshold = sensitivity => 1.2 + 8 * (1 - sensitivity) ** 2;
+    const detect = (x, sensitivity) => {
+      const a = Math.abs(x);
+      det.fast += (a - det.fast) * fastCoef;
+      det.slow += (a - det.slow) * slowCoef;
+      const before = det.lp;
+      det.lp += (x - det.lp) * lpCoef;
+      det.since++;
+      if (det.hold > 0) det.hold--;
+      let hit = 0;
+      const ratio = det.fast > FLOOR ? det.fast / (det.slow + 1e-9) : 1;
+      if (ratio > repRatio) repRatio = ratio;
+      if (det.fast > repLevel) repLevel = det.fast;
+      if (det.hold === 0 && ratio > ratioThreshold(sensitivity)) hit = 1;
+      if (before <= 0 && det.lp > 0 && det.fast > FLOOR) {   // a rising zero crossing
+        const period = det.since; det.since = 0;
+        if (period > sampleRate / 6000 && period < sampleRate / 25) {
+          det.periods.unshift(period); det.periods.length = 5; det.count++;
+          if (det.count >= 5 && det.hold === 0 && hit === 0) {
+            const [a0, a1, b0, b1, b2] = det.periods, semis = 0.6 + 5 * (1 - sensitivity);
+            const step = 12 * Math.abs(Math.log2(((a0 + a1) / 2) / ((b0 + b1 + b2) / 3))), agree = 12 * Math.abs(Math.log2(a0 / a1));
+            if (step > semis && agree < semis / 2) hit = 2;
+          }
+        } else det.count = 0;
+      } else if (det.since > sampleRate / 20) det.count = 0;   // silence: start the pitch count again
+      if (hit) { det.hold = holdoff; det.count = 0; repFired |= hit; }
+      return hit;
+    };
+    // Pattern: where the song is, in steps. While the song plays the steps sit on its grid; otherwise the node counts its own.
+    let cursor = 0, patternSeen = false;
+    const stepsInBlock = (n, patRate, bits, len, out) => {
+      out.length = 0;
+      const stepSamples = (clock?.tickSamples ?? sampleRate * 0.125) * patRate;
+      let start = cursor;
+      if (clock?.playing === true) {
+        const at = (clock.songPos ?? 0) / patRate;
+        if (!patternSeen || Math.abs(at - cursor) > 0.5) start = at;
+      }
+      patternSeen = true;
+      const end = start + n / stepSamples;
+      for (let m = Math.ceil(start); m < end; m++) {
+        if ((bits >> (len - 1 - (m % len + len) % len)) & 1) out.push(Math.max(0, Math.min(n - 1, Math.round((m - start) * stepSamples))));
+      }
+      cursor = end;
+    };
+    const fires = [], LOOK = Math.round(LOOK_MS * sampleRate / 1000);
+    const lookL = new Float32Array(LOOK), lookR = new Float32Array(LOOK);
+    let lookAt = 0;
 
     // While the panel is open (it asks every second) the node reports where its voices are, about every 30 ms: the delay of each,
     // in ms, for the left set and (wide mode) the right one.
@@ -150,7 +251,8 @@ export default {
     const report = count => {
       const l = new Float32Array(count), r = new Float32Array(count), ms = 1000 / sampleRate;
       for (let v = 0; v < count; v++) { l[v] = voices[0][v].delay * ms; r[v] = voices[1][v].delay * ms; }
-      emit({ type: 'pogue', l, r }, [l.buffer, r.buffer]);
+      emit({ type: 'pogue', l, r, level: repLevel, ratio: repRatio, fired: repFired }, [l.buffer, r.buffer]);
+      repLevel = 0; repRatio = 1; repFired = 0;
     };
 
     return {
@@ -167,6 +269,11 @@ export default {
         const bits = 16 - 14 * p(DEGRADE), levels = p(DEGRADE) > 0 ? Math.pow(2, bits - 1) : 0;
         const dither = p(DITHER), errormix = p(ERRORMIX), mix = p(MIX);
         const hp = svfCoefs(p(HPCUT), p(HPQ), sampleRate), lp = svfCoefs(p(LPCUT), p(LPQ), sampleRate);
+        const onset = p(ONSET), steps = Math.round(p(PATTERN)), len = Math.round(p(PATLEN)), moves = Math.round(p(MOVES));
+        const timer = onset <= 0 && steps <= 0;   // either trigger takes the random timer's place
+        const aligned = Math.round(p(LOOKAHEAD)) === 1 && onset > 0;
+        if (steps > 0) stepsInBlock(n, RATES[Math.max(0, Math.min(RATES.length - 1, Math.round(p(PATRATE))))], steps, len, fires); else { fires.length = 0; patternSeen = false; }
+        let nextFire = 0;
         const hop = Math.max(1, Math.round(sampleRate / p(RESOLUTION)));
         const glide = p(INERTIA) > 0 ? 1 - Math.exp(-1000 / (sampleRate * p(INERTIA))) : 1;
         for (let v = 0; v < count; v++) {
@@ -176,8 +283,10 @@ export default {
         }
 
         for (let i = 0; i < n; i++) {
-          if (untilMove <= 0) { moveVoices(count, rate, change, lo, hi, hop / sampleRate); untilMove = hop; }
+          if (untilMove <= 0) { moveVoices(count, rate, change, lo, hi, hop / sampleRate, timer); untilMove = hop; }
           untilMove--;
+          if ((onset > 0 || watchLeft > 0) && detect(0.5 * (inL[i] + inR[i]), onset > 0 ? onset : 0.5) && onset > 0) fire(count, moves, change, lo, hi);   // (while the panel is open the detector runs even at 0, to show what it would do)
+          while (nextFire < fires.length && fires[nextFire] <= i) { fire(count, moves, change, lo, hi); repFired |= 4; nextFire++; }
 
           let sumL = 0, sumR = 0;
           for (let v = 0; v < count; v++) {
@@ -201,7 +310,14 @@ export default {
           wetL = Math.abs(l) < 1e-20 ? 0 : l;
           wetR = Math.abs(r) < 1e-20 ? 0 : r;
 
-          const dryL = inL[i] * pre, dryR = inR[i] * pre;
+          let heardL = inL[i], heardR = inR[i];
+          if (LOOK > 0) {   // held back by the lookahead (always kept, so switching it on finds the sound already there)
+            const oldL = lookL[lookAt], oldR = lookR[lookAt];
+            lookL[lookAt] = heardL; lookR[lookAt] = heardR;
+            if (++lookAt === LOOK) lookAt = 0;
+            if (aligned) { heardL = oldL; heardR = oldR; }
+          }
+          const dryL = heardL * pre, dryR = heardR * pre;
           bufL[write] = dryL + feedback * wetL + xfeedback * wetR;
           bufR[write] = dryR + feedback * wetR + xfeedback * wetL;
           if (++write === size) write = 0;

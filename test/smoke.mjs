@@ -11587,4 +11587,35 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   console.log('ok: master effects');
 }
 
+{
+  // ---- pogue triggers: onset (hits and pitch steps), the pattern, and the latency of the aligned mode ----
+  const T = NODE_TYPES.pogue, sr = 48000, N = 512;
+  const run = (over, input, blocks, clock) => {
+    const params = T.params.map(p => over[p.name] ?? p.def), slots = Int32Array.from(params.keys()), reports = [];
+    let counting = false;
+    const inst = T.create({ sampleRate: sr, maxBlock: N, emit: msg => { if (counting) reports.push(msg); }, clock });
+    inst.message({ type: 'watch' });
+    const outs = [[new Float32Array(N), new Float32Array(N)]];
+    for (let b = 0; b < blocks; b++) {
+      counting = b >= 20;   // the first blocks (the detector settling on whatever starts it) are not counted
+      const x = Float32Array.from({ length: N }, (_, i) => input(b * N + i));
+      inst.process([[x, x.slice()]], outs, N, params, slots);
+    }
+    return reports.reduce((bits, r) => bits | r.fired, 0);
+  };
+  const quiet = i => 0.002 * Math.sin(i * 0.3), hit = i => (i > 20000 && i < 21500 ? 0.8 * Math.sin(i * 0.9) * Math.exp(-(i - 20000) / 400) : quiet(i));
+  const fadeIn = i => Math.min(1, i / 20000);   // a tone that comes in slowly is not a hit
+  const steady = i => fadeIn(i) * 0.3 * Math.sin(2 * Math.PI * 220 * i / sr);
+  const step = i => fadeIn(i) * 0.3 * Math.sin(2 * Math.PI * (i < 30000 ? 220 : 392) * i / sr);
+  assert.ok(run({ onset: 0.5 }, hit, 80) & 1, 'a hit fires the onset trigger');
+  assert.equal(run({ onset: 0.5 }, steady, 80) & 1, 0, 'a steady tone does not');
+  assert.ok(run({ onset: 0.8 }, step, 120) & 2, 'a step in pitch fires it at the same level');
+  assert.equal(run({ onset: 0.8 }, steady, 120) & 2, 0, 'a steady pitch does not');
+  assert.ok(run({ pattern: 0b1010, patlen: 4, patrate: 4 }, steady, 60, { tickSamples: 1000, playing: false }) & 4, 'the pattern fires its steps');
+  assert.equal(run({ pattern: 0 }, steady, 60, { tickSamples: 1000, playing: false }) & 4, 0, 'a pattern of 0 is off');
+  assert.equal(T.latency({ lookahead: 1, onset: 0.5 }, 48000), 480, 'aligned onset reports its latency');
+  assert.equal(T.latency({ lookahead: 0, onset: 0.5 }, 48000), 0); assert.equal(T.latency({ lookahead: 1, onset: 0 }, 48000), 0);
+  console.log('ok: pogue triggers');
+}
+
 console.log('smoke test passed');

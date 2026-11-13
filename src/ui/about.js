@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['753', ['Pogue can move its voices on a hit, a step in pitch or a step pattern (onset, pattern, moves, lookahead), with a Triggers picture in its panel.']],
   ['752', ['The pattern window has its own slate and orange colours (dark or light with the page theme), with green and rose marking what changed in B.']],
   ['751', ['The Master graph starts with a bus-in node, unconnected, ready to wire through effects into out; the tempo node is hidden (its columns are still there).']],
   ['750', ['The master bus node is now called bus-in; projects saved with it open as before.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['746', ['Randomize (Ctrl+R) has Diverge the parameters: filled parameter cells jump anywhere in their range, notes stay, and Alt+R rolls again.']],
   ['745', ['Testing A or B in the pattern window stops the song, so only the pattern you test is heard.']],
   ['744', ['The pattern window has a B side: a scratch copy to try chords on, played separately from A, changed freely, reset to A, or kept over A or as a new pattern.']],
-  ['743', ['The live picture can be parked at the bottom left: the arrows button on the picture swaps sides.']],
                     ];

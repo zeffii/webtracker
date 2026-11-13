@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 753 · 2026-11-13
+
+- **Pogue: the voices can move on a hit, a pitch step or a pattern.** New settings: *onset* (0 is the random timer as before; above 0 the timer stops and a new random target is picked when the sound has a transient or an abrupt change of pitch, the value being the sensitivity), *pattern* with *patlen* and *patrate* (a row of up to 16 steps on the song's grid, in ticks; a 1 fires; it also stops the timer, and can run together with onset), *moves* (what a fire does: new targets, a jump of each voice's sine to a random phase, or both) and *lookahead* (live: no delay, the move follows the hit by a fraction of a ms and a pitch step by a few periods; aligned: the sound is held back 10 ms, reported as latency, so the move lands on the hit). The panel has a new Triggers picture: the detector over the last seconds, the sensitivity line (drag it, it is the onset slider), a mark for each hit, pitch step and pattern step, and the pattern's steps, which you click on and off.
+
 ## 752 · 2026-11-13
 
 - **The pattern window has its own colours, from the A/B mock-up.** Slate panel, thin dividing line between A and B, dim titles and gutter, orange for the active A/B button, green for notes that differ in B and rose for the ones that are gone. A dark and a light version, chosen by the page's theme.
