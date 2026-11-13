@@ -2,6 +2,7 @@
 // node type and parameter name, then by the name alone; a parameter with named choices shows the name instead.
 import { WAVES as PULSARET_WAVES } from '../audio/nodes/pulsarcore.js';
 import { PATH_MODES, SEQ_MODES } from '../audio/nodes/vectorcore.js';
+import { SPEEDS as ROTARY_SPEEDS } from '../audio/nodes/rotary.js';
 import { ALGORITHMS } from '../audio/nodes/fmsynth.js';
 import { VOICINGS as AMP_VOICINGS, CABS as AMP_CABS } from '../audio/nodes/amp.js';
 import { MODES as ARP_MODES, RATE_NAMES as ARP_RATES, RETRIGGER as ARP_RETRIG } from '../audio/nodes/arp.js';
@@ -17,6 +18,7 @@ const TYPE_UNIT = {
   notepan: { range: '%', centre: '%', glide: 'ms', rate: 'Hz', amp: '%', spread: '%', behind: '%' },
   sympathy: { root: '', partials: '', ringtime: 'ms', damp: 'Hz', detune: 'ct', width: '%', mix: '%' },
   haas: { time: 'ms', gain: '%', damp: 'Hz', mix: '%' },
+  rotary: { slow: 'Hz', fast: 'Hz', inertia: 'x', drive: '%', doppler: 'x', tremolo: '%', spread: '%', balance: '%', cross: 'Hz', mix: '%' },
   ringmod: { freq: 'Hz', ratio: '', offset: 'Hz', depth: '%', mix: '%' },
   chorus: { depth: 'ms', delay: 'ms' },
   pogue: { pregain: 'dB', postgain: 'dB', mindelay: 'ms', maxdelay: 'ms', inertia: 'ms', lpcut: 'Hz', hpcut: 'Hz', resolution: 'Hz', change: '%', feedback: '', xfeedback: '', saturation: '%', degrade: '%', dither: '%', errormix: '%', lpq: '', hpq: '', onset: '', pattern: '', patlen: '' },
@@ -158,6 +160,7 @@ const NAMES = {
   notepan: { style: ['keyboard', 'fan', 'alternate', 'random', 'cluster', 'mirror'], shape: ['swing', 'triangle', 'orbit'] },
   sympathy: { follow: ONOFF, chord: ['open', 'major', 'minor', 'maj7', 'min7', 'sus4', 'dim', 'whole'] },
   haas: { side: ['left', 'right'] },
+  rotary: { speed: ROTARY_SPEEDS },
   ringmod: { track: ONOFF, wave: ['sine', 'triangle', 'square', 'saw'] },
   kaleidoscope: { mode: ['mirror', 'repeat', 'overtone'], size: ['1024', '2048', '4096'] },
   snarl: { vco1wave: ['saw', 'triangle', 'pulse', 'noise'], vco1oct: ['32\'', '16\'', '8\'', '4\''], vco2wave: ['saw', 'square', 'pulse', 'ring'], vco2oct: ['32\'', '16\'', '8\'', '4\''], mgwave: ['triangle', 'saw', 'ramp', 'square', 'random'] },

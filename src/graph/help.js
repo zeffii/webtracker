@@ -69,6 +69,11 @@ export const PAGES = {
     best: ['Best on headphones.', 'Drag the dot round the head: round sets the angle, in and out the distance. At 90 degrees the time difference is about 0.66 ms.', 'Sweep angle from a pattern for a sound that moves round the listener.'],
     limits: ['On loudspeakers the effect is much weaker.', 'It models a head, not an ear shape, so up and down are not changed.'],
   },
+  rotary: {
+    summary: 'A rotating speaker cabinet: the top of the sound goes to a spinning horn and the bottom to a drum spinning the other way, heard by two microphones. The pitch, the loudness and the tone all wobble with each turn, differently in each ear. The switch between slow and fast is not instant: the rotors glide, and that glide is the thing to play.',
+    best: ['On an organ-like sound: slow for chords, a switch to fast as a phrase rises, back to slow as it ends. Write speed in the pattern.', 'On pads, strings and electric pianos slow is a gentle, wide movement that never repeats exactly, since the two rotors turn at different speeds.', 'Stop leaves the cabinet\'s tone and drive without the movement.', 'Raise drive for the growl of a cabinet played loud; it comes before the split, so chords thicken.', 'Lower inertia for a quicker, more modern switch; raise it for long swells.'],
+    limits: ['The sound is mixed to mono before the cabinet; the width comes from the two microphones.', 'A picture of the cabinet, not a measurement of one: no cabinet resonances and no room.', 'The panel shows the rotors turning by the same rule as the sound, but it is not read from the sound: after a pattern has written speed while the panel was closed the two can be a turn apart.'],
+  },
   haas: {
     summary: 'One side is played a few milliseconds late, which the ear takes as one wider sound, coming from the early side.',
     best: ['6 to 25 ms is the useful range. Past 35 ms it is heard as an echo.', 'Damp the late side a little: a duller copy sounds more natural.', 'The panel shows the comb of notches the two sides make in mono; keep time short or mix low for material that will be played in mono.'],

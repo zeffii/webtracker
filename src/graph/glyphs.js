@@ -77,6 +77,13 @@ export const GLYPHS = {
     line(ctx, [[cx + w * 0.08, cy - r], [cx + w * 0.08, cy - r * 1.45]]);
     line(ctx, [[cx - w * 0.46, cy - h * 0.3], [cx - w * 0.12, cy - h * 0.04]]);
   },
+  rotary: (ctx, cx, cy, w, h) => {   // a rotor seen from above: a circle, the speaker's arm, and arcs of its turning
+    const r = Math.min(w, h) * 0.3;
+    ctx.beginPath(); ctx.arc(cx, cy, r, 0, 7); ctx.stroke();
+    line(ctx, [[cx, cy], [cx + r * 0.7, cy - r * 0.7]]);
+    ctx.beginPath(); ctx.arc(cx, cy, r * 1.5, -0.5, 0.6); ctx.stroke();
+    ctx.beginPath(); ctx.arc(cx, cy, r * 1.5, Math.PI - 0.5, Math.PI + 0.6); ctx.stroke();
+  },
   haas: (ctx, cx, cy, w, h) => {   // one pulse, and the same pulse a little later
     line(ctx, [[cx - w * 0.4, cy - h * 0.05], [cx - w * 0.4, cy - h * 0.4]]);
     line(ctx, [[cx - w * 0.4, cy - h * 0.05], [cx + w * 0.4, cy - h * 0.05]]);

@@ -2,6 +2,11 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 763 · 2026-11-13
+
+- **Rotary: a rotating speaker cabinet** (Effects, Modulation). The top of the sound goes to a spinning horn and the bottom to a drum spinning the other way, heard by two microphones: the pitch, the loudness and the horn's tone wobble with each turn, differently in each ear. `speed` is the switch (stop, slow, fast), and the rotors glide to a new speed as the real ones do, the horn in about a second and the drum in several, so writing `speed` in a pattern plays the swell. Also `slow` and `fast` (Hz), `inertia`, `drive`, `doppler`, `tremolo`, `spread` (how far apart the microphones stand; 0 is mono), `balance`, `cross` and `mix`.
+- **Its panel** shows the two rotors from above, turning and gliding by the same rule as the sound, with the microphones, and the switch as three words to click.
+
 ## 762 · 2026-11-13
 
 - **Compass: a vector synth with wave sequencing.** A new machine (Shift+I, synths, digital) and node. Four lanes, A B C and D, sit at the points of a diamond; a position on the diamond says how much of each is heard, and a path you draw moves it after each note starts (once, loop, or back and forth, one trip in `pathms`). Each lane is a wave sequence: a row of up to 16 steps, each a wave from a bank of 256 held for a number of song ticks, with its own crossfade, pitch and level. One step is a plain oscillator; lanes of different lengths drift against each other. `x` and `y` shift the mix and can be written from a pattern. A resonant low-pass with its own drawn envelope, a drawn amplitude envelope with a sustain knot, detune and stereo width. It starts plain: a sine, a saw, a square and a triangle, and a tour of the four points. The waves are band-limited per pitch, so high notes stay clean; a voice costs less than a Cardinal voice.

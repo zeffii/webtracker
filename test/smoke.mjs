@@ -11782,4 +11782,36 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   console.log('ok: vector synth');
 }
 
+// Rotary speaker: the rotors glide to the speed of the switch, and each turn wobbles the level differently in each ear.
+{
+  const { ROTORS, nextRotorSpeed, targetSpeed } = await import('../src/audio/nodes/rotary.js');
+  const sr = 48000, def = NODE_TYPES.rotary;
+  assert.equal(targetSpeed(0, 0.8, 6.7), 0); assert.equal(targetSpeed(1, 0.8, 6.7), 0.8); assert.equal(targetSpeed(2, 0.8, 6.7), 6.7);
+  let horn = 0, drum = 0;
+  for (let i = 0; i < 100; i++) { horn = nextRotorSpeed(ROTORS.horn, horn, 6.7, 0.01, 1); drum = nextRotorSpeed(ROTORS.drum, drum, 6.7, 0.01, 1); }
+  assert.ok(horn > 6 && drum < 4, `after a second the horn is nearly there and the drum is not (${horn.toFixed(1)}, ${drum.toFixed(1)})`);
+  const run = (values, secs = 2, hz = 1500) => {
+    const params = Float32Array.from(def.params.map(p => values[p.name] ?? p.def)), slots = Int32Array.from(def.params.map((_, i) => i));
+    const node = def.create({ sampleRate: sr }), N = Math.floor(sr * secs / 128) * 128;
+    const L = new Float32Array(N), R = new Float32Array(N), a = new Float32Array(128), l = new Float32Array(128), r = new Float32Array(128);
+    for (let at = 0; at < N; at += 128) {
+      for (let i = 0; i < 128; i++) a[i] = 0.5 * Math.sin(2 * Math.PI * hz * (at + i) / sr);
+      node.process([[a, a]], [[l, r]], 128, params, slots); L.set(l, at); R.set(r, at);
+    }
+    return { L, R };
+  };
+  const level = (x, from, len) => { let sum = 0; for (let i = from; i < from + len; i++) sum += x[i] * x[i]; return Math.sqrt(sum / len); };
+  const swing = x => { const v = []; for (let k = 0; k < 40; k++) v.push(level(x, sr + k * 1200, 1200)); return Math.max(...v) / Math.min(...v); };
+  const fast = run({ speed: 2, drive: 0 });
+  assert.ok(fast.L.every(Number.isFinite) && level(fast.L, sr, sr) > 0.05 && level(fast.L, sr, sr) < 0.7, 'rotary level');
+  assert.ok(swing(fast.L) > 1.5, `a turning horn wobbles the level (${swing(fast.L).toFixed(2)})`);
+  assert.ok(swing(run({ speed: 0, drive: 0 }).L) < 1.05, 'stopped, nothing moves');
+  let apart = 0; for (let i = sr; i < 2 * sr; i++) apart = Math.max(apart, Math.abs(fast.L[i] - fast.R[i]));
+  assert.ok(apart > 0.05, 'the two microphones hear different things');
+  const mono = run({ speed: 2, spread: 0 }); let same = 0; for (let i = 0; i < mono.L.length; i++) same = Math.max(same, Math.abs(mono.L[i] - mono.R[i]));
+  assert.ok(same < 1e-6, 'with no spread it is mono');
+  const dry = run({ mix: 0 }, 0.1); assert.ok(Math.abs(dry.L[1000] - 0.5 * Math.sin(2 * Math.PI * 1500 * 1000 / sr)) < 1e-6, 'mix 0 is the dry sound');
+  console.log('ok: rotary speaker');
+}
+
 console.log('smoke test passed');

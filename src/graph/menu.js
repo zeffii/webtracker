@@ -17,7 +17,7 @@ const GROUPS = {
   Effects: [
     ['Filter & EQ', ['filter', 'filterpro', 'ladder', 'sweep', 'comb', 'vocoder', 'eq', 'exciter', 'dcblock']],
     ['Dynamics', ['compressor', 'mbcomp', 'gate', 'transient', 'envfx']],
-    ['Modulation', ['chorus', 'pogue', 'phaser', 'flanger', 'gater', 'freqshift']],
+    ['Modulation', ['chorus', 'pogue', 'phaser', 'flanger', 'rotary', 'gater', 'freqshift']],
     ['Delay', ['delay', 'multitap', 'shiva', 'prismacanyon']],
     ['Space', ['reflect', 'headpan', 'haas', 'ringmod', 'sympathy', 'notepan']],
     ['Reverb', ['hall', 'plate', 'shimmer', 'urugraVerb', 'convolver']],
