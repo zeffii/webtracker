@@ -11956,6 +11956,9 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   // glide: the pitch moves towards the new note instead of jumping
   const jump = run({}, { secs: 0.4, notes: [[0, 57], [0.2, 69]] }), slid = run({ glide: 300 }, { secs: 0.4, notes: [[0, 57], [0.2, 69]] });
   assert.ok(diff(jump, slid) > 0.01, 'glide changes the approach to the new note');
+  const narrow = run({ saw: 0, pulse: 1, pw: 0.15, sub: 0, cutoff: 20000, fenv: 0 }, { secs: 1 });
+  let mean = 0; for (let i = 24000; i < narrow.length; i++) mean += narrow[i]; mean /= narrow.length - 24000;
+  assert.ok(Math.abs(mean) < 0.01 && rms(narrow, 24000) > 0.02, `a narrow pulse carries no offset, mean ${mean}`);
   // after its release the node is silent and the machine compiles, mono and poly
   const gone = run({ rel: 20 }, { secs: 0.6, off: 0.1 });
   assert.ok(rms(gone, 24000) < 1e-4, 'it ends after its release');

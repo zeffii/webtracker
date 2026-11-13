@@ -113,7 +113,7 @@ export default {
     const table = braidsFrames(), count = table.length / FRAME;
     const amp = new Adsr(sampleRate), fil = new Adsr(sampleRate), posEnv = new Adsr(sampleRate);
     let master = 0, slave = 0, subPhase = 0, lfoPhase = 0, held = 0, since = 0;
-    let shown = -1, note = 60, pos = 60, velocity = 1, seed = 4242;
+    let dcIn = 0, dcOut = 0, shown = -1, note = 60, pos = 60, velocity = 1, seed = 4242;
     let legatoOn = false, latch = false, ampFresh = false, from = -1, rate = 0;
     const s = new Float64Array(4);
     const flush = v => (Math.abs(v) < 1e-18 ? 0 : v);
@@ -123,7 +123,7 @@ export default {
         if (msg.type === 'noteOn') {
           const tied = legatoOn && heldNow();
           ampFresh = amp.idle;
-          if (amp.idle) { shown = -1; master = slave = subPhase = 0; lfoPhase = 0; since = 0; s.fill(0); pos = msg.note; }
+          if (amp.idle) { dcIn = dcOut = 0; shown = -1; master = slave = subPhase = 0; lfoPhase = 0; since = 0; s.fill(0); pos = msg.note; }
           note = msg.note; velocity = msg.vel ?? 1;
           latch = true; from = msg.from ?? -1;
           if (!tied) { amp.on(); fil.on(); posEnv.on(); since = 0; }
@@ -168,7 +168,7 @@ export default {
         const fenv = g('fenv'), keyOct = (g('keytrack') * (pos - 60)) / 12;
         const baseHz = 440 * Math.pow(2, (pos + g('tune') + g('fine') / 100 - 69) / 12);
         const level = g('level') * (1 - g('vel') + g('vel') * velocity) * 2.2;
-        const nyq = sampleRate * 0.45, slew = g('smooth') > 0 ? 1 - Math.exp(-1 / (sampleRate * g('smooth') * 0.001)) : 1;
+        const dcR = 1 - (TWO_PI * 10) / sampleRate, nyq = sampleRate * 0.45, slew = g('smooth') > 0 ? 1 - Math.exp(-1 / (sampleRate * g('smooth') * 0.001)) : 1;
         if (shown < 0) shown = position;
         let G = 0, G2 = 0, G3 = 0, G4 = 0, norm = 1;
         for (let i = 0; i < n; i++) {
@@ -223,6 +223,7 @@ export default {
             slave += sinc; if (slave >= 1) slave -= 1;
           }
           v = fold(v * 0.6, foldAmt);
+          dcOut = v - dcIn + dcR * dcOut; dcIn = v; v = dcOut;   // takes the offset out: a narrow pulse or the folder leaves a constant that moves with the width
           // ladder
           const hh = 1 - G;
           const S1 = hh * s[0], S2 = hh * s[1], S3 = hh * s[2], S4 = hh * s[3];

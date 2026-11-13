@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 771 · 2026-11-13
+
+- **Lone carries no DC offset.** A narrow pulse or the wave folder left a constant that moved with the pulse width and pushed the mix off centre; a 10 Hz high-pass now sits before the filter.
+
 ## 770 · 2026-11-13
 
 - **The wavetable position no longer clicks when it jumps.** A new `smooth` parameter (10 ms by default) slews the position (or the A/B mix) towards its new value instead of stepping it, on the Wavetable node and on Lone. Set it to 0 for the old instant behaviour, higher for a slower glide between waves.
