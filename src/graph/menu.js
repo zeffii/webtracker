@@ -9,7 +9,7 @@ import { popups } from '../ui/kit/popups.js';
 // How the nodes of a category are grouped. A node that is not listed here still shows up, at the end of its category.
 const GROUPS = {
   Sources: [
-    ['Synths', ['subsynth', 'pulsar', 'fourpole', 'oberheim', 'piano', 'addsynth', 'fmsynth', 'dvii', 'wavetable', 'granular', 'woodblock', 'jawharp', 'snarl', 'clang', 'membrane', 'drumsynth', 'drumsynth2', 'cardinal', 'specsynth', 'string', 'hat808', 'hat2', 'bongo', 'clap', 'combperc', 'squelch', 'duette', 'modchan', 'westcoast', 'compass']],
+    ['Synths', ['subsynth', 'pulsar', 'fourpole', 'oberheim', 'piano', 'addsynth', 'fmsynth', 'dvii', 'wavetable', 'granular', 'woodblock', 'jawharp', 'snarl', 'clang', 'membrane', 'drumsynth', 'drumsynth2', 'cardinal', 'specsynth', 'string', 'hat808', 'hat2', 'bongo', 'clap', 'combperc', 'squelch', 'duette', 'modchan', 'westcoast', 'compass', 'khufu']],
     ['Basic', ['osc', 'pulsetrain', 'waveseq', 'noise', 'sampler']],
     ['Modulators', ['env', 'env2', 'lfo', 'random', 'vecpath']],
     ['Routing', ['sidechain', 'listen', 'bus-in']],
@@ -17,7 +17,7 @@ const GROUPS = {
   Effects: [
     ['Filter & EQ', ['filter', 'filterpro', 'ladder', 'sweep', 'comb', 'vocoder', 'eq', 'exciter', 'dcblock']],
     ['Dynamics', ['compressor', 'mbcomp', 'gate', 'transient', 'envfx']],
-    ['Modulation', ['chorus', 'pogue', 'phaser', 'flanger', 'rotary', 'gater', 'freqshift']],
+    ['Modulation', ['chorus', 'pogue', 'phaser', 'flanger', 'ensemble', 'rotary', 'gater', 'freqshift']],
     ['Delay', ['delay', 'multitap', 'shiva', 'prismacanyon']],
     ['Space', ['reflect', 'headpan', 'haas', 'ringmod', 'sympathy', 'notepan']],
     ['Reverb', ['hall', 'plate', 'shimmer', 'urugraVerb', 'convolver']],

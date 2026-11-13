@@ -25,6 +25,8 @@ import { createHat2View } from './hat2view.js';
 import { createPulsarView } from './pulsarview.js';
 import { createCompassView } from './compassview.js';
 import { createRotaryView } from './rotaryview.js';
+import { createKhufuView } from './khufuview.js';
+import { createEnsembleView } from './ensembleview.js';
 import { createKaleidoscopeView } from './kaleidoscopeview.js';
 import { createReflectView } from './reflectview.js';
 import { createHeadView } from './headview.js';
@@ -213,6 +215,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
   let kalView = null;       // the spectrum in, the spectrum out and the band of a kaleidoscope
   let hat2View = null;      // the two drawn volumes of Hi-hat 2
   let pulsarView = null;    // the pulse train and the drawings of the pulsar nodes
+  let khufuView = null;     // the registers and the amplitude drawing of the Khufu string voice
   let compassView = null;   // the diamond, the wave sequences and the drawings of the vector nodes
   let drum2View = null;     // the three drawn envelopes of drum synth 2 and the hit they make
   let drumView = null;      // the envelopes, the click and the composed root note of a drum synth, redrawn when its parameters move
@@ -381,6 +384,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
         if (type.editor === 'hat2') hat2View?.refresh();
         if (type.editor === 'pulsar' || type.editor === 'pulsetrain') pulsarView?.refresh();
         if (VECTOR_EDITORS.has(type.editor)) compassView?.refresh();
+        if (type.editor === 'khufu') khufuView?.refresh();
         if (type.editor === 'kaleidoscope') kalView?.refresh();
         spaceView?.refresh();
         if (type.editor === 'cardinal') cardinalView?.refresh();
@@ -860,7 +864,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
       items.splice(1, 0, sub(drum2View.el));
     }
     spaceView = null;
-    const SPACE = { reflect: createReflectView, headpan: createHeadView, haas: createHaasView, ringmod: createRingView, sympathy: createSympathyView, notepan: createNotePanView, filterpro: createFilterProView, pogue: createPogueView, rotary: createRotaryView };
+    const SPACE = { reflect: createReflectView, headpan: createHeadView, haas: createHaasView, ringmod: createRingView, sympathy: createSympathyView, notepan: createNotePanView, filterpro: createFilterProView, pogue: createPogueView, rotary: createRotaryView, ensemble: createEnsembleView };
     if (SPACE[type.editor]) {   // the plan of the room, the head, the delay pulses, the sidebands or the strings, each live with its parameters
       const param = name => readLive(instId, node.id, name) ?? node.params?.[name] ?? type.params.find(p => p.name === name)?.def ?? 0;
       spaceView = SPACE[type.editor]({
@@ -905,6 +909,18 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
         },
       });
       items.splice(1, 0, sub(pulsarView.el));
+    }
+    khufuView = null;
+    if (type.editor === 'khufu') {   // the registers, and the amplitude drawing, kept on the node and sent live
+      const param = name => readLive(instId, node.id, name) ?? node.params?.[name] ?? type.params.find(p => p.name === name)?.def ?? 0;
+      khufuView = createKhufuView({
+        doc, getParam: param, env: node.data?.env ?? {},
+        onChange: (slot, points) => {
+          node.data = { ...node.data, env: { ...node.data?.env, [slot]: points } };
+          onData(instId, node.id, { type: 'env', slot, points });
+        },
+      });
+      items.splice(1, 0, sub(khufuView.el));
     }
     compassView = null;
     if (VECTOR_EDITORS.has(type.editor)) {   // the diamond and its path, the wave sequences and the two drawings: kept on the node and sent live

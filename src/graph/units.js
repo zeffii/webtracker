@@ -18,6 +18,8 @@ const TYPE_UNIT = {
   notepan: { range: '%', centre: '%', glide: 'ms', rate: 'Hz', amp: '%', spread: '%', behind: '%' },
   sympathy: { root: '', partials: '', ringtime: 'ms', damp: 'Hz', detune: 'ct', width: '%', mix: '%' },
   haas: { time: 'ms', gain: '%', damp: 'Hz', mix: '%' },
+  khufu: { low: '%', mid: '%', high: '%', tone: 'Hz', lowcut: 'Hz', vib: 'ct', vibrate: 'Hz', tune: 'st', fine: 'ct', atime: 'ms', vel: '%', level: '' },
+  ensemble: { slow: 'Hz', fast: 'Hz', depth: '%', shimmer: '%', width: '%', tone: 'Hz', mix: '%' },
   rotary: { slow: 'Hz', fast: 'Hz', inertia: 'x', drive: '%', doppler: 'x', tremolo: '%', spread: '%', balance: '%', cross: 'Hz', mix: '%' },
   ringmod: { freq: 'Hz', ratio: '', offset: 'Hz', depth: '%', mix: '%' },
   chorus: { depth: 'ms', delay: 'ms' },

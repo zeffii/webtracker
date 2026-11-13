@@ -69,6 +69,16 @@ export const PAGES = {
     best: ['Best on headphones.', 'Drag the dot round the head: round sets the angle, in and out the distance. At 90 degrees the time difference is about 0.66 ms.', 'Sweep angle from a pattern for a sound that moves round the listener.'],
     limits: ['On loudspeakers the effect is much weaker.', 'It models a head, not an ear shape, so up and down are not changed.'],
   },
+  khufu: {
+    summary: 'The voice of a string machine: three sawtooth registers an octave apart, cut from one phase so they never drift, through a low cut and a gentle low-pass, with a drawn amplitude envelope. On its own it is plain; with an ensemble after the voices it is a string section.',
+    best: ['Play chords, wide ones: the instrument is made for held harmony, not for lines.', 'high up and low down for the classic thin, glassy strings; low up for cellos under a pad.', 'Draw a slow rise and a long release for strings, or a sharp start and no sustain for a plucked, harpsichord-like tone.', 'Keep it in front of voices and put the ensemble after them, so one ensemble works on the whole chord. A phaser after that is the other half of the classic sound.', 'Raise lowcut when there is a bass in the song.'],
+    limits: ['Monophonic: the last note wins (put it in front of voices for chords).', 'The Khufu machine starts with 8 voices; raise Voices for bigger chords with long releases.', 'The picture shows the registers as they are mixed, before the low cut and the low-pass.'],
+  },
+  ensemble: {
+    summary: 'The chorus of a string machine: three short delays, each moved by a slow and a fast wobble at once, each a third of a turn behind the last. It turns one plain wave into a section of players, and works on anything.',
+    best: ['After the voices of a Khufu, mix at 1: that is the string machine.', 'On an electric piano, a pad or a plain saw lead, with mix around 0.5, as a rich chorus.', 'Lower shimmer for a calm, wide chorus; raise it for the nervous shimmer of the old machines.', 'Two ensembles in a row at different speeds are thicker still.'],
+    limits: ['The sound is mixed to mono on the way in; the width comes from the three delays.', 'At mix 1 the sound is about 6 ms late.'],
+  },
   rotary: {
     summary: 'A rotating speaker cabinet: the top of the sound goes to a spinning horn and the bottom to a drum spinning the other way, heard by two microphones. The pitch, the loudness and the tone all wobble with each turn, differently in each ear. The switch between slow and fast is not instant: the rotors glide, and that glide is the thing to play.',
     best: ['On an organ-like sound: slow for chords, a switch to fast as a phrase rises, back to slow as it ends. Write speed in the pattern.', 'On pads, strings and electric pianos slow is a gentle, wide movement that never repeats exactly, since the two rotors turn at different speeds.', 'Stop leaves the cabinet\'s tone and drive without the movement.', 'Raise drive for the growl of a cabinet played loud; it comes before the split, so chords thicken.', 'Lower inertia for a quicker, more modern switch; raise it for long swells.'],

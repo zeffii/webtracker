@@ -231,7 +231,7 @@ const combPercKind = params => ({
 export const MACHINE_TREE = [
   { name: 'samplers', items: [['sampler', 'Sampler'], ['modchan', 'MOD channel']] },
   { name: 'synths', groups: [
-    { name: 'analogue', items: [['subtractive', 'Subtractive'], ['fourpole', 'Fourpole'], ['oberheim', 'Oberheim-style'], ['squelch', 'Squelch'], ['duette', 'Duette'], ['cardinal', 'Cardinal'], ['snarl', 'Snarl']] },
+    { name: 'analogue', items: [['subtractive', 'Subtractive'], ['fourpole', 'Fourpole'], ['oberheim', 'Oberheim-style'], ['squelch', 'Squelch'], ['duette', 'Duette'], ['cardinal', 'Cardinal'], ['snarl', 'Snarl'], ['khufu', 'Khufu']] },
     { name: 'digital', items: [['fm', 'FM synth'], ['dvii', 'DVIIloader'], ['wavetable', 'Wavetable'], ['pulsar', 'Pulsar'], ['compass', 'Compass'], ['additive', 'Additive'], ['spectral', 'Spectral'], ['granular', 'Granular']] },
     { name: 'physical', items: [['piano', 'Piano'], ['string', 'Plucked string'], ['jawharp', 'Jaw harp']] },
   ] },
@@ -388,6 +388,33 @@ export const synthKinds = {
         { id: 0x06, node: 'synth', param: 'sweep' },
         { id: 0x07, node: 'synth', param: 'detune' },
         { id: 0x08, node: 'synth', param: 'glide' },
+      ],
+    }),
+  },
+  khufu: {
+    label: 'Khufu (string machine)',
+    make: () => ({
+      graph: {
+        nodes: [{ id: 'synth', type: 'khufu' }, { id: 'poly', type: 'voices' }, { id: 'ens', type: 'ensemble' }, { id: 'out', type: 'out', params: { gain: 0.5 } }],
+        connections: [['synth.out', 'poly.in'], ['poly.out', 'ens.in'], ['ens.out', 'out.in']],
+        voices: 8,
+      },
+      noteColumns: 4,
+      exposed: [
+        { node: 'synth', param: 'tone', label: 'Ton', scale: 'log' },
+        { node: 'synth', param: 'high', label: 'Hi' },
+        { node: 'synth', param: 'low', label: 'Lo' },
+        { node: 'ens', param: 'depth', label: 'Ens' },
+      ],
+      commands: [
+        { id: 0x01, node: 'synth', param: 'tone', scale: 'log' },
+        { id: 0x02, node: 'synth', param: 'low' },
+        { id: 0x03, node: 'synth', param: 'mid' },
+        { id: 0x04, node: 'synth', param: 'high' },
+        { id: 0x05, node: 'synth', param: 'lowcut', scale: 'log' },
+        { id: 0x06, node: 'ens', param: 'depth' },
+        { id: 0x07, node: 'ens', param: 'shimmer' },
+        { id: 0x08, node: 'ens', param: 'mix' },
       ],
     }),
   },

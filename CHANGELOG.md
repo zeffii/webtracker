@@ -2,6 +2,11 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 764 · 2026-11-13
+
+- **Khufu: a string machine.** A new machine (Shift+I, synths, analogue): the `khufu` voice, the voices, then one `ensemble` for the whole chord, with 8 voices. The voice has three sawtooth registers an octave apart (`low`, `mid`, `high`), cut from one phase the way a divide-down organ makes its octaves, so they never drift; a low cut, a gentle low-pass (`tone`), a built-in vibrato, and a drawn amplitude envelope with a sustain knot that starts as a slow rise and a long release. Its panel shows the registers, each one and the sum, beside the amplitude drawing.
+- **Ensemble, the block, is an effect of its own** (Effects, Modulation): three short delays, each moved by a slow and a fast wobble at once and each a third of a turn behind the last, spread between the speakers. `slow`, `fast`, `depth`, `shimmer`, `width`, `tone`, `mix`. It works on anything; its panel draws the three delay lengths over four seconds.
+
 ## 763 · 2026-11-13
 
 - **Rotary: a rotating speaker cabinet** (Effects, Modulation). The top of the sound goes to a spinning horn and the bottom to a drum spinning the other way, heard by two microphones: the pitch, the loudness and the horn's tone wobble with each turn, differently in each ear. `speed` is the switch (stop, slow, fast), and the rotors glide to a new speed as the real ones do, the horn in about a second and the drum in several, so writing `speed` in a pattern plays the swell. Also `slow` and `fast` (Hz), `inertia`, `drive`, `doppler`, `tremolo`, `spread` (how far apart the microphones stand; 0 is mono), `balance`, `cross` and `mix`.

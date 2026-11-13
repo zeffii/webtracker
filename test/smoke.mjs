@@ -11814,4 +11814,60 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   console.log('ok: rotary speaker');
 }
 
+// Khufu, the string machine voice, and the ensemble that goes after its voices.
+{
+  const { cleanSaw, registerMix } = await import('../src/audio/nodes/khufu.js');
+  const { delayMs } = await import('../src/audio/nodes/ensemble.js');
+  const sr = 48000;
+  const setup = (type, values = {}) => { const def = NODE_TYPES[type]; return [def, Float32Array.from(def.params.map(p => values[p.name] ?? p.def)), Int32Array.from(def.params.map((_, i) => i))]; };
+  const peak = (x, a = 0, b = x.length) => { let m = 0; for (let i = a; i < b; i++) m = Math.max(m, Math.abs(x[i])); return m; };
+  const tone = (x, hz, a, b) => { let re = 0, im = 0; for (let i = a; i < b; i++) { const w = 0.5 - 0.5 * Math.cos(2 * Math.PI * (i - a) / (b - a)), ph = 2 * Math.PI * hz * i / sr; re += x[i] * w * Math.cos(ph); im += x[i] * w * Math.sin(ph); } return Math.hypot(re, im) / (b - a) * 4; };
+  assert.ok(Math.abs(cleanSaw(0.5, 0.01)) < 1e-9 && Math.abs(cleanSaw(0.25, 0.01) - 0.5) < 1e-9, 'away from its jump the saw is a straight line');
+  assert.equal(registerMix(0.25, [1, 0, 0]), 0.5); assert.equal(registerMix(0.25, [0, 1, 0]), 0, 'the middle register runs twice as fast');
+
+  const voice = (values, { secs = 1, off = null } = {}) => {
+    const [def, params, slots] = setup('khufu', values), node = def.create({ sampleRate: sr, connected: [false] });
+    node.note({ type: 'noteOn', note: 57, vel: 1 });
+    const N = Math.floor(sr * secs / 128) * 128, L = new Float32Array(N), l = new Float32Array(128), r = new Float32Array(128);
+    for (let at = 0; at < N; at += 128) { if (off !== null && at <= off * sr && off * sr < at + 128) node.note({ type: 'noteOff' }); node.process([], [[l, r]], 128, params, slots); L.set(l, at); }
+    return { L, node };
+  };
+  const plain = { vib: 0, lowcut: 20, tone: 16000 };
+  const all = voice(plain, { secs: 3, off: 1 });
+  assert.ok(all.L.every(Number.isFinite) && peak(all.L, sr * 0.5, sr) > 0.05 && peak(all.L) < 1, `khufu level ${peak(all.L)}`);
+  assert.ok(peak(all.L, 0, 480) < 0.3 * peak(all.L, sr * 0.5, sr), 'the default drawing rises slowly');
+  assert.ok(peak(all.L, sr * 2.5) < 1e-4 && !all.node.busy, 'and the note ends after its release');
+  // the registers are octaves of each other: A3 is 220 Hz, so low is 110, mid 220, high 440
+  const only = name => voice({ ...plain, low: 0, mid: 0, high: 0, [name]: 1 }).L, a = sr * 0.5, b = sr;
+  assert.ok(tone(only('low'), 110, a, b) > 0.05, 'low is an octave under the note');
+  assert.ok(tone(only('mid'), 110, a, b) < 0.002 && tone(only('mid'), 220, a, b) > 0.05, 'mid is the note');
+  assert.ok(tone(only('high'), 220, a, b) < 0.002 && tone(only('high'), 440, a, b) > 0.05, 'high is an octave above');
+  assert.ok(tone(voice({ ...plain, tone: 400 }).L, 2200, a, b) < 0.3 * tone(voice(plain).L, 2200, a, b), 'tone darkens it');
+
+  // the ensemble: three delays a third of a turn apart, never the same length at the same moment
+  const lengths = [0, 1, 2].map(k => delayMs(k, 0.1, 0.3, 1, 0.5));
+  assert.ok(new Set(lengths.map(v => v.toFixed(3))).size === 3 && lengths.every(v => v > 3 && v < 9));
+  assert.equal(delayMs(0, 0.2, 0.7, 0, 0.5), delayMs(2, 0.9, 0.1, 0, 0.5), 'no depth: the delays stand still');
+  const chorus = values => {
+    const [def, params, slots] = setup('ensemble', values), node = def.create({ sampleRate: sr }), N = sr * 2 - (sr * 2) % 128;
+    const L = new Float32Array(N), R = new Float32Array(N), x = new Float32Array(128), l = new Float32Array(128), r = new Float32Array(128);
+    for (let at = 0; at < N; at += 128) { for (let i = 0; i < 128; i++) x[i] = 0.5 * Math.sin(2 * Math.PI * 440 * (at + i) / sr); node.process([[x, x]], [[l, r]], 128, params, slots); L.set(l, at); R.set(r, at); }
+    return { L, R };
+  };
+  const wet = chorus({});
+  assert.ok(wet.L.every(Number.isFinite) && peak(wet.L, sr) > 0.1 && peak(wet.L) < 1.2, `ensemble level ${peak(wet.L)}`);
+  const beats = x => { const v = []; for (let k = 0; k < 40; k++) v.push(peak(x, sr + k * 1200, sr + (k + 1) * 1200)); return Math.max(...v) / Math.min(...v); };
+  assert.ok(beats(wet.L) > 1.15, `three detuned copies beat against each other (${beats(wet.L).toFixed(2)})`);
+  assert.ok(beats(chorus({ depth: 0 }).L) < 1.01, 'with no depth nothing moves');
+  let apart = 0; for (let i = sr; i < wet.L.length; i++) apart = Math.max(apart, Math.abs(wet.L[i] - wet.R[i]));
+  assert.ok(apart > 0.05, 'the delays are spread between the speakers');
+  const narrow = chorus({ width: 0 }); let same = 0; for (let i = 0; i < narrow.L.length; i++) same = Math.max(same, Math.abs(narrow.L[i] - narrow.R[i]));
+  assert.ok(same < 1e-6, 'width 0 is mono');
+  // the machine: the voice, the voices, then one ensemble for the whole chord
+  const made = synthKinds.khufu.make().graph;
+  assert.deepEqual(made.nodes.map(n => n.type), ['khufu', 'voices', 'ensemble', 'out']);
+  compile(made, { instrument: 'khufu', nodeTypes: NODE_TYPES, registry: new ParamRegistry() });
+  console.log('ok: khufu string machine');
+}
+
 console.log('smoke test passed');

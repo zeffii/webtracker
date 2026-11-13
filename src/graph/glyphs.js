@@ -77,6 +77,17 @@ export const GLYPHS = {
     line(ctx, [[cx + w * 0.08, cy - r], [cx + w * 0.08, cy - r * 1.45]]);
     line(ctx, [[cx - w * 0.46, cy - h * 0.3], [cx - w * 0.12, cy - h * 0.04]]);
   },
+  khufu: (ctx, cx, cy, w, h) => {   // three saws an octave apart, stacked
+    const x = f => cx - w / 2 + f * w;
+    [[1, -0.3], [2, 0], [4, 0.3]].forEach(([teeth, at]) => {
+      const pts = [];
+      for (let t = 0; t < teeth; t++) pts.push([x(t / teeth), cy + (at - 0.11) * h], [x((t + 1) / teeth), cy + (at + 0.11) * h]);
+      line(ctx, pts);
+    });
+  },
+  ensemble: (ctx, cx, cy, w, h) => {   // three waves, each a third of a turn behind the last
+    for (let k = 0; k < 3; k++) curve(ctx, cx, cy, w, h * 0.7, t => Math.sin(t * Math.PI * 2 + (k * Math.PI * 2) / 3), 20);
+  },
   rotary: (ctx, cx, cy, w, h) => {   // a rotor seen from above: a circle, the speaker's arm, and arcs of its turning
     const r = Math.min(w, h) * 0.3;
     ctx.beginPath(); ctx.arc(cx, cy, r, 0, 7); ctx.stroke();

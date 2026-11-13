@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['764', ['Khufu, a string machine: three sawtooth registers an octave apart with a drawn amplitude envelope, played through the new ensemble effect (three wobbling delays), which is a node of its own.']],
   ['763', ['Rotary, a rotating speaker cabinet: a spinning horn and drum heard by two microphones, with a stop, slow and fast switch whose glide you can write in a pattern.']],
   ['762', ['Compass, a vector synth with wave sequencing: four lanes of stepped waves at the points of a diamond, a drawn path that moves the mix, drawn amplitude and filter envelopes. Its blocks are nodes too: waveseq, vecmix and vecpath.']],
   ['761', ['Songs open from a gist by id: ?gist=ID in the address, or File, Open from link with an id, a gist address or a link to a .wax file.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['757', ['Parameter sliders show their full extent again, with a faint background behind the empty part.']],
   ['756', ['The parameter sliders lose the thin line under them: just the fill and the mark.']],
   ['755', ['The Pogue panel puts its Pattern picture last, after Feedback.']],
-  ['754', ['Pogue draws the onset detector over its voices (only while onset is above 0), with the sensitivity line you can drag and a line at each trigger.']],
                     ];
