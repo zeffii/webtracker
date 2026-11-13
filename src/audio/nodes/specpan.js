@@ -3,7 +3,7 @@
 // spectrum, `spread` how far bands move from where they are, `rotate` slides the pattern along the bands (it can be
 // modulated or written from a pattern for a moving image), and everything below `lowMono` Hz is made mono, which keeps
 // kick and bass solid. A band moves by blending its own stereo image toward its mono sum placed at the pan position.
-const SHAPE = 0, SPREAD = 1, ROTATE = 2, LOWMONO = 3, MIX = 4, B1 = 5, RATE = 15, SWEEP = 16, WAVE = 17;
+const SHAPE = 0, SPREAD = 1, ROTATE = 2, LOWMONO = 3, MIX = 4, B1 = 5, RATE = 15, SWEEP = 16, WAVE = 17, PUNCH = 18, PUNCH_TIME = 19;
 const BANDS = 10, CUTS = BANDS - 1;
 const F_LOW = 150, F_HIGH = 10000;
 export const SHAPES = ['alternate', 'sweep', 'wave', 'custom'];
@@ -47,6 +47,8 @@ export default {
     { name: 'rate', min: 0, max: 20, def: 0 },            // Hz; 0 holds the image still
     { name: 'sweep', min: 0, max: 2, def: 0.25 },         // how far the motion carries `rotate`
     { name: 'wave', min: 0, max: 3, def: 0, int: true },  // sine, triangle, saw (a steady drift), square
+    { name: 'punch', min: 0, max: 1, def: 0 },            // how much of the stereo image is pulled back to the centre while an attack goes by (0 is off)
+    { name: 'punchTime', min: 5, max: 200, def: 40 },     // ms the image takes to open again after an attack
   ],
   create({ sampleRate }) {
     const cuts = crossovers().map(f => lowpass(f, sampleRate));
@@ -57,6 +59,9 @@ export default {
     const cur = new Float64Array(BANDS * 4), target = new Float64Array(BANDS * 4), pans = new Float64Array(BANDS), custom = new Float64Array(BANDS);
     const lpL = new Float64Array(BANDS), lpR = new Float64Array(BANDS), coef = new Float64Array((BANDS + 1) * 4);
     let started = false, phase = 0;
+    // the attack detector for `punch`: a fast and a slow follower of the level; an attack is the fast one jumping well above the slow one
+    const fastK = 1 - Math.exp(-1 / (0.001 * sampleRate)), slowUp = 1 - Math.exp(-1 / (0.03 * sampleRate)), slowDown = 1 - Math.exp(-1 / (0.08 * sampleRate));
+    let fast = 0, slow = 0, hot = false, centre = 0;   // centre: 1 right at an attack, falling back to 0
     const tick = (c, z, o, x) => { const y = c[0] * x + z[o]; z[o] = c[1] * x - c[3] * y + z[o + 1]; z[o + 1] = c[2] * x - c[4] * y; return y; };
     return {
       process(inputs, outputs, n, params, slots) {
@@ -73,15 +78,29 @@ export default {
           const v = wave === 0 ? Math.sin(2 * Math.PI * phase) : wave === 1 ? (phase < 0.25 ? 4 * phase : phase < 0.75 ? 2 - 4 * phase : 4 * phase - 4) : wave === 2 ? 2 * phase - 1 : (phase < 0.5 ? 1 : -1);
           rot += params[slots[SWEEP]] * v;
         }
+        // punch: look for an attack in this block; the image is pulled to the centre at once and opens again over punchTime
+        const punch = params[slots[PUNCH]];
+        let hit = false;
+        if (punch > 0) {
+          for (let i = 0; i < n; i++) {
+            const a = Math.abs(inL[i] + inR[i]) * 0.5;
+            fast += (a - fast) * fastK; slow += (a - slow) * (a > slow ? slowUp : slowDown);
+            if (!hot && fast > slow * 2 + 0.01) { hot = true; hit = true; }
+            else if (hot && fast < slow * 1.2 + 0.005) hot = false;
+          }
+          centre = hit ? 1 : centre * Math.exp(-n / (0.001 * params[slots[PUNCH_TIME]] * sampleRate));
+        } else centre = 0;
+        const open = 1 - punch * centre;   // 1: the full spread, 0: everything in the middle
         bandPans(shape, rot, custom, pans);
         // band k, with weight w and position p: left = bl*(1-w+0.5*w*gl) + br*0.5*w*gl; right = br*(1-w+0.5*w*gr) + bl*0.5*w*gr
         for (let k = 0; k < BANDS; k++) {
-          const p = Math.max(-1, Math.min(1, pans[k])), w = Math.min(1, Math.abs(p) * spread), a = (p + 1) * Math.PI / 4;
+          const p = Math.max(-1, Math.min(1, pans[k])), w = Math.min(1, Math.abs(p) * spread * open), a = (p + 1) * Math.PI / 4;
           const gl = Math.SQRT2 * Math.cos(a), gr = Math.SQRT2 * Math.sin(a);
           target[k * 4] = 1 - w + 0.5 * w * gl; target[k * 4 + 1] = 0.5 * w * gl;
           target[k * 4 + 2] = 0.5 * w * gr; target[k * 4 + 3] = 1 - w + 0.5 * w * gr;
         }
-        if (!started) { cur.set(target); started = true; } else for (let i = 0; i < cur.length; i++) cur[i] += (target[i] - cur[i]) * 0.3;
+        // (an attack moves the image at once, not over a few blocks)
+        if (!started || hit) { cur.set(target); started = true; } else for (let i = 0; i < cur.length; i++) cur[i] += (target[i] - cur[i]) * 0.3;
         // c_k are the gains of band k (LP_k - LP_k-1); folded onto LP_k: (c_k - c_k+1), the top band takes the input itself
         for (let k = 0; k <= BANDS - 1; k++) for (let j = 0; j < 4; j++) coef[k * 4 + j] = cur[k * 4 + j] - (k + 1 < BANDS ? cur[(k + 1) * 4 + j] : 0);
         for (let i = 0; i < n; i++) {

@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 765 · 2026-11-13
+
+- **Punch on the spectral panner.** A new `punch` slider (0 is off, and off is the default, so songs sound as before) pulls the stereo image back to the centre while an attack goes by, and `punchTime` (5 to 200 ms) sets how long it takes to open again. A kick whose pitch sweeps down through the panned bands used to split its click between left and right and sound crunchy: measured on a sweeping kick, the side level in the first 100 ms falls from about 0.2 to near 0 with punch at full. The attack is found by a fast and a slow level follower, with no added latency, and the image moves at once at the hit and then eases open.
+
 ## 764 · 2026-11-13
 
 - **Khufu: a string machine.** A new machine (Shift+I, synths, analogue): the `khufu` voice, the voices, then one `ensemble` for the whole chord, with 8 voices. The voice has three sawtooth registers an octave apart (`low`, `mid`, `high`), cut from one phase the way a divide-down organ makes its octaves, so they never drift; a low cut, a gentle low-pass (`tone`), a built-in vibrato, and a drawn amplitude envelope with a sustain knot that starts as a slow rise and a long release. Its panel shows the registers, each one and the sum, beside the amplitude drawing.

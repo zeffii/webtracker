@@ -11870,4 +11870,26 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   console.log('ok: khufu string machine');
 }
 
+{
+  // ---- spectral pan punch: an attack is pulled to the centre, then the image opens again over punchTime ----
+  const def = NODE_TYPES.specpan, sr2 = 48000, N = 9600;
+  const hit = Float32Array.from({ length: N }, (_, k) => (k < 20 ? 0 : 0.8 * Math.sin(2 * Math.PI * 1500 * k / sr2) * Math.exp(-k / 3000)));
+  const run = values => {
+    const params = Float32Array.from(def.params.map(q => values[q.name] ?? q.def)), slots = Int32Array.from(def.params.map((_, k) => k));
+    const node = def.create({ sampleRate: sr2 }), o = [new Float32Array(N), new Float32Array(N)];
+    for (let a = 0; a < N; a += 128) node.process([[hit.subarray(a, a + 128), hit.subarray(a, a + 128)]], [[o[0].subarray(a, a + 128), o[1].subarray(a, a + 128)]], 128, params, slots);
+    return o;
+  };
+  const side = (o, a, b) => { let m = 0; for (let i = a; i < b; i++) m = Math.max(m, Math.abs(o[0][i] - o[1][i]) / 2); return m; };
+  const wide = { spread: 1, lowMono: 20 }, off = run(wide), p1 = run({ ...wide, punch: 1, punchTime: 200 }), quick = run({ ...wide, punch: 1, punchTime: 5 });
+  assert.ok(side(off, 0, 480) > 0.2, 'without punch the attack is wide');
+  assert.ok(side(p1, 0, 480) < 0.05 * side(off, 0, 480), 'with punch the attack stays in the middle');
+  assert.ok(side(quick, 1920, 3840) > 0.8 * side(off, 1920, 3840), 'a short punchTime lets the image open again soon');
+  assert.ok(side(p1, 1920, 3840) < 0.3 * side(off, 1920, 3840), 'a long one holds it');
+  const again = run(wide);
+  assert.deepEqual(Array.from(again[0].slice(0, 2000)), Array.from(off[0].slice(0, 2000)), 'punch 0 changes nothing');
+  assert.equal(def.params.find(q => q.name === 'punch').def, 0, 'punch is off by default');
+  console.log('ok: specpan punch');
+}
+
 console.log('smoke test passed');

@@ -97,7 +97,7 @@ const TYPE_UNIT = {
   chord: { strum: 'ms', level: '' },
   listen: { transpose: 'st', level: '' },
   freqshift: { shift: 'Hz' },
-  specpan: { lowMono: 'Hz', rotate: '', spread: '%', mix: '%', rate: 'Hz', sweep: '', wave: ['sine', 'triangle', 'saw', 'square'] },
+  specpan: { lowMono: 'Hz', rotate: '', spread: '%', mix: '%', rate: 'Hz', sweep: '', punch: '%', punchTime: 'ms', wave: ['sine', 'triangle', 'saw', 'square'] },
 };
 for (const k of [1, 2, 3, 4]) {
   Object.assign(TYPE_UNIT.fmsynth, { [`ratio${k}`]: 'x', [`fine${k}`]: 'ct', [`atk${k}`]: 'ms', [`dec${k}`]: 'ms', [`rel${k}`]: 'ms' });

@@ -460,6 +460,8 @@ const HINTS = {
     wave: 'The motion\'s shape: sine and triangle sway, saw is a steady drift round the bands, square jumps between two positions.',
     lowMono: 'Everything below this frequency is made mono, which keeps kick and bass solid in the middle and safe on any speaker system.',
     mix: 'Dry/wet balance.',
+    punch: 'Keeps attacks tight: while a hit goes by (a kick, a snare) the stereo image is pulled back to the centre, then opens again. Without it the click of a sweeping kick can split left and right and sound crunchy. 0 is off.',
+    punchTime: 'How long, in ms, the image takes to open again after an attack. Short keeps only the click in the middle, long keeps the whole body of the hit centred.',
     b1: 'Pan position of this band (b1 lowest, b10 highest), used by the custom shape: -1 left, 0 where it is, 1 right.',
   },
   blur: {
