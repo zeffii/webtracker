@@ -232,7 +232,7 @@ export const MACHINE_TREE = [
   { name: 'samplers', items: [['sampler', 'Sampler'], ['modchan', 'MOD channel']] },
   { name: 'synths', groups: [
     { name: 'analogue', items: [['subtractive', 'Subtractive'], ['fourpole', 'Fourpole'], ['oberheim', 'Oberheim-style'], ['squelch', 'Squelch'], ['duette', 'Duette'], ['cardinal', 'Cardinal'], ['snarl', 'Snarl']] },
-    { name: 'digital', items: [['fm', 'FM synth'], ['dvii', 'DVIIloader'], ['wavetable', 'Wavetable'], ['pulsar', 'Pulsar'], ['additive', 'Additive'], ['spectral', 'Spectral'], ['granular', 'Granular']] },
+    { name: 'digital', items: [['fm', 'FM synth'], ['dvii', 'DVIIloader'], ['wavetable', 'Wavetable'], ['pulsar', 'Pulsar'], ['compass', 'Compass'], ['additive', 'Additive'], ['spectral', 'Spectral'], ['granular', 'Granular']] },
     { name: 'physical', items: [['piano', 'Piano'], ['string', 'Plucked string'], ['jawharp', 'Jaw harp']] },
   ] },
   { name: 'drums', groups: [
@@ -387,6 +387,29 @@ export const synthKinds = {
         { id: 0x05, node: 'synth', param: 'pwm' },
         { id: 0x06, node: 'synth', param: 'sweep' },
         { id: 0x07, node: 'synth', param: 'detune' },
+        { id: 0x08, node: 'synth', param: 'glide' },
+      ],
+    }),
+  },
+  compass: {
+    label: 'Compass (vector synth)',
+    make: () => ({
+      graph: { nodes: [{ id: 'synth', type: 'compass' }, { id: 'poly', type: 'voices' }, { id: 'out', type: 'out', params: { gain: 0.5 } }], connections: [['synth.out', 'poly.in'], ['poly.out', 'out.in']], voices: 6 },
+      noteColumns: 2,
+      exposed: [
+        { node: 'synth', param: 'x', label: 'X' },
+        { node: 'synth', param: 'y', label: 'Y' },
+        { node: 'synth', param: 'cutoff', label: 'Cut', scale: 'log' },
+        { node: 'synth', param: 'rate', label: 'Rat', scale: 'log' },
+      ],
+      commands: [
+        { id: 0x01, node: 'synth', param: 'x' },
+        { id: 0x02, node: 'synth', param: 'y' },
+        { id: 0x03, node: 'synth', param: 'path' },
+        { id: 0x04, node: 'synth', param: 'pathms', scale: 'log' },
+        { id: 0x05, node: 'synth', param: 'rate', scale: 'log' },
+        { id: 0x06, node: 'synth', param: 'cutoff', scale: 'log' },
+        { id: 0x07, node: 'synth', param: 'res' },
         { id: 0x08, node: 'synth', param: 'glide' },
       ],
     }),

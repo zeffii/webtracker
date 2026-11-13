@@ -2,6 +2,13 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 762 · 2026-11-13
+
+- **Compass: a vector synth with wave sequencing.** A new machine (Shift+I, synths, digital) and node. Four lanes, A B C and D, sit at the points of a diamond; a position on the diamond says how much of each is heard, and a path you draw moves it after each note starts (once, loop, or back and forth, one trip in `pathms`). Each lane is a wave sequence: a row of up to 16 steps, each a wave from a bank of 256 held for a number of song ticks, with its own crossfade, pitch and level. One step is a plain oscillator; lanes of different lengths drift against each other. `x` and `y` shift the mix and can be written from a pattern. A resonant low-pass with its own drawn envelope, a drawn amplitude envelope with a sustain knot, detune and stereo width. It starts plain: a sine, a saw, a square and a triangle, and a tour of the four points. The waves are band-limited per pitch, so high notes stay clean; a voice costs less than a Cardinal voice.
+- **Its panel**, in one row: the diamond (click adds a point, drag moves it, right-click removes it, drag the marks on the time bar to share out the time, drag the + to shift the path), the four wave sequences on one tick scale (click a step, drag it up or down for another wave, drag its right edge for its length, and drag the numbers under the rows for wave, length, fade, pitch and level), then the amplitude and filter drawings. Mouse only: the piano keys keep playing.
+- **The blocks, as nodes of their own:** `waveseq` (one wave sequence as an oscillator), `vecmix` (four inputs mixed by a position on the diamond, with x and y inputs) and `vecpath` (the drawn path as two control outputs, x and y).
+- For the code: `bezierenv.js` plays a drawn envelope from notes (sustain knot, release, click-free retrigger) so other synths can take drawings in place of an ADSR; `wavebank.js` holds the band-limited waves; `dragnumber.js` is a number you drag.
+
 ## 761 · 2026-11-13
 
 - **Open a song from a gist, by id.** `?gist=ID` in the address opens the first .wax file of a public gist (add `&file=NAME` to pick another); `?src=URL` opens a link to any .wax file that allows other sites to read it (raw.githubusercontent.com and the like). File, **Open from link...** takes the same things typed or pasted: a bare gist id, a gist address, or a file link. No sign-in is needed for public gists. A gist that is not a Wax project, a missing gist and a rate-limited GitHub each give a short message, and the song you had stays open.

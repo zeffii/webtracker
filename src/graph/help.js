@@ -79,6 +79,26 @@ export const PAGES = {
     best: ['Track on, ratio 1 doubles the overtones; 0.5 and 2 give octaves; 1.5 a fifth. Add a few Hz of offset for a bell.', 'Track off is the classic ring modulator with a fixed carrier: low carriers (20 to 100 Hz) give a growl, high ones a metallic shimmer.', 'depth under 1 blends the carrier in as a tremolo.'],
     limits: ['The pitch is found by counting zero crossings: good for a single voice, poor on chords and noise (it falls back to freq).', 'The carrier slides to a new pitch over a few milliseconds.'],
   },
+  compass: {
+    summary: 'A vector synth with wave sequencing. Four lanes, A B C and D, sit at the points of a diamond, and a position on the diamond says how much of each is heard. A path you draw moves that position after each note starts. Each lane is a row of steps: a wave from a bank of 256, held for a number of song ticks and crossfaded into the next, so a lane can be one plain wave or a rhythm of changing timbres locked to the song.',
+    best: ['Start with one step per lane and four different waves, and draw the path: that is the classic slow morph between four sounds.', 'Add steps to one lane only, with short fades, for a rhythm that comes and goes as the path passes that corner.', 'Lanes of different lengths drift against each other: 3, 4 and 5 ticks take 60 ticks to line up again.', 'A step can be transposed: an octave or a fifth on a few steps turns a lane into a small arpeggio.', 'Write x and y from the pattern to play the mix by hand; set path to 0 to switch the drawn path off.', 'A few cents of detune and some width make the four lanes one wide sound.'],
+    limits: ['Monophonic: the last note wins (put it in front of voices for chords).', 'The waves are the 256 of the shared bank; your own waves cannot be loaded yet.', 'The steps are timed in song ticks, so the sequences change speed with the tempo.', 'The mix moves once per block of samples and slides in between, which is smooth enough for a path or an LFO but not for audio-rate modulation of x and y.'],
+  },
+  waveseq: {
+    summary: 'One wave sequence on its own: a row of steps, each a wave from the bank held for a number of song ticks and crossfaded into the next. It is one of the four sources inside the compass synth.',
+    best: ['Use four of them into a vecmix for a vector synth of your own, with a filter or an effect on each source.', 'With a single step it is a clean oscillator with 256 waves to pick from.', 'Give it an envelope and a gain after it: on its own it sounds until the note is cut.'],
+    limits: ['Silent until the first note, like osc.', 'Each note starts the sequence again from its first step.'],
+  },
+  vecmix: {
+    summary: 'Mixes four sounds by one position on a diamond: a at the left point, b at the top, c at the right, d at the bottom. In the middle a quarter of each is heard; the four shares always add up to 1. It is the mixer inside the compass synth.',
+    best: ['Wire a vecpath into x and y for a drawn movement, or two LFOs at different speeds for one that never repeats.', 'It mixes anything: four samplers, four filters fed by the same sound, four effect sends.'],
+    limits: ['Mono: a stereo sound wired in is mixed down.', 'The position is read once per block of samples and the mix slides to it.'],
+  },
+  vecpath: {
+    summary: 'A control source that travels a drawn path across a diamond after each note starts, and puts out where it is as x and y. It is the path inside the compass synth.',
+    best: ['Wire x and y into a vecmix.', 'Use only one of the outputs as a drawn, multi-stage modulation for a cutoff or a pitch.'],
+    limits: ['x and y run from -1 to 1; a parameter port wants 0 to 1, so put a range node in between for those.'],
+  },
   pulsar: {
     summary: 'Pulsar synthesis: a short burst of waveform, the pulsaret, fired over and over. The note sets how often it fires and the formant sets how fast the burst plays, so pitch and colour are two separate controls. A drawn window shapes each burst.',
     best: ['Raise the formant against a fixed note for a vowel-like sweep; draw the sweep so each note opens and settles.', 'A formant below the pitch leaves silence between bursts (a clicky, rhythmic tone); above it the bursts fill the period (a thick, formant-rich tone).', 'mask and jitter break the train up into glitches; scatter spreads the bursts across the stereo field.', 'Draw a sharp-cornered window for a harsher sound, a soft hump for a smooth one.'],

@@ -1073,6 +1073,16 @@
     .bezier-edit canvas { display: block; border: 0; background: none; cursor: crosshair; max-width: 100%; }
     .curve-editor.drum2 canvas { display: block; border: 0; background: none; cursor: crosshair; max-width: 100%; }   /* the drawings sit straight on the page */
     .curve-editor.drum2 > canvas { cursor: default; }
+    /* the vector nodes (compassview.js): the diamond, the wave sequences, and numbers you drag */
+    .curve-editor.drum2.compass-panel > canvas, .compass-panel .vector-pad, .compass-panel .waveseq-pad { display: block; border: 0; background: none; max-width: none; }
+    .compass-panel .vector-pad { cursor: crosshair; }
+    .compass-panel .vector-block .bezier-tip { max-width: 240px; }
+    .waveseq-fields { align-items: baseline; gap: .1rem 1.2rem; margin-top: .35rem; }
+    .waveseq-name { font-weight: 600; min-width: 2.2em; }
+    .drag-number { cursor: ns-resize; user-select: none; touch-action: none; white-space: nowrap; }
+    .drag-number-label { opacity: .5; margin-right: .4em; }
+    .drag-number-value { display: inline-block; min-width: 3.2em; border-bottom: 1px dotted color-mix(in srgb, currentColor 40%, transparent); }
+    .drag-number:hover .drag-number-value { color: hsl(35 80% 55%); border-bottom-color: currentColor; }
     .bezier-tip { opacity: .35; font-size: 10px; max-width: 520px; margin: .2rem 0 0 8px; }
     .osc-wave-row { display: flex; flex-wrap: wrap; gap: .1rem .9rem; margin: .2rem 0 0 8px; font-size: 11px; }
     .osc-wave-row button { font: inherit; background: none; border: 0; padding: 0; color: inherit; opacity: .6; cursor: pointer; }

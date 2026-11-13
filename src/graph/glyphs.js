@@ -340,6 +340,27 @@ export const GLYPHS = {
     line(ctx, [[x(0), y(0.08)], [x(0.15), y(0.08)], [x(0.15), y(0.45)], [x(0.7), y(0.45)], [x(0.7), y(0.08)], [x(1), y(0.08)]]);
     line(ctx, [[x(0.15), y(0.55)], [x(0.15), y(0.95)]]); line(ctx, [[x(0.1), y(0.85)], [x(0.15), y(0.95)], [x(0.2), y(0.85)]]);
   },
+  compass: (ctx, cx, cy, w, h) => {   // the diamond, with a path across it
+    const r = Math.min(w, h) / 2;
+    line(ctx, [[cx - r, cy], [cx, cy - r], [cx + r, cy], [cx, cy + r], [cx - r, cy]]);
+    line(ctx, [[cx - r * 0.55, cy + r * 0.1], [cx - r * 0.1, cy - r * 0.45], [cx + r * 0.35, cy + r * 0.2], [cx + r * 0.05, cy + r * 0.5]]);
+  },
+  vecmix: (ctx, cx, cy, w, h) => {   // the diamond, with the + that sets the mix
+    const r = Math.min(w, h) / 2, px = cx + r * 0.2, py = cy - r * 0.15, arm = r * 0.22;
+    line(ctx, [[cx - r, cy], [cx, cy - r], [cx + r, cy], [cx, cy + r], [cx - r, cy]]);
+    line(ctx, [[px - arm, py], [px + arm, py]]); line(ctx, [[px, py - arm], [px, py + arm]]);
+  },
+  vecpath: (ctx, cx, cy, w, h) => {   // a path through a few points
+    const r = Math.min(w, h) / 2, pts = [[cx - r * 0.9, cy + r * 0.3], [cx - r * 0.3, cy - r * 0.6], [cx + r * 0.3, cy + r * 0.4], [cx + r * 0.9, cy - r * 0.3]];
+    line(ctx, pts);
+    for (const [x, y] of pts) { ctx.beginPath(); ctx.arc(x, y, Math.max(1, r * 0.1), 0, 7); ctx.stroke(); }
+  },
+  waveseq: (ctx, cx, cy, w, h) => {   // three different waves in a row: a sine, a saw, a square
+    const x = f => cx - w / 2 + f * w, y = f => cy + h / 2 - f * h;
+    curve(ctx, x(0.15), cy, w * 0.3, h * 0.8, t => Math.sin(t * Math.PI * 2), 14);
+    line(ctx, [[x(0.36), y(0.1)], [x(0.64), y(0.9)], [x(0.64), y(0.1)]]);
+    line(ctx, [[x(0.7), y(0.1)], [x(0.7), y(0.9)], [x(0.85), y(0.9)], [x(0.85), y(0.1)], [x(1), y(0.1)]]);
+  },
   pulsar: (ctx, cx, cy, w, h) => {   // short bursts, each under its own hump, with silence between
     for (let b = 0; b < 3; b++) {
       const x0 = cx - w / 2 + (b + 0.1) * w / 3, bw = w / 3 * 0.55;

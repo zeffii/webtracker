@@ -23,6 +23,7 @@ import { createDrumView } from './drumview.js';
 import { createDrum2View } from './drum2view.js';
 import { createHat2View } from './hat2view.js';
 import { createPulsarView } from './pulsarview.js';
+import { createCompassView } from './compassview.js';
 import { createKaleidoscopeView } from './kaleidoscopeview.js';
 import { createReflectView } from './reflectview.js';
 import { createHeadView } from './headview.js';
@@ -194,6 +195,7 @@ const toValue = (spec, pos) => {
 };
 const toPos = (spec, v) => (isLog(spec) ? Math.log(v / spec.min) / Math.log(spec.max / spec.min) : (v - spec.min) / (spec.max - spec.min));
 const fmt = v => String(Number(v.toPrecision(4)));
+const VECTOR_EDITORS = new Set(['compass', 'waveseq', 'vecmix', 'vecpath']);   // the node panels made by compassview.js
 
 export function createPatcher({ getTiming = () => null, onHelp = () => {}, canvas, panel, toolsEl = null, paramPanel = null, exposedDock = null, floatDock = null, onScope = () => {}, onEscape = () => {}, statusEl, doc = document, nodeTypes, onStructure, onParam, onData = () => {}, onContext = () => {}, onNote = () => {}, getSampleIds = () => [], getSample = () => null, getGrainSource = () => null, readLive = () => undefined }) {
   let oscWave = null;       // the drawn wave of an oscillator, dimmed unless its wave is 'drawn'
@@ -210,6 +212,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
   let kalView = null;       // the spectrum in, the spectrum out and the band of a kaleidoscope
   let hat2View = null;      // the two drawn volumes of Hi-hat 2
   let pulsarView = null;    // the pulse train and the drawings of the pulsar nodes
+  let compassView = null;   // the diamond, the wave sequences and the drawings of the vector nodes
   let drum2View = null;     // the three drawn envelopes of drum synth 2 and the hit they make
   let drumView = null;      // the envelopes, the click and the composed root note of a drum synth, redrawn when its parameters move
   let canyonView = null;    // the echoes of a Prisma Canyon against the song's ticks, redrawn when its parameters move
@@ -376,6 +379,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
         if (type.editor === 'env2') env2Editor?.refresh();
         if (type.editor === 'hat2') hat2View?.refresh();
         if (type.editor === 'pulsar' || type.editor === 'pulsetrain') pulsarView?.refresh();
+        if (VECTOR_EDITORS.has(type.editor)) compassView?.refresh();
         if (type.editor === 'kaleidoscope') kalView?.refresh();
         spaceView?.refresh();
         if (type.editor === 'cardinal') cardinalView?.refresh();
@@ -900,6 +904,25 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
         },
       });
       items.splice(1, 0, sub(pulsarView.el));
+    }
+    compassView = null;
+    if (VECTOR_EDITORS.has(type.editor)) {   // the diamond and its path, the wave sequences and the two drawings: kept on the node and sent live
+      const param = name => readLive(instId, node.id, name) ?? node.params?.[name] ?? type.params.find(p => p.name === name)?.def ?? 0;
+      compassView = createCompassView({
+        doc, kind: type.editor, data: node.data ?? {}, getParam: param,
+        setParam: (name, value) => { setParam(desc(), node.id, name, value); onParam(instId, node.id, name, value); paramView?.refresh(); },
+        onData: (kind, value) => {
+          if (kind.startsWith('env.')) {
+            const slot = kind.slice(4);
+            node.data = { ...node.data, env: { ...node.data?.env, [slot]: value } };
+            onData(instId, node.id, { type: 'env', slot, points: value });
+          } else {
+            node.data = { ...node.data, [kind]: value };
+            onData(instId, node.id, { type: kind, points: value });
+          }
+        },
+      });
+      items.splice(1, 0, sub(compassView.el));
     }
     drumView = null;
     if (type.editor === 'drumsynth') {   // the envelopes, the click and the composed note, drawn from the parameters and the click sample

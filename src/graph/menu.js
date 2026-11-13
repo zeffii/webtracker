@@ -9,9 +9,9 @@ import { popups } from '../ui/kit/popups.js';
 // How the nodes of a category are grouped. A node that is not listed here still shows up, at the end of its category.
 const GROUPS = {
   Sources: [
-    ['Synths', ['subsynth', 'pulsar', 'fourpole', 'oberheim', 'piano', 'addsynth', 'fmsynth', 'dvii', 'wavetable', 'granular', 'woodblock', 'jawharp', 'snarl', 'clang', 'membrane', 'drumsynth', 'drumsynth2', 'cardinal', 'specsynth', 'string', 'hat808', 'hat2', 'bongo', 'clap', 'combperc', 'squelch', 'duette', 'modchan', 'westcoast']],
-    ['Basic', ['osc', 'pulsetrain', 'noise', 'sampler']],
-    ['Modulators', ['env', 'env2', 'lfo', 'random']],
+    ['Synths', ['subsynth', 'pulsar', 'fourpole', 'oberheim', 'piano', 'addsynth', 'fmsynth', 'dvii', 'wavetable', 'granular', 'woodblock', 'jawharp', 'snarl', 'clang', 'membrane', 'drumsynth', 'drumsynth2', 'cardinal', 'specsynth', 'string', 'hat808', 'hat2', 'bongo', 'clap', 'combperc', 'squelch', 'duette', 'modchan', 'westcoast', 'compass']],
+    ['Basic', ['osc', 'pulsetrain', 'waveseq', 'noise', 'sampler']],
+    ['Modulators', ['env', 'env2', 'lfo', 'random', 'vecpath']],
     ['Routing', ['sidechain', 'listen', 'bus-in']],
   ],
   Effects: [

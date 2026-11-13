@@ -11664,4 +11664,122 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   console.log('ok: open from link');
 }
 
+// Vector synthesis and wave sequencing: the compass synth and its blocks (waveseq, vecmix, vecpath).
+{
+  const { diamondWeights, pathAt, cleanPath, cleanLanes, LanePlayer, DEFAULT_PATH, MAX_STEPS } = await import('../src/audio/nodes/vectorcore.js');
+  const { waveCopies, levelFor, HARMONICS } = await import('../src/audio/nodes/wavebank.js');
+  const { BezierEnvelope } = await import('../src/audio/nodes/bezierenv.js');
+  const sr = 48000, near = (a, b, tol = 1e-6) => Math.abs(a - b) <= tol;
+  const peak = (x, a = 0, b = x.length) => { let m = 0; for (let i = a; i < b; i++) m = Math.max(m, Math.abs(x[i])); return m; };
+
+  // the diamond: one source at each point, a quarter of each in the middle, and the shares always add up to 1
+  const w = new Float32Array(4);
+  assert.deepEqual([...diamondWeights(-1, 0, w)], [1, 0, 0, 0], 'A is the left point');
+  assert.deepEqual([...diamondWeights(0, 1, w)], [0, 1, 0, 0], 'B is the top');
+  assert.deepEqual([...diamondWeights(1, 0, w)], [0, 0, 1, 0], 'C is the right point');
+  assert.deepEqual([...diamondWeights(0, -1, w)], [0, 0, 0, 1], 'D is the bottom');
+  assert.deepEqual([...diamondWeights(0, 0, w)], [0.25, 0.25, 0.25, 0.25]);
+  for (const [x, y] of [[0.3, -0.2], [1, 1], [-0.7, 0.9]]) { diamondWeights(x, y, w); assert.ok(near(w[0] + w[1] + w[2] + w[3], 1, 1e-5) && w.every(v => v >= -1e-6), `shares at ${x}, ${y}`); }
+
+  // the path: once stops at the end, loop comes back to the start, back and forth returns the way it came
+  const path = cleanPath([{ x: -1, y: 0, d: 1 }, { x: 0, y: 1, d: 1 }, { x: 1, y: 0, d: 3 }]), at = [0, 0];
+  assert.deepEqual(pathAt(path, 0, 0, at), [-1, 0]);
+  assert.deepEqual(pathAt(path, 0, 0.25, at), [0, 1], 'a stretch takes its share of the trip (1 of 4)');
+  assert.deepEqual(pathAt(path, 0, 5, at), [1, 0], 'once: it stays at the last point');
+  assert.ok(near(pathAt(path, 1, 0.2, at)[0], 0) && near(at[1], 1), 'loop: the way back to the first point is a stretch too (1 of 5)');
+  assert.ok(near(pathAt(path, 1, 0.999999, at)[0], -1, 1e-3), 'loop: it ends where it began');
+  assert.ok(near(pathAt(path, 2, 1.75, at)[0], 0) && near(at[1], 1), 'back and forth: the same points on the way back');
+  assert.equal(cleanPath('junk').length, DEFAULT_PATH().length);
+  assert.ok(Math.abs(cleanPath([{ x: 1, y: 1 }])[0].x) + Math.abs(cleanPath([{ x: 1, y: 1 }])[0].y) <= 1.000001, 'a point outside the diamond is pulled onto it');
+
+  // lanes: stored steps are cleaned, and a player walks them in ticks
+  assert.equal(cleanLanes(null).length, 4);
+  assert.equal(cleanLanes([Array.from({ length: 40 }, () => ({ w: 999, len: 0 }))])[0].length, MAX_STEPS);
+  assert.deepEqual(cleanLanes([[{ w: 999, len: 0, fade: 5, semi: 99, lvl: -1 }]])[0][0], { w: 255, len: 1, fade: 1, semi: 24, lvl: 0 });
+  const player = new LanePlayer(0);
+  player.setSteps(cleanLanes([[{ w: 1, len: 2 }, { w: 2, len: 1 }, { w: 3, len: 1 }]])[0]); player.start(); player.tune(220 / sr);
+  const seen = [];
+  for (let tick = 0; tick < 9; tick++) { seen.push(player.index); for (let i = 0; i < 100; i++) player.next(1, 0.01); }
+  assert.deepEqual(seen, [0, 0, 1, 2, 0, 0, 1, 2, 0], 'loop: the steps keep their lengths');
+  player.start(); const once = [];
+  for (let tick = 0; tick < 6; tick++) { once.push(player.index); for (let i = 0; i < 100; i++) player.next(0, 0.01); }
+  assert.deepEqual(once, [0, 0, 1, 2, 2, 2], 'once: it stays on the last step');
+
+  // the wave bank: darker copies higher up the keyboard, so nothing folds back
+  assert.equal(waveCopies(172).length, HARMONICS.length);
+  assert.equal(levelFor(55 / sr), 0, 'a low note plays the brightest copy');
+  assert.ok(HARMONICS[levelFor(4000 / sr)] * 4000 < sr / 2, 'a high note plays a copy whose harmonics fit');
+
+  // a drawn envelope with a sustain knot waits there, and plays on to the end after the note
+  const env = new BezierEnvelope(sr, () => [{ x: 0, y: 0, l: null, r: [0, 0] }, { x: 0.5, y: 0.6, l: [0, 0], r: [0, 0], s: true }, { x: 1, y: 0, l: [0, 0], r: null }]);
+  env.setTime(100); assert.ok(env.idle); env.on();
+  let v = 0; for (let i = 0; i < sr * 0.2; i++) v = env.next();
+  assert.ok(near(v, 0.6, 1e-3) && !env.idle, 'it waits at the knot');
+  env.off(); for (let i = 0; i < sr * 0.06; i++) v = env.next();
+  assert.ok(near(v, 0, 1e-3) && env.idle, 'and ends after the release');
+
+  // the synth itself
+  const play = (type, values = {}, { data, secs = 0.5, note = 57, off = null, connected } = {}) => {
+    const def = NODE_TYPES[type], params = Float32Array.from(def.params.map(p => values[p.name] ?? p.def)), slots = Int32Array.from(def.params.map((_, i) => i));
+    const node = def.create({ sampleRate: sr, connected: connected ?? def.inputs.map(() => false), maxBlock: 128, data, clock: { tickSamples: sr / 8 } });
+    node.note({ type: 'noteOn', note, vel: 1 });
+    const N = Math.floor(sr * secs / 128) * 128, L = new Float32Array(N), R = new Float32Array(N), l = new Float32Array(128), r = new Float32Array(128);
+    const stereo = def.kinds?.out === 'stereo';
+    for (let i = 0; i < N; i += 128) {
+      if (off !== null && i <= off * sr && off * sr < i + 128) node.note({ type: 'noteOff' });
+      node.process([], def.outputs.length > 1 ? [l, r] : stereo ? [[l, r]] : [l], 128, params, slots);
+      L.set(l, i); R.set(stereo || def.outputs.length > 1 ? r : l, i);
+    }
+    return { L, R, node };
+  };
+  const one = wave => [{ w: wave, len: 4, fade: 0.5, semi: 0, lvl: 1 }];
+  const a = play('compass', {}, { secs: 2, off: 0.5 });
+  assert.ok(a.L.every(Number.isFinite) && peak(a.L) > 0.05 && peak(a.L) < 1.5, `compass level ${peak(a.L)}`);
+  assert.ok(peak(a.L, sr * 1.6) < 1e-4 && !a.node.busy, 'the note ends after its release');
+  // at a point of the diamond only that lane is heard: silence it and the synth is silent
+  const still = [{ x: 0, y: 0, d: 1 }], quietA = [[{ ...one(176)[0], lvl: 0 }], one(172), one(173), one(179)];
+  assert.ok(peak(play('compass', { x: -1 }, { data: { lanes: quietA, path: still } }).L) < 1e-4, 'at A only lane A sounds');
+  assert.ok(peak(play('compass', { x: 1 }, { data: { lanes: quietA, path: still } }).L) > 0.05);
+  // width moves A left and C right
+  const left = play('compass', { x: -1, width: 1 }, { data: { path: still } });
+  assert.ok(peak(left.L) > 10 * peak(left.R), 'width puts A on the left');
+  const mono = play('compass', { x: -1, width: 0 }, { data: { path: still } });
+  assert.ok(near(peak(mono.L), peak(mono.R), 1e-4));
+  // the path moves the mix: with lane A silent, the tour starts quiet (at A) and gets loud
+  const tour = play('compass', { pathms: 1000, width: 0 }, { secs: 0.6, data: { lanes: quietA } });
+  assert.ok(peak(tour.L, 0, 600) < 0.03 && peak(tour.L, sr * 0.25, sr * 0.3) > 0.1, 'the path travels from A towards B');
+  // a wave sequence changes the sound over time without a click bigger than the waves themselves
+  const seq = [[{ w: 176, len: 1, fade: 0, semi: 0, lvl: 1 }, { w: 176, len: 1, fade: 0, semi: 12, lvl: 1 }], one(172), one(173), one(179)];
+  const stepped = play('compass', { x: -1, level: 1, vel: 0 }, { secs: 0.5, note: 45, data: { lanes: seq, path: still } });
+  const crossings = (x, from, to) => { let n = 0; for (let i = from + 1; i < to; i++) if (x[i - 1] < 0 && x[i] >= 0) n++; return n; };
+  const first = crossings(stepped.L, sr * 0.02, sr * 0.12), second = crossings(stepped.L, sr * 0.135, sr * 0.235);
+  assert.ok(Math.abs(second / first - 2) < 0.15, `the second step is an octave up (${first}, ${second})`);
+  let jump = 0; for (let i = 1; i < stepped.L.length; i++) jump = Math.max(jump, Math.abs(stepped.L[i] - stepped.L[i - 1]));
+  assert.ok(jump < 0.2, `a step that switches at once does not click (${jump})`);
+  // drawings and steps arrive as messages
+  const live = play('compass', { x: -1 }, { data: { path: still } });
+  live.node.message({ type: 'lanes', points: quietA }); live.node.message({ type: 'path', points: still }); live.node.message({ type: 'env', slot: 'amp', points: null }); live.node.message({ type: 'env', slot: 'filter', points: null });
+  // the filter closes the sound
+  const open = play('compass', { x: 0, y: 1 }, { data: { path: still } }), shut = play('compass', { x: 0, y: 1, cutoff: 200 }, { data: { path: still } });
+  const rough = x => { let s = 0; for (let i = 4801; i < x.length; i++) s += Math.abs(x[i] - x[i - 1]); return s; };
+  assert.ok(rough(shut.L) < 0.4 * rough(open.L), 'a low cutoff takes the edges off the saw');
+
+  // the blocks
+  const ws = play('waveseq', {}, { note: 69 });
+  assert.ok(peak(ws.L) > 0.3 && Math.abs(crossings(ws.L, 0, sr * 0.25) - 110) <= 2, 'waveseq plays the note');
+  const vp = play('vecpath', { pathms: 400, pmode: 0 }, { secs: 0.5 });
+  assert.ok(near(vp.L[0], -1, 0.05) && near(vp.L.at(-1), 0, 0.01) && near(vp.R.at(-1), -1, 0.01), 'vecpath goes from the first point to the last');
+  {
+    const def = NODE_TYPES.vecmix, params = Float32Array.from([1, 0, 1]), slots = Int32Array.from([0, 1, 2]);
+    const node = def.create({ sampleRate: sr, connected: [true, true, true, true, false, false] });
+    const ins = [1, 2, 3, 4].map(v => new Float32Array(128).fill(v)), out = new Float32Array(128);
+    node.process([...ins, null, null], [out], 128, params, slots);
+    assert.ok(near(out[127], 3, 1e-5), 'vecmix at the right point passes c');
+    params[0] = 0; node.process([...ins, null, null], [out], 128, params, slots);
+    assert.ok(near(out[127], 2.5, 1e-4), 'in the middle a quarter of each');
+  }
+  assert.ok(synthKinds.compass && NODE_TYPES.compass.generator, 'compass is a machine you can add');
+  console.log('ok: vector synth');
+}
+
 console.log('smoke test passed');
