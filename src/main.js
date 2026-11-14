@@ -41,10 +41,10 @@ import { poolId, isPool, ensurePool, usersOfSample } from './project/ops.js';
 import { idFromName, uniqueId, addLane, addSample, replaceSample, addSamplerInstrument, addSynthInstrument, channelsOf, sampleMessage, slotsOf, syncSamplerStereo } from './project/ops.js';
 import { MASTER, SHADER, GRAPH, ensureMaster, synthKinds } from './instruments.js';
 import { createMetaEditor } from './ui/metaeditor.js';
-import { playedBy } from './graph/sidechain.js';
 import { createStreams } from './ui/streams.js';
 import { createNodeSeqEditor } from './nodeseq/editor.js';
 import { ensureGraph, cleanGraph } from './nodeseq/graphops.js';
+import { resolveNodeseq, metaSourcesOf, nodeseqMessage } from './nodeseq/resolve.js';
 import { createSampleScreen } from './project/samplescreen.js';
 import { createWaveformView } from './project/waveform.js';
 import { sampleToWav } from './project/samplewav.js';
@@ -2072,27 +2072,9 @@ keys.bind('Ctrl+Alt+KeyE', () => streams.toggle(), { name: 'Streams' });
 const nsSkip = new Set([MASTER, SHADER, GRAPH]);
 const nsNotes = () => Object.entries(project?.instruments ?? {}).filter(([id, d]) => !nsSkip.has(id) && (d.noteColumns ?? 1) > 0).map(([id]) => ({ value: id, label: id }));
 const nsParams = () => Object.entries(project?.instruments ?? {}).filter(([id]) => !nsSkip.has(id)).flatMap(([id, d]) => (d.exposed ?? []).map(e => ({ value: `${id}.${e.node}.${e.param}`, label: e.label ?? e.param, group: id })));
-// What the names in the graph mean on this machine: a `set` node's parameter slot and range, and the slots of the eight group columns.
-function nsResolve() {
-  const g = project?.song.nodeseq, slots = {}, reg = engine.registry;
-  for (const n of g?.nodes ?? []) {
-    if (n.type !== 'set' || !n.data?.target) continue;
-    const slot = reg.slots.get(n.data.target);
-    if (slot === undefined) continue;
-    const [inst, node, param] = n.data.target.split('.'), ex = project.instruments[inst]?.exposed?.find(e => e.node === node && e.param === param), m = reg.meta[slot];
-    slots[n.id] = { slot, min: m.min, max: m.max, int: !!m.int, log: ex?.scale === 'log' && m.min > 0 };
-  }
-  return { slots, groupSlots: Array.from({ length: 8 }, (_, i) => reg.slots.get(`${GRAPH}.g.g${i + 1}`) ?? -1) };
-}
-const nsEmpty = { sub: 4, groups: [], nodes: [], wires: [] };
-// Which machines each meta machine plays, for the sidechain nodes that listen to a meta machine (they hear those machines added together).
-function pushMetaSources() {
-  if (!project || !engine.node) return;
-  const map = {};
-  for (const [id, def] of Object.entries(project.instruments)) { const played = playedBy(def, id).filter(t => t in project.instruments); if (played.length) map[id] = played; }
-  engine.setMetaSources(map);
-}
-function nsPush() { if (!project || !engine.node) return; pushMetaSources(); engine.setNodeseq(JSON.parse(JSON.stringify(project.song.nodeseq ?? nsEmpty)), nsResolve()); }
+// What the engine is told about the graph is worked out in nodeseq/resolve.js (the offline tools use the same functions).
+function pushMetaSources() { if (project && engine.node) engine.setMetaSources(metaSourcesOf(project)); }
+function nsPush() { if (!project || !engine.node) return; pushMetaSources(); engine.setNodeseq(nodeseqMessage(project), resolveNodeseq(project, engine.registry)); }
 function nsFlags() { if (engine.node) engine.nodeseqFlags({ watch: tabs.active === 'nodeseq' && playing, record: recording && playing }); }
 const nsSay = t => { $('proj-status').textContent = t; };
 function nsLane() {

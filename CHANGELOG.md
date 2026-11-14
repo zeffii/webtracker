@@ -2,6 +2,11 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 772 · 2026-11-14
+
+- **Reference renders for the native port.** `node tools/render-ref.mjs song.wax` (or `--demos outdir` for every demo) renders a song offline to a 32-bit float WAV that comes out the same on every run (the few dice rolls are seeded), with a `.json` beside it listing the sample rate, length, peak, a checksum and the node types the song uses. The C++ engine in `wax-core` is checked against these.
+- **Node Sequencer songs are no longer silent in the offline tools.** The Wax tools (`wax_render`, `wax_analyse`) never told their engine about the Node Sequencer graph or the meta machines' targets, so mosh, vocoder, weights and interstellar-nodes rendered as silence and nodes and voicing lost their sequenced parts. The page and the tools now share one module for this (`src/nodeseq/resolve.js`).
+
 ## 771 · 2026-11-13
 
 - **Lone carries no DC offset.** A narrow pulse or the wave folder left a constant that moved with the pulse width and pushed the mix off centre; a 10 Hz high-pass now sits before the filter.

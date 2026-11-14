@@ -6,6 +6,8 @@ import { renderSong, encodeWav } from '../../src/audio/export.js';
 import { parseProject } from '../../src/project/file.js';
 import { ensureMaster } from '../../src/instruments.js';
 import { prepareSong } from '../../src/seq/lane.js';
+import { ensureGraph, cleanGraph } from '../../src/nodeseq/graphops.js';
+import { resolveNodeseq, metaSourcesOf, nodeseqMessage } from '../../src/nodeseq/resolve.js';
 import { ensurePool, slotsOf, sampleMessage, syncSamplerStereo } from '../../src/project/ops.js';
 import { NODE_TYPES } from '../../src/audio/nodes/index.js';
 import { compileDsp } from '../../src/audio/wasm/load.js';
@@ -34,6 +36,10 @@ export function buildEngine(project, { solo = [], mute = [] } = {}) {
   }
   const lanes = prepareSong(project.song, project.instruments, engine.registry);
   engine.setSong(project.song);
+  // the Node Sequencer's graph and the meta machines' targets, as the page sends them when a project opens
+  if (project.song.nodeseq) cleanGraph(ensureGraph(project.song));
+  engine.setMetaSources(metaSourcesOf(project));
+  engine.setNodeseq(nodeseqMessage(project), resolveNodeseq(project, engine.registry));
   const keep = l => l.instrument === 'master' || (solo.length ? solo.includes(l.id) : !mute.includes(l.id));
   for (const { id, instrument, columns, pages, mask, auto } of lanes.filter(keep)) engine.setLane({ id, instrument, columns, pages, mask, auto });
   return { engine, lanes };

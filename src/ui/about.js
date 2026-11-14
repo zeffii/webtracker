@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['772', ['Songs driven by the Node Sequencer are no longer silent in the offline Wax tools (render, analyse), and a new tools/render-ref.mjs writes repeatable reference renders for the native port.']],
   ['771', ['Lone no longer leaves a DC offset with a narrow pulse or the wave folder (a 10 Hz high-pass before the filter).']],
   ['770', ['The wavetable position slews instead of stepping (new smooth parameter, 10 ms by default, on the Wavetable node and Lone), so jumping between waves no longer clicks.']],
   ['769', ['Lone, a lead synth in one node: saw, pulse with PWM, sub, noise and the Braids wavetable (position by hand, envelope, LFO or pattern), hard sync, a wave folder, ladder filter, LFO with delay, glide, slide and legato. One voice is a mono lead; raise Voices for polyphony.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['765', ['Spectral panner: a punch slider keeps attacks in the centre (a sweeping kick no longer splits and crunches), with punchTime for how long until the image opens again. Off by default.']],
   ['764', ['Khufu, a string machine: three sawtooth registers an octave apart with a drawn amplitude envelope, played through the new ensemble effect (three wobbling delays), which is a node of its own.']],
   ['763', ['Rotary, a rotating speaker cabinet: a spinning horn and drum heard by two microphones, with a stop, slow and fast switch whose glide you can write in a pattern.']],
-  ['762', ['Compass, a vector synth with wave sequencing: four lanes of stepped waves at the points of a diamond, a drawn path that moves the mix, drawn amplitude and filter envelopes. Its blocks are nodes too: waveseq, vecmix and vecpath.']],
                     ];

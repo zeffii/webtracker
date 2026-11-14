@@ -53,3 +53,9 @@ about 64 MB of SDRAM. Sample data dominates in practice, not nodes.
   would be compiled once on load.
 - **The UI.** Plain canvas/DOM; a device needs its own small renderer. The column widths and short names are
   designed to fit a character grid.
+
+## The native engine (wax-core)
+The C++ port lives in github.com/zeffii/wax-core. It is checked against this engine: `node tools/render-ref.mjs song.wax`
+(or `--demos outdir`) writes a repeatable 32-bit float render and a `.json` of facts for the native render to be compared
+with. A node counts as ported when the difference is under about -90 dB (reverbs and dice-driven nodes are compared more
+loosely). `Math.random` is replaced by a seeded xorshift32 in those renders; the native engine uses the same generator.

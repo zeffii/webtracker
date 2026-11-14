@@ -5108,6 +5108,9 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   assert.ok(Math.abs(core.lufs(sine, sine, 48000) + 23) < 0.2, 'the loudness meter reads -23 LUFS for a -23 dBFS sine');
   const nodes = core.reference('canyon');
   assert.ok(nodes.length === 1 && nodes[0].params.some(p => p.startsWith('time ')), 'the node list gives the parameters');
+  // a song played by the Node Sequencer makes sound offline too (the tools tell the engine about the graph, as the page does)
+  const sequenced = await core.render(core.loadProject(fileURLToPath(new URL('../src/project/demos/weights.wax', import.meta.url))), { tail: 0.5, maxSeconds: 6 });
+  assert.ok(sequenced.peak > 0.05, `a Node Sequencer song renders with sound (peak ${sequenced.peak})`);
   console.log('ok: wax tools');
 }
 
