@@ -26,8 +26,9 @@ export default {
     { name: 'noise', min: 0, max: 1, def: 0.15 },
     { name: 'level', min: 0, max: 4, def: 1 },
   ],
-  create({ sampleRate }) {
+  create({ sampleRate, connected }) {
     const sr = sampleRate;
+    const carrierOn = connected?.[1] === true;   // nothing wired to carrier: the built-in buzz plays (an unwired input is a buffer of silence, not a missing one)
     // per band: analysis (two stages) and synthesis (two stages) states [ic1, ic2] and coefficients [a1, a2, a3, k]
     const aS = new Float64Array(MAXB * 4), sS = new Float64Array(MAXB * 4), env = new Float64Array(MAXB);
     const aC = new Float64Array(MAXB * 4), sC = new Float64Array(MAXB * 4);
@@ -67,7 +68,7 @@ export default {
         for (let i = 0; i < n; i++) {
           const x = voice[i];
           let c;
-          if (carrier) c = carrier[i];
+          if (carrierOn) c = carrier[i];
           else {   // built-in carrier: a band-limited sawtooth plus noise
             phase += dt; if (phase >= 1) phase -= 1;
             let saw = 2 * phase - 1;

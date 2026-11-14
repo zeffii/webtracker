@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 774 · 2026-11-14
+
+- **The vocoder's built-in carrier works.** With nothing wired to `carrier` the vocoder is meant to use its own buzz (a sawtooth at `tune` with some `noise`), but an unwired input arrives as a buffer of silence, which the node took for a carrier, so the buzz was never heard and the two parameters did nothing. The node now looks at whether the port is wired. A vocoder that already has a carrier wired sounds as before. Found while porting to `wax-core`.
+
 ## 773 · 2026-11-14
 
 - **An offline render is the same every time.** The nodes that roll dice (Random, the west-coast voice, the eight-voice synth) took their seed from a count of how many had been made since the page loaded, so an export after some playing, or a second export, came out with different dice than the first. The count now lives in one place (`src/audio/nodes/instances.js`) and starts again for every export, bounce and tool render. Live playing is unchanged. Found while porting to `wax-core`, where the reference renders have to be repeatable.

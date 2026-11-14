@@ -11995,4 +11995,19 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   console.log('ok: wavetable position smoothing');
 }
 
+// The vocoder's built-in buzz: with nothing wired to carrier the voice is heard through it; a wired carrier that is silent gives silence.
+{
+  const def = NODE_TYPES.vocoder, params = Float32Array.from(def.params.map(p => p.def)), slots = def.params.map((_, i) => i);
+  params[def.params.findIndex(p => p.name === 'sibilance')] = 0;   // only the bands, not the voice's own highs
+  const voice = Float32Array.from({ length: 8192 }, (_, i) => 0.5 * Math.sin(2 * Math.PI * 440 * i / 44100)), silence = new Float32Array(8192);
+  const level = connected => {
+    const node = def.create({ sampleRate: 44100, connected }), out = new Float32Array(8192);
+    node.process([voice, silence], [out], 8192, params, slots);
+    return Math.sqrt(out.subarray(4096).reduce((a, v) => a + v * v, 0) / 4096);
+  };
+  assert.ok(level([true, false]) > 1e-3, 'with no carrier wired the built-in buzz carries the voice');
+  assert.ok(level([true, true]) < 1e-6, 'a wired carrier that is silent gives silence');
+  console.log('ok: vocoder built-in carrier');
+}
+
 console.log('smoke test passed');
