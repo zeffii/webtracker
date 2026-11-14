@@ -5,6 +5,7 @@
 // cutoff wandering a little, each note lands at a random spot in the stereo field (`scatter`), and a vibrato LFO is built
 // in. Monophonic, last note wins, with glide; the voices node makes it a polyphonic synth, and its voices each get their
 // own drift, which is much of the sound. The `pitch` input is in octaves, `cut` in octaves of cutoff.
+import { nextInstance } from './instances.js';
 import { Adsr } from './adsr.js';
 
 const P = {};
@@ -46,7 +47,6 @@ const SPEC = [
 SPEC.forEach((s, i) => { P[s.name] = i; });
 
 const SUB_BLOCK = 8, TWO_PI = 2 * Math.PI;
-let instances = 0;   // every voice gets its own random stream, the same on every load
 const B = t => t * 2 - t * t - 1;   // the polyBLEP correction for the sample just after a step, t in 0..1 samples since it
 const blep = (t, dt) => {
   if (t < dt) { t /= dt; return t + t - t * t - 1; }
@@ -77,7 +77,7 @@ export default {
   create({ sampleRate, connected }) {
     const pitchOn = connected[0], cutOn = connected[1];
     const amp = new Adsr(sampleRate), fil = new Adsr(sampleRate);
-    let seed = (0x9e3779b9 * ++instances) >>> 0 || 1;
+    let seed = (0x9e3779b9 * nextInstance('oberheim')) >>> 0 || 1;
     const rand = () => { seed ^= seed << 13; seed ^= seed >>> 17; seed ^= seed << 5; return (seed >>> 0) / 4294967296 * 2 - 1; };
     let p1 = 0, p2 = 0, pwmPh = rand() * 0.5 + 0.5, vibPh = 0, note = 60, pos = 60, velocity = 1;
     let d1 = 0, d2 = 0, d3 = 0, off2 = 0, pan = 0, noiseSeed = 12345;

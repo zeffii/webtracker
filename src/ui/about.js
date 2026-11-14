@@ -7,6 +7,7 @@ export const ABOUT = [
 ];
 
 export const CHANGELOG = [
+  ['773', ['An exported or bounced song comes out the same every time: the nodes that roll dice (Random, the west-coast voice, the eight-voice synth) start their sequences again for each offline render, whatever was played before.']],
   ['772', ['Songs driven by the Node Sequencer are no longer silent in the offline Wax tools (render, analyse), and a new tools/render-ref.mjs writes repeatable reference renders for the native port.']],
   ['771', ['Lone no longer leaves a DC offset with a narrow pulse or the wave folder (a 10 Hz high-pass before the filter).']],
   ['770', ['The wavetable position slews instead of stepping (new smooth parameter, 10 ms by default, on the Wavetable node and Lone), so jumping between waves no longer clicks.']],
@@ -16,5 +17,4 @@ export const CHANGELOG = [
   ['766', ['A scope overlay for the pattern view: one big oscilloscope of the master output (trace, phosphor or XY), with an icon strip at the left edge showing its switch and sliders. Ctrl+Alt+L. Off by default.']],
   ['765', ['Spectral panner: a punch slider keeps attacks in the centre (a sweeping kick no longer splits and crunches), with punchTime for how long until the image opens again. Off by default.']],
   ['764', ['Khufu, a string machine: three sawtooth registers an octave apart with a drawn amplitude envelope, played through the new ensemble effect (three wobbling delays), which is a node of its own.']],
-  ['763', ['Rotary, a rotating speaker cabinet: a spinning horn and drum heard by two microphones, with a stop, slow and fast switch whose glide you can write in a pattern.']],
                     ];

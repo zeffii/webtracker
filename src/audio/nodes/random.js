@@ -7,6 +7,7 @@
 // `low` and `high` set the range the picks fall in (0 to 1), `lean` is the value inside it they favour, and `focus` is how
 // strongly: 0 is even, 1 crowds most picks close to `lean` while still reaching both ends now and then. Low 0.2, high 0.9,
 // lean 0.7, focus 0.6 is "between 0.2 and 0.9, mostly near 0.7" (set bipolar to 0 so the output is that range itself).
+import { nextInstance } from './instances.js';
 const MODE = 0, RATE = 1, SMOOTH = 2, AMOUNT = 3, BIPOLAR = 4, LOW = 5, HIGH = 6, LEAN = 7, FOCUS = 8;
 
 // An even pick u (0 to 1) bent so the values bunch up around c (0 to 1) without leaving the ends out.
@@ -14,7 +15,6 @@ function lean(u, c, focus) {
   const g = 1 + focus * 4;
   return u < 0.5 ? c * (1 - Math.pow(1 - 2 * u, g)) : c + (1 - c) * Math.pow(2 * u - 1, g);
 }
-let instances = 0;   // each node gets its own sequence, the same every time the song is rendered
 
 export default {
   type: 'random',
@@ -36,7 +36,7 @@ export default {
     { name: 'focus', min: 0, max: 1, def: 0 },
   ],
   create({ sampleRate }) {
-    let seed = (0x9e3779b9 * ++instances) >>> 0 || 1;
+    let seed = (0x9e3779b9 * nextInstance('random')) >>> 0 || 1;
     const rand = () => { seed ^= seed << 13; seed >>>= 0; seed ^= seed >>> 17; seed ^= seed << 5; seed >>>= 0; return seed / 4294967296; };
     let target = 0, value = 0, left = 0, fresh = false, prev = 0;
     return {

@@ -3,6 +3,7 @@
 // released and `tail` more seconds are rendered, so reverbs and delays can die out.
 import { GraphRuntime } from './runtime.js';
 import { Sequencer } from './sequencer.js';
+import { resetInstances } from './nodes/instances.js';
 
 export const BLOCK = 128;
 
@@ -20,6 +21,7 @@ class Once extends Sequencer {
 // stops where it should); `tweak(message, seq)` may return a changed copy of a message, or null to leave it out.
 export function buildOffline(state, Seq, tweak = m => m) {
   const { messages, params, wasm, sampleRate } = state;
+  resetInstances();   // the dice-rolling nodes count from one again, so the render is the same every time
   const rt = new GraphRuntime({ sampleRate, params, wasm, maxBlock: BLOCK });
   const seq = new Seq({ sampleRate, runtime: rt, params, transport: new Int32Array(new SharedArrayBuffer(16)) });
   for (const original of messages) {

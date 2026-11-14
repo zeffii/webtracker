@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 773 · 2026-11-14
+
+- **An offline render is the same every time.** The nodes that roll dice (Random, the west-coast voice, the eight-voice synth) took their seed from a count of how many had been made since the page loaded, so an export after some playing, or a second export, came out with different dice than the first. The count now lives in one place (`src/audio/nodes/instances.js`) and starts again for every export, bounce and tool render. Live playing is unchanged. Found while porting to `wax-core`, where the reference renders have to be repeatable.
+
 ## 772 · 2026-11-14
 
 - **Reference renders for the native port.** `node tools/render-ref.mjs song.wax` (or `--demos outdir` for every demo) renders a song offline to a 32-bit float WAV that comes out the same on every run (the few dice rolls are seeded), with a `.json` beside it listing the sample rate, length, peak, a checksum and the node types the song uses. The C++ engine in `wax-core` is checked against these.

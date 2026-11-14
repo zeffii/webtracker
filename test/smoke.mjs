@@ -5111,6 +5111,10 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   // a song played by the Node Sequencer makes sound offline too (the tools tell the engine about the graph, as the page does)
   const sequenced = await core.render(core.loadProject(fileURLToPath(new URL('../src/project/demos/weights.wax', import.meta.url))), { tail: 0.5, maxSeconds: 6 });
   assert.ok(sequenced.peak > 0.05, `a Node Sequencer song renders with sound (peak ${sequenced.peak})`);
+  // a song with dice in it (the Random node, the west-coast voice) renders the same twice in a row
+  const dicey = fileURLToPath(new URL('../src/project/demos/westcoast.wax', import.meta.url));
+  const first = await core.render(core.loadProject(dicey), { tail: 0.2, maxSeconds: 3 }), second = await core.render(core.loadProject(dicey), { tail: 0.2, maxSeconds: 3 });
+  assert.ok(first.left.length === second.left.length && first.left.every((v, i) => v === second.left[i]), 'two renders of a song with dice are the same');
   console.log('ok: wax tools');
 }
 

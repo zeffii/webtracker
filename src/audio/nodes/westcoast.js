@@ -14,6 +14,7 @@
 // A second envelope, the timbre envelope, moves `fold` and `fm` over the length of the note.
 //
 // Monophonic, the last note wins (put a voices node after it for chords). Stereo out, the same on both sides.
+import { nextInstance } from './instances.js';
 import { Adsr } from './adsr.js';
 import { WAVE_POINTS, normalizeWave } from './waves.js';
 import { foldWave, DcBlock, PluckGate } from '../westcore.js';
@@ -54,7 +55,6 @@ const P = {};
 SPEC.forEach((s, i) => { P[s.name] = i; });
 
 const TWO_PI = 2 * Math.PI, FM_RADIANS = 12;
-let instances = 0;
 // the step of a saw or square is smoothed over two samples so it does not alias (polyBLEP)
 const blep = (t, dt) => {
   if (t < dt) { const x = t / dt; return x + x - x * x - 1; }
@@ -82,7 +82,7 @@ export default {
     let table = normalizeWave(data?.wave);
     const gate = new PluckGate(sampleRate), dcb = new DcBlock();
     let p = 0, pm = 0, note = 60, pos = 60, velocity = 1, prev = 0;
-    let seed = 0x2545f491 ^ (++instances * 0x9e3779b9) >>> 0 || 1;   // each voice wanders its own way, the same every time the song is rendered
+    let seed = 0x2545f491 ^ (nextInstance('westcoast') * 0x9e3779b9) >>> 0 || 1;   // each voice wanders its own way, the same every time the song is rendered
     const rand = () => { seed ^= seed << 13; seed >>>= 0; seed ^= seed >>> 17; seed ^= seed << 5; seed >>>= 0; return seed / 4294967296 * 2 - 1; };
     let dFold = 0, dFm = 0, dPitch = 0, tFold = 0, tFm = 0, tPitch = 0, until = 0, perNote = 0;
     const reset = () => { p = 0; pm = 0; prev = 0; gate.reset(); dcb.reset(); };
