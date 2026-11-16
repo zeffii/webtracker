@@ -100,7 +100,61 @@ const stripped = (def, node) => compactLook() && !def.size && def.shape !== 'dot
 const faceInputs = (node, def) => (stripped(def, node) ? def.inputs : inputsOf(node, def));
 const STRIP_STEP = 11, STRIP_GAP = 7;   // the dots' spacing, and how far under the tile they hang
 const tileOf = (def, node) => compactLayout(def, faceInputs(node, def), def.outputs);
+// ---- Notes: text left on the graph ----
+// A note is drawn as text with a thin line down its left edge (the handle to drag it by) and a fold marker. Its size comes from its text, in
+// whole characters of the 10px monospace face, so drawing, hit testing and the editing box all agree.
+export const NOTE_CHARS = 33, NOTE_CHAR_W = 6, NOTE_LINE = 13, NOTE_INDENT = 14;
+export const noteOpen = node => node.data?.open !== false;
+export const noteText = node => (typeof node.data?.text === 'string' ? node.data.text : '');
+// The text broken into lines of at most `chars` characters: at the line ends it has, then at spaces (a longer word is cut).
+export function noteLines(text, chars = NOTE_CHARS) {
+  const out = [];
+  for (const paragraph of String(text).split('\n')) {
+    let line = '';
+    for (const word of paragraph.split(' ')) {
+      let rest = word;
+      while (rest.length > chars) { if (line) { out.push(line); line = ''; } out.push(rest.slice(0, chars)); rest = rest.slice(chars); }
+      if (!line) line = rest;
+      else if (line.length + 1 + rest.length <= chars) line += ` ${rest}`;
+      else { out.push(line); line = rest; }
+    }
+    out.push(line);
+  }
+  return out;
+}
+export function noteBox(node) {
+  if (!noteOpen(node)) {
+    const first = noteText(node).split('\n')[0];
+    return { w: NOTE_INDENT + Math.min(NOTE_CHARS, first.length || 4) * NOTE_CHAR_W + 6, h: NOTE_LINE + 4 };
+  }
+  return { w: NOTE_INDENT + NOTE_CHARS * NOTE_CHAR_W + 8, h: noteLines(noteText(node)).length * NOTE_LINE + 6 };
+}
+
+// Draws one note: the edge line, the fold marker and its text (none of it while its editing box is on top).
+function drawNote(ctx, node, w, h, chosen, ink, accent, editing) {
+  const open = noteOpen(node), text = noteText(node);
+  ctx.save();
+  ctx.strokeStyle = chosen ? accent : 'rgba(128, 128, 128, 0.65)';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(node.x + 1, node.y); ctx.lineTo(node.x + 1, node.y + h); ctx.stroke();
+  ctx.fillStyle = 'rgba(128, 128, 128, 0.8)';
+  ctx.beginPath();   // the fold marker: down when open, right when folded
+  if (open) { ctx.moveTo(node.x + 4, node.y + 5); ctx.lineTo(node.x + 10, node.y + 5); ctx.lineTo(node.x + 7, node.y + 10); }
+  else { ctx.moveTo(node.x + 5, node.y + 3); ctx.lineTo(node.x + 5, node.y + 11); ctx.lineTo(node.x + 10, node.y + 7); }
+  ctx.closePath(); ctx.fill();
+  if (!editing) {
+    ctx.font = '10px ui-monospace, Consolas, monospace';
+    ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'left';
+    ctx.fillStyle = ink;
+    ctx.globalAlpha = text ? 1 : 0.45;
+    if (open) noteLines(text || '(a note: click to type)').forEach((line, i) => ctx.fillText(line, node.x + NOTE_INDENT, node.y + 10 + i * NOTE_LINE));
+    else ctx.fillText((text.split('\n')[0] || 'note').slice(0, NOTE_CHARS), node.x + NOTE_INDENT, node.y + 10);
+  }
+  ctx.restore();
+}
+
 export const nodeBox = (def, node) => {
+  if (def.note) return noteBox(node);
   if (def.size) return { ...def.size };   // a node that draws its own face (the arp's step mask)
   if (compactLook() && def.shape !== 'dot') { const { w, h } = tileOf(def, node); return { w, h }; }
   const rows = Math.max(faceInputs(node, def).length, def.outputs.length, 1);
@@ -1162,6 +1216,55 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
     if (d.started) structure();
   }
 
+  // ---- notes: pressing the text types into it, the marker folds it, the line at its left drags it ----
+  let noteEdit = null;   // { id, box }: the note being typed into and the text box laid over it
+  const endNoteEdit = () => {
+    if (!noteEdit) return;
+    const { box } = noteEdit;
+    noteEdit = null;
+    box.remove();
+    canvas.focus?.();
+    dirty = true;
+    setTimeout(commit, 0);   // the whole edit is one undo step
+  };
+  const beginNoteEdit = id => {
+    const node = desc().nodes.find(n => n.id === id);
+    if (!node || !doc.createElement) return;
+    endNoteEdit();
+    if (!noteOpen(node)) node.data = { ...node.data, open: true };
+    const box = doc.createElement('textarea');
+    noteEdit = { id, box };
+    const place = () => {
+      const { w, h } = noteBox(node), r = canvas.getBoundingClientRect?.() ?? { left: 0, top: 0 };
+      Object.assign(box.style, {
+        position: 'fixed', left: `${r.left + node.x + NOTE_INDENT}px`, top: `${r.top + node.y + 1}px`, width: `${w - NOTE_INDENT}px`, height: `${h - 2}px`,
+        margin: '0', padding: '0', border: '0', outline: 'none', resize: 'none', overflow: 'hidden', background: 'transparent', color: 'inherit',
+        font: '10px/13px ui-monospace, Consolas, monospace', whiteSpace: 'pre-wrap', zIndex: '50',
+      });
+    };
+    box.value = noteText(node);
+    box.spellcheck = false;
+    place();
+    box.addEventListener('input', () => { node.data = { ...node.data, text: box.value }; place(); dirty = true; });
+    box.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Escape') { e.preventDefault(); endNoteEdit(); } });
+    box.addEventListener('keyup', e => e.stopPropagation());
+    box.addEventListener('blur', () => { if (noteEdit?.box === box) endNoteEdit(); });
+    doc.body.appendChild(box);
+    box.focus();
+    dirty = true;
+  };
+  function noteMouse(id, x, y, e) {
+    const node = desc().nodes.find(n => n.id === id), lx = x - node.x, ly = y - node.y;
+    if (lx < 5) return false;   // the edge: picked and dragged like any node
+    e.preventDefault?.();
+    selected = { kind: 'node', id };
+    group.clear();
+    if (lx < NOTE_INDENT && ly < NOTE_LINE + 4) { endNoteEdit(); node.data = { ...node.data, open: !noteOpen(node) }; dirty = true; renderPanel(); return true; }
+    beginNoteEdit(id);
+    renderPanel();
+    return true;
+  }
+
   canvas.addEventListener('mousedown', e => {
     hidePortTip();
     if (!instId) return;
@@ -1177,6 +1280,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
     if (handle) { drag = { kind: 'response', handle, x, y }; canvas.style.cursor = 'grabbing'; return; }
     const hit = hitTest(desc(), nodeTypes, x, y);
     say('');
+    if (hit?.kind === 'node' && e.button === 0 && !e.shiftKey && !e.altKey && nodeTypes[desc().nodes.find(n => n.id === hit.id)?.type]?.note && noteMouse(hit.id, x, y, e)) return;
     if (hit?.kind === 'node' && e.altKey && e.button === 0) {   // Alt+drag: a copy of the node (or the group) is made and moved
       try {
         const made = duplicateNodes(desc(), nodeTypes, group.has(hit.id) ? [...group] : [hit.id]);
@@ -1809,6 +1913,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
       const compact = compactLook() && !type.size && type.shape !== 'dot', layout = compact ? tileOf(type, node) : null;   // the compact look: flat fill, an outline only when chosen, short port names
       const text = (str, x, y) => ctx.fillText(str, snap(x), snap(y));
       const chosen = (selected?.kind === 'node' && selected.id === node.id) || group.has(node.id);
+      if (type.note) { drawNote(ctx, node, w, h, chosen, ink, accent, noteEdit?.id === node.id); continue; }   // text on the graph, not a tile
       ctx.beginPath();
       if (type.shape === 'circle' || type.shape === 'dot') ctx.arc(node.x + w / 2, node.y + h / 2, w / 2, 0, 2 * Math.PI);
       else if (type.shape === 'rounded') ctx.roundRect(node.x, node.y, w, h, 10);
@@ -1997,6 +2102,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
         say('');
         renderPanel();
         structure();
+        if (type === 'note') beginNoteEdit(id);   // a new note: type at once
       } catch (err) {
         say(err.message);
       }

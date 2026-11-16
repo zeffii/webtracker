@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 775 · 2026-11-16
+
+- **Notes on the instrument graph.** Add a `note` (Control) to leave a short message for whoever opens the instrument: small text, click to type, click the marker to fold it down to one line. It has no ports and makes no sound. Songs saved by the native Wax with notes in them now load here instead of failing with "Unknown node type".
+
 ## 774 · 2026-11-14
 
 - **The vocoder's built-in carrier works.** With nothing wired to `carrier` the vocoder is meant to use its own buzz (a sawtooth at `tune` with some `noise`), but an unwired input arrives as a buffer of silence, which the node took for a carrier, so the buzz was never heard and the two parameters did nothing. The node now looks at whether the port is wired. A vocoder that already has a carrier wired sounds as before. Found while porting to `wax-core`.
