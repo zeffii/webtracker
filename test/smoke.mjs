@@ -20,7 +20,7 @@ import { createMidiWriter, noteColumnsOf, quantize } from '../src/seq/midiwrite.
 import * as ops from '../src/seq/edit.js';
 import * as gedit from '../src/graph/edit.js';
 import { scopeBox } from '../src/graph/scope.js';
-import { createPatcher, hitTest, nodeBox, noteBox, noteLines, noteFilled, noteTickRect, noteFoldRect, portPos, portKind, hexOf } from '../src/graph/patcher.js';
+import { createPatcher, hitTest, nodeBox, msgBox, msgLines, msgFilled, msgTickRect, msgFoldRect, portPos, portKind, hexOf } from '../src/graph/patcher.js';
 import { rebuildInstrumentLanes } from '../src/seq/lane.js';
 import * as pops from '../src/project/ops.js';
 import { createSampleScreen } from '../src/project/samplescreen.js';
@@ -12010,24 +12010,26 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   console.log('ok: vocoder built-in carrier');
 }
 
-// A note on the graph: text only. It compiles away (no ports, no sound), its size follows its text, folded it is one line, and a click on its
+// A message on the graph: text only. It compiles away (no ports, no sound), its size follows its text, folded it is one line, and a click on its
 // body hits the node.
 {
   const registry = new ParamRegistry();
-  const graph = { nodes: [{ id: 'note1', type: 'note', x: 10, y: 10, data: { text: 'keep the gain low', open: true } }, { id: 'o', type: 'osc' }, { id: 'out', type: 'out' }], connections: [['o.out', 'out.in']] };
+  const graph = { nodes: [{ id: 'msg1', type: 'msg', x: 10, y: 10, data: { text: 'keep the gain low', open: true } }, { id: 'o', type: 'osc' }, { id: 'out', type: 'out' }], connections: [['o.out', 'out.in']] };
   assert.doesNotThrow(() => compile(graph, { instrument: 'x', nodeTypes: NODE_TYPES, registry }), 'a note does not stop the instrument compiling');
-  assert.deepEqual(NODE_TYPES.note.inputs.concat(NODE_TYPES.note.outputs), [], 'a note has no ports');
+  assert.deepEqual(NODE_TYPES.msg.inputs.concat(NODE_TYPES.msg.outputs), [], 'a message has no ports');
   const long = 'word '.repeat(40);
-  assert.ok(noteLines(long).every(l => l.length <= 36), 'lines wrap to the note width');
-  assert.ok(noteLines('a\n\nb').length === 3, 'line ends are kept');
-  const open = noteBox({ data: { text: long, open: true } }), one = noteBox({ data: { text: 'hi', open: true } }), folded = noteBox({ data: { text: long, open: false } });
+  assert.ok(msgLines(long).every(l => l.length <= 36), 'lines wrap to the note width');
+  assert.ok(msgLines('a\n\nb').length === 3, 'line ends are kept');
+  const open = msgBox({ data: { text: long, open: true } }), one = msgBox({ data: { text: 'hi', open: true } }), folded = msgBox({ data: { text: long, open: false } });
   assert.ok(open.h > one.h && folded.h < one.h + 1 && folded.w <= open.w, 'an open note grows with its text; a folded one is a line');
   const hit = hitTest(graph, NODE_TYPES, 40, 14);
-  assert.equal(hit?.id, 'note1', 'the note is hit by its text');
-  assert.ok(noteFilled({ data: { text: 'x' } }) && !noteFilled({ data: { fill: false } }), 'the tint is on unless the note says otherwise');
-  assert.ok(noteTickRect(open.w).x + noteTickRect(open.w).size < open.w, 'the tickbox sits inside the note');
-  assert.ok(noteFoldRect(open.w).x + noteFoldRect(open.w).size < noteTickRect(open.w).x, 'the fold marker sits left of the tickbox');
-  console.log('ok: notes on the graph');
+  assert.equal(hit?.id, 'msg1', 'the message is hit by its text');
+  assert.ok(msgFilled({ data: { text: 'x' } }) && !msgFilled({ data: { fill: false } }), 'the tint is on unless the note says otherwise');
+  assert.ok(msgTickRect(open.w).x + msgTickRect(open.w).size < open.w, 'the tickbox sits inside the note');
+  assert.ok(msgFoldRect(open.w).x + msgFoldRect(open.w).size < msgTickRect(open.w).x, 'the fold marker sits left of the tickbox');
+  const old = parseProject(serializeProject({ song: { name: 't', bpm: 120, ticksPerBeat: 4, length: 16 }, instruments: { a: { graph: { nodes: [{ id: 'n', type: 'note', x: 1, y: 2, data: { text: 'hi' } }, { id: 'out', type: 'out' }], connections: [] } } }, samples: {}, lanes: [] }));
+  assert.equal(old.instruments.a.graph.nodes[0].type, 'msg', 'a message saved under its first name, note, loads as msg');
+  console.log('ok: messages on the graph');
 }
 
 console.log('smoke test passed');

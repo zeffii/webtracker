@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 778 · 2026-11-16
+
+- **The note node is now the `msg` node.** "Note" was too easily mistaken for a musical note. Songs and instruments that already hold one under the old name load as `msg`.
+
 ## 777 · 2026-11-16
 
 - **A note's whole left strip is its handle.** The fold marker moved to the top right, beside the tint tickbox, so the strip down the left edge only ever drags the note, however short it is.

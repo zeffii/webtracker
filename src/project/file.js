@@ -156,7 +156,7 @@ export function parseProject(text) {
     throw new Error(`Unsupported file version ${data.version}; this build reads version ${VERSION}.`);
   }
   upgradeSamplerLayout(data);
-  for (const def of Object.values(data.instruments ?? {})) for (const n of def.graph?.nodes ?? []) if (n.type === 'busin') n.type = 'bus-in';   // build 748 called it busin
+  for (const def of Object.values(data.instruments ?? {})) for (const n of def.graph?.nodes ?? []) { if (n.type === 'busin') n.type = 'bus-in'; else if (n.type === 'note') n.type = 'msg'; }   // build 748 called it busin; the message node was first called note
   ensureSliceCommand(data);
   const samples = ensurePool(Object.fromEntries(Object.entries(data.samples ?? {}).filter(([id]) => !isPool(id)).map(([id, s]) => [id, decodeSample(s)])));
   for (const [id, def] of Object.entries(data.instruments)) {
@@ -211,5 +211,6 @@ export function parseInstrument(text) {
   for (const sampleId of Object.values(data.instrument.samples ?? {}).flat()) {
     if (!samples[sampleId] && !isPool(sampleId)) throw new Error(`The instrument uses unknown sample "${sampleId}".`);
   }
+  for (const n of data.instrument.graph.nodes ?? []) if (n.type === 'note') n.type = 'msg';   // the message node was first called note
   return { name: data.name ?? 'instrument', instrument: data.instrument, samples };
 }

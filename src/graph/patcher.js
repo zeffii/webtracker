@@ -101,15 +101,15 @@ const faceInputs = (node, def) => (stripped(def, node) ? def.inputs : inputsOf(n
 const STRIP_STEP = 11, STRIP_GAP = 7;   // the dots' spacing, and how far under the tile they hang
 const tileOf = (def, node) => compactLayout(def, faceInputs(node, def), def.outputs);
 // ---- Notes: text left on the graph ----
-// A note is drawn as text on a tinted background, with a wide handle down its left edge (drag anywhere on it to move the note) holding the fold
+// A message is drawn as text on a tinted background, with a wide handle down its left edge (drag anywhere on it to move the message) holding the fold
 // marker, and a tickbox at the right that only shows or hides the tint. Its size comes from its text, in whole characters of the 12px monospace
 // face (the size the rest of the UI uses), so drawing, hit testing and the editing box all agree.
-export const NOTE_CHARS = 36, NOTE_CHAR_W = 7.2, NOTE_LINE = 16, NOTE_INDENT = 20, NOTE_RIGHT = 38, NOTE_FONT = '12px ui-monospace, Consolas, monospace';
-export const noteOpen = node => node.data?.open !== false;
-export const noteFilled = node => node.data?.fill !== false;   // the tint is on unless the note says otherwise
-export const noteText = node => (typeof node.data?.text === 'string' ? node.data.text : '');
+export const MSG_CHARS = 36, MSG_CHAR_W = 7.2, MSG_LINE = 16, MSG_INDENT = 20, MSG_RIGHT = 38, MSG_FONT = '12px ui-monospace, Consolas, monospace';
+export const msgOpen = node => node.data?.open !== false;
+export const msgFilled = node => node.data?.fill !== false;   // the tint is on unless the message says otherwise
+export const msgText = node => (typeof node.data?.text === 'string' ? node.data.text : '');
 // The text broken into lines of at most `chars` characters: at the line ends it has, then at spaces (a longer word is cut).
-export function noteLines(text, chars = NOTE_CHARS) {
+export function msgLines(text, chars = MSG_CHARS) {
   const out = [];
   for (const paragraph of String(text).split('\n')) {
     let line = '';
@@ -124,49 +124,49 @@ export function noteLines(text, chars = NOTE_CHARS) {
   }
   return out;
 }
-export function noteBox(node) {
-  if (!noteOpen(node)) {
-    const first = noteText(node).split('\n')[0];
-    return { w: NOTE_INDENT + Math.min(NOTE_CHARS, first.length || 4) * NOTE_CHAR_W + NOTE_RIGHT, h: NOTE_LINE + 8 };
+export function msgBox(node) {
+  if (!msgOpen(node)) {
+    const first = msgText(node).split('\n')[0];
+    return { w: MSG_INDENT + Math.min(MSG_CHARS, first.length || 4) * MSG_CHAR_W + MSG_RIGHT, h: MSG_LINE + 8 };
   }
-  return { w: NOTE_INDENT + NOTE_CHARS * NOTE_CHAR_W + NOTE_RIGHT, h: noteLines(noteText(node)).length * NOTE_LINE + 8 };
+  return { w: MSG_INDENT + MSG_CHARS * MSG_CHAR_W + MSG_RIGHT, h: msgLines(msgText(node)).length * MSG_LINE + 8 };
 }
-// The two small controls at the top right, relative to the note's corner: the fold marker, then the tickbox.
-export const noteFoldRect = w => ({ x: w - NOTE_RIGHT + 4, y: 5, size: 11 });
-export const noteTickRect = w => ({ x: w - NOTE_RIGHT + 21, y: 5, size: 11 });
+// The two small controls at the top right, relative to the message's corner: the fold marker, then the tickbox.
+export const msgFoldRect = w => ({ x: w - MSG_RIGHT + 4, y: 5, size: 11 });
+export const msgTickRect = w => ({ x: w - MSG_RIGHT + 21, y: 5, size: 11 });
 
-// Draws one note: the tint, the handle with its fold marker, the tickbox and the text (no text while its editing box is on top).
-function drawNote(ctx, node, w, h, chosen, ink, accent, editing) {
-  const open = noteOpen(node), text = noteText(node), filled = noteFilled(node);
+// Draws one message: the tint, the handle with its fold marker, the tickbox and the text (no text while its editing box is on top).
+function drawMsg(ctx, node, w, h, chosen, ink, accent, editing) {
+  const open = msgOpen(node), text = msgText(node), filled = msgFilled(node);
   ctx.save();
   if (filled) { ctx.fillStyle = 'rgba(224, 170, 60, 0.2)'; ctx.fillRect(node.x, node.y, w, h); }
-  ctx.fillStyle = chosen ? accent : 'rgba(128, 128, 128, 0.3)';   // the handle: the whole strip drags the note
+  ctx.fillStyle = chosen ? accent : 'rgba(128, 128, 128, 0.3)';   // the handle: the whole strip drags the message
   ctx.globalAlpha = chosen ? 0.55 : 1;
-  ctx.fillRect(node.x, node.y, NOTE_INDENT - 4, h);
+  ctx.fillRect(node.x, node.y, MSG_INDENT - 4, h);
   ctx.globalAlpha = 1;
-  const f = noteFoldRect(w), fx = node.x + f.x, fy = node.y + f.y;
+  const f = msgFoldRect(w), fx = node.x + f.x, fy = node.y + f.y;
   ctx.fillStyle = 'rgba(128, 128, 128, 0.95)';
   ctx.beginPath();   // the fold marker: down when open, right when folded
   if (open) { ctx.moveTo(fx, fy + 2); ctx.lineTo(fx + 11, fy + 2); ctx.lineTo(fx + 5.5, fy + 9); }
   else { ctx.moveTo(fx + 2, fy); ctx.lineTo(fx + 2, fy + 11); ctx.lineTo(fx + 9, fy + 5.5); }
   ctx.closePath(); ctx.fill();
-  const t = noteTickRect(w);   // the tickbox: tint on or off
+  const t = msgTickRect(w);   // the tickbox: tint on or off
   ctx.strokeStyle = 'rgba(128, 128, 128, 0.9)'; ctx.lineWidth = 1;
   ctx.strokeRect(node.x + t.x + 0.5, node.y + t.y + 0.5, t.size, t.size);
   if (filled) { ctx.fillStyle = 'rgba(224, 170, 60, 0.95)'; ctx.fillRect(node.x + t.x + 3, node.y + t.y + 3, t.size - 5, t.size - 5); }
   if (!editing) {
-    ctx.font = NOTE_FONT;
+    ctx.font = MSG_FONT;
     ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'left';
     ctx.fillStyle = ink;
     ctx.globalAlpha = text ? 1 : 0.45;
-    if (open) noteLines(text || '(a note: click to type)').forEach((line, i) => ctx.fillText(line, node.x + NOTE_INDENT, node.y + 15 + i * NOTE_LINE));
-    else ctx.fillText((text.split('\n')[0] || 'note').slice(0, NOTE_CHARS), node.x + NOTE_INDENT, node.y + 15);
+    if (open) msgLines(text || '(a message: click to type)').forEach((line, i) => ctx.fillText(line, node.x + MSG_INDENT, node.y + 15 + i * MSG_LINE));
+    else ctx.fillText((text.split('\n')[0] || 'msg').slice(0, MSG_CHARS), node.x + MSG_INDENT, node.y + 15);
   }
   ctx.restore();
 }
 
 export const nodeBox = (def, node) => {
-  if (def.note) return noteBox(node);
+  if (def.msg) return msgBox(node);
   if (def.size) return { ...def.size };   // a node that draws its own face (the arp's step mask)
   if (compactLook() && def.shape !== 'dot') { const { w, h } = tileOf(def, node); return { w, h }; }
   const rows = Math.max(faceInputs(node, def).length, def.outputs.length, 1);
@@ -1228,53 +1228,53 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
     if (d.started) structure();
   }
 
-  // ---- notes: pressing the text types into it, the marker folds it, the line at its left drags it ----
-  let noteEdit = null;   // { id, box }: the note being typed into and the text box laid over it
-  const endNoteEdit = () => {
-    if (!noteEdit) return;
-    const { box } = noteEdit;
-    noteEdit = null;
+  // ---- messages: pressing the text types into it, the marker folds it, the line at its left drags it ----
+  let msgEdit = null;   // { id, box }: the message being typed into and the text box laid over it
+  const endMsgEdit = () => {
+    if (!msgEdit) return;
+    const { box } = msgEdit;
+    msgEdit = null;
     box.remove();
     canvas.focus?.();
     dirty = true;
     setTimeout(commit, 0);   // the whole edit is one undo step
   };
-  const beginNoteEdit = id => {
+  const beginMsgEdit = id => {
     const node = desc().nodes.find(n => n.id === id);
     if (!node || !doc.createElement) return;
-    endNoteEdit();
-    if (!noteOpen(node)) node.data = { ...node.data, open: true };
+    endMsgEdit();
+    if (!msgOpen(node)) node.data = { ...node.data, open: true };
     const box = doc.createElement('textarea');
-    noteEdit = { id, box };
+    msgEdit = { id, box };
     const place = () => {
-      const { w, h } = noteBox(node), r = canvas.getBoundingClientRect?.() ?? { left: 0, top: 0 };
+      const { w, h } = msgBox(node), r = canvas.getBoundingClientRect?.() ?? { left: 0, top: 0 };
       Object.assign(box.style, {
-        position: 'fixed', left: `${r.left + node.x + NOTE_INDENT}px`, top: `${r.top + node.y + 4}px`, width: `${w - NOTE_INDENT - NOTE_RIGHT + 8}px`, height: `${h - 8}px`,
+        position: 'fixed', left: `${r.left + node.x + MSG_INDENT}px`, top: `${r.top + node.y + 4}px`, width: `${w - MSG_INDENT - MSG_RIGHT + 8}px`, height: `${h - 8}px`,
         margin: '0', padding: '0', border: '0', outline: 'none', resize: 'none', overflow: 'hidden', background: 'transparent', color: 'inherit',
-        font: `12px/${NOTE_LINE}px ui-monospace, Consolas, monospace`, whiteSpace: 'pre-wrap', zIndex: '50',
+        font: `12px/${MSG_LINE}px ui-monospace, Consolas, monospace`, whiteSpace: 'pre-wrap', zIndex: '50',
       });
     };
-    box.value = noteText(node);
+    box.value = msgText(node);
     box.spellcheck = false;
     place();
     box.addEventListener('input', () => { node.data = { ...node.data, text: box.value }; place(); dirty = true; });
-    box.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Escape') { e.preventDefault(); endNoteEdit(); } });
+    box.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Escape') { e.preventDefault(); endMsgEdit(); } });
     box.addEventListener('keyup', e => e.stopPropagation());
-    box.addEventListener('blur', () => { if (noteEdit?.box === box) endNoteEdit(); });
+    box.addEventListener('blur', () => { if (msgEdit?.box === box) endMsgEdit(); });
     doc.body.appendChild(box);
     box.focus();
     dirty = true;
   };
   const inRect = (r, lx, ly) => lx >= r.x - 2 && lx <= r.x + r.size + 2 && ly >= r.y - 2 && ly <= r.y + r.size + 2;
-  function noteMouse(id, x, y, e) {
-    const node = desc().nodes.find(n => n.id === id), { w } = noteBox(node), lx = x - node.x, ly = y - node.y;
-    if (lx < NOTE_INDENT - 4) return false;   // the handle: picked and dragged like any node
+  function msgMouse(id, x, y, e) {
+    const node = desc().nodes.find(n => n.id === id), { w } = msgBox(node), lx = x - node.x, ly = y - node.y;
+    if (lx < MSG_INDENT - 4) return false;   // the handle: picked and dragged like any node
     e.preventDefault?.();
     selected = { kind: 'node', id };
     group.clear();
-    if (inRect(noteFoldRect(w), lx, ly)) { endNoteEdit(); node.data = { ...node.data, open: !noteOpen(node) }; dirty = true; renderPanel(); commit(); return true; }
-    if (inRect(noteTickRect(w), lx, ly)) { node.data = { ...node.data, fill: !noteFilled(node) }; dirty = true; commit(); return true; }   // the tickbox: only the tint
-    beginNoteEdit(id);
+    if (inRect(msgFoldRect(w), lx, ly)) { endMsgEdit(); node.data = { ...node.data, open: !msgOpen(node) }; dirty = true; renderPanel(); commit(); return true; }
+    if (inRect(msgTickRect(w), lx, ly)) { node.data = { ...node.data, fill: !msgFilled(node) }; dirty = true; commit(); return true; }   // the tickbox: only the tint
+    beginMsgEdit(id);
     renderPanel();
     return true;
   }
@@ -1294,7 +1294,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
     if (handle) { drag = { kind: 'response', handle, x, y }; canvas.style.cursor = 'grabbing'; return; }
     const hit = hitTest(desc(), nodeTypes, x, y);
     say('');
-    if (hit?.kind === 'node' && e.button === 0 && !e.shiftKey && !e.altKey && nodeTypes[desc().nodes.find(n => n.id === hit.id)?.type]?.note && noteMouse(hit.id, x, y, e)) return;
+    if (hit?.kind === 'node' && e.button === 0 && !e.shiftKey && !e.altKey && nodeTypes[desc().nodes.find(n => n.id === hit.id)?.type]?.msg && msgMouse(hit.id, x, y, e)) return;
     if (hit?.kind === 'node' && e.altKey && e.button === 0) {   // Alt+drag: a copy of the node (or the group) is made and moved
       try {
         const made = duplicateNodes(desc(), nodeTypes, group.has(hit.id) ? [...group] : [hit.id]);
@@ -1927,7 +1927,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
       const compact = compactLook() && !type.size && type.shape !== 'dot', layout = compact ? tileOf(type, node) : null;   // the compact look: flat fill, an outline only when chosen, short port names
       const text = (str, x, y) => ctx.fillText(str, snap(x), snap(y));
       const chosen = (selected?.kind === 'node' && selected.id === node.id) || group.has(node.id);
-      if (type.note) { drawNote(ctx, node, w, h, chosen, ink, accent, noteEdit?.id === node.id); continue; }   // text on the graph, not a tile
+      if (type.msg) { drawMsg(ctx, node, w, h, chosen, ink, accent, msgEdit?.id === node.id); continue; }   // text on the graph, not a tile
       ctx.beginPath();
       if (type.shape === 'circle' || type.shape === 'dot') ctx.arc(node.x + w / 2, node.y + h / 2, w / 2, 0, 2 * Math.PI);
       else if (type.shape === 'rounded') ctx.roundRect(node.x, node.y, w, h, 10);
@@ -2116,7 +2116,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
         say('');
         renderPanel();
         structure();
-        if (type === 'note') beginNoteEdit(id);   // a new note: type at once
+        if (type === 'msg') beginMsgEdit(id);   // a new message: type at once
       } catch (err) {
         say(err.message);
       }
