@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 777 · 2026-11-16
+
+- **A note's whole left strip is its handle.** The fold marker moved to the top right, beside the tint tickbox, so the strip down the left edge only ever drags the note, however short it is.
+
 ## 776 · 2026-11-16
 
 - **Notes are easier to move and read.** A note now has a wide handle down its left edge (drag anywhere on it; the fold marker sits at its top), its text is the size of the rest of the UI, and it sits on a tinted background. A tickbox at its right turns the tint on or off (nothing else). Notes saved without the setting show the tint.

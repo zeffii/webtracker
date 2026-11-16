@@ -104,7 +104,7 @@ const tileOf = (def, node) => compactLayout(def, faceInputs(node, def), def.outp
 // A note is drawn as text on a tinted background, with a wide handle down its left edge (drag anywhere on it to move the note) holding the fold
 // marker, and a tickbox at the right that only shows or hides the tint. Its size comes from its text, in whole characters of the 12px monospace
 // face (the size the rest of the UI uses), so drawing, hit testing and the editing box all agree.
-export const NOTE_CHARS = 36, NOTE_CHAR_W = 7.2, NOTE_LINE = 16, NOTE_INDENT = 20, NOTE_RIGHT = 20, NOTE_FONT = '12px ui-monospace, Consolas, monospace';
+export const NOTE_CHARS = 36, NOTE_CHAR_W = 7.2, NOTE_LINE = 16, NOTE_INDENT = 20, NOTE_RIGHT = 38, NOTE_FONT = '12px ui-monospace, Consolas, monospace';
 export const noteOpen = node => node.data?.open !== false;
 export const noteFilled = node => node.data?.fill !== false;   // the tint is on unless the note says otherwise
 export const noteText = node => (typeof node.data?.text === 'string' ? node.data.text : '');
@@ -131,8 +131,9 @@ export function noteBox(node) {
   }
   return { w: NOTE_INDENT + NOTE_CHARS * NOTE_CHAR_W + NOTE_RIGHT, h: noteLines(noteText(node)).length * NOTE_LINE + 8 };
 }
-// Where the tickbox is, relative to the note's corner (it sits at the top right).
-export const noteTickRect = w => ({ x: w - NOTE_RIGHT + 4, y: 5, size: 11 });
+// The two small controls at the top right, relative to the note's corner: the fold marker, then the tickbox.
+export const noteFoldRect = w => ({ x: w - NOTE_RIGHT + 4, y: 5, size: 11 });
+export const noteTickRect = w => ({ x: w - NOTE_RIGHT + 21, y: 5, size: 11 });
 
 // Draws one note: the tint, the handle with its fold marker, the tickbox and the text (no text while its editing box is on top).
 function drawNote(ctx, node, w, h, chosen, ink, accent, editing) {
@@ -143,10 +144,11 @@ function drawNote(ctx, node, w, h, chosen, ink, accent, editing) {
   ctx.globalAlpha = chosen ? 0.55 : 1;
   ctx.fillRect(node.x, node.y, NOTE_INDENT - 4, h);
   ctx.globalAlpha = 1;
+  const f = noteFoldRect(w), fx = node.x + f.x, fy = node.y + f.y;
   ctx.fillStyle = 'rgba(128, 128, 128, 0.95)';
   ctx.beginPath();   // the fold marker: down when open, right when folded
-  if (open) { ctx.moveTo(node.x + 4, node.y + 7); ctx.lineTo(node.x + 12, node.y + 7); ctx.lineTo(node.x + 8, node.y + 13); }
-  else { ctx.moveTo(node.x + 5, node.y + 5); ctx.lineTo(node.x + 5, node.y + 15); ctx.lineTo(node.x + 12, node.y + 10); }
+  if (open) { ctx.moveTo(fx, fy + 2); ctx.lineTo(fx + 11, fy + 2); ctx.lineTo(fx + 5.5, fy + 9); }
+  else { ctx.moveTo(fx + 2, fy); ctx.lineTo(fx + 2, fy + 11); ctx.lineTo(fx + 9, fy + 5.5); }
   ctx.closePath(); ctx.fill();
   const t = noteTickRect(w);   // the tickbox: tint on or off
   ctx.strokeStyle = 'rgba(128, 128, 128, 0.9)'; ctx.lineWidth = 1;
@@ -1247,7 +1249,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
     const place = () => {
       const { w, h } = noteBox(node), r = canvas.getBoundingClientRect?.() ?? { left: 0, top: 0 };
       Object.assign(box.style, {
-        position: 'fixed', left: `${r.left + node.x + NOTE_INDENT}px`, top: `${r.top + node.y + 4}px`, width: `${w - NOTE_INDENT - NOTE_RIGHT}px`, height: `${h - 8}px`,
+        position: 'fixed', left: `${r.left + node.x + NOTE_INDENT}px`, top: `${r.top + node.y + 4}px`, width: `${w - NOTE_INDENT - NOTE_RIGHT + 8}px`, height: `${h - 8}px`,
         margin: '0', padding: '0', border: '0', outline: 'none', resize: 'none', overflow: 'hidden', background: 'transparent', color: 'inherit',
         font: `12px/${NOTE_LINE}px ui-monospace, Consolas, monospace`, whiteSpace: 'pre-wrap', zIndex: '50',
       });
@@ -1263,14 +1265,15 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
     box.focus();
     dirty = true;
   };
+  const inRect = (r, lx, ly) => lx >= r.x - 2 && lx <= r.x + r.size + 2 && ly >= r.y - 2 && ly <= r.y + r.size + 2;
   function noteMouse(id, x, y, e) {
-    const node = desc().nodes.find(n => n.id === id), { w } = noteBox(node), lx = x - node.x, ly = y - node.y, t = noteTickRect(w);
-    if (lx < NOTE_INDENT - 4 && !(ly < NOTE_LINE + 4)) return false;   // the handle: picked and dragged like any node
+    const node = desc().nodes.find(n => n.id === id), { w } = noteBox(node), lx = x - node.x, ly = y - node.y;
+    if (lx < NOTE_INDENT - 4) return false;   // the handle: picked and dragged like any node
     e.preventDefault?.();
     selected = { kind: 'node', id };
     group.clear();
-    if (lx < NOTE_INDENT - 4) { endNoteEdit(); node.data = { ...node.data, open: !noteOpen(node) }; dirty = true; renderPanel(); commit(); return true; }   // the fold marker
-    if (lx >= t.x - 2 && lx <= t.x + t.size + 2 && ly >= t.y - 2 && ly <= t.y + t.size + 2) { node.data = { ...node.data, fill: !noteFilled(node) }; dirty = true; commit(); return true; }   // the tickbox
+    if (inRect(noteFoldRect(w), lx, ly)) { endNoteEdit(); node.data = { ...node.data, open: !noteOpen(node) }; dirty = true; renderPanel(); commit(); return true; }
+    if (inRect(noteTickRect(w), lx, ly)) { node.data = { ...node.data, fill: !noteFilled(node) }; dirty = true; commit(); return true; }   // the tickbox: only the tint
     beginNoteEdit(id);
     renderPanel();
     return true;

@@ -20,7 +20,7 @@ import { createMidiWriter, noteColumnsOf, quantize } from '../src/seq/midiwrite.
 import * as ops from '../src/seq/edit.js';
 import * as gedit from '../src/graph/edit.js';
 import { scopeBox } from '../src/graph/scope.js';
-import { createPatcher, hitTest, nodeBox, noteBox, noteLines, noteFilled, noteTickRect, portPos, portKind, hexOf } from '../src/graph/patcher.js';
+import { createPatcher, hitTest, nodeBox, noteBox, noteLines, noteFilled, noteTickRect, noteFoldRect, portPos, portKind, hexOf } from '../src/graph/patcher.js';
 import { rebuildInstrumentLanes } from '../src/seq/lane.js';
 import * as pops from '../src/project/ops.js';
 import { createSampleScreen } from '../src/project/samplescreen.js';
@@ -12026,6 +12026,7 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   assert.equal(hit?.id, 'note1', 'the note is hit by its text');
   assert.ok(noteFilled({ data: { text: 'x' } }) && !noteFilled({ data: { fill: false } }), 'the tint is on unless the note says otherwise');
   assert.ok(noteTickRect(open.w).x + noteTickRect(open.w).size < open.w, 'the tickbox sits inside the note');
+  assert.ok(noteFoldRect(open.w).x + noteFoldRect(open.w).size < noteTickRect(open.w).x, 'the fold marker sits left of the tickbox');
   console.log('ok: notes on the graph');
 }
 
