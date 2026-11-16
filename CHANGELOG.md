@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 776 · 2026-11-16
+
+- **Notes are easier to move and read.** A note now has a wide handle down its left edge (drag anywhere on it; the fold marker sits at its top), its text is the size of the rest of the UI, and it sits on a tinted background. A tickbox at its right turns the tint on or off (nothing else). Notes saved without the setting show the tint.
+
 ## 775 · 2026-11-16
 
 - **Notes on the instrument graph.** Add a `note` (Control) to leave a short message for whoever opens the instrument: small text, click to type, click the marker to fold it down to one line. It has no ports and makes no sound. Songs saved by the native Wax with notes in them now load here instead of failing with "Unknown node type".

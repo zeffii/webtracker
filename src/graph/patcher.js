@@ -101,10 +101,12 @@ const faceInputs = (node, def) => (stripped(def, node) ? def.inputs : inputsOf(n
 const STRIP_STEP = 11, STRIP_GAP = 7;   // the dots' spacing, and how far under the tile they hang
 const tileOf = (def, node) => compactLayout(def, faceInputs(node, def), def.outputs);
 // ---- Notes: text left on the graph ----
-// A note is drawn as text with a thin line down its left edge (the handle to drag it by) and a fold marker. Its size comes from its text, in
-// whole characters of the 10px monospace face, so drawing, hit testing and the editing box all agree.
-export const NOTE_CHARS = 33, NOTE_CHAR_W = 6, NOTE_LINE = 13, NOTE_INDENT = 14;
+// A note is drawn as text on a tinted background, with a wide handle down its left edge (drag anywhere on it to move the note) holding the fold
+// marker, and a tickbox at the right that only shows or hides the tint. Its size comes from its text, in whole characters of the 12px monospace
+// face (the size the rest of the UI uses), so drawing, hit testing and the editing box all agree.
+export const NOTE_CHARS = 36, NOTE_CHAR_W = 7.2, NOTE_LINE = 16, NOTE_INDENT = 20, NOTE_RIGHT = 20, NOTE_FONT = '12px ui-monospace, Consolas, monospace';
 export const noteOpen = node => node.data?.open !== false;
+export const noteFilled = node => node.data?.fill !== false;   // the tint is on unless the note says otherwise
 export const noteText = node => (typeof node.data?.text === 'string' ? node.data.text : '');
 // The text broken into lines of at most `chars` characters: at the line ends it has, then at spaces (a longer word is cut).
 export function noteLines(text, chars = NOTE_CHARS) {
@@ -125,30 +127,38 @@ export function noteLines(text, chars = NOTE_CHARS) {
 export function noteBox(node) {
   if (!noteOpen(node)) {
     const first = noteText(node).split('\n')[0];
-    return { w: NOTE_INDENT + Math.min(NOTE_CHARS, first.length || 4) * NOTE_CHAR_W + 6, h: NOTE_LINE + 4 };
+    return { w: NOTE_INDENT + Math.min(NOTE_CHARS, first.length || 4) * NOTE_CHAR_W + NOTE_RIGHT, h: NOTE_LINE + 8 };
   }
-  return { w: NOTE_INDENT + NOTE_CHARS * NOTE_CHAR_W + 8, h: noteLines(noteText(node)).length * NOTE_LINE + 6 };
+  return { w: NOTE_INDENT + NOTE_CHARS * NOTE_CHAR_W + NOTE_RIGHT, h: noteLines(noteText(node)).length * NOTE_LINE + 8 };
 }
+// Where the tickbox is, relative to the note's corner (it sits at the top right).
+export const noteTickRect = w => ({ x: w - NOTE_RIGHT + 4, y: 5, size: 11 });
 
-// Draws one note: the edge line, the fold marker and its text (none of it while its editing box is on top).
+// Draws one note: the tint, the handle with its fold marker, the tickbox and the text (no text while its editing box is on top).
 function drawNote(ctx, node, w, h, chosen, ink, accent, editing) {
-  const open = noteOpen(node), text = noteText(node);
+  const open = noteOpen(node), text = noteText(node), filled = noteFilled(node);
   ctx.save();
-  ctx.strokeStyle = chosen ? accent : 'rgba(128, 128, 128, 0.65)';
-  ctx.lineWidth = 1.5;
-  ctx.beginPath(); ctx.moveTo(node.x + 1, node.y); ctx.lineTo(node.x + 1, node.y + h); ctx.stroke();
-  ctx.fillStyle = 'rgba(128, 128, 128, 0.8)';
+  if (filled) { ctx.fillStyle = 'rgba(224, 170, 60, 0.2)'; ctx.fillRect(node.x, node.y, w, h); }
+  ctx.fillStyle = chosen ? accent : 'rgba(128, 128, 128, 0.3)';   // the handle: the whole strip drags the note
+  ctx.globalAlpha = chosen ? 0.55 : 1;
+  ctx.fillRect(node.x, node.y, NOTE_INDENT - 4, h);
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = 'rgba(128, 128, 128, 0.95)';
   ctx.beginPath();   // the fold marker: down when open, right when folded
-  if (open) { ctx.moveTo(node.x + 4, node.y + 5); ctx.lineTo(node.x + 10, node.y + 5); ctx.lineTo(node.x + 7, node.y + 10); }
-  else { ctx.moveTo(node.x + 5, node.y + 3); ctx.lineTo(node.x + 5, node.y + 11); ctx.lineTo(node.x + 10, node.y + 7); }
+  if (open) { ctx.moveTo(node.x + 4, node.y + 7); ctx.lineTo(node.x + 12, node.y + 7); ctx.lineTo(node.x + 8, node.y + 13); }
+  else { ctx.moveTo(node.x + 5, node.y + 5); ctx.lineTo(node.x + 5, node.y + 15); ctx.lineTo(node.x + 12, node.y + 10); }
   ctx.closePath(); ctx.fill();
+  const t = noteTickRect(w);   // the tickbox: tint on or off
+  ctx.strokeStyle = 'rgba(128, 128, 128, 0.9)'; ctx.lineWidth = 1;
+  ctx.strokeRect(node.x + t.x + 0.5, node.y + t.y + 0.5, t.size, t.size);
+  if (filled) { ctx.fillStyle = 'rgba(224, 170, 60, 0.95)'; ctx.fillRect(node.x + t.x + 3, node.y + t.y + 3, t.size - 5, t.size - 5); }
   if (!editing) {
-    ctx.font = '10px ui-monospace, Consolas, monospace';
+    ctx.font = NOTE_FONT;
     ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'left';
     ctx.fillStyle = ink;
     ctx.globalAlpha = text ? 1 : 0.45;
-    if (open) noteLines(text || '(a note: click to type)').forEach((line, i) => ctx.fillText(line, node.x + NOTE_INDENT, node.y + 10 + i * NOTE_LINE));
-    else ctx.fillText((text.split('\n')[0] || 'note').slice(0, NOTE_CHARS), node.x + NOTE_INDENT, node.y + 10);
+    if (open) noteLines(text || '(a note: click to type)').forEach((line, i) => ctx.fillText(line, node.x + NOTE_INDENT, node.y + 15 + i * NOTE_LINE));
+    else ctx.fillText((text.split('\n')[0] || 'note').slice(0, NOTE_CHARS), node.x + NOTE_INDENT, node.y + 15);
   }
   ctx.restore();
 }
@@ -1237,9 +1247,9 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
     const place = () => {
       const { w, h } = noteBox(node), r = canvas.getBoundingClientRect?.() ?? { left: 0, top: 0 };
       Object.assign(box.style, {
-        position: 'fixed', left: `${r.left + node.x + NOTE_INDENT}px`, top: `${r.top + node.y + 1}px`, width: `${w - NOTE_INDENT}px`, height: `${h - 2}px`,
+        position: 'fixed', left: `${r.left + node.x + NOTE_INDENT}px`, top: `${r.top + node.y + 4}px`, width: `${w - NOTE_INDENT - NOTE_RIGHT}px`, height: `${h - 8}px`,
         margin: '0', padding: '0', border: '0', outline: 'none', resize: 'none', overflow: 'hidden', background: 'transparent', color: 'inherit',
-        font: '10px/13px ui-monospace, Consolas, monospace', whiteSpace: 'pre-wrap', zIndex: '50',
+        font: `12px/${NOTE_LINE}px ui-monospace, Consolas, monospace`, whiteSpace: 'pre-wrap', zIndex: '50',
       });
     };
     box.value = noteText(node);
@@ -1254,12 +1264,13 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
     dirty = true;
   };
   function noteMouse(id, x, y, e) {
-    const node = desc().nodes.find(n => n.id === id), lx = x - node.x, ly = y - node.y;
-    if (lx < 5) return false;   // the edge: picked and dragged like any node
+    const node = desc().nodes.find(n => n.id === id), { w } = noteBox(node), lx = x - node.x, ly = y - node.y, t = noteTickRect(w);
+    if (lx < NOTE_INDENT - 4 && !(ly < NOTE_LINE + 4)) return false;   // the handle: picked and dragged like any node
     e.preventDefault?.();
     selected = { kind: 'node', id };
     group.clear();
-    if (lx < NOTE_INDENT && ly < NOTE_LINE + 4) { endNoteEdit(); node.data = { ...node.data, open: !noteOpen(node) }; dirty = true; renderPanel(); return true; }
+    if (lx < NOTE_INDENT - 4) { endNoteEdit(); node.data = { ...node.data, open: !noteOpen(node) }; dirty = true; renderPanel(); commit(); return true; }   // the fold marker
+    if (lx >= t.x - 2 && lx <= t.x + t.size + 2 && ly >= t.y - 2 && ly <= t.y + t.size + 2) { node.data = { ...node.data, fill: !noteFilled(node) }; dirty = true; commit(); return true; }   // the tickbox
     beginNoteEdit(id);
     renderPanel();
     return true;
