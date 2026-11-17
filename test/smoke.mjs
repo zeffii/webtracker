@@ -7378,6 +7378,35 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   console.log('ok: duette');
 }
 
+// twin filter: finite, the drawn response is the real one, the lock and the overtone maths hold, the pitch follower finds a tone
+{
+  const tw = NODE_TYPES.twin, sr = 48000, names = tw.params.map(q => q.name), slots = Int32Array.from(names.map((_, k) => k));
+  const { responseGain, cutoffs, sharedOvertones, overtones } = await import('../src/audio/nodes/twinresponse.js');
+  const render = (vals, gen, N = 24064) => {
+    const node = tw.create({ sampleRate: sr }), params = names.map(n => vals[n] ?? tw.params.find(q => q.name === n).def), y = new Float32Array(N);
+    for (let i = 0; i < N; i += 128) { const o = [new Float32Array(128)]; node.process([Float32Array.from({ length: 128 }, (_, j) => gen(i + j)), null, null], o, 128, params, slots); y.set(o[0], i); }
+    return y;
+  };
+  const rms = (a, f = 12000) => { let s = 0; for (let i = f; i < a.length; i++) s += a[i] * a[i]; return Math.sqrt(s / (a.length - f)); };
+  const sine = hz => i => 0.05 * Math.sin(2 * Math.PI * hz * i / sr);
+  let seed = 11; const noise = () => { seed = (seed * 1664525 + 1013904223) >>> 0; return 0.3 * (seed / 2147483648 - 1); };
+  for (const blend of [0, 0.5, 1]) assert.ok(render({ res1: 1, res2: 1, blend, drive: 0.5, feedback: 0.8, noise: 0.3 }, noise).every(Number.isFinite), `twin blend ${blend} stays finite`);
+  const setups = [
+    { cutoff1: 1500, cutoff2: 1500, res1: 0.4, res2: 0.4 },
+    { cutoff1: 800, cutoff2: 3000, res1: 0.3, res2: 0.5, blend: 0.5, low1: 1, low2: 0, high2: 1 },
+    { cutoff1: 600, lock: 1, ratio: 2, detune: 30, res1: 0.2, res2: 0.2, blend: 1, band1: 1, low1: 0, low2: 0, band2: 1 },
+  ];
+  for (const v of setups) for (const f of [300, 1700, 6000]) {
+    const real = 20 * Math.log10(rms(render({ mix: 1, ...v }, sine(f))) / (0.05 / Math.SQRT2)), drawn = 20 * Math.log10(responseGain(f, { ...tw.params.reduce((a, q) => ({ ...a, [q.name]: q.def }), {}), ...v }, sr));
+    if (drawn > -45 && real > -45) assert.ok(Math.abs(real - drawn) < 1.5, `twin at ${f} Hz: the panel draws ${drawn.toFixed(1)} dB, the filter does ${real.toFixed(1)}`);
+  }
+  assert.ok(Math.abs(cutoffs({ cutoff1: 500, cutoff2: 9, lock: 1, ratio: 1.5, detune: 0 })[1] - 750) < 1e-9, 'the lock puts filter 2 at the ratio');
+  assert.equal(overtones(5000).length, 2, 'overtones stop at the top of the display');
+  assert.ok(sharedOvertones(300, 200).some(s => s.a === 2 && s.b === 3), 'the 2nd of 300 and the 3rd of 200 coincide');
+  const tone = render({ track: 1, lock: 1, ratio: 1, mix: 1, res1: 0.9, res2: 0.9, low1: 1, low2: 1 }, i => 0.4 * Math.sin(2 * Math.PI * 220 * i / sr), 48000);
+  assert.ok(tone.every(Number.isFinite), 'the pitch follower runs');
+  console.log('ok: twin');
+}
 // filterPro: every voicing is finite and shaped right, resonance 1 sings, mod and mix work
 {
   const fp = NODE_TYPES.filterpro, sr = 48000, N = 24064;

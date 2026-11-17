@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 779 · 2026-11-17
+
+- **New node: `twin`, a pair of multimode filters.** Two 12 dB/oct filters, each with its own cutoff, resonance and low / band / high levels (-1 to 1, so notches and peaks are one slider away). A series-to-parallel blend joins them; filter 2 can be locked to filter 1 at a ratio (a quarter to four, with detune), or both can follow the pitch of the input. Drive and tilt sit in front; noise and feedback give it something to sing with; an envelope follower and an LFO move each cutoff, and `mod1` / `mod2` take your own envelopes. The panel draws both curves and the pair on one log axis, with a dot on each cutoff to drag and the overtones above each cutoff as numbered lines (filter 1 from the top, filter 2 from the bottom, shared ones full height and bright). Under Filter & EQ.
+
 ## 778 · 2026-11-16
 
 - **The note node is now the `msg` node.** "Note" was too easily mistaken for a musical note. Songs and instruments that already hold one under the old name load as `msg`.
