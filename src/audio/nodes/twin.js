@@ -144,7 +144,7 @@ export default {
             if (sinceCross > sr) sinceCross = sr;
             // the front end: noise and feedback join, then drive and tilt
             rng = (rng * 1664525 + 1013904223) >>> 0;
-            noiseRng = (noiseRng * 22695477 + 1) >>> 0;
+            noiseRng = (noiseRng * 69069 + 1) >>> 0;
             let x = dry;
             if (noiseAmt > 0) x += (noiseRng / 4294967296 - 0.5) * 2 * noiseAmt;
             if (feedback > 0) x += feedback * clip(fb);

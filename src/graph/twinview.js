@@ -78,7 +78,7 @@ export function createTwinView({ doc = document, getParam, setParam, sampleRate 
     info.textContent = `filter 1 ${hz(f1)} · filter 2 ${hz(f2)}${lockText}${near}`;
   }
 
-  // drag a dot along the axis for its cutoff and up and down for its resonance; the second dot, while locked, sets the ratio
+  // drag a dot along the axis for its cutoff; the second dot, while locked, sets the ratio
   let grab = null;
   drag(canvas, W, H, {
     start: (x, y) => {
@@ -86,15 +86,14 @@ export function createTwinView({ doc = document, getParam, setParam, sampleRate 
       const [f1, f2] = cutoffs(settings()), d1 = Math.abs(x - X(f1)), d2 = Math.abs(x - X(f2));
       if (Math.min(d1, d2) > 9) return false;
       const n = d1 <= d2 ? 1 : 2;
-      grab = { n, y, res: getParam(`res${n}`) };
+      grab = { n };
       return true;
     },
-    move: (x, y) => {
+    move: x => {
       const f = clamp(freqAt(x), 20, 18000);
       if (grab.n === 1) setParam('cutoff1', Math.round(f));
       else if (Math.round(getParam('lock')) === 1) setParam('ratio', Math.round(clamp(f / cutoffs(settings())[0] / Math.pow(2, getParam('detune') / 1200), 0.25, 4) * 1000) / 1000);
       else setParam('cutoff2', Math.round(f));
-      setParam(`res${grab.n}`, Math.round(clamp(grab.res + (grab.y - y) / PLOT, 0, 1) * 100) / 100);
       draw();
     },
     done: () => { grab = null; },
