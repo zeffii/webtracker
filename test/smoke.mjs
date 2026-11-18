@@ -2407,6 +2407,24 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   assert.equal(sent.at(-1)[2].type, 'curve');
   assert.deepEqual(sent.at(-1)[2].points, node.data.curve);
 
+  // the twin filter's panel holds its two drawn envelopes: editing one saves it on the node and sends it, tagged with its slot
+  {
+    const twinStatus = { textContent: '' }, twinPanel = makeEl('div'), twinSent = [], twinDefs = structuredClone(instruments);
+    const twinPatcher = createPatcher({ canvas: canvas2, panel: twinPanel, statusEl: twinStatus, doc, nodeTypes: NODE_TYPES, onStructure() {}, onParam() {}, onData: (...a) => twinSent.push(a) });
+    twinPatcher.load({ instruments: twinDefs });
+    twinPatcher.show('kick');
+    twinPatcher.add('twin', { x: 300, y: 200 });
+    const pads = [], seen = []; walk(twinPanel, e => { seen.push(e.className); if (e.className === 'bezier-pad') pads.push(e); });
+    assert.equal(pads.length, 2, 'the twin panel should hold two bezier envelope editors');
+    pads[1].getBoundingClientRect = () => ({ left: 0, top: 0, width: pads[1].width, height: pads[1].height });
+    pads[1].setPointerCapture = () => {};
+    pads[1].listeners.mousedown?.({ clientX: pads[1].width / 2 / (pads[1].width > 800 ? 2 : 1), clientY: pads[1].height / 2 / (pads[1].width > 800 ? 2 : 1), button: 0, preventDefault() {}, pointerId: 1 });
+    pads[1].listeners.mouseup?.({});
+    const twinNode = twinDefs.kick.graph.nodes.find(n => n.type === 'twin');
+    assert.ok(twinSent.length > 0 && twinSent.at(-1)[2].slot === 'b', 'an edit of the second drawing is sent as slot b');
+    assert.ok(Array.isArray(twinNode.data.env.b), 'and kept on the node');
+  }
+
   // the speaker-shaped out node keeps its ports on the shape's edges
   const out = NODE_TYPES.out, box = nodeBox(out), at = { x: 100, y: 100 };
   const inPort = portPos(at, out, 'in', 0), left = portPos(at, out, 'out', 0);

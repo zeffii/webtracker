@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 782 · 2026-11-18
+
+- **Test: the twin filter's panel holds its two envelope editors.** A smoke test now builds the panel, finds both drawings and checks that an edit is kept on the node and sent as slot `a` or `b`. (The response picture now adds its parts one at a time, which the test's stand-in page needs; nothing changes on screen.)
+
 ## 781 · 2026-11-18
 
 - **Twin filter: two drawn envelopes.** Under the response picture sit two Bezier envelopes (the same editor as Env 2's, with a sustain knot). They start when the input rises through `trigger`, and each filter picks one (`pick1`, `pick2`) and says how many octaves it moves the cutoff (`depth1`, `depth2`, up to 4 either way, 0 leaves the filter alone). A drawing with a knot holds while the input stays up and plays on when it falls 6 dB below the trigger. `time1` and `time2` set the lengths. Existing sounds are unchanged (the depths start at 0).

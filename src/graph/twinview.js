@@ -16,7 +16,7 @@ export function createTwinView({ doc = document, getParam, setParam, sampleRate 
   const el = doc.createElement('div'); el.className = 'spacepanel twin-panel';
   const { canvas, ctx, ink } = makeCanvas(doc, W, H, 'sp-pad');
   const info = doc.createElement('div'); info.className = 'sp-info';
-  el.append(canvas, info);
+  el.appendChild(canvas); el.appendChild(info);
 
   const lo = Math.log2(F_LOW), hi = Math.log2(F_HIGH), pw = W - PL - PR;
   const X = f => PL + (Math.log2(f) - lo) / (hi - lo) * pw;
