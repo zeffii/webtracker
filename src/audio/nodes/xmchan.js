@@ -21,6 +21,8 @@
 // B, D, E6, EE, F, G and H belong to the song: the importer plays them out into the arrangement (the global volume of
 // G and H goes to the master lane's Vol column), so here they do nothing. E3 (glissando) and E5 (finetune) are ignored.
 //
+// A sample whose loop is marked `pingpong` runs through the loop forwards, then backwards, and on.
+//
 // Pitch: every sample says how it is tuned through its rate. A sample recorded at 8363 Hz plays at its own pitch on
 // C-4; the importer folds the XM relative note and finetune into the rate, so a sample one octave up has 16726.
 // Periods follow the module: linear (64 to a semitone) or Amiga (the classic table, times four), `data.linear`.
@@ -108,7 +110,7 @@ export default {
     const bank = [];
 
     // what is playing
-    let active = false, pos = 0, cur = 0, ins = 0, note = C4, period = periodOf(C4, linear), outPeriod = period;
+    let active = false, pos = 0, dir = 1, cur = 0, ins = 0, note = C4, period = periodOf(C4, linear), outPeriod = period;
     let vol = 64, outVol = 64, pan = 128, gain = 0;
     let keyOn = true, fadeVol = FADE_FULL, volEnvPos = 0, panEnvPos = 0, autoPos = 0, autoAmp = 0;
     // the row
@@ -155,7 +157,7 @@ export default {
       cur = slot;
       note = n;
       period = outPeriod = target = clampPeriod(periodOf(sampleNote(n), linear));
-      pos = offset;
+      pos = offset; dir = 1;
       active = pos < bank[cur].sample.length;
       resetEnvelopes();
       return true;
@@ -266,14 +268,14 @@ export default {
         }
         case 0xA: volumeSlide(); break;
         case 0xE:
-          if (sub === 9 && x && t % x === 0) { pos = 0; active = !!bank[cur]; }
+          if (sub === 9 && x && t % x === 0) { pos = 0; dir = 1; active = !!bank[cur]; }
           else if (sub === 0xC && t === x) vol = 0;
           else if (sub === 0xD && delayedRow && t === x) { startRow(delayedRow); delayedRow = null; }
           break;
         case 0x14: if (t === keyOffAt) keyOff(); break;
         case 0x19: pan = clampPan(memPan >> 4 ? pan + (memPan >> 4) : pan - (memPan & 15)); break;
         case 0x1B:
-          if (retrigRate && ++retrigCount >= retrigRate) { retrigCount = 0; pos = 0; active = !!bank[cur]; vol = clampVol(RETRIG_VOL[retrigVol](vol)); }
+          if (retrigRate && ++retrigCount >= retrigRate) { retrigCount = 0; pos = 0; dir = 1; active = !!bank[cur]; vol = clampVol(RETRIG_VOL[retrigVol](vol)); }
           break;
         case 0x1D: {
           const on = (tremorMem >> 4) + 1, off = (tremorMem & 15) + 1;
@@ -338,7 +340,7 @@ export default {
         const S = bank[msg.slot | 0] = {
           sample: msg.data, volume: msg.volume ?? 1, pan: Math.max(-1, Math.min(1, msg.pan ?? 0)),
           tune: 12 * Math.log2(Math.max(1, msg.rate) / 8363),   // semitones from C-4 at 8363 Hz
-          loop: false, ls: 0, le: 0,
+          loop: false, pingpong: msg.pingpong === true, ls: 0, le: 0,
         };
         const start = msg.loopStart ?? 0, end = msg.loopEnd ?? 0;
         if (msg.loopOn !== false && end - start >= 2 && end <= S.sample.length && start >= 0) { S.loop = true; S.ls = start; S.le = end; }
@@ -377,19 +379,24 @@ export default {
         const goal = tremorOn ? outVol / 64 * envVol / 64 * fadeVol / FADE_FULL * level : 0;
         const linearInterp = params[slots[P.interp]] >= 0.5;
         const loop = S.loop, ls = S.ls, le = S.le, span = le - ls;
+        const pingpong = loop && S.pingpong, top = le - 1;   // a ping-pong loop turns on its last frame and on its first
         let p = pos;
         for (let i = 0; i < n; i++) {
-          if (loop) { if (p >= le) p = ls + (p - ls) % span; } else if (p >= len) { active = false; break; }
+          if (pingpong) {
+            if (dir > 0 && p >= top) { p = top - ((p - top) % (2 * (top - ls))); dir = -1; if (p < ls) { p = 2 * ls - p; dir = 1; } }
+            else if (dir < 0 && p <= ls) { p = ls + ((ls - p) % (2 * (top - ls))); dir = 1; if (p > top) { p = 2 * top - p; dir = -1; } }
+          } else if (loop) { if (p >= le) p = ls + (p - ls) % span; } else if (p >= len) { active = false; break; }
           const k = Math.floor(p);
           let v = sample[k];
           if (linearInterp) {
             let k2 = k + 1;
-            if (loop && k2 >= le) k2 = ls + (k2 - ls) % span;
+            if (pingpong) k2 = Math.min(top, k2);
+            else if (loop && k2 >= le) k2 = ls + (k2 - ls) % span;
             v += ((k2 < len ? sample[k2] : 0) - v) * (p - k);
           }
           gain += (goal - gain) * 0.02;
           outL[i] = v * gain * gl; outR[i] = v * gain * gr;
-          p += inc;
+          p += inc * dir;
         }
         pos = p;
       },

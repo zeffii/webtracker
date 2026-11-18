@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 785 · 2026-11-18
+
+- **XM channel: real ping-pong loops.** A ping-pong sample is no longer unrolled into a forward loop twice as long: the sample keeps its own loop, marked `pingpong`, and the XM channel plays it forwards, then backwards, turning on the loop's first and last frame. It is kept in the song file with the sample. A retrigger or a new note starts forwards again.
+
 ## 784 · 2026-11-18
 
 - **XM files: open a FastTracker 2 module.** Open loads a `.xm` the way it loads a `.mod`: the order list is played out (variable pattern lengths, breaks, jumps, pattern loops and delays, F speed and BPM), each channel becomes a lane, and every instrument comes along with its samples (8- and 16-bit; ping-pong loops are unrolled into forward ones), keymap, volume and panning envelopes, fadeout and auto-vibrato. The global volume (G, H) goes to the master lane's Vol column.

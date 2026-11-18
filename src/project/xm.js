@@ -167,14 +167,6 @@ export function playOut(xm, { maxRows = 40000 } = {}) {
   return { steps };
 }
 
-// A ping-pong loop played as a forward one: the loop is followed by itself backwards, and the loop covers both.
-export function unrollPingPong(data, start, end) {
-  const back = data.subarray(start, end).slice().reverse();
-  const out = new Float32Array(end + back.length);
-  out.set(data.subarray(0, end)); out.set(back, end);
-  return { data: out, loopStart: start, loopEnd: end + back.length };
-}
-
 // The rate a sample is played at on C-4: its relative note and finetune folded in (8363 Hz is untransposed).
 const sampleRate = s => Math.max(1000, Math.min(384000, Math.round(8363 * Math.pow(2, (s.relNote + s.finetune / 128) / 12))));
 
@@ -187,14 +179,13 @@ export function xmToProject(xm, name = 'xm') {
   xm.instruments.forEach((inst, i) => {
     const first = slots.length;
     inst.samples.forEach((s, k) => {
-      let { data, loopStart, loopEnd } = s;
-      if (s.loopType === 2) ({ data, loopStart, loopEnd } = unrollPingPong(data, loopStart, loopEnd));
+      const { data, loopStart, loopEnd } = s;
       const id = uniqueId(used, idFromName(`${hex(i + 1, 2)}_${k}_${s.name || inst.name || 'sample'}`));
       used.add(id);
       samples[id] = {
         rate: sampleRate(s), data: data.length ? data : new Float32Array(2), volume: s.volume / 64,
         ...(s.pan !== 128 ? { pan: Math.max(-1, Math.min(1, (s.pan - 128) / 128)) } : {}),
-        ...(s.loopType ? { loopStart, loopEnd, loopOn: true } : {}),
+        ...(s.loopType ? { loopStart, loopEnd, loopOn: true, ...(s.loopType === 2 ? { pingpong: true } : {}) } : {}),
       };
       slots.push(id);
     });

@@ -6233,7 +6233,7 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
 // XM files: parse, play the arrangement out, build the project, and play it through the xmchan machine.
 {
   const { makeXm } = await import('./xmfixture.mjs');
-  const { parseXm, playOut, xmToProject, unrollPingPong } = await import('../src/project/xm.js');
+  const { parseXm, playOut, xmToProject } = await import('../src/project/xm.js');
   const sq = n => Array.from({ length: n }, (_, i) => (i < n / 2 ? 0.75 : -0.75));
   const C4 = 49, OFF = 97;
   // parsing: packed and unpacked cells, rows, instruments, envelopes, 8- and 16-bit delta samples
@@ -6260,9 +6260,6 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   const wide = xm.instruments[2].samples[0].data;
   assert.equal(wide.length, 4, '16-bit: two bytes a sample'); assert.ok(Math.abs(wide[1] - 0.5) < 1e-4 && Math.abs(wide[2] + 0.5) < 1e-4, 'the deltas add up');
   assert.throws(() => parseXm(new ArrayBuffer(100)), /Not an XM/);
-  // ping-pong loops are played forwards, then backwards
-  const pp = unrollPingPong(Float32Array.from([0, 1, 2, 3]), 1, 4);
-  assert.deepEqual([...pp.data], [0, 1, 2, 3, 3, 2, 1]); assert.equal(pp.loopEnd, 7);
   // playing out: speed, BPM, a break into a short pattern, global volume
   const play = (patterns, extra = {}) => playOut(parseXm(makeXm({ patterns, orders: patterns.map((_, i) => i), ...extra }))).steps;
   let steps = play([{ rows: 4, data: [[[0, 0, 0, 0xF, 2]], [[0, 0, 0, 0xF, 0x90]]] }]);
@@ -6283,7 +6280,7 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   assert.equal(pat[1], '... .. .. ......');
   assert.equal(pat[12], '=== .. .. 010000', 'a key off');
   const smp = Object.values(proj.samples);
-  assert.equal(smp[0].rate, 16726, 'the relative note is part of the rate'); assert.equal(smp[1].loopEnd, 32, 'the ping-pong loop is unrolled');
+  assert.equal(smp[0].rate, 16726, 'the relative note is part of the rate'); assert.equal(smp[1].loopEnd, 16, 'a ping-pong loop keeps its length'); assert.equal(smp[1].pingpong, true, 'and is marked');
   const node = proj.instruments.ch1.graph.nodes.find(n => n.id === 'ch');
   assert.equal(node.data.ins[0].map.length, 96, 'the keymap points at the slots'); assert.equal(node.data.ins[0].map[60], 1);
   assert.ok(Object.values(proj.song.lanes[0].patterns)[0].text.split('\n')[0].endsWith(' 80'), 'G20 lands in the master Vol column');
@@ -6328,6 +6325,16 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   const gv = rig(makeXm({ channels: 1, instruments: [loopIns()], patterns: [{ rows: 4, data: [[[C4, 1, 0, 0x10, 0x20]]] }] }));
   gv.render(0.05);
   assert.ok(Math.abs(gv.registry.get('master.m.volume') - 0x80 / 255) < 0.01, 'G20 is half the master volume');
+  // ping-pong: a rising ramp looped back and forth is a triangle with no jump; looped forwards it jumps at every turn
+  const ramp = Array.from({ length: 64 }, (_, i) => -0.9 + 1.8 * i / 63);
+  const jump = x => { let m = 0; for (let i = Math.floor(0.05 * sr); i < Math.floor(0.3 * sr); i++) m = Math.max(m, Math.abs(x[i] - x[i - 1])); return m; };
+  const rampIns = loopType => ({ samples: [{ data: ramp, loopType, loopStart: 0, loopLength: 64 }] });
+  const fwd = run([[[C4, 1]]], { ins: rampIns(1) }), pong = run([[[C4, 1]]], { ins: rampIns(2) });
+  assert.ok(jump(fwd) > 10 * jump(pong), 'a forward loop jumps back to its start; a ping-pong loop turns round smoothly');
+  { let peak = 0; for (let i = Math.floor(0.05 * sr); i < Math.floor(0.3 * sr); i++) peak = Math.max(peak, Math.abs(pong[i]));
+    const along = 2 * peak / 63 * (8363 / sr);   // the step from one output sample to the next along the ramp
+    assert.ok(jump(pong) < 2 * along, 'no bigger step at the turns than along the ramp'); }
+  assert.ok(Math.abs(hz(pong, 0.05, 0.3) - 8363 / 126) < 3, 'one cycle is the loop there and back');
   console.log('ok: xm import');
 }
 

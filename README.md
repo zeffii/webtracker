@@ -100,7 +100,7 @@ The waveform height is draggable.
 | `.wxpr` | A preset library. |
 | `.mid` | Imported as lanes and patterns. |
 | `.mod` | ProTracker modules: the order list is played out, tempo changes go to the master lane, each channel becomes a lane on a MOD channel machine, and the samples come along. |
-| `.xm` | FastTracker 2 modules: played out the same way (variable pattern lengths, F speed and BPM), the global volume (G, H) goes to the master lane's Vol column, each channel becomes a lane on an XM channel machine, and every instrument comes along with its samples, keymap, volume and panning envelopes, fadeout and auto-vibrato. Ping-pong loops are unrolled into forward loops. |
+| `.xm` | FastTracker 2 modules: played out the same way (variable pattern lengths, F speed and BPM), the global volume (G, H) goes to the master lane's Vol column, each channel becomes a lane on an XM channel machine, and every instrument comes along with its samples, keymap, volume and panning envelopes, fadeout and auto-vibrato. Ping-pong loops play forwards and backwards, as in FT2. |
 
 ## Layout of the code
 
