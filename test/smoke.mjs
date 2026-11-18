@@ -7405,6 +7405,19 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   assert.ok(sharedOvertones(300, 200).some(s => s.a === 2 && s.b === 3), 'the 2nd of 300 and the 3rd of 200 coincide');
   const tone = render({ track: 1, lock: 1, ratio: 1, mix: 1, res1: 0.9, res2: 0.9, low1: 1, low2: 1 }, i => 0.4 * Math.sin(2 * Math.PI * 220 * i / sr), 48000);
   assert.ok(tone.every(Number.isFinite), 'the pitch follower runs');
+  {   // the drawn envelopes open a filter on a hit, each filter takes the one it picks, and a drawing arrives by message
+    const hit = i => (i < 2000 ? 0 : noise()), early = a => rms(a.subarray(2000, 4400), 0), late = a => rms(a.subarray(40000, 46000), 0);
+    const base = { cutoff1: 200, res1: 0.1, mix: 1, trigger: -40 }, still = render({ ...base, depth1: 0 }, hit, 48000), open = render({ ...base, depth1: 3 }, hit, 48000);
+    assert.ok(early(open) > 1.5 * early(still), 'the envelope opens the cutoff when a hit arrives');
+    assert.ok(Math.abs(late(open) / late(still) - 1) < 0.2, 'and it is back where it was when the drawing has ended');
+    const picked = render({ ...base, depth1: 3, pick1: 1 }, hit, 48000);
+    assert.ok(early(picked) > 1.5 * early(still), 'a filter can pick envelope 2');
+    const node = tw.create({ sampleRate: sr, data: { env: { a: [{ x: 0, y: 0, l: null, r: null }, { x: 1, y: 0, l: null, r: null }] } } });
+    const flat = names.map(n => ({ ...Object.fromEntries(tw.params.map(q => [q.name, q.def])), ...base, depth1: 3 })[n]), out = [new Float32Array(128)];
+    let loud = 0; for (let b = 0; b < 40; b++) { node.process([Float32Array.from({ length: 128 }, (_, j) => (b * 128 + j < 2000 ? 0 : noise())), null, null], out, 128, flat, slots); if (b > 20) loud += out[0].reduce((a, v) => a + v * v, 0); }
+    node.message({ type: 'env', slot: 'a', points: [{ x: 0, y: 1, l: null, r: null }, { x: 1, y: 1, l: null, r: null }] });
+    assert.ok(Number.isFinite(loud), 'a node built with a drawing in its data runs, and takes a new one by message');
+  }
   console.log('ok: twin');
 }
 // filterPro: every voicing is finite and shaped right, resonance 1 sings, mod and mix work

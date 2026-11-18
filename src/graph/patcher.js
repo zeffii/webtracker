@@ -280,6 +280,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
   let env2Editor = null;    // the drawn envelope of an Env 2 node
   let spaceView = null;     // the panel of a room or head effect (reflect, headpan, haas, ringmod, sympathy)
   let kalView = null;       // the spectrum in, the spectrum out and the band of a kaleidoscope
+  let twinEnvs = [];        // the two drawn envelopes of the twin filter
   let hat2View = null;      // the two drawn volumes of Hi-hat 2
   let pulsarView = null;    // the pulse train and the drawings of the pulsar nodes
   let khufuView = null;     // the registers and the amplitude drawing of the Khufu string voice
@@ -448,6 +449,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
         if (type.editor === 'drumsynth') drumView?.refresh();
         if (type.editor === 'drumsynth2') drum2View?.refresh();
         if (type.editor === 'env2') env2Editor?.refresh();
+        if (type.editor === 'twin') twinEnvs.forEach(e => e.refresh());
         if (type.editor === 'hat2') hat2View?.refresh();
         if (type.editor === 'pulsar' || type.editor === 'pulsetrain') pulsarView?.refresh();
         if (VECTOR_EDITORS.has(type.editor)) compassView?.refresh();
@@ -941,6 +943,22 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
       });
       spaceView.nodeId = node.id;
       items.splice(1, 0, sub(spaceView.el));
+    }
+    twinEnvs = [];
+    if (type.editor === 'twin') {   // its two drawn envelopes, side by side after the response picture, kept on the node and sent live
+      const param = name => readLive(instId, node.id, name) ?? node.params?.[name] ?? type.params.find(p => p.name === name)?.def ?? 0;
+      [['a', 'ENVELOPE 1', 'hsl(175 60% 52%)', 'time1'], ['b', 'ENVELOPE 2', 'hsl(40 95% 62%)', 'time2']].forEach(([slot, title, color, time], k) => {
+        const editor = createBezierEditor({
+          doc, title, color, points: node.data?.env?.[slot], fallback: DEFAULT_ENV2, firstHandle: true, knot: true,
+          getMs: () => param(time), labels: () => ['up', '0'],
+          onChange: points => {
+            node.data = { ...node.data, env: { ...node.data?.env, [slot]: points } };
+            onData(instId, node.id, { type: 'env', slot, points });
+          },
+        });
+        twinEnvs.push(editor);
+        items.splice(2 + k, 0, sub(editor.el));
+      });
     }
     kalView = null;
     if (type.editor === 'kaleidoscope') {   // the live spectrum with the band to drag, and the arrayed result

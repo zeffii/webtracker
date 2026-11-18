@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 781 · 2026-11-18
+
+- **Twin filter: two drawn envelopes.** Under the response picture sit two Bezier envelopes (the same editor as Env 2's, with a sustain knot). They start when the input rises through `trigger`, and each filter picks one (`pick1`, `pick2`) and says how many octaves it moves the cutoff (`depth1`, `depth2`, up to 4 either way, 0 leaves the filter alone). A drawing with a knot holds while the input stays up and plays on when it falls 6 dB below the trigger. `time1` and `time2` set the lengths. Existing sounds are unchanged (the depths start at 0).
+
 ## 780 · 2026-11-17
 
 - **Twin panel: the dots drag sideways only.** Dragging a cutoff dot now changes just the cutoff (the resonance has its slider), the same in the native app. While the lock is on, the second dot sets the ratio.
