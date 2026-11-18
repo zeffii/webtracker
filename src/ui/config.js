@@ -5,7 +5,7 @@
 import { DEFAULT_RULES } from './console.js';
 import { PALETTES } from './palettes.js';
 const KEY = 'webtracker.config';
-export const THEMES = ['system', 'dark', 'black', 'bright', 'neon', 'amber', 'phosphor', 'ice', 'synthwave'];
+export const THEMES = ['system', 'dark', 'black', 'bright', 'neon', 'amber', 'phosphor', 'ice', 'synthwave', 'red october'];
 
 // What each group is for, shown beside its card on the Config tab.
 export const GROUPS = {

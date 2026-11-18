@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 783 · 2026-11-18
+
+- **New colour theme: red october.** An infrared look: near-black reds with the text, accent and lines in various strengths of red. Pick it in Config or the theme box in the footer.
+
 ## 782 · 2026-11-18
 
 - **Test: the twin filter's panel holds its two envelope editors.** A smoke test now builds the panel, finds both drawings and checks that an edit is kept on the node and sent as slot `a` or `b`. (The response picture now adds its parts one at a time, which the test's stand-in page needs; nothing changes on screen.)
