@@ -1145,6 +1145,13 @@ const HINTS = {
     pan: 'Stereo position: -1 left, 1 right. The Amiga is hard panned, left right right left.',
     interp: '1: smooth interpolation between samples. 0: nearest sample, the rough sound of the real hardware.',
   },
+  xmchan: {
+    ins: 'The instrument a note plays: 00 is XM instrument 1. An Ins cell without a note sets the volume and panning to the sample\'s own and starts the envelopes again.',
+    vcol: 'The volume column of the row, as in the XM: 10-50 set volume, 6x/7x slide down/up, 8x/9x fine down/up, Ax vibrato speed, Bx vibrato, Cx panning, Dx/Ex pan left/right, Fx tone portamento.',
+    fx: 'The effect word of the row, as in an XM cell: effect number then parameter (0C40 is C40, 143F is K3F; G to X are 10 to 21 hex). Written by Cmd 01.',
+    level: 'Level of the channel.',
+    interp: '1: smooth interpolation between samples. 0: nearest sample, the rough sound of the original.',
+  },
   squelch: {
     wave: '0 saw, 1 square.',
     tune: 'Tunes the voice in semitones, on top of the note played.',

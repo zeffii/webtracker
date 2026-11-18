@@ -29,7 +29,7 @@ A parameter in milliseconds or Hz can be read in ticks: its bar shows a faint li
 
 ## The nodes
 
-- **Sources:** sampler, oscillator, envelope, LFO, subtractive synth, an Oberheim-style synth, piano (a physical model), FM, additive, wavetable, granular, spectral, plucked string, DX bank loader, 808 hi-hat, a comb-resonator percussion machine, and a MOD channel.
+- **Sources:** sampler, oscillator, envelope, LFO, subtractive synth, an Oberheim-style synth, piano (a physical model), FM, additive, wavetable, granular, spectral, plucked string, DX bank loader, 808 hi-hat, a comb-resonator percussion machine, a MOD channel and an XM channel.
 - **Mix and level:** gain (with a VU meter), mix, pan, voices.
 - **Effects:** filter, delay, multitap, chorus, phaser, flanger, distortion, waveshaper, fold, crusher, frequency shifter, gater, exciter, transient, compressor, gate, EQ, three reverbs (hall, plate, shimmer), vocoder, and more.
 - **Control:** ctrl (glides and parameter ports), note trigger, envelope follower, tempo.

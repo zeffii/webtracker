@@ -2,6 +2,11 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 784 · 2026-11-18
+
+- **XM files: open a FastTracker 2 module.** Open loads a `.xm` the way it loads a `.mod`: the order list is played out (variable pattern lengths, breaks, jumps, pattern loops and delays, F speed and BPM), each channel becomes a lane, and every instrument comes along with its samples (8- and 16-bit; ping-pong loops are unrolled into forward ones), keymap, volume and panning envelopes, fadeout and auto-vibrato. The global volume (G, H) goes to the master lane's Vol column.
+- **New machine: XM channel (`xmchan`).** One FT2 channel. Its columns are Note (`===` is the key off), Ins, Vol (the XM volume column byte) and Cmd: `01` writes the effect word (`010C40` is C40; the letters G to X are 10 to 21 hex, so `01143F` is K3F). It plays the XM effects a channel owns: arpeggio, portamentos (with FT2's separate memories), vibrato, tremolo, panning, offset, volume slides, retrigger, cut, delay, K key off, L envelope position, P panning slide, R multi retrigger, T tremor and X extra fine portamento, with linear or Amiga periods. Not playing, a note from the keyboard sounds with its envelopes and fadeout running. Under Samplers, beside the MOD channel.
+
 ## 783 · 2026-11-18
 
 - **New colour theme: red october.** An infrared look: near-black reds with the text, accent and lines in various strengths of red. Pick it in Config or the theme box in the footer.

@@ -7,6 +7,7 @@
 | `.wxpr` | A preset library. |
 | `.mid` | A MIDI file, imported as lanes and patterns. |
 | `.mod` | A ProTracker module. The order list is played out, tempo changes go to the master lane, each channel becomes a lane on a MOD channel machine, and the samples come along. |
+| `.xm` | A FastTracker 2 module. Played out the same way; the global volume goes to the master lane's Vol column, each channel becomes a lane on an XM channel machine, and the instruments come along with their samples, keymaps, envelopes, fadeout and auto-vibrato. |
 | `.wav` | What **Export WAV** writes: the song rendered once, offline, with a tail, as 16-bit, 24-bit or 32-bit float stereo. |
 
 ## Where things live

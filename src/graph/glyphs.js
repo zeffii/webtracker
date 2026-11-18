@@ -430,6 +430,13 @@ export const GLYPHS = {
     }
     line(ctx, pts);
   },
+  xmchan: (ctx, cx, cy, w, h) => {   // a sample under its volume envelope: attack, sustain, release
+    const x = f => cx - w / 2 + f * w, y = f => cy + h / 2 - f * h;
+    line(ctx, [[x(0), y(0.1)], [x(0.15), y(0.9)], [x(0.35), y(0.6)], [x(0.7), y(0.6)], [x(1), y(0.1)]]);
+    const pts = [];
+    for (let i = 0; i < 8; i++) pts.push([x(0.15 + i * 0.07), y(0.25 + (i % 2) * 0.15)]);
+    line(ctx, pts);
+  },
   cardinal: (ctx, cx, cy, w, h) => {   // a saw wave over a filter slope
     const x = f => cx - w / 2 + f * w, y = f => cy + h / 2 - f * h;
     ctx.beginPath(); for (let i = 0; i < 3; i++) { ctx.moveTo(x(0.08 + i * 0.28), y(0.15)); ctx.lineTo(x(0.08 + i * 0.28), y(0.85)); ctx.lineTo(x(0.36 + i * 0.28), y(0.15)); } ctx.stroke();

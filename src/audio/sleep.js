@@ -20,7 +20,7 @@
 export const SILENT = 3e-5;      // about −90 dB
 export const HOLD_S = 2;         // the shortest silence before a machine sleeps
 const MARGIN_S = 0.5;            // added to the longest delay time found
-const NEVER = new Set(['genexpr', 'glsl', 'tempo', 'nsgroups', 'oscout', 'modchan']);
+const NEVER = new Set(['genexpr', 'glsl', 'tempo', 'nsgroups', 'oscout', 'modchan', 'xmchan']);
 export const FREE = new Set(['lfo', 'ctrl']);   // modulators that run with no note: they keep running while the machine sleeps (they cost next to nothing), so a sweep or a synced LFO is where it should be when it wakes
 const GATED = new Set(['env', 'env2', 'notetrig', 'sampler', 'drumsynth', 'drumsynth2', 'clap', 'membrane', 'clang', 'subsynth', 'pulsar', 'pulsetrain', 'westcoast', 'pluckgate', 'fourpole', 'oberheim', 'cardinal', 'piano', 'fmsynth', 'dvii',
   'wavetable', 'granular', 'woodblock', 'jawharp', 'snarl', 'string', 'hat808', 'hat2', 'bongo', 'combperc', 'squelch', 'duette', 'compass', 'waveseq', 'khufu', 'lone']);   // sound only while a note does

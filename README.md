@@ -74,7 +74,7 @@ Everything before a poly (the voices node) is done per voice, anything after a p
 Ready-made synths can be added with a lane in one step. Sources, mixing, effects and control nodes:
 
 - **Sources:** sampler, oscillator, envelope, LFO, subtractive synth, Oberheim-style synth, piano (physical model),
-  FM, additive, wavetable, granular, spectral, plucked string, DX7 bank loader, 808 hi-hat, comb-resonator percussion (metal hits and zapping toms), MOD channel.
+  FM, additive, wavetable, granular, spectral, plucked string, DX7 bank loader, 808 hi-hat, comb-resonator percussion (metal hits and zapping toms), MOD channel, XM channel.
 - **Mix & level:** gain (with a VU meter), mix, pan, voices.
 - **Effects:** filter, delay, multitap, chorus, phaser, flanger, distortion, waveshaper, fold, crusher, frequency
   shifter, gater, exciter, transient, compressor, gate, EQ, three reverbs (hall, plate, shimmer), shiva, blur, and
@@ -100,6 +100,7 @@ The waveform height is draggable.
 | `.wxpr` | A preset library. |
 | `.mid` | Imported as lanes and patterns. |
 | `.mod` | ProTracker modules: the order list is played out, tempo changes go to the master lane, each channel becomes a lane on a MOD channel machine, and the samples come along. |
+| `.xm` | FastTracker 2 modules: played out the same way (variable pattern lengths, F speed and BPM), the global volume (G, H) goes to the master lane's Vol column, each channel becomes a lane on an XM channel machine, and every instrument comes along with its samples, keymap, volume and panning envelopes, fadeout and auto-vibrato. Ping-pong loops are unrolled into forward loops. |
 
 ## Layout of the code
 

@@ -33,6 +33,7 @@ import { createDspView } from './ui/dspview.js';
 import * as ops from './project/ops.js';
 import { importMidi, parseMidi } from './project/midi.js';
 import { modToProject, parseMod } from './project/mod.js';
+import { xmToProject, parseXm } from './project/xm.js';
 import { parseSunvox, sunvoxToProject } from './project/sunvox.js';
 import * as presets from './project/presets.js';
 import { LIBRARY_EXT, addToLibrary, importFromLibrary, newLibrary, parseLibrary, serializeLibrary } from './project/library.js';
@@ -2753,6 +2754,13 @@ $('file').addEventListener('change', async e => {
       $('status').textContent = `Loaded ${file.name}: ${mod.channels} channels, ${data.song.length} ticks at ${data.song.bpm} bpm.`;
       return;
     }
+    if (/\.xm$/i.test(file.name)) {   // an XM file too: one lane per channel, every instrument's samples
+      if (!confirm('Replace the current project with this XM file? Save first if you want to keep it.')) return;
+      const xm = parseXm(await file.arrayBuffer()), data = xmToProject(xm, file.name.replace(/\.xm$/i, ''));
+      openProject(data);
+      $('status').textContent = `Loaded ${file.name}: ${xm.channels} channels, ${xm.instruments.length} instruments, ${data.song.length} ticks at ${data.song.bpm} bpm.`;
+      return;
+    }
     if (/\.sunvox$/i.test(file.name)) {   // a SunVox file is a whole song too: its notes and arrangement, a lane per module that plays notes
       if (!confirm('Replace the current project with this SunVox file? Save first if you want to keep it.')) return;
       const sv = parseSunvox(await file.arrayBuffer()), data = sunvoxToProject(sv, file.name.replace(/\.sunvox$/i, ''));
@@ -2979,8 +2987,8 @@ function makeInstrument(value, name = '', side = null) {
   const kinds = $('new-inst-kind'), sample = $('new-inst-sample');
   const option = (value, text) => Object.assign(document.createElement('option'), { value, textContent: text });
   const group = (label, entries) => { const g = document.createElement('optgroup'); g.label = label; g.append(...entries); return g; };
-  const synths = Object.entries(synthKinds).filter(([k]) => k !== 'empty' && k !== 'modchan').map(([k, { label }]) => option(`synth:${k}`, label));
-  kinds.replaceChildren(group('Samplers', [option('sampler', 'Sampler (plays a sample)'), option('synth:modchan', synthKinds.modchan.label)]), group('Synths', synths), group('Blank', [option('synth:empty', synthKinds.empty.label)]));
+  const synths = Object.entries(synthKinds).filter(([k]) => k !== 'empty' && k !== 'modchan' && k !== 'xmchan').map(([k, { label }]) => option(`synth:${k}`, label));
+  kinds.replaceChildren(group('Samplers', [option('sampler', 'Sampler (plays a sample)'), option('synth:modchan', synthKinds.modchan.label), option('synth:xmchan', synthKinds.xmchan.label)]), group('Synths', synths), group('Blank', [option('synth:empty', synthKinds.empty.label)]));
   const showSample = () => { sample.hidden = kinds.value !== 'sampler'; };
   kinds.addEventListener('change', showSample);
   showSample();

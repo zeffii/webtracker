@@ -6230,6 +6230,107 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   pops.setSongLength({ song: { length: 16 }, lanes: [] }, 20000);
 }
 
+// XM files: parse, play the arrangement out, build the project, and play it through the xmchan machine.
+{
+  const { makeXm } = await import('./xmfixture.mjs');
+  const { parseXm, playOut, xmToProject, unrollPingPong } = await import('../src/project/xm.js');
+  const sq = n => Array.from({ length: n }, (_, i) => (i < n / 2 ? 0.75 : -0.75));
+  const C4 = 49, OFF = 97;
+  // parsing: packed and unpacked cells, rows, instruments, envelopes, 8- and 16-bit delta samples
+  const env = { pts: [0, 64, 10, 32, 20, 0], sus: 1, ls: -1, le: -1 };
+  const xm = parseXm(makeXm({
+    title: 'song', channels: 2, speed: 3, bpm: 150,
+    patterns: [{ rows: 8, data: [[[C4, 1, 0x30, 0xC, 0x20], { raw: [61, 2, 0, 0x14, 3] }], [[OFF]]] }],
+    instruments: [
+      { name: 'lead', vol: env, fade: 512, samples: [{ data: sq(32), volume: 48, relNote: 12, finetune: 0, pan: 64, loopType: 1, loopStart: 0, loopLength: 32 }] },
+      { name: 'empty' },
+      { name: 'wide', samples: [{ data: [0, 0.5, -0.5, 0.25], sixteen: true }] },
+    ],
+  }));
+  assert.equal(xm.title, 'song'); assert.equal(xm.channels, 2); assert.equal(xm.speed, 3); assert.equal(xm.bpm, 150); assert.equal(xm.linear, true);
+  assert.equal(xm.patterns[0].length, 8, 'a pattern keeps its own row count');
+  assert.deepEqual(xm.patterns[0][0][0], { note: C4, ins: 1, vol: 0x30, effect: 0xC, param: 0x20 });
+  assert.deepEqual(xm.patterns[0][0][1], { note: 61, ins: 2, vol: 0, effect: 0x14, param: 3 }, 'an unpacked cell reads the same');
+  assert.equal(xm.patterns[0][1][0].note, OFF);
+  assert.equal(xm.instruments.length, 3); assert.equal(xm.instruments[1].samples.length, 0);
+  assert.deepEqual(xm.instruments[0].vol, env, 'the volume envelope with its sustain point');
+  assert.equal(xm.instruments[0].fade, 512);
+  const s0 = xm.instruments[0].samples[0];
+  assert.equal(s0.relNote, 12); assert.equal(s0.pan, 64); assert.equal(s0.loopEnd, 32); assert.ok(Math.abs(s0.data[0] - 0.75) < 0.01);
+  const wide = xm.instruments[2].samples[0].data;
+  assert.equal(wide.length, 4, '16-bit: two bytes a sample'); assert.ok(Math.abs(wide[1] - 0.5) < 1e-4 && Math.abs(wide[2] + 0.5) < 1e-4, 'the deltas add up');
+  assert.throws(() => parseXm(new ArrayBuffer(100)), /Not an XM/);
+  // ping-pong loops are played forwards, then backwards
+  const pp = unrollPingPong(Float32Array.from([0, 1, 2, 3]), 1, 4);
+  assert.deepEqual([...pp.data], [0, 1, 2, 3, 3, 2, 1]); assert.equal(pp.loopEnd, 7);
+  // playing out: speed, BPM, a break into a short pattern, global volume
+  const play = (patterns, extra = {}) => playOut(parseXm(makeXm({ patterns, orders: patterns.map((_, i) => i), ...extra }))).steps;
+  let steps = play([{ rows: 4, data: [[[0, 0, 0, 0xF, 2]], [[0, 0, 0, 0xF, 0x90]]] }]);
+  assert.equal(steps[0].speed, 2); assert.equal(steps[1].tempo, 0x90); assert.equal(steps.length, 4);
+  steps = play([{ rows: 4, data: [[[0, 0, 0, 0xD, 0x02]]] }, { rows: 3, data: [] }]);
+  assert.deepEqual(steps.map(s => [s.pattern, s.row]), [[0, 0], [1, 2]], 'D02 goes to row 2 of the next pattern');
+  steps = play([{ rows: 2, data: [[[0, 0, 0, 0x10, 0x20]], [[0, 0, 0, 0x11, 0x01]]] }]);
+  assert.equal(steps[0].gv, 0x20, 'G20 sets the global volume'); assert.equal(steps[1].gslide, -1, 'H01 slides it down');
+  // the project
+  const proj = xmToProject(parseXm(makeXm({
+    channels: 2, bpm: 140, patterns: [{ rows: 4, data: [[[C4, 1, 0x40, 0x10, 0x20]], [], [[OFF, 0, 0, 0, 0]]] }],
+    instruments: [{ name: 'a', samples: [{ data: sq(16), relNote: 12 }, { data: sq(16), loopType: 2, loopStart: 0, loopLength: 16 }], map: Array.from({ length: 96 }, (_, k) => (k < 48 ? 0 : 1)), vol: env }],
+  })));
+  assert.deepEqual(proj.song.lanes.map(l => l.id), ['master', 'ch1', 'ch2']);
+  assert.equal(proj.song.bpm, 140); assert.equal(proj.song.ticksPerBeat, 24);
+  const pat = Object.values(proj.song.lanes[1].patterns)[0].text.split('\n');
+  assert.equal(pat[0], 'C-4 00 40 011020', 'note, instrument minus one, volume column, effect word');
+  assert.equal(pat[1], '... .. .. ......');
+  assert.equal(pat[12], '=== .. .. 010000', 'a key off');
+  const smp = Object.values(proj.samples);
+  assert.equal(smp[0].rate, 16726, 'the relative note is part of the rate'); assert.equal(smp[1].loopEnd, 32, 'the ping-pong loop is unrolled');
+  const node = proj.instruments.ch1.graph.nodes.find(n => n.id === 'ch');
+  assert.equal(node.data.ins[0].map.length, 96, 'the keymap points at the slots'); assert.equal(node.data.ins[0].map[60], 1);
+  assert.ok(Object.values(proj.song.lanes[0].patterns)[0].text.split('\n')[0].endsWith(' 80'), 'G20 lands in the master Vol column');
+  // sound: run it through the sequencer
+  const rig = buffer => {
+    const data = xmToProject(parseXm(buffer));
+    const registry = new ParamRegistry();
+    const rt = new GraphRuntime({ sampleRate: sr, params: registry.values });
+    for (const [id, d] of Object.entries(data.instruments)) rt.load(compile(d.graph, { instrument: id, nodeTypes: NODE_TYPES, registry }));
+    for (const [id, d] of Object.entries(data.instruments)) for (const [node, v] of Object.entries(d.samples ?? {})) pops.slotsOf(v).forEach((sid, slot) => rt.message(id, node, pops.sampleMessage(data.samples[sid], slot)));
+    const slot = k => registry.slots.get(`master.m.${k}`);
+    data.song.master = { bpm: slot('bpm'), swing: slot('swing'), tpb: slot('tpb'), volume: slot('volume') };
+    const seq = new Sequencer({ sampleRate: sr, runtime: rt, params: registry.values, transport: new Int32Array(new SharedArrayBuffer(8)) });
+    seq.setSong(data.song);
+    for (const lane of prepareSong(data.song, data.instruments, registry)) seq.setLane(lane);
+    seq.play();
+    return { registry, render(seconds) {
+      const total = Math.floor(sr * seconds / 128) * 128, L = new Float32Array(total), l = new Float32Array(128), r = new Float32Array(128);
+      for (let at = 0; at < total; at += 128) { seq.process(l, r, 128); L.set(l, at); }
+      return L;
+    } };
+  };
+  const loopIns = (more = {}) => ({ samples: [{ data: sq(16), loopType: 1, loopStart: 0, loopLength: 16 }], ...more });
+  const run = (rows, { seconds = 0.4, ins = loopIns(), linear = true } = {}) => rig(makeXm({ channels: 1, linear, instruments: [ins], patterns: [{ rows: 16, data: rows }] })).render(seconds);
+  const rms = (x, a, b) => { let t = 0; for (let i = Math.floor(a * sr); i < Math.floor(b * sr); i++) t += x[i] ** 2; return Math.sqrt(t / ((b - a) * sr)); };
+  const hz = (x, a, b) => { const t = []; for (let i = Math.floor(a * sr) + 1; i < Math.floor(b * sr); i++) if (x[i] >= 0 && x[i - 1] < 0) t.push(i - x[i] / (x[i] - x[i - 1])); return t.length > 1 ? sr * (t.length - 1) / (t[t.length - 1] - t[0]) : 0; };
+  const plain = run([[[C4, 1]]]);
+  assert.ok(rms(plain, 0.02, 0.1) > 0.05, 'a note sounds');
+  assert.ok(Math.abs(hz(plain, 0.02, 0.1) - 8363 / 16) < 8, 'C-4 plays the sample at 8363 Hz');
+  assert.ok(Math.abs(hz(run([[[C4 + 12, 1]]]), 0.02, 0.1) / hz(plain, 0.02, 0.1) - 2) < 0.03, 'C-5 is an octave up');
+  assert.ok(Math.abs(hz(run([[[C4, 1]]], { linear: false }), 0.02, 0.1) - 8363 / 16) < 8, 'Amiga periods: C-4 is the same');
+  assert.ok(Math.abs(rms(run([[[C4, 1, 0x30]]]), 0.02, 0.1) / rms(plain, 0.02, 0.1) - 0.5) < 0.03, 'Vol 30 is half volume');
+  assert.ok(rms(run([[[C4, 1]], [[OFF]]]), 0.2, 0.3) < 1e-4, 'a key off without a volume envelope cuts the note');
+  const held = run([[[C4, 1]], [], [], [], [[OFF]]], { seconds: 1.2, ins: loopIns({ vol: { pts: [0, 64, 4, 32], sus: 1, ls: -1, le: -1 }, fade: 2048 }) });
+  assert.ok(Math.abs(rms(held, 0.25, 0.35) / rms(plain, 0.02, 0.1) - 0.5) < 0.05, 'the envelope holds at its sustain point');
+  assert.ok(rms(held, 1.0, 1.1) < rms(held, 0.25, 0.35) * 0.1, 'after the key off the fadeout takes it away');
+  const up = run([[[C4, 1, 0, 1, 0x10]]]);
+  assert.ok(hz(up, 0.09, 0.12) > hz(up, 0.01, 0.04) * 1.05, 'a portamento up raises the pitch');
+  const porta = run([[[C4, 1]], [[C4 + 7, 0, 0, 3, 0xFF]]], { seconds: 0.5 });
+  assert.ok(Math.abs(hz(porta, 0.35, 0.45) / hz(porta, 0.02, 0.08) - Math.pow(2, 7 / 12)) < 0.03, '3 slides to the note');
+  assert.ok(rms(run([[[C4, 1, 0, 0x14, 2]]]), 0.2, 0.3) < 1e-4, 'K02 lets the key go on the second tick');
+  const gv = rig(makeXm({ channels: 1, instruments: [loopIns()], patterns: [{ rows: 4, data: [[[C4, 1, 0, 0x10, 0x20]]] }] }));
+  gv.render(0.05);
+  assert.ok(Math.abs(gv.registry.get('master.m.volume') - 0x80 / 255) < 0.01, 'G20 is half the master volume');
+  console.log('ok: xm import');
+}
+
 // MIDI import: a hand-made two-track file, a chord and a melody.
 {
   const { parseMidi, importMidi } = await import('../src/project/midi.js');

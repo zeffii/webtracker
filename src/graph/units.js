@@ -49,6 +49,7 @@ const TYPE_UNIT = {
   tempo: { ceiling: 'dB', boost: 'dB', release: 'ms' },
   dcblock: { freq: 'Hz' },
   modchan: {},
+  xmchan: {},
   tap: { fade: 'ms', fadein: 'ms' },
   vocoder: { low: 'Hz', high: 'Hz', attack: 'ms', release: 'ms', shift: 'st', sibilance: '%', tune: 'Hz', noise: '%', level: '' },
   sweep: { resonance: '%' },
