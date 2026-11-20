@@ -70,16 +70,17 @@ const envValue = (env, pos) => {
   }
   return p[last + 1];
 };
-// The tick after `pos`: the sustain loop holds while the key is down, the loop turns at its end.
+// The position after `pos`, one song tick on: the envelope's rate (1 is IT's own speed) is how far it moves in a tick. The sustain loop
+// holds while the key is down, the loop turns at its end.
 const envNext = (env, pos, keyOn) => {
   const p = env.pts;
-  const next = pos + 1;
+  const next = pos + env.rate;
   if (keyOn && env.ss >= 0 && next > p[env.se * 2]) return p[env.ss * 2];
   if (env.ls >= 0 && next > p[env.le * 2]) return p[env.ls * 2];
   return next;
 };
 const validEnvelope = e => (e && Array.isArray(e.pts) && e.pts.length >= 2
-  ? { pts: e.pts.map(Number), ls: e.ls ?? -1, le: e.le ?? -1, ss: e.ss ?? -1, se: e.se ?? -1 } : null);
+  ? { pts: e.pts.map(Number), ls: e.ls ?? -1, le: e.le ?? -1, ss: e.ss ?? -1, se: e.se ?? -1, rate: Number(e.rate) > 0 ? Math.max(0.05, Math.min(16, Number(e.rate))) : 1 } : null);
 
 export const FX = { A: 1, B: 2, C: 3, D: 4, E: 5, F: 6, G: 7, H: 8, I: 9, J: 10, K: 11, L: 12, M: 13, N: 14, O: 15, P: 16, Q: 17, R: 18, S: 19, T: 20, U: 21, V: 22, W: 23, X: 24, Y: 25, Z: 26 };
 

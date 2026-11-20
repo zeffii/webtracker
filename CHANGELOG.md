@@ -2,6 +2,12 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 802 · 2026-11-20
+
+- **IT channel envelopes: rulers in ticks and time, and a rate.** The envelope graph has a line at every step of ticks that is wide enough to see, labelled with the tick and, under it, the time it falls at (from the song's tempo and the envelope's rate): milliseconds while the picture is short, seconds when it is long.
+- **A rate slider for each envelope** (0.125x to 8x, double-click to reset to 1x): how fast the note travels through it, so a short drawing can be slow or a long one quick, whatever the last point is. Saved with the instrument; native follows (new test song `itchanrate`).
+- **Dragging a point no longer rescales the picture**: the span on show is held still during a drag and worked out again when you let go.
+
 ## 801 · 2026-11-20
 
 - **IT channel: a playhead's height is the note's volume.** The bar rises from the bottom of the waveform to the level the volume envelope and fadeout give the note, with a faint full-height line behind it.

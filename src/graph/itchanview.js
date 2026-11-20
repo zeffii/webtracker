@@ -14,16 +14,17 @@ import {
 // The instrument side picks an instrument and draws its volume, panning and pitch envelopes: click empty space for a point, drag a point,
 // double-click it to remove it. "Loop" and "Sustain" modes mark a range of points by clicking two of them. Pitch can be set to move the
 // filter cutoff instead (the IT filter envelope).
-const DEFAULT_SW = 760, DEFAULT_SH = 150, EW = 380, EH = 124, PL = 6, PR = 6;
+const DEFAULT_SW = 760, DEFAULT_SH = 150, EW = 380, EH = 146, PL = 6, PR = 6;
 const SIZE_KEY = 'wax.itchanSampleSize';   // the sample area's size, as dragged
 let SW = DEFAULT_SW, SH = DEFAULT_SH;
 const GRAB = 7;
+const ENV_TOP = 14, ENV_BOTTOM = 30;   // the room above the envelope for its name, and below it for the tick and time rulers
 const NNA = ['cut', 'continue', 'off', 'fade'], DCT = ['off', 'note', 'sample', 'instrument'], DCA = ['cut', 'off', 'fade'];
 
 // A colour for each sounding note's playhead: vivid, and far from the colour of the one before (the golden angle round the hue wheel).
 export const headColour = uid => `hsl(${Math.round((uid * 137.508) % 360)} 92% 62%)`;
 
-export function createItChanView({ doc = document, getData, setData, getSampleIds, getSample, isIt3 = () => false, watch = () => {} }) {
+export function createItChanView({ getTiming = () => null, doc = document, getData, setData, getSampleIds, getSample, isIt3 = () => false, watch = () => {} }) {
   const el = doc.createElement('div'); el.className = 'curve-editor drum2 itchan-panel';
   let slot = 0, insIndex = 0, envKind = 'vol', markMode = 'point', pending = null, zoom = false;
 
@@ -209,10 +210,35 @@ export function createItChanView({ doc = document, getData, setData, getSampleId
   const patchIns = patch => { setData(withInstrument(getData(), insIndex, patch)); refresh(); };
   const patchEnv = env => patchIns({ [envKind]: env });
 
+  // The span on show is the envelope's length with some room, and is held still while a point is being dragged (the last point would
+  // otherwise rescale the picture under the pointer); it is worked out afresh when the drag ends.
+  let heldSpan = null;
+  const spanOf = env => Math.max(64, Math.ceil((env ? env.pts[env.pts.length - 2] : 64) * 1.15));
   const envLayout = env => {
-    const last = env ? env.pts[env.pts.length - 2] : 64, span = Math.max(64, Math.ceil(last * 1.15));
-    return { span, X: tick => PL + tick / span * (EW - PL - PR), Y: v => EH - 12 - v / 64 * (EH - 26), tickAt: x => (clamp(x, PL, EW - PR) - PL) / (EW - PL - PR) * span, valueAt: y => (EH - 12 - y) / (EH - 26) * 64 };
+    const span = heldSpan ?? spanOf(env), tall = EH - ENV_BOTTOM - ENV_TOP;
+    return { span, X: tick => PL + tick / span * (EW - PL - PR), Y: v => EH - ENV_BOTTOM - v / 64 * tall, tickAt: x => (clamp(x, PL, EW - PR) - PL) / (EW - PL - PR) * span, valueAt: y => (EH - ENV_BOTTOM - y) / tall * 64 };
   };
+  const ENV_STEPS = [1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192];
+  const clockText = (ms, inMs) => (inMs ? `${Math.round(ms)}ms` : `${(ms / 1000).toFixed(ms < 10000 ? 2 : 1)}s`);
+
+  // The rulers: a line at every step of ticks that is wide enough to see, labelled at the wider steps, with the time each is at
+  // (given the song's tempo and the envelope's rate) under it, in milliseconds while the picture is short and in seconds when not.
+  function drawEnvRulers(env, L, page) {
+    const width = EW - PL - PR, perTick = width / L.span, timing = getTiming(), rate = env.rate ?? 1;
+    const minor = ENV_STEPS.find(n => n * perTick >= 7) ?? ENV_STEPS.at(-1), major = ENV_STEPS.find(n => n * perTick >= 46) ?? ENV_STEPS.at(-1);
+    const inMs = timing ? L.span / rate * timing.tickMs < 2000 : false;
+    ectx.fillStyle = page; ectx.globalAlpha = 0.07;
+    for (let t = 0; t <= L.span; t += minor) ectx.fillRect(Math.round(L.X(t)), ENV_TOP, 1, EH - ENV_BOTTOM - ENV_TOP);
+    ectx.globalAlpha = 0.16;
+    for (let t = 0; t <= L.span; t += major) ectx.fillRect(Math.round(L.X(t)), ENV_TOP, 1, EH - ENV_BOTTOM - ENV_TOP + 4);
+    ectx.globalAlpha = 0.6; ectx.textAlign = 'left';
+    for (let t = 0; t <= L.span; t += major) {
+      const x = L.X(t); if (x > EW - PR - 34) break;
+      ectx.fillText(`${t}`, x + 2, EH - ENV_BOTTOM + 4);
+      if (timing) ectx.fillText(clockText(t / rate * timing.tickMs, inMs), x + 2, EH - ENV_BOTTOM + 15);
+    }
+    ectx.textAlign = 'right'; ectx.globalAlpha = 0.45; ectx.fillText(timing ? 'ticks / time' : 'ticks', EW - PR, 2);
+  }
 
   function drawEnv() {
     if (!ectx) return;
@@ -223,19 +249,19 @@ export function createItChanView({ doc = document, getData, setData, getSampleId
     ectx.fillText(`${ENVELOPE_NAMES[envKind].toUpperCase()}${envKind === 'pit' && current()?.filter ? ' (filter cutoff)' : ''}`, PL, 2);
     if (!env) { ectx.fillText('off: tick the box above to draw one', PL, EH / 2); ectx.globalAlpha = 1; return; }
     const L = envLayout(env);
-    ectx.globalAlpha = 0.12; ectx.fillRect(PL, L.Y(32), EW - PL - PR, 1);
+    drawEnvRulers(env, L, page);
+    ectx.fillStyle = page; ectx.globalAlpha = 0.12; ectx.fillRect(PL, L.Y(32), EW - PL - PR, 1);
     const pts = []; for (let i = 0; i < env.pts.length; i += 2) pts.push([L.X(env.pts[i]), L.Y(env.pts[i + 1])]);
     const span = (from, to, colour) => {
       if (from < 0 || to < 0 || !pts[from] || !pts[to]) return;
-      ectx.globalAlpha = 0.16; ectx.fillStyle = forPage(colour, page); ectx.fillRect(pts[from][0], 14, Math.max(2, pts[to][0] - pts[from][0]), EH - 28);
-      ectx.globalAlpha = 0.9; ectx.fillRect(pts[from][0] - 1, 14, 2, EH - 28); ectx.fillRect(pts[to][0] - 1, 14, 2, EH - 28);
+      ectx.globalAlpha = 0.16; ectx.fillStyle = forPage(colour, page); ectx.fillRect(pts[from][0], ENV_TOP, Math.max(2, pts[to][0] - pts[from][0]), EH - ENV_BOTTOM - ENV_TOP);
+      ectx.globalAlpha = 0.9; ectx.fillRect(pts[from][0] - 1, ENV_TOP, 2, EH - ENV_BOTTOM - ENV_TOP); ectx.fillRect(pts[to][0] - 1, ENV_TOP, 2, EH - ENV_BOTTOM - ENV_TOP);
     };
     span(env.ls, env.le, BLUE); span(env.ss, env.se, ORANGE);
     ectx.globalAlpha = 1; ectx.strokeStyle = page; ectx.lineWidth = 1.5; ectx.beginPath();
     pts.forEach(([x, y], i) => (i ? ectx.lineTo(x, y) : ectx.moveTo(x, y))); ectx.stroke();
     ectx.fillStyle = page;
     pts.forEach(([x, y], i) => { ectx.beginPath(); ectx.arc(x, y, i === pending ? 5 : 3.5, 0, Math.PI * 2); ectx.fill(); });
-    ectx.globalAlpha = 0.5; ectx.textAlign = 'right'; ectx.fillText(`${env.pts[env.pts.length - 2]} ticks`, EW - PR, EH - 12);
     ectx.globalAlpha = 1;
   }
 
@@ -258,17 +284,17 @@ export function createItChanView({ doc = document, getData, setData, getSampleId
           else { patchEnv(setMarks(env, kind, pending, index)); pending = null; }
           return false;
         }
-        if (index >= 0) { held = index; return true; }
+        if (index >= 0) { held = index; heldSpan = L.span; return true; }
         const added = addPoint(env, L.tickAt(x), L.valueAt(y));
         if (added.index < 0) return false;
-        held = added.index; patchEnv(added.env); return true;
+        held = added.index; heldSpan = L.span; patchEnv(added.env); return true;
       },
       move: (x, y) => {
         const env = current()?.[envKind]; if (!env || held < 0) return;
         const L = envLayout(env);
         patchEnv(movePoint(env, held, L.tickAt(x), L.valueAt(y)));
       },
-      done: () => { held = -1; },
+      done: () => { held = -1; heldSpan = null; drawEnv(); },
     });
     envCanvas.addEventListener('dblclick', e => {
       const r = envCanvas.getBoundingClientRect(), x = (e.clientX - r.left) * (EW / (r.width || EW)), y = (e.clientY - r.top) * (EH / (r.height || EH));
@@ -303,6 +329,16 @@ export function createItChanView({ doc = document, getData, setData, getSampleId
     const modes = [['point', 'Point'], ['loop', 'Loop'], ['sus', 'Sustain']].map(([m, label]) => { const b = button(doc, label, m === 'point' ? 'Click for a point, drag to move, double-click to remove' : 'Click two points to mark the range', () => { markMode = m; pending = null; refresh(); }); b.style.opacity = markMode === m ? '1' : '0.55'; return b; });
     const parts = [...tabs, check('on', Boolean(env), v => patchEnv(v ? newEnvelope(envKind) : null), 'Use this envelope'), ...modes];
     if (envKind === 'pit') parts.push(check('filter', ins.filter, v => patchIns({ filter: v }), 'The pitch envelope moves the filter cutoff instead of the pitch'));
+    if (env) {   // how fast the note travels through the envelope: 1 is IT's own speed, a tick of the song moves it that far
+      const log2 = Math.log2(env.rate ?? 1), readout = make('span', { className: 'dim', textContent: ` ${(env.rate ?? 1).toFixed(2)}x` });
+      const slider = make('input', { type: 'range', min: -3, max: 3, step: 0.05, value: log2, title: 'Rate: how fast the note travels through this envelope (1x is the IT speed; 2x takes half the time)' });
+      slider.style.width = '90px';
+      const rateNow = () => (Math.abs(Number(slider.value)) < 0.025 ? 1 : 2 ** Number(slider.value));
+      slider.addEventListener('input', () => { const rate = rateNow(); readout.textContent = ` ${rate.toFixed(2)}x`; setData(withInstrument(getData(), insIndex, { [envKind]: { ...(current()?.[envKind] ?? env), rate } })); drawEnv(); });
+      slider.addEventListener('change', () => refresh());
+      slider.addEventListener('dblclick', () => patchEnv({ ...env, rate: 1 }));
+      parts.push(make('span', { textContent: ' rate ' }), slider, readout);
+    }
     insControls.append(row(...parts));
   }
 

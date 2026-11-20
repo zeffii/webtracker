@@ -1019,7 +1019,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
     if (type.editor === 'itchan') {   // the samples as proxies of the bank's, and the instruments' envelopes: kept on the node and sent live
       const list = () => { const cur = def().samples?.[node.id]; return Array.isArray(cur) ? cur : cur === undefined ? [] : [cur]; };
       itChanView = createItChanView({
-        doc, getData: () => node.data ?? {}, getSampleIds: list, getSample, isIt3: () => node.data?.it3 === true, watch: () => onData(instId, node.id, { type: 'watch' }),
+        doc, getTiming, getData: () => node.data ?? {}, getSampleIds: list, getSample, isIt3: () => node.data?.it3 === true, watch: () => onData(instId, node.id, { type: 'watch' }),
         setData: next => {
           node.data = next;
           onData(instId, node.id, { type: 'ins', ins: next.ins });
