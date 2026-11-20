@@ -286,7 +286,24 @@ export function createBezierEditor({ doc = document, title, color, points, fallb
   const SLOTS = 8;
   let slots = Array.from({ length: SLOTS }, (_, i) => memory?.get()?.[i] ?? null), arming = false;
   const keep = () => { memory?.set(slots.map(x => (x ? x.map(p => ({ ...p })) : null))); };
-  const slotButtons = [];
+  const slotButtons = [], thumbs = [];
+  // a small picture of what a slot holds: its curve with the area under it filled, in the editor's colour
+  const THUMB_W = 30, THUMB_H = 16;
+  const drawThumb = (canvasEl, spline_) => {
+    const c = canvasEl.getContext?.('2d'); if (!c) return;
+    const scale = (typeof devicePixelRatio === 'number' ? devicePixelRatio : 1) || 1;
+    canvasEl.width = THUMB_W * scale; canvasEl.height = THUMB_H * scale;
+    c.setTransform(scale, 0, 0, scale, 0, 0); c.clearRect(0, 0, THUMB_W, THUMB_H);
+    if (!spline_) return;
+    const tint = forPage(color, typeof getComputedStyle === 'function' ? getComputedStyle(canvasEl).color : '#888');
+    const px = x => 1 + x * (THUMB_W - 2), py = y => THUMB_H - 1 - y * (THUMB_H - 2), line = walk(spline_);
+    c.fillStyle = tint; c.globalAlpha = 0.3; c.beginPath(); c.moveTo(px(0), py(0));
+    for (const [x, y] of line) c.lineTo(px(x), py(y));
+    c.lineTo(px(1), py(0)); c.closePath(); c.fill();
+    c.globalAlpha = 1; c.strokeStyle = tint; c.lineWidth = 1; c.beginPath();
+    line.forEach(([x, y], k) => { if (k) c.lineTo(px(x), py(y)); else c.moveTo(px(x), py(y)); });
+    c.stroke();
+  };
   const memoryToggle = el('button', { className: 'dim', type: 'button', onclick: () => { hidden = !hidden; arming = false; try { localStorage.setItem(HIDE_KEY, hidden ? '1' : '0'); } catch { /* storage unavailable: the choice lasts until reload */ } showMemory(); } });
   // the slots can be folded away; the label stays, with a count of what is stored, so it is clear they are hidden and can be revealed
   const HIDE_KEY = 'wax.bezierMemoryHidden';
@@ -296,12 +313,16 @@ export function createBezierEditor({ doc = document, title, color, points, fallb
     const stored = slots.filter(Boolean).length;
     memoryToggle.textContent = hidden ? `▸ memory (hidden, ${stored} stored)` : '▾ memory';
     memoryToggle.title = hidden ? 'Show the memory slots' : 'Hide the memory slots';
-    for (const b of [storeButton, ...slotButtons]) if (b.style) b.style.display = hidden ? 'none' : '';
+    for (const b of [storeButton, ...slotButtons, ...thumbs]) if (b.style) b.style.display = hidden ? 'none' : '';
     storeButton.className = arming ? 'on' : ''; if (storeButton.style) storeButton.style.opacity = arming ? '1' : '0.7';
+    thumbs.forEach((t, i) => drawThumb(t, slots[i]));
     slotButtons.forEach((b, i) => { b.textContent = slots[i] ? `${i + 1}•` : `${i + 1}`; b.title = arming ? `Store the drawing in slot ${i + 1}` : slots[i] ? `Recall slot ${i + 1}` : `Slot ${i + 1} is empty: press "store", then this`; });
   };
   const storeButton = action('store', 'Press, then a slot, to keep the drawing there', () => { arming = !arming; showMemory(); });
   for (let i = 0; i < SLOTS; i++) {
+    thumbs.push(el('canvas', { className: 'bezier-thumb', width: THUMB_W, height: THUMB_H }));
+    thumbs[i].addEventListener('click', () => slotButtons[i].click?.());
+    thumbs[i].style.width = `${THUMB_W}px`; thumbs[i].style.height = `${THUMB_H}px`;
     slotButtons.push(action(`${i + 1}`, '', () => {
       if (arming) { slots[i] = JSON.parse(snapshot()); arming = false; keep(); }
       else if (slots[i]) { set(slots[i].map(p => ({ ...p }))); }
@@ -309,7 +330,7 @@ export function createBezierEditor({ doc = document, title, color, points, fallb
     }));
   }
   showMemory();
-  const memoryRow = el('div', { className: 'osc-wave-row' }, memoryToggle, storeButton, ...slotButtons);
+  const memoryRow = el('div', { className: 'osc-wave-row' }, memoryToggle, storeButton, ...slotButtons.flatMap((b, i) => [thumbs[i], b]));
   const shapes = el('div', { className: 'osc-wave-row' }, ...Object.keys(SHAPES).map(shape));
   const kinds = el('div', { className: 'osc-wave-row' },
     kindButton('sharp', 'sharp', 'The chosen anchor a corner (X)'), kindButton('smooth', 'smooth', 'Its handles stay in line (S)'), kindButton('equal', 'equal', 'In line and the same length, mirrored as you drag (E)'), kindButton('free', 'free', 'Each handle on its own (F, or Alt-drag a handle)'),

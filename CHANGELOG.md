@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 797 · 2026-11-20
+
+- **Bezier editors: each memory slot shows a small picture of its drawing**, the curve with the area under it filled, in the editor's colour, beside the slot's number. Clicking the picture is the same as pressing the slot.
+
 ## 796 · 2026-11-20
 
 - **IT channel: the loop and sustain rows are colour coded** like the bands in the waveform: loop in blue, sustain in orange (label, tick boxes and numbers).
