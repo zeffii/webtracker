@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 810 · 2026-11-20
+
+- **Long sample names end in `...`** in the SAMPLE page's list, instead of running into the next column.
+
 ## 809 · 2026-11-20
 
 - **The sample list lives on the SAMPLE page.** It sits under the waveform, in columns, so it is wider than it was in the browser, and the "Samples Loaded" division is gone. It has one row per sample and nothing else: with no samples there is no list at all.

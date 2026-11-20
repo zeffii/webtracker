@@ -1083,7 +1083,7 @@
     .itchan-lcd .itchan-fkeys { margin-top: auto; }
     .itchan-loaded { display: grid; grid-template-columns: repeat(auto-fill, minmax(16ch, 1fr)); font-family: var(--mono, ui-monospace, Consolas, monospace); font-size: .78rem; max-height: 3.4rem; overflow-y: auto; }
     .itchan-loaded:empty { display: none; }
-    .itchan-loaded-row { padding: 0 .4rem; cursor: pointer; white-space: pre; }
+    .itchan-loaded-row { padding: 0 .4rem; cursor: pointer; white-space: pre; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
     .itchan-loaded-row.on { background: var(--lcd-fg); color: var(--lcd-bg); }
     .itchan-lcd select, .itchan-lcd input[type=number], .itchan-lcd button { background: var(--lcd-field, #2f4a82); color: var(--lcd-fg, #f2f6ff); border: 1px solid var(--lcd-line, #9db2d9); border-radius: 2px; }
     .itchan-lcd .itchan-head { display: flex; align-items: center; gap: .3rem; font-family: var(--mono, ui-monospace, Consolas, monospace); font-size: .78rem; }
