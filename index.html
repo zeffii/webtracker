@@ -1084,7 +1084,9 @@
     .itchan-lcd .itchan-xf { display: inline-flex; gap: 0; align-items: center; }
     .itchan-lcd .prow { display: flex; margin: 0; gap: 4px; flex-wrap: nowrap; align-items: center; height: 12px; }
     .itchan-lcd label { display: inline-flex; align-items: center; gap: 2px; }
-    .itchan-lcd select { line-height: normal; padding: 0 0 0 2px; }   /* the text sits in the middle of the 12px box */
+    /* The menus are drawn by us (appearance: none), so the text sits in the 12px box the same way in every browser; the arrow is a small triangle. */
+    .itchan-lcd .itchan-stage select { appearance: none; -webkit-appearance: none; line-height: 10px; height: 12px; padding: 0 12px 0 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+      background-image: linear-gradient(45deg, transparent 50%, currentColor 50%), linear-gradient(-45deg, transparent 50%, currentColor 50%); background-size: 3px 3px, 3px 3px; background-position: right 5px top 4px, right 2px top 4px; background-repeat: no-repeat; }
     .itchan-lcd input[type=checkbox] { width: 10px; height: 10px; margin: 0; }
     .itchan-lcd input[type=range] { height: 12px; margin: 0; }
     .itchan-lcd input[type=number] { -moz-appearance: textfield; }
@@ -1092,7 +1094,7 @@
     .itchan-loaded { display: flex; flex-direction: column; overflow-y: auto; scrollbar-width: thin; }
     .itchan-loaded-row { padding: 0 4px; height: 12px; flex: none; cursor: pointer; white-space: pre; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
     .itchan-loaded-row.on { background: var(--lcd-fg); color: var(--lcd-bg); }
-    .itchan-lcd select, .itchan-lcd input[type=number], .itchan-lcd button { font: 10px/10px var(--mono, ui-monospace, Consolas, monospace); letter-spacing: 0; height: 12px; padding: 0 2px; box-sizing: border-box; min-width: 0; width: auto; background: var(--lcd-field, #2f4a82); color: var(--lcd-fg, #f2f6ff); border: 1px solid var(--lcd-line, #9db2d9); border-radius: 2px; }
+    .itchan-lcd select, .itchan-lcd input[type=number], .itchan-lcd button { font: 10px/10px var(--mono, ui-monospace, Consolas, monospace); letter-spacing: 0; height: 12px; padding: 0 2px; box-sizing: border-box; min-width: 0; width: auto; background-color: var(--lcd-field, #2f4a82); color: var(--lcd-fg, #f2f6ff); border: 1px solid var(--lcd-line, #9db2d9); border-radius: 2px; }
     .itchan-lcd .itchan-head { display: flex; align-items: center; gap: 4px; z-index: 1; overflow: hidden; }
     .itchan-lcd .itchan-head .itchan-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: pre; }
     .itchan-lcd .itchan-swatch { margin-left: auto; width: 22px; height: 12px; padding: 0; border: 1px solid var(--lcd-line, #9db2d9); background: none; cursor: pointer; }

@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 816 · 2026-11-20
+
+- **IT channel screen: the dropdowns are drawn by us**, so the text sits inside the 12px box in every browser, not low and cut off. The arrow is a small triangle with room of its own.
+
 ## 815 · 2026-11-20
 
 - **IT channel screen: the loop and sustain rows line up in columns.** The start and end are zero-padded (to the width of the sample's own length), and the checkbox, range, ping and crossfade sit in the same place in both rows. The rows are longer, and the instrument and fadeout block is shorter.
