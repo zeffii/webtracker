@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 799 · 2026-11-20
+
+- **IT channel: the crossfade markers follow the width while you change it**, redrawn on every third change and again once the number has stopped changing, instead of only when you leave the field.
+
 ## 798 · 2026-11-20
 
 - **Sample list: the empty tap slots can be shown or hidden.** At the end of the sample list a line reads "tap slots hidden (N empty)"; pressing it lists the empty tap01 to tap16 slots (and the line then offers to hide them again). It is the same setting as in Config, so the sampler pickers follow it.

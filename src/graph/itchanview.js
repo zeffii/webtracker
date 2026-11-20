@@ -38,9 +38,17 @@ export function createItChanView({ doc = document, getData, setData, getSampleId
     box.addEventListener('change', () => onPick(box.checked));
     return make('label', { title }, box, ` ${label}`);
   };
-  const number = (value, min, max, onPick, title = '', width = 62) => {
+  // `onLive` (optional) follows the number while it is being typed or stepped: on every third change, and once it has stopped
+  // changing for a moment, so the picture keeps up without the controls being rebuilt under the user's hand
+  const number = (value, min, max, onPick, title = '', width = 62, onLive = null) => {
     const n = make('input', { type: 'number', min, max, value, title }); n.style.width = `${width}px`;
-    n.addEventListener('change', () => onPick(clamp(Math.round(Number(n.value) || 0), min, max))); return n;
+    const current = () => clamp(Math.round(Number(n.value) || 0), min, max);
+    let changes = 0, idle = null;
+    if (onLive) n.addEventListener('input', () => {
+      clearTimeout(idle); idle = setTimeout(() => onLive(current()), 150);
+      if (++changes % 3 === 0) onLive(current());
+    });
+    n.addEventListener('change', () => { clearTimeout(idle); onPick(current()); }); return n;
   };
 
   // ---- the sample area ----------------------------------------------------------------------------------------------------
@@ -174,7 +182,7 @@ export function createItChanView({ doc = document, getData, setData, getSampleId
         check(label, info.on, v => { setData(setLoop(getData(), slot, which, bank, { on: v })); refresh(); }, tip),
         check('ping-pong', info.pingpong, v => { setData(setLoop(getData(), slot, which, bank, { pingpong: v })); refresh(); }, 'Play the loop forwards and back'),
       ];
-      if (isIt3()) parts.push(make('span', { textContent: ' xfade ' }), number(info.xfade, 0, 1 << 20, v => { setData(setLoop(getData(), slot, which, bank, { xfade: v })); refresh(); }, 'Crossfade at the loop seam, in frames (IT 3)'));
+      if (isIt3()) parts.push(make('span', { textContent: ' xfade ' }), number(info.xfade, 0, 1 << 20, v => { setData(setLoop(getData(), slot, which, bank, { xfade: v })); refresh(); }, 'Crossfade at the loop seam, in frames (IT 3)', 62, v => { setData(setLoop(getData(), slot, which, bank, { xfade: v })); drawSample(); }));
       parts.push(make('span', { className: 'dim', textContent: info.active ? ` ${info.from} ${Math.round(info.start)}-${Math.round(info.end)}` : info.on && info.exists && !info.inside ? ' outside the stretch' : '' }));
       const line = row(...parts);
       line.style.color = forPage(colour, sink()); line.style.accentColor = line.style.color;   // the colour this loop has in the waveform
