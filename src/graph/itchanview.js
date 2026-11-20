@@ -169,16 +169,18 @@ export function createItChanView({ doc = document, getData, setData, getSampleId
     sampleControls.append(row(picker, check('zoom', zoom, v => { zoom = v; refresh(); }, 'Show only the stretch this slot plays'), button(doc, 'Bank', 'Back to the bank sample\'s own stretch and loops', () => { setData(clearProxy(getData(), slot)); refresh(); })));
     if (!bank) return;
     const { loop, sus } = loopsOf(bank, proxyOf(data, slot));
-    const loopRow = (label, which, info, tip) => {
+    const loopRow = (label, which, info, tip, colour) => {
       const parts = [
         check(label, info.on, v => { setData(setLoop(getData(), slot, which, bank, { on: v })); refresh(); }, tip),
         check('ping-pong', info.pingpong, v => { setData(setLoop(getData(), slot, which, bank, { pingpong: v })); refresh(); }, 'Play the loop forwards and back'),
       ];
       if (isIt3()) parts.push(make('span', { textContent: ' xfade ' }), number(info.xfade, 0, 1 << 20, v => { setData(setLoop(getData(), slot, which, bank, { xfade: v })); refresh(); }, 'Crossfade at the loop seam, in frames (IT 3)'));
       parts.push(make('span', { className: 'dim', textContent: info.active ? ` ${info.from} ${Math.round(info.start)}-${Math.round(info.end)}` : info.on && info.exists && !info.inside ? ' outside the stretch' : '' }));
-      return row(...parts);
+      const line = row(...parts);
+      line.style.color = forPage(colour, sink()); line.style.accentColor = line.style.color;   // the colour this loop has in the waveform
+      return line;
     };
-    sampleControls.append(loopRow('loop', 'loop', loop, 'The loop that plays while the note is held, or after the sustain loop'), loopRow('sustain', 'sus', sus, 'The loop that plays only while the key is held'));
+    sampleControls.append(loopRow('loop', 'loop', loop, 'The loop that plays while the note is held, or after the sustain loop', BLUE), loopRow('sustain', 'sus', sus, 'The loop that plays only while the key is held', ORANGE));
   }
 
   // ---- the instrument side ------------------------------------------------------------------------------------------------

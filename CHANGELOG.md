@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 796 · 2026-11-20
+
+- **IT channel: the loop and sustain rows are colour coded** like the bands in the waveform: loop in blue, sustain in orange (label, tick boxes and numbers).
+
 ## 795 · 2026-11-20
 
 - **Bezier editors: the memory slots can be hidden.** Press the "memory" label to fold the store button and the eight slots away; the label then reads "memory (hidden, N stored)" so you can see they are there, and pressing it again reveals them. The choice is remembered.
