@@ -2,6 +2,11 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 793 · 2026-11-20
+
+- **IT channel: a sample area and envelope editor in its panel.** Select an IT channel (or IT 3 channel) and its panel now has a small sample area beside the instrument's envelopes. Each sample slot is a *proxy* of a bank sample: it plays all of it with the loops the bank gave it, until you drag the dark edges to use only a stretch, or drag a loop marker (or drag across the waveform, Shift for the sustain loop) to give the slot loops of its own, with their own ping-pong and, in IT 3, crossfade. The bank sample is never changed; "Bank" puts the slot back. A bank loop that lies outside the chosen stretch is dropped, one inside it comes along. "Use instruments" makes an instrument for each sample (nothing sounds different until you edit one); then pick an instrument, set its new note action, duplicate check and fadeout, and draw its volume, panning and pitch envelopes: click for a point, drag, double-click to remove, and the Loop and Sustain modes mark a range of points by clicking two of them. Pitch can move the filter cutoff instead. Every edit is heard at once, without cutting playing notes. The model is in `src/graph/itchanmodel.js` (tested), the drawing in `src/graph/itchanview.js`.
+- The node reads the proxy from `data.smp[slot].proxy` and takes `ins` and `smp` messages live.
+
 ## 792 · 2026-11-20
 
 - **Piano: `scatter`.** The felt dissipates the blow unevenly, so the muffle's opening is no longer a smooth rise: a correlated random wobble (smoothed noise, its own generator) moves the cutoff up and down as it opens, and dies away with the attack. Only matters with `muffle` up; 0 keeps the smooth rise.

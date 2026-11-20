@@ -26,6 +26,7 @@ import { createPulsarView } from './pulsarview.js';
 import { createCompassView } from './compassview.js';
 import { createRotaryView } from './rotaryview.js';
 import { createKhufuView } from './khufuview.js';
+import { createItChanView } from './itchanview.js';
 import { createEnsembleView } from './ensembleview.js';
 import { createKaleidoscopeView } from './kaleidoscopeview.js';
 import { createReflectView } from './reflectview.js';
@@ -284,6 +285,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
   let hat2View = null;      // the two drawn volumes of Hi-hat 2
   let pulsarView = null;    // the pulse train and the drawings of the pulsar nodes
   let khufuView = null;     // the registers and the amplitude drawing of the Khufu string voice
+  let itChanView = null;    // the sample area and the instrument envelopes of an IT channel
   let compassView = null;   // the diamond, the wave sequences and the drawings of the vector nodes
   let drum2View = null;     // the three drawn envelopes of drum synth 2 and the hit they make
   let drumView = null;      // the envelopes, the click and the composed root note of a drum synth, redrawn when its parameters move
@@ -454,6 +456,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
         if (type.editor === 'pulsar' || type.editor === 'pulsetrain') pulsarView?.refresh();
         if (VECTOR_EDITORS.has(type.editor)) compassView?.refresh();
         if (type.editor === 'khufu') khufuView?.refresh();
+        if (type.editor === 'itchan') itChanView?.refresh();
         if (type.editor === 'kaleidoscope') kalView?.refresh();
         spaceView?.refresh();
         if (type.editor === 'cardinal') cardinalView?.refresh();
@@ -1006,6 +1009,19 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
         },
       });
       items.splice(1, 0, sub(khufuView.el));
+    }
+    itChanView = null;
+    if (type.editor === 'itchan') {   // the samples as proxies of the bank's, and the instruments' envelopes: kept on the node and sent live
+      const list = () => { const cur = def().samples?.[node.id]; return Array.isArray(cur) ? cur : cur === undefined ? [] : [cur]; };
+      itChanView = createItChanView({
+        doc, getData: () => node.data ?? {}, getSampleIds: list, getSample, isIt3: () => node.data?.it3 === true,
+        setData: next => {
+          node.data = next;
+          onData(instId, node.id, { type: 'ins', ins: next.ins });
+          onData(instId, node.id, { type: 'smp', smp: next.smp });
+        },
+      });
+      items.splice(1, 0, sub(itChanView.el));
     }
     compassView = null;
     if (VECTOR_EDITORS.has(type.editor)) {   // the diamond and its path, the wave sequences and the two drawings: kept on the node and sent live

@@ -1074,6 +1074,11 @@
     .curve-editor.drum2 canvas { display: block; border: 0; background: none; cursor: crosshair; max-width: 100%; }   /* the drawings sit straight on the page */
     .curve-editor.drum2 > canvas { cursor: default; }
     .curve-editor.drum2.khufu-panel > canvas, .ensemble-panel canvas { display: block; border: 0; background: none; cursor: default; }
+    .itchan-panel canvas { display: block; border: 0; background: none; cursor: crosshair; max-width: 100%; }   /* the IT channel's sample area and envelopes (itchanview.js) */
+    .itchan-panel .itchan-side { display: flex; flex-direction: column; gap: .3rem; }
+    .itchan-panel .itchan-controls { display: flex; flex-direction: column; gap: .15rem; width: 380px; }
+    .itchan-panel .itchan-controls .prow { margin: 0; gap: .35rem; flex-wrap: wrap; align-items: center; }
+    .itchan-panel .dim { opacity: .6; }
     .rotary-panel canvas { display: block; border: 0; background: none; }
     .rotary-switch { justify-content: center; gap: .1rem 1.6rem; max-width: 300px; margin-left: 0; }
     .rotary-switch button.on { opacity: 1; color: hsl(35 80% 55%); border-bottom: 1.5px solid currentColor; }

@@ -27,7 +27,8 @@
 //   smp: [sample extras] }, an instrument being { nna, dct, dca, fade, pps, ppc, gbv, pan, ifc, ifr, map: [120 slots, -1 for none],
 //   notes: [120 notes] (optional remap), vol / pan / pit: envelope, filter: the pitch envelope moves the cutoff }, an envelope
 //   { pts: [x0, y0, x1, y1, ...] (ticks, 0..64), ls, le, ss, se: point numbers or -1 }, and the sample extras { pp, spp (ping-pong
-//   loop, ping-pong sustain loop), pan (-1: none, else 0..64), vib: [speed, depth, rate, type] }.
+//   loop, ping-pong sustain loop), pan (-1: none, else 0..64), vib: [speed, depth, rate, type], proxy: { start, end, loop, sus } } (the
+//   proxy is a stretch of the bank sample and loops of the slot's own: see buildSlot and graph/itchanmodel.js).
 // Without data, instrument n plays sample slot n.
 const SPEC = [
   { name: 'ins', min: 0, max: 255, def: 0, int: true },
@@ -92,18 +93,25 @@ export default {
   shared: true,
   shape: 'rounded',
   glyph: 'itchan',
+  editor: 'itchan',
   kinds: { out: 'stereo' },
   params: SPEC,
   create({ sampleRate, clock, data }) {
     const it3 = data?.it3 === true;   // IT 3 mode: stereo samples and crossfaded loops, which IT itself does not have
     let linear = data?.linear !== false, oldEffects = data?.oldEffects === true, compatG = data?.compatG !== false;
-    const hasInstruments = Array.isArray(data?.ins) && data.ins.length > 0;
-    const instruments = (Array.isArray(data?.ins) ? data.ins : []).map(i => (i ? {
-      nna: i.nna | 0, dct: i.dct | 0, dca: i.dca | 0, fade: i.fade | 0, pps: i.pps | 0, ppc: i.ppc ?? C5, gbv: i.gbv ?? 128,
-      pan: i.pan ?? -1, ifc: i.ifc ?? -1, ifr: i.ifr ?? -1, map: Array.isArray(i.map) ? i.map : [], notes: Array.isArray(i.notes) ? i.notes : null,
-      vol: validEnvelope(i.vol), pan2: validEnvelope(i.pan2), pit: validEnvelope(i.pit), filter: i.filter === true,
-    } : null));
-    const extras = Array.isArray(data?.smp) ? data.smp : [];
+    let hasInstruments = false, instruments = [];
+    // The instrument table, from the node's data: also what the editor sends when an instrument is edited (running notes keep playing).
+    const loadInstruments = list => {
+      hasInstruments = Array.isArray(list) && list.length > 0;
+      instruments = (Array.isArray(list) ? list : []).map(i => (i ? {
+        nna: i.nna | 0, dct: i.dct | 0, dca: i.dca | 0, fade: i.fade | 0, pps: i.pps | 0, ppc: i.ppc ?? C5, gbv: i.gbv ?? 128,
+        pan: i.pan ?? -1, ifc: i.ifc ?? -1, ifr: i.ifr ?? -1, map: Array.isArray(i.map) ? i.map : [], notes: Array.isArray(i.notes) ? i.notes : null,
+        vol: validEnvelope(i.vol), pan2: validEnvelope(i.pan2), pit: validEnvelope(i.pit), filter: i.filter === true,
+      } : null));
+    };
+    loadInstruments(data?.ins);
+    let extras = Array.isArray(data?.smp) ? data.smp : [];
+    const raw = [];   // the sample messages as the bank sent them, so a slot can be rebuilt when its proxy changes
     const bank = [];
     let dice = 0x2545f491;
     const random = () => { dice ^= dice << 13; dice >>>= 0; dice ^= dice >>> 17; dice ^= dice << 5; dice >>>= 0; return dice; };
@@ -522,20 +530,43 @@ export default {
       v.pos = p;
     };
 
+    // A slot is a proxy of a bank sample: it takes the sample's loops as they are, unless the node's own settings for the slot
+    // (`extras[slot].proxy`) pick a stretch of the sample (`start`, `end` in the sample's frames) and give it loops of its own
+    // (`loop` and `sus`, each { on, start, end, pingpong, xfade }, in the sample's frames). Loops the bank gives that lie inside the
+    // stretch come along, moved to its start; ones outside it are dropped.
+    const buildSlot = (msg, slot) => {
+      const proxy = extras[slot]?.proxy ?? null, whole = msg.data.length;
+      const a = proxy ? Math.max(0, Math.min(whole - 1, Math.floor(proxy.start ?? 0))) : 0;
+      const b = proxy ? Math.max(a + 1, Math.min(whole, Math.floor(proxy.end ?? whole))) : whole;
+      const cut = a > 0 || b < whole;
+      const S = bank[slot] = {
+        sample: cut ? msg.data.subarray(a, b) : msg.data, volume: msg.volume ?? 1, globalVolume: msg.globalVolume ?? 1, pan: Math.max(-1, Math.min(1, msg.pan ?? 0)), panSet: msg.panOn === true, pp: msg.pingpong === true, spp: msg.susPingpong === true,
+        tune: 0,
+        loop: false, ls: 0, le: 0, sus: false, ss: 0, se: 0, right: msg.right ? (cut ? msg.right.subarray(a, b) : msg.right) : null, xf: 0, sxf: 0,
+      };
+      S.tune = 12 * Math.log2(Math.max(1, msg.rate) / 8363);   // semitones from IT's C-5 (8363 Hz): the sample's own speed
+      const length = S.sample.length;
+      // one loop: from the proxy when it has its own, else the bank's, kept when it lies inside the stretch
+      const place = (own, bankOn, bankStart, bankEnd, bankXfade, bankPing) => {
+        let on, start, end, xfade, ping;
+        if (own) { on = own.on !== false; start = (own.start ?? 0) - a; end = (own.end ?? 0) - a; xfade = own.xfade ?? 0; ping = own.pingpong === true; }
+        else { on = bankOn !== false; start = (bankStart ?? 0) - a; end = (bankEnd ?? 0) - a; xfade = bankXfade ?? 0; ping = bankPing; }
+        if (!(on && end - start >= 2 && start >= 0 && end <= length)) return null;
+        return { start, end, xfade: Math.max(0, Math.min(Math.floor(xfade), start, end - start)), ping };
+      };
+      const loop = place(proxy?.loop, msg.loopOn, msg.loopStart, msg.loopEnd, msg.loopXfade, msg.pingpong === true);
+      if (loop) { S.loop = true; S.ls = loop.start; S.le = loop.end; S.xf = loop.xfade; S.pp = loop.ping; }
+      const sus = place(proxy?.sus, msg.susOn, msg.susStart, msg.susEnd, msg.susXfade, msg.susPingpong === true);
+      if (sus) { S.sus = true; S.ss = sus.start; S.se = sus.end; S.sxf = sus.xfade; S.spp = sus.ping; }
+    };
+
     return {
       message(msg) {
+        if (msg.type === 'ins') { loadInstruments(msg.ins); return; }
+        if (msg.type === 'smp') { extras = Array.isArray(msg.smp) ? msg.smp : []; raw.forEach((m, slot) => { if (m) buildSlot(m, slot); }); return; }
         if (msg.type !== 'sample') return;
-        const slot = msg.slot | 0;
-        const S = bank[slot] = {
-          sample: msg.data, volume: msg.volume ?? 1, globalVolume: msg.globalVolume ?? 1, pan: Math.max(-1, Math.min(1, msg.pan ?? 0)), panSet: msg.panOn === true, pp: msg.pingpong === true, spp: msg.susPingpong === true,
-          tune: 0,
-          loop: false, ls: 0, le: 0, sus: false, ss: 0, se: 0, right: msg.right ?? null, xf: 0, sxf: 0,
-        };
-        S.tune = 12 * Math.log2(Math.max(1, msg.rate) / 8363);   // semitones from IT's C-5 (8363 Hz): the sample's own speed
-        const start = msg.loopStart ?? 0, end = msg.loopEnd ?? 0;
-        if (msg.loopOn !== false && end - start >= 2 && end <= S.sample.length && start >= 0) { S.loop = true; S.ls = start; S.le = end; S.xf = Math.max(0, Math.min(Math.floor(msg.loopXfade ?? 0), start, end - start)); }
-        const ss = msg.susStart ?? 0, se = msg.susEnd ?? 0;
-        if (msg.susOn !== false && se - ss >= 2 && se <= S.sample.length && ss >= 0) { S.sus = true; S.ss = ss; S.se = se; S.sxf = Math.max(0, Math.min(Math.floor(msg.susXfade ?? 0), ss, se - ss)); }
+        raw[msg.slot | 0] = msg;
+        buildSlot(msg, msg.slot | 0);
       },
       note(msg) {
         if (msg.type === 'noteOn') { pendingNote = msg.note - MIDI_C0; pendingOff = false; pendingCut = false; }

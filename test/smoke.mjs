@@ -6459,6 +6459,58 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     assert.ok(play(false) > 0, 'a plain IT channel plays the left side to both');
     assert.ok(play(true) < 0, 'IT 3 plays the right side to the right output');
   }
+  // sample proxies: a slot plays a stretch of the bank sample, with the bank's loops or ones of its own
+  {
+    const { default: itchan } = await import('../src/audio/nodes/itchan.js');
+    const play = (bankLoop, proxy) => {
+      const clock = { playing: true, tickId: 0, tickSamples: 882, stamps: new Float32Array(8) };
+      const node = itchan.create({ sampleRate: sr, clock, data: { smp: proxy ? [{ proxy }] : [] } });
+      node.message({ type: 'sample', slot: 0, data: Float32Array.from({ length: 64 }, (_, i) => (i % 16 < 8 ? 0.8 : -0.8)), rate: 8363, ...bankLoop });
+      node.note({ type: 'noteOn', note: 72 });
+      const L = new Float32Array(882), R = new Float32Array(882); let late = 0;
+      for (let t = 1; t <= 30; t++) { clock.tickId = t; clock.stamps[2] = t; L.fill(0); R.fill(0); node.process([], [[L, R]], 882, [0, 0, 0, 0.45, 1], [0, 1, 2, 3, 4]); if (t > 20) for (let i = 0; i < 882; i++) late += L[i] * L[i]; }
+      return Math.sqrt(late / (10 * 882));
+    };
+    assert.ok(play({}, null) < 1e-4, 'a sample with no loop ends');
+    assert.ok(play({ loopStart: 0, loopEnd: 64 }, null) > 0.05, 'the bank loop plays through a slot with no proxy');
+    assert.ok(play({}, { loop: { on: true, start: 16, end: 48 } }) > 0.05, 'a proxy gives a sample its own loop');
+    assert.ok(play({ loopStart: 0, loopEnd: 64 }, { start: 16, end: 48 }) < 1e-4, 'a bank loop outside the proxy\'s stretch is dropped');
+    assert.ok(play({ loopStart: 16, loopEnd: 48 }, { start: 8, end: 56 }) > 0.05, 'a bank loop inside the stretch comes along');
+    assert.ok(play({ loopStart: 0, loopEnd: 64 }, { loop: { on: false } }) < 1e-4, 'a proxy can turn the bank loop off');
+  }
+  // the panel's editing model
+  {
+    const m = await import('../src/graph/itchanmodel.js');
+    const bank = { data: new Float32Array(1000), loopStart: 100, loopEnd: 900, loopOn: true };
+    let d = {};
+    assert.deepEqual(m.rangeOf(m.proxyOf(d, 0), 1000), [0, 1000], 'no proxy plays the whole sample');
+    assert.equal(m.loopsOf(bank, null).loop.from, 'bank', 'the loop comes from the bank');
+    d = m.moveRangeEdge(d, 0, 'start', 200, 1000); d = m.moveRangeEdge(d, 0, 'end', 700, 1000);
+    assert.deepEqual(m.rangeOf(m.proxyOf(d, 0), 1000), [200, 700], 'the stretch edges move');
+    assert.equal(m.loopsOf(bank, m.proxyOf(d, 0)).loop.active, false, 'the bank loop is outside the stretch');
+    d = m.setLoop(d, 0, 'loop', bank, { start: 300, end: 650, xfade: 80 });
+    const own = m.loopsOf(bank, m.proxyOf(d, 0)).loop;
+    assert.ok(own.from === 'own' && own.active && own.start === 300 && own.end === 650 && own.xfade === 80, 'a loop of its own');
+    d = m.setLoop(d, 0, 'loop', bank, { start: 100 });
+    assert.equal(m.proxyOf(d, 0).loop.start, 200, 'a loop stays inside the stretch');
+    d = m.moveRangeEdge(d, 0, 'start', 0, 1000); d = m.moveRangeEdge(d, 0, 'end', 1000, 1000);
+    assert.equal(m.proxyOf(d, 0).start, undefined, 'the whole sample again drops the stretch');
+    assert.equal(m.proxyOf(m.clearProxy(d, 0), 0), null, 'clearing the proxy brings the bank back');
+    // envelopes
+    let env = m.newEnvelope('vol');
+    const added = m.addPoint(env, 60, 20);
+    assert.equal(added.index, 3, 'a point goes in tick order'); env = added.env;
+    assert.deepEqual([env.ss, env.se], [2, 2], 'marks stay on their points');
+    assert.deepEqual(m.addPoint(env, 60, 5).index, -1, 'a tick holds one point');
+    env = m.movePoint(env, 1, 500, 100);
+    assert.deepEqual(env.pts.slice(2, 4), [47, 64], 'a point stops short of its neighbour and at the top');
+    env = m.removePoint(env, 1);
+    assert.equal(env.ss, 1, 'marks follow when a point goes before them');
+    assert.equal(m.removePoint(m.removePoint(m.removePoint(env, 0), 0), 0).pts.length, 4, 'an envelope keeps two points');
+    assert.deepEqual([m.setMarks(env, 'loop', 2, 0).ls, m.setMarks(env, 'loop', 2, 0).le], [0, 2], 'marks are put in order');
+    const ins = m.instrumentsFor(3);
+    assert.ok(ins.length === 3 && ins[2].map[60] === 2 && ins[1].map.length === 120, 'an instrument for each sample, playing its own');
+  }
   console.log('ok: it import');
 }
 
