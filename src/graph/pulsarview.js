@@ -8,18 +8,18 @@ import { DEFAULT_SWEEP } from '../audio/nodes/pulsar.js';
 // drawings: the window over each pulsaret and, for the synth, the formant sweep that follows a note's start.
 const W = 560, H = 110, PERIODS = 5, SHOWN_HZ = 220;
 
-export function createPulsarView({ doc = document, getParam, env = {}, sweep = false, onChange }) {
+export function createPulsarView({ memoryOf, doc = document, getParam, env = {}, sweep = false, onChange }) {
   const el = doc.createElement('div'); el.className = 'curve-editor drum2 pulsar-panel';
   const { canvas, ctx, ink } = makeCanvas(doc, W, H, 'sp-pad');
   let points = env.window;
   const change = (slot, p) => { if (slot === 'window') points = p; onChange(slot, p); };
   const win = createBezierEditor({
-    doc, title: 'WINDOW', color: ORANGE, points: env.window, fallback: DEFAULT_WINDOW,
+    doc, title: 'WINDOW', color: ORANGE, memory: memoryOf?.('window'), points: env.window, fallback: DEFAULT_WINDOW,
     getMs: () => 1000 / getParam('formant'), onChange: p => { change('window', p); draw(); },
   });
   const editors = [win];
   if (sweep) editors.push(createBezierEditor({
-    doc, title: 'FORMANT SWEEP', color: BLUE, points: env.sweep, fallback: DEFAULT_SWEEP,
+    doc, title: 'FORMANT SWEEP', color: BLUE, memory: memoryOf?.('sweep'), points: env.sweep, fallback: DEFAULT_SWEEP,
     getMs: () => getParam('sweepms'), labels: () => ['+sweep', '0'], onChange: p => change('sweep', p),
   }));
   const draw = () => {

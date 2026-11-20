@@ -14,11 +14,16 @@ import {
 // The instrument side picks an instrument and draws its volume, panning and pitch envelopes: click empty space for a point, drag a point,
 // double-click it to remove it. "Loop" and "Sustain" modes mark a range of points by clicking two of them. Pitch can be set to move the
 // filter cutoff instead (the IT filter envelope).
-const SW = 380, SH = 140, EW = 380, EH = 124, PL = 6, PR = 6;
+const DEFAULT_SW = 760, DEFAULT_SH = 150, EW = 380, EH = 124, PL = 6, PR = 6;
+const SIZE_KEY = 'wax.itchanSampleSize';   // the sample area's size, as dragged
+let SW = DEFAULT_SW, SH = DEFAULT_SH;
 const GRAB = 7;
 const NNA = ['cut', 'continue', 'off', 'fade'], DCT = ['off', 'note', 'sample', 'instrument'], DCA = ['cut', 'off', 'fade'];
 
-export function createItChanView({ doc = document, getData, setData, getSampleIds, getSample, isIt3 = () => false }) {
+// A colour for each sounding note's playhead: vivid, and far from the colour of the one before (the golden angle round the hue wheel).
+export const headColour = uid => `hsl(${Math.round((uid * 137.508) % 360)} 92% 62%)`;
+
+export function createItChanView({ doc = document, getData, setData, getSampleIds, getSample, isIt3 = () => false, watch = () => {} }) {
   const el = doc.createElement('div'); el.className = 'curve-editor drum2 itchan-panel';
   let slot = 0, insIndex = 0, envKind = 'vol', markMode = 'point', pending = null, zoom = false;
 
@@ -39,10 +44,33 @@ export function createItChanView({ doc = document, getData, setData, getSampleId
   };
 
   // ---- the sample area ----------------------------------------------------------------------------------------------------
+  try { const saved = JSON.parse(localStorage.getItem(SIZE_KEY) ?? 'null'); if (saved) { SW = clamp(saved[0], 240, 2400); SH = clamp(saved[1], 90, 600); } } catch { /* no storage, or nothing saved */ }
   const sampleSide = make('div', { className: 'itchan-side' });
   const { canvas: sampleCanvas, ctx: sctx, ink: sink } = makeCanvas(doc, SW, SH, 'itchan-sample');
   const sampleControls = make('div', { className: 'itchan-controls' });
-  sampleSide.append(sampleCanvas, sampleControls);
+  const grip = make('div', { className: 'itchan-grip', title: 'Drag to stretch the sample area' });
+  const sampleBox = make('div', { className: 'itchan-samplebox' }, sampleCanvas, grip);
+  sampleSide.append(sampleBox, sampleControls);
+  // The sample area can be stretched by its corner; the size is kept for next time.
+  const resizeSample = (w, h) => {
+    SW = clamp(Math.round(w), 240, 2400); SH = clamp(Math.round(h), 90, 600);
+    const dpr = Math.max(1, Math.min(3, typeof devicePixelRatio === 'number' ? devicePixelRatio : 1));
+    sampleCanvas.width = SW * dpr; sampleCanvas.height = SH * dpr;
+    if (sampleCanvas.style) Object.assign(sampleCanvas.style, { width: `${SW}px`, height: `${SH}px` });
+    sctx?.setTransform(dpr, 0, 0, dpr, 0, 0);
+    if (sampleControls.style) sampleControls.style.width = `${SW}px`;
+    peakCache = null; drawSample();
+  };
+  grip.addEventListener('pointerdown', e => {
+    const x0 = e.clientX, y0 = e.clientY, w0 = SW, h0 = SH;
+    grip.setPointerCapture?.(e.pointerId); e.preventDefault();
+    const move = m => resizeSample(w0 + m.clientX - x0, h0 + m.clientY - y0);
+    const up = () => { grip.removeEventListener('pointermove', move); grip.removeEventListener('pointerup', up); try { localStorage.setItem(SIZE_KEY, JSON.stringify([SW, SH])); } catch { /* no storage */ } };
+    grip.addEventListener('pointermove', move); grip.addEventListener('pointerup', up);
+  });
+  if (sampleControls.style) sampleControls.style.width = `${SW}px`;
+  let peakCache = null;   // the waveform's columns, kept while the sample, the stretch on show and the width stay the same
+  const heads = new Map();   // the playheads: note number -> { slot, frame }, as the node last reported them
 
   const bankOf = () => { const id = getSampleIds()[slot]; return id === undefined ? null : getSample(id); };
   let window_ = [0, 1];   // the frames on show
@@ -67,7 +95,9 @@ export function createItChanView({ doc = document, getData, setData, getSampleId
     window_ = zoom ? [Math.max(0, a - (b - a) * 0.05), Math.min(length, b + (b - a) * 0.05)] : [0, length];
     const mid = SH / 2, tall = SH / 2 - 14, width = SW - PL - PR;
     // the waveform, from the first and last frame on show
-    const peaks = computePeaks(bank.data, width, Math.floor(window_[0]), Math.ceil(window_[1]));
+    const key = `${width}|${Math.floor(window_[0])}|${Math.ceil(window_[1])}`;
+    if (!peakCache || peakCache.data !== bank.data || peakCache.key !== key) peakCache = { data: bank.data, key, peaks: computePeaks(bank.data, width, Math.floor(window_[0]), Math.ceil(window_[1])) };
+    const peaks = peakCache.peaks;
     sctx.fillStyle = page; sctx.globalAlpha = 0.85;
     for (let px = 0; px < width; px++) {
       const lo = peaks[2 * px], hi = peaks[2 * px + 1];
@@ -88,7 +118,14 @@ export function createItChanView({ doc = document, getData, setData, getSampleId
     for (const frame of [a, b]) sctx.fillRect(Math.round(xOf(frame)) - 1, 0, 2, SH);   // the stretch's edges
     sctx.globalAlpha = 0.7; sctx.fillStyle = forPage(PINK, page);
     const tag = proxy && (proxy.start !== undefined || proxy.end !== undefined) ? `${Math.round(a)}-${Math.round(b)} of ${length}` : `whole, ${length} frames`;
-    sctx.textAlign = 'right'; sctx.fillText(tag, SW - PR, SH - 12); sctx.globalAlpha = 1;
+    sctx.textAlign = 'right'; sctx.fillText(tag, SW - PR - 18, SH - 12); sctx.globalAlpha = 1;
+    // the playheads of the notes sounding from this slot, each its own colour
+    for (const [uid, head] of heads) {
+      if (head.slot !== slot || head.frame < window_[0] || head.frame > window_[1]) continue;
+      const x = Math.round(xOf(head.frame));
+      sctx.fillStyle = headColour(uid); sctx.fillRect(x - 1, 0, 2, SH);
+      sctx.beginPath(); sctx.moveTo(x - 5, 0); sctx.lineTo(x + 5, 0); sctx.lineTo(x, 7); sctx.fill();
+    }
   }
 
   function sampleDrag() {
@@ -247,9 +284,16 @@ export function createItChanView({ doc = document, getData, setData, getSampleId
     insControls.append(row(...parts));
   }
 
+  // what the node reports: where each sounding note is. The panel asks for the reports again every second while it is on the page.
+  const feed = msg => {
+    heads.clear();
+    for (const [uid, headSlot, frame] of msg.heads ?? []) heads.set(uid, { slot: headSlot, frame });
+    drawSample();
+  };
+  const heartbeat = () => { watch(); const timer = doc.defaultView?.setInterval?.(() => { if (!el.isConnected) doc.defaultView.clearInterval(timer); else watch(); }, 1000); };
   el.append(sampleSide, insSide);
   function refresh() { sampleControlsRow(); insControlsRow(); drawSample(); drawEnv(); }
   sampleDrag(); envDrag();
-  refresh();
-  return { el, refresh, draw: () => { drawSample(); drawEnv(); } };
+  refresh(); heartbeat();
+  return { el, refresh, feed, draw: () => { drawSample(); drawEnv(); } };
 }

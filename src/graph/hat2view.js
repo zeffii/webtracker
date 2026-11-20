@@ -4,9 +4,9 @@ import { REFERENCE_MS, DEFAULT_SHAPES } from '../audio/nodes/hat2.js';
 // The Hi-hat 2 panel: one volume drawing for the closed hat and one for the open hat.
 const COL = { closed: 'hsl(190 70% 55%)', open: 'hsl(35 85% 55%)' };
 
-export function createHat2View({ doc = document, getParam, env = {}, onChange }) {
+export function createHat2View({ memoryOf, doc = document, getParam, env = {}, onChange }) {
   const make = (key, title, rate) => createBezierEditor({
-    doc, title, color: COL[key], points: env[key], fallback: DEFAULT_SHAPES[key],
+    doc, title, color: COL[key], memory: memoryOf?.(key), points: env[key], fallback: DEFAULT_SHAPES[key],
     getMs: () => REFERENCE_MS[key] / getParam(rate), onChange: points => onChange(key, points),
   });
   const editors = [make('closed', 'CLOSED HAT', 'crate'), make('open', 'OPEN HAT', 'orate')];

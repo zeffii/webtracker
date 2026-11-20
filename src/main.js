@@ -2960,6 +2960,7 @@ sampleBrowser = createSampleBrowser({
   engine.onEmit = ({ instrument, node, msg }) => {
     if (msg.type === 'osc') { const [address, args] = noteMessage(msg, msg.p, instrument); osc.send(address, args); return; }
     if (msg.type === 'kal') { patcher.feedKal(instrument, node, msg); return; }
+    if (msg.type === 'heads') { patcher.feedHeads(instrument, node, msg); return; }
     if (msg.type === 'ring' || msg.type === 'sym' || msg.type === 'orbit' || msg.type === 'fpro' || msg.type === 'pogue') { patcher.feedSpace(instrument, node, msg); return; }
     if (msg.type === 'cloud') { patcher.feedCloud(instrument, node, msg, engine.ctx.sampleRate); return; }
     const key = `${instrument}\u0000${node}`;

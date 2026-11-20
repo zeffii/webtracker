@@ -19,7 +19,7 @@ const PAD_NAMES = {
   vecmix: { x: 'x', y: 'y' },
 };
 
-export function createCompassView({ doc = document, kind = 'compass', data = {}, getParam, setParam, onData }) {
+export function createCompassView({ memoryOf, doc = document, kind = 'compass', data = {}, getParam, setParam, onData }) {
   const el = doc.createElement('div');
   el.className = 'curve-editor drum2 compass-panel';
   const parts = [];   // everything that is redrawn when a setting moves
@@ -49,11 +49,11 @@ export function createCompassView({ doc = document, kind = 'compass', data = {},
 
   if (kind === 'compass') {
     const amp = createBezierEditor({
-      doc, title: 'AMPLITUDE', color: ORANGE, points: data.env?.amp, fallback: DEFAULT_AMP, knot: true,
+      doc, title: 'AMPLITUDE', color: ORANGE, memory: memoryOf?.('amp'), points: data.env?.amp, fallback: DEFAULT_AMP, knot: true,
       getMs: () => getParam('atime'), onChange: points => onData('env.amp', points),
     });
     const filter = createBezierEditor({
-      doc, title: 'FILTER', color: BLUE, points: data.env?.filter, fallback: DEFAULT_FILTER, knot: true,
+      doc, title: 'FILTER', color: BLUE, memory: memoryOf?.('filter'), points: data.env?.filter, fallback: DEFAULT_FILTER, knot: true,
       getMs: () => getParam('ftime'), labels: () => [`${getParam('fenv') >= 0 ? '+' : ''}${getParam('fenv').toFixed(1)} oct`, '0'], onChange: points => onData('env.filter', points),
     });
     el.append(amp.el, filter.el); parts.push(amp, filter);

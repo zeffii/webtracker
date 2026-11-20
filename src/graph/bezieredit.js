@@ -13,6 +13,8 @@ import { forPage } from './spaceui.js';
 //   K                         the chosen anchor the sustain knot (with `knot`): the envelope waits there while the note is held
 //   arrows                    nudge (Shift for 10)                 Ctrl+Shift-drag   only along time or only along level
 //   Ctrl+Z, Ctrl+Shift+Z      undo and redo
+//   memory 1-8               store the drawing in a slot (press "store", then a slot) and recall it by pressing the slot. A slot that holds a
+//                            drawing shows a dot. With `memory` ({ get, set }) the slots are kept by the node and saved with the song.
 //   time button              linear time, or log time: the start of the drawing gets most of the room (for transients) and the ticks of the
 //                            ruler draw closer together towards the tail. Only the view changes; the drawing is the same in both.
 // With `firstHandle` the first anchor always shows its handle, so the start of the curve can be bent without choosing it first.
@@ -27,7 +29,7 @@ function msMarks(total) {
   return [...new Set(marks)].sort((a, b) => a - b);
 }
 
-export function createBezierEditor({ doc = document, title, color, points, fallback = SHAPES.fall, getMs, labels = () => ['100%', '0'], firstHandle = false, knot = false, onChange }) {
+export function createBezierEditor({ doc = document, title, color, points, fallback = SHAPES.fall, getMs, labels = () => ['100%', '0'], firstHandle = false, knot = false, memory = null, onChange }) {
   const el = (tag, props = {}, ...kids) => { const e = doc.createElement(tag); Object.assign(e, props); for (const k of kids) e.appendChild(typeof k === 'string' ? doc.createTextNode(k) : k); return e; };
   let spline = cleanSpline(points, fallback);
   let selected = null, drag = null, hover = null, snapAt = 0;   // hover: { kind: 'anchor' | 'l' | 'r' | 'curve', i }
@@ -280,6 +282,25 @@ export function createBezierEditor({ doc = document, title, color, points, fallb
     try { localStorage.setItem('wax.envLogTime', logTime ? '1' : '0'); } catch { /* no storage */ }
     draw();
   });
+  // Memory: eight slots for drawings. "store" arms the next slot press; a plain press recalls (undoable, like any other change).
+  const SLOTS = 8;
+  let slots = Array.from({ length: SLOTS }, (_, i) => memory?.get()?.[i] ?? null), arming = false;
+  const keep = () => { memory?.set(slots.map(x => (x ? x.map(p => ({ ...p })) : null))); };
+  const slotButtons = [];
+  const showMemory = () => {
+    storeButton.className = arming ? 'on' : ''; if (storeButton.style) storeButton.style.opacity = arming ? '1' : '0.7';
+    slotButtons.forEach((b, i) => { b.textContent = slots[i] ? `${i + 1}•` : `${i + 1}`; b.title = arming ? `Store the drawing in slot ${i + 1}` : slots[i] ? `Recall slot ${i + 1}` : `Slot ${i + 1} is empty: press "store", then this`; });
+  };
+  const storeButton = action('store', 'Press, then a slot, to keep the drawing there', () => { arming = !arming; showMemory(); });
+  for (let i = 0; i < SLOTS; i++) {
+    slotButtons.push(action(`${i + 1}`, '', () => {
+      if (arming) { slots[i] = JSON.parse(snapshot()); arming = false; keep(); }
+      else if (slots[i]) { set(slots[i].map(p => ({ ...p }))); }
+      showMemory();
+    }));
+  }
+  showMemory();
+  const memoryRow = el('div', { className: 'osc-wave-row' }, el('span', { textContent: 'memory ', className: 'dim' }), storeButton, ...slotButtons);
   const shapes = el('div', { className: 'osc-wave-row' }, ...Object.keys(SHAPES).map(shape));
   const kinds = el('div', { className: 'osc-wave-row' },
     kindButton('sharp', 'sharp', 'The chosen anchor a corner (X)'), kindButton('smooth', 'smooth', 'Its handles stay in line (S)'), kindButton('equal', 'equal', 'In line and the same length, mirrored as you drag (E)'), kindButton('free', 'free', 'Each handle on its own (F, or Alt-drag a handle)'),
@@ -292,5 +313,5 @@ export function createBezierEditor({ doc = document, title, color, points, fallb
     snapButton, timeButton);
   const tip = el('div', { className: 'bezier-tip', textContent: 'click adds · double-click a curve inserts · double-click an anchor sharp/smooth · right-click deletes an anchor or flips a segment line/curve · S E F X types · B line/curve · I insert · arrows nudge' });
   draw();
-  return { el: el('div', { className: 'bezier-edit' }, canvas, shapes, kinds, tip), draw, refresh: draw, get points() { return spline.map(p => ({ ...p })); } };
+  return { el: el('div', { className: 'bezier-edit' }, canvas, shapes, kinds, memoryRow, tip), draw, refresh: draw, get points() { return spline.map(p => ({ ...p })); } };
 }

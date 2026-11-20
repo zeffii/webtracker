@@ -2,6 +2,11 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 794 · 2026-11-20
+
+- **IT channel: a wider sample area, stretchable, with a playhead for every sounding note.** The waveform is now twice as wide by default (760 px), and its bottom-right corner can be dragged to stretch it in both directions; the size is remembered. While the panel is on screen the node reports where each sounding note is in its bank sample, and each gets a playhead of its own vivid colour (a new colour for every note, spread round the hue wheel), so overlapping notes and notes left ringing by the new-note action can be followed. The node only reports while a panel asks (once a second), so a closed panel costs nothing.
+- **Bezier editors: eight memory slots.** Below the drawing, press "store" then a slot (1 to 8) to keep the drawing there; press a filled slot (marked with a dot) to bring it back, as one undoable step. The slots are kept on the node and saved with the song, for the envelope of Env 2, both envelopes of the twin filter, and the drawings of the drum synth 2, hi-hat 2, pulsar, Khufu and compass nodes.
+
 ## 793 · 2026-11-20
 
 - **IT channel: a sample area and envelope editor in its panel.** Select an IT channel (or IT 3 channel) and its panel now has a small sample area beside the instrument's envelopes. Each sample slot is a *proxy* of a bank sample: it plays all of it with the loops the bank gave it, until you drag the dark edges to use only a stretch, or drag a loop marker (or drag across the waveform, Shift for the sustain loop) to give the slot loops of its own, with their own ping-pong and, in IT 3, crossfade. The bank sample is never changed; "Bank" puts the slot back. A bank loop that lies outside the chosen stretch is dropped, one inside it comes along. "Use instruments" makes an instrument for each sample (nothing sounds different until you edit one); then pick an instrument, set its new note action, duplicate check and fadeout, and draw its volume, panning and pitch envelopes: click for a point, drag, double-click to remove, and the Loop and Sustain modes mark a range of points by clicking two of them. Pitch can move the filter cutoff instead. Every edit is heard at once, without cutting playing notes. The model is in `src/graph/itchanmodel.js` (tested), the drawing in `src/graph/itchanview.js`.

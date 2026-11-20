@@ -909,11 +909,16 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
       });
       items.splice(1, 0, sub(granularView.el));
     }
+    // The memory slots of a node's drawings, kept in node.data.memory[slot] and saved with the song
+    const memoryOf = slot => ({
+      get: () => node.data?.memory?.[slot],
+      set: list => { node.data = { ...node.data, memory: { ...node.data?.memory, [slot]: list } }; onData(instId, node.id, { type: 'memory', slot }); },
+    });
     env2Editor = null;
     if (type.editor === 'env2') {   // one drawn envelope, kept on the node and sent live
       const param = name => readLive(instId, node.id, name) ?? node.params?.[name] ?? type.params.find(p => p.name === name)?.def ?? 0;
       env2Editor = createBezierEditor({
-        doc, title: 'ENVELOPE', color: 'hsl(35 85% 55%)', points: node.data?.env?.main, fallback: DEFAULT_ENV2, firstHandle: true, knot: true,
+        doc, title: 'ENVELOPE', color: 'hsl(35 85% 55%)', points: node.data?.env?.main, fallback: DEFAULT_ENV2, firstHandle: true, knot: true, memory: memoryOf('main'),
         getMs: () => param('time'), labels: () => [`${Math.round(param('amount') * 100) / 100}`, '0'],
         onChange: points => {
           node.data = { ...node.data, env: { ...node.data?.env, main: points } };
@@ -926,7 +931,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
     if (type.editor === 'drumsynth2') {   // three drawn envelopes, kept on the node and sent live, and the composed hit
       const param = name => readLive(instId, node.id, name) ?? node.params?.[name] ?? type.params.find(p => p.name === name)?.def ?? 0;
       drum2View = createDrum2View({
-        doc, getParam: param, env: node.data?.env ?? {},
+        doc, memoryOf, getParam: param, env: node.data?.env ?? {},
         getClickSample: () => { const cur = def().samples?.[node.id], list = Array.isArray(cur) ? cur : cur === undefined ? [] : [cur]; const id = list[Math.round(param('clickSample'))]; return id === undefined ? null : getSample(id); },
         onChange: (slot, points) => {
           node.data = { ...node.data, env: { ...node.data?.env, [slot]: points } };
@@ -952,7 +957,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
       const param = name => readLive(instId, node.id, name) ?? node.params?.[name] ?? type.params.find(p => p.name === name)?.def ?? 0;
       [['a', 'ENVELOPE 1', 'hsl(175 60% 52%)', 'time1'], ['b', 'ENVELOPE 2', 'hsl(40 95% 62%)', 'time2']].forEach(([slot, title, color, time], k) => {
         const editor = createBezierEditor({
-          doc, title, color, points: node.data?.env?.[slot], fallback: DEFAULT_ENV2, firstHandle: true, knot: true,
+          doc, title, color, points: node.data?.env?.[slot], fallback: DEFAULT_ENV2, firstHandle: true, knot: true, memory: memoryOf(slot),
           getMs: () => param(time), labels: () => ['up', '0'],
           onChange: points => {
             node.data = { ...node.data, env: { ...node.data?.env, [slot]: points } };
@@ -978,7 +983,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
     if (type.editor === 'hat2') {   // the volume drawings of the closed and the open hat, kept on the node and sent live
       const param = name => readLive(instId, node.id, name) ?? node.params?.[name] ?? type.params.find(p => p.name === name)?.def ?? 0;
       hat2View = createHat2View({
-        doc, getParam: param, env: node.data?.env ?? {},
+        doc, memoryOf, getParam: param, env: node.data?.env ?? {},
         onChange: (slot, points) => {
           node.data = { ...node.data, env: { ...node.data?.env, [slot]: points } };
           onData(instId, node.id, { type: 'env', slot, points });
@@ -990,7 +995,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
     if (type.editor === 'pulsar' || type.editor === 'pulsetrain') {   // the pulse train, the window over each pulsaret and (the synth) the formant sweep
       const param = name => readLive(instId, node.id, name) ?? node.params?.[name] ?? type.params.find(p => p.name === name)?.def ?? 0;
       pulsarView = createPulsarView({
-        doc, getParam: param, env: node.data?.env ?? {}, sweep: type.editor === 'pulsar',
+        doc, memoryOf, getParam: param, env: node.data?.env ?? {}, sweep: type.editor === 'pulsar',
         onChange: (slot, points) => {
           node.data = { ...node.data, env: { ...node.data?.env, [slot]: points } };
           onData(instId, node.id, { type: 'env', slot, points });
@@ -1002,7 +1007,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
     if (type.editor === 'khufu') {   // the registers, and the amplitude drawing, kept on the node and sent live
       const param = name => readLive(instId, node.id, name) ?? node.params?.[name] ?? type.params.find(p => p.name === name)?.def ?? 0;
       khufuView = createKhufuView({
-        doc, getParam: param, env: node.data?.env ?? {},
+        doc, memoryOf, getParam: param, env: node.data?.env ?? {},
         onChange: (slot, points) => {
           node.data = { ...node.data, env: { ...node.data?.env, [slot]: points } };
           onData(instId, node.id, { type: 'env', slot, points });
@@ -1014,7 +1019,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
     if (type.editor === 'itchan') {   // the samples as proxies of the bank's, and the instruments' envelopes: kept on the node and sent live
       const list = () => { const cur = def().samples?.[node.id]; return Array.isArray(cur) ? cur : cur === undefined ? [] : [cur]; };
       itChanView = createItChanView({
-        doc, getData: () => node.data ?? {}, getSampleIds: list, getSample, isIt3: () => node.data?.it3 === true,
+        doc, getData: () => node.data ?? {}, getSampleIds: list, getSample, isIt3: () => node.data?.it3 === true, watch: () => onData(instId, node.id, { type: 'watch' }),
         setData: next => {
           node.data = next;
           onData(instId, node.id, { type: 'ins', ins: next.ins });
@@ -1027,7 +1032,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
     if (VECTOR_EDITORS.has(type.editor)) {   // the diamond and its path, the wave sequences and the two drawings: kept on the node and sent live
       const param = name => readLive(instId, node.id, name) ?? node.params?.[name] ?? type.params.find(p => p.name === name)?.def ?? 0;
       compassView = createCompassView({
-        doc, kind: type.editor, data: node.data ?? {}, getParam: param,
+        doc, memoryOf, kind: type.editor, data: node.data ?? {}, getParam: param,
         setParam: (name, value) => { setParam(desc(), node.id, name, value); onParam(instId, node.id, name, value); paramView?.refresh(); },
         onData: (kind, value) => {
           if (kind.startsWith('env.')) {
@@ -2116,6 +2121,7 @@ export function createPatcher({ getTiming = () => null, onHelp = () => {}, canva
       dirty = true;
     },
     feedSpace(id, node, msg) { if (id === instId && spaceView?.nodeId === node) spaceView.feed?.(msg); },
+    feedHeads(id, node, msg) { if (id === instId && selected?.kind === 'node' && selected.id === node) itChanView?.feed(msg); },
     feedKal(id, node, msg) { if (id === instId && kalView?.nodeId === node) kalView.feed(msg); },
     feedScope(id, node, l, r, sr) { if (id === instId) { scopeData.set(node, { l, r, sr }); dirty = true; } },
     undo: () => stepHistory('undo', 'redo', 'undone'),

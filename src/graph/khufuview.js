@@ -8,11 +8,11 @@ import { REGISTERS, DEFAULT_AMP, registerMix } from '../audio/nodes/khufu.js';
 const W = 260, H = 150, PL = 8, PR = 8, TOP = 22, CYCLES = 2;
 const COLOURS = [BLUE, ORANGE, 'hsl(145 55% 45%)'];   // low, mid, high
 
-export function createKhufuView({ doc = document, env = {}, getParam, onChange }) {
+export function createKhufuView({ memoryOf, doc = document, env = {}, getParam, onChange }) {
   const el = doc.createElement('div'); el.className = 'curve-editor drum2 khufu-panel';
   const { canvas, ctx, ink } = makeCanvas(doc, W, H, 'khufu-pad');
   const amp = createBezierEditor({
-    doc, title: 'AMPLITUDE', color: ORANGE, points: env.amp, fallback: DEFAULT_AMP, knot: true,
+    doc, title: 'AMPLITUDE', color: ORANGE, memory: memoryOf?.('amp'), points: env.amp, fallback: DEFAULT_AMP, knot: true,
     getMs: () => getParam('atime'), onChange: points => onChange('amp', points),
   });
 

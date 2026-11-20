@@ -6478,6 +6478,22 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     assert.ok(play({ loopStart: 16, loopEnd: 48 }, { start: 8, end: 56 }) > 0.05, 'a bank loop inside the stretch comes along');
     assert.ok(play({ loopStart: 0, loopEnd: 64 }, { loop: { on: false } }) < 1e-4, 'a proxy can turn the bank loop off');
   }
+  // playheads: while a panel watches, the node reports where each sounding note is in its bank sample (two notes, two heads)
+  {
+    const { default: itchan } = await import('../src/audio/nodes/itchan.js');
+    const reports = [], clock = { playing: true, tickId: 0, tickSamples: 882, stamps: new Float32Array(8) };
+    const node = itchan.create({ sampleRate: sr, clock, data: { smp: [{ proxy: { start: 10, end: 60, loop: { on: true, start: 12, end: 58 } } }], ins: [] }, emit: m => reports.push(m) });
+    node.message({ type: 'sample', slot: 0, data: Float32Array.from({ length: 64 }, (_, i) => Math.sin(i)), rate: 8363 });
+    node.note({ type: 'noteOn', note: 72 });
+    const L = new Float32Array(882), R = new Float32Array(882);
+    const run = ticks => { for (let t = 0; t < ticks; t++) { clock.tickId++; clock.stamps[2] = clock.tickId; L.fill(0); R.fill(0); node.process([], [[L, R]], 882, [0, 0, 0, 0.45, 1], [0, 1, 2, 3, 4]); } };
+    run(3);
+    assert.equal(reports.length, 0, 'nothing is reported until a panel asks');
+    node.message({ type: 'watch' }); run(3);
+    assert.ok(reports.length > 0 && reports.every(r => r.type === 'heads'), 'a watched node reports the playheads');
+    const first = reports.at(-1).heads;
+    assert.ok(first.length === 1 && first[0][1] === 0 && first[0][2] >= 10 && first[0][2] < 60, 'the head is in the bank sample, inside the stretch');
+  }
   // the panel's editing model
   {
     const m = await import('../src/graph/itchanmodel.js');

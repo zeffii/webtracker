@@ -6,14 +6,14 @@ const COL = { pitch: 'hsl(200 70% 55%)', amp: 'hsl(35 85% 55%)', noise: 'hsl(145
 const W = 520, H = 86, PL = 48, PR = 12, SR = 44100;
 const PARAMS = ['startPitch', 'endPitch', 'pitchMul', 'keytrack', 'root', 'prate', 'body', 'arate', 'harm', 'drive', 'noise', 'noiseType', 'noiseTone', 'noiseHigh', 'nrate', 'click', 'clickMode', 'clickLen', 'clickTone', 'clickTail', 'boost', 'boostFreq'];
 
-export function createDrum2View({ doc = document, getParam, getClickSample = () => null, env = {}, onChange }) {
+export function createDrum2View({ memoryOf, doc = document, getParam, getClickSample = () => null, env = {}, onChange }) {
   const el = (tag, props = {}, ...kids) => { const e = doc.createElement(tag); Object.assign(e, props); for (const k of kids) e.appendChild(typeof k === 'string' ? doc.createTextNode(k) : k); return e; };
   const drawings = { ...env };
   const hz = v => (v >= 1000 ? `${(v / 1000).toFixed(1)}k` : `${Math.round(v)} Hz`);
   const editors = {
-    pitch: createBezierEditor({ doc, title: 'PITCH', color: COL.pitch, points: env.pitch, fallback: DEFAULT_SHAPES.pitch, getMs: () => REFERENCE_MS.pitch / getParam('prate'), labels: () => [hz(getParam('startPitch') * getParam('pitchMul')), hz(getParam('endPitch') * getParam('pitchMul'))], onChange: p => { drawings.pitch = p; onChange('pitch', p); refresh(); } }),
-    amp: createBezierEditor({ doc, title: 'VOLUME', color: COL.amp, points: env.amp, fallback: DEFAULT_SHAPES.amp, getMs: () => REFERENCE_MS.amp / getParam('arate'), onChange: p => { drawings.amp = p; onChange('amp', p); refresh(); } }),
-    noise: createBezierEditor({ doc, title: () => `NOISE (${NOISE_TYPES[Math.round(getParam('noiseType'))] ?? 'white'})`, color: COL.noise, points: env.noise, fallback: DEFAULT_SHAPES.noise, getMs: () => REFERENCE_MS.noise / getParam('nrate'), onChange: p => { drawings.noise = p; onChange('noise', p); refresh(); } }),
+    pitch: createBezierEditor({ doc, title: 'PITCH', color: COL.pitch, memory: memoryOf?.('pitch'), points: env.pitch, fallback: DEFAULT_SHAPES.pitch, getMs: () => REFERENCE_MS.pitch / getParam('prate'), labels: () => [hz(getParam('startPitch') * getParam('pitchMul')), hz(getParam('endPitch') * getParam('pitchMul'))], onChange: p => { drawings.pitch = p; onChange('pitch', p); refresh(); } }),
+    amp: createBezierEditor({ doc, title: 'VOLUME', color: COL.amp, memory: memoryOf?.('amp'), points: env.amp, fallback: DEFAULT_SHAPES.amp, getMs: () => REFERENCE_MS.amp / getParam('arate'), onChange: p => { drawings.amp = p; onChange('amp', p); refresh(); } }),
+    noise: createBezierEditor({ doc, title: () => `NOISE (${NOISE_TYPES[Math.round(getParam('noiseType'))] ?? 'white'})`, color: COL.noise, memory: memoryOf?.('noise'), points: env.noise, fallback: DEFAULT_SHAPES.noise, getMs: () => REFERENCE_MS.noise / getParam('nrate'), onChange: p => { drawings.noise = p; onChange('noise', p); refresh(); } }),
   };
   const dpr = Math.max(1, Math.min(3, (typeof devicePixelRatio === 'number' ? devicePixelRatio : 1)));
   const canvas = el('canvas', { width: W * dpr, height: H * dpr, className: 'bezier-pad' });

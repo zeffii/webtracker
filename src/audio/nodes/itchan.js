@@ -96,7 +96,7 @@ export default {
   editor: 'itchan',
   kinds: { out: 'stereo' },
   params: SPEC,
-  create({ sampleRate, clock, data }) {
+  create({ sampleRate, clock, data, emit }) {
     const it3 = data?.it3 === true;   // IT 3 mode: stereo samples and crossfaded loops, which IT itself does not have
     let linear = data?.linear !== false, oldEffects = data?.oldEffects === true, compatG = data?.compatG !== false;
     let hasInstruments = false, instruments = [];
@@ -134,6 +134,7 @@ export default {
       volEnvPos: 0, panEnvPos: 0, pitEnvPos: 0, autoPos: 0, autoAmp: 0, cut: 127, res: 0, envVol: 64, envPan: 32, envMod: 0, pitchOff: 0, autoDelta: 0,
       fg: 1, fb0: 0, fb1: 0, filterOn: false, y: [0, 0, 0, 0],
     });
+    let uidCounter = 0, watchLeft = 0, sinceReport = 0;   // a number for each note, and the playhead report (sent only while a panel is watching)
     let host = newVoice();
     let back = [];
     host.period = host.outPeriod = host.target = periodOf(C5, linear);
@@ -202,6 +203,7 @@ export default {
         }
       }
       const v = newVoice();
+      v.uid = ++uidCounter;
       v.slot = slot; v.ins = insNo; v.note = played; v.active = true;
       v.vol = host.vol; v.pan = host.pan; v.cut = cut; v.res = res;
       v.period = v.outPeriod = v.target = clampPeriod(periodOf(played + tuneOf(slot), linear));
@@ -541,7 +543,7 @@ export default {
       const cut = a > 0 || b < whole;
       const S = bank[slot] = {
         sample: cut ? msg.data.subarray(a, b) : msg.data, volume: msg.volume ?? 1, globalVolume: msg.globalVolume ?? 1, pan: Math.max(-1, Math.min(1, msg.pan ?? 0)), panSet: msg.panOn === true, pp: msg.pingpong === true, spp: msg.susPingpong === true,
-        tune: 0,
+        tune: 0, offset: a,   // offset: where the stretch starts in the bank sample, for the playhead
         loop: false, ls: 0, le: 0, sus: false, ss: 0, se: 0, right: msg.right ? (cut ? msg.right.subarray(a, b) : msg.right) : null, xf: 0, sxf: 0,
       };
       S.tune = 12 * Math.log2(Math.max(1, msg.rate) / 8363);   // semitones from IT's C-5 (8363 Hz): the sample's own speed
@@ -562,6 +564,7 @@ export default {
 
     return {
       message(msg) {
+        if (msg.type === 'watch') { watchLeft = sampleRate * 3; return; }
         if (msg.type === 'ins') { loadInstruments(msg.ins); return; }
         if (msg.type === 'smp') { extras = Array.isArray(msg.smp) ? msg.smp : []; raw.forEach((m, slot) => { if (m) buildSlot(m, slot); }); return; }
         if (msg.type !== 'sample') return;
@@ -596,6 +599,15 @@ export default {
         const level = params[slots[P.level]], interpolate = params[slots[P.interp]] >= 0.5;
         mixVoice(host, n, outL, outR, level, interpolate);
         for (const b of back) mixVoice(b, n, outL, outR, level, interpolate);
+        if (watchLeft > 0 && emit) {
+          watchLeft -= n; sinceReport += n;
+          if (sinceReport >= 1024) {   // about every 23 ms: where each sounding voice is in its bank sample
+            sinceReport = 0;
+            const heads = [];
+            for (const v of [host, ...back]) if (v.active && v.uid && bank[v.slot]) heads.push([v.uid, v.slot, v.pos + bank[v.slot].offset]);
+            emit({ type: 'heads', heads });
+          }
+        }
       },
     };
   },
