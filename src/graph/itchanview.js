@@ -1,7 +1,7 @@
 import { makeCanvas, drag, button, forPage, clamp, ORANGE, BLUE, PINK } from './spaceui.js';
 import { computePeaks } from '../project/waveform.js';
 import {
-  ENVELOPES, ENVELOPE_NAMES, proxyOf, rangeOf, loopsOf, moveRangeEdge, moveLoop, setLoop, clearProxy,
+  ENVELOPES, ENVELOPE_NAMES, proxyOf, rangeOf, loopsOf, moveRangeEdge, moveLoop, setLoop, setTrack, TRACK_MODES, clearProxy,
   newInstrument, instrumentsFor, withInstrument, newEnvelope, addPoint, movePoint, removePoint, setMarks,
 } from './itchanmodel.js';
 
@@ -192,6 +192,14 @@ export function createItChanView({ getTiming = () => null, doc = document, getDa
         check('ping-pong', info.pingpong, v => { setData(setLoop(getData(), slot, which, bank, { pingpong: v })); refresh(); }, 'Play the loop forwards and back'),
       ];
       if (isIt3()) parts.push(make('span', { textContent: ' xfade ' }), number(info.xfade, 0, 1 << 20, v => { setData(setLoop(getData(), slot, which, bank, { xfade: v })); refresh(); }, 'Crossfade at the loop seam, in frames (IT 3)', 62, v => { setData(setLoop(getData(), slot, which, bank, { xfade: v })); drawSample(); }));
+      if (isIt3() && which === 'sus') {   // the width of the sustain loop follows the pitch of the note
+        const mode = info.track?.mode ?? 'off', amount = info.track?.amount ?? 1;
+        const readout = make('span', { className: 'dim', textContent: ` ${amount.toFixed(2)}` });
+        const slider = make('input', { type: 'range', min: -2, max: 2, step: 0.05, value: amount, title: 'Octaves of loop width for each octave of pitch: 1 keeps the loop the same length in time, 0 the same in frames' });
+        slider.style.width = '70px'; slider.disabled = mode === 'off';
+        slider.addEventListener('input', () => { readout.textContent = ` ${Number(slider.value).toFixed(2)}`; setData(setTrack(getData(), slot, which, bank, mode, Number(slider.value))); });
+        parts.push(make('span', { textContent: ' pitch ' }), select(TRACK_MODES.map(m => [m, m === 'off' ? 'constant width' : `scale ${m === 'center' ? 'from centre' : `to ${m}`}`]), mode, v => { setData(setTrack(getData(), slot, which, bank, v, amount)); refresh(); }, 'How the sustain loop grows and shrinks with the pitch of the note (IT 3): about its centre, or with its left or right end held'), slider, readout);
+      }
       parts.push(make('span', { className: 'dim', textContent: info.active ? ` ${info.from} ${Math.round(info.start)}-${Math.round(info.end)}` : info.on && info.exists && !info.inside ? ' outside the stretch' : '' }));
       const line = row(...parts);
       line.style.color = forPage(colour, sink()); line.style.accentColor = line.style.color;   // the colour this loop has in the waveform

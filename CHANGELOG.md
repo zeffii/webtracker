@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 803 · 2026-11-20
+
+- **IT 3: the width of the sustain loop can follow the pitch of the note.** In the sustain row, "pitch" picks how the loop grows and shrinks with the note: constant width (as now), scaled from its centre, or with its left or its right end held; the slider is how much (octaves of width per octave of pitch: 1 keeps the loop the same length in time, 0 the same in frames, negative the other way). C-5 plays the loop as drawn. Native follows (new test song `itchantrack`).
+
 ## 802 · 2026-11-20
 
 - **IT channel envelopes: rulers in ticks and time, and a rate.** The envelope graph has a line at every step of ticks that is wide enough to see, labelled with the tick and, under it, the time it falls at (from the song's tempo and the envelope's rate): milliseconds while the picture is short, seconds when it is long.

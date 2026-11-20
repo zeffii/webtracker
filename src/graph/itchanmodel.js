@@ -29,8 +29,8 @@ export function loopsOf(bank, proxy) {
   const [a, b] = rangeOf(proxy, bank.data.length);
   const pick = (own, on, start, end, xfade, ping) => {
     const loop = own
-      ? { on: own.on !== false, start: own.start ?? 0, end: own.end ?? 0, xfade: own.xfade ?? 0, pingpong: own.pingpong === true }
-      : { on: on !== false, start: start ?? 0, end: end ?? 0, xfade: xfade ?? 0, pingpong: ping === true };
+      ? { on: own.on !== false, start: own.start ?? 0, end: own.end ?? 0, xfade: own.xfade ?? 0, pingpong: own.pingpong === true, track: own.track ?? null }
+      : { on: on !== false, start: start ?? 0, end: end ?? 0, xfade: xfade ?? 0, pingpong: ping === true, track: null };
     const exists = loop.end - loop.start >= 2, inside = exists && loop.start >= a && loop.end <= b;
     return { ...loop, on: loop.on && exists, from: own ? 'own' : 'bank', exists, active: loop.on && inside, inside };
   };
@@ -68,11 +68,18 @@ export function moveRangeEdge(data, slot, edge, frame, length) {
 export function setLoop(data, slot, which, bank, change) {
   const have = loopsOf(bank, proxyOf(data, slot))[which];
   const [a, b] = rangeOf(proxyOf(data, slot), bank.data.length);
-  const next = { on: have.on, start: have.inside ? have.start : a, end: have.inside ? have.end : b, pingpong: have.pingpong, xfade: have.xfade, ...change };
+  const next = { on: have.on, start: have.inside ? have.start : a, end: have.inside ? have.end : b, pingpong: have.pingpong, xfade: have.xfade, track: have.track, ...change };
   next.start = Math.max(a, Math.min(b - 2, Math.round(next.start)));
   next.end = Math.max(next.start + 2, Math.min(b, Math.round(next.end)));
   next.xfade = Math.max(0, Math.min(Math.round(next.xfade), next.start - a, next.end - next.start));
   return withProxy(data, slot, { [which]: next });
+}
+
+// How a loop's width follows the pitch of the note (IT 3): `mode` is 'center', 'left' or 'right' (the part held still) or 'off', `amount` the
+// octaves of width for each octave of pitch (1 keeps the loop the same length in time, 0 the same in frames).
+export const TRACK_MODES = ['off', 'center', 'left', 'right'];
+export function setTrack(data, slot, which, bank, mode, amount) {
+  return setLoop(data, slot, which, bank, { track: mode === 'off' ? null : { mode, amount } });
 }
 
 // Slides a loop along the sample, its length unchanged: its start goes to `start`, held inside the stretch.

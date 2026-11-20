@@ -79,6 +79,16 @@ const envNext = (env, pos, keyOn) => {
   if (env.ls >= 0 && next > p[env.le * 2]) return p[env.ls * 2];
   return next;
 };
+// The sustain loop of a sample whose loop follows the pitch of the note (IT 3): its width is the drawn one times 2 to the power of
+// `amount` for each octave above C-5 (1 keeps the loop's length in time the same, 0 its length in frames, negative the other way),
+// grown or shrunk about its centre, or with its left or its right end held, and kept inside the sample.
+const trackedSustain = (S, note, length) => {
+  const { mode, amount } = S.strack, width = S.se - S.ss;
+  const scaled = Math.min(length, Math.max(2, Math.round(width * Math.pow(2, Math.max(-6, Math.min(6, amount * (note - C5) / 12))))));
+  let start = mode === 'left' ? S.ss : mode === 'right' ? S.se - scaled : Math.round((S.ss + S.se) / 2 - scaled / 2);
+  start = Math.max(0, Math.min(length - scaled, start));
+  return { start, end: start + scaled, xfade: Math.max(0, Math.min(S.sxf, start, scaled)) };
+};
 const validEnvelope = e => (e && Array.isArray(e.pts) && e.pts.length >= 2
   ? { pts: e.pts.map(Number), ls: e.ls ?? -1, le: e.le ?? -1, ss: e.ss ?? -1, se: e.se ?? -1, rate: Number(e.rate) > 0 ? Math.max(0.05, Math.min(16, Number(e.rate))) : 1 } : null);
 
@@ -496,12 +506,13 @@ export default {
       const goal = (v === host && !tremorOn) ? 0
         : outVol / 64 * chanVol / 64 * S.globalVolume * (I ? I.gbv / 128 : 1) * v.envVol / 64 * v.fadeVol / FADE_FULL * level;
       const useSus = v.keyOn && S.sus, mainLoop = S.loop;
-      const ls = useSus ? S.ss : S.ls, le = useSus ? S.se : S.le;
+      const tracked = useSus && S.strack ? trackedSustain(S, v.note, len) : null;   // the sustain loop as this note's pitch makes it
+      const ls = tracked ? tracked.start : useSus ? S.ss : S.ls, le = tracked ? tracked.end : useSus ? S.se : S.le;
       const looping = useSus || mainLoop;
       const pingpong = looping && (useSus ? S.spp : S.pp), span = le - ls, top = le - 1;
       if (!pingpong) v.dir = 1;
       const right = it3 ? S.right : null;
-      const xf = it3 && looping && !pingpong ? (useSus ? S.sxf : S.xf) : 0;
+      const xf = it3 && looping && !pingpong ? (tracked ? tracked.xfade : useSus ? S.sxf : S.xf) : 0;
       const read = (a, q) => {
         const k = Math.floor(q);
         const s0 = a[k] ?? 0;
@@ -564,7 +575,11 @@ export default {
       const loop = place(proxy?.loop, msg.loopOn, msg.loopStart, msg.loopEnd, msg.loopXfade, msg.pingpong === true);
       if (loop) { S.loop = true; S.ls = loop.start; S.le = loop.end; S.xf = loop.xfade; S.pp = loop.ping; }
       const sus = place(proxy?.sus, msg.susOn, msg.susStart, msg.susEnd, msg.susXfade, msg.susPingpong === true);
-      if (sus) { S.sus = true; S.ss = sus.start; S.se = sus.end; S.sxf = sus.xfade; S.spp = sus.ping; }
+      if (sus) {
+        S.sus = true; S.ss = sus.start; S.se = sus.end; S.sxf = sus.xfade; S.spp = sus.ping;
+        const track = it3 ? proxy?.sus?.track : null;   // the loop's width follows the pitch: { mode: 'center' | 'left' | 'right', amount }
+        S.strack = track && ['center', 'left', 'right'].includes(track.mode) && Number(track.amount) !== 0 ? { mode: track.mode, amount: Number(track.amount) } : null;
+      }
     };
 
     return {

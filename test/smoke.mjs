@@ -6516,6 +6516,12 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
       slid = m.moveLoop(d, 0, 'loop', bank, 9999); const l2 = m.proxyOf(slid, 0).loop;
       assert.ok(l2.end === 700 && l2.end - l2.start === len, 'it stops at the end of the stretch');
     }
+    {   // a sustain loop that follows the pitch keeps its tracking when it is edited
+      const t = m.setTrack({}, 0, 'sus', bank, 'center', 1);
+      assert.deepEqual(m.proxyOf(t, 0).sus.track, { mode: 'center', amount: 1 }, 'the tracking is stored on the loop');
+      assert.deepEqual(m.proxyOf(m.setLoop(t, 0, 'sus', bank, { start: 120 }), 0).sus.track, { mode: 'center', amount: 1 }, 'moving the loop keeps it');
+      assert.equal(m.proxyOf(m.setTrack(t, 0, 'sus', bank, 'off', 1), 0).sus.track, null, 'off removes it');
+    }
     assert.equal(m.newInstrument(0).fade, 10, 'a new instrument fades after release');
     d = m.moveRangeEdge(d, 0, 'start', 0, 1000); d = m.moveRangeEdge(d, 0, 'end', 1000, 1000);
     assert.equal(m.proxyOf(d, 0).start, undefined, 'the whole sample again drops the stretch');
