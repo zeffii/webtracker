@@ -1080,6 +1080,8 @@
     .itchan-lcd .itchan-stage > * { box-sizing: border-box; overflow: hidden; }
     .itchan-lcd .itchan-cell { display: flex; flex-direction: column; white-space: pre; }
     .itchan-lcd .prow > * { flex: none; }
+    .itchan-lcd .prow.itchan-loopgrid { display: grid; column-gap: 4px; }   /* the loop and sustain rows share their columns */
+    .itchan-lcd .itchan-xf { display: inline-flex; gap: 0; align-items: center; }
     .itchan-lcd .prow { display: flex; margin: 0; gap: 4px; flex-wrap: nowrap; align-items: center; height: 12px; }
     .itchan-lcd label { display: inline-flex; align-items: center; gap: 2px; }
     .itchan-lcd select { line-height: normal; padding: 0 0 0 2px; }   /* the text sits in the middle of the 12px box */

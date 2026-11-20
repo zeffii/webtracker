@@ -186,16 +186,16 @@ export function createItChanView({ getTiming = () => null, doc = document, getDa
     slot = clamp(slot, 0, ids.length - 1);
     if (!bank) return;
     const { loop, sus } = loopsOf(bank, proxyOf(data, slot));
-    const frames = n => String(Math.round(n)).padStart(4, '0');
+    const digits = Math.max(4, String(bank.data.length).length), frames = n => String(Math.round(n)).padStart(digits, '0');   // start and end are zero-padded to the sample's own width, so the rows line up
     const loopRow = (label, which, info, tip, colour) => {
       const off = !info.on, patchLoop = change => { setData(setLoop(getData(), slot, which, bank, change)); refresh(); };
       const dimmed = el => { if (off) el.classList.add('off'); return el; };   // what belongs to a loop that is not on is greyed
       const parts = [
         check(label.padEnd(7), info.on, v => patchLoop({ on: v }), tip),
-        dimmed(make('span', { textContent: info.active ? ` ${frames(info.start)}‥${frames(info.end)} ` : info.on && info.exists && !info.inside ? ' outside the stretch ' : ' ····‥···· ' })),
+        dimmed(make('span', { textContent: info.active ? `${frames(info.start)}‥${frames(info.end)}` : info.on && info.exists && !info.inside ? 'outside' : `${'·'.repeat(digits)}‥${'·'.repeat(digits)}` })),
         dimmed(check('ping', info.pingpong, v => patchLoop({ pingpong: v }), 'Play the loop forwards and back')),
       ];
-      if (isIt3()) parts.push(dimmed(make('span', { textContent: ' xf ' })), dimmed(number(info.xfade, 0, 1 << 20, v => patchLoop({ xfade: v }), 'Crossfade at the loop seam, in frames (IT 3)', 52, v => { setData(setLoop(getData(), slot, which, bank, { xfade: v })); drawSample(); })));
+      if (isIt3()) parts.push(dimmed(make('span', { className: 'itchan-xf' }, make('span', { textContent: 'xf ' }), number(info.xfade, 0, 1 << 20, v => patchLoop({ xfade: v }), 'Crossfade at the loop seam, in frames (IT 3)', 52, v => { setData(setLoop(getData(), slot, which, bank, { xfade: v })); drawSample(); }))));
       if (isIt3() && which === 'sus') {   // the width of the sustain loop follows the pitch of the note
         const mode = info.track?.mode ?? 'off', amount = info.track?.amount ?? 1;
         const readout = make('span', { textContent: ` ${amount.toFixed(2)}` });
@@ -206,6 +206,7 @@ export function createItChanView({ getTiming = () => null, doc = document, getDa
         pitchParts.push(dimmed(make('span', { textContent: 'sustain pitch ' })), dimmed(select(TRACK_MODES.map(m => [m, modeNames[m]]), mode, v => { setData(setTrack(getData(), slot, which, bank, v, amount)); refresh(); }, 'How the sustain loop grows and shrinks with the pitch of the note (IT 3): about its centre, or with its left or right end held')), dimmed(slider), dimmed(readout));
       }
       const line = row(...parts);
+      line.classList.add('itchan-loopgrid'); line.style.gridTemplateColumns = `88px ${(2 * digits + 1) * 8 + 8}px 64px 88px`;   // the same columns in both rows
       line.style.color = colour === BLUE ? 'var(--lcd-loop)' : 'var(--lcd-sus)'; line.style.accentColor = line.style.color;   // the colour this loop has in the waveform
       return line;
     };
@@ -339,7 +340,7 @@ export function createItChanView({ getTiming = () => null, doc = document, getDa
     insHold.append(
       row(make('span', { textContent: 'ins ' }), select(names, insIndex, v => { insIndex = Number(v); pending = null; refresh(); }, 'The instrument: the Ins value of a cell, 01 being the first'),
         button(doc, '+', 'Add an instrument', () => { setData(withInstrument(getData(), getData().ins.length, newInstrument(clamp(slot, 0, Math.max(0, count - 1))))); insIndex = getData().ins.length - 1; refresh(); })),
-      row(make('span', { textContent: 'fade ' }), number(ins.fade, 0, 8192, v => patchIns({ fade: v }), 'Fadeout speed after the note is released (0: none)', 40)));
+      row(make('span', { textContent: 'fade ' }), number(ins.fade, 0, 8192, v => patchIns({ fade: v }), 'Fadeout speed after the note is released (0: none)', 36)));
     playsHold.append(row(make('span', { textContent: 'plays ' }), select(slots, ins.map?.[60] ?? 0, v => patchIns({ map: new Array(120).fill(Number(v)) }), 'The sample every key plays (a keymap with several samples comes from an imported file)')));
     nnaHold.append(row(make('span', { textContent: 'new ' }), select(NNA.map((n, i) => [i, n]), ins.nna, v => patchIns({ nna: Number(v) }), 'What happens to a note still playing when a new one starts on the channel'),
       make('span', { textContent: ' dup ' }), select(DCT.map((n, i) => [i, n]), ins.dct, v => patchIns({ dct: Number(v) }), 'The duplicate check: which notes count as a duplicate'),

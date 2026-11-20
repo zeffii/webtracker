@@ -7,10 +7,10 @@ export const LAYOUT = {
   title:    { x: 33, y: 0,  w: 22, h: 1 },    // the chosen sample's name, over the top of the waveform
   wave:     { x: 0,  y: 0,  w: 59, h: 11 },
   samples:  { x: 60, y: 0,  w: 22, h: 11 },
-  loop:     { x: 0,  y: 12, w: 44, h: 1 },
-  sustain:  { x: 0,  y: 13, w: 44, h: 1 },
+  loop:     { x: 0,  y: 12, w: 46, h: 1 },
+  sustain:  { x: 0,  y: 13, w: 46, h: 1 },
   susPitch: { x: 0,  y: 14, w: 44, h: 1 },    // how the sustain loop follows the pitch (IT 3)
-  ins:      { x: 46, y: 12, w: 12, h: 2 },    // the instrument picker and its fadeout
+  ins:      { x: 47, y: 12, w: 13, h: 2 },    // the instrument picker and its fadeout
   envlist:  { x: 60, y: 12, w: 22, h: 4 },
   mode:     { x: 0,  y: 15, w: 28, h: 1 },
   nna:      { x: 28, y: 15, w: 32, h: 1 },
