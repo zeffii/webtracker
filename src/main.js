@@ -34,6 +34,7 @@ import * as ops from './project/ops.js';
 import { importMidi, parseMidi } from './project/midi.js';
 import { modToProject, parseMod } from './project/mod.js';
 import { xmToProject, parseXm } from './project/xm.js';
+import { itToProject, parseIt } from './project/it.js';
 import { parseSunvox, sunvoxToProject } from './project/sunvox.js';
 import * as presets from './project/presets.js';
 import { LIBRARY_EXT, addToLibrary, importFromLibrary, newLibrary, parseLibrary, serializeLibrary } from './project/library.js';
@@ -2759,6 +2760,13 @@ $('file').addEventListener('change', async e => {
       const xm = parseXm(await file.arrayBuffer()), data = xmToProject(xm, file.name.replace(/\.xm$/i, ''));
       openProject(data);
       $('status').textContent = `Loaded ${file.name}: ${xm.channels} channels, ${xm.instruments.length} instruments, ${data.song.length} ticks at ${data.song.bpm} bpm.`;
+      return;
+    }
+    if (/\.it$/i.test(file.name)) {   // an IT file: one lane per channel, every sample, the instruments (NNA, envelopes, filter) on the machine
+      if (!confirm('Replace the current project with this IT file? Save first if you want to keep it.')) return;
+      const it = parseIt(await file.arrayBuffer()), data = itToProject(it, file.name.replace(/\.it$/i, ''));
+      openProject(data);
+      $('status').textContent = `Loaded ${file.name}: ${data.song.lanes.length - 1} channels, ${it.samples.length} samples, ${data.song.length} ticks at ${data.song.bpm} bpm.`;
       return;
     }
     if (/\.sunvox$/i.test(file.name)) {   // a SunVox file is a whole song too: its notes and arrangement, a lane per module that plays notes

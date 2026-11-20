@@ -6338,6 +6338,130 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   console.log('ok: xm import');
 }
 
+// IT files: parse, decompress, play the arrangement out, build the project, and play it through the itchan machine.
+{
+  const { makeIt } = await import('./itfixture.mjs');
+  const { parseIt, playOut, itToProject, decompress } = await import('../src/project/it.js');
+  const sq = n => Array.from({ length: n }, (_, i) => (i < n / 2 ? 0.75 : -0.75));
+  const C5 = 60, OFF = 255, CUT = 254;
+  const env = { pts: [0, 64, 10, 32, 20, 0], ss: 1, se: 1 };
+  const it = parseIt(makeIt({
+    title: 'song', speed: 3, bpm: 150, gv: 100,
+    patterns: [{ rows: 8, data: [[[C5, 1, 0x30, 4, 0x20]], [[OFF]]] }],
+    instruments: [{ name: 'lead', nna: 3, dct: 2, dca: 1, fade: 512, ifc: 0x80 | 40, vol: env, map: 1 }],
+    samples: [{ name: 'sq', data: sq(32), c5: 16000, loop: [0, 32], pan: 0x80 | 64, gvl: 32 }],
+  }));
+  assert.equal(it.title, 'song'); assert.equal(it.speed, 3); assert.equal(it.bpm, 150); assert.equal(it.gv, 100);
+  assert.deepEqual(it.patterns[0][0][0], { note: C5, ins: 1, vol: 0x30, effect: 4, param: 0x20 });
+  assert.equal(it.patterns[0][1][0].note, OFF); assert.equal(it.patterns[0].length, 8);
+  const ins0 = it.instruments[0];
+  assert.equal(ins0.nna, 3); assert.equal(ins0.dct, 2); assert.equal(ins0.dca, 1); assert.equal(ins0.fade, 512); assert.equal(ins0.ifc, 40); assert.equal(ins0.ifr, -1);
+  assert.deepEqual(ins0.vol, { pts: [0, 64, 10, 32, 20, 0], ls: -1, le: -1, ss: 1, se: 1 }, 'the volume envelope with its sustain point');
+  assert.equal(it.samples[0].rate, 16000); assert.equal(it.samples[0].globalVolume, 32); assert.equal(it.samples[0].loopEnd, 32);
+  assert.throws(() => parseIt(new ArrayBuffer(300)), /Not an IT/);
+  // IT 2.14 / 2.15 decompression: a 9-bit value, the escape to width 4, then 4-bit values (+3, -2)
+  {
+    const bits = []; const put = (v, n) => { for (let i = 0; i < n; i++) bits.push((v >> i) & 1); };
+    put(5, 9); put(0x103, 9); put(3, 4); put(0xE, 4);
+    const bytes = []; for (let i = 0; i < bits.length; i += 8) bytes.push(bits.slice(i, i + 8).reduce((n, b, k) => n | (b << k), 0));
+    const packed = new Uint8Array([bytes.length & 255, bytes.length >> 8, ...bytes]);
+    assert.deepEqual(Array.from(decompress(packed, 0, 3, false, false).values), [5, 8, 6], 'IT 2.14: one running sum');
+    assert.deepEqual(Array.from(decompress(packed, 0, 3, false, true).values), [5, 13, 19], 'IT 2.15: a second running sum');
+  }
+  // playing out: speed, tempo and its slide, a break into a short pattern, tick delay, global volume
+  const play = (patterns, extra = {}) => playOut(parseIt(makeIt({ patterns, orders: patterns.map((_, i) => i), samples: [{ data: sq(8) }], ...extra }))).steps;
+  let steps = play([{ rows: 4, data: [[[-1, 0, -1, 1, 2]], [[-1, 0, -1, 20, 0x90]]] }]);
+  assert.equal(steps[0].speed, 2); assert.equal(steps[1].tempo, 0x90); assert.equal(steps.length, 4);
+  steps = play([{ rows: 4, data: [[[-1, 0, -1, 3, 2]]] }, { rows: 3, data: [] }]);
+  assert.deepEqual(steps.map(s => [s.pattern, s.row]), [[0, 0], [1, 2]], 'C02 goes to row 2 of the next pattern (hex, not BCD)');
+  steps = play([{ rows: 4, data: [[[-1, 0, -1, 20, 0x13]], [[-1, 0, -1, 19, 0xE1]], [[-1, 0, -1, 19, 0x62]], [[-1, 0, -1, 22, 0x40]]] }]);
+  assert.equal(steps[0].tslide, 3, 'T13 slides the tempo up'); assert.equal(steps[1].ticks, 12, 'SE1 repeats the row'); assert.equal(steps[2].ticks, 8, 'S62 adds two ticks');
+  assert.equal(steps[3].gv, 0x40, 'V40 sets the global volume');
+  steps = play([{ rows: 3, data: [[[-1, 0, -1, 19, 0xB0]], [[-1, 0, -1, 19, 0xB1]]] }]);
+  assert.deepEqual(steps.map(s => s.row), [0, 1, 0, 1, 2], 'SB0 and SB1 play the loop once more');
+  // the project
+  const proj = itToProject(parseIt(makeIt({
+    speed: 6, bpm: 140, patterns: [{ rows: 4, data: [[[C5, 1, 0x40, 4, 0x20], [-1, 2, 0xC1]], [], [[OFF]], [[CUT]]] }],
+    instruments: [{ map: 1 }, { map: 2, nna: 1 }], samples: [{ data: sq(16), loop: [0, 16], pingpong: true, c5: 16726 }, { data: sq(16), sus: [0, 16] }],
+  })));
+  assert.deepEqual(proj.song.lanes.map(l => l.id), ['master', 'ch1', 'ch2'], 'only the channels that play');
+  assert.equal(proj.song.bpm, 140); assert.equal(proj.song.ticksPerBeat, 24);
+  const pat = Object.values(proj.song.lanes[1].patterns)[0].text.split('\n');
+  assert.equal(pat[0], 'C-5 00 40 010420', 'note, instrument minus one, volume column byte, effect word');
+  assert.equal(pat[12], '=== .. .. 010000'); assert.equal(pat[18], '^^^ .. .. 010000');
+  assert.equal(Object.values(proj.song.lanes[2].patterns)[0].text.split('\n')[0], '... 01 C1 010000', 'a cell with no note');
+  const smp = Object.values(proj.samples);
+  assert.equal(smp[0].rate, 16726); assert.equal(smp[0].pingpong, true); assert.equal(smp[1].susOn, true);
+  const node = proj.instruments.ch1.graph.nodes.find(n => n.id === 'ch');
+  assert.equal(node.data.ins[1].nna, 1); assert.equal(node.data.ins[1].map[60], 1); assert.equal(node.data.linear, true);
+  // sound: run it through the sequencer
+  const rig = buffer => {
+    const data = itToProject(parseIt(buffer));
+    const registry = new ParamRegistry();
+    const rt = new GraphRuntime({ sampleRate: sr, params: registry.values });
+    for (const [id, d] of Object.entries(data.instruments)) rt.load(compile(d.graph, { instrument: id, nodeTypes: NODE_TYPES, registry }));
+    for (const [id, d] of Object.entries(data.instruments)) for (const [node, v] of Object.entries(d.samples ?? {})) pops.slotsOf(v).forEach((sid, slot) => rt.message(id, node, pops.sampleMessage(data.samples[sid], slot)));
+    const slot = k => registry.slots.get(`master.m.${k}`);
+    data.song.master = { bpm: slot('bpm'), swing: slot('swing'), tpb: slot('tpb'), volume: slot('volume') };
+    const seq = new Sequencer({ sampleRate: sr, runtime: rt, params: registry.values, transport: new Int32Array(new SharedArrayBuffer(8)) });
+    seq.setSong(data.song);
+    for (const lane of prepareSong(data.song, data.instruments, registry)) seq.setLane(lane);
+    seq.play();
+    return { registry, render(seconds) {
+      const total = Math.floor(sr * seconds / 128) * 128, L = new Float32Array(total), l = new Float32Array(128), r = new Float32Array(128);
+      for (let at = 0; at < total; at += 128) { seq.process(l, r, 128); L.set(l, at); }
+      return L;
+    } };
+  };
+  const loopSmp = { data: sq(16), loop: [0, 16] };
+  const run = (rows, { seconds = 0.5, ins = {}, samples = [loopSmp], flags } = {}) => rig(makeIt({ flags, instruments: [{ map: 1, ...ins }], samples, patterns: [{ rows: 16, data: rows }] })).render(seconds);
+  const rms = (x, a, b) => { let t = 0; for (let i = Math.floor(a * sr); i < Math.floor(b * sr); i++) t += x[i] ** 2; return Math.sqrt(t / ((b - a) * sr)); };
+  const hz = (x, a, b) => { const t = []; for (let i = Math.floor(a * sr) + 1; i < Math.floor(b * sr); i++) if (x[i] >= 0 && x[i - 1] < 0) t.push(i - x[i] / (x[i] - x[i - 1])); return t.length > 1 ? sr * (t.length - 1) / (t[t.length - 1] - t[0]) : 0; };
+  const plain = run([[[C5, 1]]]);
+  assert.ok(rms(plain, 0.05, 0.15) > 0.05, 'a note sounds');
+  assert.ok(Math.abs(hz(plain, 0.05, 0.15) - 8363 / 16) < 8, 'C-5 plays the sample at its C5 speed');
+  assert.ok(Math.abs(hz(run([[[C5 + 12, 1]]]), 0.05, 0.15) / hz(plain, 0.05, 0.15) - 2) < 0.03, 'an octave up');
+  assert.ok(Math.abs(rms(run([[[C5, 1, 0x20]]]), 0.05, 0.15) / rms(plain, 0.05, 0.15) - 0.5) < 0.03, 'Vol 20 is half volume');
+  assert.ok(rms(run([[[C5, 1]], [[CUT]]], { seconds: 0.6 }), 0.4, 0.5) < 1e-4, 'the note cut');
+  // NNA: with cut the first note goes; with continue it plays on behind the second; a duplicate check on the sample cuts it again
+  const two = ins => run([[[C5, 1]], [], [[C5 + 7, 1]]], { seconds: 0.6, ins });
+  const cut = rms(two({ nna: 0 }), 0.35, 0.5), cont = rms(two({ nna: 1 }), 0.35, 0.5), dup = rms(two({ nna: 1, dct: 2, dca: 0 }), 0.35, 0.5);
+  console.log('nna', cut, cont, dup);
+  assert.ok(cont / cut > 1.25 && cont / cut < 1.6, 'continue: both notes sound');
+  assert.ok(Math.abs(dup / cut - 1) < 0.05, 'a duplicate sample check cuts the old note');
+  const off = two({ nna: 2, fade: 1024 });
+  assert.ok(rms(off, 0.35, 0.5) < cont * 0.9, 'note off: the background note lets go (and fades)');
+  // the filter: a low cutoff takes the square wave's brightness away; a high one does not
+  const low = run([[[C5, 1, -1, 26, 0x08]]]), high = run([[[C5, 1, -1, 26, 0x7F]]]);
+  assert.ok(rms(low, 0.1, 0.3) < rms(plain, 0.1, 0.3) * 0.3, 'Z08 closes the filter');
+  assert.ok(Math.abs(rms(high, 0.1, 0.3) / rms(plain, 0.1, 0.3) - 1) < 0.02, 'Z7F leaves the sound alone');
+  // effects: slides, tone portamento, note cut, note delay
+  const up = run([[[C5, 1, -1, 6, 0x10]]]);
+  assert.ok(hz(up, 0.09, 0.12) > hz(up, 0.01, 0.04) * 1.05, 'F up raises the pitch');
+  const porta = run([[[C5, 1]], [[C5 + 7, 1, -1, 7, 0xFF]]], { seconds: 0.6 });
+  assert.ok(Math.abs(hz(porta, 0.45, 0.55) / hz(porta, 0.05, 0.1) - Math.pow(2, 7 / 12)) < 0.03, 'G slides to the note');
+  assert.ok(rms(run([[[C5, 1, -1, 19, 0xC2]]]), 0.2, 0.3) < 1e-4, 'SC2 cuts the note on the second tick');
+  const late = run([[[C5, 1, -1, 19, 0xD3]]]);
+  assert.ok(rms(late, 0, 0.03) < 1e-4 && rms(late, 0.1, 0.2) > 0.05, 'SD3 starts the note three ticks late');
+  // IT 3 mode: a stereo sample's right side reaches the right output only there
+  {
+    const { default: itchan } = await import('../src/audio/nodes/itchan.js');
+    const play = it3 => {
+      const clock = { playing: true, tickId: 0, tickSamples: 882, stamps: new Float32Array(8) };
+      const node = itchan.create({ sampleRate: sr, clock, data: { it3 } });
+      node.message({ type: 'sample', slot: 0, data: Float32Array.from(sq(16)), right: Float32Array.from(sq(16), v => -v), rate: 8363, loopStart: 0, loopEnd: 16 });
+      node.note({ type: 'noteOn', note: 72 });
+      const L = new Float32Array(882), R = new Float32Array(882);
+      for (let t = 1; t <= 6; t++) { clock.tickId = t; clock.stamps[2] = t; L.fill(0); R.fill(0); node.process([], [[L, R]], 882, [0, 0, 0, 0.45, 1], [0, 1, 2, 3, 4]); }
+      let dot = 0; for (let i = 0; i < 882; i++) dot += L[i] * R[i];
+      return dot;
+    };
+    assert.ok(play(false) > 0, 'a plain IT channel plays the left side to both');
+    assert.ok(play(true) < 0, 'IT 3 plays the right side to the right output');
+  }
+  console.log('ok: it import');
+}
+
 // MIDI import: a hand-made two-track file, a chord and a melody.
 {
   const { parseMidi, importMidi } = await import('../src/project/midi.js');

@@ -52,9 +52,9 @@ const FADE_FULL = 65536;               // the fadeout volume of a new note; ever
 const periodOf = (note, linear) => (linear ? 7680 - (note - 12) * 64 : 1712 * Math.pow(2, (60 - note) / 12));
 const rateOf = (period, linear) => (linear ? 8363 * Math.pow(2, (4608 - period) / 768) : 8363 * 1712 / period);
 
-const wave = (kind, pos) => {   // -64..64 for a position 0..63 of the cycle: sine, ramp down, square, random
+const wave = (kind, pos) => {   // -64..64 for a position 0..63 of the cycle: sine, ramp down, square (random is left to the caller)
   const w = kind & 3, p = pos & 63;
-  if (w === 0) return ((p & 32 ? -1 : 1) * SINE[p & 31] * 64) >> 8 === 0 && SINE[p & 31] > 0 ? (p & 32 ? -1 : 1) : ((p & 32 ? -1 : 1) * SINE[p & 31] * 64) >> 8;
+  if (w === 0) return (p & 32 ? -1 : 1) * Math.round(SINE[p & 31] / 4);
   if (w === 1) return 64 - p * 2;
   if (w === 2) return p < 32 ? 64 : -64;
   return 0;
@@ -79,6 +79,8 @@ const envNext = (env, pos, keyOn) => {
 };
 const validEnvelope = e => (e && Array.isArray(e.pts) && e.pts.length >= 2
   ? { pts: e.pts.map(Number), ls: e.ls ?? -1, le: e.le ?? -1, ss: e.ss ?? -1, se: e.se ?? -1 } : null);
+
+export const FX = { A: 1, B: 2, C: 3, D: 4, E: 5, F: 6, G: 7, H: 8, I: 9, J: 10, K: 11, L: 12, M: 13, N: 14, O: 15, P: 16, Q: 17, R: 18, S: 19, T: 20, U: 21, V: 22, W: 23, X: 24, Y: 25, Z: 26 };
 
 export default {
   type: 'itchan',

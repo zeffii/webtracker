@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 788 · 2026-11-20
+
+- **Open Impulse Tracker files (`.it`).** Open loads an IT module the way it loads an XM: the order list is played out (jumps, breaks, SBx loops, SEx and S6x delays, A speed, T tempo and its slides, V / W global volume), each channel that sounds becomes a lane on an IT channel machine, and the machine carries the instruments (note actions, duplicate checks, keymaps, volume / panning / pitch / filter envelopes, fadeout, pitch-pan, default filter), the samples with their sustain and ping-pong loops, auto-vibrato, panning and global volume. IT 2.14 / 2.15 compressed samples are read. A file with stereo samples gets IT 3 channels. Not played: custom MIDI macros, random volume / pan swing, note fade, notes above G-9, old-format instruments (before IT 2.00).
+
 ## 787 · 2026-11-20
 
 - **New machine: IT channel (`itchan`).** One Impulse Tracker channel with the IT volume column and effects (D E F G H I J K L M N O P Q R S U X Y Z), sustain and ping-pong sample loops, sample auto-vibrato, and instruments with keymaps, volume / panning / pitch envelopes and fadeout. Every voice has IT's resonant low-pass filter (Zxx, instrument cutoff and resonance, filter envelope), and New Note Actions: the old voice goes to the background and is cut, continued, released or faded, with the duplicate check (DCT / DCA) and the S7x switches. Opening `.it` files follows.
