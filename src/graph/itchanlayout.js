@@ -1,7 +1,7 @@
 // Where each part of the IT channel screen sits. Positions and sizes are in character cells, as drawn on the layout board;
 // to move something, change its numbers here. The screen is GRID.cols x GRID.rows cells of CELL.w x CELL.h pixels.
 export const CELL = { w: 8, h: 12 };
-export const GRID = { cols: 83, rows: 30 };
+export const GRID = { cols: 143, rows: 19 };
 
 export const LAYOUT = {
   title:    { x: 33, y: 0,  w: 22, h: 1 },    // the chosen sample's name, over the top of the waveform
@@ -13,11 +13,11 @@ export const LAYOUT = {
   ins:      { x: 46, y: 12, w: 12, h: 2 },    // the instrument picker and its fadeout
   envlist:  { x: 60, y: 12, w: 22, h: 4 },
   mode:     { x: 0,  y: 15, w: 28, h: 1 },
-  nna:      { x: 30, y: 15, w: 29, h: 1 },
+  nna:      { x: 28, y: 15, w: 32, h: 1 },
   rate:     { x: 0,  y: 16, w: 44, h: 1 },    // how fast the note travels through the chosen envelope
-  fkeys:    { x: 0,  y: 17, w: 43, h: 2 },
+  fkeys:    { x: 84, y: 17, w: 58, h: 2 },    // under the envelope graph, in the column right of the sample list
   plays:    { x: 44, y: 17, w: 39, h: 1 },    // the sample the instrument plays
-  envgraph: { x: 0,  y: 20, w: 83, h: 10 },
+  envgraph: { x: 84, y: 0,  w: 58, h: 16 },
 };
 
 export const sizeOf = id => ({ w: LAYOUT[id].w * CELL.w, h: LAYOUT[id].h * CELL.h });

@@ -1075,8 +1075,8 @@
     .curve-editor.drum2 > canvas { cursor: default; }
     .curve-editor.drum2.khufu-panel > canvas, .ensemble-panel canvas { display: block; border: 0; background: none; cursor: default; }
     .itchan-panel canvas { display: block; border: 0; background: none; cursor: crosshair; max-width: 100%; }   /* the IT channel's sample area and envelopes (itchanview.js) */
-    .itchan-lcd { display: flex; flex-direction: column; align-items: stretch; gap: .35rem; background: var(--lcd-bg, #3d5a99); color: var(--lcd-fg, #f2f6ff); padding: 4px; border-radius: 6px; box-shadow: inset 0 0 0 2px var(--lcd-edge, #2b4272); box-sizing: border-box; width: 672px; height: 368px; flex: none; overflow: hidden; outline: none; }   /* always this size: a window like an LCD's, 83 x 30 cells (itchanlayout.js) */
-    .itchan-lcd .itchan-stage { position: relative; width: 664px; height: 360px; font: 11px/12px var(--mono, ui-monospace, Consolas, monospace); letter-spacing: .12em; }   /* 11px letters, spaced out to the 8px cell, so a letter is as tall as its row and as wide as its cell */
+    .itchan-lcd { display: flex; flex-direction: column; align-items: stretch; gap: .35rem; background: var(--lcd-bg, #3d5a99); color: var(--lcd-fg, #f2f6ff); padding: 4px; border-radius: 6px; box-shadow: inset 0 0 0 2px var(--lcd-edge, #2b4272); box-sizing: border-box; flex: none; overflow: hidden; outline: none; }   /* always this size: a window like an LCD's, its size is set by itchanlayout.js */
+    .itchan-lcd .itchan-stage { position: relative; font: 11px/12px var(--mono, ui-monospace, Consolas, monospace); letter-spacing: .12em; }   /* 11px letters, spaced out to the 8px cell, so a letter is as tall as its row and as wide as its cell */
     .itchan-lcd .itchan-stage > * { box-sizing: border-box; overflow: hidden; }
     .itchan-lcd .itchan-cell { display: flex; flex-direction: column; white-space: pre; }
     .itchan-lcd .prow > * { flex: none; }

@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 813 · 2026-11-20
+
+- **IT channel screen: the envelope graph and the function keys sit to the right of the sample list.** The screen is wider (143 x 19 cells) and its size now comes from the layout file. The note-action row has a little more room.
+
 ## 812 · 2026-11-20
 
 - **IT channel screen: letters fit their rows.** The text is 11px in 12px rows, spaced out to the 8px character cell, so a letter is as tall as its row and as wide as its cell and nothing is cut off. Menus and boxes are 10px in a 12px row and no longer shrink below their text.

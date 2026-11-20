@@ -1,5 +1,5 @@
 import { makeCanvas, drag, button, forPage, clamp, PINK } from './spaceui.js';
-import { sizeOf, place } from './itchanlayout.js';
+import { sizeOf, place, CELL, GRID } from './itchanlayout.js';
 import { computePeaks } from '../project/waveform.js';
 import {
   ENVELOPES, ENVELOPE_NAMES, proxyOf, rangeOf, loopsOf, moveRangeEdge, moveLoop, setLoop, setTrack, TRACK_MODES, clearProxy,
@@ -29,6 +29,8 @@ export const headColour = uid => `hsl(${Math.round((uid * 137.508) % 360)} 92% 6
 
 export function createItChanView({ getTiming = () => null, doc = document, getData, setData, getSampleIds, getSample, isIt3 = () => false, watch = () => {} }) {
   const el = doc.createElement('div'); el.className = 'curve-editor drum2 itchan-panel itchan-lcd'; el.tabIndex = 0;
+  const stageW = GRID.cols * CELL.w, stageH = GRID.rows * CELL.h;   // the screen's size comes from the layout: its cells, and a 4px frame
+  Object.assign(el.style, { width: `${stageW + 8}px`, height: `${stageH + 8}px` });
   // The screen's colours all come from one: the text is light or dark to suit it, and the edge, the fields and the lines are mixed from it.
   let lcdColour = LCD_DEFAULT;
   try { const saved = localStorage.getItem(LCD_KEY); if (/^#[0-9a-f]{6}$/i.test(saved ?? '')) lcdColour = saved; } catch { /* no storage */ }
@@ -69,7 +71,7 @@ export function createItChanView({ getTiming = () => null, doc = document, getDa
   };
 
   // ---- the sample area ----------------------------------------------------------------------------------------------------
-  const stage = make('div', { className: 'itchan-stage' });   // everything on the screen, each part placed by itchanlayout.js
+  const stage = make('div', { className: 'itchan-stage' }); Object.assign(stage.style, { width: `${stageW}px`, height: `${stageH}px` });   // everything on the screen, each part placed by itchanlayout.js
   const at = (id, item) => { place(item, id); stage.append(item); return item; };
   const cell = (id, className = 'itchan-cell') => at(id, make('div', { className }));
   const { canvas: sampleCanvas, ctx: sctx, ink: sink } = makeCanvas(doc, SW, SH, 'itchan-sample');
