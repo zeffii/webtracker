@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 804 · 2026-11-20
+
+- **IT channel: a new key no longer bumps the sound.** A note that the next one cuts (the instrument's new-note action "cut") used to stop in the middle of its wave, which was heard as a bump or click. It is now let down to silence in a few milliseconds while the new note starts. Native follows (the IT channel reference renders were remade).
+
 ## 803 · 2026-11-20
 
 - **IT 3: the width of the sustain loop can follow the pitch of the note.** In the sustain row, "pitch" picks how the loop grows and shrinks with the note: constant width (as now), scaled from its centre, or with its left or its right end held; the slider is how much (octaves of width per octave of pitch: 1 keeps the loop the same length in time, 0 the same in frames, negative the other way). C-5 plays the loop as drawn. Native follows (new test song `itchantrack`).

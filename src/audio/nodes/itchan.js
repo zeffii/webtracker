@@ -43,6 +43,7 @@ SPEC.forEach((s, i) => { P[s.name] = i; });
 const SINE = [0, 24, 49, 74, 97, 120, 141, 161, 180, 197, 212, 224, 235, 244, 250, 253, 255, 253, 250, 244, 235, 224, 212, 197, 180, 161, 141, 120, 97, 74, 49, 24];
 const MIDI_C0 = 12;
 const C5 = 60;                         // the note a sample plays at its own rate (IT note numbers count from C-0)
+const CUT_QUIET = 1e-5;                // below this gain a voice that is cut is not worth letting down
 const MAX_BACK = 31;                   // background voices
 const MAX_PERIOD = 32000;
 const FADE_FULL = 65536;               // the fadeout volume of a new note; every tick of a fade takes 64 times the instrument's fadeout
@@ -206,9 +207,10 @@ export default {
       if (host.active) {
         const old = instrumentOf(host);
         const action = nnaOverride >= 0 ? nnaOverride : old ? old.nna : 0;
-        if (action !== 0) {
+        // a note cut by the new one is let down to silence in a few milliseconds, as a background voice, rather than stopped in mid-wave (a click)
+        if (action !== 0 || host.gain > CUT_QUIET) {
           const bg = { ...host, y: host.y.slice() };
-          if (action === 2) keyOffVoice(bg); else if (action === 3) bg.fading = true;
+          if (action === 0) bg.cutting = true; else if (action === 2) keyOffVoice(bg); else if (action === 3) bg.fading = true;
           back.push(bg);
           if (back.length > MAX_BACK) back.shift();
         }
@@ -503,7 +505,7 @@ export default {
       pan = clampPan(pan + (v.envPan - 32) * (32 - Math.abs(pan - 32)) / 32);
       const gl = Math.min(1, (64 - pan) / 32), gr = Math.min(1, pan / 32);
       const outVol = v === host ? v.outVol : v.vol;
-      const goal = (v === host && !tremorOn) ? 0
+      const goal = v.cutting || (v === host && !tremorOn) ? 0
         : outVol / 64 * chanVol / 64 * S.globalVolume * (I ? I.gbv / 128 : 1) * v.envVol / 64 * v.fadeVol / FADE_FULL * level;
       const useSus = v.keyOn && S.sus, mainLoop = S.loop;
       const tracked = useSus && S.strack ? trackedSustain(S, v.note, len) : null;   // the sustain loop as this note's pitch makes it
@@ -537,6 +539,7 @@ export default {
         }
         const s = sl;
         v.gain += (goal - v.gain) * 0.02;
+        if (v.cutting && v.gain < CUT_QUIET) { v.active = false; break; }
         let l = s * v.gain * gl, r = sr2 * v.gain * gr;
         if (filterOn) {
           const fl = l * fg + y[0] * fb0 + y[1] * fb1; y[1] = y[0]; y[0] = fl; l = fl;
@@ -624,7 +627,7 @@ export default {
           if (sinceReport >= 1024) {   // about every 23 ms: where each sounding voice is in its bank sample
             sinceReport = 0;
             const heads = [];
-            for (const v of [host, ...back]) if (v.active && v.uid && bank[v.slot]) heads.push([v.uid, v.slot, v.pos + bank[v.slot].offset, v.envVol / 64 * v.fadeVol / FADE_FULL]);   // and the level the envelope and fadeout give it
+            for (const v of [host, ...back]) if (v.active && !v.cutting && v.uid && bank[v.slot]) heads.push([v.uid, v.slot, v.pos + bank[v.slot].offset, v.envVol / 64 * v.fadeVol / FADE_FULL]);   // and the level the envelope and fadeout give it
             emit({ type: 'heads', heads });
           }
         }
