@@ -1085,7 +1085,7 @@
     .itchan-lcd .prow { display: flex; margin: 0; gap: 4px; flex-wrap: nowrap; align-items: center; height: 12px; }
     .itchan-lcd label { display: inline-flex; align-items: center; gap: 2px; }
     /* The menus are drawn by us (appearance: none), so the text sits in the 12px box the same way in every browser; the arrow is a small triangle. */
-    .itchan-lcd .itchan-stage select { appearance: none; -webkit-appearance: none; line-height: 10px; height: 12px; padding: 0 12px 0 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    .itchan-lcd .itchan-stage select { position: relative; top: 2px; appearance: none; -webkit-appearance: none; line-height: 10px; height: 12px; padding: 0 12px 0 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
       background-image: linear-gradient(45deg, transparent 50%, currentColor 50%), linear-gradient(-45deg, transparent 50%, currentColor 50%); background-size: 3px 3px, 3px 3px; background-position: right 5px top 4px, right 2px top 4px; background-repeat: no-repeat; }
     .itchan-lcd input[type=checkbox] { width: 10px; height: 10px; margin: 0; }
     .itchan-lcd input[type=range] { height: 12px; margin: 0; }

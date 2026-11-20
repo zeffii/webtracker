@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 817 · 2026-11-20
+
+- **IT channel screen: the dropdown boxes sit 2px lower**, level with the text beside them.
+
 ## 816 · 2026-11-20
 
 - **IT channel screen: the dropdowns are drawn by us**, so the text sits inside the 12px box in every browser, not low and cut off. The arrow is a small triangle with room of its own.
