@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 818 · 2026-11-20
+
+- **IT channel screen: the chosen envelope's bar sits 2px lower**, level with its text.
+
 ## 817 · 2026-11-20
 
 - **IT channel screen: the dropdown boxes sit 2px lower**, level with the text beside them.

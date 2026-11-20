@@ -1105,7 +1105,8 @@
     .itchan-lcd .itchan-fkeys button.on { background: var(--lcd-fg, #f2f6ff); color: var(--lcd-bg, #3d5a99); border-color: var(--lcd-fg, #f2f6ff); }
     .itchan-lcd .itchan-fkeys button.off { opacity: .5; }
     .itchan-lcd .itchan-fkeys button.sel { text-decoration: underline; }
-    .itchan-lcd .itchan-envrow.on { background: var(--lcd-fg, #f2f6ff); color: var(--lcd-bg, #3d5a99); }
+    .itchan-lcd .itchan-envrow.on { color: var(--lcd-bg, #3d5a99); position: relative; isolation: isolate; }
+    .itchan-lcd .itchan-envrow.on::before { content: ''; position: absolute; left: 0; right: 0; top: 2px; bottom: -2px; background: var(--lcd-fg, #f2f6ff); z-index: -1; }   /* the chosen row's bar, 2px lower than its box so it sits behind the text */
     .itchan-panel .dim { opacity: .6; }
     .itchan-panel .off { opacity: .4; }   /* a part that belongs to something switched off */
     .itchan-panel .itchan-envlist { display: flex; flex-direction: column; gap: 0; white-space: pre; }
