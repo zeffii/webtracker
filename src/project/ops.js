@@ -9,7 +9,7 @@ import { buildPages, createLane, flattenLane, writeMask } from '../seq/lane.js';
 // project object { song, instruments, samples, lanes } so the page and the tests share them.
 
 // Everything a sample carries besides its audio.
-export const SAMPLE_KEYS = ['loopStart', 'loopEnd', 'loopOn', 'loopXfade', 'susStart', 'susEnd', 'susOn', 'susXfade', 'pingpong', 'volume', 'globalVolume', 'pan', 'slices', 'roll'];   // roll: the piano roll annotation (pianoroll.js)
+export const SAMPLE_KEYS = ['loopStart', 'loopEnd', 'loopOn', 'loopXfade', 'susStart', 'susEnd', 'susOn', 'susXfade', 'pingpong', 'susPingpong', 'panOn', 'volume', 'globalVolume', 'pan', 'slices', 'roll'];   // roll: the piano roll annotation (pianoroll.js)
 
 export function uniqueId(taken, base) {
   let id = base, i = 2;
@@ -124,6 +124,7 @@ export const SAMPLE_PROPS = {
   globalVolume: { min: 0, max: 1, def: 1 },    // on top of that, wherever the sample plays
   pan: { min: -1, max: 1, def: 0 },
   loopOn: { bool: true }, susOn: { bool: true },
+  susPingpong: { bool: true }, panOn: { bool: true },   // IT samples: the sustain loop runs back and forth; the sample sets the panning
   pingpong: { bool: true },                   // the loop runs forwards then backwards (XM samples; the XM channel plays it)
   loopXfade: { min: 0, int: true }, susXfade: { min: 0, int: true },
   rate: { min: 1000, max: 384000, int: true },   // the Speed field: how many frames a second the sample is played at (its pitch and its length in seconds follow)

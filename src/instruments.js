@@ -229,7 +229,7 @@ const combPercKind = params => ({
 // How the machines are grouped in the machine tree (ui/machinetree.js): [kind, the short name shown]. A kind that is not named here
 // still shows up, under "other". The sampler is the one that is not a synth kind.
 export const MACHINE_TREE = [
-  { name: 'samplers', items: [['sampler', 'Sampler'], ['modchan', 'MOD channel'], ['xmchan', 'XM channel']] },
+  { name: 'samplers', items: [['sampler', 'Sampler'], ['modchan', 'MOD channel'], ['xmchan', 'XM channel'], ['itchan', 'IT channel']] },
   { name: 'synths', groups: [
     { name: 'analogue', items: [['subtractive', 'Subtractive'], ['fourpole', 'Fourpole'], ['oberheim', 'Oberheim-style'], ['squelch', 'Squelch'], ['duette', 'Duette'], ['cardinal', 'Cardinal'], ['snarl', 'Snarl'], ['lone', 'Lone'], ['khufu', 'Khufu']] },
     { name: 'digital', items: [['fm', 'FM synth'], ['dvii', 'DVIIloader'], ['wavetable', 'Wavetable'], ['pulsar', 'Pulsar'], ['compass', 'Compass'], ['additive', 'Additive'], ['spectral', 'Spectral'], ['granular', 'Granular']] },
@@ -712,6 +712,20 @@ export const synthKinds = {
       noVel: true,   // volume is the sample's own, then the Vol column and the C and A effects
       exposed: [{ node: 'ch', param: 'ins', label: 'Ins', long: 'Instrument' }, { node: 'ch', param: 'vcol', label: 'Vol', long: 'Volume column' }],
       commands: [   // 01 writes the effect word of an XM cell: 010C40 is effect C40, 01143F is K3F
+        { id: 0x01, node: 'ch', param: 'fx' },
+        { id: 0x02, node: 'ch', param: 'level' },
+      ],
+    }),
+  },
+  itchan: {
+    label: 'IT channel (Impulse Tracker)',
+    sampleNode: 'ch',   // gets the project's samples as its slots; an imported IT also gives the node its instruments (NNA, envelopes, filter)
+    make: () => ({
+      graph: { nodes: [{ id: 'ch', type: 'itchan' }, { id: 'out', type: 'out', params: { gain: 0.5 } }], connections: [['ch.out', 'out.in']] },
+      noteColumns: 1,
+      noVel: true,
+      exposed: [{ node: 'ch', param: 'ins', label: 'Ins', long: 'Instrument' }, { node: 'ch', param: 'vcol', label: 'Vol', long: 'Volume column' }],
+      commands: [   // 01 writes the effect word of an IT cell: 010404 is D04, 011A80 is Z80
         { id: 0x01, node: 'ch', param: 'fx' },
         { id: 0x02, node: 'ch', param: 'level' },
       ],

@@ -50,6 +50,7 @@ const TYPE_UNIT = {
   dcblock: { freq: 'Hz' },
   modchan: {},
   xmchan: {},
+  itchan: {},
   tap: { fade: 'ms', fadein: 'ms' },
   vocoder: { low: 'Hz', high: 'Hz', attack: 'ms', release: 'ms', shift: 'st', sibilance: '%', tune: 'Hz', noise: '%', level: '' },
   sweep: { resonance: '%' },

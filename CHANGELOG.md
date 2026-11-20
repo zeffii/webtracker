@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 786 · 2026-11-20
+
+- **New machine: IT channel (`itchan`).** One Impulse Tracker channel with the IT volume column and effects (D E F G H I J K L M N O P Q R S U X Y Z), sustain and ping-pong sample loops, sample auto-vibrato, and instruments with keymaps, volume / panning / pitch envelopes and fadeout. Every voice has IT's resonant low-pass filter (Zxx, instrument cutoff and resonance, filter envelope), and New Note Actions: the old voice goes to the background and is cut, continued, released or faded, with the duplicate check (DCT / DCA) and the S7x switches. Opening `.it` files follows.
+
 ## 785 · 2026-11-18
 
 - **XM channel: real ping-pong loops.** A ping-pong sample is no longer unrolled into a forward loop twice as long: the sample keeps its own loop, marked `pingpong`, and the XM channel plays it forwards, then backwards, turning on the loop's first and last frame. It is kept in the song file with the sample. A retrigger or a new note starts forwards again.

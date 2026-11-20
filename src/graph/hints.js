@@ -1152,6 +1152,13 @@ const HINTS = {
     level: 'Level of the channel.',
     interp: '1: smooth interpolation between samples. 0: nearest sample, the rough sound of the original.',
   },
+  itchan: {
+    ins: 'The instrument a note plays: 00 is IT instrument 1. An Ins cell without a note sets the volume, panning and filter to the instrument\'s own and starts the envelopes again.',
+    vcol: 'The volume column of the row, as in IT: 00-40 volume, 41-50 fine slide, 55-64 slide, 69-78 pitch slide, 80-C0 panning, C1-CA tone portamento, CB-D4 vibrato.',
+    fx: 'The effect word of the row, as in an IT cell: effect number (A is 01, D is 04, Z is 1A) then the parameter (010404 is D04, 011A80 is Z80). Written by Cmd 01.',
+    level: 'Level of the channel.',
+    interp: '1: smooth interpolation between samples. 0: nearest sample.',
+  },
   squelch: {
     wave: '0 saw, 1 square.',
     tune: 'Tunes the voice in semitones, on top of the note played.',

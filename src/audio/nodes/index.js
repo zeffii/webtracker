@@ -83,6 +83,7 @@ import squelch from './squelch.js';
 import duette from './duette.js';
 import modchan from './modchan.js';
 import xmchan from './xmchan.js';
+import itchan from './itchan.js';
 import follower from './follower.js';
 import sidechain from './sidechain.js';
 import busin from './busin.js';
@@ -131,7 +132,7 @@ import vecmix from './vecmix.js';
 import vecpath from './vecpath.js';
 
 // Node type registry. Adding a node type means adding a module and listing it here.
-const TYPES = { 'bus-in': busin, lone, khufu, ensemble, rotary, compass, waveseq, vecmix, vecpath, groove, pulsar, pulsetrain, clang, membrane, amp, cardinal, range, add, times, int, float, drumsynth, nsgroups, msg, oscout, comb, clap, urugraVerb, convolver, sampler, osc, noise, env, lfo, gain, mix, pan, filter, filterpro, twin, ladder, sweep, genexpr, vocoder, tap, delay, chorus, pogue, phaser, flanger, distortion, multitap, shiva, blur, saturator, mbsat, hpss, bodyblur, specdyn, islands, mosh, xsynth, gater, freqshift, specpan, waveshaper, wavefolder, pluckgate, westcoast, random, drumsynth2, env2, dcblock, exciter, transient, split, route, compressor, gate, envfx, eq, crusher, tape, mbcomp, prismacanyon: canyon, ctrl, notetrig, arp, chord, follower, sidechain, listen, hall, plate, shimmer, subsynth, fourpole, oberheim, piano, addsynth, fmsynth, dvii, wavetable, granular, woodblock, jawharp, snarl, specsynth, string, hat808, hat2, bongo, kaleidoscope, reflect, headpan, haas, ringmod, sympathy, notepan, combperc, squelch, duette, modchan, xmchan, voices, tempo, glsl, out, sum, sumst, fold, compdelay };
+const TYPES = { 'bus-in': busin, lone, khufu, ensemble, rotary, compass, waveseq, vecmix, vecpath, groove, pulsar, pulsetrain, clang, membrane, amp, cardinal, range, add, times, int, float, drumsynth, nsgroups, msg, oscout, comb, clap, urugraVerb, convolver, sampler, osc, noise, env, lfo, gain, mix, pan, filter, filterpro, twin, ladder, sweep, genexpr, vocoder, tap, delay, chorus, pogue, phaser, flanger, distortion, multitap, shiva, blur, saturator, mbsat, hpss, bodyblur, specdyn, islands, mosh, xsynth, gater, freqshift, specpan, waveshaper, wavefolder, pluckgate, westcoast, random, drumsynth2, env2, dcblock, exciter, transient, split, route, compressor, gate, envfx, eq, crusher, tape, mbcomp, prismacanyon: canyon, ctrl, notetrig, arp, chord, follower, sidechain, listen, hall, plate, shimmer, subsynth, fourpole, oberheim, piano, addsynth, fmsynth, dvii, wavetable, granular, woodblock, jawharp, snarl, specsynth, string, hat808, hat2, bongo, kaleidoscope, reflect, headpan, haas, ringmod, sympathy, notepan, combperc, squelch, duette, modchan, xmchan, itchan, itchan, voices, tempo, glsl, out, sum, sumst, fold, compdelay };
 
 // Every effect gets a hard bypass switch as its last parameter (the runtime passes the input straight through while it is on).
 export const NODE_TYPES = TYPES;
