@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 814 · 2026-11-20
+
+- **IT channel screen: the text in the dropdowns sits in the middle of the box**, not low in it.
+
 ## 813 · 2026-11-20
 
 - **IT channel screen: the envelope graph and the function keys sit to the right of the sample list.** The screen is wider (143 x 19 cells) and its size now comes from the layout file. The note-action row has a little more room.
