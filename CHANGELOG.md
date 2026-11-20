@@ -2,9 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
-## 786 · 2026-11-20
+## 787 · 2026-11-20
 
 - **New machine: IT channel (`itchan`).** One Impulse Tracker channel with the IT volume column and effects (D E F G H I J K L M N O P Q R S U X Y Z), sustain and ping-pong sample loops, sample auto-vibrato, and instruments with keymaps, volume / panning / pitch envelopes and fadeout. Every voice has IT's resonant low-pass filter (Zxx, instrument cutoff and resonance, filter envelope), and New Note Actions: the old voice goes to the background and is cut, continued, released or faded, with the duplicate check (DCT / DCA) and the S7x switches. Opening `.it` files follows.
+- **IT 3 channel.** The same machine with `it3` on: stereo samples and crossfaded loops (the sample's Xfade, equal power, for the loop and the sustain loop), neither of which IT has. Chosen from the Samplers list as its own machine.
 
 ## 785 · 2026-11-18
 

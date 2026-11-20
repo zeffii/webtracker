@@ -22,6 +22,7 @@
 // panbrello, Z filter (Z00-Z7F cutoff, Z80-Z8F resonance). A, B, C, SB, SE, T, V, W and S6 belong to the song: the importer plays them
 // out into the arrangement, so here they do nothing.
 //
+// IT 3 mode (data.it3): stereo samples and crossfaded loops (the sample's loopXfade / susXfade), neither of which IT has.
 // data (set by the importer, kept with the node): { linear, oldEffects, compatG, chanVol, chanPan, ins: [instrument or null],
 //   smp: [sample extras] }, an instrument being { nna, dct, dca, fade, pps, ppc, gbv, pan, ifc, ifr, map: [120 slots, -1 for none],
 //   notes: [120 notes] (optional remap), vol / pan / pit: envelope, filter: the pitch envelope moves the cutoff }, an envelope
@@ -92,6 +93,7 @@ export default {
   kinds: { out: 'stereo' },
   params: SPEC,
   create({ sampleRate, clock, data }) {
+    const it3 = data?.it3 === true;   // IT 3 mode: stereo samples and crossfaded loops, which IT itself does not have
     let linear = data?.linear !== false, oldEffects = data?.oldEffects === true, compatG = data?.compatG !== false;
     const hasInstruments = Array.isArray(data?.ins) && data.ins.length > 0;
     const instruments = (Array.isArray(data?.ins) ? data.ins : []).map(i => (i ? {
@@ -484,6 +486,17 @@ export default {
       const looping = useSus || mainLoop;
       const pingpong = looping && (useSus ? S.spp : S.pp), span = le - ls, top = le - 1;
       if (!pingpong) v.dir = 1;
+      const right = it3 ? S.right : null;
+      const xf = it3 && looping && !pingpong ? (useSus ? S.sxf : S.xf) : 0;
+      const read = (a, q) => {
+        const k = Math.floor(q);
+        const s0 = a[k] ?? 0;
+        if (!interpolate) return s0;
+        let k2 = k + 1;
+        if (pingpong) k2 = Math.min(top, k2);
+        else if (looping && k2 >= le) k2 = ls + (k2 - ls) % span;
+        return s0 + ((k2 < len ? a[k2] : 0) - s0) * (q - k);
+      };
       let p = v.pos;
       const filterOn = v.filterOn, fg = v.fg, fb0 = v.fb0, fb1 = v.fb1, y = v.y;
       for (let i = 0; i < n; i++) {
@@ -491,16 +504,15 @@ export default {
           if (v.dir > 0 && p >= top) { p = top - ((p - top) % (2 * (top - ls))); v.dir = -1; if (p < ls) { p = 2 * ls - p; v.dir = 1; } }
           else if (v.dir < 0 && p <= ls) { p = ls + ((ls - p) % (2 * (top - ls))); v.dir = 1; if (p > top) { p = 2 * top - p; v.dir = -1; } }
         } else if (looping) { if (p >= le) p = ls + (p - ls) % span; } else if (p >= len) { v.active = false; break; }
-        const k = Math.floor(p);
-        let s = sample[k];
-        if (interpolate) {
-          let k2 = k + 1;
-          if (pingpong) k2 = Math.min(top, k2);
-          else if (looping && k2 >= le) k2 = ls + (k2 - ls) % span;
-          s += ((k2 < len ? sample[k2] : 0) - s) * (p - k);
+        let sl = read(sample, p), sr2 = right ? read(right, p) : sl;
+        if (xf > 0 && p >= le - xf) {   // inside the crossfade the loop's tail blends into the audio before its start
+          const t = (p - (le - xf)) / xf, wa = Math.cos(t * Math.PI / 2), wb = Math.sin(t * Math.PI / 2);
+          sl = sl * wa + read(sample, p - span) * wb;
+          if (right) sr2 = sr2 * wa + read(right, p - span) * wb;
         }
+        const s = sl;
         v.gain += (goal - v.gain) * 0.02;
-        let l = s * v.gain * gl, r = s * v.gain * gr;
+        let l = s * v.gain * gl, r = sr2 * v.gain * gr;
         if (filterOn) {
           const fl = l * fg + y[0] * fb0 + y[1] * fb1; y[1] = y[0]; y[0] = fl; l = fl;
           const fr = r * fg + y[2] * fb0 + y[3] * fb1; y[3] = y[2]; y[2] = fr; r = fr;
@@ -518,13 +530,13 @@ export default {
         const S = bank[slot] = {
           sample: msg.data, volume: msg.volume ?? 1, globalVolume: msg.globalVolume ?? 1, pan: Math.max(-1, Math.min(1, msg.pan ?? 0)), panSet: msg.panOn === true, pp: msg.pingpong === true, spp: msg.susPingpong === true,
           tune: 12 * Math.log2(Math.max(1, msg.rate) / 8363) - 0,   // semitones from C-4 at 8363 Hz (IT's C-5 is that note: see periodOf)
-          loop: false, ls: 0, le: 0, sus: false, ss: 0, se: 0,
+          loop: false, ls: 0, le: 0, sus: false, ss: 0, se: 0, right: msg.right ?? null, xf: 0, sxf: 0,
         };
         S.tune = 12 * Math.log2(Math.max(1, msg.rate) / 8363);
         const start = msg.loopStart ?? 0, end = msg.loopEnd ?? 0;
-        if (msg.loopOn !== false && end - start >= 2 && end <= S.sample.length && start >= 0) { S.loop = true; S.ls = start; S.le = end; }
+        if (msg.loopOn !== false && end - start >= 2 && end <= S.sample.length && start >= 0) { S.loop = true; S.ls = start; S.le = end; S.xf = Math.max(0, Math.min(Math.floor(msg.loopXfade ?? 0), start, end - start)); }
         const ss = msg.susStart ?? 0, se = msg.susEnd ?? 0;
-        if (msg.susOn === true && se - ss >= 2 && se <= S.sample.length && ss >= 0) { S.sus = true; S.ss = ss; S.se = se; }
+        if (msg.susOn === true && se - ss >= 2 && se <= S.sample.length && ss >= 0) { S.sus = true; S.ss = ss; S.se = se; S.sxf = Math.max(0, Math.min(Math.floor(msg.susXfade ?? 0), ss, se - ss)); }
       },
       note(msg) {
         if (msg.type === 'noteOn') { pendingNote = msg.note - MIDI_C0; pendingOff = false; pendingCut = false; }
