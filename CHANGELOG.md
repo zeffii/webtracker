@@ -2,6 +2,12 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 800 · 2026-11-20
+
+- **IT channel: a loop can be slid.** Press on a loop's own band (the blue or orange strip along the top, between its two markers) and drag: both points move together and the loop keeps its length, stopping at the edges of the stretch.
+- **IT channel: a note whose volume envelope has run out at nothing now ends**, instead of its sample loop running on silently for ever (it kept a voice busy and a playhead moving). Native follows.
+- **IT channel: new instruments start with a fadeout of 10.** Instruments already in a song are not touched.
+
 ## 799 · 2026-11-20
 
 - **IT channel: the crossfade markers follow the width while you change it**, redrawn on every third change and again once the number has stopped changing, instead of only when you leave the field.

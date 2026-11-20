@@ -417,7 +417,11 @@ export default {
       const I = instrumentOf(v), S = bank[v.slot], X = extra(v.slot);
       v.envVol = 64; v.envPan = 32; v.envMod = 0; v.pitchOff = 0; v.autoDelta = 0;
       if (I) {
-        if (I.vol && envOverride[0]) { v.envVol = envValue(I.vol, v.volEnvPos); v.volEnvPos = envNext(I.vol, v.volEnvPos, v.keyOn); }
+        if (I.vol && envOverride[0]) {
+          v.envVol = envValue(I.vol, v.volEnvPos); v.volEnvPos = envNext(I.vol, v.volEnvPos, v.keyOn);
+          // an envelope that has run out at nothing leaves nothing to hear: the voice ends, whatever its sample loop is doing
+          if (v.envVol === 0 && v.volEnvPos > I.vol.pts[I.vol.pts.length - 2]) v.active = false;
+        }
         if (I.pan2 && envOverride[1]) { v.envPan = envValue(I.pan2, v.panEnvPos); v.panEnvPos = envNext(I.pan2, v.panEnvPos, v.keyOn); }
         if (I.pit && envOverride[2]) {
           const e = envValue(I.pit, v.pitEnvPos); v.pitEnvPos = envNext(I.pit, v.pitEnvPos, v.keyOn);

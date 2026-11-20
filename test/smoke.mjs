@@ -6509,6 +6509,14 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     assert.ok(own.from === 'own' && own.active && own.start === 300 && own.end === 650 && own.xfade === 80, 'a loop of its own');
     d = m.setLoop(d, 0, 'loop', bank, { start: 100 });
     assert.equal(m.proxyOf(d, 0).loop.start, 200, 'a loop stays inside the stretch');
+    {   // sliding a loop keeps its length and stays inside the stretch
+      const len = m.proxyOf(d, 0).loop.end - m.proxyOf(d, 0).loop.start;
+      let slid = m.moveLoop(d, 0, 'loop', bank, 230); const l1 = m.proxyOf(slid, 0).loop;
+      assert.ok(l1.start === 230 && l1.end - l1.start === len, 'the loop slides, its length unchanged');
+      slid = m.moveLoop(d, 0, 'loop', bank, 9999); const l2 = m.proxyOf(slid, 0).loop;
+      assert.ok(l2.end === 700 && l2.end - l2.start === len, 'it stops at the end of the stretch');
+    }
+    assert.equal(m.newInstrument(0).fade, 10, 'a new instrument fades after release');
     d = m.moveRangeEdge(d, 0, 'start', 0, 1000); d = m.moveRangeEdge(d, 0, 'end', 1000, 1000);
     assert.equal(m.proxyOf(d, 0).start, undefined, 'the whole sample again drops the stretch');
     assert.equal(m.proxyOf(m.clearProxy(d, 0), 0), null, 'clearing the proxy brings the bank back');

@@ -75,13 +75,24 @@ export function setLoop(data, slot, which, bank, change) {
   return withProxy(data, slot, { [which]: next });
 }
 
+// Slides a loop along the sample, its length unchanged: its start goes to `start`, held inside the stretch.
+export function moveLoop(data, slot, which, bank, start) {
+  const have = loopsOf(bank, proxyOf(data, slot))[which];
+  const [a, b] = rangeOf(proxyOf(data, slot), bank.data.length), size = have.end - have.start;
+  const first = Math.max(a, Math.min(b - size, Math.round(start)));
+  return setLoop(data, slot, which, bank, { start: first, end: first + size, on: true });
+}
+
 // Back to the bank's stretch and loops.
 export const clearProxy = (data, slot) => withProxy(data, slot, { start: null, end: null, loop: null, sus: null });
 
 // ---- instruments ------------------------------------------------------------------------------------------------------------
 
+// A new instrument fades out at this speed once its note is released (the user's choice; IT's own default is none).
+export const DEFAULT_FADE = 10;
+
 export function newInstrument(slot = 0) {
-  return { nna: 0, dct: 0, dca: 0, fade: 0, pps: 0, ppc: 60, gbv: 128, pan: -1, ifc: -1, ifr: -1, map: new Array(120).fill(slot), notes: null, vol: null, pan2: null, pit: null, filter: false };
+  return { nna: 0, dct: 0, dca: 0, fade: DEFAULT_FADE, pps: 0, ppc: 60, gbv: 128, pan: -1, ifc: -1, ifr: -1, map: new Array(120).fill(slot), notes: null, vol: null, pan2: null, pit: null, filter: false };
 }
 
 // An instrument table with one instrument for each sample, each playing its own sample on every key: the same as having none,

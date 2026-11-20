@@ -1,7 +1,7 @@
 import { makeCanvas, drag, button, forPage, clamp, ORANGE, BLUE, PINK } from './spaceui.js';
 import { computePeaks } from '../project/waveform.js';
 import {
-  ENVELOPES, ENVELOPE_NAMES, proxyOf, rangeOf, loopsOf, moveRangeEdge, setLoop, clearProxy,
+  ENVELOPES, ENVELOPE_NAMES, proxyOf, rangeOf, loopsOf, moveRangeEdge, moveLoop, setLoop, clearProxy,
   newInstrument, instrumentsFor, withInstrument, newEnvelope, addPoint, movePoint, removePoint, setMarks,
 } from './itchanmodel.js';
 
@@ -149,13 +149,18 @@ export function createItChanView({ doc = document, getData, setData, getSampleId
         // loop markers win over the stretch's edges when they are on top of each other
         const near = handles.filter(h => Math.abs(xOf(h.frame) - x) <= GRAB).sort((p, q) => (q.edge ? -1 : 1) - (p.edge ? -1 : 1) || Math.abs(xOf(p.frame) - x) - Math.abs(xOf(q.frame) - x));
         held = near[0] ?? null; made = null;
+        // a press on a loop's own band (not its edges) takes the whole loop: it slides, its length unchanged
+        if (!held) for (const [which, info, lane] of [['loop', loopsOf(bank, proxyOf(data, slot)).loop, 1], ['sus', loopsOf(bank, proxyOf(data, slot)).sus, 14]]) {
+          if (info.active && y >= lane && y <= lane + 10 && x > xOf(info.start) && x < xOf(info.end)) { held = { slide: which, grab: frameOf(x) - info.start }; break; }
+        }
         if (!held) made = { which: sampleCanvas.dataset.shift === '1' ? 'sus' : 'loop', from: frameOf(x) };
         return true;
       },
       move: x => {
         const bank = bankOf(); if (!bank) return;
         const length = bank.data.length, frame = frameOf(x);
-        if (held) {
+        if (held?.slide) setData(moveLoop(getData(), slot, held.slide, bank, frame - held.grab));
+        else if (held) {
           if (held.edge) setData(moveRangeEdge(getData(), slot, held.id === 'range-start' ? 'start' : 'end', frame, length));
           else { const which = held.id.startsWith('loop') ? 'loop' : 'sus'; setData(setLoop(getData(), slot, which, bank, { [held.id.endsWith('start') ? 'start' : 'end']: frame, on: true })); }
         } else if (made) {
