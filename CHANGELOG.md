@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 808 · 2026-11-20
+
+- **IT channel screen: the colour is easy to change.** A swatch at the right of the title bar opens a colour picker; the whole screen follows it (the text goes light or dark to suit, the edge, fields and lines are mixed from it, loop and sustain pick a cyan and yellow, or darker ones, to suit). Double-click the swatch for the usual colour. The usual blue is also calmer now (a steel blue). The choice is remembered.
+
 ## 807 · 2026-11-20
 
 - **IT channel screen: one fixed size.** The panel is always 668 x 366 px, on every page and with nothing on it, so it no longer jumps about; the contents are laid out to fit it. (The corner handle for stretching the waveform is gone, since the window is now fixed.)

@@ -17,10 +17,11 @@ import {
 const SW = 640, SH = 204, EW = 640, EH = 176, PL = 6, PR = 6;
 // The screen is one size, whatever page is showing or whether anything is on it (see .itchan-lcd in index.html): a window like an LCD's.
 const GRAB = 7;
-const BLUE = '#9fefff', ORANGE = '#ffd86b';   // loop and sustain on the panel's blue screen: cyan and yellow
+let BLUE = '#9fefff', ORANGE = '#ffd86b';   // loop and sustain on the screen: cyan and yellow on a dark one (see applyLcd)
+const LCD_KEY = 'wax.itchanLcdColour', LCD_DEFAULT = '#3d5a99';   // the screen's colour: change it with the swatch on the title bar
 const PAGES = [['smpl', 'SAMPLE'], ['ins', 'INSTRUMENT'], ['env', 'ENVELOPES']];
 const PAGE_KEY = 'wax.itchanPage';
-const OVERLAY = { vol: '#f2f6ff', pan2: '#ff9ec0', pit: '#8fffd0' };   // an envelope's colour when it is behind the chosen one
+const OVERLAY = { vol: '#ffffff', pan2: '#ff9ec0', pit: '#8fffd0' };   // an envelope's colour when it is behind the chosen one
 const ENV_TOP = 14, ENV_BOTTOM = 30;   // the room above the envelope for its name, and below it for the tick and time rulers
 const NNA = ['cut', 'continue', 'off', 'fade'], DCT = ['off', 'note', 'sample', 'instrument'], DCA = ['cut', 'off', 'fade'];
 
@@ -29,6 +30,19 @@ export const headColour = uid => `hsl(${Math.round((uid * 137.508) % 360)} 92% 6
 
 export function createItChanView({ getTiming = () => null, doc = document, getData, setData, getSampleIds, getSample, isIt3 = () => false, watch = () => {} }) {
   const el = doc.createElement('div'); el.className = 'curve-editor drum2 itchan-panel itchan-lcd'; el.tabIndex = 0;
+  // The screen's colours all come from one: the text is light or dark to suit it, and the edge, the fields and the lines are mixed from it.
+  let lcdColour = LCD_DEFAULT;
+  try { const saved = localStorage.getItem(LCD_KEY); if (/^#[0-9a-f]{6}$/i.test(saved ?? '')) lcdColour = saved; } catch { /* no storage */ }
+  const applyLcd = colour => {
+    lcdColour = colour;
+    const [r, g, b] = [1, 3, 5].map(i => parseInt(colour.slice(i, i + 2), 16)), light = (0.299 * r + 0.587 * g + 0.114 * b) / 255 > 0.55;
+    const fg = light ? '#14181f' : '#f2f6ff', mix = (amount, towards) => `color-mix(in srgb, ${colour} ${100 - amount}%, ${towards})`;
+    BLUE = light ? '#0b6e8c' : '#9fefff'; ORANGE = light ? '#9a5200' : '#ffd86b';
+    el.style.setProperty('--lcd-loop', BLUE); el.style.setProperty('--lcd-sus', ORANGE); el.style.setProperty('--lcd-bg', colour); el.style.setProperty('--lcd-fg', fg);
+    el.style.setProperty('--lcd-edge', mix(35, '#000000')); el.style.setProperty('--lcd-field', mix(22, '#000000'));
+    el.style.setProperty('--lcd-line', mix(55, light ? '#000000' : '#ffffff'));
+  };
+  applyLcd(lcdColour);
   let slot = 0, insIndex = 0, envKind = 'vol', markMode = 'point', pending = null, zoom = false, page = 'smpl';
   try { const saved = localStorage.getItem(PAGE_KEY); if (PAGES.some(([id]) => id === saved)) page = saved; } catch { /* no storage */ }
 
@@ -187,7 +201,7 @@ export function createItChanView({ getTiming = () => null, doc = document, getDa
         parts.push(dimmed(make('span', { textContent: '  pitch ' })), dimmed(select(TRACK_MODES.map(m => [m, modeNames[m]]), mode, v => { setData(setTrack(getData(), slot, which, bank, v, amount)); refresh(); }, 'How the sustain loop grows and shrinks with the pitch of the note (IT 3): about its centre, or with its left or right end held')), dimmed(slider), dimmed(readout));
       }
       const line = row(...parts);
-      line.style.color = forPage(colour, sink()); line.style.accentColor = line.style.color;   // the colour this loop has in the waveform
+      line.style.color = colour === BLUE ? 'var(--lcd-loop)' : 'var(--lcd-sus)'; line.style.accentColor = line.style.color;   // the colour this loop has in the waveform
       return line;
     };
     sampleControls.append(loopRow('loop', 'loop', loop, 'The loop that plays while the note is held, or after the sustain loop', BLUE), loopRow('sustain', 'sus', sus, 'The loop that plays only while the key is held', ORANGE));
@@ -351,7 +365,7 @@ export function createItChanView({ getTiming = () => null, doc = document, getDa
         grey(make('span', { textContent: e ? String(e.pts.length / 2) : '·' })),
       ];
       const loopText = make('span', { textContent: rangeText(e, 'ls', 'le') }), susText = make('span', { textContent: rangeText(e, 'ss', 'se') });
-      loopText.style.color = kind === envKind ? '#1d3ea0' : BLUE; susText.style.color = kind === envKind ? '#7a4a00' : ORANGE;   // darker on the chosen row, which is shown inverted
+      loopText.style.color = kind === envKind ? 'color-mix(in srgb, var(--lcd-loop) 40%, var(--lcd-bg))' : 'var(--lcd-loop)'; susText.style.color = kind === envKind ? 'color-mix(in srgb, var(--lcd-sus) 40%, var(--lcd-bg))' : 'var(--lcd-sus)';   // darker on the chosen row, which is shown inverted
       parts.push(grey(loopText), grey(susText));
       const last = make('span', { className: 'itchan-rate' });
       if (e) last.append(...rateSlider(kind, e)); else last.append(grey(make('span', { textContent: '·' })));
@@ -411,6 +425,10 @@ export function createItChanView({ getTiming = () => null, doc = document, getDa
     if (page !== 'smpl' && hasIns) {
       head.append(make('span', { textContent: ' ins ' }), select(data.ins.map((_, i) => [i, `${(i + 1).toString(16).toUpperCase().padStart(2, '0')}`]), insIndex, v => { insIndex = Number(v); pending = null; refresh(); }, 'The instrument: the Ins value of a cell, 01 being the first'));
     }
+    const swatch = make('input', { type: 'color', className: 'itchan-swatch', value: lcdColour, title: 'The screen\'s colour (double-click for the usual one)' });
+    swatch.addEventListener('input', () => { applyLcd(swatch.value); try { localStorage.setItem(LCD_KEY, swatch.value); } catch { /* no storage */ } drawSample(); drawEnv(); });
+    swatch.addEventListener('dblclick', () => { applyLcd(LCD_DEFAULT); try { localStorage.removeItem(LCD_KEY); } catch { /* no storage */ } refresh(); });
+    head.append(swatch);
     fkeys.replaceChildren(...keyDefs().map((key, i) => {
       const b = make('button', { type: 'button', textContent: key.label, title: key.blank ? '' : `F${i + 1}  ${key.tip ?? ''}` });
       b.className = `${key.on ? 'on' : ''} ${key.sel ? 'sel' : ''} ${key.label && key.on === false ? 'off' : ''}`.trim();

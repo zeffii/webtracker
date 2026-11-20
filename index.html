@@ -1078,22 +1078,23 @@
     .itchan-panel .itchan-side { display: flex; flex-direction: column; gap: .3rem; }
     .itchan-panel .itchan-controls { display: flex; flex-direction: column; gap: .15rem; width: 640px; }
     .itchan-panel .itchan-controls .prow { margin: 0; gap: .35rem; flex-wrap: wrap; align-items: center; }
-    .itchan-lcd { display: flex; flex-direction: column; align-items: stretch; gap: .35rem; background: #2354d8; color: #f2f6ff; padding: .5rem .7rem .55rem; border-radius: 6px; box-shadow: inset 0 0 0 2px #1a3fa6; box-sizing: border-box; width: 668px; height: 366px; flex: none; overflow: hidden; outline: none; }   /* always this size: the pages change, the window does not */
+    .itchan-lcd { display: flex; flex-direction: column; align-items: stretch; gap: .35rem; background: var(--lcd-bg, #3d5a99); color: var(--lcd-fg, #f2f6ff); padding: .5rem .7rem .55rem; border-radius: 6px; box-shadow: inset 0 0 0 2px var(--lcd-edge, #2b4272); box-sizing: border-box; width: 668px; height: 366px; flex: none; overflow: hidden; outline: none; }   /* always this size: the pages change, the window does not */
     .itchan-lcd .itchan-pages { flex: 1; min-height: 0; overflow: hidden; }
     .itchan-lcd .itchan-fkeys { margin-top: auto; }
     .itchan-loaded { display: flex; flex-direction: column; font-family: var(--mono, ui-monospace, Consolas, monospace); font-size: .78rem; max-height: 14rem; overflow-y: auto; }
     .itchan-loaded-row { padding: 0 .4rem; cursor: pointer; white-space: pre; }
-    .itchan-loaded-row.on { background: #2354d8; color: #f2f6ff; }   /* the IT channel's screen: white on blue, one page at a time */
-    .itchan-lcd select, .itchan-lcd input[type=number], .itchan-lcd button { background: #1b43b8; color: #f2f6ff; border: 1px solid #93abf0; border-radius: 2px; }
+    .itchan-loaded-row.on { background: color-mix(in srgb, currentColor 20%, transparent); }
+    .itchan-lcd select, .itchan-lcd input[type=number], .itchan-lcd button { background: var(--lcd-field, #2f4a82); color: var(--lcd-fg, #f2f6ff); border: 1px solid var(--lcd-line, #9db2d9); border-radius: 2px; }
     .itchan-lcd .itchan-head { display: flex; align-items: center; gap: .3rem; font-family: var(--mono, ui-monospace, Consolas, monospace); font-size: .78rem; }
-    .itchan-lcd .itchan-title { background: #f2f6ff; color: #2354d8; }
+    .itchan-lcd .itchan-swatch { margin-left: auto; width: 1.6rem; height: 1rem; padding: 0; border: 1px solid var(--lcd-line, #9db2d9); background: none; cursor: pointer; }
+    .itchan-lcd .itchan-title { background: var(--lcd-fg, #f2f6ff); color: var(--lcd-bg, #3d5a99); }
     .itchan-lcd .itchan-fkeys { display: grid; grid-template-columns: repeat(8, 1fr); gap: 4px; margin-top: .2rem; }
     .itchan-lcd .itchan-fkeys button { font: .76rem var(--mono, ui-monospace, Consolas, monospace); padding: 0 0 1px; min-width: 0; background: none; text-align: center; cursor: pointer; }
     .itchan-lcd .itchan-fkeys button:empty { visibility: hidden; }
-    .itchan-lcd .itchan-fkeys button.on { background: #f2f6ff; color: #2354d8; border-color: #f2f6ff; }
+    .itchan-lcd .itchan-fkeys button.on { background: var(--lcd-fg, #f2f6ff); color: var(--lcd-bg, #3d5a99); border-color: var(--lcd-fg, #f2f6ff); }
     .itchan-lcd .itchan-fkeys button.off { opacity: .5; }
     .itchan-lcd .itchan-fkeys button.sel { text-decoration: underline; }
-    .itchan-lcd .itchan-envrow.on { background: #f2f6ff; color: #2354d8; }
+    .itchan-lcd .itchan-envrow.on { background: var(--lcd-fg, #f2f6ff); color: var(--lcd-bg, #3d5a99); }
     .itchan-panel .dim { opacity: .6; }
     .itchan-panel .off { opacity: .4; }   /* a part that belongs to something switched off */
     .itchan-panel .itchan-controls { font-family: var(--mono, ui-monospace, Consolas, monospace); font-size: .78rem; }
