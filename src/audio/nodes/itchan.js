@@ -112,11 +112,11 @@ export default {
     let chanVol = data?.chanVol ?? 64, chanPan = data?.chanPan ?? 32, cut = 127, res = 0;
     let curIns = 0;
     // memories
-    let memD = 0, memEF = 0, memG = 0, memH = 0, memI = 0, memJ = 0, memM = 0, memN = 0, memO = 0, memP = 0, memQ = 0, memR = 0, memS = 0, memY = 0, memHigh = 0, memVol = 0;
+    let memD = 0, memEF = 0, memG = 0, memI = 0, memJ = 0, memN = 0, memO = 0, memP = 0, memQ = 0, memS = 0, memHigh = 0, memVol = 0;
     let vibWave = 0, tremWave = 0, panWave = 0, vibPos = 0, vibSpeed = 0, vibDepth = 0, tremPos = 0, tremSpeed = 0, tremDepth = 0, panPos = 0, panSpeed = 0, panDepth = 0;
-    let tremorCount = 0, tremorOn = true, retrigCount = 0, nnaOverride = -1, macro = 0, panbrelloOut = 0;
+    let tremorCount = 0, tremorOn = true, retrigCount = 0, nnaOverride = -1, panbrelloOut = 0;
     // the row
-    let cmd = 0, par = 0, vcol = 0, tickInRow = 0, delayedRow = null, noteCutAt = -1, delayTicks = 0;
+    let cmd = 0, par = 0, vcol = 0, tickInRow = 0, delayedRow = null, noteCutAt = -1;
     let pendingNote = -1, pendingOff = false, pendingCut = false, lastTick = 0, lastFx = -1, lastIns = -1, lastVcol = -1, idleSamples = 0;
     let envOverride = [true, true, true];   // volume, panning and pitch envelopes on (S77 to S7C)
 
@@ -129,6 +129,7 @@ export default {
     let host = newVoice();
     let back = [];
     host.period = host.outPeriod = host.target = periodOf(C5, linear);
+    host.pan = chanPan;   // a note takes the channel's panning unless its sample or instrument has one of its own
 
     const clampVol = v => Math.max(0, Math.min(64, Math.round(v)));
     const clampPan = v => Math.max(0, Math.min(64, Math.round(v)));
@@ -195,7 +196,7 @@ export default {
       const v = newVoice();
       v.slot = slot; v.ins = insNo; v.note = played; v.active = true;
       v.vol = host.vol; v.pan = host.pan; v.cut = cut; v.res = res;
-      v.period = v.outPeriod = v.target = clampPeriod(periodOf(played + tuneOf(slot) - 0, linear));
+      v.period = v.outPeriod = v.target = clampPeriod(periodOf(played + tuneOf(slot), linear));
       v.pos = offset;
       v.active = v.pos < bank[slot].sample.length;
       host = v;
@@ -207,9 +208,7 @@ export default {
       if (!S) return;
       const I = hasInstruments ? instruments[insNo] ?? null : null;
       v.vol = clampVol(S.volume * 64);
-      const x = extra(v.slot);
       if (I && I.pan >= 0) v.pan = I.pan;
-      else if (x && x.pan >= 0) v.pan = x.pan;
       else if (S.panSet) v.pan = clampPan(S.pan * 32 + 32);
       if (I) {
         if (I.ifc >= 0) cut = I.ifc;
@@ -221,7 +220,7 @@ export default {
     // The row's first tick: the note, the instrument, the volume column and the effect's first move.
     const startRow = row => {
       const { note: n, off, insWritten, insValue, v: vc, cutNote } = row;
-      const porta = cmd === 7 || cmd === 11 || (vc >= 0xC1 && vc <= 0xCA);
+      const porta = cmd === 7 || cmd === 12 || (vc >= 0xC1 && vc <= 0xCA);
       if (insWritten) curIns = insValue;
       if (cutNote) silence(host);
       else if (off) keyOffVoice(host);
@@ -254,24 +253,24 @@ export default {
       else if (vc <= 84) { const x = vc - 75 || memVol; if (vc - 75) memVol = vc - 75; host.vol = clampVol(host.vol - x); }
       else if (vc <= 94) { if (vc - 85) memVol = vc - 85; }
       else if (vc <= 104) { if (vc - 95) memVol = vc - 95; }
-      else if (vc <= 114) { if (vc - 105) memEF = (vc - 105) << 2; }
-      else if (vc <= 124) { if (vc - 115) memEF = (vc - 115) << 2; }
+      else if (vc <= 114) { if (vc - 105) memEF = vc - 105; }
+      else if (vc <= 124) { if (vc - 115) memEF = vc - 115; }
       else if (vc >= 128 && vc <= 192) host.pan = Math.min(64, vc - 128);
-      else if (vc >= 193 && vc <= 202) { const speed = [0, 1, 4, 8, 16, 32, 64, 96, 128, 255][vc - 193]; if (speed) (compatG ? memEF = speed << 2 : memG = speed << 2); }
+      else if (vc >= 193 && vc <= 202) { const speed = [0, 1, 4, 8, 16, 32, 64, 96, 128, 255][vc - 193]; if (speed) { if (compatG) memEF = speed; else memG = speed; } }
       else if (vc >= 203 && vc <= 212) { if (vc - 203) vibDepth = vc - 203; }
     };
     const volumeColumnLaterTick = vc => {
       if (vc < 0) return;
       if (vc >= 85 && vc <= 94) host.vol = clampVol(host.vol + memVol);
       else if (vc >= 95 && vc <= 104) host.vol = clampVol(host.vol - memVol);
-      else if (vc >= 105 && vc <= 114) { host.period = clampPeriod(host.period + memEF); host.outPeriod = host.period; }
-      else if (vc >= 115 && vc <= 124) { host.period = clampPeriod(host.period - memEF); host.outPeriod = host.period; }
+      else if (vc >= 105 && vc <= 114) { host.period = clampPeriod(host.period + memEF * 4); host.outPeriod = host.period; }
+      else if (vc >= 115 && vc <= 124) { host.period = clampPeriod(host.period - memEF * 4); host.outPeriod = host.period; }
       else if (vc >= 193 && vc <= 202) slideToTarget();
       else if (vc >= 203 && vc <= 212) vibrato(false);
     };
 
     const slideToTarget = () => {
-      const speed = compatG ? memEF : memG;
+      const speed = (compatG ? memEF : memG) * 4;
       if (host.period > host.target) host.period = Math.max(host.target, host.period - speed);
       else if (host.period < host.target) host.period = Math.min(host.target, host.period + speed);
       host.outPeriod = host.period;
@@ -309,13 +308,13 @@ export default {
           host.outPeriod = host.period;
           break;
         }
-        case 7: if (par) { if (compatG) memEF = par; else memG = par; } break;                    // G (speed is kept as written; x4 on slides)
-        case 8: if (hi) vibSpeed = hi; if (x) vibDepth = x; if (par) memH = par; if (oldEffects) vibrato(false); break;   // H
+        case 7: if (par) { if (compatG) memEF = par; else memG = par; } break;                    // G (the speed is kept as written; slides take 4 periods a unit)
+        case 8: if (hi) vibSpeed = hi; if (x) vibDepth = x; if (oldEffects) vibrato(false); break;   // H
         case 9: if (par) memI = par; break;                                                       // I
         case 10: if (par) memJ = par; break;                                                      // J
         case 11: if (par) memD = par; volumeSlide(memD, true); break;                             // K
         case 12: if (par) memD = par; volumeSlide(memD, true); break;                             // L
-        case 13: if (par) memM = par; chanVol = Math.min(64, memM); break;                        // M
+        case 13: chanVol = Math.min(64, par); break;                                              // M
         case 14: if (par) memN = par; { const a = memN >> 4, b = memN & 15; if (b === 15 && a > 0) chanVol = Math.min(64, chanVol + a); else if (a === 15 && b > 0) chanVol = Math.max(0, chanVol - b); } break;   // N
         case 16: if (par) memP = par; { const a = memP >> 4, b = memP & 15; if (b === 15 && a > 0) host.pan = clampPan(host.pan - a); else if (a === 15 && b > 0) host.pan = clampPan(host.pan + b); } break;   // P
         case 17: if (par) memQ = par; break;                                                      // Q
@@ -345,7 +344,6 @@ export default {
         case 8: host.pan = Math.min(64, x * 4 + (x >> 2)); break;
         case 10: memHigh = x; break;
         case 12: if (x === 0) silence(host); else noteCutAt = x; break;
-        case 15: macro = x; break;
         default: break;
       }
     };
@@ -402,7 +400,6 @@ export default {
         case 25: panbrelloOut = (wave(panWave, panPos) * panDepth) >> 6; panPos = (panPos + panSpeed) & 63; break;
         default: break;
       }
-      if (x === 99 || hi === 99) return;
     };
 
     // Every tick, playing or not: each voice's envelopes, fadeout, auto-vibrato and filter move on.
@@ -446,6 +443,7 @@ export default {
         lastFx = stamp;
         const word = Math.round(params[slots[P.fx]]);
         cmd = (word >> 8) & 0x3f; par = word & 255; tickInRow = 0; noteCutAt = -1; panbrelloOut = 0;
+        if (cmd !== 9) tremorOn = true;
         const insStamp = stamps ? stamps[slots[P.ins]] : 0, vStamp = stamps ? stamps[slots[P.vcol]] : 0;
         const insWritten = insStamp !== lastIns && insStamp !== 0;
         const vWritten = vStamp !== lastVcol && vStamp !== 0;
@@ -457,7 +455,6 @@ export default {
         else startRow(row);
         effectFirstTick();
         host.outPeriod = host.period; host.outVol = host.vol;
-        if (cmd === 8 && oldEffects) { /* vibrato already applied */ }
       } else {
         tickInRow++;
         host.outPeriod = host.period; host.outVol = host.vol; panbrelloOut = cmd === 25 ? panbrelloOut : 0;
@@ -531,10 +528,10 @@ export default {
         const slot = msg.slot | 0;
         const S = bank[slot] = {
           sample: msg.data, volume: msg.volume ?? 1, globalVolume: msg.globalVolume ?? 1, pan: Math.max(-1, Math.min(1, msg.pan ?? 0)), panSet: msg.panOn === true, pp: msg.pingpong === true, spp: msg.susPingpong === true,
-          tune: 12 * Math.log2(Math.max(1, msg.rate) / 8363) - 0,   // semitones from C-4 at 8363 Hz (IT's C-5 is that note: see periodOf)
+          tune: 0,
           loop: false, ls: 0, le: 0, sus: false, ss: 0, se: 0, right: msg.right ?? null, xf: 0, sxf: 0,
         };
-        S.tune = 12 * Math.log2(Math.max(1, msg.rate) / 8363);
+        S.tune = 12 * Math.log2(Math.max(1, msg.rate) / 8363);   // semitones from IT's C-5 (8363 Hz): the sample's own speed
         const start = msg.loopStart ?? 0, end = msg.loopEnd ?? 0;
         if (msg.loopOn !== false && end - start >= 2 && end <= S.sample.length && start >= 0) { S.loop = true; S.ls = start; S.le = end; S.xf = Math.max(0, Math.min(Math.floor(msg.loopXfade ?? 0), start, end - start)); }
         const ss = msg.susStart ?? 0, se = msg.susEnd ?? 0;
