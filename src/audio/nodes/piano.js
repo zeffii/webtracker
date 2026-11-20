@@ -25,6 +25,10 @@
 //   scatter   the felt dissipates the blow unevenly, like light off a rough surface: the muffle's opening is not smooth but
 //             jagged, a correlated random wobble of the cutoff that dies away with the attack (the same every time a
 //             note is struck, but different from note to note only through the pitch). 0 is the smooth rise.
+//   strike    the treble's sharp hammer, layered under the lower notes: a note is also given the short hard blow that a note
+//             high on the keyboard gets, through the same strike point, softened by a lowpass that follows the key (a low note
+//             gets a dull version, a middle one a brighter one) and fading out towards the treble, where it is the blow already.
+//             The blow carries the same push as the note's own, only briefer, so the tone is kept and the front gets firmer. 0 is off.
 //   quality   0 standard, 1 eco (fewer soundboard resonances; the sound is otherwise the same).
 //
 // Monophonic like the other synths: the voices node gives each key its own copy.
@@ -50,10 +54,12 @@ const SPEC = [
   { name: 'muffle', min: 0, max: 1, def: 0 },            // how dull the first moments are
   { name: 'scatter', min: 0, max: 1, def: 0 },           // how jagged the muffle's opening is
   { name: 'quality', min: 0, max: 1, def: 0, int: true },   // 0 standard, 1 eco
+  { name: 'strike', min: 0, max: 1, def: 0 },            // the treble's hammer blow layered under the lower notes
 ];
 const P = {};
 SPEC.forEach((s, i) => { P[s.name] = i; });
 
+const STRIKE_NOTE = 96;   // the key whose hammer blow the `strike` layer borrows
 const SIZE = 1 << 14, MASK = SIZE - 1, SECTIONS = 3, MAXSTR = 3;
 const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
 
@@ -153,6 +159,7 @@ export default {
     // the felt hammer's pulse, the scratch space for finding its stiffness, and the damper's tick
     const pulse = new Float64Array(PULSE_MAX), scratch = new Float64Array(PULSE_MAX);
     let pulseLen = 0, pulseAmp = 0, felt = 0;
+    let Lr = 0, ampR = 0, strikeLp = 0, strikeCoef = 1;   // the layered treble blow: its length, its height, and the lowpass that follows the key
     let knockEnv = 0, knockAmp = 0, knockLp = 0;
     let muffleEnv = 0, muffleState = 0, muffleDecay = 0, scatterLp = 0, scatterSeed = 0;   // the attack lowpass: its openness envelope and its state
     const board = Array.from({ length: BOARD_MODES }, (_, j) => boardMode(j, BOARD_MODES, fs));
@@ -235,6 +242,13 @@ export default {
         pulseLen = now.length;
         pulseAmp = 0.35 * Math.pow(2, -pf * 0.4) * NORM(pf) * oldImpulse / refSum * Math.pow(vm, 0.6);   // the impulse already grows with the blow; this widens the touch a little more
       }
+      // the treble's blow (as a note at STRIKE_NOTE would get it), with the same push as this note's own pulse and less of it as the
+      // note rises; its lowpass sits at a fixed number of harmonics above the fundamental, so it follows the key
+      const fR = 440 * Math.pow(2, (STRIKE_NOTE - 69) / 12);
+      const TcR = 0.0032 * Math.pow(fR / 65.4, -0.45) * (0.6 + 0.9 * (1 - hard)) * (1.15 - 0.5 * v);
+      Lr = Math.max(4, Math.min(TcR * fs, 0.5 * fs / fR));
+      ampR = g('strike') * clamp((STRIKE_NOTE - midi) / 48, 0, 1) * 0.5 * amp * Lc / Lr;
+      strikeCoef = 1 - Math.exp(-2 * Math.PI * clamp(f0 * 8, 500, 12000) / fs); strikeLp = 0;
       k = 0; strikeEnd = Math.max(Lc, pulseLen) + dpos + 1;
       boardDecayStrike();
       knockEnv = 0; knockLp = 0; muffleEnv = 1; muffleState = 0; scatterLp = 0; scatterSeed = 0x1b873593; muffleDecay = Math.exp(-1 / (0.025 * fs));
@@ -267,7 +281,11 @@ export default {
           k++;
           // the felt hammer's force through the same comb
           const ep = pulseLen === 0 ? 0 : (k - 1 < pulseLen ? pulse[k - 1] : 0) - (k - 1 - dpos >= 0 && k - 1 - dpos < pulseLen ? pulse[k - 1 - dpos] : 0);
-          const drive = (1 - felt) * e * amp + felt * ep * pulseAmp;
+          let drive = (1 - felt) * e * amp + felt * ep * pulseAmp;
+          if (ampR > 0) {   // the layered blow: a short half-sine through the same comb, then the key's lowpass
+            const kr = k - 1, er = (kr >= 0 && kr < Lr ? Math.sin(Math.PI * kr / Lr) : 0) - (kr - dpos >= 0 && kr - dpos < Lr ? Math.sin(Math.PI * (kr - dpos) / Lr) : 0);
+            strikeLp += strikeCoef * (er * ampR - strikeLp); drive += strikeLp;
+          }
           let sum = 0;
           for (let s = 0; s < ns; s++) {
             const b = buf[s];

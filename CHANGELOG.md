@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 819 · 2026-11-20
+
+- **Piano: `strike`.** The sharp hammer blow that notes high on the keyboard get is layered under the lower notes too, through the same strike point, softened by a lowpass that follows the key (dull on a low note, brighter on a middle one) and fading out towards the treble, where it is the blow already. It carries the same push as the note's own blow, only briefer, so the tone is kept and the front gets firmer. Default 0, so no existing sound changes. Native has it too (test song `pianostrike`).
+
 ## 818 · 2026-11-20
 
 - **IT channel screen: the chosen envelope's bar sits 2px lower**, level with its text.
