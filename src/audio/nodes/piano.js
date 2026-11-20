@@ -32,6 +32,9 @@
 //             high on the keyboard gets, through the same strike point, softened by a lowpass that follows the key (a low note
 //             gets a dull version, a middle one a brighter one) and fading out towards the treble, where it is the blow already.
 //             The blow carries the same push as the note's own, only briefer, so the tone is kept and the front gets firmer. 0 is off.
+//   contact   how long the hammer stays on the string, as a multiple of what the pitch, `hard` and the blow give (1): longer is a
+//             softer, rounder front and a heavier thud, shorter a sharper click. A high note's blow is held to half a period of
+//             its string at 1; a longer contact lets it run on. 1 changes nothing.
 //   quality   0 standard, 1 eco (fewer soundboard resonances; the sound is otherwise the same).
 //
 // Monophonic like the other synths: the voices node gives each key its own copy.
@@ -57,6 +60,7 @@ const SPEC = [
   { name: 'muffle', min: 0, max: 1, def: 0 },            // how dull the first moments are
   { name: 'scatter', min: 0, max: 1, def: 0 },           // how jagged the muffle's opening is
   { name: 'quality', min: 0, max: 1, def: 0, int: true },   // 0 standard, 1 eco
+  { name: 'contact', min: 0.25, max: 4, def: 1 },        // how long the hammer stays on the string, times the natural length
   { name: 'strike', min: 0, max: 1, def: 0 },            // the treble's hammer blow layered under the lower notes
 ];
 const P = {};
@@ -243,11 +247,13 @@ export default {
         weight[s] = ns === 1 ? 1 : s === 0 ? prompt * 1.4 : (1 - prompt) * 1.4 / (ns - 1);
       }
       const hard = g('hard'), v = velocity;
-      const Tc = 0.0032 * Math.pow(f0 / 65.4, -0.45) * (0.6 + 0.9 * (1 - hard)) * (1.15 - 0.5 * v);   // seconds of contact: shorter for a hard felt, a hard blow and a high note
-      Lc = Math.max(4, Math.min(Tc * fs, 0.5 * fs / f0));   // a blow no longer than half a period, or the string would hardly feel it
+      const contact = g('contact');
+      const Tn = 0.0032 * Math.pow(f0 / 65.4, -0.45) * (0.6 + 0.9 * (1 - hard)) * (1.15 - 0.5 * v), Tc = Tn * contact;   // seconds of contact: shorter for a hard felt, a hard blow and a high note
+      Lc = Math.max(4, Math.min(Tc * fs, 0.5 * fs / f0 * Math.max(1, contact)));
+      const LcNatural = Math.max(4, Math.min(Tn * fs, 0.5 * fs / f0));   // the length at contact 1: a longer or shorter contact keeps the blow's push, so the level stays   // a blow no longer than half a period, or the string would hardly feel it
       dpos = Math.max(1, Math.round(g('pos') * fs / f0));
       const vm = 1 - g('vel') + g('vel') * v;
-      amp = vm * vm * 0.5 * Math.min(1, fs / f0 / Lc) * Math.pow(2, -pf * 0.4) * NORM(pf);
+      amp = vm * vm * 0.5 * Math.min(1, fs / f0 / Lc) * Math.pow(2, -pf * 0.4) * NORM(pf) * (LcNatural / Lc);
       felt = g('felt');
       pulseLen = 0;
       if (felt > 0) {
@@ -256,7 +262,7 @@ export default {
         const mass = lookup(HAMMER_MASS, midi);
         const p = 2.5 + 0.8 * pf, vm1 = 1;
         const TcAt = (vel, h) => 0.0032 * Math.pow(f0 / 65.4, -0.45) * (0.6 + 0.9 * (1 - h)) * (1.15 - 0.5 * vel);
-        const K = stiffnessFor(scratch, fs, 0.7 * HAMMER_SPEED, mass, p, 0.75 * TcAt(0.7, 0.5)) * Math.exp(3.66 * (hard - 0.5));
+        const K = stiffnessFor(scratch, fs, 0.7 * HAMMER_SPEED, mass, p, 0.75 * TcAt(0.7, 0.5) * contact) * Math.exp(3.66 * (hard - 0.5));
         const now = hammerPulse(pulse, fs, vm * HAMMER_SPEED, mass, K, p, PULSE_MAX);
         const ref = hammerPulse(scratch, fs, vm1 * HAMMER_SPEED, mass, K, p, PULSE_MAX);
         let refSum = 0; for (let i = 0; i < ref.length; i++) refSum += scratch[i];

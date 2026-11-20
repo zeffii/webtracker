@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 821 · 2026-11-20
+
+- **Piano: `contact`.** How long the hammer stays on the string, as a multiple of what the pitch, `hard` and the blow give (1, which changes nothing). Longer is a softer, rounder front and a heavier thud; shorter is a sharper click. The blow keeps its push, so the level stays the same. Low notes are long and high notes short by nature, and a high note's blow was held to half a period of its string: a contact above 1 lets it run on. Works with the plain and the felt hammer. Native has it too.
+
 ## 820 · 2026-11-20
 
 - **Piano: the hammer's transient no longer aliases on high notes.** The plain hammer pulse (and the `strike` layer's blow) is band-limited before it is sampled: it is averaged against a Hann kernel four samples wide, which has a null at the Nyquist frequency, so a short, hard blow keeps its sharpness but nothing folds back below. The blow now starts two samples later, and the highest notes sound a little less glassy. Native has it too.
