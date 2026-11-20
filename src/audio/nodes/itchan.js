@@ -535,7 +535,7 @@ export default {
         const start = msg.loopStart ?? 0, end = msg.loopEnd ?? 0;
         if (msg.loopOn !== false && end - start >= 2 && end <= S.sample.length && start >= 0) { S.loop = true; S.ls = start; S.le = end; S.xf = Math.max(0, Math.min(Math.floor(msg.loopXfade ?? 0), start, end - start)); }
         const ss = msg.susStart ?? 0, se = msg.susEnd ?? 0;
-        if (msg.susOn === true && se - ss >= 2 && se <= S.sample.length && ss >= 0) { S.sus = true; S.ss = ss; S.se = se; S.sxf = Math.max(0, Math.min(Math.floor(msg.susXfade ?? 0), ss, se - ss)); }
+        if (msg.susOn !== false && se - ss >= 2 && se <= S.sample.length && ss >= 0) { S.sus = true; S.ss = ss; S.se = se; S.sxf = Math.max(0, Math.min(Math.floor(msg.susXfade ?? 0), ss, se - ss)); }
       },
       note(msg) {
         if (msg.type === 'noteOn') { pendingNote = msg.note - MIDI_C0; pendingOff = false; pendingCut = false; }
