@@ -1076,11 +1076,22 @@
     .curve-editor.drum2.khufu-panel > canvas, .ensemble-panel canvas { display: block; border: 0; background: none; cursor: default; }
     .itchan-panel canvas { display: block; border: 0; background: none; cursor: crosshair; max-width: 100%; }   /* the IT channel's sample area and envelopes (itchanview.js) */
     .itchan-panel .itchan-side { display: flex; flex-direction: column; gap: .3rem; }
-    .itchan-panel .itchan-controls { display: flex; flex-direction: column; gap: .15rem; width: 760px; }
+    .itchan-panel .itchan-controls { display: flex; flex-direction: column; gap: .15rem; width: 640px; }
     .itchan-panel .itchan-samplebox { position: relative; }
     .itchan-panel .itchan-grip { position: absolute; right: 0; bottom: 0; width: 14px; height: 14px; cursor: nwse-resize; touch-action: none; background: linear-gradient(135deg, transparent 55%, currentColor 55%, currentColor 62%, transparent 62%, transparent 75%, currentColor 75%, currentColor 82%, transparent 82%); opacity: .5; }
     .itchan-panel .itchan-grip:hover { opacity: 1; }
     .itchan-panel .itchan-controls .prow { margin: 0; gap: .35rem; flex-wrap: wrap; align-items: center; }
+    .itchan-lcd { display: flex; flex-direction: column; align-items: stretch; gap: .35rem; background: #2354d8; color: #f2f6ff; padding: .5rem .7rem .55rem; border-radius: 6px; box-shadow: inset 0 0 0 2px #1a3fa6; width: max-content; max-width: 100%; outline: none; }   /* the IT channel's screen: white on blue, one page at a time */
+    .itchan-lcd select, .itchan-lcd input[type=number], .itchan-lcd button { background: #1b43b8; color: #f2f6ff; border: 1px solid #93abf0; border-radius: 2px; }
+    .itchan-lcd .itchan-head { display: flex; align-items: center; gap: .3rem; font-family: var(--mono, ui-monospace, Consolas, monospace); font-size: .78rem; }
+    .itchan-lcd .itchan-title { background: #f2f6ff; color: #2354d8; }
+    .itchan-lcd .itchan-fkeys { display: grid; grid-template-columns: repeat(8, 1fr); gap: 4px; margin-top: .2rem; }
+    .itchan-lcd .itchan-fkeys button { font: .76rem var(--mono, ui-monospace, Consolas, monospace); padding: 0 0 1px; min-width: 0; background: none; text-align: center; cursor: pointer; }
+    .itchan-lcd .itchan-fkeys button:empty { visibility: hidden; }
+    .itchan-lcd .itchan-fkeys button.on { background: #f2f6ff; color: #2354d8; border-color: #f2f6ff; }
+    .itchan-lcd .itchan-fkeys button.off { opacity: .5; }
+    .itchan-lcd .itchan-fkeys button.sel { text-decoration: underline; }
+    .itchan-lcd .itchan-envrow.on { background: #f2f6ff; color: #2354d8; }
     .itchan-panel .dim { opacity: .6; }
     .itchan-panel .off { opacity: .4; }   /* a part that belongs to something switched off */
     .itchan-panel .itchan-controls { font-family: var(--mono, ui-monospace, Consolas, monospace); font-size: .78rem; }
@@ -1088,7 +1099,6 @@
     .itchan-panel .itchan-envlist { display: flex; flex-direction: column; gap: 0; white-space: pre; }
     .itchan-panel .itchan-envrow { cursor: pointer; border-radius: 3px; display: grid; grid-template-columns: 1.6ch 7ch 3ch 9ch 9ch auto; align-items: center; column-gap: .5ch; }
     .itchan-panel .itchan-rate { display: flex; align-items: center; gap: .6ch; }
-    .itchan-panel .itchan-envrow.on { background: color-mix(in srgb, currentColor 10%, transparent); }
     .rotary-panel canvas { display: block; border: 0; background: none; }
     .rotary-switch { justify-content: center; gap: .1rem 1.6rem; max-width: 300px; margin-left: 0; }
     .rotary-switch button.on { opacity: 1; color: hsl(35 80% 55%); border-bottom: 1.5px solid currentColor; }

@@ -1,4 +1,4 @@
-import { makeCanvas, drag, button, forPage, clamp, ORANGE, BLUE, PINK } from './spaceui.js';
+import { makeCanvas, drag, button, forPage, clamp, PINK } from './spaceui.js';
 import { computePeaks } from '../project/waveform.js';
 import {
   ENVELOPES, ENVELOPE_NAMES, proxyOf, rangeOf, loopsOf, moveRangeEdge, moveLoop, setLoop, setTrack, TRACK_MODES, clearProxy,
@@ -14,10 +14,14 @@ import {
 // The instrument side picks an instrument and draws its volume, panning and pitch envelopes: click empty space for a point, drag a point,
 // double-click it to remove it. "Loop" and "Sustain" modes mark a range of points by clicking two of them. Pitch can be set to move the
 // filter cutoff instead (the IT filter envelope).
-const DEFAULT_SW = 760, DEFAULT_SH = 150, EW = 380, EH = 146, PL = 6, PR = 6;
+const DEFAULT_SW = 760, DEFAULT_SH = 150, EW = 640, EH = 176, PL = 6, PR = 6;
 const SIZE_KEY = 'wax.itchanSampleSize';   // the sample area's size, as dragged
 let SW = DEFAULT_SW, SH = DEFAULT_SH;
 const GRAB = 7;
+const BLUE = '#9fefff', ORANGE = '#ffd86b';   // loop and sustain on the panel's blue screen: cyan and yellow
+const PAGES = [['smpl', 'SAMPLE'], ['ins', 'INSTRUMENT'], ['env', 'ENVELOPES']];
+const PAGE_KEY = 'wax.itchanPage';
+const OVERLAY = { vol: '#f2f6ff', pan2: '#ff9ec0', pit: '#8fffd0' };   // an envelope's colour when it is behind the chosen one
 const ENV_TOP = 14, ENV_BOTTOM = 30;   // the room above the envelope for its name, and below it for the tick and time rulers
 const NNA = ['cut', 'continue', 'off', 'fade'], DCT = ['off', 'note', 'sample', 'instrument'], DCA = ['cut', 'off', 'fade'];
 
@@ -25,8 +29,9 @@ const NNA = ['cut', 'continue', 'off', 'fade'], DCT = ['off', 'note', 'sample', 
 export const headColour = uid => `hsl(${Math.round((uid * 137.508) % 360)} 92% 62%)`;
 
 export function createItChanView({ getTiming = () => null, doc = document, getData, setData, getSampleIds, getSample, isIt3 = () => false, watch = () => {} }) {
-  const el = doc.createElement('div'); el.className = 'curve-editor drum2 itchan-panel';
-  let slot = 0, insIndex = 0, envKind = 'vol', markMode = 'point', pending = null, zoom = false;
+  const el = doc.createElement('div'); el.className = 'curve-editor drum2 itchan-panel itchan-lcd'; el.tabIndex = 0;
+  let slot = 0, insIndex = 0, envKind = 'vol', markMode = 'point', pending = null, zoom = false, page = 'smpl';
+  try { const saved = localStorage.getItem(PAGE_KEY); if (PAGES.some(([id]) => id === saved)) page = saved; } catch { /* no storage */ }
 
   const make = (tag, props = {}, ...kids) => { const e = doc.createElement(tag); Object.assign(e, props); e.append(...kids); return e; };
   const row = (...kids) => make('div', { className: 'prow' }, ...kids);
@@ -183,7 +188,7 @@ export function createItChanView({ getTiming = () => null, doc = document, getDa
     if (!ids.length) return;
     slot = clamp(slot, 0, ids.length - 1);
     const picker = select(ids.map((id, i) => [i, `${i.toString(16).toUpperCase().padStart(2, '0')} ${id}`]), slot, v => { slot = Number(v); refresh(); }, 'The sample slot: the one a Smp value or instrument picks');
-    sampleControls.append(row(picker, check('zoom', zoom, v => { zoom = v; refresh(); }, 'Show only the stretch this slot plays'), button(doc, 'Bank', 'Back to the bank sample\'s own stretch and loops', () => { setData(clearProxy(getData(), slot)); refresh(); })));
+    sampleControls.append(row(picker));   // zoom and Bank are function keys now
     if (!bank) return;
     const { loop, sus } = loopsOf(bank, proxyOf(data, slot));
     const frames = n => String(Math.round(n)).padStart(4, '0');
@@ -213,10 +218,10 @@ export function createItChanView({ getTiming = () => null, doc = document, getDa
   }
 
   // ---- the instrument side ------------------------------------------------------------------------------------------------
-  const insSide = make('div', { className: 'itchan-side' });
+  const insSide = make('div', { className: 'itchan-side' }), envSide = make('div', { className: 'itchan-side' });
   const { canvas: envCanvas, ctx: ectx, ink: eink } = makeCanvas(doc, EW, EH, 'itchan-env');
-  const insControls = make('div', { className: 'itchan-controls' });
-  insSide.append(insControls, envCanvas);
+  const instControls = make('div', { className: 'itchan-controls' }), envControls = make('div', { className: 'itchan-controls' });
+  insSide.append(instControls); envSide.append(envCanvas, envControls);
 
   const current = () => getData()?.ins?.[insIndex] ?? null;
   const patchIns = patch => { setData(withInstrument(getData(), insIndex, patch)); refresh(); };
@@ -225,9 +230,9 @@ export function createItChanView({ getTiming = () => null, doc = document, getDa
   // The span on show is the envelope's length with some room, and is held still while a point is being dragged (the last point would
   // otherwise rescale the picture under the pointer); it is worked out afresh when the drag ends.
   let heldSpan = null;
-  const spanOf = env => Math.max(64, Math.ceil((env ? env.pts[env.pts.length - 2] : 64) * 1.15));
+  const spanOf = () => Math.max(64, Math.ceil(Math.max(0, ...ENVELOPES.map(kind => current()?.[kind]).filter(Boolean).map(e => e.pts[e.pts.length - 2])) * 1.15));   // the longest of the instrument's envelopes: they share the ticks
   const envLayout = env => {
-    const span = heldSpan ?? spanOf(env), tall = EH - ENV_BOTTOM - ENV_TOP;
+    const span = heldSpan ?? spanOf(), tall = EH - ENV_BOTTOM - ENV_TOP;
     return { span, X: tick => PL + tick / span * (EW - PL - PR), Y: v => EH - ENV_BOTTOM - v / 64 * tall, tickAt: x => (clamp(x, PL, EW - PR) - PL) / (EW - PL - PR) * span, valueAt: y => (EH - ENV_BOTTOM - y) / tall * 64 };
   };
   const ENV_STEPS = [1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192];
@@ -259,7 +264,7 @@ export function createItChanView({ getTiming = () => null, doc = document, getDa
     ectx.font = '10px ui-monospace, Consolas, monospace'; ectx.textBaseline = 'top'; ectx.textAlign = 'left';
     ectx.fillStyle = page; ectx.globalAlpha = 0.65;
     ectx.fillText(`${ENVELOPE_NAMES[envKind].toUpperCase()}${envKind === 'pit' && current()?.filter ? ' (filter cutoff)' : ''}`, PL, 2);
-    if (!env) { ectx.fillText('off: tick the box above to draw one', PL, EH / 2); ectx.globalAlpha = 1; return; }
+    if (!env) { ectx.fillText('off: press its key below to draw one', PL, EH / 2); ectx.globalAlpha = 1; return; }
     const L = envLayout(env);
     drawEnvRulers(env, L, page);
     ectx.fillStyle = page; ectx.globalAlpha = 0.12; ectx.fillRect(PL, L.Y(32), EW - PL - PR, 1);
@@ -270,7 +275,15 @@ export function createItChanView({ getTiming = () => null, doc = document, getDa
       ectx.globalAlpha = 0.9; ectx.fillRect(pts[from][0] - 1, ENV_TOP, 2, EH - ENV_BOTTOM - ENV_TOP); ectx.fillRect(pts[to][0] - 1, ENV_TOP, 2, EH - ENV_BOTTOM - ENV_TOP);
     };
     span(env.ls, env.le, BLUE); span(env.ss, env.se, ORANGE);
-    ectx.globalAlpha = 1; ectx.strokeStyle = page; ectx.lineWidth = 1.5; ectx.beginPath();
+    for (const kind of ENVELOPES) {   // the instrument's other envelopes, faint behind the chosen one
+      const other = current()?.[kind]; if (kind === envKind || !other) continue;
+      ectx.globalAlpha = 0.35; ectx.strokeStyle = OVERLAY[kind]; ectx.fillStyle = OVERLAY[kind]; ectx.lineWidth = 1.4; ectx.beginPath();
+      for (let i = 0; i < other.pts.length; i += 2) ectx[i ? 'lineTo' : 'moveTo'](L.X(other.pts[i]), L.Y(other.pts[i + 1]));
+      ectx.stroke();
+      for (let i = 0; i < other.pts.length; i += 2) { ectx.beginPath(); ectx.arc(L.X(other.pts[i]), L.Y(other.pts[i + 1]), 2.6, 0, Math.PI * 2); ectx.fill(); }
+    }
+    ectx.fillStyle = page;
+    ectx.globalAlpha = 1; ectx.strokeStyle = page; ectx.lineWidth = 1.8; ectx.beginPath();
     pts.forEach(([x, y], i) => (i ? ectx.lineTo(x, y) : ectx.moveTo(x, y))); ectx.stroke();
     ectx.fillStyle = page;
     pts.forEach(([x, y], i) => { ectx.beginPath(); ectx.arc(x, y, i === pending ? 5 : 3.5, 0, Math.PI * 2); ectx.fill(); });
@@ -316,10 +329,11 @@ export function createItChanView({ getTiming = () => null, doc = document, getDa
   }
 
   function insControlsRow() {
-    insControls.replaceChildren();
+    instControls.replaceChildren(); envControls.replaceChildren();
     const data = getData(), count = getSampleIds().length;
     if (!Array.isArray(data?.ins) || !data.ins.length) {
-      insControls.append(row(button(doc, 'Use instruments', 'Make an instrument for each sample, so notes can have envelopes, keymaps and note actions. Nothing sounds different until you edit one.', () => { setData({ ...getData(), ins: instrumentsFor(count) }); insIndex = 0; refresh(); })),
+      envControls.append(make('span', { className: 'dim', textContent: 'No instruments yet: see the INSTRUMENT page.' }));
+      instControls.append(row(button(doc, 'Use instruments', 'Make an instrument for each sample, so notes can have envelopes, keymaps and note actions. Nothing sounds different until you edit one.', () => { setData({ ...getData(), ins: instrumentsFor(count) }); insIndex = 0; refresh(); })),
         make('span', { className: 'dim', textContent: ' now: a note plays the sample with the same number' }));
       return;
     }
@@ -327,7 +341,7 @@ export function createItChanView({ getTiming = () => null, doc = document, getDa
     const ins = current() ?? newInstrument(0);
     const names = data.ins.map((_, i) => [i, `${(i + 1).toString(16).toUpperCase().padStart(2, '0')}`]);
     const slots = getSampleIds().map((id, i) => [i, `${i.toString(16).toUpperCase().padStart(2, '0')} ${id}`]);
-    insControls.append(
+    instControls.append(
       row(select(names, insIndex, v => { insIndex = Number(v); pending = null; refresh(); }, 'The instrument: the Ins value of a cell, 01 being the first'),
         button(doc, '+', 'Add an instrument', () => { setData(withInstrument(getData(), getData().ins.length, newInstrument(clamp(slot, 0, Math.max(0, count - 1))))); insIndex = getData().ins.length - 1; refresh(); }),
         make('span', { textContent: '  plays ' }), select(slots, ins.map?.[60] ?? 0, v => patchIns({ map: new Array(120).fill(Number(v)) }), 'The sample every key plays (a keymap with several samples comes from an imported file)')),
@@ -361,7 +375,7 @@ export function createItChanView({ getTiming = () => null, doc = document, getDa
         grey(make('span', { textContent: e ? String(e.pts.length / 2) : '·' })),
       ];
       const loopText = make('span', { textContent: rangeText(e, 'ls', 'le') }), susText = make('span', { textContent: rangeText(e, 'ss', 'se') });
-      loopText.style.color = forPage(BLUE, sink()); susText.style.color = forPage(ORANGE, sink());
+      loopText.style.color = kind === envKind ? '#1d3ea0' : BLUE; susText.style.color = kind === envKind ? '#7a4a00' : ORANGE;   // darker on the chosen row, which is shown inverted
       parts.push(grey(loopText), grey(susText));
       const last = make('span', { className: 'itchan-rate' });
       if (e) last.append(...rateSlider(kind, e)); else last.append(grey(make('span', { textContent: '·' })));
@@ -372,10 +386,10 @@ export function createItChanView({ getTiming = () => null, doc = document, getDa
       line.addEventListener('mousedown', ev => { if (ev.target.closest?.('input, select, button') || kind === envKind) return; envKind = kind; pending = null; refresh(); });
       list.append(line);
     }
-    insControls.append(list);
+    envControls.append(list);
     const env = ins[envKind] ?? null;
     const modes = [['point', 'Point'], ['loop', 'Loop'], ['sus', 'Sust']].map(([m, label]) => { const b = button(doc, label, m === 'point' ? 'Click for a point, drag to move, double-click to remove' : 'Click two points to mark the range', () => { markMode = m; pending = null; refresh(); }); b.style.opacity = !env ? '0.35' : markMode === m ? '1' : '0.55'; return b; });
-    insControls.append(row(make('span', { className: 'dim', textContent: `${ENVELOPE_NAMES[envKind].toLowerCase()}  edit ` }), ...modes));
+    envControls.prepend(row(make('span', { className: 'dim', textContent: `${ENVELOPE_NAMES[envKind].toLowerCase()}  edit ` }), ...modes));
   }
 
   // what the node reports: where each sounding note is. The panel asks for the reports again every second while it is on the page.
@@ -385,8 +399,55 @@ export function createItChanView({ getTiming = () => null, doc = document, getDa
     drawSample();
   };
   const heartbeat = () => { watch(); const timer = doc.defaultView?.setInterval?.(() => { if (!el.isConnected) doc.defaultView.clearInterval(timer); else watch(); }, 1000); };
-  el.append(sampleSide, insSide);
-  function refresh() { sampleControlsRow(); insControlsRow(); drawSample(); drawEnv(); }
+  // ---- the screen: a title bar, one page at a time, and the function keys ------------------------------------------------------
+  // F1 to F3 pick the page; the other keys act on it, and a key that switches something on is lit while it is on.
+  const head = make('div', { className: 'itchan-head' }), fkeys = make('div', { className: 'itchan-fkeys' });
+  const pageEls = { smpl: sampleSide, ins: insSide, env: envSide };
+  const cycle = (list, value) => (value + 1) % list.length;
+  const keyDefs = () => {
+    const data = getData(), bank = bankOf(), ins = current(), hasIns = Array.isArray(data?.ins) && data.ins.length > 0;
+    const loops = bank ? loopsOf(bank, proxyOf(data, slot)) : null;
+    const pageKeys = PAGES.map(([id, label]) => ({ label: { smpl: 'smpl', ins: 'ins', env: 'env' }[id], on: page === id ? true : undefined, act: () => showPage(id), tip: `The ${label.toLowerCase()} page` }));
+    const toggleEnv = kind => {
+      const e = ins?.[kind] ?? null;
+      return { label: { vol: 'vol', pan2: 'pan', pit: 'pit' }[kind], on: Boolean(e), sel: kind === envKind, tip: `Use the ${ENVELOPE_NAMES[kind].toLowerCase()} envelope (press again, once chosen, to switch it off)`,
+        act: () => { if (!hasIns) return; if (kind !== envKind) { envKind = kind; pending = null; if (!e) patchEnv(newEnvelope(kind)); else refresh(); } else patchEnv(e ? null : newEnvelope(kind)); } };
+    };
+    if (page === 'smpl') return [...pageKeys,
+      { label: 'loop', on: Boolean(loops?.loop.on), tip: 'The loop on or off', act: () => bank && (setData(setLoop(getData(), slot, 'loop', bank, { on: !loops.loop.on })), refresh()) },
+      { label: 'sust', on: Boolean(loops?.sus.on), tip: 'The sustain loop on or off', act: () => bank && (setData(setLoop(getData(), slot, 'sus', bank, { on: !loops.sus.on })), refresh()) },
+      { label: 'zoom', on: zoom, tip: 'Show only the stretch this slot plays', act: () => { zoom = !zoom; refresh(); } },
+      { label: 'bank', tip: 'Back to the bank sample\'s own stretch and loops', act: () => { setData(clearProxy(getData(), slot)); refresh(); } }];
+    if (page === 'ins') return [...pageKeys,
+      { label: 'new', tip: 'Cycle the new-note action', act: () => hasIns && patchIns({ nna: cycle(NNA, ins?.nna ?? 0) }) },
+      { label: 'dup', tip: 'Cycle the duplicate check', act: () => hasIns && patchIns({ dct: cycle(DCT, ins?.dct ?? 0) }) },
+      { label: 'then', tip: 'Cycle what is done to a duplicate', act: () => hasIns && patchIns({ dca: cycle(DCA, ins?.dca ?? 0) }) },
+      { label: 'add', tip: 'Add an instrument', act: () => { const count = getSampleIds().length; setData(withInstrument(getData(), getData()?.ins?.length ?? 0, newInstrument(clamp(slot, 0, Math.max(0, count - 1))))); insIndex = getData().ins.length - 1; refresh(); } }];
+    return [...pageKeys, ...ENVELOPES.map(toggleEnv),
+      { label: 'rate', tip: 'Back to the normal speed for the chosen envelope', act: () => { const e = ins?.[envKind]; if (e) patchEnv({ ...e, rate: 1 }); } },
+      { label: 'flt', on: Boolean(ins?.filter), tip: 'The pitch envelope moves the filter cutoff instead of the pitch', act: () => hasIns && patchIns({ filter: !ins?.filter }) }];
+  };
+  const renderScreen = () => {
+    for (const [id, pageEl] of Object.entries(pageEls)) pageEl.style.display = id === page ? '' : 'none';
+    const data = getData(), hasIns = Array.isArray(data?.ins) && data.ins.length > 0;
+    head.replaceChildren(make('span', { className: 'itchan-title', textContent: ` ${PAGES.find(([id]) => id === page)[1]} ` }));
+    if (page !== 'smpl' && hasIns) {
+      head.append(make('span', { textContent: ' ins ' }), select(data.ins.map((_, i) => [i, `${(i + 1).toString(16).toUpperCase().padStart(2, '0')}`]), insIndex, v => { insIndex = Number(v); pending = null; refresh(); }, 'The instrument: the Ins value of a cell, 01 being the first'));
+    }
+    fkeys.replaceChildren(...keyDefs().map((key, i) => {
+      const b = make('button', { type: 'button', textContent: key.label, title: key.blank ? '' : `F${i + 1}  ${key.tip ?? ''}` });
+      b.className = `${key.on ? 'on' : ''} ${key.sel ? 'sel' : ''} ${key.label && key.on === false ? 'off' : ''}`.trim();
+      b.addEventListener('click', () => key.act?.());
+      return b;
+    }));
+  };
+  function showPage(id) { page = id; try { localStorage.setItem(PAGE_KEY, id); } catch { /* no storage */ } refresh(); }
+  el.addEventListener('keydown', e => {
+    const n = /^F([1-8])$/.exec(e.key)?.[1]; if (!n || e.ctrlKey || e.altKey || e.metaKey) return;
+    e.preventDefault(); e.stopPropagation(); keyDefs()[Number(n) - 1]?.act?.();
+  });
+  el.append(head, sampleSide, insSide, envSide, fkeys);
+  function refresh() { renderScreen(); sampleControlsRow(); insControlsRow(); drawSample(); drawEnv(); }
   sampleDrag(); envDrag();
   refresh(); heartbeat();
   return { el, refresh, feed, draw: () => { drawSample(); drawEnv(); } };

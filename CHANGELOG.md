@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 806 · 2026-11-20
+
+- **IT channel panel: a screen with pages and function keys.** The panel is now white on blue, one page at a time, with a row of function keys along the bottom (F1 to F8 on the keyboard when the panel has focus, or press them). F1 to F3 pick the page: SAMPLE (the waveform, loop and sustain rows), INSTRUMENT (new note, duplicate check, fadeout) and ENVELOPES. The other keys act on the page and are lit while what they switch is on: loop, sust, zoom and bank on SAMPLE; new, dup, then and add on INSTRUMENT; vol, pan, pit (the chosen one underlined), rate and flt on ENVELOPES. The envelope page draws all of the instrument's envelopes in one graph, the chosen one bright and the others faint behind it, on one set of tick and time rulers, as wide as the waveform. Loop and sustain are cyan and yellow on the blue.
+
 ## 805 · 2026-11-20
 
 - **IT channel panel: a plainer, text-grid layout.** The sample side keeps the wide waveform and gets a row each for the loop and the sustain loop in their colours (a box to switch it on, its range, ping-pong, crossfade, and for the sustain the pitch setting); whatever belongs to a loop that is off is greyed. The instrument rows are shorter, with narrower pickers. The envelopes are now a list, like the sample list: a box beside each to switch it on, its point count, loop and sustain ranges and its rate slider, with the chosen row drawn below and an off envelope greyed. The pitch row carries the filter box.
