@@ -1140,6 +1140,7 @@ const HINTS = {
     felt: 'The hammer as physics: a mass pressing on a nonlinear felt spring. A hard blow squeezes the felt more, so the contact is shorter and the sound brighter, not just louder. 0 is the plain pulse (the older sound), 1 is all felt model.',
     board: 'The soundboard: dozens of short, damped wood resonances from 90 Hz to 5 kHz that give the tone the density of a wooden plate. 0 leaves them out.',
     knock: 'The soft tick of the damper felt landing on the strings when a key comes up (with the pedal up).',
+    muffle: 'The wood takes the edge off the percussive part: the attack is lowpassed, dark at the start and opening over about 25 ms, so the click and thud are dull while the ringing tone is untouched. 0 is off.',
     quality: '0 standard, 1 eco: the soundboard uses 12 resonances instead of 32. Nothing else changes.',
   },
   modchan: {

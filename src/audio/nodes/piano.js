@@ -20,6 +20,8 @@
 //   board     the soundboard as a set of short, damped resonances from 90 Hz up to 5 kHz (32 of them, 12 at quality eco),
 //             which give the sound the density of a wooden plate. 0 leaves them out.
 //   knock     the felt of the damper landing on the strings when a key comes up (a soft noise tick). 0 leaves it out.
+//   muffle    the wood takes the edge off the percussive part: the attack goes through a lowpass that starts dark (about 500 Hz
+//             at full) and opens over some 25 ms, so the click and thud are dull and the sustained tone is not touched. 0 is off.
 //   quality   0 standard, 1 eco (fewer soundboard resonances; the sound is otherwise the same).
 //
 // Monophonic like the other synths: the voices node gives each key its own copy.
@@ -42,6 +44,7 @@ const SPEC = [
   { name: 'felt', min: 0, max: 1, def: 0 },              // 0: the plain half-sine pulse, 1: the felt hammer model
   { name: 'board', min: 0, max: 1, def: 0 },             // the soundboard's resonances
   { name: 'knock', min: 0, max: 1, def: 0 },             // the damper's tick on note off
+  { name: 'muffle', min: 0, max: 1, def: 0 },            // how dull the first moments are
   { name: 'quality', min: 0, max: 1, def: 0, int: true },   // 0 standard, 1 eco
 ];
 const P = {};
@@ -147,6 +150,7 @@ export default {
     const pulse = new Float64Array(PULSE_MAX), scratch = new Float64Array(PULSE_MAX);
     let pulseLen = 0, pulseAmp = 0, felt = 0;
     let knockEnv = 0, knockAmp = 0, knockLp = 0;
+    let muffleEnv = 0, muffleState = 0, muffleDecay = 0;   // the attack lowpass: its openness envelope and its state
     const board = Array.from({ length: BOARD_MODES }, (_, j) => boardMode(j, BOARD_MODES, fs));
     const boardDecayStrike = () => { for (const m of board) m.x1 = m.x2 = m.y1 = m.y2 = 0; };
 
@@ -229,7 +233,7 @@ export default {
       }
       k = 0; strikeEnd = Math.max(Lc, pulseLen) + dpos + 1;
       boardDecayStrike();
-      knockEnv = 0; knockLp = 0;
+      knockEnv = 0; knockLp = 0; muffleEnv = 1; muffleState = 0; muffleDecay = Math.exp(-1 / (0.025 * fs));
       knockAmp = g('knock') * vm * vm * 0.08;
       thumpEnv = 1; thumpDecay = Math.exp(-1 / (0.012 * fs)); thumpAmp = g('thump') * vm * vm * 0.5;
       const pos = 0.5 + (pf - 0.5) * g('width');
@@ -250,7 +254,7 @@ export default {
         if (pending) { pending = false; strike(g, pitchOn ? inputs[0][0] : 0); }
         if (keyUp && !damped && g('pedal') < 0.5) { damped = true; knockEnv = 1; }   // the damper falls, or the pedal comes up
         const level = g('level') * 2, body = g('body');
-        const boardAmount = g('board'), modes = g('quality') >= 0.5 ? 12 : BOARD_MODES, stride = BOARD_MODES / modes;
+        const muffle = g('muffle'), boardAmount = g('board'), modes = g('quality') >= 0.5 ? 12 : BOARD_MODES, stride = BOARD_MODES / modes;
         for (let s = 0; s < ns; s++) gs[s] = loop[s] * (damped ? damp[s] : 1);
         let peak = 0;
         for (let i = 0; i < n; i++) {
@@ -280,7 +284,12 @@ export default {
           // the damper's tick: softer, shorter noise than the hammer's thump
           let tick = 0;
           if (knockEnv > 1e-4) { knockLp += 0.5 * (rand() - knockLp); tick = knockLp * knockEnv * knockAmp; knockEnv *= 0.9965; }
-          const dry = sum + t + tick;
+          let dry = sum + t + tick;
+          if (muffle > 0) {   // one pole lowpass, fully open (coefficient 1) once the envelope has gone
+            muffleState += (1 - muffle * muffleEnv * 0.92) * (dry - muffleState);
+            muffleEnv *= muffleDecay;   // opens over 25 ms
+            dry = muffleState;
+          }
           let resonance = 0;
           for (let r = 0; r < 3; r++) {
             const f = bq[r], out = f.b0 * dry + f.b2 * f.x2 - f.a1 * f.y1 - f.a2 * f.y2;

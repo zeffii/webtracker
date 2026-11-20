@@ -7194,6 +7194,15 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     assert.ok(wood.every(Number.isFinite) && eco.every(Number.isFinite), 'the soundboard stays finite');
     assert.ok(plain.some((v, i) => Math.abs(v - wood[i]) > 1e-3), 'the soundboard is heard');
     assert.ok(rms(eco, 0, 4410) > 0.5 * rms(wood, 0, 4410) && rms(eco, 0, 4410) < 2 * rms(wood, 0, 4410), 'eco is about as loud as standard');
+    // muffle: the first 15 ms are duller, and once the attack is over the sound is the same
+    {
+      const dull = render(60, 1, 0.5, { felt: 1, muffle: 1 }).l, open = render(60, 1, 0.5, { felt: 1 }).l;
+      const hf = (a, n) => { let e = 0; for (let i = 1; i < n; i++) { const d = a[i] - a[i - 1]; e += d * d; } return e; };
+      const early = Math.round(0.015 * sr), late = Math.round(0.35 * sr);
+      assert.ok(hf(dull, early) < 0.5 * hf(open, early), 'muffle dulls the attack');
+      assert.ok(Math.abs(rms(dull, late, late + 4410) - rms(open, late, late + 4410)) < 0.1 * rms(open, late, late + 4410), 'muffle leaves the ringing tone alone');
+      assert.ok(dull.every(Number.isFinite), 'muffle stays finite');
+    }
     // the damper's tick: something is heard right after the key comes up that is not there without it
     const quiet = render(60, 1, 1, { knock: 0 }, 0.5).l, ticked = render(60, 1, 1, { knock: 1 }, 0.5).l;
     const at = Math.round(0.5 * sr), len = Math.round(0.015 * sr);
