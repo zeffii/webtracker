@@ -69,8 +69,8 @@ html[data-code-theme="ice"] :is(.code, .md pre) {   /* a cool, light, clinical l
 html[data-theme="red october"],
 html[data-code-theme="red october"] :is(.code, .md pre) {   /* infrared: dark reds in various strengths */
   color-scheme: dark;
-  --bg: #140404; --fg: #e0463a; --panel: #1f0707; --hi: #b3261e; --hi-fg: #140404; --field: #0d0202;
-  --accent: #ff6a55; --cc: #ff8f7a; --line: #5a1814; --glow: #ff2a1a66; --radius: 0;
+  --bg: #190606; --fg: #f25c4e; --panel: #260b0b; --hi: #cc382e; --hi-fg: #190606; --field: #110303;
+  --accent: #ff806c; --cc: #ffa28e; --line: #7a251e; --glow: #ff3a2a77; --radius: 0;
 }
 html[data-theme="synthwave"],
 html[data-code-theme="synthwave"] :is(.code, .md pre) {   /* purple dusk, hot pink and a little gold */
@@ -104,7 +104,7 @@ html[data-theme="ice"] { --pat-hue: 200; --pat-spread: .75; --pat-ds: -5%; }
 html[data-theme="neon"] { --pat-ds: 10%; --pat-dl: -17%; --pat-am: 1.5; }
 html[data-theme="amber"] { --pat-hue: 38; --pat-spread: .25; --pat-ds: 5%; --pat-dl: -22%; --pat-am: 1.5; }
 html[data-theme="phosphor"] { --pat-hue: 140; --pat-spread: .25; --pat-dl: -27%; --pat-am: 1.5; }
-html[data-theme="red october"] { --pat-hue: 5; --pat-spread: .12; --pat-ds: -10%; --pat-dl: -28%; --pat-am: 1.5; }
+html[data-theme="red october"] { --pat-hue: 5; --pat-spread: .12; --pat-ds: -10%; --pat-dl: -22%; --pat-am: 1.5; }
 html[data-theme="synthwave"] { --pat-hue: 285; --pat-spread: .7; --pat-ds: -5%; --pat-dl: -15%; --pat-am: 1.5; }
 
 /* The look of buttons, fields and selects is src/ui/kit/controls.css, the same in every theme (the system theme included); a theme only

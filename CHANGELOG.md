@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 822 · 2026-11-20
+
+- **red october is a little brighter**, for a screen that is dimmed right down: the text, accent and lines are lifted, and the dark backgrounds only a touch.
+
 ## 821 · 2026-11-20
 
 - **Piano: `contact`.** How long the hammer stays on the string, as a multiple of what the pitch, `hard` and the blow give (1, which changes nothing). Longer is a softer, rounder front and a heavier thud; shorter is a sharper click. The blow keeps its push, so the level stays the same. Low notes are long and high notes short by nature, and a high note's blow was held to half a period of its string: a contact above 1 lets it run on. Works with the plain and the felt hammer. Native has it too.
