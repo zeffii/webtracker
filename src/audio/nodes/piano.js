@@ -4,6 +4,9 @@
 //   hammer    a half-sine force pulse. A hard blow is shorter (brighter, louder); the felt makes it longer in the bass and
 //             when `hard` is low. It enters the strings through a comb at the strike point, `pos` (a tenth of the string
 //             or so on a real piano), which takes out the harmonics that have a node there.
+//             The pulse is band-limited before it is sampled: each sample is the half-sine smoothed by a Hann kernel four samples
+//             wide (which has a null at the Nyquist frequency), so the short, hard blow of a high note does not alias. The
+//             smoothing delays the blow by two samples.
 //   strings   waveguides: a delay line the length of one period, a fractional-delay allpass to tune it exactly, a chain
 //             of allpasses that makes the high partials run slightly sharp (the stiffness of real strings, `inharm`),
 //             and a lowpass in the loop so the highs die first (`bright`). The strings of a note are detuned a little
@@ -68,6 +71,25 @@ const allpassDelay = (a, w) => {
   const num = Math.atan2(-Math.sin(w), a + Math.cos(w)), den = Math.atan2(-a * Math.sin(w), 1 + a * Math.cos(w));
   return -(num - den) / w;
 };
+
+// ---- the plain hammer pulse ------------------------------------------------------------------------------------------------
+// A half-sine of `length` samples (not a whole number), band-limited before it is sampled: the pulse is averaged against a Hann
+// kernel four samples wide, worked out at PULSE_OVERSAMPLE points per sample. The result is delayed by PULSE_DELAY samples
+// (half the kernel). `out` gets the samples and the return value is how many there are.
+const PULSE_OVERSAMPLE = 8, PULSE_DELAY = 2;
+function smoothPulse(out, length) {
+  const count = Math.min(PULSE_MAX, Math.ceil(length) + 2 * PULSE_DELAY);
+  for (let k = 0; k < count; k++) {
+    const centre = k - PULSE_DELAY;
+    let sum = 0;
+    for (let m = 0; m < 4 * PULSE_OVERSAMPLE; m++) {
+      const u = (m + 0.5) / PULSE_OVERSAMPLE - 2, t = centre + u;
+      if (t >= 0 && t < length) sum += Math.sin(Math.PI * t / length) * 0.25 * (1 + Math.cos(Math.PI * u / 2));
+    }
+    out[k] = sum / PULSE_OVERSAMPLE;
+  }
+  return count;
+}
 
 // ---- the felt hammer -------------------------------------------------------------------------------------------------------
 // The mass of the hammer (kg) by MIDI note, from measurements of grand pianos.
@@ -159,6 +181,8 @@ export default {
     // the felt hammer's pulse, the scratch space for finding its stiffness, and the damper's tick
     const pulse = new Float64Array(PULSE_MAX), scratch = new Float64Array(PULSE_MAX);
     let pulseLen = 0, pulseAmp = 0, felt = 0;
+    const plainPulse = new Float64Array(PULSE_MAX), blowPulse = new Float64Array(PULSE_MAX);   // the plain hammer's pulse, and the layered treble blow's
+    let plainLen = 0, blowLen = 0;
     let Lr = 0, ampR = 0, strikeLp = 0, strikeCoef = 1;   // the layered treble blow: its length, its height, and the lowpass that follows the key
     let knockEnv = 0, knockAmp = 0, knockLp = 0;
     let muffleEnv = 0, muffleState = 0, muffleDecay = 0, scatterLp = 0, scatterSeed = 0;   // the attack lowpass: its openness envelope and its state
@@ -249,7 +273,8 @@ export default {
       Lr = Math.max(4, Math.min(TcR * fs, 0.5 * fs / fR));
       ampR = g('strike') * clamp((STRIKE_NOTE - midi) / 48, 0, 1) * 0.5 * amp * Lc / Lr;
       strikeCoef = 1 - Math.exp(-2 * Math.PI * clamp(f0 * 8, 500, 12000) / fs); strikeLp = 0;
-      k = 0; strikeEnd = Math.max(Lc, pulseLen) + dpos + 1;
+      plainLen = smoothPulse(plainPulse, Lc); blowLen = ampR > 0 ? smoothPulse(blowPulse, Lr) : 0;
+      k = 0; strikeEnd = Math.max(plainLen, pulseLen, blowLen) + dpos + 1;
       boardDecayStrike();
       knockEnv = 0; knockLp = 0; muffleEnv = 1; muffleState = 0; scatterLp = 0; scatterSeed = 0x1b873593; muffleDecay = Math.exp(-1 / (0.025 * fs));
       knockAmp = g('knock') * vm * vm * 0.08;
@@ -277,13 +302,13 @@ export default {
         let peak = 0;
         for (let i = 0; i < n; i++) {
           // the hammer: a half-sine pulse, entering through the strike-point comb
-          const e = k < strikeEnd ? (k >= 0 && k < Lc ? Math.sin(Math.PI * k / Lc) : 0) - (k - dpos >= 0 && k - dpos < Lc ? Math.sin(Math.PI * (k - dpos) / Lc) : 0) : 0;
+          const e = k < strikeEnd ? (k < plainLen ? plainPulse[k] : 0) - (k - dpos >= 0 && k - dpos < plainLen ? plainPulse[k - dpos] : 0) : 0;
           k++;
           // the felt hammer's force through the same comb
           const ep = pulseLen === 0 ? 0 : (k - 1 < pulseLen ? pulse[k - 1] : 0) - (k - 1 - dpos >= 0 && k - 1 - dpos < pulseLen ? pulse[k - 1 - dpos] : 0);
           let drive = (1 - felt) * e * amp + felt * ep * pulseAmp;
           if (ampR > 0) {   // the layered blow: a short half-sine through the same comb, then the key's lowpass
-            const kr = k - 1, er = (kr >= 0 && kr < Lr ? Math.sin(Math.PI * kr / Lr) : 0) - (kr - dpos >= 0 && kr - dpos < Lr ? Math.sin(Math.PI * (kr - dpos) / Lr) : 0);
+            const kr = k - 1, er = (kr < blowLen ? blowPulse[kr] : 0) - (kr - dpos >= 0 && kr - dpos < blowLen ? blowPulse[kr - dpos] : 0);
             strikeLp += strikeCoef * (er * ampR - strikeLp); drive += strikeLp;
           }
           let sum = 0;

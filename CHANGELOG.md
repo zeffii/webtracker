@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 820 · 2026-11-20
+
+- **Piano: the hammer's transient no longer aliases on high notes.** The plain hammer pulse (and the `strike` layer's blow) is band-limited before it is sampled: it is averaged against a Hann kernel four samples wide, which has a null at the Nyquist frequency, so a short, hard blow keeps its sharpness but nothing folds back below. The blow now starts two samples later, and the highest notes sound a little less glassy. Native has it too.
+
 ## 819 · 2026-11-20
 
 - **Piano: `strike`.** The sharp hammer blow that notes high on the keyboard get is layered under the lower notes too, through the same strike point, softened by a lowpass that follows the key (dull on a low note, brighter on a middle one) and fading out towards the treble, where it is the blow already. It carries the same push as the note's own blow, only briefer, so the tone is kept and the front gets firmer. Default 0, so no existing sound changes. Native has it too (test song `pianostrike`).
