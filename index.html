@@ -1076,9 +1076,10 @@
     .curve-editor.drum2.khufu-panel > canvas, .ensemble-panel canvas { display: block; border: 0; background: none; cursor: default; }
     .itchan-panel canvas { display: block; border: 0; background: none; cursor: crosshair; max-width: 100%; }   /* the IT channel's sample area and envelopes (itchanview.js) */
     .itchan-lcd { display: flex; flex-direction: column; align-items: stretch; gap: .35rem; background: var(--lcd-bg, #3d5a99); color: var(--lcd-fg, #f2f6ff); padding: 4px; border-radius: 6px; box-shadow: inset 0 0 0 2px var(--lcd-edge, #2b4272); box-sizing: border-box; width: 672px; height: 368px; flex: none; overflow: hidden; outline: none; }   /* always this size: a window like an LCD's, 83 x 30 cells (itchanlayout.js) */
-    .itchan-lcd .itchan-stage { position: relative; width: 664px; height: 360px; font: 13px/12px var(--mono, ui-monospace, Consolas, monospace); }
+    .itchan-lcd .itchan-stage { position: relative; width: 664px; height: 360px; font: 11px/12px var(--mono, ui-monospace, Consolas, monospace); letter-spacing: .12em; }   /* 11px letters, spaced out to the 8px cell, so a letter is as tall as its row and as wide as its cell */
     .itchan-lcd .itchan-stage > * { box-sizing: border-box; overflow: hidden; }
     .itchan-lcd .itchan-cell { display: flex; flex-direction: column; white-space: pre; }
+    .itchan-lcd .prow > * { flex: none; }
     .itchan-lcd .prow { display: flex; margin: 0; gap: 4px; flex-wrap: nowrap; align-items: center; height: 12px; }
     .itchan-lcd label { display: inline-flex; align-items: center; gap: 2px; }
     .itchan-lcd input[type=checkbox] { width: 10px; height: 10px; margin: 0; }
@@ -1086,15 +1087,15 @@
     .itchan-lcd input[type=number] { -moz-appearance: textfield; }
     .itchan-lcd input[type=number]::-webkit-inner-spin-button { display: none; }
     .itchan-loaded { display: flex; flex-direction: column; overflow-y: auto; scrollbar-width: thin; }
-    .itchan-loaded-row { padding: 0 .4rem; cursor: pointer; white-space: pre; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+    .itchan-loaded-row { padding: 0 4px; height: 12px; flex: none; cursor: pointer; white-space: pre; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
     .itchan-loaded-row.on { background: var(--lcd-fg); color: var(--lcd-bg); }
-    .itchan-lcd select, .itchan-lcd input[type=number], .itchan-lcd button { font: 11px/10px var(--mono, ui-monospace, Consolas, monospace); height: 12px; padding: 0 2px; min-width: 0; width: auto; background: var(--lcd-field, #2f4a82); color: var(--lcd-fg, #f2f6ff); border: 1px solid var(--lcd-line, #9db2d9); border-radius: 2px; }
+    .itchan-lcd select, .itchan-lcd input[type=number], .itchan-lcd button { font: 10px/10px var(--mono, ui-monospace, Consolas, monospace); letter-spacing: 0; height: 12px; padding: 0 2px; box-sizing: border-box; min-width: 0; width: auto; background: var(--lcd-field, #2f4a82); color: var(--lcd-fg, #f2f6ff); border: 1px solid var(--lcd-line, #9db2d9); border-radius: 2px; }
     .itchan-lcd .itchan-head { display: flex; align-items: center; gap: 4px; z-index: 1; overflow: hidden; }
     .itchan-lcd .itchan-head .itchan-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: pre; }
     .itchan-lcd .itchan-swatch { margin-left: auto; width: 22px; height: 12px; padding: 0; border: 1px solid var(--lcd-line, #9db2d9); background: none; cursor: pointer; }
     .itchan-lcd .itchan-title { background: var(--lcd-fg, #f2f6ff); color: var(--lcd-bg, #3d5a99); }
     .itchan-lcd .itchan-fkeys { display: grid; grid-template-columns: repeat(8, 1fr); gap: 3px; }
-    .itchan-lcd .itchan-fkeys button { height: 100%; font-size: 12px; padding: 0; min-width: 0; background: none; text-align: center; cursor: pointer; }
+    .itchan-lcd .itchan-fkeys button { height: 100%; font-size: 11px; letter-spacing: .12em; padding: 0; min-width: 0; background: none; text-align: center; cursor: pointer; }
     .itchan-lcd .itchan-fkeys button:empty { visibility: hidden; }
     .itchan-lcd .itchan-fkeys button.on { background: var(--lcd-fg, #f2f6ff); color: var(--lcd-bg, #3d5a99); border-color: var(--lcd-fg, #f2f6ff); }
     .itchan-lcd .itchan-fkeys button.off { opacity: .5; }
@@ -1103,7 +1104,7 @@
     .itchan-panel .dim { opacity: .6; }
     .itchan-panel .off { opacity: .4; }   /* a part that belongs to something switched off */
     .itchan-panel .itchan-envlist { display: flex; flex-direction: column; gap: 0; white-space: pre; }
-    .itchan-panel .itchan-envrow { cursor: pointer; border-radius: 3px; display: grid; grid-template-columns: 1ch 6ch 2ch 5ch 5ch; align-items: center; column-gap: 4px; height: 12px; }
+    .itchan-panel .itchan-envrow { cursor: pointer; border-radius: 3px; display: grid; grid-template-columns: 8px 48px 16px 40px 40px; align-items: center; column-gap: 4px; height: 12px; }
     .itchan-panel .itchan-rate { display: flex; align-items: center; gap: .6ch; }
     .rotary-panel canvas { display: block; border: 0; background: none; }
     .rotary-switch { justify-content: center; gap: .1rem 1.6rem; max-width: 300px; margin-left: 0; }

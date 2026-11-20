@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 812 · 2026-11-20
+
+- **IT channel screen: letters fit their rows.** The text is 11px in 12px rows, spaced out to the 8px character cell, so a letter is as tall as its row and as wide as its cell and nothing is cut off. Menus and boxes are 10px in a 12px row and no longer shrink below their text.
+
 ## 811 · 2026-11-20
 
 - **The IT channel screen is laid out from your board.** No more pages: the waveform, the sample list, the loop and sustain rows, the instrument and its note actions, the envelope list, the edit mode, the rate, the function keys and the envelope graph are all on the one screen, each where you put it. Positions are in character cells in `src/graph/itchanlayout.js`, so moving something is a change of numbers there. I added three things the board left room for: the sustain pitch row under the sustain row, the rate row, and "plays" (the sample the instrument plays). The function keys are now vol, pan, pit, flt, loop, sust, zoom, bank.
