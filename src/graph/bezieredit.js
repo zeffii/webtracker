@@ -287,7 +287,16 @@ export function createBezierEditor({ doc = document, title, color, points, fallb
   let slots = Array.from({ length: SLOTS }, (_, i) => memory?.get()?.[i] ?? null), arming = false;
   const keep = () => { memory?.set(slots.map(x => (x ? x.map(p => ({ ...p })) : null))); };
   const slotButtons = [];
+  const memoryToggle = el('button', { className: 'dim', type: 'button', onclick: () => { hidden = !hidden; arming = false; try { localStorage.setItem(HIDE_KEY, hidden ? '1' : '0'); } catch { /* storage unavailable: the choice lasts until reload */ } showMemory(); } });
+  // the slots can be folded away; the label stays, with a count of what is stored, so it is clear they are hidden and can be revealed
+  const HIDE_KEY = 'wax.bezierMemoryHidden';
+  const readHidden = () => { try { return localStorage.getItem(HIDE_KEY) === '1'; } catch { return false; } };
+  let hidden = readHidden();
   const showMemory = () => {
+    const stored = slots.filter(Boolean).length;
+    memoryToggle.textContent = hidden ? `▸ memory (hidden, ${stored} stored)` : '▾ memory';
+    memoryToggle.title = hidden ? 'Show the memory slots' : 'Hide the memory slots';
+    for (const b of [storeButton, ...slotButtons]) if (b.style) b.style.display = hidden ? 'none' : '';
     storeButton.className = arming ? 'on' : ''; if (storeButton.style) storeButton.style.opacity = arming ? '1' : '0.7';
     slotButtons.forEach((b, i) => { b.textContent = slots[i] ? `${i + 1}•` : `${i + 1}`; b.title = arming ? `Store the drawing in slot ${i + 1}` : slots[i] ? `Recall slot ${i + 1}` : `Slot ${i + 1} is empty: press "store", then this`; });
   };
@@ -300,7 +309,7 @@ export function createBezierEditor({ doc = document, title, color, points, fallb
     }));
   }
   showMemory();
-  const memoryRow = el('div', { className: 'osc-wave-row' }, el('span', { textContent: 'memory ', className: 'dim' }), storeButton, ...slotButtons);
+  const memoryRow = el('div', { className: 'osc-wave-row' }, memoryToggle, storeButton, ...slotButtons);
   const shapes = el('div', { className: 'osc-wave-row' }, ...Object.keys(SHAPES).map(shape));
   const kinds = el('div', { className: 'osc-wave-row' },
     kindButton('sharp', 'sharp', 'The chosen anchor a corner (X)'), kindButton('smooth', 'smooth', 'Its handles stay in line (S)'), kindButton('equal', 'equal', 'In line and the same length, mirrored as you drag (E)'), kindButton('free', 'free', 'Each handle on its own (F, or Alt-drag a handle)'),

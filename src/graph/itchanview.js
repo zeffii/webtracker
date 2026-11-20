@@ -111,7 +111,11 @@ export function createItChanView({ doc = document, getData, setData, getSampleId
       sctx.globalAlpha = 0.16; sctx.fillStyle = forPage(colour, page); sctx.fillRect(xOf(loopInfo.start), lane, xOf(loopInfo.end) - xOf(loopInfo.start), 10);
       sctx.globalAlpha = 1; sctx.fillStyle = forPage(colour, page);
       for (const frame of [loopInfo.start, loopInfo.end]) sctx.fillRect(Math.round(xOf(frame)) - 1, 0, 2, SH);
-      if (loopInfo.xfade > 0) { sctx.globalAlpha = 0.5; sctx.fillRect(xOf(loopInfo.start) - 0, lane + 10, xOf(loopInfo.start + loopInfo.xfade) - xOf(loopInfo.start), 3); }
+      if (loopInfo.xfade > 0) {   // the crossfade: the audio just before the loop start (source) is blended over the last frames before the loop end
+        const seam = frame => [xOf(frame - loopInfo.xfade), xOf(frame)];
+        for (const frame of [loopInfo.start, loopInfo.end]) { const [x0, x1] = seam(frame); sctx.globalAlpha = 0.35; sctx.fillRect(x0, 0, Math.max(2, x1 - x0), SH); sctx.globalAlpha = 0.9; sctx.fillRect(x0, lane + 10, Math.max(2, x1 - x0), 3); }
+        sctx.globalAlpha = 0.9; sctx.textAlign = 'right'; sctx.fillText(`xfade ${Math.round(loopInfo.xfade)}`, xOf(loopInfo.end) - 3, lane + 15);
+      }
     };
     band(loop, BLUE, 1); band(sus, ORANGE, 14);
     sctx.globalAlpha = 1; sctx.fillStyle = page;

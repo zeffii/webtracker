@@ -2,6 +2,11 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 795 · 2026-11-20
+
+- **Bezier editors: the memory slots can be hidden.** Press the "memory" label to fold the store button and the eight slots away; the label then reads "memory (hidden, N stored)" so you can see they are there, and pressing it again reveals them. The choice is remembered.
+- **IT channel: the crossfade is shown while you set it.** Both ends of the seam get a shaded band as wide as the crossfade (the audio before the loop start, and the last frames before the loop end), with its width in frames written beside it.
+
 ## 794 · 2026-11-20
 
 - **IT channel: a wider sample area, stretchable, with a playhead for every sounding note.** The waveform is now twice as wide by default (760 px), and its bottom-right corner can be dragged to stretch it in both directions; the size is remembered. While the panel is on screen the node reports where each sounding note is in its bank sample, and each gets a playhead of its own vivid colour (a new colour for every note, spread round the hue wheel), so overlapping notes and notes left ringing by the new-note action can be followed. The node only reports while a panel asks (once a second), so a closed panel costs nothing.
