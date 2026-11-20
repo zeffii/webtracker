@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 790 · 2026-11-20
+
+- **Piano: a felt hammer, a soundboard and a damper tick.** Three new settings, all off by default so existing songs sound the same. `felt` swaps the fixed hammer pulse for physics: a mass on a nonlinear felt spring (force grows as compression to the power 2.5 to 3.3), so a hard blow is shorter and sharper and the tone brightens, not just the level (between a soft and a full blow the top end now rises by about 10 dB instead of 4). The loudest blow is still as loud as before. `board` adds the soundboard as 32 short, damped resonances from 90 Hz to 5 kHz; `quality` 1 (eco) uses 12 of them. `knock` is the damper felt's soft tick when a key comes up. Smoke test covers the touch, level, soundboard and tick.
+
 ## 789 · 2026-11-20
 
 - **IT channel: a sustain loop is on unless the sample says otherwise**, as the loop already was (`susOn` absent now counts as on, matching the native port).

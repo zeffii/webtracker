@@ -7177,6 +7177,28 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     const a = render(note, 1, 1, p).l;
     assert.ok(a.every(v => Number.isFinite(v) && Math.abs(v) < 4), `note ${note} stays finite with ${JSON.stringify(p)}`);
   }
+  // the felt hammer: a harder blow is brighter by more than the plain pulse manages, and the loudest blow stays as loud
+  {
+    const highShare = (a, n = 4096) => {   // dB of the sound above 1.5 kHz against below it, in the first 4096 samples
+      let lo = 0, hi = 0;
+      for (let f = 100; f < 16000; f *= 1.04) { let re = 0, im = 0; for (let i = 0; i < n; i++) { const x = a[i] * (0.5 - 0.5 * Math.cos(2 * Math.PI * i / n)); re += x * Math.cos(2 * Math.PI * f * i / sr); im += x * Math.sin(2 * Math.PI * f * i / sr); } const m = re * re + im * im; if (f < 1500) lo += m; else hi += m; }
+      return 10 * Math.log10(hi / lo);
+    };
+    const rise = felt => highShare(render(60, 1, 0.2, { felt }).l) - highShare(render(60, 0.2, 0.2, { felt }).l);
+    assert.ok(rise(1) > rise(0) + 3, 'with the felt model a hard blow is much brighter, not just louder');
+    const a = rms(render(60, 1, 0.4, { felt: 1 }).l, 0, 4410), b = rms(render(60, 1, 0.4, { felt: 0 }).l, 0, 4410);
+    assert.ok(a > 0.6 * b && a < 1.6 * b, 'the felt hammer is about as loud as the plain pulse at full velocity');
+    assert.ok(rms(render(60, 1, 0.4, { felt: 1 }).l, 0, 4410) > 1.8 * rms(render(60, 0.2, 0.4, { felt: 1 }).l, 0, 4410), 'the felt hammer has a touch');
+    // the soundboard changes the tone and stays quiet when off; eco is nearly the same sound
+    const plain = render(60, 0.8, 0.5, { felt: 1 }).l, wood = render(60, 0.8, 0.5, { felt: 1, board: 1 }).l, eco = render(60, 0.8, 0.5, { felt: 1, board: 1, quality: 1 }).l;
+    assert.ok(wood.every(Number.isFinite) && eco.every(Number.isFinite), 'the soundboard stays finite');
+    assert.ok(plain.some((v, i) => Math.abs(v - wood[i]) > 1e-3), 'the soundboard is heard');
+    assert.ok(rms(eco, 0, 4410) > 0.5 * rms(wood, 0, 4410) && rms(eco, 0, 4410) < 2 * rms(wood, 0, 4410), 'eco is about as loud as standard');
+    // the damper's tick: something is heard right after the key comes up that is not there without it
+    const quiet = render(60, 1, 1, { knock: 0 }, 0.5).l, ticked = render(60, 1, 1, { knock: 1 }, 0.5).l;
+    const at = Math.round(0.5 * sr), len = Math.round(0.015 * sr);
+    assert.ok(rms(ticked, at, at + len) > rms(quiet, at, at + len) + 1e-4, 'the damper ticks on note off');
+  }
 }
 
 // Adding a node that is not wired to anything must not reload (and so cut) the running instrument

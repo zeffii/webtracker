@@ -13,6 +13,15 @@
 //   damper    note off lets the damper fall on the strings, over `release` ms, unless the pedal is down. `pedal` is a
 //             switch (0.5 and up is down) so a pattern column can play it; strings of released notes ring on while it is.
 //
+//   felt      the hammer as physics instead of a fixed pulse: a mass on a nonlinear felt spring (force grows as compression to
+//             the power 2.5 to 3.3) pressing on a string that gives way as it is struck. A hard blow squeezes the felt more,
+//             so the contact is shorter and the pulse sharper, and the sound brighter, not just louder. 0 is the plain pulse
+//             above, 1 is all physics; in between mixes them.
+//   board     the soundboard as a set of short, damped resonances from 90 Hz up to 5 kHz (32 of them, 12 at quality eco),
+//             which give the sound the density of a wooden plate. 0 leaves them out.
+//   knock     the felt of the damper landing on the strings when a key comes up (a soft noise tick). 0 leaves it out.
+//   quality   0 standard, 1 eco (fewer soundboard resonances; the sound is otherwise the same).
+//
 // Monophonic like the other synths: the voices node gives each key its own copy.
 const SPEC = [
   { name: 'decay', min: 0.5, max: 40, def: 9 },          // seconds for the after sound to fall 60 dB at middle C (bass rings longer, treble shorter)
@@ -30,6 +39,10 @@ const SPEC = [
   { name: 'tune', min: -48, max: 48, def: 0 },
   { name: 'vel', min: 0, max: 1, def: 0.7 },
   { name: 'level', min: 0, max: 1, def: 0.5 },
+  { name: 'felt', min: 0, max: 1, def: 0 },              // 0: the plain half-sine pulse, 1: the felt hammer model
+  { name: 'board', min: 0, max: 1, def: 0 },             // the soundboard's resonances
+  { name: 'knock', min: 0, max: 1, def: 0 },             // the damper's tick on note off
+  { name: 'quality', min: 0, max: 1, def: 0, int: true },   // 0 standard, 1 eco
 ];
 const P = {};
 SPEC.forEach((s, i) => { P[s.name] = i; });
@@ -42,6 +55,68 @@ const allpassDelay = (a, w) => {
   const num = Math.atan2(-Math.sin(w), a + Math.cos(w)), den = Math.atan2(-a * Math.sin(w), 1 + a * Math.cos(w));
   return -(num - den) / w;
 };
+
+// ---- the felt hammer -------------------------------------------------------------------------------------------------------
+// The mass of the hammer (kg) by MIDI note, from measurements of grand pianos.
+const HAMMER_MASS = [[21, 9e-3], [48, 5.5e-3], [60, 4e-3], [84, 2.8e-3], [108, 2e-3]];
+const PULSE_MAX = 4096;       // the longest pulse kept, in samples
+const SUBSTEPS = 8;           // the hammer is stepped this many times per sample, so the stiff felt stays stable
+const HAMMER_SPEED = 3;       // m/s at velocity 1
+
+function lookup(table, x) {
+  if (x <= table[0][0]) return table[0][1];
+  for (let i = 1; i < table.length; i++) {
+    if (x <= table[i][0]) { const [x0, y0] = table[i - 1], [x1, y1] = table[i]; return y0 + (y1 - y0) * (x - x0) / (x1 - x0); }
+  }
+  return table.at(-1)[1];
+}
+
+// Run the hammer into the string. `out` gets the force on the string at each sample (N); the return value is the number of
+// samples of contact and `seconds` the contact time. The string is taken as rigid for the length of the blow: the felt is the
+// only spring, and the string's own answer (the waves coming back from its ends) is left to the string model that follows.
+function hammerPulse(out, fs, speed, mass, K, p, limit) {
+  const dt = 1 / (fs * SUBSTEPS);
+  let x = 0, v = speed, steps = 0, started = false, k = 0;
+  const cap = Math.min(PULSE_MAX, limit);
+  for (; k < cap; k++) {
+    let sum = 0;
+    for (let s = 0; s < SUBSTEPS; s++) {
+      const force = x > 0 ? K * Math.pow(x, p) : 0;
+      v -= force / mass * dt;
+      x += v * dt;
+      sum += force;
+      steps++;
+      if (force > 0) started = true;
+      else if (started) { out[k] = sum / SUBSTEPS; return { length: k + 1, seconds: steps * dt }; }
+    }
+    out[k] = sum / SUBSTEPS;
+  }
+  return { length: cap, seconds: steps * dt };
+}
+
+// The felt stiffness that gives a contact of `seconds` for a blow at `speed` (it is found by bisection on its logarithm, the
+// contact getting shorter as the felt gets stiffer).
+function stiffnessFor(scratch, fs, speed, mass, p, seconds) {
+  let lo = Math.log(1e6), hi = Math.log(1e13);
+  for (let it = 0; it < 40; it++) {
+    const mid = 0.5 * (lo + hi);
+    const got = hammerPulse(scratch, fs, speed, mass, Math.exp(mid), p, PULSE_MAX).seconds;
+    if (got > seconds) lo = mid; else hi = mid;
+  }
+  return Math.exp(0.5 * (lo + hi));
+}
+
+// The soundboard: modal resonances, spread up the spectrum (frequency, Q and gain are fixed by the index, so every note
+// has the same board).
+const BOARD_MODES = 32;
+function boardMode(j, count, fs) {
+  const t = j / (count - 1);
+  const f = Math.min(0.45 * fs, 90 * Math.pow(5000 / 90, t) * (1 + 0.05 * Math.sin(j * 2.7)));
+  const q = 22 + 14 * Math.sin(j * 1.3 + 0.5) + 30 * (1 - t);
+  const gain = Math.pow(f / 200, -0.4) * (0.65 + 0.35 * Math.cos(j * 1.7));
+  const w0 = 2 * Math.PI * f / fs, al = Math.sin(w0) / (2 * q), a0 = 1 + al;
+  return { b0: al / a0, b2: -al / a0, a1: -2 * Math.cos(w0) / a0, a2: (1 - al) / a0, gain, x1: 0, x2: 0, y1: 0, y2: 0 };
+}
 
 export default {
   type: 'piano',
@@ -68,6 +143,12 @@ export default {
     let seed = 0x2545f491;
     const rand = () => { seed ^= seed << 13; seed ^= seed >>> 17; seed ^= seed << 5; return (seed >>> 0) / 4294967296 * 2 - 1; };
     let quiet = 0, panL = 1, panR = 1;
+    // the felt hammer's pulse, the scratch space for finding its stiffness, and the damper's tick
+    const pulse = new Float64Array(PULSE_MAX), scratch = new Float64Array(PULSE_MAX);
+    let pulseLen = 0, pulseAmp = 0, felt = 0;
+    let knockEnv = 0, knockAmp = 0, knockLp = 0;
+    const board = Array.from({ length: BOARD_MODES }, (_, j) => boardMode(j, BOARD_MODES, fs));
+    const boardDecayStrike = () => { for (const m of board) m.x1 = m.x2 = m.y1 = m.y2 = 0; };
 
     // the body: three resonant bandpass filters (RBJ, constant 0 dB peak gain), run on the sum of the strings
     const bq = [[95, 4], [230, 5], [540, 4]].map(([f, q]) => {
@@ -128,7 +209,28 @@ export default {
       dpos = Math.max(1, Math.round(g('pos') * fs / f0));
       const vm = 1 - g('vel') + g('vel') * v;
       amp = vm * vm * 0.5 * Math.min(1, fs / f0 / Lc) * Math.pow(2, -pf * 0.4) * NORM(pf);
-      k = 0; strikeEnd = Lc + dpos + 1;
+      felt = g('felt');
+      pulseLen = 0;
+      if (felt > 0) {
+        // the felt hammer: stiffness is found so that a middling blow lasts as long as the plain pulse's would, then a
+        // harder or softer blow, felt, and string change it from there
+        const mass = lookup(HAMMER_MASS, midi);
+        const p = 2.5 + 0.8 * pf, vm1 = 1;
+        const TcAt = (vel, h) => 0.0032 * Math.pow(f0 / 65.4, -0.45) * (0.6 + 0.9 * (1 - h)) * (1.15 - 0.5 * vel);
+        const K = stiffnessFor(scratch, fs, 0.7 * HAMMER_SPEED, mass, p, 0.75 * TcAt(0.7, 0.5)) * Math.exp(3.66 * (hard - 0.5));
+        const now = hammerPulse(pulse, fs, vm * HAMMER_SPEED, mass, K, p, PULSE_MAX);
+        const ref = hammerPulse(scratch, fs, vm1 * HAMMER_SPEED, mass, K, p, PULSE_MAX);
+        let refSum = 0; for (let i = 0; i < ref.length; i++) refSum += scratch[i];
+        // the loudest blow is as loud as the plain pulse's loudest, so switching `felt` on changes the touch, not the level
+        const Lc1 = Math.max(4, Math.min(TcAt(1, hard) * fs, 0.5 * fs / f0));
+        const oldImpulse = Math.min(1, fs / f0 / Lc1) * Lc1 * 2 / Math.PI;
+        pulseLen = now.length;
+        pulseAmp = 0.35 * Math.pow(2, -pf * 0.4) * NORM(pf) * oldImpulse / refSum * Math.pow(vm, 0.6);   // the impulse already grows with the blow; this widens the touch a little more
+      }
+      k = 0; strikeEnd = Math.max(Lc, pulseLen) + dpos + 1;
+      boardDecayStrike();
+      knockEnv = 0; knockLp = 0;
+      knockAmp = g('knock') * vm * vm * 0.08;
       thumpEnv = 1; thumpDecay = Math.exp(-1 / (0.012 * fs)); thumpAmp = g('thump') * vm * vm * 0.5;
       const pos = 0.5 + (pf - 0.5) * g('width');
       panL = Math.cos(pos * Math.PI / 2) * Math.SQRT2; panR = Math.sin(pos * Math.PI / 2) * Math.SQRT2;
@@ -146,14 +248,18 @@ export default {
         if (!active) { outL.fill(0, 0, n); outR.fill(0, 0, n); return; }
         const g = name => params[slots[P[name]]];
         if (pending) { pending = false; strike(g, pitchOn ? inputs[0][0] : 0); }
-        if (keyUp && !damped && g('pedal') < 0.5) damped = true;   // the damper falls, or the pedal comes up
+        if (keyUp && !damped && g('pedal') < 0.5) { damped = true; knockEnv = 1; }   // the damper falls, or the pedal comes up
         const level = g('level') * 2, body = g('body');
+        const boardAmount = g('board'), modes = g('quality') >= 0.5 ? 12 : BOARD_MODES, stride = BOARD_MODES / modes;
         for (let s = 0; s < ns; s++) gs[s] = loop[s] * (damped ? damp[s] : 1);
         let peak = 0;
         for (let i = 0; i < n; i++) {
           // the hammer: a half-sine pulse, entering through the strike-point comb
           const e = k < strikeEnd ? (k >= 0 && k < Lc ? Math.sin(Math.PI * k / Lc) : 0) - (k - dpos >= 0 && k - dpos < Lc ? Math.sin(Math.PI * (k - dpos) / Lc) : 0) : 0;
           k++;
+          // the felt hammer's force through the same comb
+          const ep = pulseLen === 0 ? 0 : (k - 1 < pulseLen ? pulse[k - 1] : 0) - (k - 1 - dpos >= 0 && k - 1 - dpos < pulseLen ? pulse[k - 1 - dpos] : 0);
+          const drive = (1 - felt) * e * amp + felt * ep * pulseAmp;
           let sum = 0;
           for (let s = 0; s < ns; s++) {
             const b = buf[s];
@@ -165,20 +271,31 @@ export default {
             }
             lp[s] = (1 - lc[s]) * x + lc[s] * lp[s];     // the highs die first
             sum += lp[s] * weight[s];
-            b[w & MASK] = lp[s] * gs[s] + e * amp * weight[s];
+            b[w & MASK] = lp[s] * gs[s] + drive * weight[s];
           }
           w = (w + 1) & MASK;
           // the thump of the hammer on the keybed: lowpassed noise that dies in about 12 ms
           thumpLp += 0.35 * (rand() - thumpLp);
           const t = thumpLp * thumpEnv * thumpAmp; thumpEnv *= thumpDecay;
-          const dry = sum + t;
+          // the damper's tick: softer, shorter noise than the hammer's thump
+          let tick = 0;
+          if (knockEnv > 1e-4) { knockLp += 0.5 * (rand() - knockLp); tick = knockLp * knockEnv * knockAmp; knockEnv *= 0.9965; }
+          const dry = sum + t + tick;
           let resonance = 0;
           for (let r = 0; r < 3; r++) {
             const f = bq[r], out = f.b0 * dry + f.b2 * f.x2 - f.a1 * f.y1 - f.a2 * f.y2;
             f.x2 = f.x1; f.x1 = dry; f.y2 = f.y1; f.y1 = out;
             resonance += out * bodyGain[r];
           }
-          const m = (dry + body * resonance * 2) * level;
+          let wood = 0;
+          if (boardAmount > 0) {
+            for (let j = 0; j < modes; j++) {
+              const f = board[Math.floor(j * stride)], out = f.b0 * dry + f.b2 * f.x2 - f.a1 * f.y1 - f.a2 * f.y2;
+              f.x2 = f.x1; f.x1 = dry; f.y2 = f.y1; f.y1 = out;
+              wood += out * f.gain;
+            }
+          }
+          const m = (dry + body * resonance * 2 + boardAmount * wood) * level;
           outL[i] = m * panL; outR[i] = m * panR;
           const a = Math.abs(m); if (a > peak) peak = a;
         }
