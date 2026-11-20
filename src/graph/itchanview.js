@@ -135,8 +135,11 @@ export function createItChanView({ doc = document, getData, setData, getSampleId
     for (const [uid, head] of heads) {
       if (head.slot !== slot || head.frame < window_[0] || head.frame > window_[1]) continue;
       const x = Math.round(xOf(head.frame));
-      sctx.fillStyle = headColour(uid); sctx.fillRect(x - 1, 0, 2, SH);
-      sctx.beginPath(); sctx.moveTo(x - 5, 0); sctx.lineTo(x + 5, 0); sctx.lineTo(x, 7); sctx.fill();
+      // the height of the playhead is the note's volume from its envelope and fadeout: a faint full-height line, the level drawn over it from the bottom
+      const top = SH - Math.max(2, Math.min(1, head.level) * SH);
+      sctx.fillStyle = headColour(uid); sctx.globalAlpha = 0.25; sctx.fillRect(x, 0, 1, SH);
+      sctx.globalAlpha = 1; sctx.fillRect(x - 1, top, 2, SH - top);
+      sctx.beginPath(); sctx.moveTo(x - 5, top); sctx.lineTo(x + 5, top); sctx.lineTo(x, top + 7); sctx.fill();
     }
   }
 
@@ -306,7 +309,7 @@ export function createItChanView({ doc = document, getData, setData, getSampleId
   // what the node reports: where each sounding note is. The panel asks for the reports again every second while it is on the page.
   const feed = msg => {
     heads.clear();
-    for (const [uid, headSlot, frame] of msg.heads ?? []) heads.set(uid, { slot: headSlot, frame });
+    for (const [uid, headSlot, frame, level = 1] of msg.heads ?? []) heads.set(uid, { slot: headSlot, frame, level });
     drawSample();
   };
   const heartbeat = () => { watch(); const timer = doc.defaultView?.setInterval?.(() => { if (!el.isConnected) doc.defaultView.clearInterval(timer); else watch(); }, 1000); };

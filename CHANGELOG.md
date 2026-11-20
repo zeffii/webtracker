@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 801 · 2026-11-20
+
+- **IT channel: a playhead's height is the note's volume.** The bar rises from the bottom of the waveform to the level the volume envelope and fadeout give the note, with a faint full-height line behind it.
+
 ## 800 · 2026-11-20
 
 - **IT channel: a loop can be slid.** Press on a loop's own band (the blue or orange strip along the top, between its two markers) and drag: both points move together and the loop keeps its length, stopping at the edges of the stretch.

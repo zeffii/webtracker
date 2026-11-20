@@ -608,7 +608,7 @@ export default {
           if (sinceReport >= 1024) {   // about every 23 ms: where each sounding voice is in its bank sample
             sinceReport = 0;
             const heads = [];
-            for (const v of [host, ...back]) if (v.active && v.uid && bank[v.slot]) heads.push([v.uid, v.slot, v.pos + bank[v.slot].offset]);
+            for (const v of [host, ...back]) if (v.active && v.uid && bank[v.slot]) heads.push([v.uid, v.slot, v.pos + bank[v.slot].offset, v.envVol / 64 * v.fadeVol / FADE_FULL]);   // and the level the envelope and fadeout give it
             emit({ type: 'heads', heads });
           }
         }
