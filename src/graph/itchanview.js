@@ -14,9 +14,8 @@ import {
 // The instrument side picks an instrument and draws its volume, panning and pitch envelopes: click empty space for a point, drag a point,
 // double-click it to remove it. "Loop" and "Sustain" modes mark a range of points by clicking two of them. Pitch can be set to move the
 // filter cutoff instead (the IT filter envelope).
-const DEFAULT_SW = 760, DEFAULT_SH = 150, EW = 640, EH = 176, PL = 6, PR = 6;
-const SIZE_KEY = 'wax.itchanSampleSize';   // the sample area's size, as dragged
-let SW = DEFAULT_SW, SH = DEFAULT_SH;
+const SW = 640, SH = 204, EW = 640, EH = 176, PL = 6, PR = 6;
+// The screen is one size, whatever page is showing or whether anything is on it (see .itchan-lcd in index.html): a window like an LCD's.
 const GRAB = 7;
 const BLUE = '#9fefff', ORANGE = '#ffd86b';   // loop and sustain on the panel's blue screen: cyan and yellow
 const PAGES = [['smpl', 'SAMPLE'], ['ins', 'INSTRUMENT'], ['env', 'ENVELOPES']];
@@ -58,31 +57,10 @@ export function createItChanView({ getTiming = () => null, doc = document, getDa
   };
 
   // ---- the sample area ----------------------------------------------------------------------------------------------------
-  try { const saved = JSON.parse(localStorage.getItem(SIZE_KEY) ?? 'null'); if (saved) { SW = clamp(saved[0], 240, 2400); SH = clamp(saved[1], 90, 600); } } catch { /* no storage, or nothing saved */ }
   const sampleSide = make('div', { className: 'itchan-side' });
   const { canvas: sampleCanvas, ctx: sctx, ink: sink } = makeCanvas(doc, SW, SH, 'itchan-sample');
   const sampleControls = make('div', { className: 'itchan-controls' });
-  const grip = make('div', { className: 'itchan-grip', title: 'Drag to stretch the sample area' });
-  const sampleBox = make('div', { className: 'itchan-samplebox' }, sampleCanvas, grip);
-  sampleSide.append(sampleBox, sampleControls);
-  // The sample area can be stretched by its corner; the size is kept for next time.
-  const resizeSample = (w, h) => {
-    SW = clamp(Math.round(w), 240, 2400); SH = clamp(Math.round(h), 90, 600);
-    const dpr = Math.max(1, Math.min(3, typeof devicePixelRatio === 'number' ? devicePixelRatio : 1));
-    sampleCanvas.width = SW * dpr; sampleCanvas.height = SH * dpr;
-    if (sampleCanvas.style) Object.assign(sampleCanvas.style, { width: `${SW}px`, height: `${SH}px` });
-    sctx?.setTransform(dpr, 0, 0, dpr, 0, 0);
-    if (sampleControls.style) sampleControls.style.width = `${SW}px`;
-    peakCache = null; drawSample();
-  };
-  grip.addEventListener('pointerdown', e => {
-    const x0 = e.clientX, y0 = e.clientY, w0 = SW, h0 = SH;
-    grip.setPointerCapture?.(e.pointerId); e.preventDefault();
-    const move = m => resizeSample(w0 + m.clientX - x0, h0 + m.clientY - y0);
-    const up = () => { grip.removeEventListener('pointermove', move); grip.removeEventListener('pointerup', up); try { localStorage.setItem(SIZE_KEY, JSON.stringify([SW, SH])); } catch { /* no storage */ } };
-    grip.addEventListener('pointermove', move); grip.addEventListener('pointerup', up);
-  });
-  if (sampleControls.style) sampleControls.style.width = `${SW}px`;
+  sampleSide.append(sampleCanvas, sampleControls);
   let peakCache = null;   // the waveform's columns, kept while the sample, the stretch on show and the width stay the same
   const heads = new Map();   // the playheads: note number -> { slot, frame }, as the node last reported them
 
@@ -104,7 +82,7 @@ export function createItChanView({ getTiming = () => null, doc = document, getDa
     const page = sink(), bank = bankOf(), data = getData();
     sctx.clearRect(0, 0, SW, SH);
     sctx.font = '10px ui-monospace, Consolas, monospace'; sctx.textBaseline = 'top'; sctx.textAlign = 'left';
-    if (!bank) { sctx.fillStyle = page; sctx.globalAlpha = 0.6; sctx.fillText('No sample in this slot: add one to the list above.', PL, 6); sctx.globalAlpha = 1; return; }
+    if (!bank) { sctx.fillStyle = page; sctx.globalAlpha = 0.6; sctx.fillText('No sample in this slot: add one in the Samples Loaded list.', PL, 6); sctx.globalAlpha = 1; return; }
     const length = bank.data.length, proxy = proxyOf(data, slot), [a, b] = rangeOf(proxy, length), { loop, sus } = loopsOf(bank, proxy);
     window_ = zoom ? [Math.max(0, a - (b - a) * 0.05), Math.min(length, b + (b - a) * 0.05)] : [0, length];
     const mid = SH / 2, tall = SH / 2 - 14, width = SW - PL - PR;
@@ -187,8 +165,6 @@ export function createItChanView({ getTiming = () => null, doc = document, getDa
     const ids = getSampleIds(), bank = bankOf(), data = getData();
     if (!ids.length) return;
     slot = clamp(slot, 0, ids.length - 1);
-    const picker = select(ids.map((id, i) => [i, `${i.toString(16).toUpperCase().padStart(2, '0')} ${id}`]), slot, v => { slot = Number(v); refresh(); }, 'The sample slot: the one a Smp value or instrument picks');
-    sampleControls.append(row(picker));   // zoom and Bank are function keys now
     if (!bank) return;
     const { loop, sus } = loopsOf(bank, proxyOf(data, slot));
     const frames = n => String(Math.round(n)).padStart(4, '0');
@@ -431,6 +407,7 @@ export function createItChanView({ getTiming = () => null, doc = document, getDa
     for (const [id, pageEl] of Object.entries(pageEls)) pageEl.style.display = id === page ? '' : 'none';
     const data = getData(), hasIns = Array.isArray(data?.ins) && data.ins.length > 0;
     head.replaceChildren(make('span', { className: 'itchan-title', textContent: ` ${PAGES.find(([id]) => id === page)[1]} ` }));
+    if (page === 'smpl') { const ids = getSampleIds(); if (ids.length) head.append(make('span', { textContent: ` ${clamp(slot, 0, ids.length - 1).toString(16).toUpperCase().padStart(2, '0')} ${ids[clamp(slot, 0, ids.length - 1)]}` })); }
     if (page !== 'smpl' && hasIns) {
       head.append(make('span', { textContent: ' ins ' }), select(data.ins.map((_, i) => [i, `${(i + 1).toString(16).toUpperCase().padStart(2, '0')}`]), insIndex, v => { insIndex = Number(v); pending = null; refresh(); }, 'The instrument: the Ins value of a cell, 01 being the first'));
     }
@@ -446,9 +423,20 @@ export function createItChanView({ getTiming = () => null, doc = document, getDa
     const n = /^F([1-8])$/.exec(e.key)?.[1]; if (!n || e.ctrlKey || e.altKey || e.metaKey) return;
     e.preventDefault(); e.stopPropagation(); keyDefs()[Number(n) - 1]?.act?.();
   });
-  el.append(head, sampleSide, insSide, envSide, fkeys);
-  function refresh() { renderScreen(); sampleControlsRow(); insControlsRow(); drawSample(); drawEnv(); }
+  const pages = make('div', { className: 'itchan-pages' }, sampleSide, insSide, envSide);
+  el.append(head, pages, fkeys);
+  // The samples this node plays, as a list for the browser's "Samples Loaded" division: the one chosen is the one the SAMPLE page shows.
+  const list = make('div', { className: 'itchan-loaded', tabIndex: 0 });
+  const renderList = () => {
+    const ids = getSampleIds();
+    list.replaceChildren(...(ids.length ? ids.map((id, i) => {
+      const row_ = make('div', { className: `itchan-loaded-row${i === slot ? ' on' : ''}`, textContent: `${i.toString(16).toUpperCase().padStart(2, '0')} ${id}`, title: 'Show this sample on the SAMPLE page' });
+      row_.addEventListener('mousedown', () => { slot = i; showPage('smpl'); });
+      return row_;
+    }) : [make('div', { className: 'dim', textContent: 'No samples: add one to the machine.' })]));
+  };
+  function refresh() { renderList(); renderScreen(); sampleControlsRow(); insControlsRow(); drawSample(); drawEnv(); }
   sampleDrag(); envDrag();
   refresh(); heartbeat();
-  return { el, refresh, feed, draw: () => { drawSample(); drawEnv(); } };
+  return { el, list, refresh, feed, draw: () => { drawSample(); drawEnv(); } };
 }

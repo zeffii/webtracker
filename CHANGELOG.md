@@ -2,6 +2,11 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 807 · 2026-11-20
+
+- **IT channel screen: one fixed size.** The panel is always 668 x 366 px, on every page and with nothing on it, so it no longer jumps about; the contents are laid out to fit it. (The corner handle for stretching the waveform is gone, since the window is now fixed.)
+- **Samples Loaded.** The list of the samples an IT channel plays moved out of the panel into the browser, under the instrument options, in a division of its own called "Samples Loaded". Click one to show it on the SAMPLE page (which also names it in its title bar).
+
 ## 806 · 2026-11-20
 
 - **IT channel panel: a screen with pages and function keys.** The panel is now white on blue, one page at a time, with a row of function keys along the bottom (F1 to F8 on the keyboard when the panel has focus, or press them). F1 to F3 pick the page: SAMPLE (the waveform, loop and sustain rows), INSTRUMENT (new note, duplicate check, fadeout) and ENVELOPES. The other keys act on the page and are lit while what they switch is on: loop, sust, zoom and bank on SAMPLE; new, dup, then and add on INSTRUMENT; vol, pan, pit (the chosen one underlined), rate and flt on ENVELOPES. The envelope page draws all of the instrument's envelopes in one graph, the chosen one bright and the others faint behind it, on one set of tick and time rulers, as wide as the waveform. Loop and sustain are cyan and yellow on the blue.

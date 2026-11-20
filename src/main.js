@@ -639,6 +639,7 @@ function hideHelp() { if (nodeHelp.hidden) return false; nodeHelp.hidden = true;
 $('node-help-close').addEventListener('click', hideHelp);
 const monoOf = new WeakMap();   // a stereo sample's one-channel mix, for the granular scope
 const patcher = createPatcher({
+  loadedPanel: $('itchan-loaded'),
   onHelp: showHelp,
   // the song's tick, for the lines on time and rate sliders: how long it is, how many make a beat, whether to show them and snap to them
   getTiming: () => (project?.song ? { tickMs: 60000 / (project.song.bpm * project.song.ticksPerBeat), perBeat: project.song.ticksPerBeat, lines: config.get('tickLines'), snap: config.get('tickSnap') } : null),

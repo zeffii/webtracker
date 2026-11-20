@@ -1077,11 +1077,13 @@
     .itchan-panel canvas { display: block; border: 0; background: none; cursor: crosshair; max-width: 100%; }   /* the IT channel's sample area and envelopes (itchanview.js) */
     .itchan-panel .itchan-side { display: flex; flex-direction: column; gap: .3rem; }
     .itchan-panel .itchan-controls { display: flex; flex-direction: column; gap: .15rem; width: 640px; }
-    .itchan-panel .itchan-samplebox { position: relative; }
-    .itchan-panel .itchan-grip { position: absolute; right: 0; bottom: 0; width: 14px; height: 14px; cursor: nwse-resize; touch-action: none; background: linear-gradient(135deg, transparent 55%, currentColor 55%, currentColor 62%, transparent 62%, transparent 75%, currentColor 75%, currentColor 82%, transparent 82%); opacity: .5; }
-    .itchan-panel .itchan-grip:hover { opacity: 1; }
     .itchan-panel .itchan-controls .prow { margin: 0; gap: .35rem; flex-wrap: wrap; align-items: center; }
-    .itchan-lcd { display: flex; flex-direction: column; align-items: stretch; gap: .35rem; background: #2354d8; color: #f2f6ff; padding: .5rem .7rem .55rem; border-radius: 6px; box-shadow: inset 0 0 0 2px #1a3fa6; width: max-content; max-width: 100%; outline: none; }   /* the IT channel's screen: white on blue, one page at a time */
+    .itchan-lcd { display: flex; flex-direction: column; align-items: stretch; gap: .35rem; background: #2354d8; color: #f2f6ff; padding: .5rem .7rem .55rem; border-radius: 6px; box-shadow: inset 0 0 0 2px #1a3fa6; box-sizing: border-box; width: 668px; height: 366px; flex: none; overflow: hidden; outline: none; }   /* always this size: the pages change, the window does not */
+    .itchan-lcd .itchan-pages { flex: 1; min-height: 0; overflow: hidden; }
+    .itchan-lcd .itchan-fkeys { margin-top: auto; }
+    .itchan-loaded { display: flex; flex-direction: column; font-family: var(--mono, ui-monospace, Consolas, monospace); font-size: .78rem; max-height: 14rem; overflow-y: auto; }
+    .itchan-loaded-row { padding: 0 .4rem; cursor: pointer; white-space: pre; }
+    .itchan-loaded-row.on { background: #2354d8; color: #f2f6ff; }   /* the IT channel's screen: white on blue, one page at a time */
     .itchan-lcd select, .itchan-lcd input[type=number], .itchan-lcd button { background: #1b43b8; color: #f2f6ff; border: 1px solid #93abf0; border-radius: 2px; }
     .itchan-lcd .itchan-head { display: flex; align-items: center; gap: .3rem; font-family: var(--mono, ui-monospace, Consolas, monospace); font-size: .78rem; }
     .itchan-lcd .itchan-title { background: #f2f6ff; color: #2354d8; }
@@ -1806,6 +1808,10 @@
               </div>
               <div id="patch-tools"></div>
             </div>
+          </div>
+          <div class="rs-panel" id="itchan-loaded" hidden>
+          <h2>Samples Loaded</h2>
+          <div class="loaded-host"></div>
           </div>
           <div class="rs-panel">
           <h2>New instrument</h2>
