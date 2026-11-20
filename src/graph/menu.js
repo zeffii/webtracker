@@ -9,8 +9,8 @@ import { popups } from '../ui/kit/popups.js';
 // How the nodes of a category are grouped. A node that is not listed here still shows up, at the end of its category.
 const GROUPS = {
   Sources: [
-    ['Synths', ['subsynth', 'lone', 'pulsar', 'fourpole', 'oberheim', 'piano', 'addsynth', 'fmsynth', 'dvii', 'wavetable', 'granular', 'woodblock', 'jawharp', 'snarl', 'clang', 'membrane', 'drumsynth', 'drumsynth2', 'cardinal', 'specsynth', 'string', 'hat808', 'hat2', 'bongo', 'clap', 'combperc', 'squelch', 'duette', 'modchan', 'xmchan', 'itchan', 'westcoast', 'compass', 'khufu']],
-    ['Basic', ['osc', 'pulsetrain', 'waveseq', 'noise', 'sampler']],
+    ['Synths', ['subsynth', 'lone', 'pulsar', 'fourpole', 'oberheim', 'piano', 'addsynth', 'padsynth', 'fmsynth', 'dvii', 'wavetable', 'granular', 'woodblock', 'jawharp', 'snarl', 'clang', 'membrane', 'drumsynth', 'drumsynth2', 'cardinal', 'specsynth', 'string', 'hat808', 'hat2', 'bongo', 'clap', 'combperc', 'squelch', 'duette', 'modchan', 'xmchan', 'itchan', 'westcoast', 'compass', 'khufu']],
+    ['Basic', ['osc', 'spreadosc', 'pulsetrain', 'waveseq', 'noise', 'sampler']],
     ['Modulators', ['env', 'env2', 'lfo', 'random', 'vecpath']],
     ['Routing', ['sidechain', 'listen', 'bus-in']],
   ],

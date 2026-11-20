@@ -3,6 +3,7 @@ import { parseChordList } from '../src/nodeseq/nodes.js';
 import assert from 'node:assert/strict';
 import { ParamRegistry } from '../src/audio/params.js';
 import { NODE_TYPES } from '../src/audio/nodes/index.js';
+import { fftPlan } from '../src/audio/fft.js';
 import { GraphRuntime } from '../src/audio/runtime.js';
 import { compile } from '../src/graph/compile.js';
 import { samplerPreset } from '../src/presets.js';
@@ -12406,6 +12407,45 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   };
   assert.ok(worst(30) < worst(0), 'a jump in position is slewed with smooth on');
   console.log('ok: wavetable position smoothing');
+}
+
+// The pad synth and the spread oscillator: a note makes finite, stereo sound at the right pitch region, the table is kept between notes, a
+// narrow bandwidth is more tonal than a wide one, and width 0 is mono.
+{
+  const sr = 48000;
+  const play = (type, set, note = 57, blocks = 120) => {
+    const def = NODE_TYPES[type], slots = Int32Array.from(def.params.map((_, i) => i));
+    const node = def.create({ sampleRate: sr, connected: [] }), l = new Float32Array(128), r = new Float32Array(128);
+    const params = Float32Array.from(def.params.map(p => (p.name in set ? set[p.name] : p.def)));
+    node.note({ type: 'noteOn', note, vel: 1 });
+    const left = [], right = [];
+    for (let b = 0; b < blocks; b++) { node.process([], [[l, r]], 128, params, slots); left.push(...l); right.push(...r); }
+    return { left: Float64Array.from(left), right: Float64Array.from(right) };
+  };
+  const finite = a => a.every(Number.isFinite);
+  const pad = play('padsynth', { atk: 1 });
+  assert.ok(finite(pad.left) && finite(pad.right));
+  const peak = Math.max(...pad.left.map(Math.abs));
+  assert.ok(peak > 0.05 && peak < 1.2, `pad level is sensible (${peak})`);
+  const corr = (a, b) => { let ab = 0, aa = 0, bb = 0; for (let i = 4000; i < a.length; i++) { ab += a[i] * b[i]; aa += a[i] * a[i]; bb += b[i] * b[i]; } return ab / Math.sqrt(aa * bb); };
+  assert.ok(Math.abs(corr(pad.left, pad.right)) < 0.3, 'the two sides have different random phases');
+  const mono = play('padsynth', { atk: 1, width: 0, motion: 0 });
+  assert.ok(Math.abs(corr(mono.left, mono.right) - 1) < 1e-6, 'width 0 is mono');
+  // tonal: more of the energy around the fundamental sits right on it when the bandwidth is narrow
+  const concentration = sound => {
+    const n = 16384, re = new Float64Array(n), im = new Float64Array(n);
+    for (let i = 0; i < n; i++) re[i] = sound.left[9000 + i] * (0.5 - 0.5 * Math.cos((2 * Math.PI * i) / n));
+    fftPlan(n).run(re, im);
+    const centre = Math.round((220 * n) / sr), near = half => { let e = 0; for (let k = centre - half; k <= centre + half; k++) e += re[k] * re[k] + im[k] * im[k]; return e; };
+    return near(1) / near(9);
+  };
+  assert.ok(concentration(play('padsynth', { atk: 1, bandwidth: 3, motion: 0 }, 57, 260)) > 2 * concentration(play('padsynth', { atk: 1, bandwidth: 400, motion: 0 }, 57, 260)), 'a narrow bandwidth is more tonal');
+  const osc = play('spreadosc', {});
+  assert.ok(finite(osc.left) && Math.max(...osc.left.map(Math.abs)) > 0.05, 'the spread oscillator sounds at once');
+  const silent = NODE_TYPES.spreadosc.create({ sampleRate: sr, connected: [] }), l = new Float32Array(128).fill(1), r = new Float32Array(128).fill(1);
+  silent.process([], [[l, r]], 128, Float32Array.from(NODE_TYPES.spreadosc.params.map(p => p.def)), Int32Array.from(NODE_TYPES.spreadosc.params.map((_, i) => i)));
+  assert.ok(l.every(v => v === 0), 'silent until the first note');
+  console.log('ok: pad synth and spread oscillator');
 }
 
 // The vocoder's built-in buzz: with nothing wired to carrier the voice is heard through it; a wired carrier that is silent gives silence.

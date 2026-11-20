@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 823 · 2026-11-20
+
+- **A pad synth, and its oscillator as a building block.** `padsynth` (Sources > Synths, and Pad in the machine tree) makes a pad the way PADsynth does: a few harmonics, each smeared into a band of frequencies with random phases, turned into a table by one inverse FFT and played at the note's speed. There is no oscillator edge and no two cycles alike, so it is a slow, wide, evolving sound. `bandwidth` (cents) is how far the first harmonic is smeared, `spread` how much more the higher ones are, `tilt`, `evenodd`, `stretch` and `harmonics` shape the spectrum, `width` mixes between mono and the left and right tables (different random phases), and `motion` is a slow wobble of each side's pitch against the other. It has its own envelope. `spreadosc` (Sources > Basic) is the same oscillator without the envelope, level or glide, so it can go through whatever filter and amp you wire after it. Tables are made per octave band when a note starts and kept by their settings; changes to bandwidth to stretch are heard from the next note. `quality`: standard (a 32768 point table), eco (8192, much cheaper to build) or high (65536, finer at low notes). No presets.
+
 ## 822 · 2026-11-20
 
 - **red october is a little brighter**, for a screen that is dimmed right down: the text, accent and lines are lifted, and the dark backgrounds only a touch.

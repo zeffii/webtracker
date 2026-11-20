@@ -553,6 +553,17 @@ export const GLYPHS = {
     ctx.stroke();
   },
   fmsynth: (ctx, cx, cy, w, h) => curve(ctx, cx, cy, w, h, t => Math.sin(t * Math.PI * 4 + 2.2 * Math.sin(t * Math.PI * 10)) * 0.85, 48),   // a sine bent by another
+  padsynth: (ctx, cx, cy, w, h) => {   // harmonics smeared into soft humps
+    ctx.beginPath();
+    [1, 0.55, 0.35, 0.25].forEach((a, i) => {
+      const x = cx - w / 2 + ((i + 0.5) / 4) * w, half = (w / 4) * 0.45;
+      for (let t = -1; t <= 1.001; t += 0.25) {
+        const px = x + t * half, py = cy + h / 2 - a * h * Math.exp(-t * t * 2.2);
+        if (t === -1) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+      }
+    });
+    ctx.stroke();
+  },
   addsynth: (ctx, cx, cy, w, h) => {   // a row of harmonics falling away
     ctx.beginPath();
     [1, 0.5, 0.33, 0.25, 0.2, 0.16, 0.14].forEach((a, i) => {

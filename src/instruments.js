@@ -232,7 +232,7 @@ export const MACHINE_TREE = [
   { name: 'samplers', items: [['sampler', 'Sampler'], ['modchan', 'MOD channel'], ['xmchan', 'XM channel'], ['itchan', 'IT channel'], ['it3chan', 'IT 3 channel']] },
   { name: 'synths', groups: [
     { name: 'analogue', items: [['subtractive', 'Subtractive'], ['fourpole', 'Fourpole'], ['oberheim', 'Oberheim-style'], ['squelch', 'Squelch'], ['duette', 'Duette'], ['cardinal', 'Cardinal'], ['snarl', 'Snarl'], ['lone', 'Lone'], ['khufu', 'Khufu']] },
-    { name: 'digital', items: [['fm', 'FM synth'], ['dvii', 'DVIIloader'], ['wavetable', 'Wavetable'], ['pulsar', 'Pulsar'], ['compass', 'Compass'], ['additive', 'Additive'], ['spectral', 'Spectral'], ['granular', 'Granular']] },
+    { name: 'digital', items: [['fm', 'FM synth'], ['dvii', 'DVIIloader'], ['wavetable', 'Wavetable'], ['pulsar', 'Pulsar'], ['compass', 'Compass'], ['additive', 'Additive'], ['padsynth', 'Pad'], ['spectral', 'Spectral'], ['granular', 'Granular']] },
     { name: 'physical', items: [['piano', 'Piano'], ['string', 'Plucked string'], ['jawharp', 'Jaw harp']] },
   ] },
   { name: 'drums', groups: [
@@ -1068,6 +1068,28 @@ export const synthKinds = {
         { id: 0x06, node: 'synth', param: 'decay', scale: 'log' },
         { id: 0x07, node: 'synth', param: 'track' },
         { id: 0x08, node: 'synth', param: 'tune' },
+      ],
+    }),
+  },
+  padsynth: {
+    label: 'Pad synth',
+    make: () => ({
+      graph: { nodes: [{ id: 'synth', type: 'padsynth' }, { id: 'poly', type: 'voices' }, { id: 'out', type: 'out', params: { gain: 0.5 } }], connections: [['synth.out', 'poly.in'], ['poly.out', 'out.in']], voices: 6 },
+      noteColumns: 3,
+      exposed: [
+        { node: 'synth', param: 'bandwidth', label: 'Bnd', scale: 'log' },
+        { node: 'synth', param: 'tilt', label: 'Tlt' },
+        { node: 'synth', param: 'width', label: 'Wid' },
+        { node: 'synth', param: 'motion', label: 'Mot' },
+      ],
+      commands: [
+        { id: 0x01, node: 'synth', param: 'bandwidth', scale: 'log' },
+        { id: 0x02, node: 'synth', param: 'spread' },
+        { id: 0x03, node: 'synth', param: 'tilt' },
+        { id: 0x04, node: 'synth', param: 'evenodd' },
+        { id: 0x05, node: 'synth', param: 'width' },
+        { id: 0x06, node: 'synth', param: 'motion' },
+        { id: 0x07, node: 'synth', param: 'glide' },
       ],
     }),
   },

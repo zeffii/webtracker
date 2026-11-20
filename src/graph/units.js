@@ -82,6 +82,8 @@ const TYPE_UNIT = {
   oberheim: { vib: 'ct', sweep: 'st' },
   piano: { decay: 's', detune: 'ct', release: 'ms', pos: '%', thump: '%', body: '%', width: '%' },
   addsynth: { tilt: 'dB/oct', hdecay: '' },
+  padsynth: { bandwidth: 'ct', tilt: 'dB/oct', width: '%', motion: '%', tune: 'st', glide: 'ms', atk: 'ms', dec: 'ms', rel: 'ms' },
+  spreadosc: { bandwidth: 'ct', tilt: 'dB/oct', width: '%', motion: '%', tune: 'st' },
   specsynth: { tilt: 'dB/oct' },
   wavetable: { smooth: 'ms' },
   fmsynth: {},
