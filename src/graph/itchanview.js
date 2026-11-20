@@ -186,21 +186,25 @@ export function createItChanView({ getTiming = () => null, doc = document, getDa
     sampleControls.append(row(picker, check('zoom', zoom, v => { zoom = v; refresh(); }, 'Show only the stretch this slot plays'), button(doc, 'Bank', 'Back to the bank sample\'s own stretch and loops', () => { setData(clearProxy(getData(), slot)); refresh(); })));
     if (!bank) return;
     const { loop, sus } = loopsOf(bank, proxyOf(data, slot));
+    const frames = n => String(Math.round(n)).padStart(4, '0');
     const loopRow = (label, which, info, tip, colour) => {
+      const off = !info.on, patchLoop = change => { setData(setLoop(getData(), slot, which, bank, change)); refresh(); };
+      const dimmed = el => { if (off) el.classList.add('off'); return el; };   // what belongs to a loop that is not on is greyed
       const parts = [
-        check(label, info.on, v => { setData(setLoop(getData(), slot, which, bank, { on: v })); refresh(); }, tip),
-        check('ping-pong', info.pingpong, v => { setData(setLoop(getData(), slot, which, bank, { pingpong: v })); refresh(); }, 'Play the loop forwards and back'),
+        check(label.padEnd(7), info.on, v => patchLoop({ on: v }), tip),
+        dimmed(make('span', { textContent: info.active ? ` ${frames(info.start)}‥${frames(info.end)} ` : info.on && info.exists && !info.inside ? ' outside the stretch ' : ' ····‥···· ' })),
+        dimmed(check('ping', info.pingpong, v => patchLoop({ pingpong: v }), 'Play the loop forwards and back')),
       ];
-      if (isIt3()) parts.push(make('span', { textContent: ' xfade ' }), number(info.xfade, 0, 1 << 20, v => { setData(setLoop(getData(), slot, which, bank, { xfade: v })); refresh(); }, 'Crossfade at the loop seam, in frames (IT 3)', 62, v => { setData(setLoop(getData(), slot, which, bank, { xfade: v })); drawSample(); }));
+      if (isIt3()) parts.push(dimmed(make('span', { textContent: ' xf ' })), dimmed(number(info.xfade, 0, 1 << 20, v => patchLoop({ xfade: v }), 'Crossfade at the loop seam, in frames (IT 3)', 52, v => { setData(setLoop(getData(), slot, which, bank, { xfade: v })); drawSample(); })));
       if (isIt3() && which === 'sus') {   // the width of the sustain loop follows the pitch of the note
         const mode = info.track?.mode ?? 'off', amount = info.track?.amount ?? 1;
-        const readout = make('span', { className: 'dim', textContent: ` ${amount.toFixed(2)}` });
+        const readout = make('span', { textContent: ` ${amount.toFixed(2)}` });
         const slider = make('input', { type: 'range', min: -2, max: 2, step: 0.05, value: amount, title: 'Octaves of loop width for each octave of pitch: 1 keeps the loop the same length in time, 0 the same in frames' });
-        slider.style.width = '70px'; slider.disabled = mode === 'off';
+        slider.style.width = '64px'; slider.disabled = mode === 'off' || off;
         slider.addEventListener('input', () => { readout.textContent = ` ${Number(slider.value).toFixed(2)}`; setData(setTrack(getData(), slot, which, bank, mode, Number(slider.value))); });
-        parts.push(make('span', { textContent: ' pitch ' }), select(TRACK_MODES.map(m => [m, m === 'off' ? 'constant width' : `scale ${m === 'center' ? 'from centre' : `to ${m}`}`]), mode, v => { setData(setTrack(getData(), slot, which, bank, v, amount)); refresh(); }, 'How the sustain loop grows and shrinks with the pitch of the note (IT 3): about its centre, or with its left or right end held'), slider, readout);
+        const modeNames = { off: 'constant', center: 'centre', left: 'left', right: 'right' };
+        parts.push(dimmed(make('span', { textContent: '  pitch ' })), dimmed(select(TRACK_MODES.map(m => [m, modeNames[m]]), mode, v => { setData(setTrack(getData(), slot, which, bank, v, amount)); refresh(); }, 'How the sustain loop grows and shrinks with the pitch of the note (IT 3): about its centre, or with its left or right end held')), dimmed(slider), dimmed(readout));
       }
-      parts.push(make('span', { className: 'dim', textContent: info.active ? ` ${info.from} ${Math.round(info.start)}-${Math.round(info.end)}` : info.on && info.exists && !info.inside ? ' outside the stretch' : '' }));
       const line = row(...parts);
       line.style.color = forPage(colour, sink()); line.style.accentColor = line.style.color;   // the colour this loop has in the waveform
       return line;
@@ -321,33 +325,57 @@ export function createItChanView({ getTiming = () => null, doc = document, getDa
     }
     insIndex = clamp(insIndex, 0, data.ins.length - 1);
     const ins = current() ?? newInstrument(0);
-    const names = data.ins.map((_, i) => [i, `${(i + 1).toString(16).toUpperCase().padStart(2, '0')} instrument`]);
+    const names = data.ins.map((_, i) => [i, `${(i + 1).toString(16).toUpperCase().padStart(2, '0')}`]);
     const slots = getSampleIds().map((id, i) => [i, `${i.toString(16).toUpperCase().padStart(2, '0')} ${id}`]);
     insControls.append(
       row(select(names, insIndex, v => { insIndex = Number(v); pending = null; refresh(); }, 'The instrument: the Ins value of a cell, 01 being the first'),
         button(doc, '+', 'Add an instrument', () => { setData(withInstrument(getData(), getData().ins.length, newInstrument(clamp(slot, 0, Math.max(0, count - 1))))); insIndex = getData().ins.length - 1; refresh(); }),
-        make('span', { textContent: ' plays ' }), select(slots, ins.map?.[60] ?? 0, v => patchIns({ map: new Array(120).fill(Number(v)) }), 'The sample every key plays (a keymap with several samples comes from an imported file)')),
-      row(make('span', { textContent: 'new note ' }), select(NNA.map((n, i) => [i, n]), ins.nna, v => patchIns({ nna: Number(v) }), 'What happens to a note still playing when a new one starts on the channel'),
+        make('span', { textContent: '  plays ' }), select(slots, ins.map?.[60] ?? 0, v => patchIns({ map: new Array(120).fill(Number(v)) }), 'The sample every key plays (a keymap with several samples comes from an imported file)')),
+      row(make('span', { textContent: 'new ' }), select(NNA.map((n, i) => [i, n]), ins.nna, v => patchIns({ nna: Number(v) }), 'What happens to a note still playing when a new one starts on the channel'),
         make('span', { textContent: ' dup ' }), select(DCT.map((n, i) => [i, n]), ins.dct, v => patchIns({ dct: Number(v) }), 'The duplicate check: which notes count as a duplicate'),
-        make('span', { textContent: ' then ' }), select(DCA.map((n, i) => [i, n]), ins.dca, v => patchIns({ dca: Number(v) }), 'What is done to a duplicate'),
-        make('span', { textContent: ' fade ' }), number(ins.fade, 0, 8192, v => patchIns({ fade: v }), 'Fadeout speed after the note is released (0: none)', 54)),
+        make('span', { textContent: ' → ' }), select(DCA.map((n, i) => [i, n]), ins.dca, v => patchIns({ dca: Number(v) }), 'What is done to a duplicate'),
+        make('span', { textContent: '  fade ' }), number(ins.fade, 0, 8192, v => patchIns({ fade: v }), 'Fadeout speed after the note is released (0: none)', 52)),
     );
-    const env = ins[envKind] ?? null;
-    const tabs = ENVELOPES.map(kind => { const b = button(doc, ENVELOPE_NAMES[kind], '', () => { envKind = kind; pending = null; refresh(); }); b.style.opacity = kind === envKind ? '1' : '0.55'; return b; });
-    const modes = [['point', 'Point'], ['loop', 'Loop'], ['sus', 'Sustain']].map(([m, label]) => { const b = button(doc, label, m === 'point' ? 'Click for a point, drag to move, double-click to remove' : 'Click two points to mark the range', () => { markMode = m; pending = null; refresh(); }); b.style.opacity = markMode === m ? '1' : '0.55'; return b; });
-    const parts = [...tabs, check('on', Boolean(env), v => patchEnv(v ? newEnvelope(envKind) : null), 'Use this envelope'), ...modes];
-    if (envKind === 'pit') parts.push(check('filter', ins.filter, v => patchIns({ filter: v }), 'The pitch envelope moves the filter cutoff instead of the pitch'));
-    if (env) {   // how fast the note travels through the envelope: 1 is IT's own speed, a tick of the song moves it that far
-      const log2 = Math.log2(env.rate ?? 1), readout = make('span', { className: 'dim', textContent: ` ${(env.rate ?? 1).toFixed(2)}x` });
-      const slider = make('input', { type: 'range', min: -3, max: 3, step: 0.05, value: log2, title: 'Rate: how fast the note travels through this envelope (1x is the IT speed; 2x takes half the time)' });
-      slider.style.width = '90px';
+    // the envelopes as a list, like the sample list: a box to switch each on, what it holds, its rate; the chosen row is the one drawn below
+    const rangeText = (e, from, to) => (e && e[from] >= 0 && e[to] >= 0 ? `${e.pts[e[from] * 2]}‥${e.pts[e[to] * 2]}` : '·');
+    const rateSlider = (kind, e) => {   // how fast the note travels through the envelope: 1 is IT's own speed, a tick of the song moves it that far
+      const readout = make('span', { textContent: ` ${(e.rate ?? 1).toFixed(2)}x` });
+      const slider = make('input', { type: 'range', min: -3, max: 3, step: 0.05, value: Math.log2(e.rate ?? 1), title: 'Rate: how fast the note travels through this envelope (1x is the IT speed; 2x takes half the time). Double-click for 1x' });
+      slider.style.width = '84px';
       const rateNow = () => (Math.abs(Number(slider.value)) < 0.025 ? 1 : 2 ** Number(slider.value));
-      slider.addEventListener('input', () => { const rate = rateNow(); readout.textContent = ` ${rate.toFixed(2)}x`; setData(withInstrument(getData(), insIndex, { [envKind]: { ...(current()?.[envKind] ?? env), rate } })); drawEnv(); });
+      slider.addEventListener('input', () => { const rate = rateNow(); readout.textContent = ` ${rate.toFixed(2)}x`; setData(withInstrument(getData(), insIndex, { [kind]: { ...(current()?.[kind] ?? e), rate } })); drawEnv(); });
       slider.addEventListener('change', () => refresh());
-      slider.addEventListener('dblclick', () => patchEnv({ ...env, rate: 1 }));
-      parts.push(make('span', { textContent: ' rate ' }), slider, readout);
+      slider.addEventListener('dblclick', () => { envKind = kind; patchEnv({ ...e, rate: 1 }); });
+      return [slider, readout];
+    };
+    const list = make('div', { className: 'itchan-envlist' });
+    const header = row(...['', '', 'pts', 'loop', 'sust', 'rate'].map(text => make('span', { className: 'dim', textContent: text })));
+    header.classList.add('itchan-envrow');
+    list.append(header);
+    for (const kind of ENVELOPES) {
+      const e = ins[kind] ?? null, off = !e;
+      const grey = el => { if (off) el.classList.add('off'); return el; };
+      const parts = [
+        make('span', { textContent: kind === envKind ? '▸' : ' ' }),
+        check(ENVELOPE_NAMES[kind].slice(0, 3).toLowerCase(), !off, v => { envKind = kind; pending = null; patchEnv(v ? newEnvelope(kind) : null); }, `Use the ${ENVELOPE_NAMES[kind].toLowerCase()} envelope`),
+        grey(make('span', { textContent: e ? String(e.pts.length / 2) : '·' })),
+      ];
+      const loopText = make('span', { textContent: rangeText(e, 'ls', 'le') }), susText = make('span', { textContent: rangeText(e, 'ss', 'se') });
+      loopText.style.color = forPage(BLUE, sink()); susText.style.color = forPage(ORANGE, sink());
+      parts.push(grey(loopText), grey(susText));
+      const last = make('span', { className: 'itchan-rate' });
+      if (e) last.append(...rateSlider(kind, e)); else last.append(grey(make('span', { textContent: '·' })));
+      if (kind === 'pit') last.append(grey(check('filter', ins.filter, v => patchIns({ filter: v }), 'The pitch envelope moves the filter cutoff instead of the pitch')));
+      parts.push(last);
+      const line = row(...parts);
+      line.classList.add('itchan-envrow'); if (kind === envKind) line.classList.add('on');
+      line.addEventListener('mousedown', ev => { if (ev.target.closest?.('input, select, button') || kind === envKind) return; envKind = kind; pending = null; refresh(); });
+      list.append(line);
     }
-    insControls.append(row(...parts));
+    insControls.append(list);
+    const env = ins[envKind] ?? null;
+    const modes = [['point', 'Point'], ['loop', 'Loop'], ['sus', 'Sust']].map(([m, label]) => { const b = button(doc, label, m === 'point' ? 'Click for a point, drag to move, double-click to remove' : 'Click two points to mark the range', () => { markMode = m; pending = null; refresh(); }); b.style.opacity = !env ? '0.35' : markMode === m ? '1' : '0.55'; return b; });
+    insControls.append(row(make('span', { className: 'dim', textContent: `${ENVELOPE_NAMES[envKind].toLowerCase()}  edit ` }), ...modes));
   }
 
   // what the node reports: where each sounding note is. The panel asks for the reports again every second while it is on the page.

@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 805 · 2026-11-20
+
+- **IT channel panel: a plainer, text-grid layout.** The sample side keeps the wide waveform and gets a row each for the loop and the sustain loop in their colours (a box to switch it on, its range, ping-pong, crossfade, and for the sustain the pitch setting); whatever belongs to a loop that is off is greyed. The instrument rows are shorter, with narrower pickers. The envelopes are now a list, like the sample list: a box beside each to switch it on, its point count, loop and sustain ranges and its rate slider, with the chosen row drawn below and an off envelope greyed. The pitch row carries the filter box.
+
 ## 804 · 2026-11-20
 
 - **IT channel: a new key no longer bumps the sound.** A note that the next one cuts (the instrument's new-note action "cut") used to stop in the middle of its wave, which was heard as a bump or click. It is now let down to silence in a few milliseconds while the new note starts. Native follows (the IT channel reference renders were remade).

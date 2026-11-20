@@ -1082,6 +1082,13 @@
     .itchan-panel .itchan-grip:hover { opacity: 1; }
     .itchan-panel .itchan-controls .prow { margin: 0; gap: .35rem; flex-wrap: wrap; align-items: center; }
     .itchan-panel .dim { opacity: .6; }
+    .itchan-panel .off { opacity: .4; }   /* a part that belongs to something switched off */
+    .itchan-panel .itchan-controls { font-family: var(--mono, ui-monospace, Consolas, monospace); font-size: .78rem; }
+    .itchan-panel .itchan-controls select, .itchan-panel .itchan-controls input[type=number], .itchan-panel .itchan-controls button { font: inherit; padding: 0 .25rem; min-width: 0; width: auto; }
+    .itchan-panel .itchan-envlist { display: flex; flex-direction: column; gap: 0; white-space: pre; }
+    .itchan-panel .itchan-envrow { cursor: pointer; border-radius: 3px; display: grid; grid-template-columns: 1.6ch 7ch 3ch 9ch 9ch auto; align-items: center; column-gap: .5ch; }
+    .itchan-panel .itchan-rate { display: flex; align-items: center; gap: .6ch; }
+    .itchan-panel .itchan-envrow.on { background: color-mix(in srgb, currentColor 10%, transparent); }
     .rotary-panel canvas { display: block; border: 0; background: none; }
     .rotary-switch { justify-content: center; gap: .1rem 1.6rem; max-width: 300px; margin-left: 0; }
     .rotary-switch button.on { opacity: 1; color: hsl(35 80% 55%); border-bottom: 1.5px solid currentColor; }
