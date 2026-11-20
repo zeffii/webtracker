@@ -2,6 +2,11 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 798 · 2026-11-20
+
+- **Sample list: the empty tap slots can be shown or hidden.** At the end of the sample list a line reads "tap slots hidden (N empty)"; pressing it lists the empty tap01 to tap16 slots (and the line then offers to hide them again). It is the same setting as in Config, so the sampler pickers follow it.
+- **Bezier memory slots start folded away while nothing is stored in them**; they open with one press of "memory", and stay as you leave them.
+
 ## 797 · 2026-11-20
 
 - **Bezier editors: each memory slot shows a small picture of its drawing**, the curve with the area under it filled, in the editor's colour, beside the slot's number. Clicking the picture is the same as pressing the slot.

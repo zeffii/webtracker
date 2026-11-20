@@ -1640,6 +1640,7 @@ let rollToggle = () => {}, rollOverlay = null;
 const sampleScreen = createSampleScreen({
   el: $('smp'), listEl: $('smp-list'), statusEl: $('proj-status'), getProject: () => project,
   onChange: users => { sendLoop(users); auditionDirty = true; },   // loops, levels and edits change what the sample plays
+  tapSlots: () => config.get('tapSlots'), onTapSlots: () => config.set('tapSlots', !config.get('tapSlots')),
   onSelect: id => { waveform.show(id); rollOverlay?.forget(); auditionDirty = true; },
   onRemove: refreshProjectUi,
   onRename: () => { refreshProjectUi(); patcher.show(patcher.instrument); },

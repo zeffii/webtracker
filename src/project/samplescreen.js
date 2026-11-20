@@ -33,7 +33,7 @@ const EDITS = { C: 'crop', T: 'crop', X: 'cut', S: 'silence', R: 'reverse', N: '
 const ROOT = 60;
 const round2 = v => Math.round(v * 100) / 100;
 
-export function createSampleScreen({ el, listEl = null, statusEl, getProject, onChange = () => {}, onSelect = () => {}, onRemove = () => {}, onRename = () => {}, onNote = () => {}, onLoad = () => {}, onReplace = () => {}, onKeep = () => {}, onView = () => {}, onSelection = () => {}, onHead = () => {}, onReveal = () => {}, onSlice = () => {}, onZoom = () => '', onAutoSlice = null, onChords = null, onRoll = null, rollUndo = null, onEdited = () => {} }) {
+export function createSampleScreen({ el, listEl = null, statusEl, getProject, onChange = () => {}, onSelect = () => {}, onRemove = () => {}, onRename = () => {}, onNote = () => {}, onLoad = () => {}, onReplace = () => {}, onKeep = () => {}, onView = () => {}, onSelection = () => {}, onHead = () => {}, onReveal = () => {}, onSlice = () => {}, onZoom = () => '', tapSlots = () => false, onTapSlots = () => {}, onAutoSlice = null, onChords = null, onRoll = null, rollUndo = null, onEdited = () => {} }) {
   let sel = null, focus = 'list', edit = null, mode = 'wave', announced = null, last = null, lastList = null, top = 0;
   let selFrom = 0, selTo = 0, octave = 5, activeSlice = -1;
   let headAt = 0, clip = null;   // the playhead (where a paste goes; a click on the waveform puts it anywhere) and the clipboard, which stays when another sample is chosen   // the slice marker + and - move
@@ -393,6 +393,7 @@ export function createSampleScreen({ el, listEl = null, statusEl, getProject, on
       e.preventDefault(); el.focus();
       const id = act.dataset.sid, what = act.dataset.act;
       if (what === 'load') onLoad();
+      else if (what === 'taps') onTapSlots();
       else if (what === 'replace') { commit(); select(id); onReplace(id); }
       else if (what === 'remove') { commit(); removeAt(id); }
       else if (what === 'selall') { commit(); const s = sample(); if (s) setSelection(0, selFrom === 0 && selTo >= s.data.length ? 0 : s.data.length); }
@@ -479,6 +480,13 @@ export function createSampleScreen({ el, listEl = null, statusEl, getProject, on
         if (listEl) { rows.push(line(slot, seg('▶', 'sbtn', ` data-act="play"${sid} title="Hear it (held)"`), ' ', seg('×', 'sbtn', ` data-act="remove"${sid} title="Remove this sample (Delete)"`))); continue; }   // (Replace is on the details side then)
         rows.push(line(slot, ' ',
           seg(' ▶ ', 'sbtn', ` data-act="play"${sid} title="Hear it (held)"`), ' ', seg(' Replace ', 'sbtn', ` data-act="replace"${sid} title="Put a different audio file in this slot: instruments that play it follow"`), ' ', seg(' × ', 'sbtn', ` data-act="remove"${sid} title="Remove this sample (Delete)"`)));
+      }
+      if (listEl) {   // the empty tap slots (where recording nodes write): folded away until asked for, and the fold says it is there
+        const empty = Object.entries(project.samples).filter(([id, smp]) => isPool(id) && !smp.taken).map(([id]) => id), shown = tapSlots();
+        if (empty.length) {
+          rows.push(line(seg(shown ? ` ▾ tap slots (${empty.length} empty) ` : ` ▸ tap slots hidden (${empty.length} empty) `, 'sbtn', ` data-act="taps" title="${shown ? 'Hide the empty tap slots' : 'Show the empty tap slots, which recording nodes write into'}"`)));
+          if (shown) for (const id of empty) rows.push(line(seg(`   ${id.padEnd(12)} · · · empty`, 'sdim')));
+        }
       }
       return rows;
     };

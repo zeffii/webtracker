@@ -307,8 +307,9 @@ export function createBezierEditor({ doc = document, title, color, points, fallb
   const memoryToggle = el('button', { className: 'dim', type: 'button', onclick: () => { hidden = !hidden; arming = false; try { localStorage.setItem(HIDE_KEY, hidden ? '1' : '0'); } catch { /* storage unavailable: the choice lasts until reload */ } showMemory(); } });
   // the slots can be folded away; the label stays, with a count of what is stored, so it is clear they are hidden and can be revealed
   const HIDE_KEY = 'wax.bezierMemoryHidden';
-  const readHidden = () => { try { return localStorage.getItem(HIDE_KEY) === '1'; } catch { return false; } };
-  let hidden = readHidden();
+  const readHidden = () => { try { return localStorage.getItem(HIDE_KEY); } catch { return null; } };
+  // until the user has chosen, the slots are folded away while nothing is stored in them yet
+  let hidden = readHidden() === null ? !slots.some(Boolean) : readHidden() === '1';
   const showMemory = () => {
     const stored = slots.filter(Boolean).length;
     memoryToggle.textContent = hidden ? `▸ memory (hidden, ${stored} stored)` : '▾ memory';
