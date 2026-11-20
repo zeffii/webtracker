@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 811 · 2026-11-20
+
+- **The IT channel screen is laid out from your board.** No more pages: the waveform, the sample list, the loop and sustain rows, the instrument and its note actions, the envelope list, the edit mode, the rate, the function keys and the envelope graph are all on the one screen, each where you put it. Positions are in character cells in `src/graph/itchanlayout.js`, so moving something is a change of numbers there. I added three things the board left room for: the sustain pitch row under the sustain row, the rate row, and "plays" (the sample the instrument plays). The function keys are now vol, pan, pit, flt, loop, sust, zoom, bank.
+
 ## 810 · 2026-11-20
 
 - **Long sample names end in `...`** in the SAMPLE page's list, instead of running into the next column.

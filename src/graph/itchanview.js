@@ -1,4 +1,5 @@
 import { makeCanvas, drag, button, forPage, clamp, PINK } from './spaceui.js';
+import { sizeOf, place } from './itchanlayout.js';
 import { computePeaks } from '../project/waveform.js';
 import {
   ENVELOPES, ENVELOPE_NAMES, proxyOf, rangeOf, loopsOf, moveRangeEdge, moveLoop, setLoop, setTrack, TRACK_MODES, clearProxy,
@@ -14,16 +15,14 @@ import {
 // The instrument side picks an instrument and draws its volume, panning and pitch envelopes: click empty space for a point, drag a point,
 // double-click it to remove it. "Loop" and "Sustain" modes mark a range of points by clicking two of them. Pitch can be set to move the
 // filter cutoff instead (the IT filter envelope).
-const SW = 640, SH = 204, EW = 640, EH = 176, PL = 6, PR = 6;
-// The screen is one size, whatever page is showing or whether anything is on it (see .itchan-lcd in index.html): a window like an LCD's.
+const { w: SW, h: SH } = sizeOf('wave'), { w: EW, h: EH } = sizeOf('envgraph'), PL = 6, PR = 6;
+// The screen is one size, with everything on it at once, each part where itchanlayout.js puts it: a window like an LCD's.
 const GRAB = 7;
 let BLUE = '#9fefff', ORANGE = '#ffd86b';   // loop and sustain on the screen: cyan and yellow on a dark one (see applyLcd)
 const LCD_KEY = 'wax.itchanLcdColour', LCD_DEFAULT = '#3d5a99';   // the screen's colour: change it with the swatch on the title bar
-const PAGES = [['smpl', 'SAMPLE'], ['ins', 'INSTRUMENT'], ['env', 'ENVELOPES']];
-const PAGE_KEY = 'wax.itchanPage';
 const OVERLAY = { vol: '#ffffff', pan2: '#ff9ec0', pit: '#8fffd0' };   // an envelope's colour when it is behind the chosen one
 const ENV_TOP = 14, ENV_BOTTOM = 30;   // the room above the envelope for its name, and below it for the tick and time rulers
-const NNA = ['cut', 'continue', 'off', 'fade'], DCT = ['off', 'note', 'sample', 'instrument'], DCA = ['cut', 'off', 'fade'];
+const NNA = ['cut', 'cont', 'off', 'fade'], DCT = ['off', 'note', 'smpl', 'inst'], DCA = ['cut', 'off', 'fade'];   // short, to fit the row
 
 // A colour for each sounding note's playhead: vivid, and far from the colour of the one before (the golden angle round the hue wheel).
 export const headColour = uid => `hsl(${Math.round((uid * 137.508) % 360)} 92% 62%)`;
@@ -43,8 +42,7 @@ export function createItChanView({ getTiming = () => null, doc = document, getDa
     el.style.setProperty('--lcd-line', mix(55, light ? '#000000' : '#ffffff'));
   };
   applyLcd(lcdColour);
-  let slot = 0, insIndex = 0, envKind = 'vol', markMode = 'point', pending = null, zoom = false, page = 'smpl';
-  try { const saved = localStorage.getItem(PAGE_KEY); if (PAGES.some(([id]) => id === saved)) page = saved; } catch { /* no storage */ }
+  let slot = 0, insIndex = 0, envKind = 'vol', markMode = 'point', pending = null, zoom = false;
 
   const make = (tag, props = {}, ...kids) => { const e = doc.createElement(tag); Object.assign(e, props); e.append(...kids); return e; };
   const row = (...kids) => make('div', { className: 'prow' }, ...kids);
@@ -71,11 +69,14 @@ export function createItChanView({ getTiming = () => null, doc = document, getDa
   };
 
   // ---- the sample area ----------------------------------------------------------------------------------------------------
-  const sampleSide = make('div', { className: 'itchan-side' });
+  const stage = make('div', { className: 'itchan-stage' });   // everything on the screen, each part placed by itchanlayout.js
+  const at = (id, item) => { place(item, id); stage.append(item); return item; };
+  const cell = (id, className = 'itchan-cell') => at(id, make('div', { className }));
   const { canvas: sampleCanvas, ctx: sctx, ink: sink } = makeCanvas(doc, SW, SH, 'itchan-sample');
-  const sampleControls = make('div', { className: 'itchan-controls' });
-  const list = make('div', { className: 'itchan-loaded', tabIndex: 0 });   // the samples this node plays, under the waveform: it holds one row per sample, so it is empty (and takes no room) until one is added
-  sampleSide.append(sampleCanvas, list, sampleControls);
+  at('wave', sampleCanvas);
+  const list = cell('samples', 'itchan-loaded');   // the samples this node plays: one row each, so it is empty until one is added
+  list.tabIndex = 0;
+  const loopHold = cell('loop'), susHold = cell('sustain'), susPitchHold = cell('susPitch');
   let peakCache = null;   // the waveform's columns, kept while the sample, the stretch on show and the width stay the same
   const heads = new Map();   // the playheads: note number -> { slot, frame }, as the node last reported them
 
@@ -176,7 +177,8 @@ export function createItChanView({ getTiming = () => null, doc = document, getDa
   }
 
   function sampleControlsRow() {
-    sampleControls.replaceChildren();
+    for (const hold of [loopHold, susHold, susPitchHold]) hold.replaceChildren();
+    const pitchParts = [];
     const ids = getSampleIds(), bank = bankOf(), data = getData();
     if (!ids.length) return;
     slot = clamp(slot, 0, ids.length - 1);
@@ -199,20 +201,21 @@ export function createItChanView({ getTiming = () => null, doc = document, getDa
         slider.style.width = '64px'; slider.disabled = mode === 'off' || off;
         slider.addEventListener('input', () => { readout.textContent = ` ${Number(slider.value).toFixed(2)}`; setData(setTrack(getData(), slot, which, bank, mode, Number(slider.value))); });
         const modeNames = { off: 'constant', center: 'centre', left: 'left', right: 'right' };
-        parts.push(dimmed(make('span', { textContent: '  pitch ' })), dimmed(select(TRACK_MODES.map(m => [m, modeNames[m]]), mode, v => { setData(setTrack(getData(), slot, which, bank, v, amount)); refresh(); }, 'How the sustain loop grows and shrinks with the pitch of the note (IT 3): about its centre, or with its left or right end held')), dimmed(slider), dimmed(readout));
+        pitchParts.push(dimmed(make('span', { textContent: 'sustain pitch ' })), dimmed(select(TRACK_MODES.map(m => [m, modeNames[m]]), mode, v => { setData(setTrack(getData(), slot, which, bank, v, amount)); refresh(); }, 'How the sustain loop grows and shrinks with the pitch of the note (IT 3): about its centre, or with its left or right end held')), dimmed(slider), dimmed(readout));
       }
       const line = row(...parts);
       line.style.color = colour === BLUE ? 'var(--lcd-loop)' : 'var(--lcd-sus)'; line.style.accentColor = line.style.color;   // the colour this loop has in the waveform
       return line;
     };
-    sampleControls.append(loopRow('loop', 'loop', loop, 'The loop that plays while the note is held, or after the sustain loop', BLUE), loopRow('sustain', 'sus', sus, 'The loop that plays only while the key is held', ORANGE));
+    loopHold.append(loopRow('loop', 'loop', loop, 'The loop that plays while the note is held, or after the sustain loop', BLUE));
+    susHold.append(loopRow('sustain', 'sus', sus, 'The loop that plays only while the key is held', ORANGE));
+    if (pitchParts.length) susPitchHold.append(row(...pitchParts));
   }
 
   // ---- the instrument side ------------------------------------------------------------------------------------------------
-  const insSide = make('div', { className: 'itchan-side' }), envSide = make('div', { className: 'itchan-side' });
   const { canvas: envCanvas, ctx: ectx, ink: eink } = makeCanvas(doc, EW, EH, 'itchan-env');
-  const instControls = make('div', { className: 'itchan-controls' }), envControls = make('div', { className: 'itchan-controls' });
-  insSide.append(instControls); envSide.append(envCanvas, envControls);
+  at('envgraph', envCanvas);
+  const insHold = cell('ins'), nnaHold = cell('nna'), playsHold = cell('plays'), modeHold = cell('mode'), rateHold = cell('rate'), envListHold = cell('envlist');
 
   const current = () => getData()?.ins?.[insIndex] ?? null;
   const patchIns = patch => { setData(withInstrument(getData(), insIndex, patch)); refresh(); };
@@ -320,67 +323,59 @@ export function createItChanView({ getTiming = () => null, doc = document, getDa
   }
 
   function insControlsRow() {
-    instControls.replaceChildren(); envControls.replaceChildren();
+    for (const hold of [insHold, nnaHold, playsHold, modeHold, rateHold, envListHold]) hold.replaceChildren();
     const data = getData(), count = getSampleIds().length;
     if (!Array.isArray(data?.ins) || !data.ins.length) {
-      envControls.append(make('span', { className: 'dim', textContent: 'No instruments yet: see the INSTRUMENT page.' }));
-      instControls.append(row(button(doc, 'Use instruments', 'Make an instrument for each sample, so notes can have envelopes, keymaps and note actions. Nothing sounds different until you edit one.', () => { setData({ ...getData(), ins: instrumentsFor(count) }); insIndex = 0; refresh(); })),
-        make('span', { className: 'dim', textContent: ' now: a note plays the sample with the same number' }));
+      envListHold.append(make('div', { className: 'dim', textContent: 'a note plays the sample with its number' }),
+        button(doc, 'Use instruments', 'Make an instrument for each sample, so notes can have envelopes, keymaps and note actions. Nothing sounds different until you edit one.', () => { setData({ ...getData(), ins: instrumentsFor(count) }); insIndex = 0; refresh(); }));
       return;
     }
     insIndex = clamp(insIndex, 0, data.ins.length - 1);
     const ins = current() ?? newInstrument(0);
     const names = data.ins.map((_, i) => [i, `${(i + 1).toString(16).toUpperCase().padStart(2, '0')}`]);
     const slots = getSampleIds().map((id, i) => [i, `${i.toString(16).toUpperCase().padStart(2, '0')} ${id}`]);
-    instControls.append(
-      row(select(names, insIndex, v => { insIndex = Number(v); pending = null; refresh(); }, 'The instrument: the Ins value of a cell, 01 being the first'),
-        button(doc, '+', 'Add an instrument', () => { setData(withInstrument(getData(), getData().ins.length, newInstrument(clamp(slot, 0, Math.max(0, count - 1))))); insIndex = getData().ins.length - 1; refresh(); }),
-        make('span', { textContent: '  plays ' }), select(slots, ins.map?.[60] ?? 0, v => patchIns({ map: new Array(120).fill(Number(v)) }), 'The sample every key plays (a keymap with several samples comes from an imported file)')),
-      row(make('span', { textContent: 'new ' }), select(NNA.map((n, i) => [i, n]), ins.nna, v => patchIns({ nna: Number(v) }), 'What happens to a note still playing when a new one starts on the channel'),
-        make('span', { textContent: ' dup ' }), select(DCT.map((n, i) => [i, n]), ins.dct, v => patchIns({ dct: Number(v) }), 'The duplicate check: which notes count as a duplicate'),
-        make('span', { textContent: ' → ' }), select(DCA.map((n, i) => [i, n]), ins.dca, v => patchIns({ dca: Number(v) }), 'What is done to a duplicate'),
-        make('span', { textContent: '  fade ' }), number(ins.fade, 0, 8192, v => patchIns({ fade: v }), 'Fadeout speed after the note is released (0: none)', 52)),
-    );
-    // the envelopes as a list, like the sample list: a box to switch each on, what it holds, its rate; the chosen row is the one drawn below
+    insHold.append(
+      row(make('span', { textContent: 'ins ' }), select(names, insIndex, v => { insIndex = Number(v); pending = null; refresh(); }, 'The instrument: the Ins value of a cell, 01 being the first'),
+        button(doc, '+', 'Add an instrument', () => { setData(withInstrument(getData(), getData().ins.length, newInstrument(clamp(slot, 0, Math.max(0, count - 1))))); insIndex = getData().ins.length - 1; refresh(); })),
+      row(make('span', { textContent: 'fade ' }), number(ins.fade, 0, 8192, v => patchIns({ fade: v }), 'Fadeout speed after the note is released (0: none)', 40)));
+    playsHold.append(row(make('span', { textContent: 'plays ' }), select(slots, ins.map?.[60] ?? 0, v => patchIns({ map: new Array(120).fill(Number(v)) }), 'The sample every key plays (a keymap with several samples comes from an imported file)')));
+    nnaHold.append(row(make('span', { textContent: 'new ' }), select(NNA.map((n, i) => [i, n]), ins.nna, v => patchIns({ nna: Number(v) }), 'What happens to a note still playing when a new one starts on the channel'),
+      make('span', { textContent: ' dup ' }), select(DCT.map((n, i) => [i, n]), ins.dct, v => patchIns({ dct: Number(v) }), 'The duplicate check: which notes count as a duplicate'),
+      make('span', { textContent: '→' }), select(DCA.map((n, i) => [i, n]), ins.dca, v => patchIns({ dca: Number(v) }), 'What is done to a duplicate')));
     const rangeText = (e, from, to) => (e && e[from] >= 0 && e[to] >= 0 ? `${e.pts[e[from] * 2]}‥${e.pts[e[to] * 2]}` : '·');
     const rateSlider = (kind, e) => {   // how fast the note travels through the envelope: 1 is IT's own speed, a tick of the song moves it that far
       const readout = make('span', { textContent: ` ${(e.rate ?? 1).toFixed(2)}x` });
       const slider = make('input', { type: 'range', min: -3, max: 3, step: 0.05, value: Math.log2(e.rate ?? 1), title: 'Rate: how fast the note travels through this envelope (1x is the IT speed; 2x takes half the time). Double-click for 1x' });
-      slider.style.width = '84px';
+      slider.style.width = '150px';
       const rateNow = () => (Math.abs(Number(slider.value)) < 0.025 ? 1 : 2 ** Number(slider.value));
       slider.addEventListener('input', () => { const rate = rateNow(); readout.textContent = ` ${rate.toFixed(2)}x`; setData(withInstrument(getData(), insIndex, { [kind]: { ...(current()?.[kind] ?? e), rate } })); drawEnv(); });
       slider.addEventListener('change', () => refresh());
       slider.addEventListener('dblclick', () => { envKind = kind; patchEnv({ ...e, rate: 1 }); });
       return [slider, readout];
     };
-    const list = make('div', { className: 'itchan-envlist' });
-    const header = row(...['', '', 'pts', 'loop', 'sust', 'rate'].map(text => make('span', { className: 'dim', textContent: text })));
+    const env = ins[envKind] ?? null;
+    rateHold.append(row(make('span', { textContent: `rate ${ENVELOPE_NAMES[envKind].slice(0, 3).toLowerCase()} ` }), ...(env ? rateSlider(envKind, env) : [make('span', { className: 'dim', textContent: '·' })])));
+    // the envelopes as a list: a box to switch each on, how many points, its loop and sustain; the chosen row is the one drawn below
+    const envList = make('div', { className: 'itchan-envlist' });
+    const header = row(...['', '', 'n', 'loop', 'sust'].map(text => make('span', { className: 'dim', textContent: text })));
     header.classList.add('itchan-envrow');
-    list.append(header);
+    envList.append(header);
     for (const kind of ENVELOPES) {
       const e = ins[kind] ?? null, off = !e;
-      const grey = el => { if (off) el.classList.add('off'); return el; };
-      const parts = [
-        make('span', { textContent: kind === envKind ? '▸' : ' ' }),
-        check(ENVELOPE_NAMES[kind].slice(0, 3).toLowerCase(), !off, v => { envKind = kind; pending = null; patchEnv(v ? newEnvelope(kind) : null); }, `Use the ${ENVELOPE_NAMES[kind].toLowerCase()} envelope`),
-        grey(make('span', { textContent: e ? String(e.pts.length / 2) : '·' })),
-      ];
+      const grey = item => { if (off) item.classList.add('off'); return item; };
       const loopText = make('span', { textContent: rangeText(e, 'ls', 'le') }), susText = make('span', { textContent: rangeText(e, 'ss', 'se') });
       loopText.style.color = kind === envKind ? 'color-mix(in srgb, var(--lcd-loop) 40%, var(--lcd-bg))' : 'var(--lcd-loop)'; susText.style.color = kind === envKind ? 'color-mix(in srgb, var(--lcd-sus) 40%, var(--lcd-bg))' : 'var(--lcd-sus)';   // darker on the chosen row, which is shown inverted
-      parts.push(grey(loopText), grey(susText));
-      const last = make('span', { className: 'itchan-rate' });
-      if (e) last.append(...rateSlider(kind, e)); else last.append(grey(make('span', { textContent: '·' })));
-      if (kind === 'pit') last.append(grey(check('filter', ins.filter, v => patchIns({ filter: v }), 'The pitch envelope moves the filter cutoff instead of the pitch')));
-      parts.push(last);
-      const line = row(...parts);
+      const line = row(
+        make('span', { textContent: kind === envKind ? '▸' : ' ' }),
+        check(ENVELOPE_NAMES[kind].slice(0, 3).toLowerCase(), !off, v => { envKind = kind; pending = null; patchEnv(v ? newEnvelope(kind) : null); }, `Use the ${ENVELOPE_NAMES[kind].toLowerCase()} envelope`),
+        grey(make('span', { textContent: e ? String(e.pts.length / 2) : '·' })), grey(loopText), grey(susText));
       line.classList.add('itchan-envrow'); if (kind === envKind) line.classList.add('on');
       line.addEventListener('mousedown', ev => { if (ev.target.closest?.('input, select, button') || kind === envKind) return; envKind = kind; pending = null; refresh(); });
-      list.append(line);
+      envList.append(line);
     }
-    envControls.append(list);
-    const env = ins[envKind] ?? null;
+    envListHold.append(envList);
     const modes = [['point', 'Point'], ['loop', 'Loop'], ['sus', 'Sust']].map(([m, label]) => { const b = button(doc, label, m === 'point' ? 'Click for a point, drag to move, double-click to remove' : 'Click two points to mark the range', () => { markMode = m; pending = null; refresh(); }); b.style.opacity = !env ? '0.35' : markMode === m ? '1' : '0.55'; return b; });
-    envControls.prepend(row(make('span', { className: 'dim', textContent: `${ENVELOPE_NAMES[envKind].toLowerCase()}  edit ` }), ...modes));
+    modeHold.append(row(make('span', { className: 'dim', textContent: `${ENVELOPE_NAMES[envKind].slice(0, 3).toLowerCase()} edit ` }), ...modes));
   }
 
   // what the node reports: where each sounding note is. The panel asks for the reports again every second while it is on the page.
@@ -390,42 +385,28 @@ export function createItChanView({ getTiming = () => null, doc = document, getDa
     drawSample();
   };
   const heartbeat = () => { watch(); const timer = doc.defaultView?.setInterval?.(() => { if (!el.isConnected) doc.defaultView.clearInterval(timer); else watch(); }, 1000); };
-  // ---- the screen: a title bar, one page at a time, and the function keys ------------------------------------------------------
-  // F1 to F3 pick the page; the other keys act on it, and a key that switches something on is lit while it is on.
-  const head = make('div', { className: 'itchan-head' }), fkeys = make('div', { className: 'itchan-fkeys' });
-  const pageEls = { smpl: sampleSide, ins: insSide, env: envSide };
+  // ---- the screen: the title over the waveform, and the function keys ---------------------------------------------------------------
+  // F1 to F8 are the keys under the screen, each acting on what is on it; a key that switches something on is lit while it is on.
+  const head = cell('title', 'itchan-head'), fkeys = cell('fkeys', 'itchan-fkeys');
   const cycle = (list, value) => (value + 1) % list.length;
   const keyDefs = () => {
     const data = getData(), bank = bankOf(), ins = current(), hasIns = Array.isArray(data?.ins) && data.ins.length > 0;
     const loops = bank ? loopsOf(bank, proxyOf(data, slot)) : null;
-    const pageKeys = PAGES.map(([id, label]) => ({ label: { smpl: 'smpl', ins: 'ins', env: 'env' }[id], on: page === id ? true : undefined, act: () => showPage(id), tip: `The ${label.toLowerCase()} page` }));
     const toggleEnv = kind => {
       const e = ins?.[kind] ?? null;
       return { label: { vol: 'vol', pan2: 'pan', pit: 'pit' }[kind], on: Boolean(e), sel: kind === envKind, tip: `Use the ${ENVELOPE_NAMES[kind].toLowerCase()} envelope (press again, once chosen, to switch it off)`,
         act: () => { if (!hasIns) return; if (kind !== envKind) { envKind = kind; pending = null; if (!e) patchEnv(newEnvelope(kind)); else refresh(); } else patchEnv(e ? null : newEnvelope(kind)); } };
     };
-    if (page === 'smpl') return [...pageKeys,
+    return [...ENVELOPES.map(toggleEnv),
+      { label: 'flt', on: Boolean(ins?.filter), tip: 'The pitch envelope moves the filter cutoff instead of the pitch', act: () => hasIns && patchIns({ filter: !ins?.filter }) },
       { label: 'loop', on: Boolean(loops?.loop.on), tip: 'The loop on or off', act: () => bank && (setData(setLoop(getData(), slot, 'loop', bank, { on: !loops.loop.on })), refresh()) },
       { label: 'sust', on: Boolean(loops?.sus.on), tip: 'The sustain loop on or off', act: () => bank && (setData(setLoop(getData(), slot, 'sus', bank, { on: !loops.sus.on })), refresh()) },
       { label: 'zoom', on: zoom, tip: 'Show only the stretch this slot plays', act: () => { zoom = !zoom; refresh(); } },
       { label: 'bank', tip: 'Back to the bank sample\'s own stretch and loops', act: () => { setData(clearProxy(getData(), slot)); refresh(); } }];
-    if (page === 'ins') return [...pageKeys,
-      { label: 'new', tip: 'Cycle the new-note action', act: () => hasIns && patchIns({ nna: cycle(NNA, ins?.nna ?? 0) }) },
-      { label: 'dup', tip: 'Cycle the duplicate check', act: () => hasIns && patchIns({ dct: cycle(DCT, ins?.dct ?? 0) }) },
-      { label: 'then', tip: 'Cycle what is done to a duplicate', act: () => hasIns && patchIns({ dca: cycle(DCA, ins?.dca ?? 0) }) },
-      { label: 'add', tip: 'Add an instrument', act: () => { const count = getSampleIds().length; setData(withInstrument(getData(), getData()?.ins?.length ?? 0, newInstrument(clamp(slot, 0, Math.max(0, count - 1))))); insIndex = getData().ins.length - 1; refresh(); } }];
-    return [...pageKeys, ...ENVELOPES.map(toggleEnv),
-      { label: 'rate', tip: 'Back to the normal speed for the chosen envelope', act: () => { const e = ins?.[envKind]; if (e) patchEnv({ ...e, rate: 1 }); } },
-      { label: 'flt', on: Boolean(ins?.filter), tip: 'The pitch envelope moves the filter cutoff instead of the pitch', act: () => hasIns && patchIns({ filter: !ins?.filter }) }];
   };
   const renderScreen = () => {
-    for (const [id, pageEl] of Object.entries(pageEls)) pageEl.style.display = id === page ? '' : 'none';
-    const data = getData(), hasIns = Array.isArray(data?.ins) && data.ins.length > 0;
-    head.replaceChildren(make('span', { className: 'itchan-title', textContent: ` ${PAGES.find(([id]) => id === page)[1]} ` }));
-    if (page === 'smpl') { const ids = getSampleIds(); if (ids.length) head.append(make('span', { textContent: ` ${clamp(slot, 0, ids.length - 1).toString(16).toUpperCase().padStart(2, '0')} ${ids[clamp(slot, 0, ids.length - 1)]}` })); }
-    if (page !== 'smpl' && hasIns) {
-      head.append(make('span', { textContent: ' ins ' }), select(data.ins.map((_, i) => [i, `${(i + 1).toString(16).toUpperCase().padStart(2, '0')}`]), insIndex, v => { insIndex = Number(v); pending = null; refresh(); }, 'The instrument: the Ins value of a cell, 01 being the first'));
-    }
+    const ids = getSampleIds(); head.replaceChildren();
+    if (ids.length) { const n = clamp(slot, 0, ids.length - 1); head.append(make('span', { className: 'itchan-title', textContent: ` ${n.toString(16).toUpperCase().padStart(2, '0')} ${ids[n]} ` })); }
     const swatch = make('input', { type: 'color', className: 'itchan-swatch', value: lcdColour, title: 'The screen\'s colour (double-click for the usual one)' });
     swatch.addEventListener('input', () => { applyLcd(swatch.value); try { localStorage.setItem(LCD_KEY, swatch.value); } catch { /* no storage */ } drawSample(); drawEnv(); });
     swatch.addEventListener('dblclick', () => { applyLcd(LCD_DEFAULT); try { localStorage.removeItem(LCD_KEY); } catch { /* no storage */ } refresh(); });
@@ -437,18 +418,16 @@ export function createItChanView({ getTiming = () => null, doc = document, getDa
       return b;
     }));
   };
-  function showPage(id) { page = id; try { localStorage.setItem(PAGE_KEY, id); } catch { /* no storage */ } refresh(); }
   el.addEventListener('keydown', e => {
     const n = /^F([1-8])$/.exec(e.key)?.[1]; if (!n || e.ctrlKey || e.altKey || e.metaKey) return;
     e.preventDefault(); e.stopPropagation(); keyDefs()[Number(n) - 1]?.act?.();
   });
-  const pages = make('div', { className: 'itchan-pages' }, sampleSide, insSide, envSide);
-  el.append(head, pages, fkeys);
+  el.append(stage);
   const renderList = () => {
     const ids = getSampleIds();
     list.replaceChildren(...ids.map((id, i) => {
-      const row_ = make('div', { className: `itchan-loaded-row${i === slot ? ' on' : ''}`, textContent: `${i.toString(16).toUpperCase().padStart(2, '0')} ${id}`, title: 'Show this sample on the SAMPLE page' });
-      row_.addEventListener('mousedown', () => { slot = i; showPage('smpl'); });
+      const row_ = make('div', { className: `itchan-loaded-row${i === slot ? ' on' : ''}`, textContent: `${i.toString(16).toUpperCase().padStart(2, '0')} ${id}`, title: 'Show this sample' });
+      row_.addEventListener('mousedown', () => { slot = i; refresh(); });
       return row_;
     }));
   };
