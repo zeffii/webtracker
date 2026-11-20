@@ -74,7 +74,8 @@ export function createItChanView({ getTiming = () => null, doc = document, getDa
   const sampleSide = make('div', { className: 'itchan-side' });
   const { canvas: sampleCanvas, ctx: sctx, ink: sink } = makeCanvas(doc, SW, SH, 'itchan-sample');
   const sampleControls = make('div', { className: 'itchan-controls' });
-  sampleSide.append(sampleCanvas, sampleControls);
+  const list = make('div', { className: 'itchan-loaded', tabIndex: 0 });   // the samples this node plays, under the waveform: it holds one row per sample, so it is empty (and takes no room) until one is added
+  sampleSide.append(sampleCanvas, list, sampleControls);
   let peakCache = null;   // the waveform's columns, kept while the sample, the stretch on show and the width stay the same
   const heads = new Map();   // the playheads: note number -> { slot, frame }, as the node last reported them
 
@@ -96,7 +97,7 @@ export function createItChanView({ getTiming = () => null, doc = document, getDa
     const page = sink(), bank = bankOf(), data = getData();
     sctx.clearRect(0, 0, SW, SH);
     sctx.font = '10px ui-monospace, Consolas, monospace'; sctx.textBaseline = 'top'; sctx.textAlign = 'left';
-    if (!bank) { sctx.fillStyle = page; sctx.globalAlpha = 0.6; sctx.fillText('No sample in this slot: add one in the Samples Loaded list.', PL, 6); sctx.globalAlpha = 1; return; }
+    if (!bank) { sctx.fillStyle = page; sctx.globalAlpha = 0.6; sctx.fillText('No sample in this slot: add one to the machine.', PL, 6); sctx.globalAlpha = 1; return; }
     const length = bank.data.length, proxy = proxyOf(data, slot), [a, b] = rangeOf(proxy, length), { loop, sus } = loopsOf(bank, proxy);
     window_ = zoom ? [Math.max(0, a - (b - a) * 0.05), Math.min(length, b + (b - a) * 0.05)] : [0, length];
     const mid = SH / 2, tall = SH / 2 - 14, width = SW - PL - PR;
@@ -443,18 +444,16 @@ export function createItChanView({ getTiming = () => null, doc = document, getDa
   });
   const pages = make('div', { className: 'itchan-pages' }, sampleSide, insSide, envSide);
   el.append(head, pages, fkeys);
-  // The samples this node plays, as a list for the browser's "Samples Loaded" division: the one chosen is the one the SAMPLE page shows.
-  const list = make('div', { className: 'itchan-loaded', tabIndex: 0 });
   const renderList = () => {
     const ids = getSampleIds();
-    list.replaceChildren(...(ids.length ? ids.map((id, i) => {
+    list.replaceChildren(...ids.map((id, i) => {
       const row_ = make('div', { className: `itchan-loaded-row${i === slot ? ' on' : ''}`, textContent: `${i.toString(16).toUpperCase().padStart(2, '0')} ${id}`, title: 'Show this sample on the SAMPLE page' });
       row_.addEventListener('mousedown', () => { slot = i; showPage('smpl'); });
       return row_;
-    }) : [make('div', { className: 'dim', textContent: 'No samples: add one to the machine.' })]));
+    }));
   };
   function refresh() { renderList(); renderScreen(); sampleControlsRow(); insControlsRow(); drawSample(); drawEnv(); }
   sampleDrag(); envDrag();
   refresh(); heartbeat();
-  return { el, list, refresh, feed, draw: () => { drawSample(); drawEnv(); } };
+  return { el, refresh, feed, draw: () => { drawSample(); drawEnv(); } };
 }

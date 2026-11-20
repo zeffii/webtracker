@@ -1081,9 +1081,10 @@
     .itchan-lcd { display: flex; flex-direction: column; align-items: stretch; gap: .35rem; background: var(--lcd-bg, #3d5a99); color: var(--lcd-fg, #f2f6ff); padding: .5rem .7rem .55rem; border-radius: 6px; box-shadow: inset 0 0 0 2px var(--lcd-edge, #2b4272); box-sizing: border-box; width: 668px; height: 366px; flex: none; overflow: hidden; outline: none; }   /* always this size: the pages change, the window does not */
     .itchan-lcd .itchan-pages { flex: 1; min-height: 0; overflow: hidden; }
     .itchan-lcd .itchan-fkeys { margin-top: auto; }
-    .itchan-loaded { display: flex; flex-direction: column; font-family: var(--mono, ui-monospace, Consolas, monospace); font-size: .78rem; max-height: 14rem; overflow-y: auto; }
+    .itchan-loaded { display: grid; grid-template-columns: repeat(auto-fill, minmax(16ch, 1fr)); font-family: var(--mono, ui-monospace, Consolas, monospace); font-size: .78rem; max-height: 3.4rem; overflow-y: auto; }
+    .itchan-loaded:empty { display: none; }
     .itchan-loaded-row { padding: 0 .4rem; cursor: pointer; white-space: pre; }
-    .itchan-loaded-row.on { background: color-mix(in srgb, currentColor 20%, transparent); }
+    .itchan-loaded-row.on { background: var(--lcd-fg); color: var(--lcd-bg); }
     .itchan-lcd select, .itchan-lcd input[type=number], .itchan-lcd button { background: var(--lcd-field, #2f4a82); color: var(--lcd-fg, #f2f6ff); border: 1px solid var(--lcd-line, #9db2d9); border-radius: 2px; }
     .itchan-lcd .itchan-head { display: flex; align-items: center; gap: .3rem; font-family: var(--mono, ui-monospace, Consolas, monospace); font-size: .78rem; }
     .itchan-lcd .itchan-swatch { margin-left: auto; width: 1.6rem; height: 1rem; padding: 0; border: 1px solid var(--lcd-line, #9db2d9); background: none; cursor: pointer; }
@@ -1809,10 +1810,6 @@
               </div>
               <div id="patch-tools"></div>
             </div>
-          </div>
-          <div class="rs-panel" id="itchan-loaded" hidden>
-          <h2>Samples Loaded</h2>
-          <div class="loaded-host"></div>
           </div>
           <div class="rs-panel">
           <h2>New instrument</h2>

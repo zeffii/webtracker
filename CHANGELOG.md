@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 809 · 2026-11-20
+
+- **The sample list lives on the SAMPLE page.** It sits under the waveform, in columns, so it is wider than it was in the browser, and the "Samples Loaded" division is gone. It has one row per sample and nothing else: with no samples there is no list at all.
+
 ## 808 · 2026-11-20
 
 - **IT channel screen: the colour is easy to change.** A swatch at the right of the title bar opens a colour picker; the whole screen follows it (the text goes light or dark to suit, the edge, fields and lines are mixed from it, loop and sustain pick a cyan and yellow, or darker ones, to suit). Double-click the swatch for the usual colour. The usual blue is also calmer now (a steel blue). The choice is remembered.

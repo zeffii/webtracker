@@ -268,7 +268,7 @@ const toPos = (spec, v) => (isLog(spec) ? Math.log(v / spec.min) / Math.log(spec
 const fmt = v => String(Number(v.toPrecision(4)));
 const VECTOR_EDITORS = new Set(['compass', 'waveseq', 'vecmix', 'vecpath']);   // the node panels made by compassview.js
 
-export function createPatcher({ loadedPanel = null, getTiming = () => null, onHelp = () => {}, canvas, panel, toolsEl = null, paramPanel = null, exposedDock = null, floatDock = null, onScope = () => {}, onEscape = () => {}, statusEl, doc = document, nodeTypes, onStructure, onParam, onData = () => {}, onContext = () => {}, onNote = () => {}, getSampleIds = () => [], getSample = () => null, getGrainSource = () => null, readLive = () => undefined }) {
+export function createPatcher({ getTiming = () => null, onHelp = () => {}, canvas, panel, toolsEl = null, paramPanel = null, exposedDock = null, floatDock = null, onScope = () => {}, onEscape = () => {}, statusEl, doc = document, nodeTypes, onStructure, onParam, onData = () => {}, onContext = () => {}, onNote = () => {}, getSampleIds = () => [], getSample = () => null, getGrainSource = () => null, readLive = () => undefined }) {
   let oscWave = null;       // the drawn wave of an oscillator, dimmed unless its wave is 'drawn'
   let gateEditor = null;    // the step pattern of a trance gate, redrawn when its length moves
   let dxView = null;        // the bank loader and algorithm view of a DVIIloader
@@ -764,7 +764,7 @@ export function createPatcher({ loadedPanel = null, getTiming = () => null, onHe
         const list = pinnedList();
         if (list.length) paramView.show('', [], 0, '', null, list); else paramView.hide();
       }
-      toolsEl?.replaceChildren(); itChanView = null; if (loadedPanel) loadedPanel.hidden = true;
+      toolsEl?.replaceChildren(); itChanView = null;
       panel.replaceChildren(el('p', {}, instId ? 'Click a node to edit its parameters.' : 'No instrument.'));
       return;
     }
@@ -1015,7 +1015,7 @@ export function createPatcher({ loadedPanel = null, getTiming = () => null, onHe
       });
       items.splice(1, 0, sub(khufuView.el));
     }
-    itChanView = null; if (loadedPanel) loadedPanel.hidden = true;   // the Samples Loaded list of the browser is for an IT channel
+    itChanView = null;
     if (type.editor === 'itchan') {   // the samples as proxies of the bank's, and the instruments' envelopes: kept on the node and sent live
       const list = () => { const cur = def().samples?.[node.id]; return Array.isArray(cur) ? cur : cur === undefined ? [] : [cur]; };
       itChanView = createItChanView({
@@ -1027,7 +1027,6 @@ export function createPatcher({ loadedPanel = null, getTiming = () => null, onHe
         },
       });
       items.splice(1, 0, sub(itChanView.el));
-      if (loadedPanel) { loadedPanel.querySelector('.loaded-host')?.replaceChildren(itChanView.list); loadedPanel.hidden = false; }
     }
     compassView = null;
     if (VECTOR_EDITORS.has(type.editor)) {   // the diamond and its path, the wave sequences and the two drawings: kept on the node and sent live
