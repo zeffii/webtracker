@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 792 · 2026-11-20
+
+- **Piano: `scatter`.** The felt dissipates the blow unevenly, so the muffle's opening is no longer a smooth rise: a correlated random wobble (smoothed noise, its own generator) moves the cutoff up and down as it opens, and dies away with the attack. Only matters with `muffle` up; 0 keeps the smooth rise.
+
 ## 791 · 2026-11-20
 
 - **Piano: `muffle`.** The percussive part of a piano note is dull, as if the wood were lowpassing it. A new setting runs the first moments through a lowpass that starts dark (about 500 Hz at full) and opens over some 25 ms, so the click and thud lose their edge while the ringing tone is untouched. Off (0) by default.

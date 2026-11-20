@@ -1141,6 +1141,7 @@ const HINTS = {
     board: 'The soundboard: dozens of short, damped wood resonances from 90 Hz to 5 kHz that give the tone the density of a wooden plate. 0 leaves them out.',
     knock: 'The soft tick of the damper felt landing on the strings when a key comes up (with the pedal up).',
     muffle: 'The wood takes the edge off the percussive part: the attack is lowpassed, dark at the start and opening over about 25 ms, so the click and thud are dull while the ringing tone is untouched. 0 is off.',
+    scatter: 'The felt dissipates the blow unevenly, like light off a rough surface: the muffle opens in a jagged, correlated-random way instead of a smooth rise. Only matters when muffle is up. 0 is smooth.',
     quality: '0 standard, 1 eco: the soundboard uses 12 resonances instead of 32. Nothing else changes.',
   },
   modchan: {

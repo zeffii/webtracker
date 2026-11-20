@@ -7203,6 +7203,14 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
       assert.ok(Math.abs(rms(dull, late, late + 4410) - rms(open, late, late + 4410)) < 0.1 * rms(open, late, late + 4410), 'muffle leaves the ringing tone alone');
       assert.ok(dull.every(Number.isFinite), 'muffle stays finite');
     }
+    // scatter: the opening of the muffle is jagged (the early sound differs from the smooth one), and the tone later is the same
+    {
+      const smooth = render(60, 1, 0.5, { felt: 1, muffle: 1 }).l, rough = render(60, 1, 0.5, { felt: 1, muffle: 1, scatter: 1 }).l;
+      const early = Math.round(0.02 * sr), late = Math.round(0.35 * sr);
+      assert.ok(smooth.slice(0, early).some((v, i) => Math.abs(v - rough[i]) > 1e-3), 'scatter changes the attack');
+      assert.ok(Math.abs(rms(rough, late, late + 4410) - rms(smooth, late, late + 4410)) < 0.1 * rms(smooth, late, late + 4410), 'scatter leaves the ringing tone alone');
+      assert.ok(rough.every(Number.isFinite), 'scatter stays finite');
+    }
     // the damper's tick: something is heard right after the key comes up that is not there without it
     const quiet = render(60, 1, 1, { knock: 0 }, 0.5).l, ticked = render(60, 1, 1, { knock: 1 }, 0.5).l;
     const at = Math.round(0.5 * sr), len = Math.round(0.015 * sr);
