@@ -692,6 +692,8 @@ export function createTrackerView({ showMenu = (e, items) => showContextMenu(e, 
     nugget = false;
     dragging = { lane: hit.lane, tick: hit.tick, col: hit.col };
     message = '';
+    // A click while following is the wish to edit what is on screen now: the following pauses (F9 or the Follow button follows again).
+    if (follow() && !solo && Atomics.load(transport, 1) === 1) { paused = true; lastAuto = null; message = 'Follow paused while you edit: F9 follows again.'; }
     el.focus?.();
     if (onMove && (cur.lane !== was[0] || cur.tick !== was[1])) onMove(cur.lane, cur.tick);
   });
