@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 825 · 2026-11-21
+
+- **The loop and sustain edges get thicker with the crossfade** (sample editor): the start line reaches back over the audio that is blended in, the end line over the last frames blended with it, so the width of the crossfade shows at a glance.
+
 ## 824 · 2026-11-21
 
 - **A click in the pattern editor while the song plays and follows pauses the following**, so the pattern you want to edit stays on screen. F9 (or the Follow button) follows again. It no longer depends on the "caret may roam" setting.

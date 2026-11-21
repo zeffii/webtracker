@@ -299,7 +299,10 @@ export function createWaveformView({ canvas, statusEl, getProject, onLoop, onSel
         ctx.fillRect(frameToX(a - xf), H - 8, frameToX(a) - frameToX(a - xf), 8);
         ctx.globalAlpha = 1;
       }
+      // the edges are lines that grow thicker with the crossfade: the start's reaches back over the audio blended in, the end's over the frames blended with it
+      const reach = xf > 0 ? Math.max(2, frameToX(a) - frameToX(a - xf)) : 2;
       ctx.fillStyle = l.colour;
+      if (reach > 2) { ctx.globalAlpha = off ? 0.15 : 0.45; ctx.fillRect(xs - (reach - 2), 0, reach - 2, H); ctx.fillRect(xe - reach, 0, reach - 2, H); ctx.globalAlpha = off ? 0.35 : 1; }
       ctx.fillRect(xs, 0, 2, H);
       ctx.fillRect(xe - 2, 0, 2, H);
       ctx.textAlign = 'left';
