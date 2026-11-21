@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 829 · 2026-11-21
+
+- **The add-node menu: type a name.** A letter typed in the tree goes straight to the search, with the letter in the box, and Enter inserts the best match. The one-letter hotkeys and their underlines are gone, since they stood in the way of typing a name. Arrows, Right, Left and Esc walk the tree as before.
+
 ## 828 · 2026-11-21
 
 - **A new effect, Circuit** (Distortion): eight stages of an analogue signal path, each switched on or off, in one of six orders. Slew rate (a fast sine turns triangular), a transistor-style device curve with bias, a miller roll-off that darkens with level, a band limit, a loop response whose phase margin rings, a converter with bits and jitter, a hiss floor, and a wire reflection. `drift` lets the parts wander; the device runs at 1x, 2x or 4x.

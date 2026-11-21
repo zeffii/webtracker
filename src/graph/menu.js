@@ -1,7 +1,7 @@
 // The floating "insert node" menu, in two parts. The tree is an ordinary cascading menu (categories, groups, nodes), each level
 // flying out beside the row that opened it: Up/Down move (and wrap), Right or Enter open a branch (or insert a node), Left or Esc
-// go back a level (Esc at the top closes), and the underlined letter of a row is its hotkey. The search is a flat list of the
-// nodes that match what is typed, with the same keys; press / (or Tab, or click the box) for it, Esc to get back to the tree.
+// go back a level (Esc at the top closes). Typing a name goes to the search at once: a flat list of the nodes that match, best
+// first, with the same keys (Enter inserts the chosen one); Esc gets back to the tree.
 // It does not know about graphs; picking calls onPick(type, at) with the point the menu was opened at.
 
 import { popups } from '../ui/kit/popups.js';
@@ -33,21 +33,10 @@ GROUPS.Control = [
 ];
 const ORDER = ['Sources', 'Effects', 'Control', 'Mix & level'];
 
-// The hotkey of each row of a menu level: the first letter or digit of its label that no earlier row has taken.
-export function hotkeys(labels) {
-  const taken = new Set();
-  return labels.map(label => {
-    const i = [...label.toLowerCase()].findIndex(c => /[a-z0-9]/.test(c) && !taken.has(c));
-    if (i < 0) return -1;
-    taken.add(label.toLowerCase()[i]);
-    return i;   // the index of the letter in the label
-  });
-}
-
 export function createInsertMenu({ parent, nodeTypes, onPick, doc = document }) {
   const el = (tag, props = {}) => Object.assign(doc.createElement(tag), props);
   const box = el('div', { className: 'insert-menu', hidden: true });
-  const input = el('input', { type: 'search', placeholder: 'Add node: letters pick, / searches' });
+  const input = el('input', { type: 'search', placeholder: 'Add node: type a name, or use the arrows' });
   input.setAttribute?.('aria-label', 'Add node');
   const list = el('div', { className: 'insert-list' });
   const hint = el('div', { className: 'insert-hint' });
@@ -116,14 +105,6 @@ export function createInsertMenu({ parent, nodeTypes, onPick, doc = document }) 
     return cols;
   };
 
-  // A label with the letter at `i` underlined.
-  const labelled = (b, label, i) => {   // b is a row
-    if (i < 0) { b.textContent = label; return; }
-    b.appendChild(el('span', { textContent: label.slice(0, i) }));
-    b.appendChild(el('u', { textContent: label[i] }));
-    b.appendChild(el('span', { textContent: label.slice(i + 1) }));
-  };
-
   const render = () => {
     box.className = `insert-menu ${searching ? 'searching' : 'tree'}`;
     hint.textContent = searching ? 'Up/Down, Enter inserts, Esc back to the menu' : '';
@@ -153,11 +134,10 @@ export function createInsertMenu({ parent, nodeTypes, onPick, doc = document }) 
     // The tree: a column of rows; the chosen row of each level carries the next level as a flyout beside it.
     const level = (rows, k) => {
       const col = el('div', { className: `insert-col${k ? ' fly' : ''}` });
-      const keys = hotkeys(rows.map(r => r.label));
       rows.forEach((row, i) => {
         const here = sel[k] === i;
         const item = el('div', { className: `mi${row.children ? ' has-sub' : ''}${row.type && off(row.type) ? ' off' : ''}${here ? (k === depth ? ' active' : ' trail') : ''}` });
-        labelled(item, row.label, keys[i]);
+        item.textContent = row.label;
         item.addEventListener('mouseenter', () => {
           if (sel[k] === i) return;   // the row is already the chosen one (a redraw puts the pointer on it again): keep the keys where they are
           sel = [...sel.slice(0, k), i]; depth = k; render();
@@ -232,11 +212,8 @@ export function createInsertMenu({ parent, nodeTypes, onPick, doc = document }) 
     else if (e.key === 'Enter') { if (!enter(row)) { e.preventDefault(); return; } }
     else if (e.key === 'ArrowLeft') { if (depth > 0) { depth--; sel = sel.slice(0, depth + 1); } }
     else if (e.key === '/' || e.key === 'Tab') toSearch();
-    else if (plain && e.key.length === 1) {   // a hotkey: the underlined letter of a row in this level
-      const keys = hotkeys(rows.map(r => r.label)), c = e.key.toLowerCase();
-      const i = keys.findIndex((k, n) => k >= 0 && rows[n].label.toLowerCase()[k] === c);
-      if (i >= 0) { sel = [...sel.slice(0, depth), i]; if (!enter(rows[i])) { e.preventDefault(); return; } }
-    } else return;
+    else if (plain && e.key.length === 1) { toSearch(); return; }   // a letter starts the search, and goes into the box as it was typed
+    else return;
     e.preventDefault();
     render();
   });
@@ -245,7 +222,7 @@ export function createInsertMenu({ parent, nodeTypes, onPick, doc = document }) 
     at = { x, y };
     replacing = replace;
     wiring = wire;
-    input.placeholder = wire != null ? 'Put into the wire: letters pick, / searches' : replace ? `Replace ${replace.id} with: letters pick, / searches` : 'Add node: letters pick, / searches';
+    input.placeholder = wire != null ? 'Put into the wire: type a name, or use the arrows' : replace ? `Replace ${replace.id} with: type a name, or use the arrows` : 'Add node: type a name, or use the arrows';
     const room = (parent.clientWidth || 0) - 3 * 192 - 8;   // keep the three columns inside the graph when there is room
     box.style.left = `${room > 0 ? Math.min(x, room) : x}px`;
     box.style.top = `${y}px`;

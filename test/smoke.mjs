@@ -40,7 +40,7 @@ import { WAVE_POINTS, WAVES, normalizeWave } from '../src/audio/nodes/waves.js';
 import { CURVE_POINTS, PRESETS } from '../src/audio/nodes/curves.js';
 import { Oversampler } from '../src/audio/nodes/oversample.js';
 import { resolveKinds } from '../src/graph/kinds.js';
-import { createInsertMenu, hotkeys } from '../src/graph/menu.js';
+import { createInsertMenu } from '../src/graph/menu.js';
 import { createTabs } from '../src/ui/tabs.js';
 import * as presetOps from '../src/project/presets.js';
 import { parseInstrument, serializeInstrument } from '../src/project/file.js';
@@ -2293,12 +2293,11 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   input.value = 'pan'; input.listeners.input();
   assert.equal(escape(), true); assert.ok(menu.isOpen && input.value === '', 'Escape in the search goes back to the tree');
   assert.equal(escape(), true); assert.ok(!menu.isOpen);
-  // hotkeys: each row's first free letter, and typing one opens or inserts
-  assert.deepEqual(hotkeys(['Sources', 'Effects', 'Control', 'Mix & level', 'Synths', 'Sampler']), [0, 0, 0, 0, 1, 1], 'letters');
-  assert.deepEqual(hotkeys(['sine', 'saw', 'square']), [0, 1, 1], 'a taken letter moves on to the next free one');
+  // typing a name goes straight to the search, and Enter inserts the best match
   menu.open(10, 10);
-  key('e'); key('r'); key('p');   // Effects, Reverb, plate
-  assert.equal(picks.at(-1)[0], 'plate', 'hotkeys walk the tree');
+  key('p'); input.value = 'plate'; input.listeners.input();
+  key('Enter');
+  assert.equal(picks.at(-1)[0], 'plate', 'typing a name finds the node');
   menu.open(10, 10);
   key('ArrowUp'); key('Enter');   // wraps to the last category and opens it
   assert.ok(menu.isOpen, 'Enter on a category only opens it');
@@ -2315,7 +2314,7 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   // a redraw puts the pointer on the row it clicked again: that must not take the keys back to the first level
   menu.open(10, 10);
   const items = () => menu.box.children[1].children[0].children;   // the first level's rows
-  const text = row => row.children.filter(c => c.tag !== 'div').map(c => c.textContent).join('');
+  const text = row => row.textContent;
   key('ArrowDown'); key('ArrowRight');   // Effects is open, the keys are in its groups
   items().find(r => text(r) === 'Effects').listeners.mouseenter();
   key('ArrowDown');
