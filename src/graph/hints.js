@@ -151,6 +151,7 @@ const HINTS = {
     cutoff: 'Cutoff frequency in Hz. Wire an envelope or LFO into `mod` to sweep it (the mod input is in octaves).',
     resonance: 'Emphasis at the cutoff. Low is smooth; high rings and whistles around the cutoff.',
     mode: '0 lowpass (keeps lows, cuts highs), 1 bandpass (keeps a band around the cutoff), 2 highpass (keeps highs, cuts lows).',
+    keytrack: 'How far the cutoff follows the note: 1 moves it an octave for each octave of pitch from middle C, so every note keeps its brightness; 0 ignores pitch. Works where the filter sits before the voices node (each voice has its own note); after it there is no note to follow.',
   },
   tap: {
     trig: 'Write 1 in a pattern to start a take on that row, 0 to end it early. Every write to the cell counts, so 1 on a later row retakes.',
@@ -199,6 +200,7 @@ const HINTS = {
     mix: 'Dry/wet balance. Turn it from 0 to 1 while playing to morph the filter in smoothly; the control is smoothed so it never clicks.',
     level: 'Output level.',
     phase: 'Where the LFO is in its cycle (a whole turn from 0 to 1). Shifts the sweep against the music, or against another filter\'s LFO.',
+    keytrack: 'How far the cutoff follows the note: 1 moves it an octave for each octave of pitch from middle C, so every note keeps its brightness; 0 ignores pitch. Works where the filter sits before the voices node (each voice has its own note); after it there is no note to follow.',
   },
   twin: {
     drive: 'Saturation in front of both filters. More bites and thickens; the level is evened out for you.',

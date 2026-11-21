@@ -1,7 +1,7 @@
 import { instantiateDsp } from '../wasm/host.js';
 
 // Mono state-variable filter (TPT form). mode: 0 lowpass, 1 bandpass, 2 highpass.
-const CUTOFF = 0, RES = 1, MODE = 2;
+const CUTOFF = 0, RES = 1, MODE = 2, KEYTRACK = 3;
 
 export default {
   type: 'filter',
@@ -16,17 +16,19 @@ export default {
     { name: 'cutoff', min: 20, max: 18000, def: 2000 },
     { name: 'resonance', min: 0, max: 0.95, def: 0.2 },
     { name: 'mode', min: 0, max: 2, def: 0, int: true },
+    { name: 'keytrack', min: 0, max: 1, def: 0 },   // how far the cutoff follows the note, 1 an octave per octave from middle C
   ],
   create({ sampleRate, maxBlock = 512, connected, wasm }) {
     const modOn = connected[1];
-    let ic1 = 0, ic2 = 0, fc = -1;
+    let ic1 = 0, ic2 = 0, fc = -1, keyOctaves = 0;   // keyOctaves: where the last note is, in octaves from middle C
     // WASM path: same maths in a compiled kernel; state lives in its memory.
     const dsp = wasm ? instantiateDsp(wasm, { input: maxBlock * 4, output: maxBlock * 4, state: 16 }) : null;
     const wIn = dsp?.f32('input', maxBlock), wOut = dsp?.f32('output', maxBlock);
     return {
+      note(msg) { if (msg.type === 'noteOn') keyOctaves = (msg.note - 60) / 12; },   // (in a voice's own chain: before the voices node)
       process(inputs, outputs, n, params, slots) {
         const input = inputs[0], out = outputs[0];
-        let target = params[slots[CUTOFF]];
+        let target = params[slots[CUTOFF]] * Math.pow(2, params[slots[KEYTRACK]] * keyOctaves);
         if (modOn) {
           const mod = inputs[1];
           let sum = 0;

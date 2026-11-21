@@ -1,7 +1,7 @@
 // ladder: a four-pole (24 dB) resonant lowpass with a built-in LFO and a dry/wet mix, made to sit in a chain and be swept.
 // Zero-delay feedback, tanh-style saturation in front of the poles, and a resonance that reaches self-oscillation.
 // The LFO rate is on a log scale (0.01 to 20 Hz), so the slow end, where most sweeps live, has plenty of room.
-const CUT = 0, RES = 1, DRIVE = 2, RATE = 3, DEPTH = 4, SHAPE = 5, MIX = 6, LEVEL = 7, PHASE = 8;
+const CUT = 0, RES = 1, DRIVE = 2, RATE = 3, DEPTH = 4, SHAPE = 5, MIX = 6, LEVEL = 7, PHASE = 8, KEYTRACK = 9;
 
 const sat = x => { const x2 = x * x; return x > 3 ? 1 : x < -3 ? -1 : x * (27 + x2) / (27 + 9 * x2); };
 const flush = v => (Math.abs(v) < 1e-18 ? 0 : v);
@@ -25,15 +25,17 @@ export default {
     { name: 'mix', min: 0, max: 1, def: 1 },
     { name: 'level', min: 0, max: 2, def: 1 },
     { name: 'phase', min: 0, max: 1, def: 0 },   // where in its cycle the LFO is, as a turn: shifts it against the music or against another filter's LFO
+    { name: 'keytrack', min: 0, max: 1, def: 0 },   // how far the cutoff follows the note, 1 an octave per octave from middle C
   ],
   create({ sampleRate }) {
     const sr = sampleRate, cs = 1 - Math.exp(-4 / (sr * 0.004)), ms = 1 - Math.exp(-1 / (sr * 0.02));
     const s = new Float64Array(4);
-    let phase = 0, fc = -1, mixNow = -1, lvl = -1;
+    let phase = 0, fc = -1, mixNow = -1, lvl = -1, keyOctaves = 0;   // keyOctaves: where the last note is, in octaves from middle C
     return {
+      note(msg) { if (msg.type === 'noteOn') keyOctaves = (msg.note - 60) / 12; },   // (in a voice's own chain: before the voices node)
       process(inputs, outputs, n, params, slots) {
         const input = inputs[0], out = outputs[0], mod = inputs[1];
-        const base = params[slots[CUT]], res = Math.min(Math.max(params[slots[RES]], 0), 1);
+        const base = params[slots[CUT]] * Math.pow(2, params[slots[KEYTRACK]] * keyOctaves), res = Math.min(Math.max(params[slots[RES]], 0), 1);
         const drive = 1 + params[slots[DRIVE]] * 5, inc = params[slots[RATE]] / sr, depth = params[slots[DEPTH]];
         const shift = params[slots[PHASE]], shape = Math.round(params[slots[SHAPE]]), mixT = params[slots[MIX]], levT = params[slots[LEVEL]];
         const k = res * 4.3, comp = 1 + res * 0.6, wet = 1 + res * res * 4, kick = res > 0.97 ? 1e-5 : 0;

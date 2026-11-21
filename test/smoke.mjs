@@ -1612,7 +1612,7 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     const node = NODE_TYPES[type].create({ sampleRate: sr, maxBlock: 512, connected, wasm: wasmOn ? wasm : null });
     const total = 24000, block = 100, out = new Float32Array(total);
     const input = new Float32Array(512), mod = new Float32Array(512), output = new Float32Array(512);
-    const params = new Float32Array(3), slots = Int32Array.of(0, 1, 2);
+    const params = new Float32Array(4), slots = Int32Array.of(0, 1, 2, 3);
     let seed = 11;
     for (let at = 0; at < total; at += block) {
       setup(params, at);

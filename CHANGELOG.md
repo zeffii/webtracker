@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 827 · 2026-11-21
+
+- **Filter and Ladder: a `keytrack` parameter.** The cutoff follows the note, an octave per octave from middle C at 1; 0 (the default) leaves every sound as it was. It works where the filter sits in a voice's own chain (before the voices node), where each voice knows its note.
+
 ## 826 · 2026-11-21
 
 - **Pogue: a `span` slider for the voices picture.** It sets how much history the picture shows, from the full six seconds down to two, so quick movement can be seen in more detail. It changes only the picture, not the sound.
