@@ -107,6 +107,7 @@ export default {
     { name: 'patrate', min: 0, max: RATES.length - 1, def: 4, int: true },   // ticks per step, from the arp's list
     { name: 'moves', min: 0, max: 2, def: MOVE_TARGET, int: true },        // a trigger: new targets, phase jump, both
     { name: 'lookahead', min: 0, max: 1, def: 0, int: true },              // live, aligned
+    { name: 'span', min: 2, max: 6, def: 6 },                              // seconds of history the voices picture shows (a view setting: the sound ignores it)
   ],
   create({ sampleRate, emit, clock }) {
     const size = Math.ceil(sampleRate * MAX_MS / 1000) + 4;

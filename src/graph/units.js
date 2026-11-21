@@ -24,7 +24,7 @@ const TYPE_UNIT = {
   rotary: { slow: 'Hz', fast: 'Hz', inertia: 'x', drive: '%', doppler: 'x', tremolo: '%', spread: '%', balance: '%', cross: 'Hz', mix: '%' },
   ringmod: { freq: 'Hz', ratio: '', offset: 'Hz', depth: '%', mix: '%' },
   chorus: { depth: 'ms', delay: 'ms' },
-  pogue: { pregain: 'dB', postgain: 'dB', mindelay: 'ms', maxdelay: 'ms', inertia: 'ms', lpcut: 'Hz', hpcut: 'Hz', resolution: 'Hz', change: '%', feedback: '', xfeedback: '', saturation: '%', degrade: '%', dither: '%', errormix: '%', lpq: '', hpq: '', onset: '', pattern: '', patlen: '' },
+  pogue: { pregain: 'dB', postgain: 'dB', mindelay: 'ms', maxdelay: 'ms', inertia: 'ms', lpcut: 'Hz', hpcut: 'Hz', resolution: 'Hz', change: '%', feedback: '', xfeedback: '', saturation: '%', degrade: '%', dither: '%', errormix: '%', lpq: '', hpq: '', onset: '', pattern: '', patlen: '', span: 's' },
   flanger: { depth: 'ms', delay: 'ms' },
   comb: { freq: 'Hz', spread: 'ct' },
   clap: { tone: 'Hz', spacing: 'ms', burstDecay: 'ms', tailDecay: 'ms', spread: '%', drive: '%' },

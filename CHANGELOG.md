@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 826 · 2026-11-21
+
+- **Pogue: a `span` slider for the voices picture.** It sets how much history the picture shows, from the full six seconds down to two, so quick movement can be seen in more detail. It changes only the picture, not the sound.
+
 ## 825 · 2026-11-21
 
 - **The loop and sustain edges get thicker with the crossfade** (sample editor): the start line reaches back over the audio that is blended in, the end line over the last frames blended with it, so the width of the crossfade shows at a glance.

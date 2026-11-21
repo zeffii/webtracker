@@ -373,6 +373,7 @@ const HINTS = {
     patrate: 'How long a pattern step lasts, in song ticks (the arp\'s list: 1 is a tick, 4 a beat at 4 ticks to the beat).',
     moves: 'What a trigger does. New targets: each voice picks a new random delay to glide to (needs Change above 0 to be heard). Phase jump: each voice\'s slow sine jumps to a random place. Both does both.',
     lookahead: 'Live: the sound is not delayed, and the move follows a hit by a fraction of a ms and a step in pitch by a few periods. Aligned: the sound is held back 10 ms so the move lands on the hit itself; the node reports that latency (only when onset is above 0).',
+    span: 'How many seconds of history the voices picture shows, from the full six down to two: a shorter span stretches the recent movement wider. It changes only the picture, not the sound.',
     dither: 'Feeds the rounding error of degrade back into the next sample: the grit moves up into a hiss.',
     errormix: 'Blends the wet sound towards the rounding error itself, a hiss that follows the sound.',
     lpcut: 'Low-pass on the wet sound, in Hz. Darkens the chorus and the feedback.',

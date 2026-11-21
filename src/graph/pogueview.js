@@ -82,11 +82,14 @@ export function createPogueView({ doc = document, getParam, setParam, watch = ()
     for (const ms of [lo, hi]) { ctx.beginPath(); ctx.moveTo(PL, Math.round(DY(ms)) + 0.5); ctx.lineTo(VW - PR, Math.round(DY(ms)) + 0.5); ctx.stroke(); }
     ctx.setLineDash([]); ctx.globalAlpha = 1;
     label(`longest ${+hi.toFixed(1)} ms`, VW - PR - 84, DY(hi) - 11, AMBER, 0.95); label(`shortest ${+lo.toFixed(1)} ms`, VW - PR - 90, DY(lo) + 3, AMBER, 0.95);
-    for (let s = 0; s <= SECONDS; s++) label(s === SECONDS ? 'now' : `-${SECONDS - s}s`, PL + s / SECONDS * pw - (s === SECONDS ? 8 : 6), TOP + TRACE + 3, c, 0.45);
+    // the span: how much of the history is shown (the node's `span`, 2 to 6 seconds); older reports run off the left edge and are clipped
+    const span = clamp(getParam('span') || SECONDS, 2, SECONDS), kept = KEPT * span / SECONDS;
+    for (let back = 0; back <= Math.floor(span); back++) label(back === 0 ? 'now' : `-${back}s`, PL + pw - back / span * pw - (back === 0 ? 8 : 6), TOP + TRACE + 3, c, 0.45);
+    ctx.save(); ctx.beginPath(); ctx.rect(PL, TOP - 2, pw, TRACE + 4); ctx.clip();
     // the detector (onset above 0): the fast/slow level ratio on a log scale of its own, the sensitivity line, and a line through the
     // picture for each trigger: the voices move there
     const onset = getParam('onset'), patternOn = Math.round(getParam('pattern')) > 0;
-    const hx = k => PL + pw - (history.length - 1 - k) / KEPT * pw;
+    const hx = k => PL + pw - (history.length - 1 - k) / kept * pw;
     if (onset > 0) {
       const RY = ratio => TOP + TRACE - clamp(Math.log(Math.max(1, ratio)) / Math.log(RATIO_MAX), 0, 1) * TRACE;
       ctx.strokeStyle = AMBER; ctx.lineWidth = 1.2; ctx.globalAlpha = 0.45; ctx.beginPath();
@@ -103,7 +106,7 @@ export function createPogueView({ doc = document, getParam, setParam, watch = ()
     });
     ctx.globalAlpha = 1;
     // the traces: the right side (wide mode) first, thin and dashed, so the left side's lines lie over them
-    const x = k => PL + pw - (history.length - 1 - k) / KEPT * pw;
+    const x = k => PL + pw - (history.length - 1 - k) / kept * pw;
     const trace = (side, width, dash, alpha) => {
       ctx.lineWidth = width; ctx.setLineDash(dash); ctx.globalAlpha = alpha;
       for (let v = 0; v < count; v++) {
@@ -119,6 +122,7 @@ export function createPogueView({ doc = document, getParam, setParam, watch = ()
       const last = history.at(-1);
       for (let v = 0; v < count; v++) if (last.l[v] !== undefined) { ctx.fillStyle = voiceColour(v, count); ctx.beginPath(); ctx.arc(x(history.length - 1), DY(last.l[v]), 3.2, 0, Math.PI * 2); ctx.fill(); }
     }
+    ctx.restore();
     if (!live) label('play something through it to watch the voices', PL + pw / 2 - 118, TOP + TRACE / 2 - 4, c, 0.5);
   }
 
