@@ -12495,6 +12495,35 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   console.log('ok: vocoder built-in carrier');
 }
 
+// declick: everything off passes the sound through; the fade ramps in at a note start; the dc corner is fast just after one; the slew limit bounds the step
+{
+  const def = NODE_TYPES.declick;
+  const run = (values, f, len = 4096, noteAt = -1) => {
+    const params = Float32Array.from(def.params.map(p => values[p.name] ?? p.def)), slots = Int32Array.from(def.params.map((_, i) => i));
+    const node = def.create({ sampleRate: sr });
+    const out = new Float32Array(len);
+    for (let at = 0; at < len; at += 128) {
+      if (at === noteAt) node.note({ type: 'noteOn', note: 60 });
+      const b = Float32Array.from({ length: 128 }, (_, i) => f(at + i)), oL = new Float32Array(128), oR = new Float32Array(128);
+      node.process([[b, b]], [[oL, oR]], 128, params, slots);
+      out.set(oL, at);
+    }
+    return out;
+  };
+  const off = { fade: 0, dc: 0, settle: 0, slew: 1 };
+  const sine = i => 0.5 * Math.sin(2 * Math.PI * 440 * i / sr);
+  assert.ok(run(off, sine).every((v, i) => Math.abs(v - sine(i)) < 1e-6), 'declick with every guard off passes the signal through');
+  const faded = run({ ...off, fade: 10 }, () => 0.5, 4096, 1024);
+  assert.ok(Math.abs(faded[1024]) < 0.01 && Math.abs(faded[1024 + Math.round(0.010 * sr)] - 0.5) < 0.01 && Math.abs(faded[3000] - 0.5) < 1e-6, 'the fade runs from silence to full level over its time after a note, and not before one');
+  assert.ok(Math.abs(run({ ...off, fade: 10 }, () => 0.5)[0] - 0.5) < 1e-6, 'with no note yet there is no fade');
+  const step = run({ ...off, dc: 10, settle: 0 }, () => 0.5), quick = run({ ...off, dc: 10, settle: 50 }, () => 0.5, 4096, 0);
+  assert.ok(Math.abs(quick[1500]) < Math.abs(step[1500]) / 4, 'just after a note the dc offset goes much faster');
+  const jump = run({ ...off, slew: 0.05 }, i => i < 100 ? 0 : 0.8);
+  let biggest = 0; for (let i = 1; i < jump.length; i++) biggest = Math.max(biggest, Math.abs(jump[i] - jump[i - 1]));
+  assert.ok(biggest <= 0.05 + 1e-6 && Math.abs(jump[300] - 0.8) < 1e-6, 'the slew limit turns a jump into a ramp that gets there');
+  console.log('ok: declick');
+}
+
 // A message on the graph: text only. It compiles away (no ports, no sound), its size follows its text, folded it is one line, and a click on its
 // body hits the node.
 {

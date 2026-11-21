@@ -299,6 +299,7 @@ export const GLYPHS = {
     ctx.restore();
     curve(ctx, cx, cy, w, h, t => 0.2 * Math.sin(t * Math.PI * 5) + (t < 0.35 ? 0.28 : t < 0.65 ? 0.28 * (0.65 - t) / 0.3 : 0) - 0.04, 40);
   },
+  declick: (ctx, cx, cy, w, h) => curve(ctx, cx, cy, w, h, t => { const u = Math.min(1, t / 0.4); return 0.4 * u * u * (3 - 2 * u) * Math.sin(t * Math.PI * 7); }, 48),   // a wave that grows in smoothly instead of starting hard
   ctrl: (ctx, cx, cy, w, h) => line(ctx, [[cx - w / 2, cy + h * 0.3], [cx - w * 0.1, cy + h * 0.3], [cx + w * 0.1, cy - h * 0.3], [cx + w / 2, cy - h * 0.3]]),   // a glide from one level to another
   range: (ctx, cx, cy, w, h) => {   // a short span mapped onto a taller one
     line(ctx, [[cx - w / 2, cy + h * 0.1], [cx - w / 2, cy - h * 0.1]]);

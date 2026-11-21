@@ -727,6 +727,12 @@ const HINTS = {
   dcblock: {
     freq: 'Cutoff of the high pass that removes the offset, in Hz. Lower keeps more bass but settles more slowly.',
   },
+  declick: {
+    fade: 'A fade-in at every note start, in ms. It runs only where the node sits in the voice\'s own chain, before the voices node. 0 is off.',
+    dc: 'Cutoff of the high pass that removes a constant offset, in Hz. 0 is off.',
+    settle: 'For this long after a note starts the dc cutoff is 16 times higher, so an offset that comes with the note goes at once. 0 is off.',
+    slew: 'The most the sound may move between two samples, as a fraction of full scale. A sudden jump becomes a short ramp. 1 is off.',
+  },
   mbcomp: {
     f1: 'Crossover between the low and the low-mid band, in Hz.',
     f2: 'Crossover between the low-mid and the high-mid band, in Hz.',

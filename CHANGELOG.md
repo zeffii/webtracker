@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 830 · 2026-11-21
+
+- **A new effect, Declick** (Filter & EQ): three guards against the click at a note's start, each with its own control. `fade` is a smooth fade-in at every note start (in a voice's own chain, before the voices node), `dc` a high pass that removes an offset, `settle` makes that high pass 16 times faster for a while after each note so an offset that arrives with the note is gone at once, and `slew` limits how far the sound can move between two samples. Every guard can be switched off.
+
 ## 829 · 2026-11-21
 
 - **The add-node menu: type a name.** A letter typed in the tree goes straight to the search, with the letter in the box, and Enter inserts the best match. The one-letter hotkeys and their underlines are gone, since they stood in the way of typing a name. Arrows, Right, Left and Esc walk the tree as before.
