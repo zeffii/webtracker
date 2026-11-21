@@ -500,6 +500,12 @@ export const GLYPHS = {
     for (const x of [lx, rx]) { const pts = []; for (let i = 0; i <= 16; i++) { const a = i / 16 * Math.PI * 2; pts.push([x + Math.cos(a) * r, y + Math.sin(a) * r]); } line(ctx, pts); }
     line(ctx, [[lx - r, y + 0.2 * h], [lx, y + r], [rx, y + r], [rx + r, y + 0.2 * h]]);
   },
+  circuit: (ctx, cx, cy, w, h) => {   // a sine, then the same wave with its peaks rounded and its edges slewed
+    const x = f => cx - w / 2 + f * w, y = f => cy + h / 2 - f * h;
+    const sine = []; for (let i = 0; i <= 16; i++) { const t = i / 16; sine.push([x(0.04 + t * 0.4), y(0.5 + 0.38 * Math.sin(t * Math.PI * 2))]); }
+    line(ctx, sine);
+    line(ctx, [[x(0.56), y(0.5)], [x(0.64), y(0.84)], [x(0.72), y(0.84)], [x(0.8), y(0.16)], [x(0.88), y(0.16)], [x(0.96), y(0.5)]]);
+  },
   groove: (ctx, cx, cy, w, h) => {   // a record: the rim, two grooves, the label and the spindle hole
     const r = Math.min(w, h) * 0.42, ring = rr => { const pts = []; for (let i = 0; i <= 20; i++) { const a = i / 20 * Math.PI * 2; pts.push([cx + Math.cos(a) * rr, cy + Math.sin(a) * rr]); } line(ctx, pts); };
     ring(r); ring(r * 0.78); ring(r * 0.58); ring(r * 0.24);

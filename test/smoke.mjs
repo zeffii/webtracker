@@ -1983,6 +1983,39 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
     for (let i = 3000; i < 18000; i++) assert.ok(Math.abs(dry[i + 2047] - tone(i)) < 1e-6 || i + 2047 >= 20000, 'mix 0 is the dry sound, delayed');
   }
 
+  // circuit: every stage off passes the sound through; slew turns a fast sine into a triangle; a low phase margin rings; the converter is coarse
+  {
+    const def = NODE_TYPES.circuit;
+    const run = (values, f, len = 24000) => {
+      const params = Float32Array.from(def.params.map(p => values[p.name] ?? p.def)), slots = Int32Array.from(def.params.map((_, i) => i));
+      const node = def.create({ sampleRate: sr });
+      const out = new Float32Array(Math.ceil(len / 128) * 128);
+      for (let at = 0; at < len; at += 128) {
+        const b = Float32Array.from({ length: 128 }, (_, i) => f(at + i)), oL = new Float32Array(128), oR = new Float32Array(128);
+        node.process([[b, b]], [[oL, oR]], 128, params, slots);
+        out.set(oL, at);
+      }
+      return out;
+    };
+    const off = { level: 1, slew_on: 0, device_on: 0, miller_on: 0, bandwidth_on: 0, loop_on: 0, converter_on: 0, noise_on: 0, wire_on: 0 };
+    const sine = i => 0.5 * Math.sin(2 * Math.PI * 1000 * i / sr);
+    const power = (x, f, a, b) => { let re = 0, im = 0; for (let i = a; i < b; i++) { re += x[i] * Math.cos(2 * Math.PI * f * i / sr); im += x[i] * Math.sin(2 * Math.PI * f * i / sr); } return Math.hypot(re, im) / (b - a); };
+    const plain = run(off, sine);
+    assert.ok(plain.every((v, i) => Math.abs(v - sine(i)) < 1e-6), 'every circuit stage off passes the signal through');
+    for (let algorithm = 0; algorithm < 6; algorithm++) {
+      const all = Object.fromEntries(Object.keys(off).map(k => [k, 1]));
+      assert.ok(run({ ...all, algorithm, feedback: 0.9, drive: 20, hiss: -40, reflect: 1, jitter: 1, margin: 20 }, sine, 12000).every(Number.isFinite), `circuit algorithm ${algorithm} stays finite`);
+    }
+    const slewed = run({ ...off, slew_on: 1, slew: 1 }, i => 0.8 * Math.sin(2 * Math.PI * 4000 * i / sr));
+    assert.ok(power(slewed, 4000, 6000, 24000) < 0.8 * 0.5 * 0.8, 'a slew limit takes the level of a fast sine down');
+    const biased = run({ ...off, device_on: 1, drive: 3, bias: 0.5, oversample: 0 }, sine), centred = run({ ...off, device_on: 1, drive: 3, bias: 0, oversample: 0 }, sine);
+    assert.ok(power(biased, 2000, 6000, 24000) > 3 * power(centred, 2000, 6000, 24000) + 1e-6, 'a biased device adds even harmonics');
+    const coarse = run({ ...off, converter_on: 1, bits: 3 }, sine);
+    assert.ok(new Set(Array.from(coarse.slice(1000, 3000), v => Math.round(v * 1e5))).size <= 8, 'three bits give at most eight levels');
+    const lat = values => def.latency({ device_on: 1, oversample: 0, ...values });
+    assert.ok(lat({ oversample: 2 }) > lat({ oversample: 0 }) && lat({ device_on: 0, oversample: 2 }) === 0, 'oversampling the device adds delay; with the device off there is none');
+  }
+
   // saturators: the curve adds harmonics, keeps the level, leaves the bass alone when asked; the multiband one saturates by band
   {
     const run = (type, values, f, len = 24000) => {

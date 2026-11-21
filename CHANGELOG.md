@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 828 · 2026-11-21
+
+- **A new effect, Circuit** (Distortion): eight stages of an analogue signal path, each switched on or off, in one of six orders. Slew rate (a fast sine turns triangular), a transistor-style device curve with bias, a miller roll-off that darkens with level, a band limit, a loop response whose phase margin rings, a converter with bits and jitter, a hiss floor, and a wire reflection. `drift` lets the parts wander; the device runs at 1x, 2x or 4x.
+
 ## 827 · 2026-11-21
 
 - **Filter and Ladder: a `keytrack` parameter.** The cutoff follows the note, an octave per octave from middle C at 1; 0 (the default) leaves every sound as it was. It works where the filter sits in a voice's own chain (before the voices node), where each voice knows its note.
