@@ -2,6 +2,11 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 831 · 2026-11-22
+
+- **Edit step, and a held key is one press.** Config › Editing has an *Edit step* (0 to 16, default 1): the rows the caret moves down after a value or note is typed into a field; 0 keeps it on the row. A key held down in the grid now writes and sounds once; the browser's key repeats no longer write a new note a row below each time.
+- **Preview time per instrument.** The instrument panel has a *ms* field beside Tracks: the least time a note played from the keys sounds when the key is let go sooner, so a slow attack (a string) is heard from a quick tap. Held keys still sound as long as they are held; 0 (the default) changes nothing. It is saved with the instrument as `previewMs`.
+
 ## 830 · 2026-11-21
 
 - **A new effect, Declick** (Filter & EQ): three guards against the click at a note's start, each with its own control. `fade` is a smooth fade-in at every note start (in a voice's own chain, before the voices node), `dc` a high pass that removes an offset, `settle` makes that high pass 16 times faster for a while after each note so an offset that arrives with the note is gone at once, and `slew` limits how far the sound can move between two samples. Every guard can be switched off.

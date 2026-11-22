@@ -1447,7 +1447,16 @@ function syncPoly() {
   $('inst-voices').value = def?.graph.voices ?? 1;
   $('inst-notecols').value = def?.noteColumns ?? 1;
   $('inst-sleep').checked = def?.graph.sleep !== 'never';
+  $('inst-prevms').value = def?.previewMs ?? 0;
 }
+// Preview time: the least time a key's note sounds on this machine (a saved field of the instrument; 0 leaves it out).
+$('inst-prevms').addEventListener('change', () => {
+  const def = project.instruments[patcher.instrument];
+  if (!def) return;
+  const n = Math.max(0, Math.min(10000, Math.round(Number($('inst-prevms').value)) || 0));
+  if (n) def.previewMs = n; else delete def.previewMs;
+  syncPoly();
+});
 // Sleep when quiet (audio/sleep.js): on by default; unticked, the machine runs all the time.
 $('inst-sleep').addEventListener('change', () => {
   const def = project.instruments[patcher.instrument];
@@ -1963,6 +1972,7 @@ const openRoll = () => {
   w.document.body.replaceChildren();
   const roll = createPatternRoll({ win: w, host: w.document.body, playing: () => (Atomics.load(engine.transport, 1) === 1 ? Atomics.load(engine.transport, 0) : -1), follow: () => config.get('follow'), editing: config.get('rollEdit'), onEditing: v => config.set('rollEdit', v), volume: config.get('rollVolume'), onVolume: v => config.set('rollVolume', v), target: () => (project?.lanes?.[view.lane] ? { lane: project.lanes[view.lane], li: view.lane, tick: view.tick } : null),
     edit: (li, items, label, key) => { const done = project.editor.setCells(li, items, label, key); if (done) { view.draw(); seqView.draw(); } return done; },
+    previewMs: id => project.instruments[id]?.previewMs ?? 0,
     onNote: (instrument, midi, on) => { if (!started || !config.get('notePreview')) return; if (on) engine.noteOn(instrument, midi, 1); else engine.noteOff(instrument, midi); },
     noteLen: () => config.get('rollNoteRows'), onNoteLen: v => config.set('rollNoteRows', v),
     onUndo: redo => { const label = redo ? project.editor.redo() : project.editor.undo(); if (label) { view.draw(); seqView.draw(); } },
@@ -3117,7 +3127,7 @@ $('start').addEventListener('click', async () => {
     navigator.storage?.persist?.();   // ask the browser not to clear the snapshots when it is short of space
     for (const id of ['start']) $(id).disabled = true;
     $('logo').classList.remove('idle'); $('logo').removeAttribute('title'); $('logo').removeAttribute('role'); $('logo').removeAttribute('tabindex');
-    for (const id of ['filemenu-btn', 'play', 'pause', 'panic', 'cut', 'rec-take', 'rec-source', 'add-inst', 'add-lane', 'add-lane-inst', 'inst-voices', 'inst-notecols', 'inst-sleep', 'inst-up', 'inst-down', 'inst-dup', 'inst-remove', 'lane-name', 'lane-rename', 'lane-left', 'lane-right', 'lane-dup', 'lane-clone', 'lane-remove', 'lane-remove-all', 'length', 'ins-n', 'ins-go', 'bpm', 'swing', 'tpb', 'bar', 'preset-name', 'preset-save', 'preset-over', 'preset-rename', 'preset-remove', 'inst-export', 'inst-import', 'lib-load', 'lib-add', 'lib-save']) $(id).disabled = false;
+    for (const id of ['filemenu-btn', 'play', 'pause', 'panic', 'cut', 'rec-take', 'rec-source', 'add-inst', 'add-lane', 'add-lane-inst', 'inst-voices', 'inst-notecols', 'inst-prevms', 'inst-sleep', 'inst-up', 'inst-down', 'inst-dup', 'inst-remove', 'lane-name', 'lane-rename', 'lane-left', 'lane-right', 'lane-dup', 'lane-clone', 'lane-remove', 'lane-remove-all', 'length', 'ins-n', 'ins-go', 'bpm', 'swing', 'tpb', 'bar', 'preset-name', 'preset-save', 'preset-over', 'preset-rename', 'preset-remove', 'inst-export', 'inst-import', 'lib-load', 'lib-add', 'lib-save']) $(id).disabled = false;
     $('status').textContent =
       `Running at ${engine.ctx.sampleRate} Hz, base latency ${(engine.ctx.baseLatency * 1000).toFixed(1)} ms`;
     unlockAudio();

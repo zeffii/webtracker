@@ -41,7 +41,7 @@ export function cellAt({ widths, x, line, top, len }) {
 // Keyboard-driven view of every lane side by side. The cursor sits on one character
 // of one cell. Edits go straight into the shared pages, so they are heard on the next
 // tick while the song plays. Call load() with the prepared lanes before drawing.
-export function createTrackerView({ showMenu = (e, items) => showContextMenu(e, items), showCurve = opts => showCurvePopup(opts), showChord = opts => showChordPalette(opts), random = Math.random, el, statusEl, undoEl = null, transport, onToggle, onBack, onMove, onRow = () => {}, onHelp = () => {}, onNoteColumns = () => 'Cannot change the columns here.', onNote = () => {}, onSong = () => {}, readParam = () => undefined, follow = () => false }) {
+export function createTrackerView({ showMenu = (e, items) => showContextMenu(e, items), showCurve = opts => showCurvePopup(opts), showChord = opts => showChordPalette(opts), random = Math.random, el, statusEl, undoEl = null, transport, onToggle, onBack, onMove, onRow = () => {}, onHelp = () => {}, onNoteColumns = () => 'Cannot change the columns here.', onNote = () => {}, previewMs = () => 0, onSong = () => {}, readParam = () => undefined, follow = () => false }) {
   let lanes = null, len = 0, widths = [], editor = null, song = null;
   // Solo-edit: one placement of one pattern, shown on its own with its rows numbered from 0. Nothing else can be reached.
   // lo..hi is its span of song ticks; hi is the song's length when not in solo-edit and lo is 0.
@@ -111,17 +111,27 @@ export function createTrackerView({ showMenu = (e, items) => showContextMenu(e, 
   let measured = null;   // the line height and top padding, measured again only when the font size changes
   const lineMetrics = () => { if (!measured || measured.px !== fontPx) { const m = metrics(); measured = { px: fontPx, lh: m.lh, up: m.up, cw: m.cw, left: m.left }; } return measured; };
   const sounding = new Map();   // key -> { instrument, note }, so the release stops what the press started
-  const stopSound = k => { const s = sounding.get(k); if (s) { onNote(s.instrument, s.note, false); sounding.delete(k); } };
+  // A note a machine keeps for a least time (its preview time: a slow attack is heard even when the key is let go at once) is released then.
+  const pending = new Map();   // key -> { timer, instrument, note }: let go, still sounding
+  const flushPending = k => { const p = pending.get(k); if (p) { clearTimeout(p.timer); onNote(p.instrument, p.note, false); pending.delete(k); } };
+  const stopSound = (k, now = false) => {
+    const s = sounding.get(k);
+    if (!s) return;
+    sounding.delete(k);
+    const left = s.since + s.ms - Date.now();
+    if (now || left <= 0) { onNote(s.instrument, s.note, false); return; }
+    pending.set(k, { instrument: s.instrument, note: s.note, timer: setTimeout(() => { pending.delete(k); onNote(s.instrument, s.note, false); }, left) });
+  };
   const startSound = (k, note) => {
-    stopSound(k);
+    stopSound(k, true); flushPending(k);
     const l = lanes[cur.lane], vel = l.rows[cur.tick][cur.col + 1];
     const v = l.columns[cur.col + 1]?.kind === 'vel' && /^[0-9A-F]{2}$/i.test(vel ?? '') ? Math.max(0.05, parseInt(vel, 16) / 255) : 1;
     const midi = note + 12;   // a written C-4 plays as MIDI 60 (see encodeCell), so the preview sounds what will play
-    sounding.set(k, { instrument: l.instrument, note: midi });
+    sounding.set(k, { instrument: l.instrument, note: midi, since: Date.now(), ms: previewMs(l.instrument) });
     onNote(l.instrument, midi, true, v);
   };
   el.addEventListener('keyup', e => stopSound(e.key.length === 1 ? e.key.toLowerCase() : e.key));
-  el.addEventListener('blur', () => { for (const k of [...sounding.keys()]) stopSound(k); });
+  el.addEventListener('blur', () => { for (const k of [...sounding.keys()]) stopSound(k, true); for (const k of [...pending.keys()]) flushPending(k); });
   // The wheel scrolls the rows without moving the cursor; the view follows the cursor again as soon as it moves.
   let wheelAcc = 0, scrolledFor = null;
   el.addEventListener('wheel', e => {
@@ -619,7 +629,7 @@ export function createTrackerView({ showMenu = (e, items) => showContextMenu(e, 
   // After typing a character: the next character, or the next row after the last one.
   const advance = () => {
     if (cur.ch + 1 < cellWidth()) cur.ch += 1;
-    else { if (!inNugget()) cur.ch = 0; moveRow(1); }   // nugget mode stays on this character, and stays in nugget mode
+    else { if (!inNugget()) cur.ch = 0; moveRow(config.get('editStep')); }   // nugget mode stays on this character, and stays in nugget mode; the edit step: rows down (0 stays)
   };
 
   // Returns true if the key was used.
@@ -638,7 +648,7 @@ export function createTrackerView({ showMenu = (e, items) => showContextMenu(e, 
         }
         if (write(next)) {
           if (preview && note !== null) startSound(k, note);   // before the cursor moves: the velocity is read from this row
-          if (!inNugget()) cur.ch = 0; moveRow(1);   // in nugget mode: the next row, same character, still nugget mode
+          if (!inNugget()) cur.ch = 0; moveRow(config.get('editStep'));   // in nugget mode: the next row, same character, still nugget mode
         }
         return true;
       }
@@ -917,7 +927,7 @@ export function createTrackerView({ showMenu = (e, items) => showContextMenu(e, 
       case '>':   // Shift+. clears the cell under the cursor, like Delete
         write(KINDS[column().token].blank);   // clearing does not advance
         break;
-      default: used = typeKey(k);
+      default: used = e.repeat ? true : typeKey(k);   // a held key is one press: its repeats write nothing and sound nothing more
     }
     if (used) e.preventDefault();
     if (onMove && (cur.lane !== was[0] || cur.tick !== was[1])) onMove(cur.lane, cur.tick);   // keep the arrangement in step

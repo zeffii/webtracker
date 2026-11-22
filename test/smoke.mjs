@@ -1018,6 +1018,15 @@ const hit = 'C-2 .. .. ..';
   press('ArrowUp');                                                     // typing a whole cell moved down a row: back up
   press('>');
   assert.equal(kick.rows[0][4], '.', '> clears the cell under the cursor, like Delete');
+  onKey({ key: '2', repeat: true, preventDefault() {} });
+  assert.equal(kick.rows[0][4], '.', 'a held key writes once: its repeats are ignored');
+  uiConfig.set('editStep', 3);
+  press('2');
+  assert.equal(view.tick, 3, 'the edit step: three rows down after the entry');
+  uiConfig.set('editStep', 0);
+  press('ArrowUp', 3); press('3');
+  assert.equal(view.tick, 0, 'a step of 0 stays on the row');
+  uiConfig.set('editStep', 1);
   view.draw();
 }
 
