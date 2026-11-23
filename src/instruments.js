@@ -242,6 +242,11 @@ export const MACHINE_TREE = [
   { name: 'tools', items: [['chords', 'Chords'], ['meta', 'Meta machine'], ['code', 'Code'], ['osc', 'OSC out'], ['empty', 'Empty']] },
 ];
 
+// A new piano instrument starts with the realistic hammer, the soundboard and the damper's tick on, a softer body (the three body
+// resonances alone are what a guitar's box sounds like) and a stronger two-stage decay. The node's own defaults stay as they were,
+// so songs that use the plain piano keep their sound.
+const PIANO_START = { felt: 1, board: 1, knock: 0.4, strike: 0.4, body: 0.25, hard: 0.65, decay: 14, prompt: 0.6 };
+
 export const synthKinds = {
   kick: {
     label: 'Kick synth',
@@ -496,7 +501,7 @@ export const synthKinds = {
   piano: {
     label: 'Piano (physical model)',
     make: () => ({
-      graph: { nodes: [{ id: 'synth', type: 'piano' }, { id: 'poly', type: 'voices' }, { id: 'out', type: 'out', params: { gain: 0.5 } }], connections: [['synth.out', 'poly.in'], ['poly.out', 'out.in']], voices: 12 },
+      graph: { nodes: [{ id: 'synth', type: 'piano', params: PIANO_START }, { id: 'poly', type: 'voices' }, { id: 'out', type: 'out', params: { gain: 0.5 } }], connections: [['synth.out', 'poly.in'], ['poly.out', 'out.in']], voices: 12 },
       noteColumns: 6,   // six note and velocity lanes, with the voices to let them ring
       exposed: [
         { node: 'synth', param: 'pedal', label: 'Ped' },

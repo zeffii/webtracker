@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 833 · 2026-11-23
+
+- **A new piano instrument sounds less like a guitar.** Measured, the plain piano was dark (at middle C the fourth partial sat 47 dB under the first), its three body resonances at 95, 230 and 540 Hz are those of a guitar's box, and its decay had hardly a knee. A new Piano instrument now starts with the felt hammer, the soundboard and the damper's tick on, *body* at 0.25, *hard* 0.65, and a longer after sound under a stronger prompt sound (*decay* 14, *prompt* 0.6): partials two to six now stand within 10 dB of the first, and the level falls fast, then slowly. The node's own defaults are unchanged, so existing songs sound as before.
+
 ## 832 · 2026-11-23
 
 - **The arrangement's caret goes on past the end of the song, and the song grows to follow.** Down, Page Down and a click now carry the caret into rows beyond the last one (drawn dimmed). Nothing changes while you only look: the song grows, by whole 64-tick chunks, when something is put there, a pattern placed, inserted or pasted, or a loop point set with Ctrl+B / Ctrl+E. Growing and the edit are one undo step, so undo takes the song back to its old length. The song still shortens only through *len*.
