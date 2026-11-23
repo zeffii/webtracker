@@ -7368,6 +7368,54 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   }
 }
 
+// 125b. Piano 2: strings, hammer and bridge as one system. In tune, steady in level, no DC, a two-stage decay that comes from the
+// bridge, the sympathetic strings only with the pedal, damped by the key, and nothing blows up.
+{
+  const render = (note, vel, seconds, params = {}, off = null) => {
+    const registry = new ParamRegistry(), rt = new GraphRuntime({ sampleRate: sr, params: registry.values });
+    rt.load(compile({ nodes: [{ id: 'p', type: 'piano2', params }, { id: 'out', type: 'out' }], voices: 1, connections: [['p.out', 'out.in']] }, { instrument: 'a', nodeTypes: NODE_TYPES, registry }));
+    const l = new Float32Array(block), r = new Float32Array(block), out = [];
+    rt.note('a', { type: 'noteOn', note, vel });
+    for (let i = 0; i < seconds * sr / block; i++) {
+      if (off !== null && i === Math.round(off * sr / block)) rt.note('a', { type: 'noteOff', note });
+      rt.process(l, r, block); out.push(...l);
+    }
+    return Float32Array.from(out);
+  };
+  const rms = (a, i, j) => Math.sqrt(a.slice(i, j).reduce((s, v) => s + v * v, 0) / (j - i));
+  const f0Of = (a, note) => {
+    const seg = a.slice(Math.round(0.2 * sr), Math.round(0.5 * sr)), T = sr / (440 * 2 ** ((note - 69) / 12));
+    const ac = lag => { let c = 0; for (let i = 0; i + lag < seg.length; i++) c += seg[i] * seg[i + lag]; return c; };
+    let best = -1e9, bl = 0; for (let lag = Math.floor(T * 0.9); lag < T * 1.1; lag++) { const c = ac(lag); if (c > best) { best = c; bl = lag; } }
+    const y0 = ac(bl - 1), y1 = ac(bl), y2 = ac(bl + 1), d = 0.5 * (y0 - y2) / (y0 - 2 * y1 + y2);
+    return 1200 * Math.log2(T / (bl + d));
+  };
+  const clean = { variance: 0, detune: 0, sympathy: 0, phantom: 0 };
+  for (const note of [36, 48, 60, 72, 84]) assert.ok(Math.abs(f0Of(render(note, 0.7, 0.6, clean), note)) < 15, `piano 2: note ${note} is in tune`);
+  const levels = [24, 48, 72, 96].map(n => rms(render(n, 0.7, 0.4), 2400, 14400));
+  assert.ok(Math.max(...levels) < 2.5 * Math.min(...levels), 'piano 2: the level is even up the keyboard');
+  assert.ok(rms(render(60, 1, 0.4), 2400, 14400) > 1.5 * rms(render(60, 0.3, 0.4), 2400, 14400), 'piano 2: a harder key is louder');
+  const held = render(48, 1, 2);
+  assert.ok(Math.abs(held.slice(48000, 96000).reduce((s, v) => s + v, 0) / 48000) < 0.02 * rms(held, 48000, 96000), 'piano 2: no steady offset in the output');
+  // the two-stage decay is the bridge's work: a stiff bridge decays evenly, a yielding one falls quickly at first and then rings
+  const fall = a => 20 * Math.log10(rms(a, 4800, 14400) / rms(a, 24000, 33600));
+  const stiff = render(72, 0.7, 1, { ...clean, board: 0, variance: 0 }), soft = render(72, 0.7, 1, { ...clean, board: 1 });
+  assert.ok(fall(soft) > fall(stiff) + 3, 'piano 2: the bridge gives the quick first decay');
+  // sympathy: with the pedal up the extra strings stay still; down, they add to the ring
+  const nosym = render(60, 1, 2, { sympathy: 0, pedal: 1 }), withsym = render(60, 1, 2, { sympathy: 1, pedal: 1 });
+  assert.ok(withsym.some((v, i) => Math.abs(v - nosym[i]) > 1e-4), 'piano 2: sympathetic strings change the sound');
+  const damped = render(60, 1, 2, {}, 0.5), pedal = render(60, 1, 2, { pedal: 1 }, 0.5);
+  assert.ok(rms(damped, 66150, 70560) < 1e-3 && rms(pedal, 66150, 70560) > 10 * rms(damped, 66150, 70560) + 1e-3, 'piano 2: the damper stills a released note, the pedal lets it ring');
+  assert.ok(rms(render(84, 1, 0.4, { una: 1 }), 2400, 14400) < rms(render(84, 1, 0.4, { una: 0 }), 2400, 14400), 'piano 2: the soft pedal is quieter');
+  const a1 = render(60, 0.7, 0.5), a2 = render(60, 0.7, 0.5);
+  assert.ok(a1.every((v, i) => v === a2[i]), 'piano 2: the same note rendered twice is identical');
+  for (const note of [0, 21, 108, 127]) for (const p of [{ board: 1, decay: 40, bright: 1, hard: 1 }, { board: 0, decay: 0.5, pos: 0.5, detune: 15, phantom: 1 }, { quality: 1, sympathy: 1, una: 1, variance: 1, hard: 0 }]) {
+    const a = render(note, 1, 1, p);
+    assert.ok(a.every(v => Number.isFinite(v) && Math.abs(v) < 8), `piano 2: note ${note} stays finite with ${JSON.stringify(p)}`);
+  }
+  console.log('ok: piano 2');
+}
+
 // Adding a node that is not wired to anything must not reload (and so cut) the running instrument
 {
   const { Engine } = await import('../src/audio/engine.js');

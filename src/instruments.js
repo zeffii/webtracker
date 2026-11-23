@@ -233,7 +233,7 @@ export const MACHINE_TREE = [
   { name: 'synths', groups: [
     { name: 'analogue', items: [['subtractive', 'Subtractive'], ['fourpole', 'Fourpole'], ['oberheim', 'Oberheim-style'], ['squelch', 'Squelch'], ['duette', 'Duette'], ['cardinal', 'Cardinal'], ['snarl', 'Snarl'], ['lone', 'Lone'], ['khufu', 'Khufu']] },
     { name: 'digital', items: [['fm', 'FM synth'], ['dvii', 'DVIIloader'], ['wavetable', 'Wavetable'], ['pulsar', 'Pulsar'], ['compass', 'Compass'], ['additive', 'Additive'], ['padsynth', 'Pad'], ['spectral', 'Spectral'], ['granular', 'Granular']] },
-    { name: 'physical', items: [['piano', 'Piano'], ['string', 'Plucked string'], ['jawharp', 'Jaw harp']] },
+    { name: 'physical', items: [['piano', 'Piano'], ['piano2', 'Piano 2'], ['string', 'Plucked string'], ['jawharp', 'Jaw harp']] },
   ] },
   { name: 'drums', groups: [
     { name: 'machines', items: [['kick', 'Kick'], ['drumsynth', 'Drum synth'], ['drumsynth2', 'Drum synth 2'], ['hat808', '808 hi-hat'], ['hat2', 'Hi-hat 2'], ['bongo', 'Bongo'], ['clap', 'Clap'], ['combperc', 'Comb perc'], ['combtom', 'Comb tom']] },
@@ -518,6 +518,29 @@ export const synthKinds = {
         { id: 0x06, node: 'synth', param: 'pos' },
         { id: 0x07, node: 'synth', param: 'inharm' },
         { id: 0x08, node: 'synth', param: 'prompt' },
+      ],
+    }),
+  },
+  piano2: {
+    label: 'Piano 2 (coupled strings, hammer and soundboard)',
+    make: () => ({
+      graph: { nodes: [{ id: 'synth', type: 'piano2' }, { id: 'poly', type: 'voices' }, { id: 'out', type: 'out', params: { gain: 0.5 } }], connections: [['synth.out', 'poly.in'], ['poly.out', 'out.in']], voices: 12 },
+      noteColumns: 6,
+      exposed: [
+        { node: 'synth', param: 'pedal', label: 'Ped' },
+        { node: 'synth', param: 'hard', label: 'Hrd' },
+        { node: 'synth', param: 'decay', label: 'Dec' },
+        { node: 'synth', param: 'board', label: 'Brd' },
+      ],
+      commands: [
+        { id: 0x01, node: 'synth', param: 'pedal' },
+        { id: 0x02, node: 'synth', param: 'hard' },
+        { id: 0x03, node: 'synth', param: 'decay' },
+        { id: 0x04, node: 'synth', param: 'board' },
+        { id: 0x05, node: 'synth', param: 'bright' },
+        { id: 0x06, node: 'synth', param: 'pos' },
+        { id: 0x07, node: 'synth', param: 'inharm' },
+        { id: 0x08, node: 'synth', param: 'una' },
       ],
     }),
   },

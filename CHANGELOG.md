@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 834 · 2026-11-23
+
+- **Piano 2: a piano built as one coupled system.** A new generator (Sources, and Physical in the instrument list) where nothing is an envelope. The hammer is a mass on a nonlinear felt spring with hysteresis that presses on the string and is pushed back by the waves returning from the string's ends, so a hard blow is shorter and brighter by physics and a hammer can touch twice. Each string is struck at a point (the comb of missing harmonics comes from the strike itself). All strings of a note end on one bridge, and the bridge is the soundboard (40 damped resonances, 16 at quality eco), solved exactly as a passive admittance: strings moving together lose energy to the board quickly (the prompt sound), strings moving against each other hardly at all (the after sound), so the two-stage decay and the beating come out of the coupling. *phantom* adds the sum-and-difference partials of a stretched string (the ping of the low notes); *sympathy* adds three unstruck strings (octave above and below, twelfth above) that the dampers hold still until the pedal is down; *una* is the soft pedal; *variance* makes every blow a little different, the same every time from the same state. New: Physical › Piano 2 in the instrument list. The old Piano is unchanged.
+
 ## 833 · 2026-11-23
 
 - **A new piano instrument sounds less like a guitar.** Measured, the plain piano was dark (at middle C the fourth partial sat 47 dB under the first), its three body resonances at 95, 230 and 540 Hz are those of a guitar's box, and its decay had hardly a knee. A new Piano instrument now starts with the felt hammer, the soundboard and the damper's tick on, *body* at 0.25, *hard* 0.65, and a longer after sound under a stronger prompt sound (*decay* 14, *prompt* 0.6): partials two to six now stand within 10 dB of the first, and the level falls fast, then slowly. The node's own defaults are unchanged, so existing songs sound as before.

@@ -422,6 +422,12 @@ export const GLYPHS = {
     for (const i of [1, 2, 4]) line(ctx, [[x(i / 5), y(1)], [x(i / 5), y(0.45)]]);   // the black keys
     ctx.lineWidth = lw;
   },
+  piano2: (ctx, cx, cy, w, h) => {   // the keys, with a string swinging over them
+    const x = f => cx - w / 2 + f * w, y = f => cy + h / 2 - f * h;
+    line(ctx, [[x(0), y(0)], [x(0), y(0.55)]]); line(ctx, [[x(1), y(0)], [x(1), y(0.55)]]); line(ctx, [[x(0), y(0)], [x(1), y(0)]]);
+    for (let i = 1; i < 5; i++) line(ctx, [[x(i / 5), y(0)], [x(i / 5), y(0.55)]]);
+    curve(ctx, cx, cy - h * 0.3, w, h * 0.4, t => Math.sin(t * Math.PI * 5) * Math.pow(1 - t, 0.8) * 0.9, 48);
+  },
   modchan: (ctx, cx, cy, w, h) => {   // an 8-bit sample: a stepped wave
     const pts = [];
     for (let i = 0; i < 10; i++) {

@@ -83,6 +83,7 @@ const TYPE_UNIT = {
   subsynth: { slide: 'ticks', spread: 'ct', width: '%' },
   fourpole: { transpose: 'st', detune: 'ct', atk: 'ms', dec: 'ms', rel: 'ms', atk2: 'ms', dec2: 'ms', rel2: 'ms', inertia: 'ms', glide: 'ms', vibrate: 'Hz', tuning: 'Hz' },
   oberheim: { vib: 'ct', sweep: 'st' },
+  piano2: { decay: 's', detune: 'ct', release: 'ms', pos: '%', thump: '%', knock: '%', width: '%', board: '%', phantom: '%', sympathy: '%', una: '%', variance: '%' },
   piano: { decay: 's', detune: 'ct', release: 'ms', pos: '%', thump: '%', body: '%', width: '%' },
   addsynth: { tilt: 'dB/oct', hdecay: '' },
   padsynth: { bandwidth: 'ct', tilt: 'dB/oct', width: '%', motion: '%', tune: 'st', glide: 'ms', atk: 'ms', dec: 'ms', rel: 'ms' },
