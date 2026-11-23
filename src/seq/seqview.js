@@ -10,6 +10,7 @@ import { showContextMenu } from '../ui/ctxmenu.js';
 import { showMachineTree, buildMachineTree } from '../ui/machinetree.js';
 import { createMinimap } from './minimap.js';
 import { createOverview, firstRowFor } from './overview.js';
+import { MAX_SONG } from '../project/ops.js';
 import { createCurveView, headMark, shownCurve } from './curveview.js';
 import { newCurve, normalise, addSection, removeSection } from './automation.js';
 
@@ -61,7 +62,8 @@ export function createSequenceView({ el, statusEl, undoEl = null, listEl, transp
 
   const lane = () => lanes[cur.lane];
   const rowStart = t => Math.floor(t / CELL) * CELL;
-  const moveTick = d => { cur.tick = rowStart(Math.min(len - 1, Math.max(0, rowStart(cur.tick) + d * CELL))); typed = ''; };
+  // The caret can go on past the song's end (the song grows, in chunks, when something is put there): see the editor's growTo.
+  const moveTick = d => { cur.tick = rowStart(Math.min(MAX_SONG - 1, Math.max(0, rowStart(cur.tick) + d * CELL))); typed = ''; };
   const moveLane = d => { cur.lane = (cur.lane + d + lanes.length) % lanes.length; typed = ''; };
   // Left and Right at the first or last lane: wrap round to the other end, or stop (the Wrap button, Config)
   const stepLane = d => { const n = cur.lane + d; if (!config.get('seqWrap') && (n < 0 || n >= lanes.length)) return; moveLane(d); };
@@ -84,7 +86,7 @@ export function createSequenceView({ el, statusEl, undoEl = null, listEl, transp
     const placed = editor.placePattern(cur.lane, cur.tick, puid);
     if (!placed) { message = replacing ? 'That pattern is already here.' : 'It does not fit here.'; return; }
     message = `${replacing ? 'Replaced with' : 'Placed'} ${lane().patterns[puid].name}.`;
-    cur.tick = rowStart(Math.min(len - 1, cur.tick + placed));
+    cur.tick = rowStart(Math.min(MAX_SONG - 1, cur.tick + placed));
   };
 
   // The selected block: lanes l0..l1, and rows from t0 to t1 (each the start tick of a row). Without a selection it is
@@ -151,7 +153,7 @@ export function createSequenceView({ el, statusEl, undoEl = null, listEl, transp
   const paste = () => {
     if (!clipboard) { message = 'Nothing copied.'; return; }
     const at = sel ? block() : { l0: cur.lane, t0: rowStart(cur.tick) };
-    if (at.t0 >= len) { message = 'No room here.'; return; }
+    if (at.t0 >= MAX_SONG) { message = 'No room here.'; return; }
     const { changed, skipped } = placeClip(clipboard, at.l0, at.t0, 'paste');
     message = changed ? `Pasted ${count(clipboard.items.length - skipped)}${skipped ? `, ${skipped} did not fit` : ''}.` : skipped ? 'Those lanes have different columns.' : 'Nothing changed.';
     if (changed) selectBlock(at.l0, at.t0, Math.min(lanes.length - 1, at.l0 + clipboard.w - 1), rowStart(Math.min(len - 1, at.t0 + (clipboard.h - 1) * CELL)));
@@ -162,10 +164,10 @@ export function createSequenceView({ el, statusEl, undoEl = null, listEl, transp
     const b = block(), clip = capture(b);
     if (!clip.items.length) { message = 'Nothing to copy here.'; return; }
     const down = clip.h * CELL, t0 = b.t0 + down;
-    if (t0 >= len) { message = 'No room below.'; return; }
+    if (t0 >= MAX_SONG) { message = 'No room below.'; return; }
     const { changed } = placeClip(clip, b.l0, t0, 'copy down');
     message = changed ? `Copied ${count(clip.items.length)} down.` : 'Nothing changed.';
-    const last = rowStart(len - 1);
+    const last = rowStart(MAX_SONG - 1);
     if (sel) { sel.tick = Math.min(last, sel.tick + down); cur.tick = Math.min(last, rowStart(cur.tick) + down); }
     else selectBlock(b.l0, t0, b.l1, Math.min(last, t0 + down - CELL));
   };
@@ -183,9 +185,9 @@ export function createSequenceView({ el, statusEl, undoEl = null, listEl, transp
     const rowEl = e.target?.closest?.('.r');
     if (!rowEl || !e.target.closest('.sg')) return null;   // the tick column is the sticky box at the row's left, wherever the lanes are scrolled to
     const ri = Array.prototype.indexOf.call(el.children, rowEl) - 1;
-    if (ri < 0 || (top + ri) * CELL >= len) return null;
+    if (ri < 0 || (top + ri) * CELL >= Math.max(len, (Math.floor(cur.tick / CELL) + 1) * CELL)) return null;   // (the caret's row past the end shows too)
     const box = rowEl.getBoundingClientRect(), f = Math.min(0.999, Math.max(0, (e.clientY - box.top) / box.height));
-    return Math.min(len - 1, (top + ri) * CELL + Math.floor(f * CELL));
+    return Math.min(MAX_SONG - 1, (top + ri) * CELL + Math.floor(f * CELL));
   };
   el.addEventListener('mousedown', e => {
     if (!lanes || e.button !== 0) return;
@@ -409,6 +411,7 @@ export function createSequenceView({ el, statusEl, undoEl = null, listEl, transp
       if (key === 'b' && e.shiftKey) { onBounce(bounceInfo()); e.preventDefault(); return; }   // Ctrl+Shift+B: bounce to a sample
       if ((key === 'b' || key === 'e') && !e.shiftKey) {   // the loop: Ctrl+B starts it at this row, Ctrl+E ends it where this row starts (this row is not in the loop)
         const row = rowStart(cur.tick);
+        if (key === 'b' ? row >= len : row > len) editor.extendTo(key === 'b' ? row : row - 1);   // a loop point past the end takes the song out to it
         message = key === 'b' ? setLoopPoint(song, 'start', row) : setLoopPoint(song, 'end', row);
         onSong();
         e.preventDefault();
@@ -496,7 +499,7 @@ export function createSequenceView({ el, statusEl, undoEl = null, listEl, transp
         const puid = listPick();
         if (puid === null) { message = 'No patterns in this lane yet. Enter makes one.'; break; }
         const at = rowStart(cur.tick), replacing = startsAt(lane(), at), n = editor.placePattern(li, at, puid);
-        if (act('place the pattern', n, 'Placed.')) { const p = lane().patterns[puid]; message = `${replacing ? 'Replaced with' : 'Placed'} ${hex2(p.index)} "${p.name}".`; if (at + n < len) cur.tick = rowStart(at + n); }
+        if (act('place the pattern', n, 'Placed.')) { const p = lane().patterns[puid]; message = `${replacing ? 'Replaced with' : 'Placed'} ${hex2(p.index)} "${p.name}".`; if (at + n < MAX_SONG) cur.tick = rowStart(at + n); }
         break;
       }
       case 'Enter':   // open the pattern under the cursor in the grid, or start a new one
@@ -658,7 +661,7 @@ export function createSequenceView({ el, statusEl, undoEl = null, listEl, transp
     else if (!paused && lastAuto !== null && cur.tick !== lastAuto && config.get('followRoam')) { paused = true; message = 'Follow paused while you move around: F9 follows again.'; }
     const following = follow() && playing && !paused, nowRow = following ? Math.floor(Math.min(len - 1, playTick) / CELL) : -1;
     if (following) { cur.tick = nowRow * CELL; lastAuto = cur.tick; sel = null; typed = ''; }
-    const rows = Math.ceil(len / CELL), curRow = Math.floor(cur.tick / CELL);
+    const curRow = Math.floor(cur.tick / CELL), rows = Math.max(Math.ceil(len / CELL), curRow + 1);   // (rows past the song's end show while the caret is on one)
     if (following) top = nowRow - (rowCount >> 1);
     else {
       if (scrolledFor !== `${cur.lane},${cur.tick}`) scrolledFor = null;
@@ -713,7 +716,7 @@ export function createSequenceView({ el, statusEl, undoEl = null, listEl, transp
         }
         return `<span class="${classes}"${dim ? ` style="${dim}"` : ''}>${layers}${isCur ? '<i class="cb"></i>' : ''}<span class="t">${inner}</span></span>`;
       });
-      lines.push(row(`<span class="sg">${playing && playTick >= t && playTick < t + CELL && !lineMode ? '>' : ' '}${num(t)}</span>${cells.join('')}`, `${r === nowRow ? ' now' : ''}${t > 0 && t % 256 === 0 ? ' k512' : ''}`));   // a faint line over every 256th tick
+      lines.push(row(`<span class="sg">${playing && playTick >= t && playTick < t + CELL && !lineMode ? '>' : ' '}${num(t)}</span>${cells.join('')}`, `${r === nowRow ? ' now' : ''}${t > 0 && t % 256 === 0 ? ' k512' : ''}${t >= len ? ' beyond' : ''}`));   // a faint line over every 256th tick
     }
 
     // the rect is always rowCount rows tall, so the drag bar works even when the song has fewer rows
@@ -765,5 +768,5 @@ export function createSequenceView({ el, statusEl, undoEl = null, listEl, transp
   const commands = {
     clone: () => { act('clone', editor.clone(cur.lane, editTick()), 'Cloned: this placement now has its own copy.'); draw(); return message; },
   };
-  return { commands, draw, load, goto, setRows, resume() { const was = paused; paused = false; lastAuto = null; return was; }, parked: () => paused, park() { paused = true; lastAuto = null; parkUntil = performance.now() + 2000; }, say: m => { message = m; }, get rows() { return rowCount; }, get lane() { return cur.lane; }, get tick() { return cur.tick; } };
+  return { commands, draw, load, goto, setRows, resume() { const was = paused; paused = false; lastAuto = null; return was; }, parked: () => paused, park() { paused = true; lastAuto = null; parkUntil = performance.now() + 2000; }, say: m => { message = m; }, setLength: n => { len = n; }, get rows() { return rowCount; }, get lane() { return cur.lane; }, get tick() { return cur.tick; } };
 }

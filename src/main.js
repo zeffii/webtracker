@@ -1335,6 +1335,15 @@ $('bar').addEventListener('change', () => {
   $('bar').value = n;
   songChanged(); seqView.draw();
 });
+// The editor changed the song's length (a pattern was put past the end, or an undo took that back): the lanes are already laid out for it,
+// so the audio thread and the views follow. The song goes on playing.
+function songLengthChanged(n) {
+  project.song.length = n;
+  engine.setSong(ops.projectData(project).song);
+  for (const { id, instrument, columns, pages, mask, auto } of project.lanes) engine.setLane({ id, instrument, columns, pages, mask, auto });
+  seqView.setLength(n); view.setLength(n);
+  $('length').value = n; songInfo();
+}
 // A new song length is sent to the running engine as it is: the song goes on playing (the other reshaping edits reload the project and stop it).
 $('length').addEventListener('change', () => {
   const before = project.song.length;
@@ -1345,7 +1354,7 @@ $('length').addEventListener('change', () => {
     const lanes = prepareSong(data.song, project.instruments, engine.registry);
     engine.setSong(data.song);
     for (const { id, instrument, columns, pages, mask, auto } of lanes) engine.setLane({ id, instrument, columns, pages, mask, auto });
-    const editor = createEditor(lanes, data.song.length);
+    const editor = createEditor(lanes, data.song.length, { onLength: songLengthChanged });
     project = { song: data.song, instruments: project.instruments, samples: project.samples, lanes, editor };
     seqView.load({ lanes, song: data.song, editor });
     mixer.refresh();
@@ -1804,7 +1813,7 @@ function openProject({ song, instruments, samples }, { stay = false, instrument 
   const lanes = prepareSong(song, instruments, engine.registry);
   engine.setSong(song);
   for (const { id, instrument, columns, pages, mask, auto } of lanes) engine.setLane({ id, instrument, columns, pages, mask, auto });
-  const editor = createEditor(lanes, song.length);
+  const editor = createEditor(lanes, song.length, { onLength: songLengthChanged });
   project = { song, instruments, samples, lanes, editor };
   patcher.load({ instruments });
   if (instrument in instruments) patcher.show(instrument);

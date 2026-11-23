@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 832 · 2026-11-23
+
+- **The arrangement's caret goes on past the end of the song, and the song grows to follow.** Down, Page Down and a click now carry the caret into rows beyond the last one (drawn dimmed). Nothing changes while you only look: the song grows, by whole 64-tick chunks, when something is put there, a pattern placed, inserted or pasted, or a loop point set with Ctrl+B / Ctrl+E. Growing and the edit are one undo step, so undo takes the song back to its old length. The song still shortens only through *len*.
+
 ## 831 · 2026-11-22
 
 - **Edit step, and a held key is one press.** Config › Editing has an *Edit step* (0 to 16, default 1): the rows the caret moves down after a value or note is typed into a field; 0 keeps it on the row. A key held down in the grid now writes and sounds once; the browser's key repeats no longer write a new note a row below each time.

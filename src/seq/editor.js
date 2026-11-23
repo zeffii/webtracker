@@ -1,4 +1,5 @@
 import * as ops from './edit.js';
+import { MAX_SONG } from '../project/ops.js';
 import { followPins, rebake, spans } from './automation.js';
 
 // Every change to patterns and placements goes through the editor, which keeps a
@@ -10,26 +11,53 @@ import { followPins, rebake, spans } from './automation.js';
 export const START_GRID = 16;
 const snap = tick => Math.floor(tick / START_GRID) * START_GRID;
 
-export function createEditor(lanes, length, { limit = 20 } = {}) {
+// The song grows by whole chunks of this many ticks when something is put past its end.
+export const GROW = 64;
+
+// `onLength(n)` is told when the song's length changes (an edit past the end grew it, or an undo took it back), after the lanes
+// have been laid out again for it, so the audio thread and the views can follow.
+export function createEditor(lanes, startLength, { limit = 20, onLength = () => {} } = {}) {
+  let length = startLength;
   const undoStack = [], redoStack = [];
   let waypoint = null, lastKey = null;
 
-  const snapshot = () => lanes.map(l => structuredClone({ patterns: l.patterns, placements: l.placements, mutes: l.mutes ?? [], offs: l.offs ?? [], curves: l.curves ?? [] }));
-  const restore = state => state.forEach((s, i) => {
-    lanes[i].patterns = structuredClone(s.patterns);
-    lanes[i].placements = structuredClone(s.placements);
-    lanes[i].mutes = [...s.mutes];
-    lanes[i].offs = [...(s.offs ?? [])];
-    lanes[i].curves = structuredClone(s.curves ?? []);
-    ops.refresh(lanes[i], length);
-  });
+  // a state is the song's length and, for each lane, its patterns, placements and markers
+  const snapshot = () => ({ length, lanes: lanes.map(l => structuredClone({ patterns: l.patterns, placements: l.placements, mutes: l.mutes ?? [], offs: l.offs ?? [], curves: l.curves ?? [] })) });
+  const restore = state => {
+    const resized = state.length !== length;
+    length = state.length;
+    state.lanes.forEach((s, i) => {
+      lanes[i].patterns = structuredClone(s.patterns);
+      lanes[i].placements = structuredClone(s.placements);
+      lanes[i].mutes = [...s.mutes];
+      lanes[i].offs = [...(s.offs ?? [])];
+      lanes[i].curves = structuredClone(s.curves ?? []);
+      if (resized) ops.resize(lanes[i], length); else ops.refresh(lanes[i], length);
+    });
+    if (resized) onLength(length);
+  };
+
+  // The song's end moves out to the chunk that holds `tick` (the last tick of what is being put there). Part of the edit that asks for it,
+  // so one undo takes both back. Returns whether the song grew.
+  const growTo = tick => {
+    if (tick < length) return false;
+    const want = Math.min(MAX_SONG, Math.ceil((tick + 1) / GROW) * GROW);
+    if (want <= length) return false;
+    length = want;
+    lanes.forEach(l => ops.resize(l, length));
+    onLength(length);
+    return true;
+  };
 
   // Runs an edit; records an undo entry only if it changed something. Repeated edits
   // with the same key (typing into one cell) share one entry.
   const change = (label, key, fn) => {
     const before = snapshot(), was = lanes.map(spans);
     const result = fn();
-    if (!result) return result;
+    if (!result) {
+      if (length !== before.length) restore(before);   // nothing was done, so the song does not stay longer
+      return result;
+    }
     // anchors pinned to a pattern edge go with it; the ones whose pattern is gone let go (the curve itself does not change)
     api.freed = 0;
     lanes.forEach((l, i) => {
@@ -57,6 +85,9 @@ export function createEditor(lanes, length, { limit = 20 } = {}) {
 
   const at = li => lanes[li];
   const api = {
+    length: () => length,
+    // The song reaches at least tick (a loop point, say, set past the end): an edit of its own.
+    extendTo: tick => change('extend song', null, () => growTo(tick)),
     freed: 0,   // how many curve pins the last edit let go of
     // A change to one lane's curves: fn(lane) edits lane.curves and returns whether it changed anything. Returns whether the
     // set of running curves changed (then the audio thread needs the lane again), or null.
@@ -69,8 +100,8 @@ export function createEditor(lanes, length, { limit = 20 } = {}) {
     setPatternRows: (li, puid, rows) => change('replace pattern', null, () => ops.setPatternRows(at(li), length, puid, rows)),
     addPatternCopy: (li, rows, name) => change('new pattern', null, () => ops.addPatternCopy(at(li), length, rows, name)),
     setCells: (li, items, label = 'edit cells', key = null) => change(label, key, () => ops.setCells(at(li), length, items)),
-    insertPattern: (li, tick, { overlay = false } = {}) => change('insert pattern', null, () => ops.insertPattern(at(li), length, snap(tick), 16, overlay)),
-    placePattern: (li, tick, puid) => change('place pattern', null, () => ops.placePattern(at(li), length, snap(tick), puid)),
+    insertPattern: (li, tick, { overlay = false } = {}) => change('insert pattern', null, () => { growTo(snap(tick) + 16 - 1); return ops.insertPattern(at(li), length, snap(tick), 16, overlay); }),
+    placePattern: (li, tick, puid) => change('place pattern', null, () => { growTo(snap(tick) + (at(li).patterns[puid]?.length ?? 16) - 1); return ops.placePattern(at(li), length, snap(tick), puid); }),
     // A new pattern of `rows` rows at the tick (snapped to a row of the arrangement) with cells written into it: items are
     // { tick, col, token } with the tick counted from the pattern's start. Returns the pattern's puid, or null when one already starts there.
     // name(index, names), when given, names the new pattern from its index and the names of the lane's other patterns.
@@ -95,6 +126,7 @@ export function createEditor(lanes, length, { limit = 20 } = {}) {
     // a `key` naming it, which is copied into the lane once however many placements use it).
     placeBlocks: (jobs, label = 'paste') => change(label, null, () => {
       let n = 0;
+      for (const job of jobs) for (const p of job.placements) growTo(p.start + p.length - 1);   // (clearing a block does not grow the song)
       for (const job of jobs) {
         const lane = at(job.li), made = new Map();
         const placements = [];

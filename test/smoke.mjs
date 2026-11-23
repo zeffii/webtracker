@@ -543,6 +543,32 @@ const firstSound = x => x.findIndex(v => Math.abs(v) > 1e-9);
   assert.ok(editor.log().length <= 20);
 }
 
+// 23b. A pattern put past the song's end takes the song out to the next 64-tick chunk, as one undo step; a failed edit leaves it as it was.
+{
+  const registry = new ParamRegistry();
+  for (const [id, def] of Object.entries(instruments)) compile(def.graph, { instrument: id, nodeTypes: NODE_TYPES, registry });
+  const lanes = prepareSong(demoSong, instruments, registry);
+  const before = demoSong.length, heard = [];
+  const editor = createEditor(lanes, before, { onLength: n => heard.push(n) });
+  const at = before + 16, grown = Math.ceil((at + 16) / 64) * 64;
+  assert.ok(editor.insertPattern(1, at));
+  assert.equal(editor.length(), grown);
+  assert.deepEqual(heard, [grown]);
+  assert.equal(lanes[1].rows.length, grown);                              // the lane is laid out again for the longer song
+  assert.equal(editor.log().length, 1);                                   // growing and placing are one entry
+  assert.equal(editor.undo(), 'insert pattern');
+  assert.equal(editor.length(), before);
+  assert.equal(lanes[1].rows.length, before);
+  assert.deepEqual(heard, [grown, before]);
+  assert.equal(editor.redo(), 'insert pattern');
+  assert.equal(editor.length(), grown);
+  assert.ok(editor.extendTo(grown + 5));                                  // a loop point past the end
+  assert.equal(editor.length(), grown + 64);
+  assert.ok(!editor.extendTo(10));                                        // inside the song: nothing to do
+  assert.equal(editor.remove(1, grown + 1000), false);                    // an edit that does nothing past the end does not grow it
+  assert.equal(editor.length(), grown + 64);
+}
+
 // 24. The arrangement view: keys place, clone, slice, move and undo; names are escaped.
 {
   const registry = new ParamRegistry();
@@ -590,9 +616,9 @@ const firstSound = x => x.findIndex(v => Math.abs(v) > 1e-9);
   assert.ok(rows[1].includes('gn g1'), 'a bar start has the darker number shade');
   assert.ok(rows.slice(1, 3).some(r => /class="L[^"]* st/.test(r)), 'blocks start on their row');
   press('ArrowDown'); press('ArrowDown');                                // time moves down the rows
-  assert.deepEqual(moves.at(-1), [0, 16], 'the second row, 16 ticks down (the song is 32 ticks)');
+  assert.deepEqual(moves.at(-1), [0, 32], 'the caret goes on past the end (the song is 32 ticks)');
   press('ArrowRight');                                                   // and right changes lane
-  assert.deepEqual(moves.at(-1), [1, 16]);
+  assert.deepEqual(moves.at(-1), [1, 32]);
   view.goto(0, 5); press('ArrowDown'); assert.deepEqual(moves.at(-1), [0, 16], 'the cursor sits on a row start');
   // two patterns start in the second row of the lead lane (an arp at 16 and a fill at 28): marked with a +
   view.goto(0, 16); view.draw();

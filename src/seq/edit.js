@@ -1,5 +1,5 @@
 import { KINDS } from './cells.js';
-import { flattenLane, writeMask, writePages } from './lane.js';
+import { buildPages, flattenLane, writeMask, writePages } from './lane.js';
 import { rebake } from './automation.js';
 
 let counter = 0;
@@ -44,6 +44,14 @@ function addPattern(lane, rows, name, color) {
 export function refresh(lane, length) {
   lane.rows = flattenLane(lane, lane.columns, length);
   writePages(lane.rows, lane.columns, lane.pages);
+  writeMask(lane, length);
+  rebake(lane, length);
+}
+
+// The lane laid out again for a song of another length (its pages are a different size).
+export function resize(lane, length) {
+  lane.rows = flattenLane(lane, lane.columns, length);
+  lane.pages = buildPages(lane.rows, lane.columns);
   writeMask(lane, length);
   rebake(lane, length);
 }
