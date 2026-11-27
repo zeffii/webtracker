@@ -4,7 +4,7 @@ Full history, newest first. The About page shows only the latest 10 builds.
 
 ## 835 · 2026-11-27
 
-- **Piano 2: the keys now follow the velocity fully.** The `vel` setting is how much the key velocity matters (0 plays every key the same, 1 follows it fully) and it started at 0.7, which squeezed the soft keys up towards the loud ones: from the softest key to the hardest the sound moved only about 12 dB. It now starts at 1, which gives about 25 dB between a soft and a hard key at the same pitch, with the high partials thinning out on the soft ones. A key struck at velocity 0.7 sounds as before, within about a decibel. Piano 2 now has a hint for `vel`.
+- **Piano 2: the keys now follow the velocity fully.** The `vel` setting is how much the key velocity matters (0 plays every key the same, 1 follows it fully) and it started at 0.7, which squeezed the soft keys up towards the loud ones: from the softest key to the hardest the sound moved only about 12 dB. It now starts at 1, which gives about 25 dB between a soft and a hard key at the same pitch, with the high partials thinning out on the soft ones. A key struck at velocity 0.7 is about 1.5 dB quieter than before. Piano 2 now has a hint for `vel`.
 
 ## 834 · 2026-11-23
 
