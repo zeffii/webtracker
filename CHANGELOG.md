@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 837 · 2026-11-27
+
+- **A tutorial for adding a node or an instrument** (`docs/ADDING_NODES.md`), for anyone, human or AI, who wants to contribute a sound: what a node and an instrument are, the house rules (no brand names, no factory presets, a quality setting for heavy nodes), a complete example node that was run through the engine, where to register it, how to check the sound with numbers, an instrument definition, and the steps for the native port. The native side has its own page in wax-core.
+
 ## 836 · 2026-11-27
 
 - **Piano 2: `sing`, the strings entice themselves to resonate.** The bridge motion is fed back onto the struck strings at the strike point, through a narrow filter and a limiter that holds it to the level of the blow that started the note, so it cannot run away. A little keeps the note ringing where it was struck (about 0.3 and up the note lasts far longer; at 0.6 it holds steady for as long as the key is down), and at 1 the feed has moved up an octave: the note jumps there over a few seconds and the fundamental fades, the way a flute overblows. Between about 0.75 and 0.85 the note falters between the two, which is the break between registers. The damper ends it, and the pedal lets it go on. 0 is a plain piano and costs nothing. It is command 09 on the Piano 2 instrument, has a hint, and is tested (holds, jumps, damps, stays finite).

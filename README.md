@@ -104,6 +104,8 @@ The waveform height is draggable.
 
 ## Layout of the code
 
+Writing a node or an instrument: [docs/ADDING_NODES.md](docs/ADDING_NODES.md).
+
 ```
 index.html          the page and its styles (themes in themes.css)
 src/audio/          engine (main thread), worklet + runtime (audio thread), sequencer, nodes/ (one file per node)
