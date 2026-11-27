@@ -1193,6 +1193,7 @@ const HINTS = {
     pedal: 'The sustain pedal: 0.5 or more is down. Released notes keep ringing while it is down, and the unstruck strings ring in sympathy. Expose it as a pattern column to play it.',
     release: 'How fast the damper stills a string after the key is let go (when the pedal is up), in ms.',
     vel: 'How much the key velocity matters. 1 follows the key fully: a soft key is about 25 dB quieter than a hard one and has far fewer high partials, as on a real piano. Lower values squeeze the range towards the middle; 0 plays every key the same.',
+    sing: 'Entices the strings to resonate by themselves. What reaches the bridge is fed back onto the strings, so a little keeps the note ringing at the level it was struck, more makes it a held tone, and at 1 it jumps up an octave and the fundamental fades, like an overblown flute. Only while the key is down (or the pedal): the damper ends it. 0 is a plain piano.',
     quality: '0 standard, 1 eco: the soundboard uses 16 resonances instead of 40 and the three sympathetic strings are left out. The rest is the same.',
   },
   piano: {

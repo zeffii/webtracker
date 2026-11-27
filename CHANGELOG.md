@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 836 · 2026-11-27
+
+- **Piano 2: `sing`, the strings entice themselves to resonate.** The bridge motion is fed back onto the struck strings at the strike point, through a narrow filter and a limiter that holds it to the level of the blow that started the note, so it cannot run away. A little keeps the note ringing where it was struck (about 0.3 and up the note lasts far longer; at 0.6 it holds steady for as long as the key is down), and at 1 the feed has moved up an octave: the note jumps there over a few seconds and the fundamental fades, the way a flute overblows. Between about 0.75 and 0.85 the note falters between the two, which is the break between registers. The damper ends it, and the pedal lets it go on. 0 is a plain piano and costs nothing. It is command 09 on the Piano 2 instrument, has a hint, and is tested (holds, jumps, damps, stays finite).
+
 ## 835 · 2026-11-27
 
 - **Piano 2: the keys now follow the velocity fully.** The `vel` setting is how much the key velocity matters (0 plays every key the same, 1 follows it fully) and it started at 0.7, which squeezed the soft keys up towards the loud ones: from the softest key to the hardest the sound moved only about 12 dB. It now starts at 1, which gives about 25 dB between a soft and a hard key at the same pitch, with the high partials thinning out on the soft ones. A key struck at velocity 0.7 is about 1.5 dB quieter than before. Piano 2 now has a hint for `vel`.

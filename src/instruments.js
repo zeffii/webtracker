@@ -541,6 +541,7 @@ export const synthKinds = {
         { id: 0x06, node: 'synth', param: 'pos' },
         { id: 0x07, node: 'synth', param: 'inharm' },
         { id: 0x08, node: 'synth', param: 'una' },
+        { id: 0x09, node: 'synth', param: 'sing' },
       ],
     }),
   },

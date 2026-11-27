@@ -21,6 +21,11 @@
 //   sympathy  three more strings, at the octave above and below and at the twelfth above, which are not struck but ring when
 //             the bridge excites them. The dampers hold them nearly still until the pedal comes down.
 //   una       the soft pedal: the hammer misses one string of three.
+//   sing      the strings fed by their own bridge: what arrives at the bridge is put back on the strings at the strike point,
+//             through a narrow filter and a limiter that holds it to the level of the blow that started the note. A little keeps
+//             the note ringing; more makes it a held tone that blooms; at 1 the feed moves up an octave and the note jumps
+//             there and the fundamental fades, as an overblown flute does. Only while the key is down (or the pedal): the damper
+//             ends it. Bounded by the limiter, so it cannot run away. 0 is a plain piano.
 //   variance  every blow is a little different (hammer position, felt, tuning), the same way every time a note is struck from the
 //             same state, but different from note to note.
 //   thump, knock, pedal, release   as in the piano: the key's thud, the damper's tick, and the damper falling.
@@ -48,6 +53,7 @@ const SPEC = [
   { name: 'vel', min: 0, max: 1, def: 1 },
   { name: 'level', min: 0, max: 1, def: 0.5 },
   { name: 'quality', min: 0, max: 1, def: 0, int: true },   // 0 standard, 1 eco
+  { name: 'sing', min: 0, max: 1, def: 0 },                // the strings fed by their own bridge: 0 a plain piano, 1 an overblown note
 ];
 const P = {};
 SPEC.forEach((s, i) => { P[s.name] = i; });
@@ -80,6 +86,11 @@ const HAMMER_MASS = [[21, 9e-3], [48, 5.5e-3], [60, 4e-3], [84, 2.8e-3], [108, 2
 const FELT_K = [[21, 4e8], [48, 2e9], [60, 4.5e9], [84, 1.5e10], [108, 4e10]];            // the felt's stiffness, N/m^p, by key
 const HAMMER_SPEED = 4;        // m/s at velocity 1
 const FELT_HYSTERESIS = 1.2e-4; // s: the felt pushes harder while it is being squeezed than while it springs back
+// ---- sing: the strings fed by their own bridge ----------------------------------------------------------------------------
+const SING_GAIN = 1.6;           // at sing 1: how strongly the bridge motion is put back (the note sustains from about sing 0.3)
+const SING_Q = 40;               // the feed's filter is narrow, so it picks one partial
+const SING_JUMP_FROM = 0.6, SING_JUMP_TO = 0.9;   // the sing range over which the feed moves from the fundamental to the octave
+const SING_CAP_SECONDS = 0.1;    // the level the feed may reach is the fundamental's level just after the blow, measured over its first 100 ms
 // the string's impedance (kg/s) by key: a heavy bass string resists more than a fine treble one
 const stringImpedance = midi => clamp(0.65 * Math.pow(2, -(midi - 60) / 24), 0.05, 6);
 
@@ -130,6 +141,10 @@ export default {
     let seed = 0x2545f491;
     const rand = () => { seed ^= seed << 13; seed ^= seed >>> 17; seed ^= seed << 5; return (seed >>> 0) / 4294967296 * 2 - 1; };
     let thumpEnv = 0, thumpDecay = 0, thumpAmp = 0, thumpLp = 0, knockEnv = 0, knockLp = 0;
+    // sing: a narrow bandpass on the fundamental and one on the octave (RBJ, 0 dB at the peak), each with a level follower
+    const singB0 = new Float64Array(2), singA1 = new Float64Array(2), singA2 = new Float64Array(2);
+    const singX1 = new Float64Array(2), singX2 = new Float64Array(2), singY1 = new Float64Array(2), singY2 = new Float64Array(2), singEnv = new Float64Array(2);
+    let singGain = 0, singOctave = 0, singCap = 0, singAge = 0, singCapEnd = 0;
     let dcState = 0, nonlinHp = 0, nonlinEnv = 1e-6, loud = 1, quiet = 0, panL = 1, panR = 1, k = 0, outAmp = 1;
 
     // Tune string s to frequency f (note number midiS) with the given 60 dB decay time (seconds) and brightness.
@@ -209,6 +224,17 @@ export default {
       thumpEnv = 1; thumpDecay = Math.exp(-1 / (0.012 * fs)); thumpAmp = g('thump') * vm * vm * 0.5;
       knockEnv = 0; knockLp = 0;
       outAmp = NORM(pf);
+      {
+        const b = g('sing'), jump = clamp((b - SING_JUMP_FROM) / (SING_JUMP_TO - SING_JUMP_FROM), 0, 1);
+        singOctave = jump * jump * (3 - 2 * jump);
+        singGain = b * b * SING_GAIN / Math.max(1, delay[0]);
+        singCap = 0; singAge = 0; singCapEnd = Math.round(SING_CAP_SECONDS * fs);
+        for (let p = 0; p < 2; p++) {
+          const w0 = 2 * Math.PI * f0 * (p + 1) / fs, al = Math.sin(w0) / (2 * SING_Q), a0 = 1 + al;
+          singB0[p] = al / a0; singA1[p] = -2 * Math.cos(w0) / a0; singA2[p] = (1 - al) / a0;
+          singX1[p] = singX2[p] = singY1[p] = singY2[p] = singEnv[p] = 0;
+        }
+      }
       const place = 0.5 + (pf - 0.5) * g('width');
       panL = Math.cos(place * Math.PI / 2) * Math.SQRT2; panR = Math.sin(place * Math.PI / 2) * Math.SQRT2;
       damped = false; quiet = 0; k = 0;
@@ -269,6 +295,28 @@ export default {
             lp[s] = (1 - lc[s]) * x + lc[s] * lp[s];
             arrive[s] = lp[s] * loopNow[s];
             S += zw[s] * arrive[s];
+          }
+          // sing: the bridge motion, through the two narrow filters and the limiter, put back on the struck strings at the strike point
+          if (singGain > 0) {
+            const sig = S - dcState;
+            if (singAge < singCapEnd) singAge++;
+            let fed = 0;
+            for (let p = 0; p < 2; p++) {
+              const y = singB0[p] * (sig - singX2[p]) - singA1[p] * singY1[p] - singA2[p] * singY2[p];
+              singX2[p] = singX1[p]; singX1[p] = sig; singY2[p] = singY1[p]; singY1[p] = y;
+              const ay = Math.abs(y);
+              if (p === 0 && singAge < singCapEnd && ay > singCap) singCap = ay;   // the level the feed may reach: the fundamental's, just after the blow
+              singEnv[p] = ay > singEnv[p] ? ay : singEnv[p] * 0.9998;
+              const held = Math.min(singEnv[p], singCap);
+              fed += (p === 0 ? 1 - singOctave : Math.min(1, 2 * singOctave)) * (singEnv[p] > 1e-12 ? Math.tanh(1.5 * y / singEnv[p]) * held : 0);
+            }
+            if (!damped) {
+              const inject = singGain * fed;
+              for (let s2 = 0; s2 < ns; s2++) {
+                const part = inject * share[s2] * ns;
+                buf[s2][(w - tap[s2]) & MASK] += part; buf[s2][(w - delay[s2] + tap[s2]) & MASK] += part;
+              }
+            }
           }
           // the phantom partials: the square of the motion, without its mean, put back on the bridge force
           if (phantom > 0) {

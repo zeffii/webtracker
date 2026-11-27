@@ -7407,9 +7407,22 @@ const burst = new Float32Array(4800).map((_, i) => (Math.sin(i * 0.7) + Math.sin
   const damped = render(60, 1, 2, {}, 0.5), pedal = render(60, 1, 2, { pedal: 1 }, 0.5);
   assert.ok(rms(damped, 66150, 70560) < 1e-3 && rms(pedal, 66150, 70560) > 10 * rms(damped, 66150, 70560) + 1e-3, 'piano 2: the damper stills a released note, the pedal lets it ring');
   assert.ok(rms(render(84, 1, 0.4, { una: 1 }), 2400, 14400) < rms(render(84, 1, 0.4, { una: 0 }), 2400, 14400), 'piano 2: the soft pedal is quieter');
+  // sing: the strings fed by their own bridge. A little holds the note at the level it was struck; at 1 the octave takes over; the damper ends it
+  {
+    const at = (a, t) => rms(a, Math.round(t * sr), Math.round((t + 0.2) * sr));
+    const partial = (a, t, f) => { let re = 0, im = 0; const i = Math.round(t * sr), n = Math.round(0.3 * sr); for (let k = 0; k < n; k++) { const x = a[i + k] * (0.5 - 0.5 * Math.cos(2 * Math.PI * k / n)); re += x * Math.cos(2 * Math.PI * f * k / sr); im -= x * Math.sin(2 * Math.PI * f * k / sr); } return Math.hypot(re, im); };
+    const f0 = 440 * 2 ** ((60 - 69) / 12), quiet = { decay: 6, variance: 0 };
+    const plain = render(60, 0.7, 5, quiet), held = render(60, 0.7, 5, { ...quiet, sing: 0.6 });
+    assert.ok(at(plain, 4) < 0.05 * at(plain, 0.4), 'piano 2: without sing the note dies away');
+    assert.ok(at(held, 4) > 0.5 * at(held, 0.4) && at(held, 4) < 2 * at(held, 0.4), 'piano 2: sing holds the note at about the level it was struck');
+    const over = render(60, 0.7, 5, { ...quiet, sing: 1 });
+    assert.ok(partial(over, 4, 2 * f0) > 3 * partial(over, 4, f0), 'piano 2: at full sing the octave takes over from the fundamental');
+    const stopped = render(60, 0.7, 4, { ...quiet, sing: 0.6 }, 1);
+    assert.ok(at(stopped, 3) < 0.02 * at(held, 3), 'piano 2: the damper ends a sung note');
+  }
   const a1 = render(60, 0.7, 0.5), a2 = render(60, 0.7, 0.5);
   assert.ok(a1.every((v, i) => v === a2[i]), 'piano 2: the same note rendered twice is identical');
-  for (const note of [0, 21, 108, 127]) for (const p of [{ board: 1, decay: 40, bright: 1, hard: 1 }, { board: 0, decay: 0.5, pos: 0.5, detune: 15, phantom: 1 }, { quality: 1, sympathy: 1, una: 1, variance: 1, hard: 0 }]) {
+  for (const note of [0, 21, 108, 127]) for (const p of [{ sing: 1, board: 0, decay: 40, bright: 1 }, { sing: 0.6, pedal: 1, sympathy: 1, hard: 1 }, { board: 1, decay: 40, bright: 1, hard: 1 }, { board: 0, decay: 0.5, pos: 0.5, detune: 15, phantom: 1 }, { quality: 1, sympathy: 1, una: 1, variance: 1, hard: 0 }]) {
     const a = render(note, 1, 1, p);
     assert.ok(a.every(v => Number.isFinite(v) && Math.abs(v) < 8), `piano 2: note ${note} stays finite with ${JSON.stringify(p)}`);
   }
