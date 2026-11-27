@@ -2,6 +2,10 @@
 
 Full history, newest first. The About page shows only the latest 10 builds.
 
+## 835 · 2026-11-27
+
+- **Piano 2: the keys now follow the velocity fully.** The `vel` setting is how much the key velocity matters (0 plays every key the same, 1 follows it fully) and it started at 0.7, which squeezed the soft keys up towards the loud ones: from the softest key to the hardest the sound moved only about 12 dB. It now starts at 1, which gives about 25 dB between a soft and a hard key at the same pitch, with the high partials thinning out on the soft ones. A key struck at velocity 0.7 sounds as before, within about a decibel. Piano 2 now has a hint for `vel`.
+
 ## 834 · 2026-11-23
 
 - **Piano 2: a piano built as one coupled system.** A new generator (Sources, and Physical in the instrument list) where nothing is an envelope. The hammer is a mass on a nonlinear felt spring with hysteresis that presses on the string and is pushed back by the waves returning from the string's ends, so a hard blow is shorter and brighter by physics and a hammer can touch twice. Each string is struck at a point (the comb of missing harmonics comes from the strike itself). All strings of a note end on one bridge, and the bridge is the soundboard (40 damped resonances, 16 at quality eco), solved exactly as a passive admittance: strings moving together lose energy to the board quickly (the prompt sound), strings moving against each other hardly at all (the after sound), so the two-stage decay and the beating come out of the coupling. *phantom* adds the sum-and-difference partials of a stretched string (the ping of the low notes); *sympathy* adds three unstruck strings (octave above and below, twelfth above) that the dampers hold still until the pedal is down; *una* is the soft pedal; *variance* makes every blow a little different, the same every time from the same state. New: Physical › Piano 2 in the instrument list. The old Piano is unchanged.

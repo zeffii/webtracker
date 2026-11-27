@@ -1192,6 +1192,7 @@ const HINTS = {
     width: 'How far notes are spread across the stereo field by pitch, bass to the left and treble to the right. 0 is mono.',
     pedal: 'The sustain pedal: 0.5 or more is down. Released notes keep ringing while it is down, and the unstruck strings ring in sympathy. Expose it as a pattern column to play it.',
     release: 'How fast the damper stills a string after the key is let go (when the pedal is up), in ms.',
+    vel: 'How much the key velocity matters. 1 follows the key fully: a soft key is about 25 dB quieter than a hard one and has far fewer high partials, as on a real piano. Lower values squeeze the range towards the middle; 0 plays every key the same.',
     quality: '0 standard, 1 eco: the soundboard uses 16 resonances instead of 40 and the three sympathetic strings are left out. The rest is the same.',
   },
   piano: {

@@ -45,7 +45,7 @@ const SPEC = [
   { name: 'pedal', min: 0, max: 1, def: 0 },
   { name: 'release', min: 20, max: 3000, def: 250 },     // ms the damper takes to still a released string
   { name: 'tune', min: -48, max: 48, def: 0 },
-  { name: 'vel', min: 0, max: 1, def: 0.7 },
+  { name: 'vel', min: 0, max: 1, def: 1 },
   { name: 'level', min: 0, max: 1, def: 0.5 },
   { name: 'quality', min: 0, max: 1, def: 0, int: true },   // 0 standard, 1 eco
 ];
